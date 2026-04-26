@@ -60,6 +60,9 @@ builder.Services.AddSingleton<IPatternDetector, SpellPatternDetector>();
 builder.Services.AddSingleton<IPatternDetector, MonsterPatternDetector>();
 builder.Services.AddSingleton<IPatternDetector, ClassPatternDetector>();
 builder.Services.AddSingleton<IPatternDetector, BackgroundPatternDetector>();
+builder.Services.AddSingleton<IPatternDetector, TreasurePatternDetector>();
+builder.Services.AddSingleton<IPatternDetector, EncounterPatternDetector>();
+builder.Services.AddSingleton<IPatternDetector, TrapPatternDetector>();
 builder.Services.AddSingleton<ContentCategoryDetector>();
 builder.Services.AddSingleton<DndChunker>();
 

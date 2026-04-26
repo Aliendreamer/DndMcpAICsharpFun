@@ -8,5 +8,8 @@ public enum ContentCategory
     Background,
     Item,
     Rule,
+    Treasure,
+    Encounter,
+    Trap,
     Unknown
 }
