@@ -40,3 +40,16 @@ There are no tests yet. When added, run them with `dotnet test`.
 ### Configuration
 
 The host listens on `http://localhost:5101` (set in `DndMcpAICsharpFun.http`). Override via `launchSettings.json` or environment variables if needed.
+
+## Observability
+
+When the full stack is running (`docker compose up`), these UIs are available:
+
+| Service | URL | Notes |
+|---------|-----|-------|
+| Grafana | http://localhost:3000 | Pre-provisioned dashboards for .NET, Qdrant, Ollama |
+| Prometheus | http://localhost:9090 | Metrics scraping and querying |
+| sqlite-web | http://localhost:8080 | Browse `IngestionRecords` table |
+| Qdrant UI | http://localhost:6333/dashboard | Vector collection browser |
+
+> **Note:** The `/metrics` endpoint is unauthenticated and intended for local development only. Do not expose it in production. It can be disabled by setting `OpenTelemetry:Enabled: false` in configuration.
