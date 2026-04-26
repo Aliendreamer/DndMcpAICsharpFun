@@ -6,30 +6,20 @@ using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Features.Retrieval;
 
-public sealed class RagRetrievalService : IRagRetrievalService
+public sealed class RagRetrievalService(
+    QdrantClient qdrant,
+    IEmbeddingService embedding,
+    IOptions<QdrantOptions> qdrantOptions,
+    IOptions<RetrievalOptions> retrievalOptions) : IRagRetrievalService
 {
-    private readonly QdrantClient _qdrant;
-    private readonly IEmbeddingService _embedding;
-    private readonly string _collectionName;
-    private readonly RetrievalOptions _options;
-
-    public RagRetrievalService(
-        QdrantClient qdrant,
-        IEmbeddingService embedding,
-        IOptions<QdrantOptions> qdrantOptions,
-        IOptions<RetrievalOptions> retrievalOptions)
-    {
-        _qdrant = qdrant;
-        _embedding = embedding;
-        _collectionName = qdrantOptions.Value.CollectionName;
-        _options = retrievalOptions.Value;
-    }
+    private readonly string _collectionName = qdrantOptions.Value.CollectionName;
+    private readonly RetrievalOptions _options = retrievalOptions.Value;
 
     public async Task<IList<RetrievalResult>> SearchAsync(RetrievalQuery query, CancellationToken ct = default)
     {
         var points = await ExecuteSearchAsync(query, ct);
         return points
-            .Select(p => new RetrievalResult(
+            .Select(static p => new RetrievalResult(
                 QdrantPayloadMapper.GetText(p.Payload),
                 QdrantPayloadMapper.ToChunkMetadata(p.Payload),
                 p.Score))
@@ -40,7 +30,7 @@ public sealed class RagRetrievalService : IRagRetrievalService
     {
         var points = await ExecuteSearchAsync(query, ct);
         return points
-            .Select(p => new RetrievalDiagnosticResult(
+            .Select(static p => new RetrievalDiagnosticResult(
                 QdrantPayloadMapper.GetText(p.Payload),
                 QdrantPayloadMapper.ToChunkMetadata(p.Payload),
                 p.Score,
@@ -50,13 +40,12 @@ public sealed class RagRetrievalService : IRagRetrievalService
 
     private async Task<IReadOnlyList<ScoredPoint>> ExecuteSearchAsync(RetrievalQuery query, CancellationToken ct)
     {
-        var vectors = await _embedding.EmbedAsync([query.QueryText], ct);
+        var vectors = await embedding.EmbedAsync([query.QueryText], ct);
         var vector = vectors[0].AsMemory();
-
         var filter = BuildFilter(query);
         var limit = (ulong)Math.Min(query.TopK, _options.MaxTopK);
 
-        return await _qdrant.SearchAsync(
+        return await qdrant.SearchAsync(
             _collectionName,
             vector,
             filter: filter,
