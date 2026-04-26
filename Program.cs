@@ -10,9 +10,13 @@ using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
+
 using Microsoft.EntityFrameworkCore;
+
 using Microsoft.Extensions.Options;
+
 using OllamaSharp;
+
 using Qdrant.Client;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -72,6 +76,8 @@ builder.Services.AddScoped<IVectorStoreService, QdrantVectorStoreService>();
 builder.Services.AddScoped<IEmbeddingIngestor, EmbeddingIngestor>();
 
 // Retrieval
+builder.Services.AddSingleton<IQdrantSearchClient>(static sp =>
+    new QdrantSearchClientAdapter(sp.GetRequiredService<QdrantClient>()));
 builder.Services.AddScoped<IRagRetrievalService, RagRetrievalService>();
 
 // Ingestion orchestrator
@@ -108,7 +114,9 @@ app.UseWhen(
 
 // Health endpoints
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/ready");
 app.MapHealthChecks("/health/ready");
+
 
 // Admin routes
 app.MapGroup("/admin").MapBooksAdmin();

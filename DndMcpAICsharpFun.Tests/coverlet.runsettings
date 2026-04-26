@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Exclude>[DndMcpAICsharpFun.Tests]*</Exclude>
+          <ExcludeByFile>**/obj/**,**/Migrations/**,**/Program.cs,**/Features/Ingestion/Tracking/SqliteIngestionTracker.cs,**/Infrastructure/Sqlite/IngestionDbContext.cs,**/Infrastructure/Qdrant/QdrantCollectionInitializer.cs,**/Infrastructure/Qdrant/QdrantSearchClientAdapter.cs,**/Features/VectorStore/QdrantVectorStoreService.cs,**/Infrastructure/Qdrant/QdrantHealthCheck.cs,**/Features/Embedding/OllamaEmbeddingService.cs,**/Features/Embedding/NoOpEmbeddingIngestor.cs,**/Infrastructure/Ollama/OllamaHealthCheck.cs,**/Features/Ingestion/Pdf/PdfPigTextExtractor.cs</ExcludeByFile>
+          <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+          <Threshold>70</Threshold>
+          <ThresholdType>line,branch</ThresholdType>
+          <ThresholdStat>total</ThresholdStat>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

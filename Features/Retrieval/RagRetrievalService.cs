@@ -1,13 +1,12 @@
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using Microsoft.Extensions.Options;
-using Qdrant.Client;
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Features.Retrieval;
 
 public sealed class RagRetrievalService(
-    QdrantClient qdrant,
+    IQdrantSearchClient qdrant,
     IEmbeddingService embedding,
     IOptions<QdrantOptions> qdrantOptions,
     IOptions<RetrievalOptions> retrievalOptions) : IRagRetrievalService
