@@ -1,11 +1,8 @@
-# test-suite
+# test-suite Specification
 
 ## Purpose
-
-Defines requirements for the automated test suite covering the DndMcpAICsharpFun project, including project structure, coverage targets, and per-component test expectations.
-
+TBD - created by archiving change test-coverage. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: An xUnit test project exists and builds cleanly
 The system SHALL include a `DndMcpAICsharpFun.Tests` project targeting `net10.0`, referenced in the solution file, with xUnit, NSubstitute, and coverlet.collector as NuGet dependencies.
 
@@ -151,3 +148,4 @@ The system SHALL have tests for `RagRetrievalService.SearchAsync` verifying that
 #### Scenario: TopK is capped at MaxTopK
 - **WHEN** `SearchAsync` is called with `TopK` exceeding `MaxTopK`
 - **THEN** the `limit` passed to Qdrant equals `MaxTopK`
+
