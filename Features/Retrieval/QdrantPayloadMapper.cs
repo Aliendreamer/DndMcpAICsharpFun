@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Domain;
+using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Features.Retrieval;
@@ -8,17 +9,17 @@ public static class QdrantPayloadMapper
     public static ChunkMetadata ToChunkMetadata(IReadOnlyDictionary<string, Value> payload)
     {
         return new ChunkMetadata(
-            SourceBook: GetString(payload, "source_book"),
-            Version: ParseEnum<DndVersion>(payload, "version"),
-            Category: ParseEnum<ContentCategory>(payload, "category"),
-            EntityName: GetStringOrNull(payload, "entity_name"),
-            Chapter: GetString(payload, "chapter"),
-            PageNumber: GetInt(payload, "page_number"),
-            ChunkIndex: GetInt(payload, "chunk_index"));
+            SourceBook: GetString(payload, QdrantPayloadFields.SourceBook),
+            Version: ParseEnum<DndVersion>(payload, QdrantPayloadFields.Version),
+            Category: ParseEnum<ContentCategory>(payload, QdrantPayloadFields.Category),
+            EntityName: GetStringOrNull(payload, QdrantPayloadFields.EntityName),
+            Chapter: GetString(payload, QdrantPayloadFields.Chapter),
+            PageNumber: GetInt(payload, QdrantPayloadFields.PageNumber),
+            ChunkIndex: GetInt(payload, QdrantPayloadFields.ChunkIndex));
     }
 
     public static string GetText(IReadOnlyDictionary<string, Value> payload)
-        => GetString(payload, "text");
+        => GetString(payload, QdrantPayloadFields.Text);
 
     private static string GetString(IReadOnlyDictionary<string, Value> payload, string key)
         => payload.TryGetValue(key, out var v) ? v.StringValue : string.Empty;

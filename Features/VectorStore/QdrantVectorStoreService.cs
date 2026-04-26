@@ -38,16 +38,16 @@ public sealed class QdrantVectorStoreService : IVectorStoreService
             Vectors = vector,
         };
 
-        point.Payload["text"] = chunk.Text;
-        point.Payload["source_book"] = meta.SourceBook;
-        point.Payload["version"] = meta.Version.ToString();
-        point.Payload["category"] = meta.Category.ToString();
-        point.Payload["chapter"] = meta.Chapter;
-        point.Payload["page_number"] = (long)meta.PageNumber;
-        point.Payload["chunk_index"] = (long)meta.ChunkIndex;
+        point.Payload[QdrantPayloadFields.Text]       = chunk.Text;
+        point.Payload[QdrantPayloadFields.SourceBook] = meta.SourceBook;
+        point.Payload[QdrantPayloadFields.Version]    = meta.Version.ToString();
+        point.Payload[QdrantPayloadFields.Category]   = meta.Category.ToString();
+        point.Payload[QdrantPayloadFields.Chapter]    = meta.Chapter;
+        point.Payload[QdrantPayloadFields.PageNumber] = (long)meta.PageNumber;
+        point.Payload[QdrantPayloadFields.ChunkIndex] = (long)meta.ChunkIndex;
 
         if (meta.EntityName is not null)
-            point.Payload["entity_name"] = meta.EntityName;
+            point.Payload[QdrantPayloadFields.EntityName] = meta.EntityName;
 
         return point;
     }

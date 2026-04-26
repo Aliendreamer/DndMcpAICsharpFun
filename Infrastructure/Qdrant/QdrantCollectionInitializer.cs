@@ -41,11 +41,17 @@ public sealed partial class QdrantCollectionInitializer(
 
     private async Task CreatePayloadIndexesAsync(CancellationToken ct)
     {
-        string[] keywordFields = ["source_book", "version", "category", "entity_name"];
+        string[] keywordFields =
+        [
+            QdrantPayloadFields.SourceBook,
+            QdrantPayloadFields.Version,
+            QdrantPayloadFields.Category,
+            QdrantPayloadFields.EntityName,
+        ];
         foreach (var field in keywordFields)
             await client.CreatePayloadIndexAsync(_options.CollectionName, field, PayloadSchemaType.Keyword, cancellationToken: ct);
 
-        string[] intFields = ["page_number", "chunk_index"];
+        string[] intFields = [QdrantPayloadFields.PageNumber, QdrantPayloadFields.ChunkIndex];
         foreach (var field in intFields)
             await client.CreatePayloadIndexAsync(_options.CollectionName, field, PayloadSchemaType.Integer, cancellationToken: ct);
 

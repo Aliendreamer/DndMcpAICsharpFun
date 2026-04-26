@@ -59,16 +59,16 @@ public sealed class RagRetrievalService(
         var conditions = new List<Condition>();
 
         if (query.Version.HasValue)
-            conditions.Add(KeywordCondition("version", query.Version.Value.ToString()));
+            conditions.Add(KeywordCondition(QdrantPayloadFields.Version, query.Version.Value.ToString()));
 
         if (query.Category.HasValue)
-            conditions.Add(KeywordCondition("category", query.Category.Value.ToString()));
+            conditions.Add(KeywordCondition(QdrantPayloadFields.Category, query.Category.Value.ToString()));
 
         if (!string.IsNullOrWhiteSpace(query.SourceBook))
-            conditions.Add(KeywordCondition("source_book", query.SourceBook));
+            conditions.Add(KeywordCondition(QdrantPayloadFields.SourceBook, query.SourceBook));
 
         if (!string.IsNullOrWhiteSpace(query.EntityName))
-            conditions.Add(KeywordCondition("entity_name", query.EntityName));
+            conditions.Add(KeywordCondition(QdrantPayloadFields.EntityName, query.EntityName));
 
         if (conditions.Count == 0)
             return null;
