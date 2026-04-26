@@ -98,7 +98,8 @@ services:
     image: coleifer/sqlite-web:latest
     ports:
       - "8080:8080"
-    command: ["-H", "0.0.0.0", "/data/ingestion.db"]
+    environment:
+      - SQLITE_DATABASE=/data/ingestion.db
     volumes:
       - app_data:/data
     depends_on:
