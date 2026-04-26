@@ -194,9 +194,9 @@ When the stack is running, these UIs are available:
 
 | Service | URL | Description |
 | --- | --- | --- |
-| Grafana | http://localhost:3000 | Pre-provisioned dashboards: .NET runtime, Qdrant, Ollama |
-| Prometheus | http://localhost:9090 | Raw metrics and query UI |
-| sqlite-web | http://localhost:8080 | Browse and query the `IngestionRecords` SQLite table |
-| Qdrant UI | http://localhost:6333/dashboard | Browse vector collections and run test queries |
+| Grafana | <http://localhost:3000> | Pre-provisioned dashboards: .NET runtime, Qdrant, Ollama |
+| Prometheus | <http://localhost:9090> | Raw metrics and query UI |
+| sqlite-web | <http://localhost:8080> | Browse and query the `IngestionRecords` SQLite table |
+| Qdrant UI | <http://localhost:6333/dashboard> | Browse vector collections and run test queries |
 
 Grafana anonymous access is enabled in the dev stack (`GF_AUTH_ANONYMOUS_ORG_ROLE=Admin`). Remove this before any non-local deployment.
