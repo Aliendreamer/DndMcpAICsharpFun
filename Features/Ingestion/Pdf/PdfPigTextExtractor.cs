@@ -6,7 +6,7 @@ using UglyToad.PdfPig;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
-public sealed class PdfPigTextExtractor(
+public sealed partial class PdfPigTextExtractor(
     IOptions<IngestionOptions> options,
     ILogger<PdfPigTextExtractor> logger) : IPdfTextExtractor
 {
@@ -21,10 +21,15 @@ public sealed class PdfPigTextExtractor(
             var text = page.Text;
 
             if (text.Length < _minPageCharacters)
-                logger.LogWarning("Sparse page detected in {File} at page {Page} ({Chars} chars)",
-                    Path.GetFileName(filePath), page.Number, text.Length);
+                Log.SparsePage(logger, Path.GetFileName(filePath), page.Number, text.Length);
 
             yield return (page.Number, text);
         }
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(Level = LogLevel.Warning, Message = "Sparse page detected in {File} at page {Page} ({Chars} chars)")]
+        public static partial void SparsePage(ILogger logger, string file, int page, int chars);
     }
 }
