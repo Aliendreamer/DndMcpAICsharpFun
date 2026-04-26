@@ -16,6 +16,7 @@ using OllamaSharp;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using Qdrant.Client;
+using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Extensions;
 
@@ -26,7 +27,10 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton(static sp =>
         {
             var opts = sp.GetRequiredService<IOptions<QdrantOptions>>().Value;
-            return new QdrantClient(opts.Host, opts.Port, apiKey: opts.ApiKey);
+            var channel = QdrantChannel.ForAddress(
+                $"http://{opts.Host}:{opts.Port}",
+                new ClientConfiguration { ApiKey = opts.ApiKey });
+            return new QdrantClient(new QdrantGrpcClient(channel));
         });
 
         services.AddSingleton(static sp =>

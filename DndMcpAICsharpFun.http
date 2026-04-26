@@ -1,5 +1,5 @@
 @baseUrl = http://localhost:5101
-@adminKey = YOUR_KEY_HERE
+@adminKey = devXXXdev
 
 ### Health — Liveness
 GET {{baseUrl}}/health
@@ -21,22 +21,22 @@ X-Api-Key: {{adminKey}}
 Content-Type: multipart/form-data; boundary=----Boundary
 
 ------Boundary
-Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Disposition: form-data; name="file"; filename="PlayerHandbook2014.pdf"
 Content-Type: application/pdf
 
-< ./books/sample.pdf
+< ./PlayerHandbook2014.pdf
 ------Boundary
 Content-Disposition: form-data; name="sourceName"
 
-Players Handbook
+2014
 ------Boundary
 Content-Disposition: form-data; name="version"
 
-Edition2024
+Edition2014
 ------Boundary
 Content-Disposition: form-data; name="displayName"
 
-Player's Handbook 2024
+PlayerHandbook 2014
 ------Boundary--
 
 ### Admin Books — List all books
