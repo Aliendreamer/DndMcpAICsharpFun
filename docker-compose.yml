@@ -6,8 +6,7 @@ services:
     ports:
       - "5101:5101"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - Admin__ApiKey=${ADMIN_API_KEY}
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
     volumes:
       - books_data:/books
       - app_data:/data
