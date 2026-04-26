@@ -38,7 +38,7 @@ public static partial class BooksAdminEndpoints
         var booksPath = ingestionOptions.Value.BooksPath;
         Directory.CreateDirectory(booksPath);
 
-        var filePath = Path.Combine(booksPath, file.FileName);
+        var filePath = Path.Combine(booksPath, Path.GetFileName(file.FileName));
 
         string hash;
         await using (var dest = File.Create(filePath))
