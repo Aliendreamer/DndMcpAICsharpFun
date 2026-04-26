@@ -30,20 +30,20 @@ builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin
 builder.Services.Configure<RetrievalOptions>(builder.Configuration.GetSection("Retrieval"));
 
 // Infrastructure clients
-builder.Services.AddSingleton<QdrantClient>(sp =>
+builder.Services.AddSingleton<QdrantClient>(static sp =>
 {
     var opts = sp.GetRequiredService<IOptions<QdrantOptions>>().Value;
     return new QdrantClient(opts.Host, opts.Port, apiKey: opts.ApiKey);
 });
 
-builder.Services.AddSingleton<OllamaApiClient>(sp =>
+builder.Services.AddSingleton<OllamaApiClient>(static sp =>
 {
     var opts = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
     return new OllamaApiClient(new Uri(opts.BaseUrl));
 });
 
 // SQLite / EF Core
-builder.Services.AddDbContext<IngestionDbContext>((sp, options) =>
+builder.Services.AddDbContext<IngestionDbContext>(static (sp, options) =>
 {
     var ingestionOpts = sp.GetRequiredService<IOptions<IngestionOptions>>().Value;
     options.UseSqlite($"Data Source={ingestionOpts.DatabasePath}");
@@ -99,8 +99,8 @@ if (string.IsNullOrWhiteSpace(adminOpts.ApiKey))
 
 // Admin API key middleware applied only to /admin/* paths
 app.UseWhen(
-    ctx => ctx.Request.Path.StartsWithSegments("/admin"),
-    adminApp => adminApp.UseMiddleware<AdminApiKeyMiddleware>()
+    static ctx => ctx.Request.Path.StartsWithSegments("/admin"),
+    static adminApp => adminApp.UseMiddleware<AdminApiKeyMiddleware>()
 );
 
 // Health endpoints
