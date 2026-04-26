@@ -19,7 +19,7 @@ public sealed partial class IngestionBackgroundService(
 
     private async Task RunCycleAsync(CancellationToken ct)
     {
-        Log.CycleStarting(logger);
+        LogCycleStarting(logger);
         int processed = 0, failed = 0;
 
         try
@@ -41,31 +41,28 @@ public sealed partial class IngestionBackgroundService(
                 }
                 catch (Exception ex)
                 {
-                    Log.RecordError(logger, ex, record.Id);
+                    LogRecordError(logger, ex, record.Id);
                     failed++;
                 }
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            Log.CycleFailed(logger, ex);
+            LogCycleFailed(logger, ex);
         }
 
-        Log.CycleComplete(logger, processed, failed);
+        LogCycleComplete(logger, processed, failed);
     }
 
-    private static partial class Log
-    {
-        [LoggerMessage(Level = LogLevel.Information, Message = "Ingestion cycle starting")]
-        public static partial void CycleStarting(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Ingestion cycle starting")]
+    private static partial void LogCycleStarting(ILogger logger);
 
-        [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled error ingesting record {Id}")]
-        public static partial void RecordError(ILogger logger, Exception ex, int id);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled error ingesting record {Id}")]
+    private static partial void LogRecordError(ILogger logger, Exception ex, int id);
 
-        [LoggerMessage(Level = LogLevel.Error, Message = "Ingestion cycle failed")]
-        public static partial void CycleFailed(ILogger logger, Exception ex);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Ingestion cycle failed")]
+    private static partial void LogCycleFailed(ILogger logger, Exception ex);
 
-        [LoggerMessage(Level = LogLevel.Information, Message = "Ingestion cycle complete. Processed={Processed} Failed={Failed}")]
-        public static partial void CycleComplete(ILogger logger, int processed, int failed);
-    }
+    [LoggerMessage(Level = LogLevel.Information, Message = "Ingestion cycle complete. Processed={Processed} Failed={Failed}")]
+    private static partial void LogCycleComplete(ILogger logger, int processed, int failed);
 }

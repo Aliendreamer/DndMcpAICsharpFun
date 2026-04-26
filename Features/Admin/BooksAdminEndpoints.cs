@@ -69,7 +69,7 @@ public static partial class BooksAdminEndpoints
         };
 
         var created = await tracker.CreateAsync(record, ct);
-        Log.BookRegistered(logger, created.DisplayName, created.Id, file.FileName);
+        LogBookRegistered(logger, created.DisplayName, created.Id, file.FileName);
 
         return Results.Created($"/admin/books/{created.Id}", created);
     }
@@ -96,11 +96,8 @@ public static partial class BooksAdminEndpoints
         return Results.Accepted($"/admin/books/{id}");
     }
 
-    private static partial class Log
-    {
-        [LoggerMessage(Level = LogLevel.Information, Message = "Registered book {DisplayName} (id={Id}, file={File})")]
-        public static partial void BookRegistered(ILogger logger, string displayName, int id, string file);
-    }
+    [LoggerMessage(Level = LogLevel.Information, Message = "Registered book {DisplayName} (id={Id}, file={File})")]
+    private static partial void LogBookRegistered(ILogger logger, string displayName, int id, string file);
 }
 
 public sealed record RegisterBookRequest(

@@ -33,18 +33,15 @@ public sealed partial class EmbeddingIngestor(
             await vectorStore.UpsertAsync(points, ct);
             upserted += batch.Count;
 
-            Log.UpsertedChunks(logger, upserted, total);
+            LogUpsertedChunks(logger, upserted, total);
         }
 
-        Log.IngestedChunks(logger, total);
+        LogIngestedChunks(logger, total);
     }
 
-    private static partial class Log
-    {
-        [LoggerMessage(Level = LogLevel.Debug, Message = "Upserted {Upserted}/{Total} chunks")]
-        public static partial void UpsertedChunks(ILogger logger, int upserted, int total);
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Upserted {Upserted}/{Total} chunks")]
+    private static partial void LogUpsertedChunks(ILogger logger, int upserted, int total);
 
-        [LoggerMessage(Level = LogLevel.Information, Message = "Ingested {Total} chunks into vector store")]
-        public static partial void IngestedChunks(ILogger logger, int total);
-    }
+    [LoggerMessage(Level = LogLevel.Information, Message = "Ingested {Total} chunks into vector store")]
+    private static partial void LogIngestedChunks(ILogger logger, int total);
 }

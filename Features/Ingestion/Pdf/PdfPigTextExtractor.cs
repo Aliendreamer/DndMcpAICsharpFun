@@ -21,15 +21,12 @@ public sealed partial class PdfPigTextExtractor(
             var text = page.Text;
 
             if (text.Length < _minPageCharacters)
-                Log.SparsePage(logger, Path.GetFileName(filePath), page.Number, text.Length);
+                LogSparsePage(logger, Path.GetFileName(filePath), page.Number, text.Length);
 
             yield return (page.Number, text);
         }
     }
 
-    private static partial class Log
-    {
-        [LoggerMessage(Level = LogLevel.Warning, Message = "Sparse page detected in {File} at page {Page} ({Chars} chars)")]
-        public static partial void SparsePage(ILogger logger, string file, int page, int chars);
-    }
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Sparse page detected in {File} at page {Page} ({Chars} chars)")]
+    private static partial void LogSparsePage(ILogger logger, string file, int page, int chars);
 }

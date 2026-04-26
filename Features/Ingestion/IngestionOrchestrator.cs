@@ -20,11 +20,11 @@ public sealed partial class IngestionOrchestrator(
         var record = await tracker.GetByIdAsync(recordId, cancellationToken);
         if (record is null)
         {
-            Log.RecordNotFound(logger, recordId);
+            LogRecordNotFound(logger, recordId);
             return;
         }
 
-        Log.StartingIngestion(logger, record.DisplayName, recordId);
+        LogStartingIngestion(logger, record.DisplayName, recordId);
         await tracker.MarkProcessingAsync(recordId, cancellationToken);
 
         try
@@ -33,7 +33,7 @@ public sealed partial class IngestionOrchestrator(
 
             if (record.Status == IngestionStatus.Completed && record.FileHash == currentHash)
             {
-                Log.SkippingUnchanged(logger, record.DisplayName);
+                LogSkippingUnchanged(logger, record.DisplayName);
                 return;
             }
 
@@ -44,11 +44,11 @@ public sealed partial class IngestionOrchestrator(
             await embeddingIngestor.IngestAsync(chunks, currentHash, cancellationToken);
             await tracker.MarkCompletedAsync(recordId, chunks.Count, cancellationToken);
 
-            Log.CompletedIngestion(logger, record.DisplayName, chunks.Count);
+            LogCompletedIngestion(logger, record.DisplayName, chunks.Count);
         }
         catch (Exception ex)
         {
-            Log.IngestionFailed(logger, ex, record.DisplayName, recordId);
+            LogIngestionFailed(logger, ex, record.DisplayName, recordId);
             await tracker.MarkFailedAsync(recordId, ex.Message, cancellationToken);
         }
     }
@@ -60,21 +60,18 @@ public sealed partial class IngestionOrchestrator(
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    private static partial class Log
-    {
-        [LoggerMessage(Level = LogLevel.Warning, Message = "Ingestion record {Id} not found")]
-        public static partial void RecordNotFound(ILogger logger, int id);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Ingestion record {Id} not found")]
+    private static partial void LogRecordNotFound(ILogger logger, int id);
 
-        [LoggerMessage(Level = LogLevel.Information, Message = "Starting ingestion for {DisplayName} (id={Id})")]
-        public static partial void StartingIngestion(ILogger logger, string displayName, int id);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting ingestion for {DisplayName} (id={Id})")]
+    private static partial void LogStartingIngestion(ILogger logger, string displayName, int id);
 
-        [LoggerMessage(Level = LogLevel.Information, Message = "Skipping {DisplayName} — already ingested with same hash")]
-        public static partial void SkippingUnchanged(ILogger logger, string displayName);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Skipping {DisplayName} — already ingested with same hash")]
+    private static partial void LogSkippingUnchanged(ILogger logger, string displayName);
 
-        [LoggerMessage(Level = LogLevel.Information, Message = "Completed {DisplayName}: {Count} chunks")]
-        public static partial void CompletedIngestion(ILogger logger, string displayName, int count);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Completed {DisplayName}: {Count} chunks")]
+    private static partial void LogCompletedIngestion(ILogger logger, string displayName, int count);
 
-        [LoggerMessage(Level = LogLevel.Error, Message = "Ingestion failed for {DisplayName} (id={Id})")]
-        public static partial void IngestionFailed(ILogger logger, Exception ex, string displayName, int id);
-    }
+    [LoggerMessage(Level = LogLevel.Error, Message = "Ingestion failed for {DisplayName} (id={Id})")]
+    private static partial void LogIngestionFailed(ILogger logger, Exception ex, string displayName, int id);
 }

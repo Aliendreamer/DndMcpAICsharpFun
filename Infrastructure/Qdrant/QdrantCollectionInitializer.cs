@@ -18,7 +18,7 @@ public sealed partial class QdrantCollectionInitializer(
             var exists = await client.CollectionExistsAsync(_options.CollectionName, cancellationToken);
             if (exists)
             {
-                Log.CollectionExists(logger, _options.CollectionName);
+                LogCollectionExists(logger, _options.CollectionName);
                 return;
             }
 
@@ -27,13 +27,13 @@ public sealed partial class QdrantCollectionInitializer(
                 new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine },
                 cancellationToken: cancellationToken);
 
-            Log.CollectionCreated(logger, _options.CollectionName, _options.VectorSize);
+            LogCollectionCreated(logger, _options.CollectionName, _options.VectorSize);
 
             await CreatePayloadIndexesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            Log.CollectionInitFailed(logger, ex, _options.CollectionName);
+            LogCollectionInitFailed(logger, ex, _options.CollectionName);
         }
     }
 
@@ -49,21 +49,18 @@ public sealed partial class QdrantCollectionInitializer(
         foreach (var field in intFields)
             await client.CreatePayloadIndexAsync(_options.CollectionName, field, PayloadSchemaType.Integer, cancellationToken: ct);
 
-        Log.PayloadIndexesCreated(logger, _options.CollectionName);
+        LogPayloadIndexesCreated(logger, _options.CollectionName);
     }
 
-    private static partial class Log
-    {
-        [LoggerMessage(Level = LogLevel.Information, Message = "Qdrant collection '{Collection}' already exists")]
-        public static partial void CollectionExists(ILogger logger, string collection);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Qdrant collection '{Collection}' already exists")]
+    private static partial void LogCollectionExists(ILogger logger, string collection);
 
-        [LoggerMessage(Level = LogLevel.Information, Message = "Created Qdrant collection '{Collection}' (size={Size}, distance=Cosine)")]
-        public static partial void CollectionCreated(ILogger logger, string collection, int size);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Created Qdrant collection '{Collection}' (size={Size}, distance=Cosine)")]
+    private static partial void LogCollectionCreated(ILogger logger, string collection, int size);
 
-        [LoggerMessage(Level = LogLevel.Error, Message = "Failed to initialise Qdrant collection '{Collection}'")]
-        public static partial void CollectionInitFailed(ILogger logger, Exception ex, string collection);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to initialise Qdrant collection '{Collection}'")]
+    private static partial void LogCollectionInitFailed(ILogger logger, Exception ex, string collection);
 
-        [LoggerMessage(Level = LogLevel.Information, Message = "Created payload indexes on collection '{Collection}'")]
-        public static partial void PayloadIndexesCreated(ILogger logger, string collection);
-    }
+    [LoggerMessage(Level = LogLevel.Information, Message = "Created payload indexes on collection '{Collection}'")]
+    private static partial void LogPayloadIndexesCreated(ILogger logger, string collection);
 }
