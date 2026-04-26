@@ -7,6 +7,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore;
+using DndMcpAICsharpFun.Infrastructure;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
@@ -16,6 +17,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 using OllamaSharp;
+
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 
 using Qdrant.Client;
 
@@ -32,6 +36,19 @@ builder.Services.Configure<OllamaOptions>(builder.Configuration.GetSection("Olla
 builder.Services.Configure<IngestionOptions>(builder.Configuration.GetSection("Ingestion"));
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
 builder.Services.Configure<RetrievalOptions>(builder.Configuration.GetSection("Retrieval"));
+
+// OpenTelemetry
+var otelOptions = builder.Configuration.GetSection("OpenTelemetry").Get<OpenTelemetryOptions>() ?? new OpenTelemetryOptions();
+if (otelOptions.Enabled)
+{
+    builder.Services.AddOpenTelemetry()
+        .ConfigureResource(r => r.AddService(otelOptions.ServiceName))
+        .WithMetrics(metrics => metrics
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddPrometheusExporter());
+}
 
 // Infrastructure clients
 builder.Services.AddSingleton<QdrantClient>(static sp =>
@@ -116,6 +133,10 @@ app.UseWhen(
 app.MapHealthChecks("/health");
 app.MapHealthChecks("/ready");
 app.MapHealthChecks("/health/ready");
+
+// Prometheus metrics (dev-only, unauthenticated)
+if (otelOptions.Enabled)
+    app.MapPrometheusScrapingEndpoint();
 
 
 // Admin routes
