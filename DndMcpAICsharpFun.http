@@ -1,0 +1,69 @@
+@baseUrl = http://localhost:5101
+@adminKey = YOUR_KEY_HERE
+
+### Health — Liveness
+GET {{baseUrl}}/health
+
+### Health — Readiness
+GET {{baseUrl}}/ready
+
+### Health — Readiness (alias)
+GET {{baseUrl}}/health/ready
+
+###
+
+# ── Admin — Books ────────────────────────────────────────────────────────────
+# All admin requests require X-Api-Key header.
+
+### Admin Books — Register a PDF
+POST {{baseUrl}}/admin/books/register
+X-Api-Key: {{adminKey}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+< ./books/sample.pdf
+------Boundary
+Content-Disposition: form-data; name="sourceName"
+
+Players Handbook
+------Boundary
+Content-Disposition: form-data; name="version"
+
+Edition2024
+------Boundary
+Content-Disposition: form-data; name="displayName"
+
+Player's Handbook 2024
+------Boundary--
+
+### Admin Books — List all books
+GET {{baseUrl}}/admin/books
+X-Api-Key: {{adminKey}}
+
+### Admin Books — Re-ingest book by ID
+POST {{baseUrl}}/admin/books/1/reingest
+X-Api-Key: {{adminKey}}
+
+###
+
+# ── Retrieval ─────────────────────────────────────────────────────────────────
+# version: Edition2014 | Edition2024
+# category: Spell | Monster | Class | Background | Item | Rule | Treasure | Encounter | Trap
+
+### Retrieval — Public semantic search
+GET {{baseUrl}}/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5
+
+### Retrieval — Diagnostic search (admin, includes scores and Qdrant point IDs)
+GET {{baseUrl}}/admin/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5
+X-Api-Key: {{adminKey}}
+
+###
+
+# ── Observability ─────────────────────────────────────────────────────────────
+# /metrics is unauthenticated and only available when OpenTelemetry:Enabled is true.
+
+### Metrics — Prometheus scraping endpoint
+GET {{baseUrl}}/metrics

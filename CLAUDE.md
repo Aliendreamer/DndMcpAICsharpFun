@@ -53,3 +53,9 @@ When the full stack is running (`docker compose up`), these UIs are available:
 | Qdrant UI | http://localhost:6333/dashboard | Vector collection browser |
 
 > **Note:** The `/metrics` endpoint is unauthenticated and intended for local development only. Do not expose it in production. It can be disabled by setting `OpenTelemetry:Enabled: false` in configuration.
+
+## API Contracts
+
+`DndMcpAICsharpFun.http` at the project root is the authoritative runnable reference for all API endpoints.
+
+**Rule:** When adding, changing, or removing any HTTP endpoint (`MapGet`, `MapPost`, `MapPut`, `MapDelete`), update `DndMcpAICsharpFun.http` in the same commit. Every registered route must have a corresponding example request in the file.
