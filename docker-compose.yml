@@ -7,6 +7,10 @@ services:
       - "5101:5101"
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - Qdrant__Host=qdrant
+      - Ollama__BaseUrl=http://ollama:11434
+      - Ingestion__BooksPath=/books
+      - Ingestion__DatabasePath=/data/ingestion.db
     volumes:
       - books_data:/books
       - app_data:/data

@@ -10,13 +10,16 @@ using DndMcpAICsharpFun.Infrastructure;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+
 using OllamaSharp;
+
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+
 using Qdrant.Client;
-using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Extensions;
 
@@ -27,10 +30,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton(static sp =>
         {
             var opts = sp.GetRequiredService<IOptions<QdrantOptions>>().Value;
-            var channel = QdrantChannel.ForAddress(
-                $"http://{opts.Host}:{opts.Port}",
-                new ClientConfiguration { ApiKey = opts.ApiKey });
-            return new QdrantClient(new QdrantGrpcClient(channel));
+            return new QdrantClient(opts.Host, opts.Port);
         });
 
         services.AddSingleton(static sp =>
