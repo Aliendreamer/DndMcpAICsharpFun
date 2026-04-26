@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Admin;
 
-public static class BooksAdminEndpoints
+public static partial class BooksAdminEndpoints
 {
     public static RouteGroupBuilder MapBooksAdmin(this RouteGroupBuilder group)
     {
@@ -40,7 +40,6 @@ public static class BooksAdminEndpoints
 
         var filePath = Path.Combine(booksPath, file.FileName);
 
-        // Stream to disk and compute hash in one pass
         string hash;
         await using (var dest = File.Create(filePath))
         {
@@ -70,7 +69,7 @@ public static class BooksAdminEndpoints
         };
 
         var created = await tracker.CreateAsync(record, ct);
-        logger.LogInformation("Registered book {DisplayName} (id={Id}, file={File})", created.DisplayName, created.Id, file.FileName);
+        Log.BookRegistered(logger, created.DisplayName, created.Id, file.FileName);
 
         return Results.Created($"/admin/books/{created.Id}", created);
     }
@@ -96,9 +95,14 @@ public static class BooksAdminEndpoints
 
         return Results.Accepted($"/admin/books/{id}");
     }
+
+    private static partial class Log
+    {
+        [LoggerMessage(Level = LogLevel.Information, Message = "Registered book {DisplayName} (id={Id}, file={File})")]
+        public static partial void BookRegistered(ILogger logger, string displayName, int id, string file);
+    }
 }
 
-// Keep for potential future use or documentation purposes
 public sealed record RegisterBookRequest(
     string SourceName,
     string Version,
