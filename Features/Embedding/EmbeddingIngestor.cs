@@ -5,24 +5,13 @@ using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Embedding;
 
-public sealed class EmbeddingIngestor : IEmbeddingIngestor
+public sealed partial class EmbeddingIngestor(
+    IEmbeddingService embeddingService,
+    IVectorStoreService vectorStore,
+    IOptions<IngestionOptions> options,
+    ILogger<EmbeddingIngestor> logger) : IEmbeddingIngestor
 {
-    private readonly IEmbeddingService _embeddingService;
-    private readonly IVectorStoreService _vectorStore;
-    private readonly int _batchSize;
-    private readonly ILogger<EmbeddingIngestor> _logger;
-
-    public EmbeddingIngestor(
-        IEmbeddingService embeddingService,
-        IVectorStoreService vectorStore,
-        IOptions<IngestionOptions> options,
-        ILogger<EmbeddingIngestor> logger)
-    {
-        _embeddingService = embeddingService;
-        _vectorStore = vectorStore;
-        _batchSize = options.Value.EmbeddingBatchSize;
-        _logger = logger;
-    }
+    private readonly int _batchSize = options.Value.EmbeddingBatchSize;
 
     public async Task IngestAsync(IList<ContentChunk> chunks, string fileHash, CancellationToken ct = default)
     {
@@ -34,20 +23,28 @@ public sealed class EmbeddingIngestor : IEmbeddingIngestor
             ct.ThrowIfCancellationRequested();
 
             var batch = chunks.Skip(offset).Take(_batchSize).ToList();
-            var texts = batch.Select(c => c.Text).ToList();
-
-            var vectors = await _embeddingService.EmbedAsync(texts, ct);
+            var texts = batch.Select(static c => c.Text).ToList();
+            var vectors = await embeddingService.EmbedAsync(texts, ct);
 
             var points = batch
                 .Zip(vectors, (chunk, vector) => (chunk, vector, fileHash))
                 .ToList();
 
-            await _vectorStore.UpsertAsync(points, ct);
+            await vectorStore.UpsertAsync(points, ct);
             upserted += batch.Count;
 
-            _logger.LogDebug("Upserted {Upserted}/{Total} chunks", upserted, total);
+            Log.UpsertedChunks(logger, upserted, total);
         }
 
-        _logger.LogInformation("Ingested {Total} chunks into vector store", total);
+        Log.IngestedChunks(logger, total);
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(Level = LogLevel.Debug, Message = "Upserted {Upserted}/{Total} chunks")]
+        public static partial void UpsertedChunks(ILogger logger, int upserted, int total);
+
+        [LoggerMessage(Level = LogLevel.Information, Message = "Ingested {Total} chunks into vector store")]
+        public static partial void IngestedChunks(ILogger logger, int total);
     }
 }
