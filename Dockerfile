@@ -14,7 +14,6 @@ RUN mkdir -p /books /data
 
 COPY --from=build /app/publish .
 
-ENV ASPNETCORE_URLS=http://+:5101
 EXPOSE 5101
 
 ENTRYPOINT ["dotnet", "DndMcpAICsharpFun.dll"]
