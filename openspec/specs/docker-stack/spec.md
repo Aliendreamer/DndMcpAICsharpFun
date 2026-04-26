@@ -34,11 +34,11 @@ The system SHALL provide a `Dockerfile` with a build stage (`sdk:10.0`) and a ru
 - **THEN** the image is produced without error and contains no SDK tooling
 
 ### Requirement: Admin API key is injected via environment variable
-The system SHALL read the admin API key from the `Admin__ApiKey` environment variable in the Docker Compose service definition, not hardcoded in any image layer.
+The system SHALL read the admin API key from the encrypted `Config/appsettings.Production.json` file loaded automatically by the ASP.NET Core host at runtime. The `Admin__ApiKey` environment variable SHALL NOT be defined in `docker-compose.yml`.
 
-#### Scenario: Key is configurable without rebuilding
-- **WHEN** the `Admin__ApiKey` environment variable is changed in Compose
-- **THEN** the app uses the new key without requiring an image rebuild
+#### Scenario: Key is loaded from encrypted config
+- **WHEN** the `app` container starts with git-crypt-decrypted config files present
+- **THEN** the app reads `Admin:ApiKey` from `Config/appsettings.Production.json` without any environment variable override
 
 ### Requirement: Prometheus and Grafana services are defined in Docker Compose
 The system SHALL define `prometheus` (prom/prometheus:latest) and `grafana` (grafana/grafana:latest) services in `docker-compose.yml` on the `dnd_net` network, with named volumes for persistent storage and bind-mounted config from the `infra/` directory.
@@ -68,4 +68,15 @@ The system SHALL define named volumes `prometheus_data` and `grafana_data` in `d
 #### Scenario: Grafana volume persists settings
 - **WHEN** the `grafana` container is restarted
 - **THEN** provisioned datasources and dashboards are still present
+
+### Requirement: ASPNETCORE_ENVIRONMENT is sourced dynamically from the shell
+The system SHALL configure the `app` service in `docker-compose.yml` to read `ASPNETCORE_ENVIRONMENT` from the host shell environment via `${ASPNETCORE_ENVIRONMENT}`, allowing the value to be controlled by `start.sh` without hardcoding.
+
+#### Scenario: Development environment is set via start.sh
+- **WHEN** `./start.sh Development` is run
+- **THEN** the `app` container receives `ASPNETCORE_ENVIRONMENT=Development` and loads `Config/appsettings.Development.json`
+
+#### Scenario: Production environment is set via start.sh
+- **WHEN** `./start.sh Production` is run
+- **THEN** the `app` container receives `ASPNETCORE_ENVIRONMENT=Production` and loads `Config/appsettings.Production.json`
 

@@ -51,13 +51,13 @@ if (otelOptions.Enabled)
 }
 
 // Infrastructure clients
-builder.Services.AddSingleton<QdrantClient>(static sp =>
+builder.Services.AddSingleton(static sp =>
 {
     var opts = sp.GetRequiredService<IOptions<QdrantOptions>>().Value;
     return new QdrantClient(opts.Host, opts.Port, apiKey: opts.ApiKey);
 });
 
-builder.Services.AddSingleton<OllamaApiClient>(static sp =>
+builder.Services.AddSingleton(static sp =>
 {
     var opts = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
     return new OllamaApiClient(new Uri(opts.BaseUrl));
