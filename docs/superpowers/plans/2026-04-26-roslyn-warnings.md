@@ -8,6 +8,8 @@
 
 **Tech Stack:** .NET 10 / ASP.NET Core, C# 13, `Microsoft.Extensions.Logging` (`[LoggerMessage]` source generator is built into the BCL — no extra package needed)
 
+> **`[LoggerMessage]` requirement discovered during implementation:** The `[LoggerMessage]` source generator emits a sibling `partial` declaration for the *outer* containing type. Any class that hosts a nested `private static partial class Log` must itself be declared `partial` — i.e. `public sealed partial class MyClass(...)`. This applies to Tasks 2–7.
+
 ---
 
 ## File Map
