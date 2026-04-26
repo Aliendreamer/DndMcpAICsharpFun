@@ -3,16 +3,11 @@ using DndMcpAICsharpFun.Features.Ingestion.Chunking.Detectors;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Chunking;
 
-public sealed class ContentCategoryDetector
+public sealed class ContentCategoryDetector(IEnumerable<IPatternDetector> detectors)
 {
     private const float ConfidenceThreshold = 0.7f;
 
-    private readonly IReadOnlyList<IPatternDetector> _detectors;
-
-    public ContentCategoryDetector(IEnumerable<IPatternDetector> detectors)
-    {
-        _detectors = [.. detectors];
-    }
+    private readonly IReadOnlyList<IPatternDetector> _detectors = [.. detectors];
 
     public ContentCategory Detect(string chunkText, ContentCategory chapterDefault)
     {
