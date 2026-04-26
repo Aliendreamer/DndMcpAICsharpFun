@@ -8,40 +8,24 @@ using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
 namespace DndMcpAICsharpFun.Features.Ingestion;
 
-public sealed class IngestionOrchestrator : IIngestionOrchestrator
+public sealed partial class IngestionOrchestrator(
+    IIngestionTracker tracker,
+    IPdfTextExtractor extractor,
+    DndChunker chunker,
+    IEmbeddingIngestor embeddingIngestor,
+    ILogger<IngestionOrchestrator> logger) : IIngestionOrchestrator
 {
-    private readonly IIngestionTracker _tracker;
-    private readonly IPdfTextExtractor _extractor;
-    private readonly DndChunker _chunker;
-    private readonly IEmbeddingIngestor _embeddingIngestor;
-    private readonly ILogger<IngestionOrchestrator> _logger;
-
-    public IngestionOrchestrator(
-        IIngestionTracker tracker,
-        IPdfTextExtractor extractor,
-        DndChunker chunker,
-        IEmbeddingIngestor embeddingIngestor,
-        ILogger<IngestionOrchestrator> logger)
-    {
-        _tracker = tracker;
-        _extractor = extractor;
-        _chunker = chunker;
-        _embeddingIngestor = embeddingIngestor;
-        _logger = logger;
-    }
-
     public async Task IngestBookAsync(int recordId, CancellationToken cancellationToken = default)
     {
-        var record = await _tracker.GetByIdAsync(recordId, cancellationToken);
+        var record = await tracker.GetByIdAsync(recordId, cancellationToken);
         if (record is null)
         {
-            _logger.LogWarning("Ingestion record {Id} not found", recordId);
+            Log.RecordNotFound(logger, recordId);
             return;
         }
 
-        _logger.LogInformation("Starting ingestion for {DisplayName} (id={Id})", record.DisplayName, recordId);
-
-        await _tracker.MarkProcessingAsync(recordId, cancellationToken);
+        Log.StartingIngestion(logger, record.DisplayName, recordId);
+        await tracker.MarkProcessingAsync(recordId, cancellationToken);
 
         try
         {
@@ -49,24 +33,23 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
 
             if (record.Status == IngestionStatus.Completed && record.FileHash == currentHash)
             {
-                _logger.LogInformation("Skipping {DisplayName} — already ingested with same hash", record.DisplayName);
+                Log.SkippingUnchanged(logger, record.DisplayName);
                 return;
             }
 
-            var pages = _extractor.ExtractPages(record.FilePath);
+            var pages = extractor.ExtractPages(record.FilePath);
             var version = Enum.Parse<DndVersion>(record.Version);
+            var chunks = chunker.Chunk(pages, record.SourceName, version).ToList();
 
-            var chunks = _chunker.Chunk(pages, record.SourceName, version).ToList();
+            await embeddingIngestor.IngestAsync(chunks, currentHash, cancellationToken);
+            await tracker.MarkCompletedAsync(recordId, chunks.Count, cancellationToken);
 
-            await _embeddingIngestor.IngestAsync(chunks, currentHash, cancellationToken);
-
-            await _tracker.MarkCompletedAsync(recordId, chunks.Count, cancellationToken);
-            _logger.LogInformation("Completed {DisplayName}: {Count} chunks", record.DisplayName, chunks.Count);
+            Log.CompletedIngestion(logger, record.DisplayName, chunks.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ingestion failed for {DisplayName} (id={Id})", record.DisplayName, recordId);
-            await _tracker.MarkFailedAsync(recordId, ex.Message, cancellationToken);
+            Log.IngestionFailed(logger, ex, record.DisplayName, recordId);
+            await tracker.MarkFailedAsync(recordId, ex.Message, cancellationToken);
         }
     }
 
@@ -75,5 +58,23 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         await using var stream = File.OpenRead(filePath);
         var hash = await SHA256.HashDataAsync(stream, ct);
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(Level = LogLevel.Warning, Message = "Ingestion record {Id} not found")]
+        public static partial void RecordNotFound(ILogger logger, int id);
+
+        [LoggerMessage(Level = LogLevel.Information, Message = "Starting ingestion for {DisplayName} (id={Id})")]
+        public static partial void StartingIngestion(ILogger logger, string displayName, int id);
+
+        [LoggerMessage(Level = LogLevel.Information, Message = "Skipping {DisplayName} — already ingested with same hash")]
+        public static partial void SkippingUnchanged(ILogger logger, string displayName);
+
+        [LoggerMessage(Level = LogLevel.Information, Message = "Completed {DisplayName}: {Count} chunks")]
+        public static partial void CompletedIngestion(ILogger logger, string displayName, int count);
+
+        [LoggerMessage(Level = LogLevel.Error, Message = "Ingestion failed for {DisplayName} (id={Id})")]
+        public static partial void IngestionFailed(ILogger logger, Exception ex, string displayName, int id);
     }
 }
