@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
-using Microsoft.Extensions.Logging;
+
 using Microsoft.Extensions.Options;
+
 using UglyToad.PdfPig;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
