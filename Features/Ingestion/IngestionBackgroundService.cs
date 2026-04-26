@@ -2,24 +2,14 @@ using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 
 namespace DndMcpAICsharpFun.Features.Ingestion;
 
-public sealed class IngestionBackgroundService : BackgroundService
+public sealed partial class IngestionBackgroundService(
+    IServiceScopeFactory scopeFactory,
+    ILogger<IngestionBackgroundService> logger) : BackgroundService
 {
     private static readonly TimeSpan CycleInterval = TimeSpan.FromHours(24);
 
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<IngestionBackgroundService> _logger;
-
-    public IngestionBackgroundService(
-        IServiceScopeFactory scopeFactory,
-        ILogger<IngestionBackgroundService> logger)
-    {
-        _scopeFactory = scopeFactory;
-        _logger = logger;
-    }
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // First run immediately on startup, then every 24 hours
         while (!stoppingToken.IsCancellationRequested)
         {
             await RunCycleAsync(stoppingToken);
@@ -29,12 +19,12 @@ public sealed class IngestionBackgroundService : BackgroundService
 
     private async Task RunCycleAsync(CancellationToken ct)
     {
-        _logger.LogInformation("Ingestion cycle starting");
+        Log.CycleStarting(logger);
         int processed = 0, failed = 0;
 
         try
         {
-            await using var scope = _scopeFactory.CreateAsyncScope();
+            await using var scope = scopeFactory.CreateAsyncScope();
             var tracker = scope.ServiceProvider.GetRequiredService<IIngestionTracker>();
             var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
 
@@ -51,18 +41,31 @@ public sealed class IngestionBackgroundService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Unhandled error ingesting record {Id}", record.Id);
+                    Log.RecordError(logger, ex, record.Id);
                     failed++;
                 }
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(ex, "Ingestion cycle failed");
+            Log.CycleFailed(logger, ex);
         }
 
-        _logger.LogInformation(
-            "Ingestion cycle complete. Processed={Processed} Failed={Failed}",
-            processed, failed);
+        Log.CycleComplete(logger, processed, failed);
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(Level = LogLevel.Information, Message = "Ingestion cycle starting")]
+        public static partial void CycleStarting(ILogger logger);
+
+        [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled error ingesting record {Id}")]
+        public static partial void RecordError(ILogger logger, Exception ex, int id);
+
+        [LoggerMessage(Level = LogLevel.Error, Message = "Ingestion cycle failed")]
+        public static partial void CycleFailed(ILogger logger, Exception ex);
+
+        [LoggerMessage(Level = LogLevel.Information, Message = "Ingestion cycle complete. Processed={Processed} Failed={Failed}")]
+        public static partial void CycleComplete(ILogger logger, int processed, int failed);
     }
 }
