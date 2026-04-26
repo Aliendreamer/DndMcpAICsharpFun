@@ -1,7 +1,7 @@
 # Roslyn Warnings — Full Fix & Build Gate
 
 **Date:** 2026-04-26
-**Status:** Approved
+**Status:** Completed
 
 ## Goal
 
@@ -36,65 +36,76 @@ Add to `DndMcpAICsharpFun.csproj`:
 
 ### Pattern
 
-Each logging class gets a `private static partial class Log` nested inside it:
+`[LoggerMessage]` partial methods are declared **directly on the outer `partial` class** (not in a nested class). The outer class must be `partial` because the source generator emits a sibling partial declaration for it.
 
 ```csharp
 // Before
 _logger.LogInformation("Starting ingestion for {DisplayName} (id={Id})", record.DisplayName, recordId);
 
-// After
-Log.StartingIngestion(_logger, record.DisplayName, recordId);
+// After — method declared directly on the outer partial class
+LogStartingIngestion(logger, record.DisplayName, recordId);
 
-private static partial class Log
-{
-    [LoggerMessage(Level = LogLevel.Information, Message = "Starting ingestion for {DisplayName} (id={Id})")]
-    public static partial void StartingIngestion(ILogger logger, string displayName, int id);
-}
+[LoggerMessage(Level = LogLevel.Information, Message = "Starting ingestion for {DisplayName} (id={Id})")]
+private static partial void LogStartingIngestion(ILogger logger, string displayName, int id);
 ```
+
+Naming convention: `Log` prefix + PascalCase description (e.g. `LogRecordNotFound`, `LogCycleStarting`).
+
+> **Why not a nested `Log` class?** Nesting `[LoggerMessage]` methods inside a `private static partial class Log` causes CS8795 in IDEs that don't run source generators during background analysis. Placing the methods directly on the outer class avoids this while keeping the build clean.
 
 ### Files
 
 | File | Log calls |
 |------|-----------|
-| `Features/Ingestion/IngestionOrchestrator.cs` | 6 |
+| `Features/Ingestion/IngestionOrchestrator.cs` | 5 |
 | `Features/Ingestion/IngestionBackgroundService.cs` | 4 |
 | `Features/Embedding/EmbeddingIngestor.cs` | 2 |
 | `Infrastructure/Qdrant/QdrantCollectionInitializer.cs` | 4 |
 | `Features/Ingestion/Pdf/PdfPigTextExtractor.cs` | 1 |
 | `Features/Admin/BooksAdminEndpoints.cs` | 1 |
 
-**Total:** ~18 call sites across 6 files.
+**Total:** 17 call sites across 6 files.
 
 ---
 
 ## Section 3: Style Rule Cleanup
 
-After Sections 1 and 2, run `dotnet build` to discover remaining violations. Fix them in batches, rebuilding after each to confirm the count drops. Expected categories (based on `.editorconfig` `suggestion`-severity rules):
+Additional changes applied across the codebase to satisfy `.editorconfig` style rules:
 
-| Category | Rule(s) | Typical fix |
-|----------|---------|-------------|
-| Primary constructors | `csharp_style_prefer_primary_constructors` | Collapse field-assignment constructors to primary constructor form |
-| Pattern matching | `csharp_style_pattern_matching_over_is_with_cast_check`, `csharp_style_prefer_not_pattern` | Replace `is`/`as` casts with pattern syntax |
-| Expression-bodied members | `csharp_style_expression_bodied_accessors`, `_properties` | Collapse single-expression getters/properties |
-| Collection expressions | `dotnet_style_prefer_collection_expression` | `new List<T> { }` → `[...]` |
-| Readonly fields | `dotnet_style_readonly_field` | Add `readonly` to fields not mutated after construction |
-| Static local functions | `csharp_prefer_static_local_function` | Add `static` to local functions that capture no state |
+| Category | Rule | Fix applied |
+|----------|------|-------------|
+| Primary constructors | `csharp_style_prefer_primary_constructors` | Collapsed field-assignment constructors to primary constructor form in all service classes |
+| Collection expressions | `dotnet_style_prefer_collection_expression` | `new string[] { ... }` → `[...]` in `QdrantCollectionInitializer` |
+| Static lambdas | `csharp_prefer_static_anonymous_function` | Added `static` to non-capturing lambdas in `Program.cs` and `RagRetrievalService.cs` |
+| Readonly fields | `dotnet_style_readonly_field` | Derived fields kept as explicit `private readonly` where needed (e.g. `_batchSize`, `_options`) |
 
-**Done criterion:** `dotnet build` exits with 0 errors, 0 warnings.
+**Done criterion:** `dotnet build` exits with 0 errors, 0 warnings. ✅
+
+---
+
+## Security Fix
+
+While implementing `BooksAdminEndpoints`, a path traversal vulnerability was identified and fixed:
+
+```csharp
+// Before — attacker-controlled filename could contain ../sequences
+var filePath = Path.Combine(booksPath, file.FileName);
+
+// After — Path.GetFileName strips any directory components
+var filePath = Path.Combine(booksPath, Path.GetFileName(file.FileName));
+```
 
 ---
 
 ## Migrations Exclusion
 
-EF Core migration files are generated code and must be excluded from the enforced ruleset. Add a `.editorconfig` override at the top of the file (or in a `Migrations/.editorconfig`):
+EF Core migration files are generated code and must be excluded from the enforced ruleset. Added to `.editorconfig`:
 
 ```ini
-[Migrations/**/*.cs]
+[Migrations/**]
 generated_code = true
 dotnet_analyzer_diagnostic.severity = none
 ```
-
-This suppresses all analyzer diagnostics for migration files without touching the rest of the ruleset.
 
 ---
 
