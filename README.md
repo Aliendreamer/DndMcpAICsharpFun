@@ -4,7 +4,7 @@ A D&D-themed ASP.NET Core Web API on .NET 10 that ingests D&D rulebook PDFs, emb
 
 ## Architecture
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────┐
 │                      Docker Compose Stack                     │
 │                                                               │
@@ -35,7 +35,7 @@ A D&D-themed ASP.NET Core Web API on .NET 10 that ingests D&D rulebook PDFs, emb
 ## Prerequisites
 
 | Tool | Version | Purpose |
-|------|---------|---------|
+| --- | --- | --- |
 | [Docker](https://docs.docker.com/get-docker/) | 27+ | Container runtime |
 | [docker compose](https://docs.docker.com/compose/) | v2 (CLI plugin) | Stack orchestration |
 | [git-crypt](https://github.com/AGWA/git-crypt) | any | Decrypt config files |
@@ -78,7 +78,7 @@ Add this to your `~/.claude/settings.json` under `extraKnownMarketplaces`:
 
 Run these once — they apply to all your projects:
 
-```
+```text
 /plugin install superpowers@claude-plugins-official
 /plugin install serena@claude-plugins-official
 ```
@@ -87,7 +87,7 @@ Run these once — they apply to all your projects:
 
 Run these inside the repository root:
 
-```
+```text
 /plugin install csharp-lsp@claude-plugins-official
 /plugin install dotnet-ai@dotnet-agent-skills
 /plugin install dotnet@dotnet-agent-skills
@@ -157,7 +157,7 @@ All endpoints are on `http://localhost:5101`.
 ### Health
 
 | Method | Path | Description |
-|--------|------|-------------|
+| --- | --- | --- |
 | `GET` | `/health` | Liveness check |
 | `GET` | `/ready` | Readiness check (Qdrant + Ollama) |
 
@@ -166,7 +166,7 @@ All endpoints are on `http://localhost:5101`.
 Requires header `X-Api-Key: <admin key>`.
 
 | Method | Path | Description |
-|--------|------|-------------|
+| --- | --- | --- |
 | `POST` | `/admin/books/register` | Upload a PDF and register it for ingestion. Form fields: `file` (PDF), `sourceName`, `version` (`Edition2014` or `Edition2024`), `displayName` |
 | `GET` | `/admin/books` | List all registered books and their ingestion status |
 | `POST` | `/admin/books/{id}/reingest` | Reset a book to `Pending` and trigger re-ingestion |
@@ -174,7 +174,7 @@ Requires header `X-Api-Key: <admin key>`.
 ### Retrieval
 
 | Method | Path | Description |
-|--------|------|-------------|
+| --- | --- | --- |
 | `GET` | `/retrieval/search` | Semantic search. Query params: `q` (required), `version`, `category`, `sourceBook`, `entityName`, `topK` (default 5) |
 | `GET` | `/admin/retrieval/search` | Same as above but returns full diagnostic payload including scores and Qdrant point IDs. Requires admin key. |
 
@@ -185,7 +185,7 @@ Requires header `X-Api-Key: <admin key>`.
 ### Metrics
 
 | Method | Path | Description |
-|--------|------|-------------|
+| --- | --- | --- |
 | `GET` | `/metrics` | Prometheus text format metrics. **Dev-only — unauthenticated. Disable in production via `OpenTelemetry:Enabled: false`.** |
 
 ## Observability
@@ -193,7 +193,7 @@ Requires header `X-Api-Key: <admin key>`.
 When the stack is running, these UIs are available:
 
 | Service | URL | Description |
-|---------|-----|-------------|
+| --- | --- | --- |
 | Grafana | http://localhost:3000 | Pre-provisioned dashboards: .NET runtime, Qdrant, Ollama |
 | Prometheus | http://localhost:9090 | Raw metrics and query UI |
 | sqlite-web | http://localhost:8080 | Browse and query the `IngestionRecords` SQLite table |
