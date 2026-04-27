@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using Microsoft.Extensions.Options;
 using OllamaSharp;
@@ -16,10 +17,11 @@ public sealed partial class OllamaLlmClassifier(
     private const string SystemPrompt =
         """
         You are a D&D 5e content classifier. Given a page of text from a D&D rulebook,
-        list only the entity types present on this page. Reply with a JSON array of strings
-        using only these values: Spell, Monster, Class, Background, Item, Rule, Treasure,
-        Encounter, Trap. Reply with [] if no entities are found. Reply with JSON only, no
-        explanation.
+        identify which entity types are present. Reply with a JSON object:
+        {"types": ["Spell", "Monster"]}
+        Use only these values: Spell, Monster, Class, Background, Item, Rule, Treasure,
+        Encounter, Trap. Use an empty array if nothing matches: {"types": []}.
+        Reply with JSON only, no explanation.
         """;
 
     private readonly string _model = options.Value.ExtractionModel;
@@ -55,16 +57,35 @@ public sealed partial class OllamaLlmClassifier(
 
         try
         {
-            var result = JsonSerializer.Deserialize<List<string>>(json) ?? [];
+            var result = ParseTypes(json);
             LogClassifyDone(logger, _model, result.Count > 0 ? string.Join(",", result) : "none", sw.ElapsedMilliseconds);
             return result;
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
             LogInvalidJson(logger, json[..Math.Min(200, json.Length)]);
             LogClassifyDone(logger, _model, "none", sw.ElapsedMilliseconds);
             return [];
         }
+    }
+
+    private static List<string> ParseTypes(string json)
+    {
+        var node = JsonNode.Parse(json);
+
+        // {"types": [...]} — expected object shape
+        if (node is JsonObject obj)
+        {
+            var arr = obj["types"]?.AsArray();
+            if (arr is null) return [];
+            return [.. arr.Select(n => n?.GetValue<string>() ?? string.Empty).Where(s => s.Length > 0)];
+        }
+
+        // ["Spell", ...] — model returned a bare array anyway
+        if (node is JsonArray bare)
+            return [.. bare.Select(n => n?.GetValue<string>() ?? string.Empty).Where(s => s.Length > 0)];
+
+        return [];
     }
 
     private static string StripFences(string s)
