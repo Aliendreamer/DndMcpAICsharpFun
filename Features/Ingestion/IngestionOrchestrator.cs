@@ -4,6 +4,7 @@ using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion.Chunking;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
 namespace DndMcpAICsharpFun.Features.Ingestion;
@@ -13,6 +14,7 @@ public sealed partial class IngestionOrchestrator(
     IPdfTextExtractor extractor,
     DndChunker chunker,
     IEmbeddingIngestor embeddingIngestor,
+    IVectorStoreService vectorStore,
     ILogger<IngestionOrchestrator> logger) : IIngestionOrchestrator
 {
     public async Task IngestBookAsync(int recordId, CancellationToken cancellationToken = default)
@@ -53,6 +55,26 @@ public sealed partial class IngestionOrchestrator(
         }
     }
 
+    public async Task<DeleteBookResult> DeleteBookAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var record = await tracker.GetByIdAsync(id, cancellationToken);
+        if (record is null)
+            return DeleteBookResult.NotFound;
+
+        if (record.Status == IngestionStatus.Processing)
+            return DeleteBookResult.Conflict;
+
+        if (record.Status == IngestionStatus.Completed && record.ChunkCount.HasValue)
+            await vectorStore.DeleteByHashAsync(record.FileHash, record.ChunkCount.Value, cancellationToken);
+
+        if (File.Exists(record.FilePath))
+            File.Delete(record.FilePath);
+
+        await tracker.DeleteAsync(id, cancellationToken);
+        LogBookDeleted(logger, record.DisplayName, id);
+        return DeleteBookResult.Deleted;
+    }
+
     private static async Task<string> ComputeHashAsync(string filePath, CancellationToken ct)
     {
         await using var stream = File.OpenRead(filePath);
@@ -74,4 +96,7 @@ public sealed partial class IngestionOrchestrator(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Ingestion failed for {DisplayName} (id={Id})")]
     private static partial void LogIngestionFailed(ILogger logger, Exception ex, string displayName, int id);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Deleted book {DisplayName} (id={Id})")]
+    private static partial void LogBookDeleted(ILogger logger, string displayName, int id);
 }
