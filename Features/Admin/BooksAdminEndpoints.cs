@@ -107,6 +107,12 @@ public static partial class BooksAdminEndpoints
         if (record is null)
             return Results.NotFound($"Book with id {id} not found");
 
+        if (string.IsNullOrEmpty(record.FileHash))
+            return Results.Problem(
+                title: "Book has no file hash",
+                detail: "Run the standard ingest endpoint first to compute the file hash before extracting.",
+                statusCode: StatusCodes.Status409Conflict);
+
         if (record.Status == IngestionStatus.Processing)
             return Results.Conflict("Book is currently processing. Wait before re-extracting.");
 

@@ -7,6 +7,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion;
 
@@ -20,6 +21,7 @@ public sealed partial class IngestionOrchestrator(
     ILlmEntityExtractor entityExtractor,
     IEntityJsonStore jsonStore,
     IJsonIngestionPipeline jsonPipeline,
+    IOptions<IngestionOptions> ingestionOptions,
     ILogger<IngestionOrchestrator> logger) : IIngestionOrchestrator
 {
     public async Task IngestBookAsync(int recordId, CancellationToken cancellationToken = default)
@@ -92,7 +94,7 @@ public sealed partial class IngestionOrchestrator(
 
             foreach (var (pageNumber, pageText) in pages)
             {
-                if (pageText.Length < 100)
+                if (pageText.Length < ingestionOptions.Value.MinPageCharacters)
                     continue;
 
                 var types = await classifier.ClassifyPageAsync(pageText, cancellationToken);
@@ -166,7 +168,8 @@ public sealed partial class IngestionOrchestrator(
         if (record.Status == IngestionStatus.Processing)
             return DeleteBookResult.Conflict;
 
-        if (record.Status == IngestionStatus.Completed && record.ChunkCount.HasValue)
+        if ((record.Status == IngestionStatus.Completed || record.Status == IngestionStatus.JsonIngested)
+            && record.ChunkCount.HasValue)
             await vectorStore.DeleteByHashAsync(record.FileHash, record.ChunkCount.Value, cancellationToken);
 
         jsonStore.DeleteAllPages(id);

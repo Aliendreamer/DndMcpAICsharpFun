@@ -44,7 +44,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var chunker = new DndChunker(detector, opts);
         return new IngestionOrchestrator(
             _tracker, _extractor, chunker, _embeddingIngestor, _vectorStore,
-            _classifier, _entityExtractor, _jsonStore, _jsonPipeline,
+            _classifier, _entityExtractor, _jsonStore, _jsonPipeline, opts,
             NullLogger<IngestionOrchestrator>.Instance);
     }
 
