@@ -47,6 +47,18 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/reingest
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Extract book with LLM (fires Stage 1 in background)
+POST {{baseUrl}}/admin/books/1/extract
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin Books — List extracted JSON files for a book
+GET {{baseUrl}}/admin/books/1/extracted
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin Books — Ingest from extracted JSON (fires Stage 2 in background)
+POST {{baseUrl}}/admin/books/1/ingest-json
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}

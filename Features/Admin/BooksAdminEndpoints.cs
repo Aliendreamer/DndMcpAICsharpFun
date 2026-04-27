@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Ingestion;
+using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
@@ -14,6 +15,9 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/register", RegisterBook).DisableAntiforgery();
         group.MapGet("/books", GetAllBooks);
         group.MapPost("/books/{id:int}/reingest", ReingestBook);
+        group.MapPost("/books/{id:int}/extract", ExtractBook);
+        group.MapGet("/books/{id:int}/extracted", GetExtracted);
+        group.MapPost("/books/{id:int}/ingest-json", IngestJson);
         group.MapDelete("/books/{id:int}", DeleteBook);
         return group;
     }
@@ -89,6 +93,66 @@ public static partial class BooksAdminEndpoints
 
         await tracker.ResetForReingestionAsync(id, ct);
         _ = Task.Run(() => orchestrator.IngestBookAsync(id, CancellationToken.None), ct);
+
+        return Results.Accepted($"/admin/books/{id}");
+    }
+
+    private static async Task<IResult> ExtractBook(
+        int id,
+        IIngestionTracker tracker,
+        IServiceScopeFactory scopeFactory,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        if (record.Status == IngestionStatus.Processing)
+            return Results.Conflict("Book is currently processing. Wait before re-extracting.");
+
+        _ = Task.Run(async () =>
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
+            await orchestrator.ExtractBookAsync(id, CancellationToken.None);
+        }, CancellationToken.None);
+
+        return Results.Accepted($"/admin/books/{id}");
+    }
+
+    private static async Task<IResult> GetExtracted(
+        int id,
+        IIngestionTracker tracker,
+        IEntityJsonStore jsonStore,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        var files = jsonStore.ListPageFiles(id).ToList();
+        return Results.Ok(new { BookId = id, FileCount = files.Count, Files = files });
+    }
+
+    private static async Task<IResult> IngestJson(
+        int id,
+        IIngestionTracker tracker,
+        IServiceScopeFactory scopeFactory,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        if (record.Status == IngestionStatus.Processing)
+            return Results.Conflict("Book is currently processing.");
+
+        _ = Task.Run(async () =>
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
+            await orchestrator.IngestJsonAsync(id, CancellationToken.None);
+        }, CancellationToken.None);
 
         return Results.Accepted($"/admin/books/{id}");
     }
