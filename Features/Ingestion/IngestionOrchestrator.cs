@@ -62,10 +62,14 @@ public sealed partial class IngestionOrchestrator(
 
             LogCompletedIngestion(logger, record.DisplayName, chunks.Count);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             LogIngestionFailed(logger, ex, record.DisplayName, recordId);
-            await tracker.MarkFailedAsync(recordId, ex.Message, cancellationToken);
+            await tracker.MarkFailedAsync(recordId, ex.Message, CancellationToken.None);
         }
     }
 
@@ -108,10 +112,14 @@ public sealed partial class IngestionOrchestrator(
             await tracker.MarkExtractedAsync(recordId, cancellationToken);
             LogExtractedBook(logger, record.DisplayName, recordId);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             LogExtractionFailed(logger, ex, record.DisplayName, recordId);
-            await tracker.MarkFailedAsync(recordId, ex.Message, cancellationToken);
+            await tracker.MarkFailedAsync(recordId, ex.Message, CancellationToken.None);
         }
     }
 
@@ -132,15 +140,20 @@ public sealed partial class IngestionOrchestrator(
             await jsonPipeline.IngestAsync(recordId, record.FileHash, cancellationToken);
 
             var pages = await jsonStore.LoadAllPagesAsync(recordId, cancellationToken);
-            var chunkCount = pages.Sum(p => p.Count);
+            var chunkCount = pages.Sum(p => p.Count(e =>
+                !string.IsNullOrWhiteSpace(e.Data["description"]?.GetValue<string>())));
 
             await tracker.MarkJsonIngestedAsync(recordId, chunkCount, cancellationToken);
             LogJsonIngested(logger, record.DisplayName, recordId, chunkCount);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             LogJsonIngestionFailed(logger, ex, record.DisplayName, recordId);
-            await tracker.MarkFailedAsync(recordId, ex.Message, cancellationToken);
+            await tracker.MarkFailedAsync(recordId, ex.Message, CancellationToken.None);
         }
     }
 
