@@ -73,4 +73,23 @@ public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTr
 
     public async Task<IList<IngestionRecord>> GetAllAsync(CancellationToken ct = default) =>
         await db.IngestionRecords.OrderBy(r => r.CreatedAt).ToListAsync(ct);
+
+    public Task<IngestionRecord?> GetCompletedByHashAsync(string hash, int excludeId, CancellationToken ct = default) =>
+        db.IngestionRecords.FirstOrDefaultAsync(
+            r => r.FileHash == hash && r.Status == IngestionStatus.Completed && r.Id != excludeId, ct);
+
+    public async Task MarkDuplicateAsync(int id, CancellationToken ct = default)
+    {
+        await db.IngestionRecords
+            .Where(r => r.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, IngestionStatus.Duplicate), ct);
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
+    {
+        var deleted = await db.IngestionRecords
+            .Where(r => r.Id == id && r.Status != IngestionStatus.Processing)
+            .ExecuteDeleteAsync(ct);
+        return deleted > 0;
+    }
 }

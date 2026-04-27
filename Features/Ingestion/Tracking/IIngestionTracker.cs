@@ -14,4 +14,7 @@ public interface IIngestionTracker
     Task<IList<IngestionRecord>> GetPendingAndFailedAsync(CancellationToken ct = default);
     Task<IList<IngestionRecord>> GetAllAsync(CancellationToken ct = default);
     Task<IngestionRecord?> GetByIdAsync(int id, CancellationToken ct = default);
+    Task<IngestionRecord?> GetCompletedByHashAsync(string hash, int excludeId, CancellationToken ct = default);
+    Task MarkDuplicateAsync(int id, CancellationToken ct = default);
+    Task<bool> DeleteAsync(int id, CancellationToken ct = default);
 }
