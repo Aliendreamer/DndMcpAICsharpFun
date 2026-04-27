@@ -13,7 +13,7 @@ GET {{baseUrl}}/health/ready
 ###
 
 # ── Admin — Books ────────────────────────────────────────────────────────────
-# All admin requests require X-Api-Key header.
+# All admin requests require X-Admin-Api-Key header.
 
 ### Admin Books — Register a PDF
 POST {{baseUrl}}/admin/books/register
@@ -59,6 +59,18 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/reingest
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Extract book with LLM (fires Stage 1 in background)
+POST {{baseUrl}}/admin/books/1/extract
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin Books — List extracted JSON files for a book
+GET {{baseUrl}}/admin/books/1/extracted
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin Books — Ingest from extracted JSON (fires Stage 2 in background)
+POST {{baseUrl}}/admin/books/1/ingest-json
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}
@@ -87,7 +99,7 @@ GET {{baseUrl}}/retrieval/search?q=fireball&version=Edition2024&category=Spell&t
 
 ### Retrieval — Diagnostic search (admin, includes scores and Qdrant point IDs)
 GET {{baseUrl}}/admin/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5
-X-Api-Key: {{adminKey}}
+X-Admin-Api-Key: {{adminKey}}
 
 ###
 

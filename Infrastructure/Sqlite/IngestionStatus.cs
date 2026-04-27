@@ -6,5 +6,7 @@ public enum IngestionStatus
     Processing,
     Completed,
     Failed,
-    Duplicate
+    Duplicate,
+    Extracted,
+    JsonIngested,
 }

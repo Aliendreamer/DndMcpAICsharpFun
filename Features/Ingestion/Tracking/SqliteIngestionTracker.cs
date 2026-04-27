@@ -85,4 +85,24 @@ public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTr
             .ExecuteDeleteAsync(ct);
         return deleted > 0;
     }
+
+    public async Task MarkExtractedAsync(int id, CancellationToken ct = default)
+    {
+        await db.IngestionRecords
+            .Where(r => r.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Status, IngestionStatus.Extracted)
+                .SetProperty(r => r.Error, (string?)null), ct);
+    }
+
+    public async Task MarkJsonIngestedAsync(int id, int chunkCount, CancellationToken ct = default)
+    {
+        await db.IngestionRecords
+            .Where(r => r.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Status, IngestionStatus.JsonIngested)
+                .SetProperty(r => r.ChunkCount, chunkCount)
+                .SetProperty(r => r.IngestedAt, DateTime.UtcNow)
+                .SetProperty(r => r.Error, (string?)null), ct);
+    }
 }
