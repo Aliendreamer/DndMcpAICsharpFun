@@ -35,6 +35,6 @@ public sealed partial class PdfPigTextExtractor(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Sparse page detected in {File} at page {Page} ({Chars} chars)")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Sparse page detected in {File} at page {Page} ({Chars} chars)")]
     private static partial void LogSparsePage(ILogger logger, string file, int page, int chars);
 }
