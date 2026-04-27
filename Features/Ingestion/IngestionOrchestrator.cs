@@ -50,7 +50,7 @@ public sealed partial class IngestionOrchestrator(
 
             var pages = extractor.ExtractPages(record.FilePath);
             var version = Enum.Parse<DndVersion>(record.Version);
-            var chunks = chunker.Chunk(pages, record.SourceName, version).ToList();
+            var chunks = chunker.Chunk(pages, record.DisplayName, version).ToList();
 
             await embeddingIngestor.IngestAsync(chunks, currentHash, cancellationToken);
             await tracker.MarkCompletedAsync(recordId, chunks.Count, cancellationToken);

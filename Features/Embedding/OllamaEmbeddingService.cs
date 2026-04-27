@@ -20,7 +20,13 @@ public sealed class OllamaEmbeddingService : IEmbeddingService
     {
         try
         {
-            var request = new EmbedRequest { Model = _model, Input = [.. texts] };
+            var request = new EmbedRequest
+            {
+                Model = _model,
+                Input = [.. texts],
+                Options = new OllamaSharp.Models.RequestOptions { NumCtx = 2048 },
+                Truncate = true
+            };
             var response = await _client.EmbedAsync(request, ct);
             return response.Embeddings;
         }

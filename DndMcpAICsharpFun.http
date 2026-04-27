@@ -39,6 +39,18 @@ Content-Disposition: form-data; name="displayName"
 PlayerHandbook 2014
 ------Boundary--
 
+### Admin Books — Register a book by server-side path (no upload, instant response)
+POST {{baseUrl}}/admin/books/register-path
+X-Admin-Api-Key: {{adminKey}}
+Content-Type: application/json
+
+{
+  "filePath": "/books/PlayerHandbook2014.pdf",
+  "sourceName": "2014",
+  "version": "Edition2014",
+  "displayName": "Player Handbook 2014"
+}
+
 ### Admin Books — List all books
 GET {{baseUrl}}/admin/books
 X-Admin-Api-Key: {{adminKey}}
@@ -50,6 +62,19 @@ X-Admin-Api-Key: {{adminKey}}
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}
+
+###
+
+# ── Qdrant — Direct collection management ─────────────────────────────────────
+# Call these directly against Qdrant (port 6333), not the app.
+@qdrantUrl = http://localhost:6333
+@collectionName = dnd_chunks
+
+### Qdrant — Delete entire collection (wipes all vectors; app recreates it on restart)
+DELETE {{qdrantUrl}}/collections/{{collectionName}}
+
+### Qdrant — Collection info (point count, status)
+GET {{qdrantUrl}}/collections/{{collectionName}}
 
 ###
 

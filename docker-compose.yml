@@ -17,8 +17,8 @@ services:
     depends_on:
       qdrant:
         condition: service_healthy
-      ollama:
-        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
     networks:
       - dnd_net
     restart: unless-stopped
@@ -55,6 +55,18 @@ services:
     networks:
       - dnd_net
     restart: unless-stopped
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["ollama", "pull", "nomic-embed-text"]
+    networks:
+      - dnd_net
+    restart: "no"
 
   prometheus:
     image: prom/prometheus:v3.4.0

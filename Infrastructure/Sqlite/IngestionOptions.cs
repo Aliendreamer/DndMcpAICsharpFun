@@ -7,5 +7,5 @@ public sealed class IngestionOptions
     public int MinPageCharacters { get; set; } = 100;
     public int MaxChunkTokens { get; set; } = 512;
     public int OverlapTokens { get; set; } = 64;
-    public int EmbeddingBatchSize { get; set; } = 32;
+    public int EmbeddingBatchSize { get; set; } = 2;
 }

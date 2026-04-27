@@ -26,6 +26,8 @@ public sealed class DndChunker
         string sourceBook,
         DndVersion version)
     {
+        _chapterTracker.Reset();
+
         var allLines = new List<(int PageNumber, string Line)>();
         foreach (var (pageNum, text) in pages)
         {
@@ -112,22 +114,53 @@ public sealed class DndChunker
 
     private IEnumerable<string> SplitIntoTokenChunks(string text)
     {
-        // Approximate token count as word count (fast, good enough for chunking)
-        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        // nomic-embed-text (nomic-bert) hard limit is 2048 tokens; ~4 chars/token.
+        int charBudget = _maxTokens * 4;
 
-        if (words.Length <= _maxTokens)
+        if (text.Length <= charBudget)
         {
             yield return text;
             yield break;
         }
 
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         int start = 0;
         while (start < words.Length)
         {
-            int end = Math.Min(start + _maxTokens, words.Length);
-            yield return string.Join(' ', words[start..end]);
-            start += _maxTokens - _overlap;
+            var chunk = new System.Text.StringBuilder();
+            int i = start;
+            while (i < words.Length)
+            {
+                string word = words[i];
+
+                // Word alone exceeds budget (e.g. PDF extracted without spaces):
+                // flush any partial chunk, then slice the word by characters.
+                if (word.Length > charBudget)
+                {
+                    if (chunk.Length > 0)
+                    {
+                        yield return chunk.ToString();
+                        chunk.Clear();
+                    }
+                    for (int c = 0; c < word.Length; c += charBudget)
+                        yield return word.Substring(c, Math.Min(charBudget, word.Length - c));
+                    i++;
+                    start = i;
+                    goto nextChunk;
+                }
+
+                int addLen = (chunk.Length > 0 ? 1 : 0) + word.Length;
+                if (chunk.Length + addLen > charBudget) break;
+                if (chunk.Length > 0) chunk.Append(' ');
+                chunk.Append(word);
+                i++;
+            }
+            if (chunk.Length > 0)
+                yield return chunk.ToString();
+            int consumed = i - start;
+            start += Math.Max(1, consumed - _overlap);
             if (start >= words.Length) break;
+            nextChunk:;
         }
     }
 

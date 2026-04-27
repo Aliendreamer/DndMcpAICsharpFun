@@ -12,6 +12,7 @@ public static partial class BooksAdminEndpoints
     public static RouteGroupBuilder MapBooksAdmin(this RouteGroupBuilder group)
     {
         group.MapPost("/books/register", RegisterBook).DisableAntiforgery();
+        group.MapPost("/books/register-path", RegisterBookByPath);
         group.MapGet("/books", GetAllBooks);
         group.MapPost("/books/{id:int}/reingest", ReingestBook);
         group.MapDelete("/books/{id:int}", DeleteBook);
@@ -24,7 +25,7 @@ public static partial class BooksAdminEndpoints
       string version,
       string displayName,
       IIngestionTracker tracker,
-      IIngestionOrchestrator orchestrator,
+      IServiceScopeFactory scopeFactory,
       IOptions<IngestionOptions> ingestionOptions,
       ILogger<RegisterBookRequest> logger,
       CancellationToken ct)
@@ -65,12 +66,57 @@ public static partial class BooksAdminEndpoints
 
         LogBookRegistered(logger, created.DisplayName, created.Id, originalFileName);
 
-        _ = Task.Run(
-            () => orchestrator.IngestBookAsync(created.Id, CancellationToken.None),
-            CancellationToken.None);
+        _ = Task.Run(async () =>
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
+            await orchestrator.IngestBookAsync(created.Id, CancellationToken.None);
+        }, CancellationToken.None);
 
         return Results.Accepted($"/admin/books/{created.Id}", created);
     }
+    private static async Task<IResult> RegisterBookByPath(
+        RegisterBookByPathRequest request,
+        IIngestionTracker tracker,
+        IServiceScopeFactory scopeFactory,
+        ILogger<RegisterBookByPathRequest> logger,
+        CancellationToken ct)
+    {
+        if (!request.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            return Results.Problem("Only PDF files are accepted.", statusCode: 400);
+
+        if (!File.Exists(request.FilePath))
+            return Results.Problem($"File not found: {request.FilePath}", statusCode: 400);
+
+        if (!Enum.TryParse<DndVersion>(request.Version, ignoreCase: true, out var parsedVersion))
+            return Results.Problem(
+                $"Invalid version '{request.Version}'. Valid values: {string.Join(", ", Enum.GetNames<DndVersion>())}",
+                statusCode: 400);
+
+        var record = new IngestionRecord
+        {
+            FilePath = request.FilePath,
+            FileName = Path.GetFileName(request.FilePath),
+            FileHash = string.Empty,
+            SourceName = request.SourceName,
+            Version = parsedVersion.ToString(),
+            DisplayName = request.DisplayName,
+            Status = IngestionStatus.Pending,
+        };
+
+        var created = await tracker.CreateAsync(record, ct);
+        LogBookRegistered(logger, created.DisplayName, created.Id, created.FileName);
+
+        _ = Task.Run(async () =>
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
+            await orchestrator.IngestBookAsync(created.Id, CancellationToken.None);
+        }, CancellationToken.None);
+
+        return Results.Accepted($"/admin/books/{created.Id}", created);
+    }
+
     private static async Task<IResult> GetAllBooks(IIngestionTracker tracker)
     {
         var records = await tracker.GetAllAsync();
@@ -80,7 +126,7 @@ public static partial class BooksAdminEndpoints
     private static async Task<IResult> ReingestBook(
         int id,
         IIngestionTracker tracker,
-        IIngestionOrchestrator orchestrator,
+        IServiceScopeFactory scopeFactory,
         CancellationToken ct)
     {
         var record = await tracker.GetByIdAsync(id, ct);
@@ -88,7 +134,13 @@ public static partial class BooksAdminEndpoints
             return Results.NotFound($"Book with id {id} not found");
 
         await tracker.ResetForReingestionAsync(id, ct);
-        _ = Task.Run(() => orchestrator.IngestBookAsync(id, CancellationToken.None), ct);
+
+        _ = Task.Run(async () =>
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
+            await orchestrator.IngestBookAsync(id, CancellationToken.None);
+        }, CancellationToken.None);
 
         return Results.Accepted($"/admin/books/{id}");
     }
@@ -113,6 +165,12 @@ public static partial class BooksAdminEndpoints
 }
 
 public sealed record RegisterBookRequest(
+    string SourceName,
+    string Version,
+    string DisplayName);
+
+public sealed record RegisterBookByPathRequest(
+    string FilePath,
     string SourceName,
     string Version,
     string DisplayName);

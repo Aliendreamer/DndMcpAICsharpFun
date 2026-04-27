@@ -18,10 +18,21 @@ public sealed partial class ChapterContextTracker
     public ContentCategory CurrentCategory { get; private set; } = ContentCategory.Rule;
     public string CurrentChapter { get; private set; } = string.Empty;
 
+    public void Reset()
+    {
+        CurrentCategory = ContentCategory.Rule;
+        CurrentChapter = string.Empty;
+    }
+
     public void ProcessLine(string line)
     {
         if (!line.StartsWith("Chapter", StringComparison.OrdinalIgnoreCase) &&
             !line.StartsWith("Appendix", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        // Ignore TOC lines: real chapter headings are short; TOC entries have
+        // trailing dots and page numbers (e.g. "Chapter 3: Classes ........ 45")
+        if (line.Length > 80 || ContainsPageReference().IsMatch(line))
             return;
 
         foreach (var (pattern, category) in ChapterMappings)
@@ -52,4 +63,7 @@ public sealed partial class ChapterContextTracker
 
     [GeneratedRegex(@"condition|appendix", RegexOptions.IgnoreCase)]
     private static partial Regex ChapterCondition();
+
+    [GeneratedRegex(@"\.{3,}|\d+\s*$")]
+    private static partial Regex ContainsPageReference();
 }

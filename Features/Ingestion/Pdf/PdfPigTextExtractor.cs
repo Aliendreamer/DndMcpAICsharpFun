@@ -18,7 +18,15 @@ public sealed partial class PdfPigTextExtractor(
 
         foreach (var page in document.GetPages())
         {
-            var text = page.Text;
+            // Group words by their Y position to reconstruct line structure.
+            // GetWords() uses spatial proximity for proper word spacing, and we
+            // then sort lines top-to-bottom (descending Y in PDF coordinates).
+            var lines = page.GetWords()
+                .GroupBy(w => Math.Round(w.BoundingBox.Bottom, 0))
+                .OrderByDescending(g => g.Key)
+                .Select(g => string.Join(" ", g.OrderBy(w => w.BoundingBox.Left).Select(w => w.Text)));
+
+            var text = string.Join("\n", lines);
 
             if (text.Length < _minPageCharacters)
                 LogSparsePage(logger, Path.GetFileName(filePath), page.Number, text.Length);
