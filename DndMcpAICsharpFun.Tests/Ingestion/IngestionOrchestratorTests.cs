@@ -77,6 +77,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         _extractor.DidNotReceive().ExtractPages(Arg.Any<string>());
         await _embeddingIngestor.DidNotReceive()
             .IngestAsync(Arg.Any<IList<ContentChunk>>(), Arg.Any<string>());
+        await _tracker.DidNotReceive().MarkHashAsync(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -147,6 +148,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         _extractor.DidNotReceive().ExtractPages(Arg.Any<string>());
         await _embeddingIngestor.DidNotReceive()
             .IngestAsync(Arg.Any<IList<ContentChunk>>(), Arg.Any<string>());
+        await _tracker.Received(1).MarkHashAsync(10, Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
