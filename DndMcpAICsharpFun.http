@@ -17,7 +17,7 @@ GET {{baseUrl}}/health/ready
 
 ### Admin Books — Register a PDF
 POST {{baseUrl}}/admin/books/register
-X-Api-Key: {{adminKey}}
+X-Admin-Api-Key: {{adminKey}}
 Content-Type: multipart/form-data; boundary=----Boundary
 
 ------Boundary
@@ -46,6 +46,10 @@ X-Api-Key: {{adminKey}}
 ### Admin Books — Re-ingest book by ID
 POST {{baseUrl}}/admin/books/1/reingest
 X-Api-Key: {{adminKey}}
+
+### Admin Books — Delete a book record and all associated data
+DELETE {{baseUrl}}/admin/books/1
+X-Admin-Api-Key: {{adminKey}}
 
 ###
 
