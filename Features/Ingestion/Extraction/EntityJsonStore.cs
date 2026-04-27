@@ -68,6 +68,7 @@ public sealed class EntityJsonStore(IOptions<IngestionOptions> options) : IEntit
             .OrderBy(ExtractPageNumber)
             .ToList();
 
+        // Nothing to merge with a single page; files are already persisted on disk.
         if (files.Count < 2) return;
 
         // Load all pages as mutable lists
@@ -95,6 +96,7 @@ public sealed class EntityJsonStore(IOptions<IngestionOptions> options) : IEntit
                 var thisDesc = entity.Data["description"]?.GetValue<string>() ?? string.Empty;
                 var nextDesc = match.Data["description"]?.GetValue<string>() ?? string.Empty;
                 var mergedData = JsonNode.Parse(entity.Data.ToJsonString())!.AsObject();
+                // Only description is merged; other data fields from the continuation entity are ignored.
                 mergedData["description"] = thisDesc + nextDesc;
 
                 var merged = entity with { Partial = false, Data = mergedData };
