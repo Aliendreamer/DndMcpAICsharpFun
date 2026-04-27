@@ -28,6 +28,10 @@ services:
     ports:
       - "6333:6333"
       - "6334:6334"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
