@@ -40,8 +40,12 @@ internal static class ServiceCollectionExtensions
             // Timeout.InfiniteTimeSpan: model cold-start (loading from disk) can take
             // several minutes; the default 100 s HttpClient timeout cuts it off prematurely.
             // CancellationToken passed to each call controls per-request cancellation instead.
-            var httpClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
-            return new OllamaApiClient(httpClient, opts.BaseUrl);
+            var httpClient = new HttpClient
+            {
+                BaseAddress = new Uri(opts.BaseUrl),
+                Timeout = Timeout.InfiniteTimeSpan
+            };
+            return new OllamaApiClient(httpClient);
         });
 
         services.AddDbContext<IngestionDbContext>(static (sp, options) =>
