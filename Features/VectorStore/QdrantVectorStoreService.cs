@@ -27,6 +27,14 @@ public sealed class QdrantVectorStoreService : IVectorStoreService
         await _client.UpsertAsync(_collectionName, qdrantPoints, cancellationToken: ct);
     }
 
+    public async Task DeleteByHashAsync(string fileHash, int chunkCount, CancellationToken ct = default)
+    {
+        var ids = Enumerable.Range(0, chunkCount)
+            .Select(i => DerivePointId(fileHash, i))
+            .ToList();
+        await _client.DeleteAsync(_collectionName, ids, cancellationToken: ct);
+    }
+
     private static PointStruct BuildPoint(ContentChunk chunk, float[] vector, string fileHash)
     {
         var meta = chunk.Metadata;
