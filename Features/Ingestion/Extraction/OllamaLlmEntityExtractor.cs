@@ -54,7 +54,7 @@ public sealed partial class OllamaLlmEntityExtractor(
         var request = new ChatRequest
         {
             Model = _model,
-            Stream = false,
+            Stream = true,
             Messages =
             [
                 new Message { Role = ChatRole.System, Content = systemPrompt },

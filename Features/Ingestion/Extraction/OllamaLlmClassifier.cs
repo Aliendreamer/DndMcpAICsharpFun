@@ -28,7 +28,7 @@ public sealed partial class OllamaLlmClassifier(
         var request = new ChatRequest
         {
             Model = _model,
-            Stream = false,
+            Stream = true,
             Messages =
             [
                 new Message { Role = ChatRole.System, Content = SystemPrompt },

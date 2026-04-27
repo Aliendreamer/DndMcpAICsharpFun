@@ -37,7 +37,11 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton(static sp =>
         {
             var opts = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
-            return new OllamaApiClient(new Uri(opts.BaseUrl));
+            // Timeout.InfiniteTimeSpan: model cold-start (loading from disk) can take
+            // several minutes; the default 100 s HttpClient timeout cuts it off prematurely.
+            // CancellationToken passed to each call controls per-request cancellation instead.
+            var httpClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+            return new OllamaApiClient(httpClient, opts.BaseUrl);
         });
 
         services.AddDbContext<IngestionDbContext>(static (sp, options) =>
