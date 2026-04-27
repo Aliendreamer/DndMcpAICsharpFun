@@ -170,6 +170,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         Assert.Equal(DeleteBookResult.Deleted, result);
         await _vectorStore.Received(1).DeleteByHashAsync("abc123", 10, Arg.Any<CancellationToken>());
         await _tracker.Received(1).DeleteAsync(2, Arg.Any<CancellationToken>());
+        Assert.False(File.Exists(_tempFile), "Physical file should have been deleted");
     }
 
     [Fact]
@@ -177,18 +178,18 @@ public sealed class IngestionOrchestratorTests : IDisposable
     {
         var record = new IngestionRecord
         {
-            Id = 3, FilePath = _tempFile, FileName = "test.pdf",
+            Id = 5, FilePath = _tempFile, FileName = "test.pdf",
             FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
             DisplayName = "PHB", Status = IngestionStatus.Pending
         };
-        _tracker.GetByIdAsync(3, Arg.Any<CancellationToken>()).Returns(record);
-        _tracker.DeleteAsync(3, Arg.Any<CancellationToken>()).Returns(true);
+        _tracker.GetByIdAsync(5, Arg.Any<CancellationToken>()).Returns(record);
+        _tracker.DeleteAsync(5, Arg.Any<CancellationToken>()).Returns(true);
         var sut = BuildSut();
 
-        var result = await sut.DeleteBookAsync(3);
+        var result = await sut.DeleteBookAsync(5);
 
         Assert.Equal(DeleteBookResult.Deleted, result);
         await _vectorStore.DidNotReceive().DeleteByHashAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
-        await _tracker.Received(1).DeleteAsync(3, Arg.Any<CancellationToken>());
+        await _tracker.Received(1).DeleteAsync(5, Arg.Any<CancellationToken>());
     }
 }
