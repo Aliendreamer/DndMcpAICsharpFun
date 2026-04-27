@@ -2,6 +2,7 @@ using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Chunking;
 using DndMcpAICsharpFun.Features.Ingestion.Chunking.Detectors;
+using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
@@ -68,6 +69,11 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<IEmbeddingIngestor, EmbeddingIngestor>();
 
         services.AddScoped<IIngestionOrchestrator, IngestionOrchestrator>();
+
+        services.AddScoped<ILlmClassifier, OllamaLlmClassifier>();
+        services.AddScoped<ILlmEntityExtractor, OllamaLlmEntityExtractor>();
+        services.AddSingleton<IEntityJsonStore, EntityJsonStore>();
+        services.AddScoped<IJsonIngestionPipeline, JsonIngestionPipeline>();
 
         // QdrantCollectionInitializer must be registered before IngestionBackgroundService
         services.AddHostedService<QdrantCollectionInitializer>();

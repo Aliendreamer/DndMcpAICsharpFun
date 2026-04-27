@@ -56,6 +56,20 @@ services:
       - dnd_net
     restart: unless-stopped
 
+  ollama-pull:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: ["/bin/sh", "-c", "ollama pull nomic-embed-text && ollama pull llama3.2"]
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - dnd_net
+    restart: "no"
+
   prometheus:
     image: prom/prometheus:v3.4.0
     ports:
