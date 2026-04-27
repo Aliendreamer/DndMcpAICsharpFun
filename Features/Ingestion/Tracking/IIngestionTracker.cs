@@ -7,6 +7,7 @@ public interface IIngestionTracker
     Task<IngestionRecord?> GetByHashAsync(string hash, CancellationToken ct = default);
     Task<IngestionRecord> CreateAsync(IngestionRecord record, CancellationToken ct = default);
     Task MarkProcessingAsync(int id, CancellationToken ct = default);
+    Task MarkHashAsync(int id, string fileHash, CancellationToken ct = default);
     Task MarkCompletedAsync(int id, int chunkCount, CancellationToken ct = default);
     Task MarkFailedAsync(int id, string error, CancellationToken ct = default);
     Task ResetForReingestionAsync(int id, CancellationToken ct = default);

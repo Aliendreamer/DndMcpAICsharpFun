@@ -25,6 +25,15 @@ public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTr
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, IngestionStatus.Processing), ct);
     }
 
+    public async Task MarkHashAsync(int id, string fileHash, CancellationToken ct = default)
+    {
+        await db.IngestionRecords
+            .Where(r => r.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Status, IngestionStatus.Processing)
+                .SetProperty(r => r.FileHash, fileHash), ct);
+    }
+
     public async Task MarkCompletedAsync(int id, int chunkCount, CancellationToken ct = default)
     {
         await db.IngestionRecords
