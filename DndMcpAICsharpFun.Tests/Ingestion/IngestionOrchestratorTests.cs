@@ -252,6 +252,26 @@ public sealed class IngestionOrchestratorTests : IDisposable
     }
 
     [Fact]
+    public async Task ExtractBookAsync_NoHash_ComputesAndSetsHash()
+    {
+        var record = new IngestionRecord
+        {
+            Id = 22, FilePath = _tempFile, FileName = "test.pdf",
+            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
+            DisplayName = "PHB", Status = IngestionStatus.Failed
+        };
+        _tracker.GetByIdAsync(22, Arg.Any<CancellationToken>()).Returns(record);
+        _extractor.ExtractPages(_tempFile).Returns([(1, "short text")]);
+        var expectedHash = await HashFileAsync(_tempFile);
+        var sut = BuildSut();
+
+        await sut.ExtractBookAsync(22);
+
+        await _tracker.Received(1).MarkHashAsync(22, expectedHash, Arg.Any<CancellationToken>());
+        await _tracker.Received(1).MarkExtractedAsync(22, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task ExtractBookAsync_RecordNotFound_Returns()
     {
         _tracker.GetByIdAsync(999, Arg.Any<CancellationToken>()).Returns((IngestionRecord?)null);

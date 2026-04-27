@@ -88,7 +88,10 @@ public sealed partial class IngestionOrchestrator(
 
         try
         {
-            await tracker.MarkHashAsync(recordId, record.FileHash, cancellationToken);
+            var currentHash = string.IsNullOrEmpty(record.FileHash)
+                ? await ComputeHashAsync(record.FilePath, cancellationToken)
+                : record.FileHash;
+            await tracker.MarkHashAsync(recordId, currentHash, cancellationToken);
 
             var pages = extractor.ExtractPages(record.FilePath).ToList();
 
