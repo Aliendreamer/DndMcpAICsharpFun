@@ -89,6 +89,8 @@ public sealed class IngestionOrchestratorTests : IDisposable
             DisplayName = "PHB", Status = IngestionStatus.Pending
         };
         _tracker.GetByIdAsync(2, Arg.Any<CancellationToken>()).Returns(record);
+        _tracker.GetCompletedByHashAsync(Arg.Any<string>(), 2, Arg.Any<CancellationToken>())
+            .Returns((IngestionRecord?)null);
         _extractor.ExtractPages(_tempFile)
             .Returns([(1, "Casting Time: 1 action\nRange: 150 feet\nDuration: Instantaneous")]);
         var sut = BuildSut();
@@ -111,6 +113,8 @@ public sealed class IngestionOrchestratorTests : IDisposable
             DisplayName = "PHB", Status = IngestionStatus.Pending
         };
         _tracker.GetByIdAsync(3, Arg.Any<CancellationToken>()).Returns(record);
+        _tracker.GetCompletedByHashAsync(Arg.Any<string>(), 3, Arg.Any<CancellationToken>())
+            .Returns((IngestionRecord?)null);
         _extractor.When(x => x.ExtractPages(Arg.Any<string>()))
             .Do(_ => throw new InvalidOperationException("pdf error"));
         var sut = BuildSut();
@@ -120,6 +124,50 @@ public sealed class IngestionOrchestratorTests : IDisposable
         await _tracker.Received(1).MarkFailedAsync(3, "pdf error", Arg.Any<CancellationToken>());
         await _embeddingIngestor.DidNotReceive()
             .IngestAsync(Arg.Any<IList<ContentChunk>>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task IngestBookAsync_DuplicateHash_MarksDuplicateAndSkipsExtraction()
+    {
+        var record = new IngestionRecord
+        {
+            Id = 10, FilePath = _tempFile, FileName = "test.pdf",
+            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
+            DisplayName = "PHB", Status = IngestionStatus.Pending
+        };
+        var existing = new IngestionRecord { Id = 5, Status = IngestionStatus.Completed };
+        _tracker.GetByIdAsync(10, Arg.Any<CancellationToken>()).Returns(record);
+        _tracker.GetCompletedByHashAsync(Arg.Any<string>(), 10, Arg.Any<CancellationToken>())
+            .Returns(existing);
+        var sut = BuildSut();
+
+        await sut.IngestBookAsync(10);
+
+        await _tracker.Received(1).MarkDuplicateAsync(10, Arg.Any<CancellationToken>());
+        _extractor.DidNotReceive().ExtractPages(Arg.Any<string>());
+        await _embeddingIngestor.DidNotReceive()
+            .IngestAsync(Arg.Any<IList<ContentChunk>>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task IngestBookAsync_PendingRecord_CallsMarkHashAsync()
+    {
+        var record = new IngestionRecord
+        {
+            Id = 11, FilePath = _tempFile, FileName = "test.pdf",
+            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
+            DisplayName = "PHB", Status = IngestionStatus.Pending
+        };
+        _tracker.GetByIdAsync(11, Arg.Any<CancellationToken>()).Returns(record);
+        _tracker.GetCompletedByHashAsync(Arg.Any<string>(), 11, Arg.Any<CancellationToken>())
+            .Returns((IngestionRecord?)null);
+        _extractor.ExtractPages(_tempFile)
+            .Returns([(1, "Casting Time: 1 action\nRange: 150 feet\nDuration: Instantaneous")]);
+        var sut = BuildSut();
+
+        await sut.IngestBookAsync(11);
+
+        await _tracker.Received(1).MarkHashAsync(11, Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

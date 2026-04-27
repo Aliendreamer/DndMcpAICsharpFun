@@ -27,7 +27,6 @@ public sealed partial class IngestionOrchestrator(
         }
 
         LogStartingIngestion(logger, record.DisplayName, recordId);
-        await tracker.MarkProcessingAsync(recordId, cancellationToken);
 
         try
         {
@@ -36,6 +35,16 @@ public sealed partial class IngestionOrchestrator(
             if (record.Status == IngestionStatus.Completed && record.FileHash == currentHash)
             {
                 LogSkippingUnchanged(logger, record.DisplayName);
+                return;
+            }
+
+            await tracker.MarkHashAsync(recordId, currentHash, cancellationToken);
+
+            var duplicate = await tracker.GetCompletedByHashAsync(currentHash, recordId, cancellationToken);
+            if (duplicate is not null)
+            {
+                LogDuplicateDetected(logger, record.DisplayName, duplicate.Id);
+                await tracker.MarkDuplicateAsync(recordId, cancellationToken);
                 return;
             }
 
@@ -90,6 +99,9 @@ public sealed partial class IngestionOrchestrator(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Skipping {DisplayName} — already ingested with same hash")]
     private static partial void LogSkippingUnchanged(ILogger logger, string displayName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Book {DisplayName} is a duplicate of record {ExistingId} — marking as Duplicate")]
+    private static partial void LogDuplicateDetected(ILogger logger, string displayName, int existingId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Completed {DisplayName}: {Count} chunks")]
     private static partial void LogCompletedIngestion(ILogger logger, string displayName, int count);
