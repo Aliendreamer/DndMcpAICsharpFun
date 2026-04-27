@@ -12,7 +12,7 @@ public sealed class IngestionRecord
     [Required, MaxLength(512)]
     public string FileName { get; set; } = string.Empty;
 
-    [Required, MaxLength(64)]
+    [MaxLength(64)]
     public string FileHash { get; set; } = string.Empty;
 
     [Required, MaxLength(100)]

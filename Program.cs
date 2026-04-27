@@ -7,6 +7,8 @@ using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 500 * 1024 * 1024);
+
 builder.Configuration
     .AddJsonFile("Config/appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"Config/appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
@@ -19,6 +21,7 @@ builder.Services.Configure<IngestionOptions>(builder.Configuration.GetSection("I
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
 builder.Services.Configure<RetrievalOptions>(builder.Configuration.GetSection("Retrieval"));
 
+// builder.Services.AddAntiforgery();
 builder.Services.AddInfrastructureClients(builder.Configuration);
 builder.Services.AddIngestionPipeline();
 builder.Services.AddRetrieval();
@@ -33,6 +36,7 @@ var app = builder.Build();
 
 await app.MigrateDatabaseAsync();
 app.ValidateStartupConfiguration();
+// app.UseAntiforgery();
 app.MapAdminMiddleware();
 app.MapObservabilityEndpoints();
 

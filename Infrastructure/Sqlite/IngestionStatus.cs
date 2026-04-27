@@ -5,5 +5,6 @@ public enum IngestionStatus
     Pending,
     Processing,
     Completed,
-    Failed
+    Failed,
+    Duplicate
 }
