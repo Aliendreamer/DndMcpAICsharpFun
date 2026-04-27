@@ -41,11 +41,11 @@ PlayerHandbook 2014
 
 ### Admin Books — List all books
 GET {{baseUrl}}/admin/books
-X-Api-Key: {{adminKey}}
+X-Admin-Api-Key: {{adminKey}}
 
 ### Admin Books — Re-ingest book by ID
 POST {{baseUrl}}/admin/books/1/reingest
-X-Api-Key: {{adminKey}}
+X-Admin-Api-Key: {{adminKey}}
 
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
