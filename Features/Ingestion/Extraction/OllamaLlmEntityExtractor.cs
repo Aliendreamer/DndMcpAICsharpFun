@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -37,6 +38,9 @@ public sealed partial class OllamaLlmEntityExtractor(
         string version,
         CancellationToken ct = default)
     {
+        LogExtractStart(logger, entityType, pageNumber, _model);
+        var sw = Stopwatch.StartNew();
+
         var fields = TypeFields.GetValueOrDefault(entityType, "description (string)");
         var systemPrompt =
             $"""
@@ -55,6 +59,7 @@ public sealed partial class OllamaLlmEntityExtractor(
         {
             Model = _model,
             Stream = true,
+            Format = "json",
             Messages =
             [
                 new Message { Role = ChatRole.System, Content = systemPrompt },
@@ -66,15 +71,22 @@ public sealed partial class OllamaLlmEntityExtractor(
         await foreach (var chunk in ollama.ChatAsync(request, ct))
             sb.Append(chunk?.Message?.Content ?? string.Empty);
 
-        var json = sb.ToString().Trim();
+        var json = StripFences(sb.ToString().Trim());
 
         if (string.IsNullOrEmpty(json))
+        {
+            LogExtractDone(logger, entityType, pageNumber, 0, _model, sw.ElapsedMilliseconds);
             return [];
+        }
 
         try
         {
             var raw = JsonNode.Parse(json)?.AsArray();
-            if (raw is null) return [];
+            if (raw is null)
+            {
+                LogExtractDone(logger, entityType, pageNumber, 0, _model, sw.ElapsedMilliseconds);
+                return [];
+            }
 
             var results = new List<ExtractedEntity>();
             foreach (var item in raw)
@@ -86,6 +98,7 @@ public sealed partial class OllamaLlmEntityExtractor(
 
                 results.Add(new ExtractedEntity(pageNumber, sourceBook, version, partial, entityType, name, data));
             }
+            LogExtractDone(logger, entityType, pageNumber, results.Count, _model, sw.ElapsedMilliseconds);
             return results;
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException)
@@ -94,9 +107,27 @@ public sealed partial class OllamaLlmEntityExtractor(
 
             // Fallback: save raw page text as a Rule entity with partial:true — nothing silently dropped
             var fallbackData = new JsonObject { ["description"] = pageText };
+            LogExtractDone(logger, entityType, pageNumber, 1, _model, sw.ElapsedMilliseconds);
             return [new ExtractedEntity(pageNumber, sourceBook, version, true, "Rule", $"page_{pageNumber}_raw", fallbackData)];
         }
     }
+
+    private static string StripFences(string s)
+    {
+        if (s.StartsWith("```", StringComparison.Ordinal))
+        {
+            var start = s.IndexOf('\n') + 1;
+            var end = s.LastIndexOf("```", StringComparison.Ordinal);
+            if (end > start) return s[start..end].Trim();
+        }
+        return s;
+    }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Extracting {EntityType} from page {Page} with {Model}")]
+    private static partial void LogExtractStart(ILogger logger, string entityType, int page, string model);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Extracted {Count} {EntityType} from page {Page} with {Model} in {ElapsedMs}ms")]
+    private static partial void LogExtractDone(ILogger logger, string entityType, int page, int count, string model, long elapsedMs);
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Extractor returned invalid JSON for type={Type} page={Page}: {Json}")]

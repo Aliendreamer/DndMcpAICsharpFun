@@ -100,6 +100,7 @@ public sealed partial class IngestionOrchestrator(
                 if (pageText.Length < ingestionOptions.Value.MinPageCharacters)
                     continue;
 
+                LogClassifyingPage(logger, pageNumber, pages.Count, recordId);
                 var types = await classifier.ClassifyPageAsync(pageText, cancellationToken);
                 var pageEntities = new List<ExtractedEntity>();
 
@@ -112,6 +113,8 @@ public sealed partial class IngestionOrchestrator(
 
                 if (pageEntities.Count > 0)
                     await jsonStore.SavePageAsync(recordId, pageNumber, pageEntities, cancellationToken);
+
+                LogExtractedPage(logger, pageNumber, pages.Count, recordId);
             }
 
             await tracker.MarkExtractedAsync(recordId, cancellationToken);
@@ -230,4 +233,10 @@ public sealed partial class IngestionOrchestrator(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "JSON ingestion failed for {DisplayName} (id={Id})")]
     private static partial void LogJsonIngestionFailed(ILogger logger, Exception ex, string displayName, int id);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Classifying page {Page}/{Total} for book {BookId}")]
+    private static partial void LogClassifyingPage(ILogger logger, int page, int total, int bookId);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Extracted page {Page}/{Total} for book {BookId}")]
+    private static partial void LogExtractedPage(ILogger logger, int page, int total, int bookId);
 }

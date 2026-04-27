@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
@@ -25,10 +26,14 @@ public sealed partial class OllamaLlmClassifier(
 
     public async Task<IReadOnlyList<string>> ClassifyPageAsync(string pageText, CancellationToken ct = default)
     {
+        LogClassifyStart(logger, _model, pageText.Length);
+        var sw = Stopwatch.StartNew();
+
         var request = new ChatRequest
         {
             Model = _model,
             Stream = true,
+            Format = "json",
             Messages =
             [
                 new Message { Role = ChatRole.System, Content = SystemPrompt },
@@ -40,21 +45,44 @@ public sealed partial class OllamaLlmClassifier(
         await foreach (var chunk in ollama.ChatAsync(request, ct))
             sb.Append(chunk?.Message?.Content ?? string.Empty);
 
-        var json = sb.ToString().Trim();
+        var json = StripFences(sb.ToString().Trim());
 
         if (string.IsNullOrEmpty(json))
+        {
+            LogClassifyDone(logger, _model, "none", sw.ElapsedMilliseconds);
             return [];
+        }
 
         try
         {
-            return JsonSerializer.Deserialize<List<string>>(json) ?? [];
+            var result = JsonSerializer.Deserialize<List<string>>(json) ?? [];
+            LogClassifyDone(logger, _model, result.Count > 0 ? string.Join(",", result) : "none", sw.ElapsedMilliseconds);
+            return result;
         }
         catch (JsonException)
         {
             LogInvalidJson(logger, json[..Math.Min(200, json.Length)]);
+            LogClassifyDone(logger, _model, "none", sw.ElapsedMilliseconds);
             return [];
         }
     }
+
+    private static string StripFences(string s)
+    {
+        if (s.StartsWith("```", StringComparison.Ordinal))
+        {
+            var start = s.IndexOf('\n') + 1;
+            var end = s.LastIndexOf("```", StringComparison.Ordinal);
+            if (end > start) return s[start..end].Trim();
+        }
+        return s;
+    }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Classifying {TextLength} chars with {Model}")]
+    private static partial void LogClassifyStart(ILogger logger, string model, int textLength);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Classified with {Model} → {Categories} in {ElapsedMs}ms")]
+    private static partial void LogClassifyDone(ILogger logger, string model, string categories, long elapsedMs);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Classifier returned invalid JSON: {Json}")]
     private static partial void LogInvalidJson(ILogger logger, string json);

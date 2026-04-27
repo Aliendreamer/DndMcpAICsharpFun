@@ -4,8 +4,12 @@ using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((ctx, cfg) =>
+    cfg.ReadFrom.Configuration(ctx.Configuration));
 
 builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 500 * 1024 * 1024);
 
@@ -37,6 +41,7 @@ var app = builder.Build();
 await app.MigrateDatabaseAsync();
 app.ValidateStartupConfiguration();
 // app.UseAntiforgery();
+app.UseSerilogRequestLogging();
 app.MapAdminMiddleware();
 app.MapObservabilityEndpoints();
 

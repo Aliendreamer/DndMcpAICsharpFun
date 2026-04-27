@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Threading.Channels;
 
 namespace DndMcpAICsharpFun.Features.Ingestion;
@@ -20,6 +21,9 @@ public sealed partial class IngestionQueueWorker(
                 await using var scope = scopeFactory.CreateAsyncScope();
                 var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
 
+                LogWorkItemStarted(logger, item.Type, item.BookId);
+                var sw = Stopwatch.StartNew();
+
                 await (item.Type switch
                 {
                     IngestionWorkType.Reingest  => orchestrator.IngestBookAsync(item.BookId, stoppingToken),
@@ -27,6 +31,8 @@ public sealed partial class IngestionQueueWorker(
                     IngestionWorkType.IngestJson => orchestrator.IngestJsonAsync(item.BookId, stoppingToken),
                     _ => Task.CompletedTask
                 });
+
+                LogWorkItemCompleted(logger, item.Type, item.BookId, sw.ElapsedMilliseconds);
             }
             catch (OperationCanceledException)
             {
@@ -38,6 +44,12 @@ public sealed partial class IngestionQueueWorker(
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting {Type} for book {BookId}")]
+    private static partial void LogWorkItemStarted(ILogger logger, IngestionWorkType type, int bookId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Completed {Type} for book {BookId} in {ElapsedMs}ms")]
+    private static partial void LogWorkItemCompleted(ILogger logger, IngestionWorkType type, int bookId, long elapsedMs);
 
     [LoggerMessage(Level = LogLevel.Error,
         Message = "Unhandled error processing {Type} for book {BookId}")]

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
@@ -17,6 +18,8 @@ public sealed partial class EmbeddingIngestor(
     {
         int total = chunks.Count;
         int upserted = 0;
+        LogIngestStart(logger, total);
+        var sw = Stopwatch.StartNew();
 
         for (int offset = 0; offset < total; offset += _batchSize)
         {
@@ -37,7 +40,14 @@ public sealed partial class EmbeddingIngestor(
         }
 
         LogIngestedChunks(logger, total);
+        LogIngestComplete(logger, total, sw.ElapsedMilliseconds);
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting embedding ingestion of {Total} chunks")]
+    private static partial void LogIngestStart(ILogger logger, int total);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Embedding ingestion complete: {Total} chunks in {ElapsedMs}ms")]
+    private static partial void LogIngestComplete(ILogger logger, int total, long elapsedMs);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Upserted {Upserted}/{Total} chunks")]
     private static partial void LogUpsertedChunks(ILogger logger, int upserted, int total);

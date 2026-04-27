@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using DndMcpAICsharpFun.Domain;
@@ -8,23 +9,22 @@ using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Features.VectorStore;
 
-public sealed class QdrantVectorStoreService : IVectorStoreService
+public sealed partial class QdrantVectorStoreService(
+    QdrantClient client,
+    IOptions<QdrantOptions> options,
+    ILogger<QdrantVectorStoreService> logger) : IVectorStoreService
 {
-    private readonly QdrantClient _client;
-    private readonly string _collectionName;
-
-    public QdrantVectorStoreService(QdrantClient client, IOptions<QdrantOptions> options)
-    {
-        _client = client;
-        _collectionName = options.Value.CollectionName;
-    }
+    private readonly string _collectionName = options.Value.CollectionName;
 
     public async Task UpsertAsync(
         IList<(ContentChunk Chunk, float[] Vector, string FileHash)> points,
         CancellationToken ct = default)
     {
         var qdrantPoints = points.Select(p => BuildPoint(p.Chunk, p.Vector, p.FileHash)).ToList();
-        await _client.UpsertAsync(_collectionName, qdrantPoints, cancellationToken: ct);
+        LogUpsertStart(logger, qdrantPoints.Count, _collectionName);
+        var sw = Stopwatch.StartNew();
+        await client.UpsertAsync(_collectionName, qdrantPoints, cancellationToken: ct);
+        LogUpsertDone(logger, qdrantPoints.Count, _collectionName, sw.ElapsedMilliseconds);
     }
 
     public async Task DeleteByHashAsync(string fileHash, int chunkCount, CancellationToken ct = default)
@@ -32,7 +32,7 @@ public sealed class QdrantVectorStoreService : IVectorStoreService
         var ids = Enumerable.Range(0, chunkCount)
             .Select(i => DerivePointId(fileHash, i))
             .ToList();
-        await _client.DeleteAsync(_collectionName, ids, cancellationToken: ct);
+        await client.DeleteAsync(_collectionName, ids, cancellationToken: ct);
     }
 
     private static PointStruct BuildPoint(ContentChunk chunk, float[] vector, string fileHash)
@@ -67,4 +67,10 @@ public sealed class QdrantVectorStoreService : IVectorStoreService
         // Use first 16 bytes as a deterministic Guid
         return new Guid(hash[..16]);
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Upserting {Count} vectors into {Collection}")]
+    private static partial void LogUpsertStart(ILogger logger, int count, string collection);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Upserted {Count} vectors into {Collection} in {ElapsedMs}ms")]
+    private static partial void LogUpsertDone(ILogger logger, int count, string collection, long elapsedMs);
 }
