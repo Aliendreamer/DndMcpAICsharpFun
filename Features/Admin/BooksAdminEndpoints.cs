@@ -14,10 +14,10 @@ public static partial class BooksAdminEndpoints
     {
         group.MapPost("/books/register", RegisterBook).DisableAntiforgery();
         group.MapGet("/books", GetAllBooks);
-        group.MapPost("/books/{id:int}/reingest", ReingestBook);
-        group.MapPost("/books/{id:int}/extract", ExtractBook);
+        group.MapPost("/books/{id:int}/reingest", ReingestBook).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/extract", ExtractBook).DisableAntiforgery();
         group.MapGet("/books/{id:int}/extracted", GetExtracted);
-        group.MapPost("/books/{id:int}/ingest-json", IngestJson);
+        group.MapPost("/books/{id:int}/ingest-json", IngestJson).DisableAntiforgery();
         group.MapDelete("/books/{id:int}", DeleteBook);
         return group;
     }
