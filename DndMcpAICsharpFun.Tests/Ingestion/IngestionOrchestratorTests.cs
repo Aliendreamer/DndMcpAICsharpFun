@@ -4,6 +4,7 @@ using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Chunking;
 using DndMcpAICsharpFun.Features.Ingestion.Chunking.Detectors;
+using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore;
@@ -17,6 +18,10 @@ public sealed class IngestionOrchestratorTests : IDisposable
     private readonly IPdfTextExtractor _extractor = Substitute.For<IPdfTextExtractor>();
     private readonly IEmbeddingIngestor _embeddingIngestor = Substitute.For<IEmbeddingIngestor>();
     private readonly IVectorStoreService _vectorStore = Substitute.For<IVectorStoreService>();
+    private readonly ILlmClassifier _classifier = Substitute.For<ILlmClassifier>();
+    private readonly ILlmEntityExtractor _entityExtractor = Substitute.For<ILlmEntityExtractor>();
+    private readonly IEntityJsonStore _jsonStore = Substitute.For<IEntityJsonStore>();
+    private readonly IJsonIngestionPipeline _jsonPipeline = Substitute.For<IJsonIngestionPipeline>();
     private readonly string _tempFile;
 
     public IngestionOrchestratorTests()
@@ -38,6 +43,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var chunker = new DndChunker(detector, opts);
         return new IngestionOrchestrator(
             _tracker, _extractor, chunker, _embeddingIngestor, _vectorStore,
+            _classifier, _entityExtractor, _jsonStore, _jsonPipeline,
             NullLogger<IngestionOrchestrator>.Instance);
     }
 

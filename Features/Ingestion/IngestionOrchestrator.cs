@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion.Chunking;
+using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore;
@@ -15,6 +16,10 @@ public sealed partial class IngestionOrchestrator(
     DndChunker chunker,
     IEmbeddingIngestor embeddingIngestor,
     IVectorStoreService vectorStore,
+    ILlmClassifier classifier,
+    ILlmEntityExtractor entityExtractor,
+    IEntityJsonStore jsonStore,
+    IJsonIngestionPipeline jsonPipeline,
     ILogger<IngestionOrchestrator> logger) : IIngestionOrchestrator
 {
     public async Task IngestBookAsync(int recordId, CancellationToken cancellationToken = default)
@@ -64,6 +69,81 @@ public sealed partial class IngestionOrchestrator(
         }
     }
 
+    public async Task ExtractBookAsync(int recordId, CancellationToken cancellationToken = default)
+    {
+        var record = await tracker.GetByIdAsync(recordId, cancellationToken);
+        if (record is null)
+        {
+            LogRecordNotFound(logger, recordId);
+            return;
+        }
+
+        LogStartingExtraction(logger, record.DisplayName, recordId);
+
+        try
+        {
+            await tracker.MarkHashAsync(recordId, record.FileHash, cancellationToken);
+
+            var pages = extractor.ExtractPages(record.FilePath).ToList();
+
+            foreach (var (pageNumber, pageText) in pages)
+            {
+                if (pageText.Length < 100)
+                    continue;
+
+                var types = await classifier.ClassifyPageAsync(pageText, cancellationToken);
+                var pageEntities = new List<ExtractedEntity>();
+
+                foreach (var type in types)
+                {
+                    var extracted = await entityExtractor.ExtractAsync(
+                        pageText, type, pageNumber, record.DisplayName, record.Version, cancellationToken);
+                    pageEntities.AddRange(extracted);
+                }
+
+                if (pageEntities.Count > 0)
+                    await jsonStore.SavePageAsync(recordId, pageNumber, pageEntities, cancellationToken);
+            }
+
+            await tracker.MarkExtractedAsync(recordId, cancellationToken);
+            LogExtractedBook(logger, record.DisplayName, recordId);
+        }
+        catch (Exception ex)
+        {
+            LogExtractionFailed(logger, ex, record.DisplayName, recordId);
+            await tracker.MarkFailedAsync(recordId, ex.Message, cancellationToken);
+        }
+    }
+
+    public async Task IngestJsonAsync(int recordId, CancellationToken cancellationToken = default)
+    {
+        var record = await tracker.GetByIdAsync(recordId, cancellationToken);
+        if (record is null)
+        {
+            LogRecordNotFound(logger, recordId);
+            return;
+        }
+
+        LogStartingJsonIngestion(logger, record.DisplayName, recordId);
+
+        try
+        {
+            await tracker.MarkHashAsync(recordId, record.FileHash, cancellationToken);
+            await jsonPipeline.IngestAsync(recordId, record.FileHash, cancellationToken);
+
+            var pages = await jsonStore.LoadAllPagesAsync(recordId, cancellationToken);
+            var chunkCount = pages.Sum(p => p.Count);
+
+            await tracker.MarkJsonIngestedAsync(recordId, chunkCount, cancellationToken);
+            LogJsonIngested(logger, record.DisplayName, recordId, chunkCount);
+        }
+        catch (Exception ex)
+        {
+            LogJsonIngestionFailed(logger, ex, record.DisplayName, recordId);
+            await tracker.MarkFailedAsync(recordId, ex.Message, cancellationToken);
+        }
+    }
+
     public async Task<DeleteBookResult> DeleteBookAsync(int id, CancellationToken cancellationToken = default)
     {
         var record = await tracker.GetByIdAsync(id, cancellationToken);
@@ -75,6 +155,8 @@ public sealed partial class IngestionOrchestrator(
 
         if (record.Status == IngestionStatus.Completed && record.ChunkCount.HasValue)
             await vectorStore.DeleteByHashAsync(record.FileHash, record.ChunkCount.Value, cancellationToken);
+
+        jsonStore.DeleteAllPages(id);
 
         if (File.Exists(record.FilePath))
             File.Delete(record.FilePath);
@@ -111,4 +193,22 @@ public sealed partial class IngestionOrchestrator(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleted book {DisplayName} (id={Id})")]
     private static partial void LogBookDeleted(ILogger logger, string displayName, int id);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting extraction for {DisplayName} (id={Id})")]
+    private static partial void LogStartingExtraction(ILogger logger, string displayName, int id);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Extracted {DisplayName} (id={Id}) — JSON files saved")]
+    private static partial void LogExtractedBook(ILogger logger, string displayName, int id);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Extraction failed for {DisplayName} (id={Id})")]
+    private static partial void LogExtractionFailed(ILogger logger, Exception ex, string displayName, int id);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting JSON ingestion for {DisplayName} (id={Id})")]
+    private static partial void LogStartingJsonIngestion(ILogger logger, string displayName, int id);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "JSON ingestion completed for {DisplayName} (id={Id}): {Count} chunks")]
+    private static partial void LogJsonIngested(ILogger logger, string displayName, int id, int count);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "JSON ingestion failed for {DisplayName} (id={Id})")]
+    private static partial void LogJsonIngestionFailed(ILogger logger, Exception ex, string displayName, int id);
 }
