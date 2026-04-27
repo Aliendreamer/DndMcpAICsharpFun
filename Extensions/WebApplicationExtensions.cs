@@ -13,6 +13,9 @@ internal static class WebApplicationExtensions
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IngestionDbContext>();
         await db.Database.MigrateAsync();
+        // WAL mode allows concurrent reads while the background worker holds a write lock.
+        // The pragma is persistent — it only needs to run once after the DB is created.
+        await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
     }
 
     internal static void ValidateStartupConfiguration(this WebApplication app)

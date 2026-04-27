@@ -114,7 +114,7 @@ public static partial class BooksAdminEndpoints
     private static async Task<IResult> ReingestBook(
         int id,
         IIngestionTracker tracker,
-        IServiceScopeFactory scopeFactory,
+        IIngestionQueue queue,
         CancellationToken ct)
     {
         var record = await tracker.GetByIdAsync(id, ct);
@@ -122,21 +122,14 @@ public static partial class BooksAdminEndpoints
             return Results.NotFound($"Book with id {id} not found");
 
         await tracker.ResetForReingestionAsync(id, ct);
-
-        _ = Task.Run(async () =>
-        {
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
-            await orchestrator.IngestBookAsync(id, CancellationToken.None);
-        }, CancellationToken.None);
-
+        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.Reingest, id));
         return Results.Accepted($"/admin/books/{id}");
     }
 
     private static async Task<IResult> ExtractBook(
         int id,
         IIngestionTracker tracker,
-        IServiceScopeFactory scopeFactory,
+        IIngestionQueue queue,
         CancellationToken ct)
     {
         var record = await tracker.GetByIdAsync(id, ct);
@@ -146,13 +139,7 @@ public static partial class BooksAdminEndpoints
         if (record.Status == IngestionStatus.Processing)
             return Results.Conflict("Book is currently processing. Wait before re-extracting.");
 
-        _ = Task.Run(async () =>
-        {
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
-            await orchestrator.ExtractBookAsync(id, CancellationToken.None);
-        }, CancellationToken.None);
-
+        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.Extract, id));
         return Results.Accepted($"/admin/books/{id}");
     }
 
@@ -173,7 +160,7 @@ public static partial class BooksAdminEndpoints
     private static async Task<IResult> IngestJson(
         int id,
         IIngestionTracker tracker,
-        IServiceScopeFactory scopeFactory,
+        IIngestionQueue queue,
         CancellationToken ct)
     {
         var record = await tracker.GetByIdAsync(id, ct);
@@ -183,13 +170,7 @@ public static partial class BooksAdminEndpoints
         if (record.Status == IngestionStatus.Processing)
             return Results.Conflict("Book is currently processing.");
 
-        _ = Task.Run(async () =>
-        {
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
-            await orchestrator.IngestJsonAsync(id, CancellationToken.None);
-        }, CancellationToken.None);
-
+        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestJson, id));
         return Results.Accepted($"/admin/books/{id}");
     }
 

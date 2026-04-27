@@ -81,6 +81,10 @@ internal static class ServiceCollectionExtensions
 
         services.AddHostedService<QdrantCollectionInitializer>();
 
+        services.AddSingleton<IngestionQueueWorker>();
+        services.AddSingleton<IIngestionQueue>(sp => sp.GetRequiredService<IngestionQueueWorker>());
+        services.AddHostedService(sp => sp.GetRequiredService<IngestionQueueWorker>());
+
         return services;
     }
 
