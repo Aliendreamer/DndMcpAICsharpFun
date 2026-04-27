@@ -41,6 +41,9 @@ public sealed partial class OllamaLlmClassifier(
 
         var json = sb.ToString().Trim();
 
+        if (string.IsNullOrEmpty(json))
+            return [];
+
         try
         {
             return JsonSerializer.Deserialize<List<string>>(json) ?? [];
