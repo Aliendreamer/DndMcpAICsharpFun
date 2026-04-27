@@ -29,7 +29,6 @@ public static partial class BooksAdminEndpoints
       string version,
       string displayName,
       IIngestionTracker tracker,
-      IServiceScopeFactory scopeFactory,
       IOptions<IngestionOptions> ingestionOptions,
       ILogger<RegisterBookRequest> logger,
       CancellationToken ct)
@@ -70,19 +69,11 @@ public static partial class BooksAdminEndpoints
 
         LogBookRegistered(logger, created.DisplayName, created.Id, originalFileName);
 
-        _ = Task.Run(async () =>
-        {
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
-            await orchestrator.IngestBookAsync(created.Id, CancellationToken.None);
-        }, CancellationToken.None);
-
         return Results.Accepted($"/admin/books/{created.Id}", created);
     }
     private static async Task<IResult> RegisterBookByPath(
         RegisterBookByPathRequest request,
         IIngestionTracker tracker,
-        IServiceScopeFactory scopeFactory,
         ILogger<RegisterBookByPathRequest> logger,
         CancellationToken ct)
     {
@@ -110,13 +101,6 @@ public static partial class BooksAdminEndpoints
 
         var created = await tracker.CreateAsync(record, ct);
         LogBookRegistered(logger, created.DisplayName, created.Id, created.FileName);
-
-        _ = Task.Run(async () =>
-        {
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var orchestrator = scope.ServiceProvider.GetRequiredService<IIngestionOrchestrator>();
-            await orchestrator.IngestBookAsync(created.Id, CancellationToken.None);
-        }, CancellationToken.None);
 
         return Results.Accepted($"/admin/books/{created.Id}", created);
     }

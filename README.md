@@ -28,7 +28,7 @@ A D&D-themed ASP.NET Core Web API on .NET 10 that ingests D&D rulebook PDFs, emb
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**Standard ingestion flow:** A PDF is registered via the admin API → saved to the books volume → SHA-256 hashed → tracked in SQLite → background service picks it up → PdfPig extracts pages → DndChunker splits into semantic chunks (spells, monsters, classes, etc.) → Ollama embeds each chunk → stored in Qdrant.
+**Legacy chunking flow:** Register a PDF via the admin API → saved to the books volume → then call `POST /admin/books/{id}/reingest` → SHA-256 hashed → tracked in SQLite → PdfPig extracts pages → DndChunker splits into semantic chunks (spells, monsters, classes, etc.) → Ollama embeds each chunk → stored in Qdrant.
 
 **LLM extraction flow (two-pass):** `POST /admin/books/{id}/extract` → PdfPig extracts pages → Ollama (`llama3.2`) classifies each page → Ollama extracts typed entities (Spell, Monster, Class, etc.) → saved as JSON files on disk → merge pass joins entities split across page boundaries → `POST /admin/books/{id}/ingest-json` → embed each entity description → stored in Qdrant with clean metadata.
 
@@ -169,8 +169,8 @@ Requires header `X-Admin-Api-Key: <admin key>`.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/admin/books/register` | Upload a PDF and register it for ingestion. Form fields: `file` (PDF), `sourceName`, `version` (`Edition2014` or `Edition2024`), `displayName` |
-| `POST` | `/admin/books/register-path` | Register a PDF already on the server by path (JSON body: `filePath`, `sourceName`, `version`, `displayName`) |
+| `POST` | `/admin/books/register` | Upload a PDF and save it as `Pending`. Does **not** start ingestion. Form fields: `file` (PDF), `sourceName`, `version` (`Edition2014` or `Edition2024`), `displayName`. Call `/reingest`, `/extract`, or `/ingest-json` to start the pipeline. |
+| `POST` | `/admin/books/register-path` | Register a PDF already on the server by path. Stays `Pending` — no pipeline fires automatically. JSON body: `filePath`, `sourceName`, `version`, `displayName`. |
 | `GET` | `/admin/books` | List all registered books and their ingestion status |
 | `POST` | `/admin/books/{id}/reingest` | Reset a book to `Pending` and trigger re-ingestion |
 | `POST` | `/admin/books/{id}/extract` | **LLM extraction Stage 1** — classify and extract entities from each page into JSON files (background, returns 202) |

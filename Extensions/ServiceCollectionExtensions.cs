@@ -75,9 +75,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IEntityJsonStore, EntityJsonStore>();
         services.AddScoped<IJsonIngestionPipeline, JsonIngestionPipeline>();
 
-        // QdrantCollectionInitializer must be registered before IngestionBackgroundService
         services.AddHostedService<QdrantCollectionInitializer>();
-        services.AddHostedService<IngestionBackgroundService>();
 
         return services;
     }
