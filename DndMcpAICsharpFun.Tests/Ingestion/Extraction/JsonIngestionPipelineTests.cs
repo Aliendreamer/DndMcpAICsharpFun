@@ -2,7 +2,6 @@ using System.Text.Json.Nodes;
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
-using DndMcpAICsharpFun.Features.VectorStore;
 using NSubstitute;
 
 namespace DndMcpAICsharpFun.Tests.Ingestion.Extraction;
