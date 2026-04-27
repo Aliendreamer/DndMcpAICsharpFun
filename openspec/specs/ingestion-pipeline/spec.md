@@ -13,10 +13,6 @@ The system SHALL accept a PDF upload at `POST /admin/books/register` with form f
 - **WHEN** a PDF file is uploaded with valid `sourceName`, `version`, and `displayName`
 - **THEN** the system stores the file, creates an `IngestionRecord` with status `Pending`, and returns HTTP 201
 
-#### Scenario: Duplicate file (same SHA-256 hash) returns existing record
-- **WHEN** a PDF with the same content as an already-registered book is uploaded
-- **THEN** the system returns HTTP 200 with the existing record without creating a duplicate
-
 #### Scenario: Non-PDF file is rejected
 - **WHEN** a file that does not have a `.pdf` extension is uploaded
 - **THEN** the system returns HTTP 400
@@ -48,11 +44,11 @@ The system SHALL reset a book's ingestion status and trigger a new ingestion run
 - **THEN** the system returns HTTP 404
 
 ### Requirement: The ingestion orchestrator processes a book end-to-end
-The system SHALL extract text from the PDF, chunk it, embed the chunks, upsert them into the vector store, and mark the record `Completed`.
+The system SHALL compute the file hash as the first step of ingestion, persist it immediately, reuse it for duplicate detection and unchanged-file checks, then extract text, chunk, embed, upsert into the vector store, and mark the record `Completed`.
 
 #### Scenario: Book is ingested successfully
 - **WHEN** `IngestBookAsync` is called for a `Pending` record
-- **THEN** the system extracts pages, produces chunks, embeds and upserts them, and sets status to `Completed` with a chunk count
+- **THEN** the system computes and stores the hash, extracts pages, produces chunks, embeds and upserts them, and sets status to `Completed` with a chunk count
 
 #### Scenario: Unchanged book is skipped
 - **WHEN** `IngestBookAsync` is called for a `Completed` record whose file hash has not changed
@@ -68,3 +64,10 @@ The system SHALL poll for `Pending` and `Failed` records on a 24-hour cycle and 
 #### Scenario: Pending books are processed on the next cycle
 - **WHEN** the background service cycle runs and there are `Pending` records
 - **THEN** the service attempts ingestion for each record in sequence
+
+### Requirement: Ingestion detects duplicate books by file hash
+The system SHALL mark a newly registered book as `Duplicate` if another `Completed` record with the same SHA-256 hash already exists, without performing any embedding or vector store writes.
+
+#### Scenario: Duplicate book is marked and skipped
+- **WHEN** `IngestBookAsync` is called for a `Pending` record whose file hash matches an existing `Completed` record
+- **THEN** the system sets the record status to `Duplicate` and stops without producing chunks or writing to Qdrant
