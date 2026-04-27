@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using Microsoft.Extensions.Options;
@@ -35,7 +36,7 @@ public sealed partial class OllamaLlmClassifier(
             ]
         };
 
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
         await foreach (var chunk in ollama.ChatAsync(request, ct))
             sb.Append(chunk?.Message?.Content ?? string.Empty);
 

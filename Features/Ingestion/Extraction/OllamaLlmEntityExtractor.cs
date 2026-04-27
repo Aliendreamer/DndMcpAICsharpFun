@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using DndMcpAICsharpFun.Domain;
@@ -61,7 +62,7 @@ public sealed partial class OllamaLlmEntityExtractor(
             ]
         };
 
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
         await foreach (var chunk in ollama.ChatAsync(request, ct))
             sb.Append(chunk?.Message?.Content ?? string.Empty);
 
