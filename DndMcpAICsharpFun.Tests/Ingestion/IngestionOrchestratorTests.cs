@@ -466,5 +466,30 @@ public sealed class IngestionOrchestratorTests : IDisposable
 
         await _vectorStore.DidNotReceive().DeleteByHashAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
         await _tracker.DidNotReceive().ResetForReingestionAsync(recordId, CancellationToken.None);
+        _jsonStore.DidNotReceive().DeleteAllPages(Arg.Any<int>());
+    }
+
+    [Fact]
+    public async Task ExtractBookAsync_WhenFailed_NoCleanup()
+    {
+        const int recordId = 52;
+        var record = new IngestionRecord
+        {
+            Id = recordId, FilePath = _tempFile, FileName = "test.pdf",
+            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
+            DisplayName = "PHB", Status = IngestionStatus.Failed
+        };
+        _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
+        _extractor.ExtractPages(_tempFile).Returns([(1, "short text")]);
+        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
+        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TocCategoryMap([])));
+
+        var sut = BuildSut();
+        await sut.ExtractBookAsync(recordId);
+
+        await _vectorStore.DidNotReceive().DeleteByHashAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        await _tracker.DidNotReceive().ResetForReingestionAsync(recordId, CancellationToken.None);
+        _jsonStore.DidNotReceive().DeleteAllPages(Arg.Any<int>());
     }
 }
