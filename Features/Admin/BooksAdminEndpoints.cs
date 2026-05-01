@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
@@ -187,6 +188,7 @@ public static partial class BooksAdminEndpoints
     private static partial void LogBookRegistered(ILogger logger, string displayName, int id, string file);
 }
 
+[ExcludeFromCodeCoverage]
 public sealed record RegisterBookRequest(
     string SourceName,
     string Version,

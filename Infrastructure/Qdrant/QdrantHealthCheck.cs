@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Qdrant.Client;
 
 namespace DndMcpAICsharpFun.Infrastructure.Qdrant;
 
+[ExcludeFromCodeCoverage]
 public sealed class QdrantHealthCheck(QdrantClient client) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)

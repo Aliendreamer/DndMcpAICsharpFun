@@ -18,10 +18,12 @@ using OllamaSharp;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 
+using System.Diagnostics.CodeAnalysis;
 using Qdrant.Client;
 
 namespace DndMcpAICsharpFun.Extensions;
 
+[ExcludeFromCodeCoverage]
 internal static class ServiceCollectionExtensions
 {
     internal static IServiceCollection AddInfrastructureClients(this IServiceCollection services, IConfiguration configuration)

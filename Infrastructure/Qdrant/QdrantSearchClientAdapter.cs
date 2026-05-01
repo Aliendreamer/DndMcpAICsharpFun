@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Infrastructure.Qdrant;
 
+[ExcludeFromCodeCoverage]
 public sealed class QdrantSearchClientAdapter(QdrantClient client) : IQdrantSearchClient
 {
     public Task<IReadOnlyList<ScoredPoint>> SearchAsync(
