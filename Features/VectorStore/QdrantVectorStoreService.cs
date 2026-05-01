@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 using DndMcpAICsharpFun.Domain;
@@ -9,6 +10,7 @@ using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Features.VectorStore;
 
+[ExcludeFromCodeCoverage]
 public sealed partial class QdrantVectorStoreService(
     QdrantClient client,
     IOptions<QdrantOptions> options,

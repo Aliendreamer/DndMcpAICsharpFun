@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Infrastructure.Qdrant;
 
+[ExcludeFromCodeCoverage]
 public sealed partial class QdrantCollectionInitializer(
     QdrantClient client,
     IOptions<QdrantOptions> options,

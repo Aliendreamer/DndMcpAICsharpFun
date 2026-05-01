@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
@@ -22,6 +24,7 @@ using Qdrant.Client;
 
 namespace DndMcpAICsharpFun.Extensions;
 
+[ExcludeFromCodeCoverage]
 internal static class ServiceCollectionExtensions
 {
     internal static IServiceCollection AddInfrastructureClients(this IServiceCollection services, IConfiguration configuration)

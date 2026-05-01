@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Infrastructure;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Extensions;
 
+[ExcludeFromCodeCoverage]
 internal static class WebApplicationExtensions
 {
     internal static async Task MigrateDatabaseAsync(this WebApplication app)

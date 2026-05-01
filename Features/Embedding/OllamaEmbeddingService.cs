@@ -7,7 +7,7 @@ using OllamaSharp.Models;
 namespace DndMcpAICsharpFun.Features.Embedding;
 
 public sealed partial class OllamaEmbeddingService(
-    OllamaApiClient client,
+    IOllamaApiClient client,
     IOptions<OllamaOptions> options,
     ILogger<OllamaEmbeddingService> logger) : IEmbeddingService
 {
