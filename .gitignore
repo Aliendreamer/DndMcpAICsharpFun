@@ -5,6 +5,9 @@
 
 # Project-specific
 *.db
+/books/*
+!/books/.gitkeep
+.worktrees/
 
 # dotenv files
 .env
