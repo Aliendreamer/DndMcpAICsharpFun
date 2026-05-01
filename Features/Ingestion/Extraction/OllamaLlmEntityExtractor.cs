@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
+using DndMcpAICsharpFun.Infrastructure.Sqlite;
 using Microsoft.Extensions.Options;
 using OllamaSharp;
 using OllamaSharp.Models.Chat;
@@ -11,8 +12,9 @@ using OllamaSharp.Models.Chat;
 namespace DndMcpAICsharpFun.Features.Ingestion.Extraction;
 
 public sealed partial class OllamaLlmEntityExtractor(
-    OllamaApiClient ollama,
+    IOllamaApiClient ollama,
     IOptions<OllamaOptions> options,
+    IOptions<IngestionOptions> ingestionOptions,
     ILogger<OllamaLlmEntityExtractor> logger) : ILlmEntityExtractor
 {
     private static readonly Dictionary<string, string> TypeFields = new(StringComparer.OrdinalIgnoreCase)
@@ -67,49 +69,57 @@ public sealed partial class OllamaLlmEntityExtractor(
             ]
         };
 
-        var sb = new StringBuilder();
-        await foreach (var chunk in ollama.ChatAsync(request, ct))
-            sb.Append(chunk?.Message?.Content ?? string.Empty);
-
-        var json = StripFences(sb.ToString().Trim());
-
-        if (string.IsNullOrEmpty(json))
+        var maxAttempts = ingestionOptions.Value.LlmExtractionRetries + 1;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            LogExtractDone(logger, entityType, pageNumber, 0, _model, sw.ElapsedMilliseconds);
-            return [];
-        }
+            var sb = new StringBuilder();
+            await foreach (var chunk in ollama.ChatAsync(request, ct))
+                sb.Append(chunk?.Message?.Content ?? string.Empty);
 
-        try
-        {
-            var raw = JsonNode.Parse(json)?.AsArray();
-            if (raw is null)
+            var json = StripFences(sb.ToString().Trim());
+
+            if (string.IsNullOrEmpty(json))
             {
                 LogExtractDone(logger, entityType, pageNumber, 0, _model, sw.ElapsedMilliseconds);
                 return [];
             }
 
-            var results = new List<ExtractedEntity>();
-            foreach (var item in raw)
+            try
             {
-                if (item is not JsonObject obj) continue;
-                var name = obj["name"]?.GetValue<string>() ?? string.Empty;
-                var partial = obj["partial"]?.GetValue<bool>() ?? false;
-                var data = obj["data"]?.AsObject() ?? new JsonObject();
+                var raw = JsonNode.Parse(json)?.AsArray();
+                if (raw is null)
+                {
+                    LogExtractDone(logger, entityType, pageNumber, 0, _model, sw.ElapsedMilliseconds);
+                    return [];
+                }
 
-                results.Add(new ExtractedEntity(pageNumber, sourceBook, version, partial, entityType, name, data));
+                var results = new List<ExtractedEntity>();
+                foreach (var item in raw)
+                {
+                    if (item is not JsonObject obj) continue;
+                    var name = obj["name"]?.GetValue<string>() ?? string.Empty;
+                    var partial = obj["partial"]?.GetValue<bool>() ?? false;
+                    var data = obj["data"]?.AsObject() ?? new JsonObject();
+                    results.Add(new ExtractedEntity(pageNumber, sourceBook, version, partial, entityType, name, data));
+                }
+                LogExtractDone(logger, entityType, pageNumber, results.Count, _model, sw.ElapsedMilliseconds);
+                return results;
             }
-            LogExtractDone(logger, entityType, pageNumber, results.Count, _model, sw.ElapsedMilliseconds);
-            return results;
+            catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+            {
+                if (attempt < maxAttempts)
+                {
+                    LogRetryExtraction(logger, entityType, pageNumber, attempt, maxAttempts);
+                }
+                else
+                {
+                    LogInvalidJson(logger, entityType, pageNumber, json[..Math.Min(200, json.Length)]);
+                    return [];
+                }
+            }
         }
-        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
-        {
-            LogInvalidJson(logger, entityType, pageNumber, json[..Math.Min(200, json.Length)]);
-
-            // Fallback: save raw page text as a Rule entity with partial:true — nothing silently dropped
-            var fallbackData = new JsonObject { ["description"] = pageText };
-            LogExtractDone(logger, entityType, pageNumber, 1, _model, sw.ElapsedMilliseconds);
-            return [new ExtractedEntity(pageNumber, sourceBook, version, true, "Rule", $"page_{pageNumber}_raw", fallbackData)];
-        }
+        // unreachable but compiler needs it
+        return [];
     }
 
     private static string StripFences(string s)
@@ -132,4 +142,8 @@ public sealed partial class OllamaLlmEntityExtractor(
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Extractor returned invalid JSON for type={Type} page={Page}: {Json}")]
     private static partial void LogInvalidJson(ILogger logger, string type, int page, string json);
+
+    [LoggerMessage(Level = LogLevel.Debug,
+        Message = "Retrying extraction for {EntityType} page {Page} (attempt {Attempt}/{Max})")]
+    private static partial void LogRetryExtraction(ILogger logger, string entityType, int page, int attempt, int max);
 }
