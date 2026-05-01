@@ -21,6 +21,7 @@ public sealed class OllamaHealthCheckTests
         var result = await sut.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
 
         Assert.Equal(HealthStatus.Healthy, result.Status);
+        await client.Received(1).ListLocalModelsAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
