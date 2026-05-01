@@ -82,6 +82,10 @@ public sealed class BooksAdminEndpointsTests
         var response = await client.PostAsync("/admin/books/register", content);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        await tracker.Received(1).CreateAsync(Arg.Any<IngestionRecord>(), Arg.Any<CancellationToken>());
+        // Clean up file created by the endpoint
+        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
+            File.Delete(f);
     }
 
     [Fact]
