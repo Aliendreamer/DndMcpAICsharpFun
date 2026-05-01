@@ -10,7 +10,7 @@ using OllamaSharp.Models.Chat;
 namespace DndMcpAICsharpFun.Features.Ingestion.Extraction;
 
 public sealed partial class OllamaLlmClassifier(
-    OllamaApiClient ollama,
+    IOllamaApiClient ollama,
     IOptions<OllamaOptions> options,
     ILogger<OllamaLlmClassifier> logger) : ILlmClassifier
 {
