@@ -50,9 +50,13 @@ public sealed partial class IngestionQueueWorker(
 
                 LogWorkItemCompleted(logger, item.Type, item.BookId, sw.ElapsedMilliseconds);
             }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                throw; // host is shutting down — propagate
+            }
             catch (OperationCanceledException)
             {
-                throw;
+                // user-triggered cancel for this book — orchestrator already cleaned up; continue loop
             }
             catch (Exception ex)
             {

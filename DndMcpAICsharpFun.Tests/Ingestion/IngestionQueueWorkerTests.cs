@@ -89,4 +89,40 @@ public sealed class IngestionQueueWorkerTests
         _registry.DidNotReceive().Register(Arg.Any<int>(), Arg.Any<CancellationTokenSource>());
         _registry.DidNotReceive().Unregister(Arg.Any<int>());
     }
+
+    [Fact]
+    public async Task Extract_PerBookCancellation_DoesNotKillWorkerLoop()
+    {
+        // Arrange: first item throws OCE (per-book cancel), second item should still be processed
+        const int bookId1 = 10;
+        const int bookId2 = 20;
+        var sut = BuildSut();
+
+        var secondItemProcessed = new TaskCompletionSource<bool>();
+
+        _orchestrator.ExtractBookAsync(bookId1, Arg.Any<CancellationToken>())
+                     .Returns(_ => Task.FromException(new OperationCanceledException("user cancelled this book")));
+
+        _orchestrator.ExtractBookAsync(bookId2, Arg.Any<CancellationToken>())
+                     .Returns(_ =>
+                     {
+                         secondItemProcessed.TrySetResult(true);
+                         return Task.CompletedTask;
+                     });
+
+        using var stoppingCts = new CancellationTokenSource();
+        await sut.StartAsync(stoppingCts.Token);
+
+        // Act: enqueue both items
+        sut.TryEnqueue(new IngestionWorkItem(IngestionWorkType.Extract, bookId1));
+        sut.TryEnqueue(new IngestionWorkItem(IngestionWorkType.Extract, bookId2));
+
+        // Assert: second item is processed (worker loop kept running after OCE from first item)
+        var completed = await Task.WhenAny(secondItemProcessed.Task, Task.Delay(2000));
+        await stoppingCts.CancelAsync();
+
+        Assert.True(secondItemProcessed.Task.IsCompletedSuccessfully,
+            "Worker loop should continue after a per-book OperationCanceledException");
+        await _orchestrator.Received(1).ExtractBookAsync(bookId2, Arg.Any<CancellationToken>());
+    }
 }
