@@ -351,4 +351,3 @@ public sealed class BooksAdminEndpointsTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }
-// THIS IS TEMP - REMOVE
