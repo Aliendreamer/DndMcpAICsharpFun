@@ -22,6 +22,8 @@ public sealed partial class IngestionOrchestrator(
     IEntityJsonStore jsonStore,
     IJsonIngestionPipeline jsonPipeline,
     IOptions<IngestionOptions> ingestionOptions,
+    IPdfBookmarkReader bookmarkReader,
+    ITocCategoryClassifier tocClassifier,
     ILogger<IngestionOrchestrator> logger) : IIngestionOrchestrator
 {
     public async Task IngestBookAsync(int recordId, CancellationToken cancellationToken = default)
@@ -93,6 +95,15 @@ public sealed partial class IngestionOrchestrator(
                 : record.FileHash;
             await tracker.MarkHashAsync(recordId, currentHash, cancellationToken);
 
+            // TOC-guided classification: read bookmarks and classify into a category map
+            var bookmarks = bookmarkReader.ReadBookmarks(record.FilePath);
+            var tocMap = await tocClassifier.ClassifyAsync(bookmarks, cancellationToken);
+
+            if (tocMap.IsEmpty)
+                LogTocFallback(logger, record.DisplayName, recordId);
+            else
+                LogTocGuided(logger, record.DisplayName, recordId);
+
             var pages = extractor.ExtractPages(record.FilePath).ToList();
 
             foreach (var (pageNumber, pageText) in pages)
@@ -100,19 +111,41 @@ public sealed partial class IngestionOrchestrator(
                 if (pageText.Length < ingestionOptions.Value.MinPageCharacters)
                     continue;
 
-                LogClassifyingPage(logger, pageNumber, pages.Count, recordId);
-                var types = await classifier.ClassifyPageAsync(pageText, cancellationToken);
-                var pageEntities = new List<ExtractedEntity>();
-
-                foreach (var type in types)
+                if (!tocMap.IsEmpty)
                 {
-                    var extracted = await entityExtractor.ExtractAsync(
-                        pageText, type, pageNumber, record.DisplayName, record.Version, cancellationToken);
-                    pageEntities.AddRange(extracted);
-                }
+                    // TOC-guided: at most one LLM call per page
+                    var category = tocMap.GetCategory(pageNumber);
+                    if (category is null)
+                    {
+                        // This page doesn't belong to any recognized D&D content section — skip it
+                        continue;
+                    }
 
-                if (pageEntities.Count > 0)
-                    await jsonStore.SavePageAsync(recordId, pageNumber, pageEntities, cancellationToken);
+                    LogClassifyingPage(logger, pageNumber, pages.Count, recordId);
+                    var extracted = await entityExtractor.ExtractAsync(
+                        pageText, category.Value.ToString(), pageNumber,
+                        record.DisplayName, record.Version, cancellationToken);
+
+                    if (extracted.Count > 0)
+                        await jsonStore.SavePageAsync(recordId, pageNumber, extracted, cancellationToken);
+                }
+                else
+                {
+                    // Fallback: run all category extractors (original behavior)
+                    LogClassifyingPage(logger, pageNumber, pages.Count, recordId);
+                    var types = await classifier.ClassifyPageAsync(pageText, cancellationToken);
+                    var pageEntities = new List<ExtractedEntity>();
+
+                    foreach (var type in types)
+                    {
+                        var extracted = await entityExtractor.ExtractAsync(
+                            pageText, type, pageNumber, record.DisplayName, record.Version, cancellationToken);
+                        pageEntities.AddRange(extracted);
+                    }
+
+                    if (pageEntities.Count > 0)
+                        await jsonStore.SavePageAsync(recordId, pageNumber, pageEntities, cancellationToken);
+                }
 
                 LogExtractedPage(logger, pageNumber, pages.Count, recordId);
             }
@@ -122,6 +155,9 @@ public sealed partial class IngestionOrchestrator(
         }
         catch (OperationCanceledException)
         {
+            // Clean up partial extraction data so re-ingestion starts fresh
+            jsonStore.DeleteAllPages(recordId);
+            await tracker.ResetForReingestionAsync(recordId, CancellationToken.None);
             throw;
         }
         catch (Exception ex)
@@ -239,4 +275,10 @@ public sealed partial class IngestionOrchestrator(
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Extracted page {Page}/{Total} for book {BookId}")]
     private static partial void LogExtractedPage(ILogger logger, int page, int total, int bookId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "TOC classification succeeded for {DisplayName} (id={Id}) — using TOC-guided dispatch")]
+    private static partial void LogTocGuided(ILogger logger, string displayName, int id);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "TOC classification empty for {DisplayName} (id={Id}) — falling back to per-page classifier")]
+    private static partial void LogTocFallback(ILogger logger, string displayName, int id);
 }
