@@ -27,7 +27,27 @@ public sealed class OllamaEmbeddingServiceTests
 
         Assert.Single(result);
         Assert.Equal([1f, 2f, 3f], result[0]);
-        await client.Received(1).EmbedAsync(Arg.Any<EmbedRequest>(), Arg.Any<CancellationToken>());
+        await client.Received(1).EmbedAsync(
+            Arg.Is<EmbedRequest>(r => r.Model == "nomic-embed-text" && r.Input != null && r.Input.SequenceEqual(new[] { "hello" })),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task EmbedAsync_ForwardsCancellationToken()
+    {
+        var client = Substitute.For<IOllamaApiClient>();
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        client.EmbedAsync(Arg.Any<EmbedRequest>(), Arg.Is<CancellationToken>(ct => ct.IsCancellationRequested))
+            .Returns(new EmbedResponse { Embeddings = [[0f]] });
+
+        var sut = BuildSut(client);
+        await sut.EmbedAsync(["hello"], cts.Token);
+
+        await client.Received(1).EmbedAsync(
+            Arg.Any<EmbedRequest>(),
+            Arg.Is<CancellationToken>(ct => ct.IsCancellationRequested));
     }
 
     [Fact]
