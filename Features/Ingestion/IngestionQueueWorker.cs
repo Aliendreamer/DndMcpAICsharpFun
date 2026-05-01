@@ -5,7 +5,8 @@ namespace DndMcpAICsharpFun.Features.Ingestion;
 
 public sealed partial class IngestionQueueWorker(
     IServiceScopeFactory scopeFactory,
-    ILogger<IngestionQueueWorker> logger) : BackgroundService, IIngestionQueue
+    ILogger<IngestionQueueWorker> logger,
+    IExtractionCancellationRegistry cancellationRegistry) : BackgroundService, IIngestionQueue
 {
     private readonly Channel<IngestionWorkItem> _channel =
         Channel.CreateUnbounded<IngestionWorkItem>(new UnboundedChannelOptions { SingleReader = true });
@@ -24,19 +25,38 @@ public sealed partial class IngestionQueueWorker(
                 LogWorkItemStarted(logger, item.Type, item.BookId);
                 var sw = Stopwatch.StartNew();
 
-                await (item.Type switch
+                if (item.Type == IngestionWorkType.Extract)
                 {
-                    IngestionWorkType.Reingest  => orchestrator.IngestBookAsync(item.BookId, stoppingToken),
-                    IngestionWorkType.Extract   => orchestrator.ExtractBookAsync(item.BookId, stoppingToken),
-                    IngestionWorkType.IngestJson => orchestrator.IngestJsonAsync(item.BookId, stoppingToken),
-                    _ => Task.CompletedTask
-                });
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                    cancellationRegistry.Register(item.BookId, cts);
+                    try
+                    {
+                        await orchestrator.ExtractBookAsync(item.BookId, cts.Token);
+                    }
+                    finally
+                    {
+                        cancellationRegistry.Unregister(item.BookId);
+                    }
+                }
+                else
+                {
+                    await (item.Type switch
+                    {
+                        IngestionWorkType.Reingest  => orchestrator.IngestBookAsync(item.BookId, stoppingToken),
+                        IngestionWorkType.IngestJson => orchestrator.IngestJsonAsync(item.BookId, stoppingToken),
+                        _ => Task.CompletedTask
+                    });
+                }
 
                 LogWorkItemCompleted(logger, item.Type, item.BookId, sw.ElapsedMilliseconds);
             }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                throw; // host is shutting down — propagate
+            }
             catch (OperationCanceledException)
             {
-                throw;
+                // user-triggered cancel for this book — orchestrator already cleaned up; continue loop
             }
             catch (Exception ex)
             {
