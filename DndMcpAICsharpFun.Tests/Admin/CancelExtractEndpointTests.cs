@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DndMcpAICsharpFun.Tests.Admin;
 
+// Tests cancel-extract through the full admin auth pipeline (middleware included)
 public sealed class CancelExtractEndpointTests
 {
     private static async Task<(HttpClient Client, IExtractionCancellationRegistry Registry)> BuildClientAsync()

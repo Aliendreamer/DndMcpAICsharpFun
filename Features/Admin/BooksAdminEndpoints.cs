@@ -4,6 +4,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Admin;
@@ -25,9 +26,9 @@ public static partial class BooksAdminEndpoints
 
     private static async Task<IResult> RegisterBook(
       IFormFile file,
-      string sourceName,
-      string version,
-      string displayName,
+      [FromForm] string sourceName,
+      [FromForm] string version,
+      [FromForm] string displayName,
       IIngestionTracker tracker,
       IOptions<IngestionOptions> ingestionOptions,
       ILogger<RegisterBookRequest> logger,
