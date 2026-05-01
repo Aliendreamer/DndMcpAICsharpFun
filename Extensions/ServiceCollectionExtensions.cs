@@ -48,6 +48,8 @@ internal static class ServiceCollectionExtensions
             return new OllamaApiClient(httpClient);
         });
 
+        services.AddSingleton<IOllamaApiClient>(sp => sp.GetRequiredService<OllamaApiClient>());
+
         services.AddDbContext<IngestionDbContext>(static (sp, options) =>
         {
             var ingestionOpts = sp.GetRequiredService<IOptions<IngestionOptions>>().Value;
@@ -88,6 +90,10 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IngestionQueueWorker>();
         services.AddSingleton<IIngestionQueue>(sp => sp.GetRequiredService<IngestionQueueWorker>());
         services.AddHostedService(sp => sp.GetRequiredService<IngestionQueueWorker>());
+
+        services.AddSingleton<IPdfBookmarkReader, PdfPigBookmarkReader>();
+        services.AddSingleton<ITocCategoryClassifier, OllamaTocCategoryClassifier>();
+        services.AddSingleton<IExtractionCancellationRegistry, ExtractionCancellationRegistry>();
 
         return services;
     }
