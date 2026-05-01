@@ -15,7 +15,7 @@ GET {{baseUrl}}/health/ready
 # ── Admin — Books ────────────────────────────────────────────────────────────
 # All admin requests require X-Admin-Api-Key header.
 
-### Admin Books — Register a PDF (stays Pending; call /reingest, /extract, or /ingest-json to start the pipeline)
+### Admin Books — Register a PDF (stays Pending; call /extract or /ingest-json to start the pipeline)
 POST {{baseUrl}}/admin/books/register
 X-Admin-Api-Key: {{adminKey}}
 Content-Type: multipart/form-data; boundary=----Boundary
@@ -39,7 +39,7 @@ Content-Disposition: form-data; name="displayName"
 PlayerHandbook 2014
 ------Boundary--
 
-### Admin Books — Register a book by server-side path (stays Pending; call /reingest, /extract, or /ingest-json to start the pipeline)
+### Admin Books — Register a book by server-side path (stays Pending; call /extract or /ingest-json to start the pipeline)
 POST {{baseUrl}}/admin/books/register-path
 X-Admin-Api-Key: {{adminKey}}
 Content-Type: application/json
@@ -53,10 +53,6 @@ Content-Type: application/json
 
 ### Admin Books — List all books
 GET {{baseUrl}}/admin/books
-X-Admin-Api-Key: {{adminKey}}
-
-### Admin Books — Re-ingest book by ID
-POST {{baseUrl}}/admin/books/1/reingest
 X-Admin-Api-Key: {{adminKey}}
 
 ### Admin Books — Extract book with LLM (fires Stage 1 in background)

@@ -40,12 +40,8 @@ public sealed partial class IngestionQueueWorker(
                 }
                 else
                 {
-                    await (item.Type switch
-                    {
-                        IngestionWorkType.Reingest  => orchestrator.IngestBookAsync(item.BookId, stoppingToken),
-                        IngestionWorkType.IngestJson => orchestrator.IngestJsonAsync(item.BookId, stoppingToken),
-                        _ => Task.CompletedTask
-                    });
+                    if (item.Type == IngestionWorkType.IngestJson)
+                        await orchestrator.IngestJsonAsync(item.BookId, stoppingToken);
                 }
 
                 LogWorkItemCompleted(logger, item.Type, item.BookId, sw.ElapsedMilliseconds);

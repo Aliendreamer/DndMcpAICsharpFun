@@ -27,17 +27,6 @@ public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTr
                 .SetProperty(r => r.FileHash, fileHash), ct);
     }
 
-    public async Task MarkCompletedAsync(int id, int chunkCount, CancellationToken ct = default)
-    {
-        await db.IngestionRecords
-            .Where(r => r.Id == id)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(r => r.Status, IngestionStatus.Completed)
-                .SetProperty(r => r.ChunkCount, chunkCount)
-                .SetProperty(r => r.IngestedAt, DateTime.UtcNow)
-                .SetProperty(r => r.Error, (string?)null), ct);
-    }
-
     public async Task MarkFailedAsync(int id, string error, CancellationToken ct = default)
     {
         await db.IngestionRecords
@@ -66,10 +55,6 @@ public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTr
 
     public async Task<IList<IngestionRecord>> GetAllAsync(CancellationToken ct = default) =>
         await db.IngestionRecords.OrderBy(r => r.CreatedAt).ToListAsync(ct);
-
-    public Task<IngestionRecord?> GetCompletedByHashAsync(string hash, int excludeId, CancellationToken ct = default) =>
-        db.IngestionRecords.FirstOrDefaultAsync(
-            r => r.FileHash == hash && r.Status == IngestionStatus.Completed && r.Id != excludeId, ct);
 
     public async Task MarkDuplicateAsync(int id, CancellationToken ct = default)
     {

@@ -1,10 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using DndMcpAICsharpFun.Domain;
-using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion;
-using DndMcpAICsharpFun.Features.Ingestion.Chunking;
-using DndMcpAICsharpFun.Features.Ingestion.Chunking.Detectors;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
@@ -17,7 +14,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
 {
     private readonly IIngestionTracker _tracker = Substitute.For<IIngestionTracker>();
     private readonly IPdfTextExtractor _extractor = Substitute.For<IPdfTextExtractor>();
-    private readonly IEmbeddingIngestor _embeddingIngestor = Substitute.For<IEmbeddingIngestor>();
     private readonly IVectorStoreService _vectorStore = Substitute.For<IVectorStoreService>();
     private readonly ILlmClassifier _classifier = Substitute.For<ILlmClassifier>();
     private readonly ILlmEntityExtractor _entityExtractor = Substitute.For<ILlmEntityExtractor>();
@@ -40,12 +36,9 @@ public sealed class IngestionOrchestratorTests : IDisposable
 
     private IngestionOrchestrator BuildSut()
     {
-        var detectors = new IPatternDetector[] { new SpellPatternDetector() };
-        var detector = new ContentCategoryDetector(detectors);
         var opts = Options.Create(new IngestionOptions { MaxChunkTokens = 512, OverlapTokens = 64 });
-        var chunker = new DndChunker(detector, opts);
         return new IngestionOrchestrator(
-            _tracker, _extractor, chunker, _embeddingIngestor, _vectorStore,
+            _tracker, _extractor, _vectorStore,
             _classifier, _entityExtractor, _jsonStore, _jsonPipeline, opts,
             _bookmarkReader, _tocClassifier,
             NullLogger<IngestionOrchestrator>.Instance);
@@ -56,130 +49,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
         await using var stream = File.OpenRead(path);
         var hash = await SHA256.HashDataAsync(stream, CancellationToken.None);
         return Convert.ToHexString(hash).ToLowerInvariant();
-    }
-
-    [Fact]
-    public async Task IngestBookAsync_RecordNotFound_DoesNotCallExtractor()
-    {
-        _tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns((IngestionRecord?)null);
-        var sut = BuildSut();
-
-        await sut.IngestBookAsync(1);
-
-        _extractor.DidNotReceive().ExtractPages(Arg.Any<string>());
-    }
-
-    [Fact]
-    public async Task IngestBookAsync_CompletedUnchangedHash_SkipsExtraction()
-    {
-        var hash = await HashFileAsync(_tempFile);
-        var record = new IngestionRecord
-        {
-            Id = 1, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = hash, SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Completed
-        };
-        _tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(record);
-        var sut = BuildSut();
-
-        await sut.IngestBookAsync(1);
-
-        _extractor.DidNotReceive().ExtractPages(Arg.Any<string>());
-        await _embeddingIngestor.DidNotReceive()
-            .IngestAsync(Arg.Any<IList<ContentChunk>>(), Arg.Any<string>());
-        await _tracker.DidNotReceive().MarkHashAsync(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task IngestBookAsync_PendingRecord_IngestsAndMarkCompleted()
-    {
-        var record = new IngestionRecord
-        {
-            Id = 2, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "stale-hash", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
-        _tracker.GetByIdAsync(2, Arg.Any<CancellationToken>()).Returns(record);
-        _tracker.GetCompletedByHashAsync(Arg.Any<string>(), 2, Arg.Any<CancellationToken>())
-            .Returns((IngestionRecord?)null);
-        _extractor.ExtractPages(_tempFile)
-            .Returns([(1, "Casting Time: 1 action\nRange: 150 feet\nDuration: Instantaneous")]);
-        var sut = BuildSut();
-
-        await sut.IngestBookAsync(2);
-
-        _extractor.Received(1).ExtractPages(_tempFile);
-        await _embeddingIngestor.Received(1)
-            .IngestAsync(Arg.Any<IList<ContentChunk>>(), Arg.Any<string>());
-        await _tracker.Received(1).MarkCompletedAsync(2, Arg.Any<int>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task IngestBookAsync_ExtractorThrows_MarksFailedAsync()
-    {
-        var record = new IngestionRecord
-        {
-            Id = 3, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "stale-hash", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
-        _tracker.GetByIdAsync(3, Arg.Any<CancellationToken>()).Returns(record);
-        _tracker.GetCompletedByHashAsync(Arg.Any<string>(), 3, Arg.Any<CancellationToken>())
-            .Returns((IngestionRecord?)null);
-        _extractor.When(x => x.ExtractPages(Arg.Any<string>()))
-            .Do(_ => throw new InvalidOperationException("pdf error"));
-        var sut = BuildSut();
-
-        await sut.IngestBookAsync(3);
-
-        await _tracker.Received(1).MarkFailedAsync(3, "pdf error", Arg.Any<CancellationToken>());
-        await _embeddingIngestor.DidNotReceive()
-            .IngestAsync(Arg.Any<IList<ContentChunk>>(), Arg.Any<string>());
-    }
-
-    [Fact]
-    public async Task IngestBookAsync_DuplicateHash_MarksDuplicateAndSkipsExtraction()
-    {
-        var record = new IngestionRecord
-        {
-            Id = 10, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
-        var existing = new IngestionRecord { Id = 5, Status = IngestionStatus.Completed };
-        _tracker.GetByIdAsync(10, Arg.Any<CancellationToken>()).Returns(record);
-        _tracker.GetCompletedByHashAsync(Arg.Any<string>(), 10, Arg.Any<CancellationToken>())
-            .Returns(existing);
-        var sut = BuildSut();
-
-        await sut.IngestBookAsync(10);
-
-        await _tracker.Received(1).MarkDuplicateAsync(10, Arg.Any<CancellationToken>());
-        _extractor.DidNotReceive().ExtractPages(Arg.Any<string>());
-        await _embeddingIngestor.DidNotReceive()
-            .IngestAsync(Arg.Any<IList<ContentChunk>>(), Arg.Any<string>());
-        await _tracker.Received(1).MarkHashAsync(10, Arg.Any<string>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task IngestBookAsync_PendingRecord_CallsMarkHashAsync()
-    {
-        var record = new IngestionRecord
-        {
-            Id = 11, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
-        _tracker.GetByIdAsync(11, Arg.Any<CancellationToken>()).Returns(record);
-        _tracker.GetCompletedByHashAsync(Arg.Any<string>(), 11, Arg.Any<CancellationToken>())
-            .Returns((IngestionRecord?)null);
-        _extractor.ExtractPages(_tempFile)
-            .Returns([(1, "Casting Time: 1 action\nRange: 150 feet\nDuration: Instantaneous")]);
-        var sut = BuildSut();
-
-        await sut.IngestBookAsync(11);
-
-        await _tracker.Received(1).MarkHashAsync(11, Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -213,13 +82,13 @@ public sealed class IngestionOrchestratorTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteBookAsync_CompletedRecord_DeletesVectorsFileSqlite()
+    public async Task DeleteBookAsync_JsonIngestedRecord_DeletesVectorsFileSqlite()
     {
         var record = new IngestionRecord
         {
             Id = 2, FilePath = _tempFile, FileName = "test.pdf",
             FileHash = "abc123", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Completed, ChunkCount = 10
+            DisplayName = "PHB", Status = IngestionStatus.JsonIngested, ChunkCount = 10
         };
         _tracker.GetByIdAsync(2, Arg.Any<CancellationToken>()).Returns(record);
         _tracker.DeleteAsync(2, Arg.Any<CancellationToken>()).Returns(true);
@@ -297,7 +166,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         {
             Id = 20, FilePath = _tempFile, FileName = "test.pdf",
             FileHash = "hash20", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Completed
+            DisplayName = "PHB", Status = IngestionStatus.Pending
         };
         _tracker.GetByIdAsync(20, Arg.Any<CancellationToken>()).Returns(record);
         // Page text is fewer than 100 characters — below the skip threshold
@@ -320,7 +189,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         {
             Id = 21, FilePath = _tempFile, FileName = "test.pdf",
             FileHash = "hash21", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Completed
+            DisplayName = "PHB", Status = IngestionStatus.Pending
         };
         _tracker.GetByIdAsync(21, Arg.Any<CancellationToken>()).Returns(record);
 
@@ -397,7 +266,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         {
             Id = 40, FilePath = _tempFile, FileName = "test.pdf",
             FileHash = "hash40", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Completed
+            DisplayName = "PHB", Status = IngestionStatus.Pending
         };
         _tracker.GetByIdAsync(40, Arg.Any<CancellationToken>()).Returns(record);
 
@@ -430,7 +299,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         {
             Id = 41, FilePath = _tempFile, FileName = "test.pdf",
             FileHash = "hash41", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Completed
+            DisplayName = "PHB", Status = IngestionStatus.Pending
         };
         _tracker.GetByIdAsync(41, Arg.Any<CancellationToken>()).Returns(record);
 
@@ -470,7 +339,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         {
             Id = 42, FilePath = _tempFile, FileName = "test.pdf",
             FileHash = "hash42", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Completed
+            DisplayName = "PHB", Status = IngestionStatus.Pending
         };
         _tracker.GetByIdAsync(42, Arg.Any<CancellationToken>()).Returns(record);
 
@@ -503,7 +372,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         {
             Id = 43, FilePath = _tempFile, FileName = "test.pdf",
             FileHash = "hash43", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Completed
+            DisplayName = "PHB", Status = IngestionStatus.Pending
         };
         _tracker.GetByIdAsync(43, Arg.Any<CancellationToken>()).Returns(record);
 
@@ -524,5 +393,103 @@ public sealed class IngestionOrchestratorTests : IDisposable
 
         _jsonStore.Received(1).DeleteAllPages(43);
         await _tracker.Received(1).ResetForReingestionAsync(43, CancellationToken.None);
+    }
+
+    // --- Idempotency tests ---
+
+    [Fact]
+    public async Task ExtractBookAsync_WhenJsonIngested_DeletesVectorsAndJsonThenResets()
+    {
+        const int recordId = 50;
+        var record = new IngestionRecord
+        {
+            Id = recordId, FilePath = _tempFile, FileName = "test.pdf",
+            FileHash = "abc123", SourceName = "PHB", Version = "Edition2014",
+            DisplayName = "PHB", Status = IngestionStatus.JsonIngested, ChunkCount = 5
+        };
+        _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
+        _extractor.ExtractPages(_tempFile).Returns([(1, "short text")]);
+        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
+        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TocCategoryMap([])));
+
+        var sut = BuildSut();
+        await sut.ExtractBookAsync(recordId);
+
+        await _vectorStore.Received(1).DeleteByHashAsync("abc123", 5, CancellationToken.None);
+        _jsonStore.Received(1).DeleteAllPages(recordId);
+        await _tracker.Received(1).ResetForReingestionAsync(recordId, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ExtractBookAsync_WhenExtracted_DeletesJsonAndResets()
+    {
+        const int recordId = 51;
+        var record = new IngestionRecord
+        {
+            Id = recordId, FilePath = _tempFile, FileName = "test.pdf",
+            FileHash = "def456", SourceName = "PHB", Version = "Edition2014",
+            DisplayName = "PHB", Status = IngestionStatus.Extracted
+        };
+        _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
+        _extractor.ExtractPages(_tempFile).Returns([(1, "short text")]);
+        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
+        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TocCategoryMap([])));
+
+        var sut = BuildSut();
+        await sut.ExtractBookAsync(recordId);
+
+        _jsonStore.Received(1).DeleteAllPages(recordId);
+        await _tracker.Received(1).ResetForReingestionAsync(recordId, CancellationToken.None);
+        await _vectorStore.DidNotReceive().DeleteByHashAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ExtractBookAsync_WhenPending_NoCleanup()
+    {
+        const int recordId = 52;
+        var record = new IngestionRecord
+        {
+            Id = recordId, FilePath = _tempFile, FileName = "test.pdf",
+            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
+            DisplayName = "PHB", Status = IngestionStatus.Pending
+        };
+        _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
+        _extractor.ExtractPages(_tempFile).Returns([(1, "short text")]);
+        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
+        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TocCategoryMap([])));
+
+        var sut = BuildSut();
+        await sut.ExtractBookAsync(recordId);
+
+        await _vectorStore.DidNotReceive().DeleteByHashAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        await _tracker.DidNotReceive().ResetForReingestionAsync(recordId, CancellationToken.None);
+        _jsonStore.DidNotReceive().DeleteAllPages(Arg.Any<int>());
+    }
+
+    [Fact]
+    public async Task ExtractBookAsync_WhenFailed_NoCleanup()
+    {
+        const int recordId = 52;
+        var record = new IngestionRecord
+        {
+            Id = recordId, FilePath = _tempFile, FileName = "test.pdf",
+            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
+            DisplayName = "PHB", Status = IngestionStatus.Failed
+        };
+        _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
+        _extractor.ExtractPages(_tempFile).Returns([(1, "short text")]);
+        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
+        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TocCategoryMap([])));
+
+        var sut = BuildSut();
+        await sut.ExtractBookAsync(recordId);
+
+        await _vectorStore.DidNotReceive().DeleteByHashAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        await _tracker.DidNotReceive().ResetForReingestionAsync(recordId, CancellationToken.None);
+        _jsonStore.DidNotReceive().DeleteAllPages(Arg.Any<int>());
     }
 }

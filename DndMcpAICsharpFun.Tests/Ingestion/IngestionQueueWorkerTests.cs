@@ -75,13 +75,13 @@ public sealed class IngestionQueueWorkerTests
         const int bookId = 3;
         var sut = BuildSut();
 
-        _orchestrator.IngestBookAsync(bookId, Arg.Any<CancellationToken>())
+        _orchestrator.IngestJsonAsync(bookId, Arg.Any<CancellationToken>())
                      .Returns(Task.CompletedTask);
 
         using var stoppingCts = new CancellationTokenSource();
         await sut.StartAsync(stoppingCts.Token);
 
-        sut.TryEnqueue(new IngestionWorkItem(IngestionWorkType.Reingest, bookId));
+        sut.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestJson, bookId));
 
         await Task.Delay(300);
         await stoppingCts.CancelAsync();
