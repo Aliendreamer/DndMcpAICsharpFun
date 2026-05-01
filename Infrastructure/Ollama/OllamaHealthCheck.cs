@@ -3,7 +3,7 @@ using OllamaSharp;
 
 namespace DndMcpAICsharpFun.Infrastructure.Ollama;
 
-public sealed class OllamaHealthCheck(OllamaApiClient client) : IHealthCheck
+public sealed class OllamaHealthCheck(IOllamaApiClient client) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
