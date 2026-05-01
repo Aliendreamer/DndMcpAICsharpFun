@@ -8,9 +8,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;
 
-public sealed class RetrievalEndpointsTests
+public sealed class RetrievalEndpointsTests : IAsyncLifetime
 {
     private const string ValidApiKey = "test-key";
+
+    private WebApplication _app = null!;
+    private HttpClient _client = null!;
+    private IRagRetrievalService _retrievalService = null!;
 
     private static ChunkMetadata MakeMetadata() => new(
         SourceBook: "PHB",
@@ -21,47 +25,49 @@ public sealed class RetrievalEndpointsTests
         PageNumber: 42,
         ChunkIndex: 0);
 
-    private static async Task<(HttpClient Client, IRagRetrievalService RetrievalService)> BuildClientAsync()
+    public async Task InitializeAsync()
     {
-        var retrievalService = Substitute.For<IRagRetrievalService>();
+        _retrievalService = Substitute.For<IRagRetrievalService>();
 
-        retrievalService
+        _retrievalService
             .SearchAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IList<RetrievalResult>>(
                 [new RetrievalResult("Some text", MakeMetadata(), 0.9f)]));
 
-        retrievalService
+        _retrievalService
             .SearchDiagnosticAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IList<RetrievalDiagnosticResult>>(
                 [new RetrievalDiagnosticResult("Some text", MakeMetadata(), 0.9f, "point-1")]));
 
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
-        builder.Services.AddSingleton(retrievalService);
+        builder.Services.AddSingleton(_retrievalService);
         builder.Services.Configure<AdminOptions>(o => o.ApiKey = ValidApiKey);
 
-        var app = builder.Build();
+        _app = builder.Build();
 
-        app.UseWhen(
+        _app.UseWhen(
             ctx => ctx.Request.Path.StartsWithSegments("/admin"),
             adminApp => adminApp.UseMiddleware<AdminApiKeyMiddleware>()
         );
 
-        app.MapRetrievalEndpoints();
+        _app.MapRetrievalEndpoints();
 
-        await app.StartAsync();
+        await _app.StartAsync();
+        _client = _app.GetTestClient();
+    }
 
-        var client = app.GetTestClient();
-        return (client, retrievalService);
+    public async Task DisposeAsync()
+    {
+        _client.Dispose();
+        await _app.DisposeAsync();
     }
 
     // 6.2 — no q parameter returns 400
     [Fact]
     public async Task Search_NoQueryParam_Returns400()
     {
-        var (client, _) = await BuildClientAsync();
-
-        var response = await client.GetAsync("/retrieval/search");
+        var response = await _client.GetAsync("/retrieval/search");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -70,9 +76,7 @@ public sealed class RetrievalEndpointsTests
     [Fact]
     public async Task Search_WhitespaceQuery_Returns400()
     {
-        var (client, _) = await BuildClientAsync();
-
-        var response = await client.GetAsync("/retrieval/search?q=   ");
+        var response = await _client.GetAsync("/retrieval/search?q=   ");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -81,12 +85,16 @@ public sealed class RetrievalEndpointsTests
     [Fact]
     public async Task Search_ValidQuery_Returns200AndCallsSearchAsync()
     {
-        var (client, retrievalService) = await BuildClientAsync();
+        _retrievalService.ClearReceivedCalls();
 
-        var response = await client.GetAsync("/retrieval/search?q=fireball");
+        var response = await _client.GetAsync("/retrieval/search?q=fireball");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        await retrievalService.Received(1).SearchAsync(
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.NotEmpty(body);
+
+        await _retrievalService.Received(1).SearchAsync(
             Arg.Any<RetrievalQuery>(),
             Arg.Any<CancellationToken>());
     }
@@ -95,12 +103,12 @@ public sealed class RetrievalEndpointsTests
     [Fact]
     public async Task Search_ValidVersionAndCategory_ParsedAndPassedToSearchAsync()
     {
-        var (client, retrievalService) = await BuildClientAsync();
+        _retrievalService.ClearReceivedCalls();
 
-        var response = await client.GetAsync("/retrieval/search?q=fireball&version=Edition2024&category=Spell");
+        var response = await _client.GetAsync("/retrieval/search?q=fireball&version=Edition2024&category=Spell");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        await retrievalService.Received(1).SearchAsync(
+        await _retrievalService.Received(1).SearchAsync(
             Arg.Is<RetrievalQuery>(q =>
                 q.QueryText == "fireball" &&
                 q.Version == DndVersion.Edition2024 &&
@@ -112,12 +120,12 @@ public sealed class RetrievalEndpointsTests
     [Fact]
     public async Task Search_InvalidVersionAndCategory_NullPassedToSearchAsync()
     {
-        var (client, retrievalService) = await BuildClientAsync();
+        _retrievalService.ClearReceivedCalls();
 
-        var response = await client.GetAsync("/retrieval/search?q=fireball&version=invalid&category=invalid");
+        var response = await _client.GetAsync("/retrieval/search?q=fireball&version=invalid&category=invalid");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        await retrievalService.Received(1).SearchAsync(
+        await _retrievalService.Received(1).SearchAsync(
             Arg.Is<RetrievalQuery>(q =>
                 q.QueryText == "fireball" &&
                 q.Version == null &&
@@ -129,26 +137,27 @@ public sealed class RetrievalEndpointsTests
     [Fact]
     public async Task AdminSearch_NoApiKey_Returns401()
     {
-        var (client, _) = await BuildClientAsync();
+        _retrievalService.ClearReceivedCalls();
 
-        var response = await client.GetAsync("/admin/retrieval/search?q=fireball");
+        var response = await _client.GetAsync("/admin/retrieval/search?q=fireball");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        await _retrievalService.DidNotReceive().SearchDiagnosticAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>());
     }
 
     // 6.8 — admin search with valid API key returns 200 and calls SearchDiagnosticAsync once
     [Fact]
     public async Task AdminSearch_ValidApiKey_Returns200AndCallsSearchDiagnosticAsync()
     {
-        var (client, retrievalService) = await BuildClientAsync();
+        _retrievalService.ClearReceivedCalls();
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/admin/retrieval/search?q=fireball");
         request.Headers.Add("X-Admin-Api-Key", ValidApiKey);
 
-        var response = await client.SendAsync(request);
+        var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        await retrievalService.Received(1).SearchDiagnosticAsync(
+        await _retrievalService.Received(1).SearchDiagnosticAsync(
             Arg.Any<RetrievalQuery>(),
             Arg.Any<CancellationToken>());
     }
