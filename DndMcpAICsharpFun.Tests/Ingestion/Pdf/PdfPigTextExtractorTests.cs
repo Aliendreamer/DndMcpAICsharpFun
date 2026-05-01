@@ -75,6 +75,7 @@ public sealed class PdfPigTextExtractorTests
 
             Assert.Equal(3, results.Count);
             Assert.Equal([1, 2, 3], results.Select(r => r.PageNumber));
+            Assert.All(results, r => Assert.Contains($"Page{r.PageNumber}", r.Text));
         }
         finally { File.Delete(path); }
     }
