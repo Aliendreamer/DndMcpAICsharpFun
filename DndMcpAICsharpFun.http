@@ -75,6 +75,10 @@ X-Admin-Api-Key: {{adminKey}}
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Cancel an in-progress extraction for book 1
+POST {{baseUrl}}/admin/books/1/cancel-extract
+X-Admin-Api-Key: {{adminKey}}
+
 ###
 
 # ── Qdrant — Direct collection management ─────────────────────────────────────

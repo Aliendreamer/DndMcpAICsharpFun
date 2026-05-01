@@ -20,6 +20,7 @@ public static partial class BooksAdminEndpoints
         group.MapGet("/books/{id:int}/extracted", GetExtracted);
         group.MapPost("/books/{id:int}/ingest-json", IngestJson).DisableAntiforgery();
         group.MapDelete("/books/{id:int}", DeleteBook);
+        group.MapPost("/books/{id:int}/cancel-extract", CancelExtract).DisableAntiforgery();
         return group;
     }
 
@@ -187,6 +188,14 @@ public static partial class BooksAdminEndpoints
             DeleteBookResult.Conflict  => Results.Conflict("Book is currently being ingested. Wait for ingestion to complete before deleting."),
             _                          => Results.StatusCode(500)
         };
+    }
+
+    private static IResult CancelExtract(
+        int id,
+        IExtractionCancellationRegistry cancellationRegistry)
+    {
+        var cancelled = cancellationRegistry.Cancel(id);
+        return cancelled ? Results.Ok() : Results.NotFound();
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Registered book {DisplayName} (id={Id}, file={File})")]
