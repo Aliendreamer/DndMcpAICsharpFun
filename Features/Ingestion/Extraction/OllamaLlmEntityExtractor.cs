@@ -80,6 +80,11 @@ public sealed partial class OllamaLlmEntityExtractor(
 
             if (string.IsNullOrEmpty(json))
             {
+                if (attempt < maxAttempts)
+                {
+                    LogRetryExtraction(logger, entityType, pageNumber, attempt, maxAttempts);
+                    continue;
+                }
                 LogExtractDone(logger, entityType, pageNumber, 0, _model, sw.ElapsedMilliseconds);
                 return [];
             }
@@ -89,7 +94,12 @@ public sealed partial class OllamaLlmEntityExtractor(
                 var raw = JsonNode.Parse(json)?.AsArray();
                 if (raw is null)
                 {
-                    LogExtractDone(logger, entityType, pageNumber, 0, _model, sw.ElapsedMilliseconds);
+                    if (attempt < maxAttempts)
+                    {
+                        LogRetryExtraction(logger, entityType, pageNumber, attempt, maxAttempts);
+                        continue;
+                    }
+                    LogInvalidJson(logger, entityType, pageNumber, json[..Math.Min(200, json.Length)]);
                     return [];
                 }
 

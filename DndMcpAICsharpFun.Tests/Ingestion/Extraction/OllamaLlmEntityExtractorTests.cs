@@ -83,6 +83,7 @@ public class OllamaLlmEntityExtractorTests
         // Assert
         Assert.Empty(results);
         Assert.DoesNotContain(results, e => e.Name.StartsWith("page_") && e.Name.EndsWith("_raw"));
+        ollama.Received(2).ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
