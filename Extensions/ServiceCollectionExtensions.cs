@@ -1,7 +1,5 @@
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion;
-using DndMcpAICsharpFun.Features.Ingestion.Chunking;
-using DndMcpAICsharpFun.Features.Ingestion.Chunking.Detectors;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
@@ -63,16 +61,6 @@ internal static class ServiceCollectionExtensions
     {
         services.AddScoped<IIngestionTracker, SqliteIngestionTracker>();
         services.AddSingleton<IPdfTextExtractor, PdfPigTextExtractor>();
-
-        services.AddSingleton<IPatternDetector, SpellPatternDetector>();
-        services.AddSingleton<IPatternDetector, MonsterPatternDetector>();
-        services.AddSingleton<IPatternDetector, ClassPatternDetector>();
-        services.AddSingleton<IPatternDetector, BackgroundPatternDetector>();
-        services.AddSingleton<IPatternDetector, TreasurePatternDetector>();
-        services.AddSingleton<IPatternDetector, EncounterPatternDetector>();
-        services.AddSingleton<IPatternDetector, TrapPatternDetector>();
-        services.AddSingleton<ContentCategoryDetector>();
-        services.AddSingleton<DndChunker>();
 
         services.AddScoped<IEmbeddingService, OllamaEmbeddingService>();
         services.AddScoped<IVectorStoreService, QdrantVectorStoreService>();

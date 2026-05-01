@@ -15,7 +15,6 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/register", RegisterBook).DisableAntiforgery();
         group.MapPost("/books/register-path", RegisterBookByPath);
         group.MapGet("/books", GetAllBooks);
-        group.MapPost("/books/{id:int}/reingest", ReingestBook).DisableAntiforgery();
         group.MapPost("/books/{id:int}/extract", ExtractBook).DisableAntiforgery();
         group.MapGet("/books/{id:int}/extracted", GetExtracted);
         group.MapPost("/books/{id:int}/ingest-json", IngestJson).DisableAntiforgery();
@@ -110,21 +109,6 @@ public static partial class BooksAdminEndpoints
     {
         var records = await tracker.GetAllAsync();
         return Results.Ok(records);
-    }
-
-    private static async Task<IResult> ReingestBook(
-        int id,
-        IIngestionTracker tracker,
-        IIngestionQueue queue,
-        CancellationToken ct)
-    {
-        var record = await tracker.GetByIdAsync(id, ct);
-        if (record is null)
-            return Results.NotFound($"Book with id {id} not found");
-
-        await tracker.ResetForReingestionAsync(id, ct);
-        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.Reingest, id));
-        return Results.Accepted($"/admin/books/{id}");
     }
 
     private static async Task<IResult> ExtractBook(
