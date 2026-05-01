@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
@@ -18,7 +20,6 @@ using OllamaSharp;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 
-using System.Diagnostics.CodeAnalysis;
 using Qdrant.Client;
 
 namespace DndMcpAICsharpFun.Extensions;
