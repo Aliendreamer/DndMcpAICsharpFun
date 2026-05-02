@@ -5,6 +5,7 @@ using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,7 +42,11 @@ var app = builder.Build();
 await app.MigrateDatabaseAsync();
 app.ValidateStartupConfiguration();
 // app.UseAntiforgery();
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(o =>
+    o.GetLevel = (ctx, _, ex) =>
+        ex is not null ? LogEventLevel.Error :
+        ctx.Request.Path.StartsWithSegments("/metrics") ? LogEventLevel.Verbose :
+        LogEventLevel.Information);
 app.MapAdminMiddleware();
 app.MapObservabilityEndpoints();
 
