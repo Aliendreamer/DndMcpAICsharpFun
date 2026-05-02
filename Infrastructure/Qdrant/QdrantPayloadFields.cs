@@ -10,4 +10,5 @@ public static class QdrantPayloadFields
     public const string Chapter    = "chapter";
     public const string PageNumber = "page_number";
     public const string ChunkIndex = "chunk_index";
+    public const string PageEnd    = "page_end";
 }

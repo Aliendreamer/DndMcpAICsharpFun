@@ -59,6 +59,9 @@ public sealed partial class QdrantVectorStoreService(
         if (meta.EntityName is not null)
             point.Payload[QdrantPayloadFields.EntityName] = meta.EntityName;
 
+        if (meta.PageEnd.HasValue)
+            point.Payload[QdrantPayloadFields.PageEnd] = (long)meta.PageEnd.Value;
+
         return point;
     }
 
