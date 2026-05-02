@@ -84,7 +84,7 @@ GET {{qdrantUrl}}/collections/{{collectionName}}
 
 # ── Retrieval ─────────────────────────────────────────────────────────────────
 # version: Edition2014 | Edition2024
-# category: Spell | Monster | Class | Background | Item | Rule | Treasure | Encounter | Trap
+# category: Spell | Monster | Class | Race | Background | Item | Combat | Adventuring | Condition | God | Plane | Treasure | Encounter | Trap | Trait | Lore | Rule
 
 ### Retrieval — Public semantic search
 GET {{baseUrl}}/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5
