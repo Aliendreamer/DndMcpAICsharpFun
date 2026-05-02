@@ -116,4 +116,13 @@ public class TocCategoryMapTests
         var map = new TocCategoryMap([new TocSectionEntry("Appendix", ContentCategory.Rule, 500, null)]);
         Assert.NotNull(map.GetEntry(99999));
     }
+
+    [Fact]
+    public void GetCategory_DelegatesToGetEntry()
+    {
+        var entries = new[] { new TocSectionEntry("Classes", ContentCategory.Class, 45, 112) };
+        var map = new TocCategoryMap(entries);
+        Assert.Equal(ContentCategory.Class, map.GetCategory(80));
+        Assert.Null(map.GetCategory(10));
+    }
 }

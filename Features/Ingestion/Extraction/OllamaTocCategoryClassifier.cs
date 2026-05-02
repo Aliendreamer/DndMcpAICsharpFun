@@ -1,3 +1,5 @@
+// This class is scheduled for deletion in Task 2 (replaced by OllamaTocMapExtractor).
+// Trait and Lore categories are intentionally not in the prompt here.
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
