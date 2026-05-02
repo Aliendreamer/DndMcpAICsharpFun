@@ -18,7 +18,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
     private readonly ILlmEntityExtractor _entityExtractor = Substitute.For<ILlmEntityExtractor>();
     private readonly IEntityJsonStore _jsonStore = Substitute.For<IEntityJsonStore>();
     private readonly IJsonIngestionPipeline _jsonPipeline = Substitute.For<IJsonIngestionPipeline>();
-    private readonly ITocMapExtractor _tocMapExtractor = Substitute.For<ITocMapExtractor>();
+    private readonly IPdfBookmarkReader _bookmarkReader = Substitute.For<IPdfBookmarkReader>();
     private readonly string _tempFile;
 
     public IngestionOrchestratorTests()
@@ -38,7 +38,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         return new IngestionOrchestrator(
             _tracker, _extractor, _vectorStore,
             _entityExtractor, _jsonStore, _jsonPipeline, opts,
-            _tocMapExtractor,
+            _bookmarkReader,
             NullLogger<IngestionOrchestrator>.Instance);
     }
 
@@ -51,8 +51,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
 
     private IngestionRecord MakeRecord(
         int id = 1,
-        IngestionStatus status = IngestionStatus.Pending,
-        int? tocPage = 3) => new()
+        IngestionStatus status = IngestionStatus.Pending) => new()
     {
         Id = id,
         FilePath = _tempFile,
@@ -62,8 +61,10 @@ public sealed class IngestionOrchestratorTests : IDisposable
         Version = "Edition2014",
         DisplayName = "PHB",
         Status = status,
-        TocPage = tocPage,
     };
+
+    private void StubBookmarks(params PdfBookmark[] bookmarks) =>
+        _bookmarkReader.ReadBookmarks(_tempFile).Returns(bookmarks);
 
     // ── Delete ──────────────────────────────────────────────────────────────
 
@@ -141,31 +142,30 @@ public sealed class IngestionOrchestratorTests : IDisposable
     }
 
     [Fact]
-    public async Task ExtractBookAsync_TocPageNull_MarksFailedWithoutExtraction()
+    public async Task ExtractBookAsync_NoBookmarks_MarksFailedWithoutExtraction()
     {
-        _tracker.GetByIdAsync(10, Arg.Any<CancellationToken>())
-            .Returns(MakeRecord(10, tocPage: null));
+        _tracker.GetByIdAsync(10, Arg.Any<CancellationToken>()).Returns(MakeRecord(10));
+        StubBookmarks();
         var sut = BuildSut();
 
         await sut.ExtractBookAsync(10);
 
         _extractor.DidNotReceive().ExtractPages(Arg.Any<string>());
-        await _tracker.Received(1).MarkFailedAsync(10, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _tracker.Received(1).MarkFailedAsync(
+            10,
+            Arg.Is<string>(s => s.Contains("bookmark", StringComparison.OrdinalIgnoreCase)),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ExtractBookAsync_NoHash_ComputesAndSetsHash()
     {
-        var record = MakeRecord(22, tocPage: 1);
+        var record = MakeRecord(22);
         _tracker.GetByIdAsync(22, Arg.Any<CancellationToken>()).Returns(record);
-
-        var tocPage = new StructuredPage(1, "Table of Contents", [new PageBlock(1, "body", "TOC text")]);
-        _extractor.ExtractSinglePage(_tempFile, 1).Returns(tocPage);
+        StubBookmarks(new PdfBookmark("Spells", 1));
         _extractor.ExtractPages(_tempFile).Returns([
             new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])
         ]);
-        _tocMapExtractor.ExtractMapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<TocSectionEntry>>([]));
 
         var expectedHash = await HashFileAsync(_tempFile);
         var sut = BuildSut();
@@ -179,18 +179,12 @@ public sealed class IngestionOrchestratorTests : IDisposable
     [Fact]
     public async Task ExtractBookAsync_PagesBelowThreshold_SkipsExtraction()
     {
-        var record = MakeRecord(20, tocPage: 1);
+        var record = MakeRecord(20);
         _tracker.GetByIdAsync(20, Arg.Any<CancellationToken>()).Returns(record);
-
-        var tocStructuredPage = new StructuredPage(1, "TOC text", [new PageBlock(1, "body", "TOC")]);
-        _extractor.ExtractSinglePage(_tempFile, 1).Returns(tocStructuredPage);
+        StubBookmarks(new PdfBookmark("Spells", 1));
         _extractor.ExtractPages(_tempFile).Returns([
             new StructuredPage(2, "short", [new PageBlock(1, "body", "short")])
         ]);
-        _tocMapExtractor.ExtractMapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<TocSectionEntry>>([
-                new TocSectionEntry("Spells", ContentCategory.Spell, 1, 50)
-            ]));
 
         var sut = BuildSut();
 
@@ -205,23 +199,18 @@ public sealed class IngestionOrchestratorTests : IDisposable
     }
 
     [Fact]
-    public async Task ExtractBookAsync_TocGuidedPage_CallsExtractorWithSectionContext()
+    public async Task ExtractBookAsync_BookmarkSection_CallsExtractorWithSectionContext()
     {
-        var record = MakeRecord(21, tocPage: 1);
+        var record = MakeRecord(21);
         _tracker.GetByIdAsync(21, Arg.Any<CancellationToken>()).Returns(record);
-
-        var tocStructuredPage = new StructuredPage(1, "TOC", [new PageBlock(1, "body", "TOC")]);
-        _extractor.ExtractSinglePage(_tempFile, 1).Returns(tocStructuredPage);
+        StubBookmarks(
+            new PdfBookmark("Wizard", 45),
+            new PdfBookmark("Sorcerer", 81));
 
         var pageText = new string('x', 200);
         _extractor.ExtractPages(_tempFile).Returns([
             new StructuredPage(45, pageText, [new PageBlock(1, "h2", "Wizard")])
         ]);
-
-        _tocMapExtractor.ExtractMapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<TocSectionEntry>>([
-                new TocSectionEntry("Wizard", ContentCategory.Class, 45, 80)
-            ]));
 
         var entity = new ExtractedEntity(
             Page: 45, SourceBook: "PHB", Version: "Edition2014",
@@ -247,23 +236,18 @@ public sealed class IngestionOrchestratorTests : IDisposable
     }
 
     [Fact]
-    public async Task ExtractBookAsync_PageOutsideTocMap_SkipsExtraction()
+    public async Task ExtractBookAsync_PageOutsideAllSections_SkipsExtraction()
     {
-        var record = MakeRecord(25, tocPage: 1);
+        var record = MakeRecord(25);
         _tracker.GetByIdAsync(25, Arg.Any<CancellationToken>()).Returns(record);
-
-        var tocStructuredPage = new StructuredPage(1, "TOC", [new PageBlock(1, "body", "TOC")]);
-        _extractor.ExtractSinglePage(_tempFile, 1).Returns(tocStructuredPage);
+        StubBookmarks(
+            new PdfBookmark("Spells", 45),
+            new PdfBookmark("Monsters", 81));
 
         var pageText = new string('x', 200);
         _extractor.ExtractPages(_tempFile).Returns([
-            new StructuredPage(999, pageText, [new PageBlock(1, "body", pageText)])
+            new StructuredPage(10, pageText, [new PageBlock(1, "body", pageText)])
         ]);
-
-        _tocMapExtractor.ExtractMapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<TocSectionEntry>>([
-                new TocSectionEntry("Spells", ContentCategory.Spell, 45, 80)
-            ]));
 
         var sut = BuildSut();
 
@@ -279,22 +263,17 @@ public sealed class IngestionOrchestratorTests : IDisposable
     // ── ExtractSinglePage ────────────────────────────────────────────────────
 
     [Fact]
-    public async Task ExtractSinglePageAsync_TocGuidedPage_ReturnsEntities()
+    public async Task ExtractSinglePageAsync_BookmarkSection_ReturnsEntities()
     {
-        var record = MakeRecord(60, tocPage: 1);
+        var record = MakeRecord(60);
         _tracker.GetByIdAsync(60, Arg.Any<CancellationToken>()).Returns(record);
-
-        var tocStructuredPage = new StructuredPage(1, "TOC", [new PageBlock(1, "body", "TOC")]);
-        _extractor.ExtractSinglePage(_tempFile, 1).Returns(tocStructuredPage);
+        StubBookmarks(
+            new PdfBookmark("Warlock", 45),
+            new PdfBookmark("Wizard", 81));
 
         var pageText = new string('x', 200);
         _extractor.ExtractSinglePage(_tempFile, 45).Returns(
             new StructuredPage(45, pageText, [new PageBlock(1, "h2", "Warlock")]));
-
-        _tocMapExtractor.ExtractMapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<TocSectionEntry>>([
-                new TocSectionEntry("Warlock", ContentCategory.Class, 45, 80)
-            ]));
 
         var entity = new ExtractedEntity(
             Page: 45, SourceBook: "PHB", Version: "Edition2014",
@@ -313,19 +292,17 @@ public sealed class IngestionOrchestratorTests : IDisposable
         Assert.NotNull(result);
         Assert.Single(result!.Entities);
         Assert.Equal("Warlock", result.Entities[0].Name);
-        await _entityExtractor.Received(1).ExtractAsync(
-            Arg.Any<string>(), "Class", 45, "PHB", "Edition2014",
-            "Warlock", 45, 80, Arg.Any<CancellationToken>());
         await _jsonStore.DidNotReceive().SavePageAsync(
             Arg.Any<int>(), Arg.Any<StructuredPage>(),
             Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ExtractSinglePageAsync_TocPageNull_ReturnsEmptyEntities()
+    public async Task ExtractSinglePageAsync_NoBookmarks_ReturnsEmptyEntities()
     {
-        var record = MakeRecord(61, tocPage: null);
+        var record = MakeRecord(61);
         _tracker.GetByIdAsync(61, Arg.Any<CancellationToken>()).Returns(record);
+        StubBookmarks();
 
         var pageText = new string('x', 200);
         _extractor.ExtractSinglePage(_tempFile, 45).Returns(
@@ -334,32 +311,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var sut = BuildSut();
 
         var result = await sut.ExtractSinglePageAsync(61, 45, save: false);
-
-        Assert.NotNull(result);
-        Assert.Empty(result!.Entities);
-        await _entityExtractor.DidNotReceive().ExtractAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(),
-            Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task ExtractSinglePageAsync_TocPageUnreadable_ReturnsEmptyEntities()
-    {
-        var record = MakeRecord(62, tocPage: 1);
-        _tracker.GetByIdAsync(62, Arg.Any<CancellationToken>()).Returns(record);
-
-        // TOC page 1 cannot be extracted (returns null)
-        _extractor.ExtractSinglePage(_tempFile, 1).Returns((StructuredPage?)null);
-
-        var pageText = new string('x', 200);
-        _extractor.ExtractSinglePage(_tempFile, 45).Returns(
-            new StructuredPage(45, pageText, [new PageBlock(1, "h2", "Warlock")]));
-
-        var sut = BuildSut();
-
-        var result = await sut.ExtractSinglePageAsync(62, 45, save: false);
 
         Assert.NotNull(result);
         Assert.Empty(result!.Entities);

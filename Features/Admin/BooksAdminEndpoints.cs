@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
@@ -19,7 +20,7 @@ public static partial class BooksAdminEndpoints
     {
         group.MapPost("/books/register", RegisterBook).DisableAntiforgery();
         group.MapGet("/books", GetAllBooks);
-        group.MapPost("/books/{id:int}/extract", ExtractBook).DisableAntiforgery();
+        group.MapGet("/books/{id:int}/extract", ExtractBook).DisableAntiforgery();
         group.MapGet("/books/{id:int}/extracted", GetExtracted);
         group.MapPost("/books/{id:int}/ingest-json", IngestJson).DisableAntiforgery();
         group.MapDelete("/books/{id:int}", DeleteBook);
@@ -49,7 +50,6 @@ public static partial class BooksAdminEndpoints
         Directory.CreateDirectory(booksPath);
 
         string? sourceName = null, version = null, displayName = null, originalFileName = null, filePath = null;
-        int? tocPage = null;
 
         var reader = new MultipartReader(boundary, httpContext.Request.Body);
         var section = await reader.ReadNextSectionAsync(ct);
@@ -65,12 +65,12 @@ public static partial class BooksAdminEndpoints
 
                 if (cd.FileName.HasValue || cd.FileNameStar.HasValue)
                 {
-                    originalFileName = Path.GetFileName(
-                        (cd.FileNameStar.HasValue ? cd.FileNameStar.Value : cd.FileName.Value) ?? string.Empty);
+                    var rawName = (cd.FileNameStar.HasValue ? cd.FileNameStar.Value : cd.FileName.Value) ?? string.Empty;
+                    originalFileName = SanitizeDisplayFileName(rawName);
                     if (!originalFileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
                         return Results.Problem("Only PDF files are accepted.", statusCode: 400);
 
-                    filePath = Path.Combine(booksPath, $"{Guid.NewGuid():N}_{originalFileName}");
+                    filePath = Path.Combine(booksPath, $"{Guid.NewGuid():N}.pdf");
                     await using var dest = File.Create(filePath);
                     await section.Body.CopyToAsync(dest, ct);
                 }
@@ -80,12 +80,9 @@ public static partial class BooksAdminEndpoints
                     var value = await sr.ReadToEndAsync(ct);
                     switch (cd.Name.Value)
                     {
-                        case "sourceName":  sourceName = value; break;
-                        case "version":     version = value; break;
+                        case "sourceName": sourceName = value; break;
+                        case "version": version = value; break;
                         case "displayName": displayName = value; break;
-                        case "tocPage":
-                            if (int.TryParse(value, out var p)) tocPage = p;
-                            break;
                     }
                 }
 
@@ -94,8 +91,6 @@ public static partial class BooksAdminEndpoints
 
             if (filePath is null || originalFileName is null)
                 return Results.Problem("file is required.", statusCode: 400);
-            if (tocPage is null)
-                return Results.Problem("tocPage is required.", statusCode: 400);
             if (string.IsNullOrEmpty(sourceName) || string.IsNullOrEmpty(displayName))
                 return Results.Problem("sourceName and displayName are required.", statusCode: 400);
             if (!Enum.TryParse<DndVersion>(version, ignoreCase: true, out var parsedVersion))
@@ -112,7 +107,6 @@ public static partial class BooksAdminEndpoints
                 Version = parsedVersion.ToString(),
                 DisplayName = displayName,
                 Status = IngestionStatus.Pending,
-                TocPage = tocPage.Value,
             };
 
             var created = await tracker.CreateAsync(record, ct);
@@ -189,10 +183,10 @@ public static partial class BooksAdminEndpoints
         var result = await orchestrator.DeleteBookAsync(id, ct);
         return result switch
         {
-            DeleteBookResult.Deleted   => Results.NoContent(),
-            DeleteBookResult.NotFound  => Results.NotFound(),
-            DeleteBookResult.Conflict  => Results.Conflict("Book is currently being ingested. Wait for ingestion to complete before deleting."),
-            _                          => Results.StatusCode(500)
+            DeleteBookResult.Deleted => Results.NoContent(),
+            DeleteBookResult.NotFound => Results.NotFound(),
+            DeleteBookResult.Conflict => Results.Conflict("Book is currently being ingested. Wait for ingestion to complete before deleting."),
+            _ => Results.StatusCode(500)
         };
     }
 
@@ -233,11 +227,22 @@ public static partial class BooksAdminEndpoints
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Registered book {DisplayName} (id={Id}, file={File})")]
     private static partial void LogBookRegistered(ILogger logger, string displayName, int id, string file);
+
+    private static string SanitizeDisplayFileName(string raw)
+    {
+        var name = Path.GetFileName(raw.Replace('\\', '/'));
+        var invalid = Path.GetInvalidFileNameChars();
+        var chars = name
+            .Where(c => !char.IsControl(c) && Array.IndexOf(invalid, c) < 0)
+            .ToArray();
+        var cleaned = new string(chars).Trim().Trim('.');
+        if (cleaned.Length > 200) cleaned = cleaned[..200];
+        return cleaned.Length == 0 ? "upload.pdf" : cleaned;
+    }
 }
 
 [ExcludeFromCodeCoverage]
 public sealed record RegisterBookRequest(
     string SourceName,
     string Version,
-    string DisplayName,
-    int TocPage);
+    string DisplayName);

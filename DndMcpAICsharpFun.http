@@ -37,10 +37,6 @@ Edition2014
 Content-Disposition: form-data; name="displayName"
 
 PlayerHandbook 2014
-------Boundary
-Content-Disposition: form-data; name="tocPage"
-
-3
 ------Boundary--
 
 ### Admin Books — List all books
@@ -48,7 +44,7 @@ GET {{baseUrl}}/admin/books
 X-Admin-Api-Key: {{adminKey}}
 
 ### Admin Books — Extract book with LLM (fires Stage 1 in background)
-POST {{baseUrl}}/admin/books/1/extract
+GET {{baseUrl}}/admin/books/1/extract
 X-Admin-Api-Key: {{adminKey}}
 
 ### Admin Books — List extracted JSON files for a book

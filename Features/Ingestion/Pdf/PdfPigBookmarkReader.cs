@@ -18,17 +18,16 @@ public sealed partial class PdfPigBookmarkReader(
 
         var result = new List<PdfBookmark>();
         foreach (var root in bookmarks.Roots)
-        {
-            if (root is DocumentBookmarkNode rootDoc)
-                result.Add(new PdfBookmark(rootDoc.Title, rootDoc.PageNumber));
-
-            foreach (var child in root.Children)
-            {
-                if (child is DocumentBookmarkNode childDoc)
-                    result.Add(new PdfBookmark(childDoc.Title, childDoc.PageNumber));
-            }
-        }
+            Walk(root, result);
         return result;
+    }
+
+    private static void Walk(BookmarkNode node, List<PdfBookmark> result)
+    {
+        if (node is DocumentBookmarkNode doc)
+            result.Add(new PdfBookmark(doc.Title, doc.PageNumber));
+        foreach (var child in node.Children)
+            Walk(child, result);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "No embedded bookmarks found in {FileName} — falling back to all-categories extraction")]

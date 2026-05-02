@@ -17,22 +17,18 @@ public sealed partial class IngestionOrchestrator(
     IEntityJsonStore jsonStore,
     IJsonIngestionPipeline jsonPipeline,
     IOptions<IngestionOptions> ingestionOptions,
-    ITocMapExtractor tocMapExtractor,
+    IPdfBookmarkReader bookmarkReader,
     ILogger<IngestionOrchestrator> logger) : IIngestionOrchestrator
 {
+    private const string NoBookmarksError =
+        "PDF has no embedded bookmarks; bookmark-driven extraction requires them.";
+
     public async Task ExtractBookAsync(int recordId, CancellationToken cancellationToken = default)
     {
         var record = await tracker.GetByIdAsync(recordId, cancellationToken);
         if (record is null)
         {
             LogRecordNotFound(logger, recordId);
-            return;
-        }
-
-        if (record.TocPage is null)
-        {
-            LogTocPageMissing(logger, record.DisplayName, recordId);
-            await tracker.MarkFailedAsync(recordId, "TocPage is required for extraction.", CancellationToken.None);
             return;
         }
 
@@ -57,21 +53,17 @@ public sealed partial class IngestionOrchestrator(
                 await tracker.ResetForReingestionAsync(recordId, CancellationToken.None);
             }
 
-            var tocPage = extractor.ExtractSinglePage(record.FilePath, record.TocPage.Value);
-            if (tocPage is null)
+            var bookmarks = bookmarkReader.ReadBookmarks(record.FilePath);
+            if (bookmarks.Count == 0)
             {
-                LogTocPageNotFound(logger, record.TocPage.Value, record.DisplayName, recordId);
-                await tracker.MarkFailedAsync(recordId, $"TOC page {record.TocPage.Value} could not be extracted.", CancellationToken.None);
+                LogNoBookmarks(logger, record.DisplayName, recordId);
+                await tracker.MarkFailedAsync(recordId, NoBookmarksError, CancellationToken.None);
                 return;
             }
 
-            var tocEntries = await tocMapExtractor.ExtractMapAsync(tocPage.RawText, cancellationToken);
+            var tocEntries = BookmarkTocMapper.Map(bookmarks);
             var tocMap = new TocCategoryMap(tocEntries);
-
-            if (tocMap.IsEmpty)
-                LogTocFallback(logger, record.DisplayName, recordId);
-            else
-                LogTocGuided(logger, record.DisplayName, recordId);
+            LogBookmarkSections(logger, tocEntries.Count, record.DisplayName, recordId);
 
             var pages = extractor.ExtractPages(record.FilePath).ToList();
 
@@ -186,32 +178,25 @@ public sealed partial class IngestionOrchestrator(
 
         List<ExtractedEntity> entities = [];
 
-        if (record.TocPage.HasValue)
+        var bookmarks = bookmarkReader.ReadBookmarks(record.FilePath);
+        if (bookmarks.Count > 0)
         {
-            var tocPage = extractor.ExtractSinglePage(record.FilePath, record.TocPage.Value);
-            if (tocPage is null)
-            {
-                LogTocPageNotFound(logger, record.TocPage.Value, record.DisplayName, bookId);
-            }
-            else
-            {
-                var tocEntries = await tocMapExtractor.ExtractMapAsync(tocPage.RawText, ct);
-                var tocMap = new TocCategoryMap(tocEntries);
-                var entry = tocMap.GetEntry(pageNumber);
+            var tocEntries = BookmarkTocMapper.Map(bookmarks);
+            var tocMap = new TocCategoryMap(tocEntries);
+            var entry = tocMap.GetEntry(pageNumber);
 
-                if (entry is not null)
+            if (entry is not null)
+            {
+                var groups = PageBlockGrouper.Group(structuredPage.Blocks);
+                foreach (var group in groups)
                 {
-                    var groups = PageBlockGrouper.Group(structuredPage.Blocks);
-                    foreach (var group in groups)
-                    {
-                        var promptText = BuildPromptText(group);
-                        var entityType = entry.Category?.ToString() ?? "Rule";
-                        var extracted = await entityExtractor.ExtractAsync(
-                            promptText, entityType, pageNumber,
-                            record.DisplayName, record.Version,
-                            entry.Title, entry.StartPage, entry.EndPage ?? int.MaxValue, ct);
-                        entities.AddRange(extracted);
-                    }
+                    var promptText = BuildPromptText(group);
+                    var entityType = entry.Category?.ToString() ?? "Rule";
+                    var extracted = await entityExtractor.ExtractAsync(
+                        promptText, entityType, pageNumber,
+                        record.DisplayName, record.Version,
+                        entry.Title, entry.StartPage, entry.EndPage ?? int.MaxValue, ct);
+                    entities.AddRange(extracted);
                 }
             }
         }
@@ -251,11 +236,11 @@ public sealed partial class IngestionOrchestrator(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Ingestion record {Id} not found")]
     private static partial void LogRecordNotFound(ILogger logger, int id);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "TocPage is not set for {DisplayName} (id={Id}) — extraction requires tocPage")]
-    private static partial void LogTocPageMissing(ILogger logger, string displayName, int id);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "No bookmarks in PDF for {DisplayName} (id={Id}) — extraction requires embedded bookmarks")]
+    private static partial void LogNoBookmarks(ILogger logger, string displayName, int id);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "TOC page {TocPage} not found in PDF for {DisplayName} (id={Id})")]
-    private static partial void LogTocPageNotFound(ILogger logger, int tocPage, string displayName, int id);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded {Count} bookmark sections for {DisplayName} (id={Id})")]
+    private static partial void LogBookmarkSections(ILogger logger, int count, string displayName, int id);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleted book {DisplayName} (id={Id})")]
     private static partial void LogBookDeleted(ILogger logger, string displayName, int id);
@@ -280,10 +265,4 @@ public sealed partial class IngestionOrchestrator(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Extracted page {Page}/{Total} for book {BookId}")]
     private static partial void LogExtractedPage(ILogger logger, int page, int total, int bookId);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "TOC-guided extraction active for {DisplayName} (id={Id})")]
-    private static partial void LogTocGuided(ILogger logger, string displayName, int id);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "TOC map empty for {DisplayName} (id={Id}) — all pages will be skipped")]
-    private static partial void LogTocFallback(ILogger logger, string displayName, int id);
 }

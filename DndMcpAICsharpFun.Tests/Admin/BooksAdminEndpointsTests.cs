@@ -62,7 +62,6 @@ public sealed class BooksAdminEndpointsTests
         Version = "5e",
         DisplayName = "Player's Handbook",
         Status = status,
-        TocPage = 3,
     };
 
     // POST /admin/books/register
@@ -78,13 +77,12 @@ public sealed class BooksAdminEndpointsTests
         content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("Edition2014"), "version");
         content.Add(new StringContent("Player's Handbook"), "displayName");
-        content.Add(new StringContent("3"), "tocPage");
 
         var response = await client.PostAsync("/admin/books/register", content);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         await tracker.Received(1).CreateAsync(
-            Arg.Is<IngestionRecord>(r => r.TocPage == 3),
+            Arg.Is<IngestionRecord>(r => r.SourceName == "PHB" && r.DisplayName == "Player's Handbook"),
             Arg.Any<CancellationToken>());
         foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
             File.Delete(f);
@@ -100,7 +98,6 @@ public sealed class BooksAdminEndpointsTests
         content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("5e"), "version");
         content.Add(new StringContent("PHB"), "displayName");
-        content.Add(new StringContent("3"), "tocPage");
 
         var response = await client.PostAsync("/admin/books/register", content);
 
@@ -117,24 +114,6 @@ public sealed class BooksAdminEndpointsTests
         content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("invalid_version"), "version");
         content.Add(new StringContent("PHB"), "displayName");
-        content.Add(new StringContent("3"), "tocPage");
-
-        var response = await client.PostAsync("/admin/books/register", content);
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task RegisterBook_MissingTocPage_Returns400()
-    {
-        var (client, _, _, _, _, _) = await BuildClientAsync();
-
-        using var content = new MultipartFormDataContent();
-        content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
-        content.Add(new StringContent("PHB"), "sourceName");
-        content.Add(new StringContent("Edition2014"), "version");
-        content.Add(new StringContent("Player's Handbook"), "displayName");
-        // tocPage intentionally omitted
 
         var response = await client.PostAsync("/admin/books/register", content);
 

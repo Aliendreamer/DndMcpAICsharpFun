@@ -19,6 +19,8 @@ services:
         condition: service_healthy
       ollama:
         condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
     networks:
       - dnd_net
     restart: unless-stopped
@@ -35,7 +37,11 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333 && echo > /dev/tcp/localhost/6334' 2>/dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "bash -c 'echo > /dev/tcp/localhost/6333 && echo > /dev/tcp/localhost/6334' 2>/dev/null || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,7 +66,11 @@ services:
               count: all
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/11434' 2>/dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "bash -c 'echo > /dev/tcp/localhost/11434' 2>/dev/null || exit 1",
+        ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -73,9 +83,14 @@ services:
     image: ollama/ollama:latest
     volumes:
       - ollama_data:/root/.ollama
-    entrypoint: ["/bin/sh", "-c", "ollama pull mxbai-embed-large && ollama pull llama3.2"]
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        "ollama pull mxbai-embed-large && ollama pull qwen2.5:7b",
+      ]
     environment:
-      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_HOST=ollama:11434
     depends_on:
       ollama:
         condition: service_healthy
@@ -105,14 +120,15 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true   # dev only — remove before any non-local deployment
+      - GF_AUTH_ANONYMOUS_ENABLED=true # dev only — remove before any non-local deployment
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin # dev only
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      test:
+        ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3

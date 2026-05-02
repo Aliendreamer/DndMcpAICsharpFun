@@ -80,11 +80,11 @@ public sealed class PdfPigBookmarkReaderTests
     }
 
     [Fact]
-    public void ReadBookmarks_NestedBookmarks_ReturnsTwoLevelsOnly()
+    public void ReadBookmarks_NestedBookmarks_RecursesAllLevels()
     {
         // Part 1 (page 1)
         //   Chapter 1 (page 2)
-        //     Section 1.1 (page 3)  ← should be excluded
+        //     Section 1.1 (page 3)
         // Part 2 (page 4)
         //   Chapter 2 (page 5)
         var section = new DocumentBookmarkNode("Section 1.1", 2, FitPage(3), []);
@@ -99,12 +99,12 @@ public sealed class PdfPigBookmarkReaderTests
         {
             var result = Sut.ReadBookmarks(path);
 
-            Assert.Equal(4, result.Count);
+            Assert.Equal(5, result.Count);
             Assert.Contains(result, b => b.Title == "Part 1" && b.PageNumber == 1);
             Assert.Contains(result, b => b.Title == "Chapter 1" && b.PageNumber == 2);
+            Assert.Contains(result, b => b.Title == "Section 1.1" && b.PageNumber == 3);
             Assert.Contains(result, b => b.Title == "Part 2" && b.PageNumber == 4);
             Assert.Contains(result, b => b.Title == "Chapter 2" && b.PageNumber == 5);
-            Assert.DoesNotContain(result, b => b.Title == "Section 1.1");
         }
         finally
         {
