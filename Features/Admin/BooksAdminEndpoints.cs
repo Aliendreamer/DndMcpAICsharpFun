@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
+using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
@@ -22,6 +23,7 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/{id:int}/ingest-json", IngestJson).DisableAntiforgery();
         group.MapDelete("/books/{id:int}", DeleteBook);
         group.MapPost("/books/{id:int}/cancel-extract", CancelExtract).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/extract-page/{pageNumber:int}", ExtractPage).DisableAntiforgery();
         return group;
     }
 
@@ -182,6 +184,33 @@ public static partial class BooksAdminEndpoints
     {
         var cancelled = cancellationRegistry.Cancel(id);
         return cancelled ? Results.Ok() : Results.NotFound();
+    }
+
+    private static async Task<IResult> ExtractPage(
+        int id,
+        int pageNumber,
+        [FromQuery] bool save,
+        IIngestionOrchestrator orchestrator,
+        IPdfStructuredExtractor extractor,
+        IIngestionTracker tracker,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        using var document = UglyToad.PdfPig.PdfDocument.Open(record.FilePath);
+        var totalPages = document.NumberOfPages;
+        if (pageNumber < 1 || pageNumber > totalPages)
+            return Results.Problem(
+                $"Page {pageNumber} is out of range. Book has {totalPages} pages.",
+                statusCode: 400);
+
+        var pageData = await orchestrator.ExtractSinglePageAsync(id, pageNumber, save, ct);
+        if (pageData is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        return Results.Ok(pageData);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Registered book {DisplayName} (id={Id}, file={File})")]

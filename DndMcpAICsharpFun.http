@@ -108,3 +108,13 @@ X-Admin-Api-Key: {{adminKey}}
 
 ### Metrics — Prometheus scraping endpoint
 GET {{baseUrl}}/metrics
+
+# ── Single-page extraction ────────────────────────────────────────────────────
+
+### Extract single page (inspect result, no save)
+POST {{baseUrl}}/admin/books/1/extract-page/51
+X-Admin-Api-Key: {{adminKey}}
+
+### Extract single page and persist to disk
+POST {{baseUrl}}/admin/books/1/extract-page/51?save=true
+X-Admin-Api-Key: {{adminKey}}
