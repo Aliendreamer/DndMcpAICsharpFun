@@ -1,3 +1,4 @@
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
@@ -25,10 +26,19 @@ public class OllamaLlmEntityExtractorTests
             NullLogger<OllamaLlmEntityExtractor>.Instance);
     }
 
+    private static Task<IReadOnlyList<ExtractedEntity>> Extract(
+        OllamaLlmEntityExtractor sut,
+        string pageText = "page text",
+        string entityType = "Spell",
+        int pageNumber = 1,
+        string entityName = "Spells",
+        int startPage = 200,
+        int endPage = 250) =>
+        sut.ExtractAsync(pageText, entityType, pageNumber, "PHB", "5e", entityName, startPage, endPage);
+
     [Fact]
     public async Task ExtractAsync_ValidJsonFirstAttempt_ReturnsEntityWithoutRetry()
     {
-        // Arrange
         var json = """[{"name":"Fireball","partial":false,"data":{"description":"test"}}]""";
         var ollama = Substitute.For<IOllamaApiClient>();
         ollama.ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>())
@@ -36,10 +46,8 @@ public class OllamaLlmEntityExtractorTests
 
         var sut = BuildSut(ollama, llmExtractionRetries: 1);
 
-        // Act
-        var results = await sut.ExtractAsync("page text", "Spell", 1, "PHB", "5e");
+        var results = await Extract(sut, entityName: "Spells", startPage: 200, endPage: 250);
 
-        // Assert
         Assert.Single(results);
         Assert.Equal("Fireball", results[0].Name);
         ollama.Received(1).ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>());
@@ -48,20 +56,15 @@ public class OllamaLlmEntityExtractorTests
     [Fact]
     public async Task ExtractAsync_InvalidThenValid_RetrySucceeds()
     {
-        // Arrange
         var validJson = """[{"name":"Fireball","partial":false,"data":{"description":"test"}}]""";
         var ollama = Substitute.For<IOllamaApiClient>();
         ollama.ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>())
-            .Returns(
-                StreamResponse("not valid json"),
-                StreamResponse(validJson));
+            .Returns(StreamResponse("not valid json"), StreamResponse(validJson));
 
         var sut = BuildSut(ollama, llmExtractionRetries: 1);
 
-        // Act
-        var results = await sut.ExtractAsync("page text", "Spell", 2, "PHB", "5e");
+        var results = await Extract(sut, pageNumber: 2);
 
-        // Assert
         Assert.Single(results);
         Assert.Equal("Fireball", results[0].Name);
         ollama.Received(2).ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>());
@@ -70,36 +73,29 @@ public class OllamaLlmEntityExtractorTests
     [Fact]
     public async Task ExtractAsync_AllAttemptsInvalid_ReturnsEmpty()
     {
-        // Arrange
         var ollama = Substitute.For<IOllamaApiClient>();
         ollama.ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>())
             .Returns(StreamResponse("not valid json"));
 
         var sut = BuildSut(ollama, llmExtractionRetries: 1);
 
-        // Act
-        var results = await sut.ExtractAsync("page text", "Spell", 3, "PHB", "5e");
+        var results = await Extract(sut, pageNumber: 3);
 
-        // Assert
         Assert.Empty(results);
-        Assert.DoesNotContain(results, e => e.Name.StartsWith("page_") && e.Name.EndsWith("_raw"));
         ollama.Received(2).ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ExtractAsync_ZeroRetries_SingleAttemptOnly()
     {
-        // Arrange
         var ollama = Substitute.For<IOllamaApiClient>();
         ollama.ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>())
             .Returns(StreamResponse("not valid json"));
 
         var sut = BuildSut(ollama, llmExtractionRetries: 0);
 
-        // Act
-        var results = await sut.ExtractAsync("page text", "Spell", 4, "PHB", "5e");
+        var results = await Extract(sut, pageNumber: 4);
 
-        // Assert
         Assert.Empty(results);
         ollama.Received(1).ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>());
     }
@@ -107,7 +103,6 @@ public class OllamaLlmEntityExtractorTests
     [Fact]
     public async Task ExtractAsync_WrappedJsonObject_UnwrapsAndParsesSuccessfully()
     {
-        // Arrange — model returns {"entities":[...]} instead of bare array
         var json = """{"entities":[{"name":"Fireball","partial":false,"data":{"description":"test"}}]}""";
         var ollama = Substitute.For<IOllamaApiClient>();
         ollama.ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>())
@@ -115,13 +110,31 @@ public class OllamaLlmEntityExtractorTests
 
         var sut = BuildSut(ollama, llmExtractionRetries: 1);
 
-        // Act
-        var results = await sut.ExtractAsync("page text", "Spell", 1, "PHB", "5e");
+        var results = await Extract(sut);
 
-        // Assert — should parse without retrying
         Assert.Single(results);
         Assert.Equal("Fireball", results[0].Name);
         ollama.Received(1).ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ExtractAsync_ContextHint_AppearsInSystemPrompt()
+    {
+        var capturedRequest = (ChatRequest?)null;
+        var json = """[{"name":"Warlock","partial":false,"data":{"description":"test"}}]""";
+        var ollama = Substitute.For<IOllamaApiClient>();
+        ollama.ChatAsync(Arg.Do<ChatRequest>(r => capturedRequest = r), Arg.Any<CancellationToken>())
+            .Returns(StreamResponse(json));
+
+        var sut = BuildSut(ollama, llmExtractionRetries: 0);
+
+        await sut.ExtractAsync("page text", "Class", 106, "PHB", "5e", "Warlock", 105, 112);
+
+        Assert.NotNull(capturedRequest);
+        var systemMsg = capturedRequest!.Messages!.First(m => m.Role == ChatRole.System).Content;
+        Assert.Contains("Warlock", systemMsg);
+        Assert.Contains("105", systemMsg);
+        Assert.Contains("112", systemMsg);
     }
 
     private static IAsyncEnumerable<ChatResponseStream?> StreamResponse(string content)

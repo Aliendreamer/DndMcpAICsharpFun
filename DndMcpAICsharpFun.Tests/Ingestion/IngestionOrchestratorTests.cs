@@ -15,10 +15,10 @@ public sealed class IngestionOrchestratorTests : IDisposable
     private readonly IIngestionTracker _tracker = Substitute.For<IIngestionTracker>();
     private readonly IPdfStructuredExtractor _extractor = Substitute.For<IPdfStructuredExtractor>();
     private readonly IVectorStoreService _vectorStore = Substitute.For<IVectorStoreService>();
-    private readonly ILlmClassifier _classifier = Substitute.For<ILlmClassifier>();
     private readonly ILlmEntityExtractor _entityExtractor = Substitute.For<ILlmEntityExtractor>();
     private readonly IEntityJsonStore _jsonStore = Substitute.For<IEntityJsonStore>();
     private readonly IJsonIngestionPipeline _jsonPipeline = Substitute.For<IJsonIngestionPipeline>();
+    private readonly ITocMapExtractor _tocMapExtractor = Substitute.For<ITocMapExtractor>();
     private readonly string _tempFile;
 
     public IngestionOrchestratorTests()
@@ -37,7 +37,8 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var opts = Options.Create(new IngestionOptions { MaxChunkTokens = 512, OverlapTokens = 64 });
         return new IngestionOrchestrator(
             _tracker, _extractor, _vectorStore,
-            _classifier, _entityExtractor, _jsonStore, _jsonPipeline, opts,
+            _entityExtractor, _jsonStore, _jsonPipeline, opts,
+            _tocMapExtractor,
             NullLogger<IngestionOrchestrator>.Instance);
     }
 
@@ -47,6 +48,24 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var hash = await SHA256.HashDataAsync(stream, CancellationToken.None);
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
+
+    private IngestionRecord MakeRecord(
+        int id = 1,
+        IngestionStatus status = IngestionStatus.Pending,
+        int? tocPage = 3) => new()
+    {
+        Id = id,
+        FilePath = _tempFile,
+        FileName = "test.pdf",
+        FileHash = string.Empty,
+        SourceName = "PHB",
+        Version = "Edition2014",
+        DisplayName = "PHB",
+        Status = status,
+        TocPage = tocPage,
+    };
+
+    // ── Delete ──────────────────────────────────────────────────────────────
 
     [Fact]
     public async Task DeleteBookAsync_RecordNotFound_ReturnsNotFound()
@@ -63,13 +82,8 @@ public sealed class IngestionOrchestratorTests : IDisposable
     [Fact]
     public async Task DeleteBookAsync_RecordProcessing_ReturnsConflict()
     {
-        var record = new IngestionRecord
-        {
-            Id = 1, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "abc", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Processing
-        };
-        _tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(record);
+        _tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
+            .Returns(MakeRecord(1, IngestionStatus.Processing));
         var sut = BuildSut();
 
         var result = await sut.DeleteBookAsync(1);
@@ -81,12 +95,9 @@ public sealed class IngestionOrchestratorTests : IDisposable
     [Fact]
     public async Task DeleteBookAsync_JsonIngestedRecord_DeletesVectorsFileSqlite()
     {
-        var record = new IngestionRecord
-        {
-            Id = 2, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "abc123", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.JsonIngested, ChunkCount = 10
-        };
+        var record = MakeRecord(2, IngestionStatus.JsonIngested);
+        record.FileHash = "abc123";
+        record.ChunkCount = 10;
         _tracker.GetByIdAsync(2, Arg.Any<CancellationToken>()).Returns(record);
         _tracker.DeleteAsync(2, Arg.Any<CancellationToken>()).Returns(true);
         var sut = BuildSut();
@@ -97,19 +108,14 @@ public sealed class IngestionOrchestratorTests : IDisposable
         await _vectorStore.Received(1).DeleteByHashAsync("abc123", 10, Arg.Any<CancellationToken>());
         _jsonStore.Received(1).DeleteAllPages(2);
         await _tracker.Received(1).DeleteAsync(2, Arg.Any<CancellationToken>());
-        Assert.False(File.Exists(_tempFile), "Physical file should have been deleted");
+        Assert.False(File.Exists(_tempFile));
     }
 
     [Fact]
     public async Task DeleteBookAsync_PendingRecord_SkipsVectorsDeletesSqlite()
     {
-        var record = new IngestionRecord
-        {
-            Id = 5, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
-        _tracker.GetByIdAsync(5, Arg.Any<CancellationToken>()).Returns(record);
+        _tracker.GetByIdAsync(5, Arg.Any<CancellationToken>())
+            .Returns(MakeRecord(5, IngestionStatus.Pending));
         _tracker.DeleteAsync(5, Arg.Any<CancellationToken>()).Returns(true);
         var sut = BuildSut();
 
@@ -120,25 +126,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         await _tracker.Received(1).DeleteAsync(5, Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public async Task ExtractBookAsync_NoHash_ComputesAndSetsHash()
-    {
-        var record = new IngestionRecord
-        {
-            Id = 22, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Failed
-        };
-        _tracker.GetByIdAsync(22, Arg.Any<CancellationToken>()).Returns(record);
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-        var expectedHash = await HashFileAsync(_tempFile);
-        var sut = BuildSut();
-
-        await sut.ExtractBookAsync(22);
-
-        await _tracker.Received(1).MarkHashAsync(22, expectedHash, Arg.Any<CancellationToken>());
-        await _tracker.Received(1).MarkExtractedAsync(22, Arg.Any<CancellationToken>());
-    }
+    // ── Extract ──────────────────────────────────────────────────────────────
 
     [Fact]
     public async Task ExtractBookAsync_RecordNotFound_Returns()
@@ -150,66 +138,145 @@ public sealed class IngestionOrchestratorTests : IDisposable
 
         await _tracker.Received(1).GetByIdAsync(999, Arg.Any<CancellationToken>());
         _extractor.DidNotReceive().ExtractPages(Arg.Any<string>());
-        await _classifier.DidNotReceive().ClassifyPageAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ExtractBookAsync_PagesBelowThreshold_SkipsClassification()
+    public async Task ExtractBookAsync_TocPageNull_MarksFailedWithoutExtraction()
     {
-        var record = new IngestionRecord
-        {
-            Id = 20, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "hash20", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
+        _tracker.GetByIdAsync(10, Arg.Any<CancellationToken>())
+            .Returns(MakeRecord(10, tocPage: null));
+        var sut = BuildSut();
+
+        await sut.ExtractBookAsync(10);
+
+        _extractor.DidNotReceive().ExtractPages(Arg.Any<string>());
+        await _tracker.Received(1).MarkFailedAsync(10, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ExtractBookAsync_NoHash_ComputesAndSetsHash()
+    {
+        var record = MakeRecord(22, tocPage: 1);
+        _tracker.GetByIdAsync(22, Arg.Any<CancellationToken>()).Returns(record);
+
+        var tocPage = new StructuredPage(1, "Table of Contents", [new PageBlock(1, "body", "TOC text")]);
+        _extractor.ExtractSinglePage(_tempFile, 1).Returns(tocPage);
+        _extractor.ExtractPages(_tempFile).Returns([
+            new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])
+        ]);
+        _tocMapExtractor.ExtractMapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<TocSectionEntry>>([]));
+
+        var expectedHash = await HashFileAsync(_tempFile);
+        var sut = BuildSut();
+
+        await sut.ExtractBookAsync(22);
+
+        await _tracker.Received(1).MarkHashAsync(22, expectedHash, Arg.Any<CancellationToken>());
+        await _tracker.Received(1).MarkExtractedAsync(22, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ExtractBookAsync_PagesBelowThreshold_SkipsExtraction()
+    {
+        var record = MakeRecord(20, tocPage: 1);
         _tracker.GetByIdAsync(20, Arg.Any<CancellationToken>()).Returns(record);
-        // Page text is fewer than 100 characters — below the skip threshold
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
+
+        var tocStructuredPage = new StructuredPage(1, "TOC text", [new PageBlock(1, "body", "TOC")]);
+        _extractor.ExtractSinglePage(_tempFile, 1).Returns(tocStructuredPage);
+        _extractor.ExtractPages(_tempFile).Returns([
+            new StructuredPage(2, "short", [new PageBlock(1, "body", "short")])
+        ]);
+        _tocMapExtractor.ExtractMapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<TocSectionEntry>>([
+                new TocSectionEntry("Spells", ContentCategory.Spell, 1, 50)
+            ]));
+
         var sut = BuildSut();
 
         await sut.ExtractBookAsync(20);
 
-        await _classifier.DidNotReceive().ClassifyPageAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _entityExtractor.DidNotReceive().ExtractAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(),
+            Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<CancellationToken>());
         await _tracker.Received(1).MarkExtractedAsync(20, Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ExtractBookAsync_ValidPage_ClassifiesAndExtracts()
+    public async Task ExtractBookAsync_TocGuidedPage_CallsExtractorWithSectionContext()
     {
-        var record = new IngestionRecord
-        {
-            Id = 21, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "hash21", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
+        var record = MakeRecord(21, tocPage: 1);
         _tracker.GetByIdAsync(21, Arg.Any<CancellationToken>()).Returns(record);
 
-        var pageText = new string('x', 200); // well above 100-char threshold
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
+        var tocStructuredPage = new StructuredPage(1, "TOC", [new PageBlock(1, "body", "TOC")]);
+        _extractor.ExtractSinglePage(_tempFile, 1).Returns(tocStructuredPage);
 
-        _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<string>>(["Spell"]));
+        var pageText = new string('x', 200);
+        _extractor.ExtractPages(_tempFile).Returns([
+            new StructuredPage(45, pageText, [new PageBlock(1, "h2", "Wizard")])
+        ]);
+
+        _tocMapExtractor.ExtractMapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<TocSectionEntry>>([
+                new TocSectionEntry("Wizard", ContentCategory.Class, 45, 80)
+            ]));
 
         var entity = new ExtractedEntity(
-            Page: 5,
-            SourceBook: "PHB",
-            Version: "Edition2014",
-            Partial: false,
-            Type: "Spell",
-            Name: "Fireball",
+            Page: 45, SourceBook: "PHB", Version: "Edition2014",
+            Partial: false, Type: "Class", Name: "Wizard",
             Data: new JsonObject { ["description"] = "test" });
 
-        _entityExtractor.ExtractAsync(pageText, "Spell", 5, "PHB", "Edition2014", Arg.Any<CancellationToken>())
+        _entityExtractor.ExtractAsync(
+            Arg.Any<string>(), "Class", 45, "PHB", "Edition2014",
+            "Wizard", 45, 80, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<ExtractedEntity>>([entity]));
 
         var sut = BuildSut();
 
         await sut.ExtractBookAsync(21);
 
-        await _classifier.Received(1).ClassifyPageAsync(pageText, Arg.Any<CancellationToken>());
-        await _jsonStore.Received(1).SavePageAsync(21, Arg.Any<StructuredPage>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
+        await _entityExtractor.Received(1).ExtractAsync(
+            Arg.Any<string>(), "Class", 45, "PHB", "Edition2014",
+            "Wizard", 45, 80, Arg.Any<CancellationToken>());
+        await _jsonStore.Received(1).SavePageAsync(
+            21, Arg.Any<StructuredPage>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(),
+            Arg.Any<CancellationToken>());
         await _tracker.Received(1).MarkExtractedAsync(21, Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task ExtractBookAsync_PageOutsideTocMap_SkipsExtraction()
+    {
+        var record = MakeRecord(25, tocPage: 1);
+        _tracker.GetByIdAsync(25, Arg.Any<CancellationToken>()).Returns(record);
+
+        var tocStructuredPage = new StructuredPage(1, "TOC", [new PageBlock(1, "body", "TOC")]);
+        _extractor.ExtractSinglePage(_tempFile, 1).Returns(tocStructuredPage);
+
+        var pageText = new string('x', 200);
+        _extractor.ExtractPages(_tempFile).Returns([
+            new StructuredPage(999, pageText, [new PageBlock(1, "body", pageText)])
+        ]);
+
+        _tocMapExtractor.ExtractMapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<TocSectionEntry>>([
+                new TocSectionEntry("Spells", ContentCategory.Spell, 45, 80)
+            ]));
+
+        var sut = BuildSut();
+
+        await sut.ExtractBookAsync(25);
+
+        await _entityExtractor.DidNotReceive().ExtractAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(),
+            Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── IngestJson ───────────────────────────────────────────────────────────
 
     [Fact]
     public async Task IngestJsonAsync_RecordNotFound_Returns()
@@ -219,232 +286,22 @@ public sealed class IngestionOrchestratorTests : IDisposable
 
         await sut.IngestJsonAsync(998);
 
-        await _tracker.Received(1).GetByIdAsync(998, Arg.Any<CancellationToken>());
         await _jsonPipeline.DidNotReceive().IngestAsync(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task IngestJsonAsync_ValidRecord_RunsPipelineAndMarksIngested()
     {
-        var record = new IngestionRecord
-        {
-            Id = 30, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "hash30", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Extracted
-        };
+        var record = MakeRecord(30, IngestionStatus.Extracted);
+        record.FileHash = "hash30";
         _tracker.GetByIdAsync(30, Arg.Any<CancellationToken>()).Returns(record);
         _jsonStore.LoadAllPagesAsync(30, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<PageData>>(new List<PageData>()));
+            .Returns(Task.FromResult<IReadOnlyList<PageData>>([]));
         var sut = BuildSut();
 
         await sut.IngestJsonAsync(30);
 
         await _jsonPipeline.Received(1).IngestAsync(30, "hash30", Arg.Any<CancellationToken>());
         await _tracker.Received(1).MarkJsonIngestedAsync(30, 0, Arg.Any<CancellationToken>());
-    }
-
-    // --- Classifier fallback tests (TOC-guided dispatch wired in Task 4) ---
-
-    [Fact]
-    public async Task ExtractBookAsync_TocMapEmpty_FallsBackToClassifierForAllPages()
-    {
-        var record = new IngestionRecord
-        {
-            Id = 40, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "hash40", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
-        _tracker.GetByIdAsync(40, Arg.Any<CancellationToken>()).Returns(record);
-
-        var pageText = new string('x', 200);
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
-
-        _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<string>>(["Spell"]));
-
-        _entityExtractor.ExtractAsync(pageText, "Spell", 5, "PHB", "Edition2014", Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<ExtractedEntity>>([]));
-
-        var sut = BuildSut();
-        await sut.ExtractBookAsync(40);
-
-        // The classifier path should always be used (tocMap is always empty for now)
-        await _classifier.Received(1).ClassifyPageAsync(pageText, Arg.Any<CancellationToken>());
-        await _tracker.Received(1).MarkExtractedAsync(40, Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task ExtractBookAsync_ValidPage_ClassifiesWithSpellType_RunsExtractor()
-    {
-        // Note: TOC-guided dispatch is wired in Task 4; for now orchestrator always uses classifier fallback.
-        var record = new IngestionRecord
-        {
-            Id = 41, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "hash41", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
-        _tracker.GetByIdAsync(41, Arg.Any<CancellationToken>()).Returns(record);
-
-        var pageText = new string('x', 200);
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
-
-        _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<string>>(["Spell"]));
-
-        var entity = new ExtractedEntity(
-            Page: 5, SourceBook: "PHB", Version: "Edition2014",
-            Partial: false, Type: "Spell", Name: "Fireball",
-            Data: new JsonObject { ["description"] = "test" });
-
-        _entityExtractor.ExtractAsync(pageText, "Spell", 5, "PHB", "Edition2014", Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<ExtractedEntity>>([entity]));
-
-        var sut = BuildSut();
-        await sut.ExtractBookAsync(41);
-
-        await _classifier.Received(1).ClassifyPageAsync(pageText, Arg.Any<CancellationToken>());
-        await _entityExtractor.Received(1).ExtractAsync(pageText, "Spell", 5, "PHB", "Edition2014", Arg.Any<CancellationToken>());
-        await _jsonStore.Received(1).SavePageAsync(41, Arg.Any<StructuredPage>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
-        await _tracker.Received(1).MarkExtractedAsync(41, Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task ExtractBookAsync_ValidPage_NoTypesFromClassifier_StillSavesEmptyEntities()
-    {
-        // Note: TOC-guided dispatch is wired in Task 4; for now orchestrator always uses classifier fallback.
-        var record = new IngestionRecord
-        {
-            Id = 42, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "hash42", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
-        _tracker.GetByIdAsync(42, Arg.Any<CancellationToken>()).Returns(record);
-
-        var pageText = new string('x', 200);
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
-
-        // Classifier returns empty list -> no entity extractor calls
-        _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<string>>([]));
-
-        var sut = BuildSut();
-        await sut.ExtractBookAsync(42);
-
-        await _classifier.Received(1).ClassifyPageAsync(pageText, Arg.Any<CancellationToken>());
-        await _entityExtractor.DidNotReceive().ExtractAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await _jsonStore.Received(1).SavePageAsync(42, Arg.Any<StructuredPage>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
-        await _tracker.Received(1).MarkExtractedAsync(42, Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task ExtractBookAsync_Cancelled_CleansUpAndRethrows()
-    {
-        var record = new IngestionRecord
-        {
-            Id = 43, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "hash43", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
-        _tracker.GetByIdAsync(43, Arg.Any<CancellationToken>()).Returns(record);
-
-        var pageText = new string('x', 200);
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
-
-        // Classifier throws OperationCanceledException to simulate cancellation
-        _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
-            .Returns<Task<IReadOnlyList<string>>>(_ => throw new OperationCanceledException());
-
-        var sut = BuildSut();
-
-        await Assert.ThrowsAsync<OperationCanceledException>(() => sut.ExtractBookAsync(43));
-
-        _jsonStore.Received(1).DeleteAllPages(43);
-        await _tracker.Received(1).ResetForReingestionAsync(43, CancellationToken.None);
-    }
-
-    // --- Idempotency tests ---
-
-    [Fact]
-    public async Task ExtractBookAsync_WhenJsonIngested_DeletesVectorsAndJsonThenResets()
-    {
-        const int recordId = 50;
-        var record = new IngestionRecord
-        {
-            Id = recordId, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "abc123", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.JsonIngested, ChunkCount = 5
-        };
-        _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-
-        var sut = BuildSut();
-        await sut.ExtractBookAsync(recordId);
-
-        await _vectorStore.Received(1).DeleteByHashAsync("abc123", 5, CancellationToken.None);
-        _jsonStore.Received(1).DeleteAllPages(recordId);
-        await _tracker.Received(1).ResetForReingestionAsync(recordId, CancellationToken.None);
-    }
-
-    [Fact]
-    public async Task ExtractBookAsync_WhenExtracted_DeletesJsonAndResets()
-    {
-        const int recordId = 51;
-        var record = new IngestionRecord
-        {
-            Id = recordId, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = "def456", SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Extracted
-        };
-        _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-
-        var sut = BuildSut();
-        await sut.ExtractBookAsync(recordId);
-
-        _jsonStore.Received(1).DeleteAllPages(recordId);
-        await _tracker.Received(1).ResetForReingestionAsync(recordId, CancellationToken.None);
-        await _vectorStore.DidNotReceive().DeleteByHashAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task ExtractBookAsync_WhenPending_NoCleanup()
-    {
-        const int recordId = 52;
-        var record = new IngestionRecord
-        {
-            Id = recordId, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Pending
-        };
-        _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-
-        var sut = BuildSut();
-        await sut.ExtractBookAsync(recordId);
-
-        await _vectorStore.DidNotReceive().DeleteByHashAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
-        await _tracker.DidNotReceive().ResetForReingestionAsync(recordId, CancellationToken.None);
-        _jsonStore.DidNotReceive().DeleteAllPages(Arg.Any<int>());
-    }
-
-    [Fact]
-    public async Task ExtractBookAsync_WhenFailed_NoCleanup()
-    {
-        const int recordId = 52;
-        var record = new IngestionRecord
-        {
-            Id = recordId, FilePath = _tempFile, FileName = "test.pdf",
-            FileHash = string.Empty, SourceName = "PHB", Version = "Edition2014",
-            DisplayName = "PHB", Status = IngestionStatus.Failed
-        };
-        _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
-        _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-
-        var sut = BuildSut();
-        await sut.ExtractBookAsync(recordId);
-
-        await _vectorStore.DidNotReceive().DeleteByHashAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
-        await _tracker.DidNotReceive().ResetForReingestionAsync(recordId, CancellationToken.None);
-        _jsonStore.DidNotReceive().DeleteAllPages(Arg.Any<int>());
     }
 }

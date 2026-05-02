@@ -71,7 +71,6 @@ internal static class ServiceCollectionExtensions
 
         services.AddScoped<IIngestionOrchestrator, IngestionOrchestrator>();
 
-        services.AddScoped<ILlmClassifier, OllamaLlmClassifier>();
         services.AddScoped<ILlmEntityExtractor, OllamaLlmEntityExtractor>();
         services.AddSingleton<IEntityJsonStore, EntityJsonStore>();
         services.AddScoped<IJsonIngestionPipeline, JsonIngestionPipeline>();

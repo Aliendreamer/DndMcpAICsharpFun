@@ -10,5 +10,8 @@ public interface ILlmEntityExtractor
         int pageNumber,
         string sourceBook,
         string version,
+        string entityName,
+        int sectionStartPage,
+        int sectionEndPage,
         CancellationToken ct = default);
 }

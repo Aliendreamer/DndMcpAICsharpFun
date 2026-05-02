@@ -13,11 +13,11 @@ public sealed partial class IngestionOrchestrator(
     IIngestionTracker tracker,
     IPdfStructuredExtractor extractor,
     IVectorStoreService vectorStore,
-    ILlmClassifier classifier,
     ILlmEntityExtractor entityExtractor,
     IEntityJsonStore jsonStore,
     IJsonIngestionPipeline jsonPipeline,
     IOptions<IngestionOptions> ingestionOptions,
+    ITocMapExtractor tocMapExtractor,
     ILogger<IngestionOrchestrator> logger) : IIngestionOrchestrator
 {
     public async Task ExtractBookAsync(int recordId, CancellationToken cancellationToken = default)
@@ -26,6 +26,13 @@ public sealed partial class IngestionOrchestrator(
         if (record is null)
         {
             LogRecordNotFound(logger, recordId);
+            return;
+        }
+
+        if (record.TocPage is null)
+        {
+            LogTocPageMissing(logger, record.DisplayName, recordId);
+            await tracker.MarkFailedAsync(recordId, "TocPage is required for extraction.", CancellationToken.None);
             return;
         }
 
@@ -38,7 +45,6 @@ public sealed partial class IngestionOrchestrator(
                 : record.FileHash;
             await tracker.MarkHashAsync(recordId, currentHash, cancellationToken);
 
-            // Clean up any previous extraction before starting fresh
             if (record.Status == IngestionStatus.JsonIngested)
             {
                 await vectorStore.DeleteByHashAsync(record.FileHash, record.ChunkCount!.Value, CancellationToken.None);
@@ -51,8 +57,16 @@ public sealed partial class IngestionOrchestrator(
                 await tracker.ResetForReingestionAsync(recordId, CancellationToken.None);
             }
 
-            // TOC-guided classification: placeholder until Task 4 rewires with ITocMapExtractor
-            var tocMap = new TocCategoryMap([]);
+            var tocPage = extractor.ExtractSinglePage(record.FilePath, record.TocPage.Value);
+            if (tocPage is null)
+            {
+                LogTocPageNotFound(logger, record.TocPage.Value, record.DisplayName, recordId);
+                await tracker.MarkFailedAsync(recordId, $"TOC page {record.TocPage.Value} could not be extracted.", CancellationToken.None);
+                return;
+            }
+
+            var tocEntries = await tocMapExtractor.ExtractMapAsync(tocPage.RawText, cancellationToken);
+            var tocMap = new TocCategoryMap(tocEntries);
 
             if (tocMap.IsEmpty)
                 LogTocFallback(logger, record.DisplayName, recordId);
@@ -66,43 +80,26 @@ public sealed partial class IngestionOrchestrator(
                 if (structuredPage.RawText.Length < ingestionOptions.Value.MinPageCharacters)
                     continue;
 
-                var promptText = BuildPromptText(structuredPage.Blocks);
+                var entry = tocMap.GetEntry(structuredPage.PageNumber);
+                if (entry is null)
+                    continue;
 
-                if (!tocMap.IsEmpty)
+                var groups = PageBlockGrouper.Group(structuredPage.Blocks);
+                var pageEntities = new List<ExtractedEntity>();
+
+                foreach (var group in groups)
                 {
-                    // TOC-guided: at most one LLM call per page
-                    var category = tocMap.GetCategory(structuredPage.PageNumber);
-                    if (category is null)
-                    {
-                        // This page doesn't belong to any recognized D&D content section — skip it
-                        continue;
-                    }
-
-                    LogClassifyingPage(logger, structuredPage.PageNumber, pages.Count, recordId);
+                    var promptText = BuildPromptText(group);
+                    var entityType = entry.Category?.ToString() ?? "Rule";
                     var extracted = await entityExtractor.ExtractAsync(
-                        promptText, category.Value.ToString(), structuredPage.PageNumber,
-                        record.DisplayName, record.Version, cancellationToken);
-
-                    await jsonStore.SavePageAsync(recordId, structuredPage, extracted, cancellationToken);
-                }
-                else
-                {
-                    // Fallback: run all category extractors (original behavior)
-                    LogClassifyingPage(logger, structuredPage.PageNumber, pages.Count, recordId);
-                    var types = await classifier.ClassifyPageAsync(structuredPage.RawText, cancellationToken);
-                    var pageEntities = new List<ExtractedEntity>();
-
-                    foreach (var type in types)
-                    {
-                        var extracted = await entityExtractor.ExtractAsync(
-                            promptText, type, structuredPage.PageNumber,
-                            record.DisplayName, record.Version, cancellationToken);
-                        pageEntities.AddRange(extracted);
-                    }
-
-                    await jsonStore.SavePageAsync(recordId, structuredPage, pageEntities, cancellationToken);
+                        promptText, entityType, structuredPage.PageNumber,
+                        record.DisplayName, record.Version,
+                        entry.Title, entry.StartPage, entry.EndPage!.Value,
+                        cancellationToken);
+                    pageEntities.AddRange(extracted);
                 }
 
+                await jsonStore.SavePageAsync(recordId, structuredPage, pageEntities, cancellationToken);
                 LogExtractedPage(logger, structuredPage.PageNumber, pages.Count, recordId);
             }
 
@@ -111,7 +108,6 @@ public sealed partial class IngestionOrchestrator(
         }
         catch (OperationCanceledException)
         {
-            // Clean up partial extraction data so re-ingestion starts fresh
             jsonStore.DeleteAllPages(recordId);
             await tracker.ResetForReingestionAsync(recordId, CancellationToken.None);
             throw;
@@ -188,28 +184,31 @@ public sealed partial class IngestionOrchestrator(
         var structuredPage = extractor.ExtractSinglePage(record.FilePath, pageNumber);
         if (structuredPage is null) return null;
 
-        var promptText = BuildPromptText(structuredPage.Blocks);
-        // TOC-guided classification: placeholder until Task 4 rewires with ITocMapExtractor
-        var tocMap = new TocCategoryMap([]);
+        List<ExtractedEntity> entities = [];
 
-        List<ExtractedEntity> entities;
-        var category = tocMap.IsEmpty ? null : tocMap.GetCategory(pageNumber);
-
-        if (category is not null)
+        if (record.TocPage.HasValue)
         {
-            entities = [.. await entityExtractor.ExtractAsync(
-                promptText, category.Value.ToString(), pageNumber,
-                record.DisplayName, record.Version, ct)];
-        }
-        else
-        {
-            var types = await classifier.ClassifyPageAsync(structuredPage.RawText, ct);
-            entities = [];
-            foreach (var type in types)
+            var tocPage = extractor.ExtractSinglePage(record.FilePath, record.TocPage.Value);
+            if (tocPage is not null)
             {
-                var extracted = await entityExtractor.ExtractAsync(
-                    promptText, type, pageNumber, record.DisplayName, record.Version, ct);
-                entities.AddRange(extracted);
+                var tocEntries = await tocMapExtractor.ExtractMapAsync(tocPage.RawText, ct);
+                var tocMap = new TocCategoryMap(tocEntries);
+                var entry = tocMap.GetEntry(pageNumber);
+
+                if (entry is not null)
+                {
+                    var groups = PageBlockGrouper.Group(structuredPage.Blocks);
+                    foreach (var group in groups)
+                    {
+                        var promptText = BuildPromptText(group);
+                        var entityType = entry.Category?.ToString() ?? "Rule";
+                        var extracted = await entityExtractor.ExtractAsync(
+                            promptText, entityType, pageNumber,
+                            record.DisplayName, record.Version,
+                            entry.Title, entry.StartPage, entry.EndPage!.Value, ct);
+                        entities.AddRange(extracted);
+                    }
+                }
             }
         }
 
@@ -248,6 +247,12 @@ public sealed partial class IngestionOrchestrator(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Ingestion record {Id} not found")]
     private static partial void LogRecordNotFound(ILogger logger, int id);
 
+    [LoggerMessage(Level = LogLevel.Warning, Message = "TocPage is not set for {DisplayName} (id={Id}) — extraction requires tocPage")]
+    private static partial void LogTocPageMissing(ILogger logger, string displayName, int id);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "TOC page {TocPage} not found in PDF for {DisplayName} (id={Id})")]
+    private static partial void LogTocPageNotFound(ILogger logger, int tocPage, string displayName, int id);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleted book {DisplayName} (id={Id})")]
     private static partial void LogBookDeleted(ILogger logger, string displayName, int id);
 
@@ -269,15 +274,12 @@ public sealed partial class IngestionOrchestrator(
     [LoggerMessage(Level = LogLevel.Error, Message = "JSON ingestion failed for {DisplayName} (id={Id})")]
     private static partial void LogJsonIngestionFailed(ILogger logger, Exception ex, string displayName, int id);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Classifying page {Page}/{Total} for book {BookId}")]
-    private static partial void LogClassifyingPage(ILogger logger, int page, int total, int bookId);
-
     [LoggerMessage(Level = LogLevel.Information, Message = "Extracted page {Page}/{Total} for book {BookId}")]
     private static partial void LogExtractedPage(ILogger logger, int page, int total, int bookId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "TOC classification succeeded for {DisplayName} (id={Id}) — using TOC-guided dispatch")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "TOC-guided extraction active for {DisplayName} (id={Id})")]
     private static partial void LogTocGuided(ILogger logger, string displayName, int id);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "TOC classification empty for {DisplayName} (id={Id}) — falling back to per-page classifier")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "TOC map empty for {DisplayName} (id={Id}) — all pages will be skipped")]
     private static partial void LogTocFallback(ILogger logger, string displayName, int id);
 }
