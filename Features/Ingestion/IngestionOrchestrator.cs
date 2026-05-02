@@ -94,7 +94,7 @@ public sealed partial class IngestionOrchestrator(
                     var extracted = await entityExtractor.ExtractAsync(
                         promptText, entityType, structuredPage.PageNumber,
                         record.DisplayName, record.Version,
-                        entry.Title, entry.StartPage, entry.EndPage!.Value,
+                        entry.Title, entry.StartPage, entry.EndPage ?? int.MaxValue,
                         cancellationToken);
                     pageEntities.AddRange(extracted);
                 }
@@ -189,7 +189,11 @@ public sealed partial class IngestionOrchestrator(
         if (record.TocPage.HasValue)
         {
             var tocPage = extractor.ExtractSinglePage(record.FilePath, record.TocPage.Value);
-            if (tocPage is not null)
+            if (tocPage is null)
+            {
+                LogTocPageNotFound(logger, record.TocPage.Value, record.DisplayName, bookId);
+            }
+            else
             {
                 var tocEntries = await tocMapExtractor.ExtractMapAsync(tocPage.RawText, ct);
                 var tocMap = new TocCategoryMap(tocEntries);
@@ -205,7 +209,7 @@ public sealed partial class IngestionOrchestrator(
                         var extracted = await entityExtractor.ExtractAsync(
                             promptText, entityType, pageNumber,
                             record.DisplayName, record.Version,
-                            entry.Title, entry.StartPage, entry.EndPage!.Value, ct);
+                            entry.Title, entry.StartPage, entry.EndPage ?? int.MaxValue, ct);
                         entities.AddRange(extracted);
                     }
                 }

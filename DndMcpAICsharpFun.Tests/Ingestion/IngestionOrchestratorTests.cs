@@ -344,6 +344,32 @@ public sealed class IngestionOrchestratorTests : IDisposable
             Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task ExtractSinglePageAsync_TocPageUnreadable_ReturnsEmptyEntities()
+    {
+        var record = MakeRecord(62, tocPage: 1);
+        _tracker.GetByIdAsync(62, Arg.Any<CancellationToken>()).Returns(record);
+
+        // TOC page 1 cannot be extracted (returns null)
+        _extractor.ExtractSinglePage(_tempFile, 1).Returns((StructuredPage?)null);
+
+        var pageText = new string('x', 200);
+        _extractor.ExtractSinglePage(_tempFile, 45).Returns(
+            new StructuredPage(45, pageText, [new PageBlock(1, "h2", "Warlock")]));
+
+        var sut = BuildSut();
+
+        var result = await sut.ExtractSinglePageAsync(62, 45, save: false);
+
+        Assert.NotNull(result);
+        Assert.Empty(result!.Entities);
+        await _entityExtractor.DidNotReceive().ExtractAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(),
+            Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<CancellationToken>());
+    }
+
     // ── IngestJson ───────────────────────────────────────────────────────────
 
     [Fact]
