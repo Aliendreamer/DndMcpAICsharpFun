@@ -19,15 +19,21 @@ public sealed partial class OllamaLlmEntityExtractor(
 {
     private static readonly Dictionary<string, string> TypeFields = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Spell"]      = "level (int), school (string), casting_time (string), range (string), components (string), duration (string), description (string)",
-        ["Monster"]    = "size (string), type (string), alignment (string), ac (int), hp (string), speed (string), abilities (object: str/dex/con/int/wis/cha), description (string)",
-        ["Class"]      = "hit_die (string), primary_ability (string), saving_throws (string[]), armor_proficiencies (string), weapon_proficiencies (string), features (array of {level, name, description})",
-        ["Background"] = "description (string)",
-        ["Item"]       = "description (string)",
-        ["Rule"]       = "description (string)",
-        ["Treasure"]   = "description (string)",
-        ["Encounter"]  = "description (string)",
-        ["Trap"]       = "description (string)",
+        ["Spell"]       = "level (int), school (string), casting_time (string), range (string), components (string), duration (string), description (string)",
+        ["Monster"]     = "size (string), type (string), alignment (string), ac (int), hp (string), speed (string), abilities (object: str/dex/con/int/wis/cha), description (string)",
+        ["Class"]       = "hit_die (string), primary_ability (string), saving_throws (string[]), armor_proficiencies (string), weapon_proficiencies (string), features (array of {level, name, description})",
+        ["Race"]        = "description (string)",
+        ["Background"]  = "description (string)",
+        ["Item"]        = "description (string)",
+        ["Rule"]        = "description (string)",
+        ["Combat"]      = "description (string)",
+        ["Adventuring"] = "description (string)",
+        ["Condition"]   = "description (string)",
+        ["God"]         = "description (string)",
+        ["Plane"]       = "description (string)",
+        ["Treasure"]    = "description (string)",
+        ["Encounter"]   = "description (string)",
+        ["Trap"]        = "description (string)",
     };
 
     private readonly string _model = options.Value.ExtractionModel;
@@ -47,12 +53,12 @@ public sealed partial class OllamaLlmEntityExtractor(
         var systemPrompt =
             $"""
             You are a D&D 5e content extractor. Extract all {entityType} entities from the page text
-            below. Return a JSON array of objects. Each object must have:
+            below. Return a bare JSON array of objects (no wrapper key). Each object must have:
             - name (string)
             - partial (bool — true if the entity appears cut off at the page boundary)
             - data (object with the fields listed below)
 
-            Use null for any missing fields. Reply with JSON only, no explanation.
+            Use null for any missing fields. Reply with a JSON array only, no explanation, no wrapper object.
 
             Fields for {entityType}: {fields}
             """;
@@ -138,8 +144,21 @@ public sealed partial class OllamaLlmEntityExtractor(
         {
             var start = s.IndexOf('\n') + 1;
             var end = s.LastIndexOf("```", StringComparison.Ordinal);
-            if (end > start) return s[start..end].Trim();
+            if (end > start) s = s[start..end].Trim();
         }
+
+        // Unwrap {"entities":[...]}, {"items":[...]}, etc. — model sometimes wraps the array
+        try
+        {
+            var node = JsonNode.Parse(s);
+            if (node is JsonObject obj && obj.Count == 1)
+            {
+                var inner = obj.First().Value;
+                if (inner is JsonArray) return inner.ToJsonString();
+            }
+        }
+        catch { /* not valid JSON yet — return as-is and let the caller handle it */ }
+
         return s;
     }
 

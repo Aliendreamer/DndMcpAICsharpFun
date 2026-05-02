@@ -55,6 +55,7 @@ public sealed partial class IngestionOrchestrator(
 
             // TOC-guided classification: read bookmarks and classify into a category map
             var bookmarks = bookmarkReader.ReadBookmarks(record.FilePath);
+            LogClassifyingToc(logger, bookmarks.Count, recordId);
             var tocMap = await tocClassifier.ClassifyAsync(bookmarks, cancellationToken);
 
             if (tocMap.IsEmpty)
@@ -212,11 +213,14 @@ public sealed partial class IngestionOrchestrator(
     [LoggerMessage(Level = LogLevel.Error, Message = "JSON ingestion failed for {DisplayName} (id={Id})")]
     private static partial void LogJsonIngestionFailed(ILogger logger, Exception ex, string displayName, int id);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Classifying page {Page}/{Total} for book {BookId}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Classifying page {Page}/{Total} for book {BookId}")]
     private static partial void LogClassifyingPage(ILogger logger, int page, int total, int bookId);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Extracted page {Page}/{Total} for book {BookId}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Extracted page {Page}/{Total} for book {BookId}")]
     private static partial void LogExtractedPage(ILogger logger, int page, int total, int bookId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Classifying {BookmarkCount} TOC bookmarks for book {BookId}")]
+    private static partial void LogClassifyingToc(ILogger logger, int bookmarkCount, int bookId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "TOC classification succeeded for {DisplayName} (id={Id}) — using TOC-guided dispatch")]
     private static partial void LogTocGuided(ILogger logger, string displayName, int id);

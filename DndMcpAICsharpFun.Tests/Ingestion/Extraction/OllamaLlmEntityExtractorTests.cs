@@ -104,6 +104,26 @@ public class OllamaLlmEntityExtractorTests
         ollama.Received(1).ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task ExtractAsync_WrappedJsonObject_UnwrapsAndParsesSuccessfully()
+    {
+        // Arrange — model returns {"entities":[...]} instead of bare array
+        var json = """{"entities":[{"name":"Fireball","partial":false,"data":{"description":"test"}}]}""";
+        var ollama = Substitute.For<IOllamaApiClient>();
+        ollama.ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>())
+            .Returns(StreamResponse(json));
+
+        var sut = BuildSut(ollama, llmExtractionRetries: 1);
+
+        // Act
+        var results = await sut.ExtractAsync("page text", "Spell", 1, "PHB", "5e");
+
+        // Assert — should parse without retrying
+        Assert.Single(results);
+        Assert.Equal("Fireball", results[0].Name);
+        ollama.Received(1).ChatAsync(Arg.Any<ChatRequest>(), Arg.Any<CancellationToken>());
+    }
+
     private static IAsyncEnumerable<ChatResponseStream?> StreamResponse(string content)
         => AsyncEnumerable(new ChatResponseStream { Message = new Message { Content = content } });
 

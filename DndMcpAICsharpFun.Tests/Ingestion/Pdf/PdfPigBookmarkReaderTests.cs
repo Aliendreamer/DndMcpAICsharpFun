@@ -80,29 +80,31 @@ public sealed class PdfPigBookmarkReaderTests
     }
 
     [Fact]
-    public void ReadBookmarks_NestedBookmarks_FlattensAll()
+    public void ReadBookmarks_NestedBookmarks_ReturnsTwoLevelsOnly()
     {
-        // Chapter 1 (page 1)
-        //   Section 1.1 (page 2)
-        //     Subsection 1.1.1 (page 3)
-        // Chapter 2 (page 4)
-        var subsection = new DocumentBookmarkNode("Subsection 1.1.1", 2, FitPage(3), []);
-        var section = new DocumentBookmarkNode("Section 1.1", 1, FitPage(2), [subsection]);
-        var chapter1 = new DocumentBookmarkNode("Chapter 1", 0, FitPage(1), [section]);
-        var chapter2 = new DocumentBookmarkNode("Chapter 2", 0, FitPage(4), []);
-        var bookmarks = new Bookmarks([chapter1, chapter2]);
+        // Part 1 (page 1)
+        //   Chapter 1 (page 2)
+        //     Section 1.1 (page 3)  ← should be excluded
+        // Part 2 (page 4)
+        //   Chapter 2 (page 5)
+        var section = new DocumentBookmarkNode("Section 1.1", 2, FitPage(3), []);
+        var chapter1 = new DocumentBookmarkNode("Chapter 1", 1, FitPage(2), [section]);
+        var part1 = new DocumentBookmarkNode("Part 1", 0, FitPage(1), [chapter1]);
+        var chapter2 = new DocumentBookmarkNode("Chapter 2", 1, FitPage(5), []);
+        var part2 = new DocumentBookmarkNode("Part 2", 0, FitPage(4), [chapter2]);
+        var bookmarks = new Bookmarks([part1, part2]);
 
-        var path = BuildTempPdf(pageCount: 4, bookmarks);
+        var path = BuildTempPdf(pageCount: 5, bookmarks);
         try
         {
             var result = Sut.ReadBookmarks(path);
 
-            // All 4 nodes must be present, regardless of nesting depth
             Assert.Equal(4, result.Count);
-            Assert.Contains(result, b => b.Title == "Chapter 1" && b.PageNumber == 1);
-            Assert.Contains(result, b => b.Title == "Section 1.1" && b.PageNumber == 2);
-            Assert.Contains(result, b => b.Title == "Subsection 1.1.1" && b.PageNumber == 3);
-            Assert.Contains(result, b => b.Title == "Chapter 2" && b.PageNumber == 4);
+            Assert.Contains(result, b => b.Title == "Part 1" && b.PageNumber == 1);
+            Assert.Contains(result, b => b.Title == "Chapter 1" && b.PageNumber == 2);
+            Assert.Contains(result, b => b.Title == "Part 2" && b.PageNumber == 4);
+            Assert.Contains(result, b => b.Title == "Chapter 2" && b.PageNumber == 5);
+            Assert.DoesNotContain(result, b => b.Title == "Section 1.1");
         }
         finally
         {

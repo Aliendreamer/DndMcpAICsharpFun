@@ -21,8 +21,28 @@ public sealed partial class OllamaTocCategoryClassifier(
         Given a list of PDF chapter titles and their starting page numbers, determine which
         D&D content category best matches each chapter.
 
-        Valid categories: Spell, Monster, Class, Background, Item, Rule, Treasure, Encounter, Trap
-        Use null if no category applies (e.g. Introduction, Preface, Index, Table of Contents).
+        Valid categories: Spell, Monster, Class, Race, Background, Item, Rule, Combat, Adventuring, Condition, God, Plane, Treasure, Encounter, Trap
+
+        Mapping guidance:
+        - "Spells" or "Spell Descriptions" → Spell
+        - "Monsters", "Bestiary", "Creature Statistics" → Monster
+        - "Classes", "Class Features" → Class
+        - "Races", "Species" → Race
+        - "Backgrounds" → Background
+        - "Equipment", "Gear", "Items", "Magic Items" → Item
+        - "Combat", "Actions in Combat", "Order of Combat" → Combat
+        - "Adventuring", "Between Adventures", "Resting" → Adventuring
+        - "Conditions" → Condition
+        - "Gods", "Deities", "Pantheon", "Religion" → God
+        - "Planes", "The Planes of Existence", "Cosmology" → Plane
+        - "Treasure" → Treasure
+        - "Encounters", "Random Encounters" → Encounter
+        - "Traps" → Trap
+        - Ability scores, skills, saving throws, proficiency → Rule
+        - Introduction, Preface, Index, Table of Contents, Character Sheet, Inspirational Reading → null
+
+        Use Rule as the catch-all for any game content that does not fit a specific category above.
+        Use null only for non-game content (front matter, index, appendices with no game rules).
 
         Return a JSON array, one entry per bookmark in the same order:
         [{"startPage": N, "category": "Spell"|null}, ...]
