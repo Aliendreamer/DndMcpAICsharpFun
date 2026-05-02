@@ -243,7 +243,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         await _tracker.Received(1).MarkJsonIngestedAsync(30, 0, Arg.Any<CancellationToken>());
     }
 
-    // --- TOC-guided dispatch tests ---
+    // --- Classifier fallback tests (TOC-guided dispatch wired in Task 4) ---
 
     [Fact]
     public async Task ExtractBookAsync_TocMapEmpty_FallsBackToClassifierForAllPages()
@@ -259,8 +259,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var pageText = new string('x', 200);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
 
-        // TocCategoryMap is hardcoded as empty in the orchestrator (Task 4 wires it up)
-
         _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<string>>(["Spell"]));
 
@@ -270,14 +268,15 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var sut = BuildSut();
         await sut.ExtractBookAsync(40);
 
-        // The old classifier path should have been used
+        // The classifier path should always be used (tocMap is always empty for now)
         await _classifier.Received(1).ClassifyPageAsync(pageText, Arg.Any<CancellationToken>());
         await _tracker.Received(1).MarkExtractedAsync(40, Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ExtractBookAsync_TocMapNonEmpty_PageMapsToCategory_RunsOnlyThatExtractor()
+    public async Task ExtractBookAsync_ValidPage_ClassifiesWithSpellType_RunsExtractor()
     {
+        // Note: TOC-guided dispatch is wired in Task 4; for now orchestrator always uses classifier fallback.
         var record = new IngestionRecord
         {
             Id = 41, FilePath = _tempFile, FileName = "test.pdf",
@@ -289,8 +288,8 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var pageText = new string('x', 200);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
 
-        // Note: TOC-guided dispatch is wired in Task 4; orchestrator currently uses empty TocCategoryMap
-        // so the fallback classifier path runs for this test.
+        _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<string>>(["Spell"]));
 
         var entity = new ExtractedEntity(
             Page: 5, SourceBook: "PHB", Version: "Edition2014",
@@ -303,16 +302,16 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var sut = BuildSut();
         await sut.ExtractBookAsync(41);
 
-        // Only the entityExtractor should be called, NOT the old classifier
-        await _classifier.DidNotReceive().ClassifyPageAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _classifier.Received(1).ClassifyPageAsync(pageText, Arg.Any<CancellationToken>());
         await _entityExtractor.Received(1).ExtractAsync(pageText, "Spell", 5, "PHB", "Edition2014", Arg.Any<CancellationToken>());
         await _jsonStore.Received(1).SavePageAsync(41, Arg.Any<StructuredPage>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
         await _tracker.Received(1).MarkExtractedAsync(41, Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ExtractBookAsync_TocMapNonEmpty_PageMapsToNull_SkipsPage()
+    public async Task ExtractBookAsync_ValidPage_NoTypesFromClassifier_StillSavesEmptyEntities()
     {
+        // Note: TOC-guided dispatch is wired in Task 4; for now orchestrator always uses classifier fallback.
         var record = new IngestionRecord
         {
             Id = 42, FilePath = _tempFile, FileName = "test.pdf",
@@ -324,15 +323,16 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var pageText = new string('x', 200);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
 
-        // Note: TOC-guided dispatch is wired in Task 4; orchestrator currently uses empty TocCategoryMap
+        // Classifier returns empty list -> no entity extractor calls
+        _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<string>>([]));
 
         var sut = BuildSut();
         await sut.ExtractBookAsync(42);
 
-        // No extractor or classifier calls since page is skipped
-        await _classifier.DidNotReceive().ClassifyPageAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _classifier.Received(1).ClassifyPageAsync(pageText, Arg.Any<CancellationToken>());
         await _entityExtractor.DidNotReceive().ExtractAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await _jsonStore.DidNotReceive().SavePageAsync(Arg.Any<int>(), Arg.Any<StructuredPage>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
+        await _jsonStore.Received(1).SavePageAsync(42, Arg.Any<StructuredPage>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
         await _tracker.Received(1).MarkExtractedAsync(42, Arg.Any<CancellationToken>());
     }
 

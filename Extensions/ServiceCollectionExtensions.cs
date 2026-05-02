@@ -82,8 +82,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IIngestionQueue>(sp => sp.GetRequiredService<IngestionQueueWorker>());
         services.AddHostedService(sp => sp.GetRequiredService<IngestionQueueWorker>());
 
-        services.AddSingleton<IPdfBookmarkReader, PdfPigBookmarkReader>();
-        services.AddSingleton<ITocCategoryClassifier, OllamaTocCategoryClassifier>();
+        services.AddSingleton<ITocMapExtractor, OllamaTocMapExtractor>();
         services.AddSingleton<IExtractionCancellationRegistry, ExtractionCancellationRegistry>();
 
         return services;
