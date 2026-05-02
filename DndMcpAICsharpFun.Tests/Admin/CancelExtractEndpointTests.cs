@@ -28,7 +28,6 @@ public sealed class CancelExtractEndpointTests
         builder.Services.AddSingleton<IIngestionOrchestrator>(Substitute.For<IIngestionOrchestrator>());
         builder.Services.AddSingleton<IEntityJsonStore>(Substitute.For<IEntityJsonStore>());
         builder.Services.AddSingleton<ILogger<RegisterBookRequest>>(NullLogger<RegisterBookRequest>.Instance);
-        builder.Services.AddSingleton<ILogger<RegisterBookByPathRequest>>(NullLogger<RegisterBookByPathRequest>.Instance);
         builder.Services.Configure<AdminOptions>(o => o.ApiKey = "test-key");
         builder.Services.Configure<IngestionOptions>(o => o.BooksPath = Path.GetTempPath());
         var app = builder.Build();

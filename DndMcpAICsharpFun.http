@@ -37,19 +37,11 @@ Edition2014
 Content-Disposition: form-data; name="displayName"
 
 PlayerHandbook 2014
+------Boundary
+Content-Disposition: form-data; name="tocPage"
+
+3
 ------Boundary--
-
-### Admin Books — Register a book by server-side path (stays Pending; call /extract or /ingest-json to start the pipeline)
-POST {{baseUrl}}/admin/books/register-path
-X-Admin-Api-Key: {{adminKey}}
-Content-Type: application/json
-
-{
-  "filePath": "/books/PlayerHandbook2014.pdf",
-  "sourceName": "2014",
-  "version": "Edition2014",
-  "displayName": "Player Handbook 2014"
-}
 
 ### Admin Books — List all books
 GET {{baseUrl}}/admin/books

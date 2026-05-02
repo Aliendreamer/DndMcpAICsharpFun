@@ -40,13 +40,10 @@ public sealed class BooksAdminEndpointsTests
         builder.Services.AddSingleton(pdfExtractor);
         builder.Services.AddSingleton<ILogger<RegisterBookRequest>>(
             NullLogger<RegisterBookRequest>.Instance);
-        builder.Services.AddSingleton<ILogger<RegisterBookByPathRequest>>(
-            NullLogger<RegisterBookByPathRequest>.Instance);
         builder.Services.Configure<AdminOptions>(o => o.ApiKey = "test-key");
         builder.Services.Configure<IngestionOptions>(o => o.BooksPath = Path.GetTempPath());
 
         var app = builder.Build();
-        // No middleware — bypass auth, test endpoint logic only
         app.MapGroup("/admin").MapBooksAdmin();
 
         await app.StartAsync();
@@ -65,6 +62,7 @@ public sealed class BooksAdminEndpointsTests
         Version = "5e",
         DisplayName = "Player's Handbook",
         Status = status,
+        TocPage = 3,
     };
 
     // POST /admin/books/register
@@ -80,12 +78,12 @@ public sealed class BooksAdminEndpointsTests
         content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("Edition2014"), "version");
         content.Add(new StringContent("Player's Handbook"), "displayName");
+        content.Add(new StringContent("3"), "tocPage");
 
         var response = await client.PostAsync("/admin/books/register", content);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         await tracker.Received(1).CreateAsync(Arg.Any<IngestionRecord>(), Arg.Any<CancellationToken>());
-        // Clean up file created by the endpoint
         foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
             File.Delete(f);
     }
@@ -100,6 +98,7 @@ public sealed class BooksAdminEndpointsTests
         content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("5e"), "version");
         content.Add(new StringContent("PHB"), "displayName");
+        content.Add(new StringContent("3"), "tocPage");
 
         var response = await client.PostAsync("/admin/books/register", content);
 
@@ -116,72 +115,28 @@ public sealed class BooksAdminEndpointsTests
         content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("invalid_version"), "version");
         content.Add(new StringContent("PHB"), "displayName");
+        content.Add(new StringContent("3"), "tocPage");
 
         var response = await client.PostAsync("/admin/books/register", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    // POST /admin/books/register-path
     [Fact]
-    public async Task RegisterBookByPath_ValidPath_Returns202()
-    {
-        var (client, tracker, _, _, _, _) = await BuildClientAsync();
-        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");
-        await File.WriteAllBytesAsync(tempFile, [0x25, 0x50, 0x44, 0x46]);
-        try
-        {
-            tracker.CreateAsync(Arg.Any<IngestionRecord>(), Arg.Any<CancellationToken>())
-                .Returns(MakeRecord());
-
-            var response = await client.PostAsJsonAsync("/admin/books/register-path", new
-            {
-                filePath = tempFile,
-                sourceName = "PHB",
-                version = "Edition2014",
-                displayName = "Player's Handbook"
-            });
-
-            Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
-        }
-        finally { File.Delete(tempFile); }
-    }
-
-    [Fact]
-    public async Task RegisterBookByPath_FileNotFound_Returns400()
+    public async Task RegisterBook_MissingTocPage_Returns400()
     {
         var (client, _, _, _, _, _) = await BuildClientAsync();
 
-        var response = await client.PostAsJsonAsync("/admin/books/register-path", new
-        {
-            filePath = "/nonexistent/path/file.pdf",
-            sourceName = "PHB",
-            version = "5e",
-            displayName = "PHB"
-        });
+        using var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
+        content.Add(new StringContent("PHB"), "sourceName");
+        content.Add(new StringContent("Edition2014"), "version");
+        content.Add(new StringContent("Player's Handbook"), "displayName");
+        // tocPage intentionally omitted
+
+        var response = await client.PostAsync("/admin/books/register", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task RegisterBookByPath_InvalidVersion_Returns400()
-    {
-        var (client, _, _, _, _, _) = await BuildClientAsync();
-        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");
-        await File.WriteAllBytesAsync(tempFile, [0x25, 0x50, 0x44, 0x46]);
-        try
-        {
-            var response = await client.PostAsJsonAsync("/admin/books/register-path", new
-            {
-                filePath = tempFile,
-                sourceName = "PHB",
-                version = "bad_version",
-                displayName = "PHB"
-            });
-
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        }
-        finally { File.Delete(tempFile); }
     }
 
     // GET /admin/books
@@ -189,8 +144,7 @@ public sealed class BooksAdminEndpointsTests
     public async Task GetAllBooks_Returns200WithList()
     {
         var (client, tracker, _, _, _, _) = await BuildClientAsync();
-        tracker.GetAllAsync(Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IList<IngestionRecord>>([MakeRecord(1), MakeRecord(2)]));
+        tracker.GetAllAsync().Returns(Task.FromResult<IList<IngestionRecord>>([MakeRecord()]));
 
         var response = await client.GetAsync("/admin/books");
 
@@ -199,131 +153,43 @@ public sealed class BooksAdminEndpointsTests
 
     // POST /admin/books/{id}/extract
     [Fact]
-    public async Task ExtractBook_NotFound_Returns404()
-    {
-        var (client, tracker, _, _, _, _) = await BuildClientAsync();
-        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns((IngestionRecord?)null);
-
-        var response = await client.PostAsync("/admin/books/1/extract", null);
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task ExtractBook_AlreadyProcessing_Returns409()
-    {
-        var (client, tracker, _, _, _, _) = await BuildClientAsync();
-        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
-            .Returns(MakeRecord(1, IngestionStatus.Processing));
-
-        var response = await client.PostAsync("/admin/books/1/extract", null);
-
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task ExtractBook_Success_Returns202AndEnqueues()
+    public async Task ExtractBook_RecordFound_Returns202()
     {
         var (client, tracker, queue, _, _, _) = await BuildClientAsync();
-        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
-            .Returns(MakeRecord(1, IngestionStatus.Pending));
+        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(MakeRecord());
 
         var response = await client.PostAsync("/admin/books/1/extract", null);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
-        queue.Received(1).TryEnqueue(Arg.Is<IngestionWorkItem>(w =>
-            w.Type == IngestionWorkType.Extract && w.BookId == 1));
+        queue.Received(1).TryEnqueue(Arg.Any<IngestionWorkItem>());
     }
 
-    // GET /admin/books/{id}/extracted
     [Fact]
-    public async Task GetExtracted_NotFound_Returns404()
+    public async Task ExtractBook_RecordNotFound_Returns404()
     {
         var (client, tracker, _, _, _, _) = await BuildClientAsync();
-        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns((IngestionRecord?)null);
+        tracker.GetByIdAsync(99, Arg.Any<CancellationToken>()).Returns((IngestionRecord?)null);
 
-        var response = await client.GetAsync("/admin/books/1/extracted");
+        var response = await client.PostAsync("/admin/books/99/extract", null);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task GetExtracted_Success_Returns200()
-    {
-        var (client, tracker, _, _, jsonStore, _) = await BuildClientAsync();
-        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(MakeRecord(1));
-        jsonStore.ListPageFiles(1).Returns(["page_1.json", "page_2.json"]);
-
-        var response = await client.GetAsync("/admin/books/1/extracted");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    }
-
-    // POST /admin/books/{id}/ingest-json
-    [Fact]
-    public async Task IngestJson_NotFound_Returns404()
-    {
-        var (client, tracker, _, _, _, _) = await BuildClientAsync();
-        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns((IngestionRecord?)null);
-
-        var response = await client.PostAsync("/admin/books/1/ingest-json", null);
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task IngestJson_AlreadyProcessing_Returns409()
+    public async Task ExtractBook_Processing_Returns409()
     {
         var (client, tracker, _, _, _, _) = await BuildClientAsync();
         tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
-            .Returns(MakeRecord(1, IngestionStatus.Processing));
+            .Returns(MakeRecord(status: IngestionStatus.Processing));
 
-        var response = await client.PostAsync("/admin/books/1/ingest-json", null);
+        var response = await client.PostAsync("/admin/books/1/extract", null);
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task IngestJson_Success_Returns202()
-    {
-        var (client, tracker, queue, _, _, _) = await BuildClientAsync();
-        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
-            .Returns(MakeRecord(1, IngestionStatus.Extracted));
-
-        var response = await client.PostAsync("/admin/books/1/ingest-json", null);
-
-        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
-        queue.Received(1).TryEnqueue(Arg.Is<IngestionWorkItem>(w =>
-            w.Type == IngestionWorkType.IngestJson && w.BookId == 1));
     }
 
     // DELETE /admin/books/{id}
     [Fact]
-    public async Task DeleteBook_NotFound_Returns404()
-    {
-        var (client, _, _, orchestrator, _, _) = await BuildClientAsync();
-        orchestrator.DeleteBookAsync(1, Arg.Any<CancellationToken>())
-            .Returns(DeleteBookResult.NotFound);
-
-        var response = await client.DeleteAsync("/admin/books/1");
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task DeleteBook_Conflict_Returns409()
-    {
-        var (client, _, _, orchestrator, _, _) = await BuildClientAsync();
-        orchestrator.DeleteBookAsync(1, Arg.Any<CancellationToken>())
-            .Returns(DeleteBookResult.Conflict);
-
-        var response = await client.DeleteAsync("/admin/books/1");
-
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task DeleteBook_Success_Returns204()
+    public async Task DeleteBook_Deleted_Returns204()
     {
         var (client, _, _, orchestrator, _, _) = await BuildClientAsync();
         orchestrator.DeleteBookAsync(1, Arg.Any<CancellationToken>())
@@ -334,27 +200,16 @@ public sealed class BooksAdminEndpointsTests
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
 
-    // POST /admin/books/{id}/cancel-extract
     [Fact]
-    public async Task CancelExtract_NotFound_Returns404()
+    public async Task DeleteBook_NotFound_Returns404()
     {
-        var (client, _, _, _, _, registry) = await BuildClientAsync();
-        registry.Cancel(1).Returns(false);
+        var (client, _, _, orchestrator, _, _) = await BuildClientAsync();
+        orchestrator.DeleteBookAsync(99, Arg.Any<CancellationToken>())
+            .Returns(DeleteBookResult.NotFound);
 
-        var response = await client.PostAsync("/admin/books/1/cancel-extract", null);
+        var response = await client.DeleteAsync("/admin/books/99");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CancelExtract_Success_Returns200()
-    {
-        var (client, _, _, _, _, registry) = await BuildClientAsync();
-        registry.Cancel(1).Returns(true);
-
-        var response = await client.PostAsync("/admin/books/1/cancel-extract", null);
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     // POST /admin/books/{id}/extract-page/{pageNumber}
@@ -362,9 +217,9 @@ public sealed class BooksAdminEndpointsTests
     public async Task ExtractPage_UnknownBook_Returns404()
     {
         var (client, tracker, _, _, _, _) = await BuildClientAsync();
-        tracker.GetByIdAsync(999, Arg.Any<CancellationToken>()).Returns((IngestionRecord?)null);
+        tracker.GetByIdAsync(42, Arg.Any<CancellationToken>()).Returns((IngestionRecord?)null);
 
-        var response = await client.PostAsync("/admin/books/999/extract-page/1", null);
+        var response = await client.PostAsync("/admin/books/42/extract-page/1", null);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

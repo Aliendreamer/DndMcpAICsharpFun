@@ -16,7 +16,6 @@ public static partial class BooksAdminEndpoints
     public static RouteGroupBuilder MapBooksAdmin(this RouteGroupBuilder group)
     {
         group.MapPost("/books/register", RegisterBook).DisableAntiforgery();
-        group.MapPost("/books/register-path", RegisterBookByPath);
         group.MapGet("/books", GetAllBooks);
         group.MapPost("/books/{id:int}/extract", ExtractBook).DisableAntiforgery();
         group.MapGet("/books/{id:int}/extracted", GetExtracted);
@@ -35,8 +34,12 @@ public static partial class BooksAdminEndpoints
       IIngestionTracker tracker,
       IOptions<IngestionOptions> ingestionOptions,
       ILogger<RegisterBookRequest> logger,
-      CancellationToken ct)
+      CancellationToken ct,
+      [FromForm] int? tocPage = null)
     {
+        if (tocPage is null)
+            return Results.Problem("tocPage is required.", statusCode: 400);
+
         if (!file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             return Results.Problem("Only PDF files are accepted.", statusCode: 400);
 
@@ -67,44 +70,12 @@ public static partial class BooksAdminEndpoints
             Version = parsedVersion.ToString(),
             DisplayName = displayName,
             Status = IngestionStatus.Pending,
+            TocPage = tocPage.Value,
         };
 
         var created = await tracker.CreateAsync(record, ct);
 
         LogBookRegistered(logger, created.DisplayName, created.Id, originalFileName);
-
-        return Results.Accepted($"/admin/books/{created.Id}", created);
-    }
-    private static async Task<IResult> RegisterBookByPath(
-        RegisterBookByPathRequest request,
-        IIngestionTracker tracker,
-        ILogger<RegisterBookByPathRequest> logger,
-        CancellationToken ct)
-    {
-        if (!request.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-            return Results.Problem("Only PDF files are accepted.", statusCode: 400);
-
-        if (!File.Exists(request.FilePath))
-            return Results.Problem($"File not found: {request.FilePath}", statusCode: 400);
-
-        if (!Enum.TryParse<DndVersion>(request.Version, ignoreCase: true, out var parsedVersion))
-            return Results.Problem(
-                $"Invalid version '{request.Version}'. Valid values: {string.Join(", ", Enum.GetNames<DndVersion>())}",
-                statusCode: 400);
-
-        var record = new IngestionRecord
-        {
-            FilePath = request.FilePath,
-            FileName = Path.GetFileName(request.FilePath),
-            FileHash = string.Empty,
-            SourceName = request.SourceName,
-            Version = parsedVersion.ToString(),
-            DisplayName = request.DisplayName,
-            Status = IngestionStatus.Pending,
-        };
-
-        var created = await tracker.CreateAsync(record, ct);
-        LogBookRegistered(logger, created.DisplayName, created.Id, created.FileName);
 
         return Results.Accepted($"/admin/books/{created.Id}", created);
     }
@@ -221,10 +192,5 @@ public static partial class BooksAdminEndpoints
 public sealed record RegisterBookRequest(
     string SourceName,
     string Version,
-    string DisplayName);
-
-public sealed record RegisterBookByPathRequest(
-    string FilePath,
-    string SourceName,
-    string Version,
-    string DisplayName);
+    string DisplayName,
+    int TocPage);
