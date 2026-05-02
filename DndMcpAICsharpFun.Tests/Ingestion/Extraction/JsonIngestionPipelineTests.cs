@@ -24,8 +24,8 @@ public sealed class JsonIngestionPipelineTests
             new JsonObject { ["level"] = 3, ["description"] = "Big fire ball." });
 
         _store.LoadAllPagesAsync(42).Returns(
-            Task.FromResult<IReadOnlyList<IReadOnlyList<ExtractedEntity>>>(
-                [[entity]]));
+            Task.FromResult<IReadOnlyList<PageData>>(
+                [new PageData(1, string.Empty, [], [entity])]));
 
         await _pipeline.IngestAsync(bookId: 42, fileHash: "abc123");
 
@@ -47,8 +47,8 @@ public sealed class JsonIngestionPipelineTests
             new JsonObject { ["description"] = "   " });
 
         _store.LoadAllPagesAsync(42).Returns(
-            Task.FromResult<IReadOnlyList<IReadOnlyList<ExtractedEntity>>>(
-                [[entity]]));
+            Task.FromResult<IReadOnlyList<PageData>>(
+                [new PageData(1, string.Empty, [], [entity])]));
 
         await _pipeline.IngestAsync(bookId: 42, fileHash: "abc123");
 

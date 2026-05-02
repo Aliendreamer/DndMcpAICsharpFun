@@ -17,7 +17,7 @@ public sealed class JsonIngestionPipeline(
         int chunkIndex = 0;
         foreach (var page in pages)
         {
-            foreach (var entity in page)
+            foreach (var entity in page.Entities)
             {
                 var description = entity.Data["description"]?.GetValue<string>() ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(description)) continue;

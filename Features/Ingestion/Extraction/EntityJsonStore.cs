@@ -16,15 +16,26 @@ public sealed class EntityJsonStore(IOptions<IngestionOptions> options) : IEntit
     private static string PageFile(string dir, int pageNumber) =>
         Path.Combine(dir, $"page_{pageNumber}.json");
 
-    public async Task SavePageAsync(int bookId, int pageNumber, IReadOnlyList<ExtractedEntity> entities, CancellationToken ct = default)
+    public async Task SavePageAsync(
+        int bookId, StructuredPage page, IReadOnlyList<ExtractedEntity> entities,
+        CancellationToken ct = default)
     {
         var dir = ExtractedDir(bookId);
         Directory.CreateDirectory(dir);
 
-        var array = new JsonArray();
+        var blocksArray = new JsonArray();
+        foreach (var b in page.Blocks)
+            blocksArray.Add(new JsonObject
+            {
+                ["order"] = b.Order,
+                ["level"] = b.Level,
+                ["text"]  = b.Text
+            });
+
+        var entitiesArray = new JsonArray();
         foreach (var e in entities)
         {
-            array.Add(new JsonObject
+            var node = new JsonObject
             {
                 ["page"]        = e.Page,
                 ["source_book"] = e.SourceBook,
@@ -33,28 +44,37 @@ public sealed class EntityJsonStore(IOptions<IngestionOptions> options) : IEntit
                 ["type"]        = e.Type,
                 ["name"]        = e.Name,
                 ["data"]        = JsonNode.Parse(e.Data.ToJsonString())
-            });
+            };
+            if (e.PageEnd.HasValue)
+                node["page_end"] = e.PageEnd.Value;
+            entitiesArray.Add(node);
         }
 
-        var path = PageFile(dir, pageNumber);
-        await File.WriteAllTextAsync(path, array.ToJsonString(JsonOpts), ct);
+        var root = new JsonObject
+        {
+            ["page"]     = page.PageNumber,
+            ["raw_text"] = page.RawText,
+            ["blocks"]   = blocksArray,
+            ["entities"] = entitiesArray
+        };
+
+        await File.WriteAllTextAsync(PageFile(dir, page.PageNumber), root.ToJsonString(JsonOpts), ct);
     }
 
-    public async Task<IReadOnlyList<IReadOnlyList<ExtractedEntity>>> LoadAllPagesAsync(int bookId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<PageData>> LoadAllPagesAsync(int bookId, CancellationToken ct = default)
     {
         var dir = ExtractedDir(bookId);
-        if (!Directory.Exists(dir))
-            return [];
+        if (!Directory.Exists(dir)) return [];
 
         var files = Directory.GetFiles(dir, "page_*.json")
             .OrderBy(ExtractPageNumber)
             .ToList();
 
-        var result = new List<IReadOnlyList<ExtractedEntity>>();
+        var result = new List<PageData>(files.Count);
         foreach (var file in files)
         {
             var json = await File.ReadAllTextAsync(file, ct);
-            result.Add(ParsePageFile(json));
+            result.Add(ParsePageFile(json, ExtractPageNumber(file)));
         }
         return result;
     }
@@ -68,24 +88,22 @@ public sealed class EntityJsonStore(IOptions<IngestionOptions> options) : IEntit
             .OrderBy(ExtractPageNumber)
             .ToList();
 
-        // Nothing to merge with a single page; files are already persisted on disk.
         if (files.Count < 2) return;
 
-        // Load all pages as mutable lists
-        var pages = new List<List<ExtractedEntity>>();
+        var pages = new List<(StructuredPage Page, List<ExtractedEntity> Entities)>();
         foreach (var file in files)
         {
             var json = await File.ReadAllTextAsync(file, ct);
-            pages.Add([.. ParsePageFile(json)]);
+            var data = ParsePageFile(json, ExtractPageNumber(file));
+            pages.Add((new StructuredPage(data.PageNumber, data.RawText, data.Blocks), [.. data.Entities]));
         }
 
-        // Merge: if page[i] has entity X with partial=true and page[i+1] has same type+name, concatenate
         for (int i = 0; i < pages.Count - 1; i++)
         {
-            var current = pages[i];
-            var next = pages[i + 1];
+            var (_, current) = pages[i];
+            var (_, next) = pages[i + 1];
 
-            foreach (var entity in current.Where(e => e.Partial).ToList())
+            foreach (var entity in current.Where(static e => e.Partial).ToList())
             {
                 var match = next.FirstOrDefault(e =>
                     string.Equals(e.Type, entity.Type, StringComparison.OrdinalIgnoreCase) &&
@@ -96,20 +114,19 @@ public sealed class EntityJsonStore(IOptions<IngestionOptions> options) : IEntit
                 var thisDesc = entity.Data["description"]?.GetValue<string>() ?? string.Empty;
                 var nextDesc = match.Data["description"]?.GetValue<string>() ?? string.Empty;
                 var mergedData = JsonNode.Parse(entity.Data.ToJsonString())!.AsObject();
-                // Only description is merged; other data fields from the continuation entity are ignored.
                 mergedData["description"] = thisDesc + nextDesc;
 
-                var merged = entity with { Partial = false, Data = mergedData };
+                var pageEnd = match.PageEnd ?? match.Page;
+                var merged = entity with { Partial = false, Data = mergedData, PageEnd = pageEnd };
                 current[current.IndexOf(entity)] = merged;
                 next.Remove(match);
             }
         }
 
-        // Persist updated pages back to disk
         for (int i = 0; i < files.Count; i++)
         {
-            var pageNumber = ExtractPageNumber(files[i]);
-            await SavePageAsync(bookId, pageNumber, pages[i], ct);
+            var (page, entities) = pages[i];
+            await SavePageAsync(bookId, page, entities, ct);
         }
     }
 
@@ -128,31 +145,64 @@ public sealed class EntityJsonStore(IOptions<IngestionOptions> options) : IEntit
             Directory.Delete(dir, recursive: true);
     }
 
-    private static IReadOnlyList<ExtractedEntity> ParsePageFile(string json)
+    private static PageData ParsePageFile(string json, int fallbackPageNumber)
     {
-        var array = JsonNode.Parse(json)?.AsArray();
-        if (array is null) return [];
+        var root = JsonNode.Parse(json);
 
-        var result = new List<ExtractedEntity>();
-        foreach (var node in array)
+        // New enriched format: { page, raw_text, blocks, entities }
+        if (root is JsonObject obj && obj.ContainsKey("entities"))
         {
-            if (node is not JsonObject obj) continue;
-            var data = obj["data"]?.AsObject() ?? new JsonObject();
+            var pageNumber = obj["page"]?.GetValue<int>() ?? fallbackPageNumber;
+            var rawText    = obj["raw_text"]?.GetValue<string>() ?? string.Empty;
+            var blocks     = ParseBlocks(obj["blocks"]?.AsArray());
+            var entities   = ParseEntities(obj["entities"]?.AsArray());
+            return new PageData(pageNumber, rawText, blocks, entities);
+        }
+
+        // Old bare-array format — return empty entities to avoid data corruption
+        return new PageData(fallbackPageNumber, string.Empty, [], []);
+    }
+
+    private static IReadOnlyList<PageBlock> ParseBlocks(JsonArray? arr)
+    {
+        if (arr is null) return [];
+        var result = new List<PageBlock>(arr.Count);
+        foreach (var node in arr)
+        {
+            if (node is not JsonObject o) continue;
+            result.Add(new PageBlock(
+                o["order"]?.GetValue<int>() ?? 0,
+                o["level"]?.GetValue<string>() ?? "body",
+                o["text"]?.GetValue<string>()  ?? string.Empty));
+        }
+        return result;
+    }
+
+    private static IReadOnlyList<ExtractedEntity> ParseEntities(JsonArray? arr)
+    {
+        if (arr is null) return [];
+        var result = new List<ExtractedEntity>(arr.Count);
+        foreach (var node in arr)
+        {
+            if (node is not JsonObject o) continue;
+            var data    = o["data"]?.AsObject() ?? new JsonObject();
+            var pageEnd = o.ContainsKey("page_end") ? o["page_end"]?.GetValue<int>() : null;
             result.Add(new ExtractedEntity(
-                Page:       obj["page"]?.GetValue<int>() ?? 0,
-                SourceBook: obj["source_book"]?.GetValue<string>() ?? string.Empty,
-                Version:    obj["version"]?.GetValue<string>() ?? string.Empty,
-                Partial:    obj["partial"]?.GetValue<bool>() ?? false,
-                Type:       obj["type"]?.GetValue<string>() ?? string.Empty,
-                Name:       obj["name"]?.GetValue<string>() ?? string.Empty,
-                Data:       data));
+                Page:       o["page"]?.GetValue<int>()           ?? 0,
+                SourceBook: o["source_book"]?.GetValue<string>() ?? string.Empty,
+                Version:    o["version"]?.GetValue<string>()     ?? string.Empty,
+                Partial:    o["partial"]?.GetValue<bool>()       ?? false,
+                Type:       o["type"]?.GetValue<string>()        ?? string.Empty,
+                Name:       o["name"]?.GetValue<string>()        ?? string.Empty,
+                Data:       data,
+                PageEnd:    pageEnd));
         }
         return result;
     }
 
     private static int ExtractPageNumber(string filePath)
     {
-        var name = Path.GetFileNameWithoutExtension(filePath); // "page_42"
+        var name = Path.GetFileNameWithoutExtension(filePath);
         return int.TryParse(name.AsSpan(5), out var n) ? n : 0;
     }
 }

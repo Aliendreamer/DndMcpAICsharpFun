@@ -221,7 +221,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         await sut.ExtractBookAsync(21);
 
         await _classifier.Received(1).ClassifyPageAsync(pageText, Arg.Any<CancellationToken>());
-        await _jsonStore.Received(1).SavePageAsync(21, 5, Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
+        await _jsonStore.Received(1).SavePageAsync(21, Arg.Any<StructuredPage>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
         await _tracker.Received(1).MarkExtractedAsync(21, Arg.Any<CancellationToken>());
     }
 
@@ -248,7 +248,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         };
         _tracker.GetByIdAsync(30, Arg.Any<CancellationToken>()).Returns(record);
         _jsonStore.LoadAllPagesAsync(30, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<IReadOnlyList<ExtractedEntity>>>(new List<IReadOnlyList<ExtractedEntity>>()));
+            .Returns(Task.FromResult<IReadOnlyList<PageData>>(new List<PageData>()));
         var sut = BuildSut();
 
         await sut.IngestJsonAsync(30);
@@ -328,7 +328,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         // Only the entityExtractor should be called, NOT the old classifier
         await _classifier.DidNotReceive().ClassifyPageAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
         await _entityExtractor.Received(1).ExtractAsync(pageText, "Spell", 5, "PHB", "Edition2014", Arg.Any<CancellationToken>());
-        await _jsonStore.Received(1).SavePageAsync(41, 5, Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
+        await _jsonStore.Received(1).SavePageAsync(41, Arg.Any<StructuredPage>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
         await _tracker.Received(1).MarkExtractedAsync(41, Arg.Any<CancellationToken>());
     }
 
@@ -361,7 +361,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         // No extractor or classifier calls since page is skipped
         await _classifier.DidNotReceive().ClassifyPageAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
         await _entityExtractor.DidNotReceive().ExtractAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await _jsonStore.DidNotReceive().SavePageAsync(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
+        await _jsonStore.DidNotReceive().SavePageAsync(Arg.Any<int>(), Arg.Any<StructuredPage>(), Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
         await _tracker.Received(1).MarkExtractedAsync(42, Arg.Any<CancellationToken>());
     }
 

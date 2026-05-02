@@ -86,7 +86,7 @@ public sealed partial class IngestionOrchestrator(
                         record.DisplayName, record.Version, cancellationToken);
 
                     if (extracted.Count > 0)
-                        await jsonStore.SavePageAsync(recordId, pageNumber, extracted, cancellationToken);
+                        await jsonStore.SavePageAsync(recordId, new Domain.StructuredPage(pageNumber, pageText, [new Domain.PageBlock(1, "body", pageText)]), extracted, cancellationToken);
                 }
                 else
                 {
@@ -103,7 +103,7 @@ public sealed partial class IngestionOrchestrator(
                     }
 
                     if (pageEntities.Count > 0)
-                        await jsonStore.SavePageAsync(recordId, pageNumber, pageEntities, cancellationToken);
+                        await jsonStore.SavePageAsync(recordId, new Domain.StructuredPage(pageNumber, pageText, [new Domain.PageBlock(1, "body", pageText)]), pageEntities, cancellationToken);
                 }
 
                 LogExtractedPage(logger, pageNumber, pages.Count, recordId);
@@ -143,7 +143,7 @@ public sealed partial class IngestionOrchestrator(
             await jsonPipeline.IngestAsync(recordId, record.FileHash, cancellationToken);
 
             var pages = await jsonStore.LoadAllPagesAsync(recordId, cancellationToken);
-            var chunkCount = pages.Sum(p => p.Count(e =>
+            var chunkCount = pages.Sum(p => p.Entities.Count(e =>
                 !string.IsNullOrWhiteSpace(e.Data["description"]?.GetValue<string>())));
 
             await tracker.MarkJsonIngestedAsync(recordId, chunkCount, cancellationToken);
