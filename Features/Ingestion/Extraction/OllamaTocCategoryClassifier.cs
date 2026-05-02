@@ -85,14 +85,15 @@ public sealed partial class OllamaTocCategoryClassifier(
             var array = JsonNode.Parse(json)?.AsArray();
             if (array is null) return FallbackMap(json);
 
-            var ranges = new List<(int, ContentCategory?)>();
+            var ranges = new List<TocSectionEntry>();
             foreach (var node in array)
             {
                 if (node is not JsonObject obj) continue;
                 var startPage = obj["startPage"]?.GetValue<int>() ?? 0;
+                var titleStr = obj["title"]?.GetValue<string>() ?? string.Empty;
                 var categoryStr = obj["category"]?.GetValue<string>();
                 ContentCategory? category = Enum.TryParse<ContentCategory>(categoryStr, out var c) ? c : null;
-                ranges.Add((startPage, category));
+                ranges.Add(new TocSectionEntry(titleStr, category, startPage));
             }
 
             LogClassified(logger, ranges.Count, _model);

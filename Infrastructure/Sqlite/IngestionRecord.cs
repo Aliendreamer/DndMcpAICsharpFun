@@ -33,4 +33,6 @@ public sealed class IngestionRecord
     public DateTime? IngestedAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public int? TocPage { get; set; }
 }

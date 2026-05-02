@@ -310,7 +310,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var bookmarks = new List<PdfBookmark> { new PdfBookmark("Spells", 1) };
         _bookmarkReader.ReadBookmarks(_tempFile).Returns(bookmarks);
 
-        var tocMap = new TocCategoryMap([(1, ContentCategory.Spell)]);
+        var tocMap = new TocCategoryMap([new TocSectionEntry("Spells", ContentCategory.Spell, 1)]);
         _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(tocMap));
 
@@ -351,7 +351,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         _bookmarkReader.ReadBookmarks(_tempFile).Returns(bookmarks);
 
         // Map page 1+ → null (not a D&D content category)
-        var tocMap = new TocCategoryMap([(1, (ContentCategory?)null)]);
+        var tocMap = new TocCategoryMap([new TocSectionEntry("Intro", null, 1)]);
         _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(tocMap));
 

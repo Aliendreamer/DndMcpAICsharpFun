@@ -17,5 +17,7 @@ public enum ContentCategory
     Treasure,
     Encounter,
     Trap,
+    Trait,
+    Lore,
     Unknown
 }

@@ -4,23 +4,31 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Extraction;
 
 public sealed class TocCategoryMap
 {
-    private readonly (int StartPage, ContentCategory? Category)[] _ranges;
+    private readonly TocSectionEntry[] _entries;
 
-    public TocCategoryMap(IEnumerable<(int StartPage, ContentCategory? Category)> ranges)
+    public TocCategoryMap(IEnumerable<TocSectionEntry> entries)
     {
-        _ranges = ranges.OrderBy(static r => r.StartPage).ToArray();
+        var sorted = entries.OrderBy(static e => e.StartPage).ToArray();
+        _entries = new TocSectionEntry[sorted.Length];
+        for (int i = 0; i < sorted.Length; i++)
+        {
+            var endPage = sorted[i].EndPage
+                ?? (i + 1 < sorted.Length ? sorted[i + 1].StartPage - 1 : int.MaxValue);
+            _entries[i] = sorted[i] with { EndPage = endPage };
+        }
     }
 
-    public bool IsEmpty => _ranges.Length == 0;
+    public bool IsEmpty => _entries.Length == 0;
 
-    public ContentCategory? GetCategory(int pageNumber)
+    public ContentCategory? GetCategory(int pageNumber) => GetEntry(pageNumber)?.Category;
+
+    public TocSectionEntry? GetEntry(int pageNumber)
     {
-        ContentCategory? result = null;
-        foreach (var (startPage, category) in _ranges)
+        foreach (var entry in _entries)
         {
-            if (startPage > pageNumber) break;
-            result = category;
+            if (entry.StartPage <= pageNumber && pageNumber <= entry.EndPage!.Value)
+                return entry;
         }
-        return result;
+        return null;
     }
 }
