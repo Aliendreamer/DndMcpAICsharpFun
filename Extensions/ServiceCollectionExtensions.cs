@@ -63,7 +63,7 @@ internal static class ServiceCollectionExtensions
     internal static IServiceCollection AddIngestionPipeline(this IServiceCollection services)
     {
         services.AddScoped<IIngestionTracker, SqliteIngestionTracker>();
-        services.AddSingleton<IPdfTextExtractor, PdfPigTextExtractor>();
+        services.AddSingleton<IPdfStructuredExtractor, PdfPigStructuredExtractor>();
 
         services.AddScoped<IEmbeddingService, OllamaEmbeddingService>();
         services.AddScoped<IVectorStoreService, QdrantVectorStoreService>();
