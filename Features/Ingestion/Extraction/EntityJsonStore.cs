@@ -47,6 +47,12 @@ public sealed class EntityJsonStore(IOptions<IngestionOptions> options) : IEntit
             };
             if (e.PageEnd.HasValue)
                 node["page_end"] = e.PageEnd.Value;
+            if (e.SectionTitle is not null)
+                node["section_title"] = e.SectionTitle;
+            if (e.SectionStart.HasValue)
+                node["section_start"] = e.SectionStart.Value;
+            if (e.SectionEnd.HasValue)
+                node["section_end"] = e.SectionEnd.Value;
             entitiesArray.Add(node);
         }
 
@@ -187,15 +193,24 @@ public sealed class EntityJsonStore(IOptions<IngestionOptions> options) : IEntit
             if (node is not JsonObject o) continue;
             var data    = o["data"]?.AsObject() ?? new JsonObject();
             var pageEnd = o.ContainsKey("page_end") ? o["page_end"]?.GetValue<int>() : null;
+            int? sectionStart = null;
+            if (o["section_start"] is JsonValue ssVal && ssVal.TryGetValue<int>(out var ssInt))
+                sectionStart = ssInt;
+            int? sectionEnd = null;
+            if (o["section_end"] is JsonValue seVal && seVal.TryGetValue<int>(out var seInt))
+                sectionEnd = seInt;
             result.Add(new ExtractedEntity(
-                Page:       o["page"]?.GetValue<int>()           ?? 0,
-                SourceBook: o["source_book"]?.GetValue<string>() ?? string.Empty,
-                Version:    o["version"]?.GetValue<string>()     ?? string.Empty,
-                Partial:    o["partial"]?.GetValue<bool>()       ?? false,
-                Type:       o["type"]?.GetValue<string>()        ?? string.Empty,
-                Name:       o["name"]?.GetValue<string>()        ?? string.Empty,
-                Data:       data,
-                PageEnd:    pageEnd));
+                Page:         o["page"]?.GetValue<int>()           ?? 0,
+                SourceBook:   o["source_book"]?.GetValue<string>() ?? string.Empty,
+                Version:      o["version"]?.GetValue<string>()     ?? string.Empty,
+                Partial:      o["partial"]?.GetValue<bool>()       ?? false,
+                Type:         o["type"]?.GetValue<string>()        ?? string.Empty,
+                Name:         o["name"]?.GetValue<string>()        ?? string.Empty,
+                Data:         data,
+                PageEnd:      pageEnd,
+                SectionTitle: o["section_title"]?.GetValue<string>(),
+                SectionStart: sectionStart,
+                SectionEnd:   sectionEnd));
         }
         return result;
     }

@@ -8,4 +8,7 @@ public sealed record ChunkMetadata(
     string Chapter,
     int PageNumber,
     int ChunkIndex,
-    int? PageEnd = null);
+    int? PageEnd = null,
+    string? SectionTitle = null,
+    int? SectionStart = null,
+    int? SectionEnd = null);

@@ -29,14 +29,17 @@ public sealed class JsonIngestionPipeline(
                     version = DndVersion.Edition2014;
 
                 var metadata = new ChunkMetadata(
-                    SourceBook:  entity.SourceBook,
-                    Version:     version,
-                    Category:    category,
-                    EntityName:  entity.Name,
-                    Chapter:     string.Empty,
-                    PageNumber:  entity.Page,
-                    ChunkIndex:  chunkIndex++,
-                    PageEnd:     entity.PageEnd);
+                    SourceBook:   entity.SourceBook,
+                    Version:      version,
+                    Category:     category,
+                    EntityName:   entity.Name,
+                    Chapter:      string.Empty,
+                    PageNumber:   entity.Page,
+                    ChunkIndex:   chunkIndex++,
+                    PageEnd:      entity.PageEnd,
+                    SectionTitle: entity.SectionTitle,
+                    SectionStart: entity.SectionStart,
+                    SectionEnd:   entity.SectionEnd);
 
                 chunks.Add(new ContentChunk(description, metadata));
             }

@@ -136,7 +136,12 @@ public sealed partial class OllamaLlmEntityExtractor(
                     var name = obj["name"]?.GetValue<string>() ?? string.Empty;
                     var partial = obj["partial"]?.GetValue<bool>() ?? false;
                     var data = obj["data"]?.AsObject() ?? new JsonObject();
-                    results.Add(new ExtractedEntity(pageNumber, sourceBook, version, partial, entityType, name, data));
+                    results.Add(new ExtractedEntity(
+                        pageNumber, sourceBook, version, partial, entityType, name, data,
+                        PageEnd:      null,
+                        SectionTitle: entityName,
+                        SectionStart: sectionStartPage,
+                        SectionEnd:   sectionEndPage));
                 }
                 LogExtractDone(logger, entityType, pageNumber, results.Count, _model, sw.ElapsedMilliseconds);
                 return results;

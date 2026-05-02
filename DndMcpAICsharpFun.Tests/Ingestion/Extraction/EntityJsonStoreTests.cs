@@ -146,4 +146,45 @@ public sealed class EntityJsonStoreTests : IDisposable
 
         Assert.False(Directory.Exists(dir));
     }
+
+    [Fact]
+    public async Task SaveAndLoad_SectionFields_RoundtripCorrectly()
+    {
+        var page = MakePage(10, "section text");
+        var entity = new ExtractedEntity(
+            Page: 10, SourceBook: "PHB", Version: "Edition2014",
+            Partial: false, Type: "Class", Name: "Wizard",
+            Data: new JsonObject { ["description"] = "arcane mage" },
+            PageEnd: null,
+            SectionTitle: "Wizard",
+            SectionStart: 112,
+            SectionEnd: 121);
+
+        await _store.SavePageAsync(bookId: 77, page, [entity]);
+        var pages = await _store.LoadAllPagesAsync(77);
+
+        Assert.Single(pages);
+        var loaded = pages[0].Entities[0];
+        Assert.Equal("Wizard", loaded.SectionTitle);
+        Assert.Equal(112, loaded.SectionStart);
+        Assert.Equal(121, loaded.SectionEnd);
+    }
+
+    [Fact]
+    public async Task SaveAndLoad_NullSectionFields_RoundtripAsNull()
+    {
+        var page = MakePage(11);
+        var entity = new ExtractedEntity(
+            Page: 11, SourceBook: "PHB", Version: "Edition2014",
+            Partial: false, Type: "Rule", Name: "Proficiency",
+            Data: new JsonObject { ["description"] = "rules text" });
+
+        await _store.SavePageAsync(bookId: 88, page, [entity]);
+        var pages = await _store.LoadAllPagesAsync(88);
+
+        var loaded = pages[0].Entities[0];
+        Assert.Null(loaded.SectionTitle);
+        Assert.Null(loaded.SectionStart);
+        Assert.Null(loaded.SectionEnd);
+    }
 }

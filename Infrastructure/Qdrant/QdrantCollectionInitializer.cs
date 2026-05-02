@@ -61,11 +61,19 @@ public sealed partial class QdrantCollectionInitializer(
             QdrantPayloadFields.Version,
             QdrantPayloadFields.Category,
             QdrantPayloadFields.EntityName,
+            QdrantPayloadFields.SectionTitle,
         ];
         foreach (var field in keywordFields)
             await client.CreatePayloadIndexAsync(_options.CollectionName, field, PayloadSchemaType.Keyword, cancellationToken: ct);
 
-        string[] intFields = [QdrantPayloadFields.PageNumber, QdrantPayloadFields.ChunkIndex, QdrantPayloadFields.PageEnd];
+        string[] intFields =
+        [
+            QdrantPayloadFields.PageNumber,
+            QdrantPayloadFields.ChunkIndex,
+            QdrantPayloadFields.PageEnd,
+            QdrantPayloadFields.SectionStart,
+            QdrantPayloadFields.SectionEnd,
+        ];
         foreach (var field in intFields)
             await client.CreatePayloadIndexAsync(_options.CollectionName, field, PayloadSchemaType.Integer, cancellationToken: ct);
 

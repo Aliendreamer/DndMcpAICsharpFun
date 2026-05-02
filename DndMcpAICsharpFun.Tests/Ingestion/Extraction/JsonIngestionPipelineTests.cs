@@ -57,4 +57,31 @@ public sealed class JsonIngestionPipelineTests
             "abc123",
             Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task IngestAsync_PropagatesSectionFieldsToChunkMetadata()
+    {
+        var entity = new ExtractedEntity(
+            1, "PHB", "Edition2014", false, "Class", "Wizard",
+            new JsonObject { ["description"] = "arcane mage" },
+            PageEnd: null,
+            SectionTitle: "Wizard",
+            SectionStart: 112,
+            SectionEnd: 121);
+
+        _store.LoadAllPagesAsync(42).Returns(
+            Task.FromResult<IReadOnlyList<PageData>>(
+                [new PageData(1, string.Empty, [], [entity])]));
+
+        await _pipeline.IngestAsync(bookId: 42, fileHash: "abc123");
+
+        await _ingestor.Received(1).IngestAsync(
+            Arg.Is<IList<ContentChunk>>(chunks =>
+                chunks.Count == 1 &&
+                chunks[0].Metadata.SectionTitle == "Wizard" &&
+                chunks[0].Metadata.SectionStart == 112 &&
+                chunks[0].Metadata.SectionEnd == 121),
+            "abc123",
+            Arg.Any<CancellationToken>());
+    }
 }

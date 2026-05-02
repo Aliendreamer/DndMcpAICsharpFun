@@ -10,4 +10,7 @@ public sealed record ExtractedEntity(
     string Type,
     string Name,
     JsonObject Data,
-    int? PageEnd = null);
+    int? PageEnd = null,
+    string? SectionTitle = null,
+    int? SectionStart = null,
+    int? SectionEnd = null);
