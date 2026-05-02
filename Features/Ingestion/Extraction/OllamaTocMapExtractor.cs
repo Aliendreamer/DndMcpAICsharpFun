@@ -10,7 +10,7 @@ using OllamaSharp.Models.Chat;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Extraction;
 
-public sealed class OllamaTocMapExtractor(
+public sealed partial class OllamaTocMapExtractor(
     IOllamaApiClient ollama,
     IOptions<OllamaOptions> options,
     ILogger<OllamaTocMapExtractor> logger) : ITocMapExtractor
@@ -90,7 +90,7 @@ public sealed class OllamaTocMapExtractor(
             var array = JsonNode.Parse(json)?.AsArray();
             if (array is null)
             {
-                logger.LogWarning("TOC map extractor returned invalid JSON: {Json}", json[..Math.Min(200, json.Length)]);
+                LogInvalidJson(logger, json[..Math.Min(200, json.Length)]);
                 return [];
             }
 
@@ -112,13 +112,19 @@ public sealed class OllamaTocMapExtractor(
                     entries.Add(new TocSectionEntry(title, category, startPage, endPage));
             }
 
-            logger.LogInformation("TOC map extracted {Count} entries with {Model}", entries.Count, _model);
+            LogExtracted(logger, entries.Count, _model);
             return entries;
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
-            logger.LogWarning("TOC map extractor returned invalid JSON: {Json}", json[..Math.Min(200, json.Length)]);
+            LogInvalidJson(logger, json[..Math.Min(200, json.Length)]);
             return [];
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "TOC map extractor returned invalid JSON: {Json}")]
+    private static partial void LogInvalidJson(ILogger logger, string json);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "TOC map extracted {Count} entries with {Model}")]
+    private static partial void LogExtracted(ILogger logger, int count, string model);
 }
