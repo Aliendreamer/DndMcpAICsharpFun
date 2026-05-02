@@ -9,4 +9,5 @@ public sealed record ExtractedEntity(
     bool Partial,
     string Type,
     string Name,
-    JsonObject Data);
+    JsonObject Data,
+    int? PageEnd = null);

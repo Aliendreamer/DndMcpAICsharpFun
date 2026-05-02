@@ -7,5 +7,5 @@ public sealed record ChunkMetadata(
     string? EntityName,
     string Chapter,
     int PageNumber,
-    int ChunkIndex
-);
+    int ChunkIndex,
+    int? PageEnd = null);
