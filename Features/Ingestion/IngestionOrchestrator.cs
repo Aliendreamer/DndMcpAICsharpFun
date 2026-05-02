@@ -11,7 +11,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion;
 
 public sealed partial class IngestionOrchestrator(
     IIngestionTracker tracker,
-    IPdfTextExtractor extractor,
+    IPdfStructuredExtractor extractor,
     IVectorStoreService vectorStore,
     ILlmClassifier classifier,
     ILlmEntityExtractor entityExtractor,
@@ -65,48 +65,51 @@ public sealed partial class IngestionOrchestrator(
 
             var pages = extractor.ExtractPages(record.FilePath).ToList();
 
-            foreach (var (pageNumber, pageText) in pages)
+            foreach (var structuredPage in pages)
             {
-                if (pageText.Length < ingestionOptions.Value.MinPageCharacters)
+                if (structuredPage.RawText.Length < ingestionOptions.Value.MinPageCharacters)
                     continue;
+
+                var promptText = BuildPromptText(structuredPage.Blocks);
 
                 if (!tocMap.IsEmpty)
                 {
                     // TOC-guided: at most one LLM call per page
-                    var category = tocMap.GetCategory(pageNumber);
+                    var category = tocMap.GetCategory(structuredPage.PageNumber);
                     if (category is null)
                     {
                         // This page doesn't belong to any recognized D&D content section — skip it
                         continue;
                     }
 
-                    LogClassifyingPage(logger, pageNumber, pages.Count, recordId);
+                    LogClassifyingPage(logger, structuredPage.PageNumber, pages.Count, recordId);
                     var extracted = await entityExtractor.ExtractAsync(
-                        pageText, category.Value.ToString(), pageNumber,
+                        promptText, category.Value.ToString(), structuredPage.PageNumber,
                         record.DisplayName, record.Version, cancellationToken);
 
                     if (extracted.Count > 0)
-                        await jsonStore.SavePageAsync(recordId, new Domain.StructuredPage(pageNumber, pageText, [new Domain.PageBlock(1, "body", pageText)]), extracted, cancellationToken);
+                        await jsonStore.SavePageAsync(recordId, structuredPage, extracted, cancellationToken);
                 }
                 else
                 {
                     // Fallback: run all category extractors (original behavior)
-                    LogClassifyingPage(logger, pageNumber, pages.Count, recordId);
-                    var types = await classifier.ClassifyPageAsync(pageText, cancellationToken);
+                    LogClassifyingPage(logger, structuredPage.PageNumber, pages.Count, recordId);
+                    var types = await classifier.ClassifyPageAsync(structuredPage.RawText, cancellationToken);
                     var pageEntities = new List<ExtractedEntity>();
 
                     foreach (var type in types)
                     {
                         var extracted = await entityExtractor.ExtractAsync(
-                            pageText, type, pageNumber, record.DisplayName, record.Version, cancellationToken);
+                            promptText, type, structuredPage.PageNumber,
+                            record.DisplayName, record.Version, cancellationToken);
                         pageEntities.AddRange(extracted);
                     }
 
                     if (pageEntities.Count > 0)
-                        await jsonStore.SavePageAsync(recordId, new Domain.StructuredPage(pageNumber, pageText, [new Domain.PageBlock(1, "body", pageText)]), pageEntities, cancellationToken);
+                        await jsonStore.SavePageAsync(recordId, structuredPage, pageEntities, cancellationToken);
                 }
 
-                LogExtractedPage(logger, pageNumber, pages.Count, recordId);
+                LogExtractedPage(logger, structuredPage.PageNumber, pages.Count, recordId);
             }
 
             await tracker.MarkExtractedAsync(recordId, cancellationToken);
@@ -180,6 +183,65 @@ public sealed partial class IngestionOrchestrator(
         await tracker.DeleteAsync(id, cancellationToken);
         LogBookDeleted(logger, record.DisplayName, id);
         return DeleteBookResult.Deleted;
+    }
+
+    public async Task<PageData?> ExtractSinglePageAsync(
+        int bookId, int pageNumber, bool save, CancellationToken ct = default)
+    {
+        var record = await tracker.GetByIdAsync(bookId, ct);
+        if (record is null) return null;
+
+        var structuredPage = extractor.ExtractSinglePage(record.FilePath, pageNumber);
+        if (structuredPage is null) return null;
+
+        var promptText = BuildPromptText(structuredPage.Blocks);
+        var bookmarks  = bookmarkReader.ReadBookmarks(record.FilePath);
+        var tocMap     = await tocClassifier.ClassifyAsync(bookmarks, ct);
+
+        List<ExtractedEntity> entities;
+        var category = tocMap.IsEmpty ? null : tocMap.GetCategory(pageNumber);
+
+        if (category is not null)
+        {
+            entities = [.. await entityExtractor.ExtractAsync(
+                promptText, category.Value.ToString(), pageNumber,
+                record.DisplayName, record.Version, ct)];
+        }
+        else
+        {
+            var types = await classifier.ClassifyPageAsync(structuredPage.RawText, ct);
+            entities = [];
+            foreach (var type in types)
+            {
+                var extracted = await entityExtractor.ExtractAsync(
+                    promptText, type, pageNumber, record.DisplayName, record.Version, ct);
+                entities.AddRange(extracted);
+            }
+        }
+
+        var pageData = new PageData(pageNumber, structuredPage.RawText, structuredPage.Blocks, entities);
+
+        if (save)
+            await jsonStore.SavePageAsync(bookId, structuredPage, entities, ct);
+
+        return pageData;
+    }
+
+    internal static string BuildPromptText(IReadOnlyList<PageBlock> blocks)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var block in blocks)
+        {
+            var prefix = block.Level switch
+            {
+                "h1" => "[H1] ",
+                "h2" => "[H2] ",
+                "h3" => "[H3] ",
+                _    => string.Empty
+            };
+            sb.AppendLine(prefix + block.Text);
+        }
+        return sb.ToString().TrimEnd();
     }
 
     private static async Task<string> ComputeHashAsync(string filePath, CancellationToken ct)
