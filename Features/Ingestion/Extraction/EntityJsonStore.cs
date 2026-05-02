@@ -192,13 +192,9 @@ public sealed class EntityJsonStore(IOptions<IngestionOptions> options) : IEntit
         {
             if (node is not JsonObject o) continue;
             var data    = o["data"]?.AsObject() ?? new JsonObject();
-            var pageEnd = o.ContainsKey("page_end") ? o["page_end"]?.GetValue<int>() : null;
-            int? sectionStart = null;
-            if (o["section_start"] is JsonValue ssVal && ssVal.TryGetValue<int>(out var ssInt))
-                sectionStart = ssInt;
-            int? sectionEnd = null;
-            if (o["section_end"] is JsonValue seVal && seVal.TryGetValue<int>(out var seInt))
-                sectionEnd = seInt;
+            var pageEnd      = o.ContainsKey("page_end")      ? o["page_end"]?.GetValue<int>()      : null;
+            var sectionStart = o.ContainsKey("section_start") ? o["section_start"]?.GetValue<int>() : null;
+            var sectionEnd   = o.ContainsKey("section_end")   ? o["section_end"]?.GetValue<int>()   : null;
             result.Add(new ExtractedEntity(
                 Page:         o["page"]?.GetValue<int>()           ?? 0,
                 SourceBook:   o["source_book"]?.GetValue<string>() ?? string.Empty,
