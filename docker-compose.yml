@@ -73,7 +73,7 @@ services:
     image: ollama/ollama:latest
     volumes:
       - ollama_data:/root/.ollama
-    entrypoint: ["/bin/sh", "-c", "ollama pull nomic-embed-text && ollama pull llama3.2"]
+    entrypoint: ["/bin/sh", "-c", "ollama pull mxbai-embed-large && ollama pull llama3.2"]
     environment:
       - OLLAMA_HOST=http://ollama:11434
     depends_on:
@@ -138,6 +138,8 @@ services:
     restart: unless-stopped
 
 volumes:
+  # WARNING: Changing Qdrant:VectorSize in appsettings.json requires wiping this volume.
+  # Run: docker compose down -v && docker compose up -d
   qdrant_data:
   app_data:
   ollama_data:
