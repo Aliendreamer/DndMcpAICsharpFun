@@ -8,5 +8,4 @@ public sealed class IngestionOptions
     public int MaxChunkTokens { get; set; } = 512;
     public int OverlapTokens { get; set; } = 64;
     public int EmbeddingBatchSize { get; set; } = 2;
-    public int LlmExtractionRetries { get; set; } = 1;
 }

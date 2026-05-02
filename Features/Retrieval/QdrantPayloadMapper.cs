@@ -15,8 +15,15 @@ public static class QdrantPayloadMapper
             EntityName: GetStringOrNull(payload, QdrantPayloadFields.EntityName),
             Chapter: GetString(payload, QdrantPayloadFields.Chapter),
             PageNumber: GetInt(payload, QdrantPayloadFields.PageNumber),
-            ChunkIndex: GetInt(payload, QdrantPayloadFields.ChunkIndex));
+            ChunkIndex: GetInt(payload, QdrantPayloadFields.ChunkIndex),
+            PageEnd: GetIntOrNull(payload, QdrantPayloadFields.PageEnd),
+            SectionTitle: GetStringOrNull(payload, QdrantPayloadFields.SectionTitle),
+            SectionStart: GetIntOrNull(payload, QdrantPayloadFields.SectionStart),
+            SectionEnd: GetIntOrNull(payload, QdrantPayloadFields.SectionEnd));
     }
+
+    private static int? GetIntOrNull(IReadOnlyDictionary<string, Value> payload, string key)
+        => payload.TryGetValue(key, out var v) ? (int)v.IntegerValue : null;
 
     public static string GetText(IReadOnlyDictionary<string, Value> payload)
         => GetString(payload, QdrantPayloadFields.Text);

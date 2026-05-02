@@ -21,6 +21,7 @@ public static class BookmarkTocMapper
         if (Contains(t, "spell")) return ContentCategory.Spell;
         if (ContainsAny(t, "monster", "bestiary", "creature")) return ContentCategory.Monster;
         if (ContainsAny(t, "equipment", "gear", "weapon", "armor", "armour", "magic item")) return ContentCategory.Item;
+        if (ContainsAny(t, "feat", "trait", "personality")) return ContentCategory.Trait;
         if (ContainsAny(t, "background")) return ContentCategory.Background;
         if (ContainsAny(t, "race", "species")) return ContentCategory.Race;
         if (ContainsAny(t, "class", "barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard")) return ContentCategory.Class;
@@ -30,7 +31,6 @@ public static class BookmarkTocMapper
         if (ContainsAny(t, "treasure", "loot", "hoard")) return ContentCategory.Treasure;
         if (ContainsAny(t, "encounter")) return ContentCategory.Encounter;
         if (ContainsAny(t, "trap")) return ContentCategory.Trap;
-        if (ContainsAny(t, "feat", "trait", "personality")) return ContentCategory.Trait;
         if (ContainsAny(t, "lore", "history", "world")) return ContentCategory.Lore;
         if (ContainsAny(t, "combat", "attack")) return ContentCategory.Combat;
         if (ContainsAny(t, "adventuring", "exploration", "resting", "travel")) return ContentCategory.Adventuring;

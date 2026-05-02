@@ -2,12 +2,9 @@ using System.Diagnostics.CodeAnalysis;
 
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Ingestion;
-using DndMcpAICsharpFun.Features.Ingestion.Extraction;
-using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -20,13 +17,26 @@ public static partial class BooksAdminEndpoints
     {
         group.MapPost("/books/register", RegisterBook).DisableAntiforgery();
         group.MapGet("/books", GetAllBooks);
-        group.MapGet("/books/{id:int}/extract", ExtractBook).DisableAntiforgery();
-        group.MapGet("/books/{id:int}/extracted", GetExtracted);
-        group.MapPost("/books/{id:int}/ingest-json", IngestJson).DisableAntiforgery();
         group.MapDelete("/books/{id:int}", DeleteBook);
-        group.MapPost("/books/{id:int}/cancel-extract", CancelExtract).DisableAntiforgery();
-        group.MapPost("/books/{id:int}/extract-page/{pageNumber:int}", ExtractPage).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/ingest-blocks", IngestBlocks).DisableAntiforgery();
         return group;
+    }
+
+    private static async Task<IResult> IngestBlocks(
+        int id,
+        IIngestionTracker tracker,
+        IIngestionQueue queue,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        if (record.Status == IngestionStatus.Processing)
+            return Results.Conflict("Book is currently processing.");
+
+        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestBlocks, id));
+        return Results.Accepted($"/admin/books/{id}");
     }
 
     private static async Task<IResult> RegisterBook(
@@ -127,60 +137,18 @@ public static partial class BooksAdminEndpoints
         return Results.Ok(records);
     }
 
-    private static async Task<IResult> ExtractBook(
-        int id,
-        IIngestionTracker tracker,
-        IIngestionQueue queue,
-        CancellationToken ct)
-    {
-        var record = await tracker.GetByIdAsync(id, ct);
-        if (record is null)
-            return Results.NotFound($"Book with id {id} not found");
+    
 
-        if (record.Status == IngestionStatus.Processing)
-            return Results.Conflict("Book is currently processing. Wait before re-extracting.");
+    
 
-        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.Extract, id));
-        return Results.Accepted($"/admin/books/{id}");
-    }
-
-    private static async Task<IResult> GetExtracted(
-        int id,
-        IIngestionTracker tracker,
-        IEntityJsonStore jsonStore,
-        CancellationToken ct)
-    {
-        var record = await tracker.GetByIdAsync(id, ct);
-        if (record is null)
-            return Results.NotFound($"Book with id {id} not found");
-
-        var files = jsonStore.ListPageFiles(id).ToList();
-        return Results.Ok(new { BookId = id, FileCount = files.Count, Files = files });
-    }
-
-    private static async Task<IResult> IngestJson(
-        int id,
-        IIngestionTracker tracker,
-        IIngestionQueue queue,
-        CancellationToken ct)
-    {
-        var record = await tracker.GetByIdAsync(id, ct);
-        if (record is null)
-            return Results.NotFound($"Book with id {id} not found");
-
-        if (record.Status == IngestionStatus.Processing)
-            return Results.Conflict("Book is currently processing.");
-
-        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestJson, id));
-        return Results.Accepted($"/admin/books/{id}");
-    }
+    
 
     private static async Task<IResult> DeleteBook(
         int id,
-        IIngestionOrchestrator orchestrator,
+        IBookDeletionService deletionService,
         CancellationToken ct)
     {
-        var result = await orchestrator.DeleteBookAsync(id, ct);
+        var result = await deletionService.DeleteBookAsync(id, ct);
         return result switch
         {
             DeleteBookResult.Deleted => Results.NoContent(),
@@ -190,40 +158,9 @@ public static partial class BooksAdminEndpoints
         };
     }
 
-    private static IResult CancelExtract(
-        int id,
-        IExtractionCancellationRegistry cancellationRegistry)
-    {
-        var cancelled = cancellationRegistry.Cancel(id);
-        return cancelled ? Results.Ok() : Results.NotFound();
-    }
+    
 
-    private static async Task<IResult> ExtractPage(
-        int id,
-        int pageNumber,
-        IIngestionOrchestrator orchestrator,
-        IPdfStructuredExtractor extractor,
-        IIngestionTracker tracker,
-        CancellationToken ct,
-        [FromQuery] bool? save = null)
-    {
-        var record = await tracker.GetByIdAsync(id, ct);
-        if (record is null)
-            return Results.NotFound($"Book with id {id} not found");
-
-        using var document = UglyToad.PdfPig.PdfDocument.Open(record.FilePath);
-        var totalPages = document.NumberOfPages;
-        if (pageNumber < 1 || pageNumber > totalPages)
-            return Results.Problem(
-                $"Page {pageNumber} is out of range. Book has {totalPages} pages.",
-                statusCode: 400);
-
-        var pageData = await orchestrator.ExtractSinglePageAsync(id, pageNumber, save ?? false, ct);
-        if (pageData is null)
-            return Results.NotFound($"Book with id {id} not found");
-
-        return Results.Ok(pageData);
-    }
+    
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Registered book {DisplayName} (id={Id}, file={File})")]
     private static partial void LogBookRegistered(ILogger logger, string displayName, int id, string file);

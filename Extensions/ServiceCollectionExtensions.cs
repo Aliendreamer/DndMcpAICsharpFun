@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion;
-using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
@@ -67,13 +66,9 @@ internal static class ServiceCollectionExtensions
 
         services.AddScoped<IEmbeddingService, OllamaEmbeddingService>();
         services.AddScoped<IVectorStoreService, QdrantVectorStoreService>();
-        services.AddScoped<IEmbeddingIngestor, EmbeddingIngestor>();
 
-        services.AddScoped<IIngestionOrchestrator, IngestionOrchestrator>();
-
-        services.AddScoped<ILlmEntityExtractor, OllamaLlmEntityExtractor>();
-        services.AddSingleton<IEntityJsonStore, EntityJsonStore>();
-        services.AddScoped<IJsonIngestionPipeline, JsonIngestionPipeline>();
+        services.AddScoped<IBlockIngestionOrchestrator, BlockIngestionOrchestrator>();
+        services.AddScoped<IBookDeletionService, BookDeletionService>();
 
         services.AddHostedService<QdrantCollectionInitializer>();
 
@@ -82,7 +77,7 @@ internal static class ServiceCollectionExtensions
         services.AddHostedService(sp => sp.GetRequiredService<IngestionQueueWorker>());
 
         services.AddSingleton<IPdfBookmarkReader, PdfPigBookmarkReader>();
-        services.AddSingleton<IExtractionCancellationRegistry, ExtractionCancellationRegistry>();
+        services.AddSingleton<IPdfBlockExtractor, PdfPigBlockExtractor>();
 
         return services;
     }

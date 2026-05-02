@@ -11,6 +11,8 @@ public sealed partial class OllamaEmbeddingService(
     IOptions<OllamaOptions> options,
     ILogger<OllamaEmbeddingService> logger) : IEmbeddingService
 {
+    private const int MaxEmbedChars = 1500;
+
     private readonly string _model = options.Value.EmbeddingModel;
 
     public async Task<IList<float[]>> EmbedAsync(IList<string> texts, CancellationToken ct = default)
@@ -18,13 +20,30 @@ public sealed partial class OllamaEmbeddingService(
         LogEmbedBatchStart(logger, texts.Count, _model);
         var sw = Stopwatch.StartNew();
 
+        var prepared = new string[texts.Count];
+        var truncated = 0;
+        for (var i = 0; i < texts.Count; i++)
+        {
+            var t = texts[i] ?? string.Empty;
+            if (t.Length > MaxEmbedChars)
+            {
+                prepared[i] = t[..MaxEmbedChars];
+                truncated++;
+            }
+            else
+            {
+                prepared[i] = t;
+            }
+        }
+        if (truncated > 0)
+            LogTruncated(logger, truncated, texts.Count, MaxEmbedChars);
+
         try
         {
             var request = new EmbedRequest
             {
                 Model = _model,
-                Input = [.. texts],
-                Options = new OllamaSharp.Models.RequestOptions { NumCtx = 2048 },
+                Input = [.. prepared],
                 Truncate = true
             };
             var response = await client.EmbedAsync(request, ct);
@@ -43,4 +62,7 @@ public sealed partial class OllamaEmbeddingService(
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Embedded {ChunkCount} chunks with {Model} in {ElapsedMs}ms")]
     private static partial void LogEmbedBatchDone(ILogger logger, int chunkCount, string model, long elapsedMs);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Truncated {Count}/{Total} inputs to {MaxChars} chars before embedding")]
+    private static partial void LogTruncated(ILogger logger, int count, int total, int maxChars);
 }

@@ -13,7 +13,7 @@ public sealed class RagRetrievalServiceTests
 
     private RagRetrievalService BuildSut(int maxTopK = 20, float scoreThreshold = 0.5f) =>
         new(_qdrant, _embedding,
-            Options.Create(new QdrantOptions { CollectionName = "test-col" }),
+            Options.Create(new QdrantOptions { BlocksCollectionName = "test-col" }),
             Options.Create(new RetrievalOptions { MaxTopK = maxTopK, ScoreThreshold = scoreThreshold }));
 
     private void SetupEmbed() =>

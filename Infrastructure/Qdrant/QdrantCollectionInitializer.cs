@@ -22,38 +22,42 @@ public sealed partial class QdrantCollectionInitializer(
         {
             try
             {
-                var exists = await client.CollectionExistsAsync(_options.CollectionName, cancellationToken);
-                if (exists)
-                {
-                    LogCollectionExists(logger, _options.CollectionName);
-                    return;
-                }
-
-                await client.CreateCollectionAsync(
-                    _options.CollectionName,
-                    new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine },
-                    cancellationToken: cancellationToken);
-
-                LogCollectionCreated(logger, _options.CollectionName, _options.VectorSize);
-
-                await CreatePayloadIndexesAsync(cancellationToken);
+                await EnsureCollectionAsync(_options.BlocksCollectionName, cancellationToken);
                 return;
             }
             catch (Exception ex) when (attempt < maxAttempts)
             {
-                LogCollectionInitRetry(logger, ex, _options.CollectionName, attempt, maxAttempts, delaySeconds);
+                LogCollectionInitRetry(logger, ex, _options.BlocksCollectionName, attempt, maxAttempts, delaySeconds);
                 await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
             }
             catch (Exception ex)
             {
-                LogCollectionInitFailed(logger, ex, _options.CollectionName);
+                LogCollectionInitFailed(logger, ex, _options.BlocksCollectionName);
+                return;
             }
         }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    private async Task CreatePayloadIndexesAsync(CancellationToken ct)
+    private async Task EnsureCollectionAsync(string name, CancellationToken ct)
+    {
+        if (await client.CollectionExistsAsync(name, ct))
+        {
+            LogCollectionExists(logger, name);
+            return;
+        }
+
+        await client.CreateCollectionAsync(
+            name,
+            new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine },
+            cancellationToken: ct);
+        LogCollectionCreated(logger, name, _options.VectorSize);
+
+        await CreatePayloadIndexesAsync(name, ct);
+    }
+
+    private async Task CreatePayloadIndexesAsync(string collection, CancellationToken ct)
     {
         string[] keywordFields =
         [
@@ -64,7 +68,7 @@ public sealed partial class QdrantCollectionInitializer(
             QdrantPayloadFields.SectionTitle,
         ];
         foreach (var field in keywordFields)
-            await client.CreatePayloadIndexAsync(_options.CollectionName, field, PayloadSchemaType.Keyword, cancellationToken: ct);
+            await client.CreatePayloadIndexAsync(collection, field, PayloadSchemaType.Keyword, cancellationToken: ct);
 
         string[] intFields =
         [
@@ -73,11 +77,12 @@ public sealed partial class QdrantCollectionInitializer(
             QdrantPayloadFields.PageEnd,
             QdrantPayloadFields.SectionStart,
             QdrantPayloadFields.SectionEnd,
+            QdrantPayloadFields.BlockOrder,
         ];
         foreach (var field in intFields)
-            await client.CreatePayloadIndexAsync(_options.CollectionName, field, PayloadSchemaType.Integer, cancellationToken: ct);
+            await client.CreatePayloadIndexAsync(collection, field, PayloadSchemaType.Integer, cancellationToken: ct);
 
-        LogPayloadIndexesCreated(logger, _options.CollectionName);
+        LogPayloadIndexesCreated(logger, collection);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Qdrant collection '{Collection}' already exists")]

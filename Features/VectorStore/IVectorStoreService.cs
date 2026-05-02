@@ -1,12 +1,10 @@
-using DndMcpAICsharpFun.Domain;
-
 namespace DndMcpAICsharpFun.Features.VectorStore;
 
 public interface IVectorStoreService
 {
-    Task UpsertAsync(
-        IList<(ContentChunk Chunk, float[] Vector, string FileHash)> points,
+    Task UpsertBlocksAsync(
+        IList<(BlockChunk Chunk, float[] Vector, string FileHash)> points,
         CancellationToken ct = default);
 
-    Task DeleteByHashAsync(string fileHash, int chunkCount, CancellationToken ct = default);
+    Task DeleteBlocksByHashAsync(string fileHash, int blockCount, CancellationToken ct = default);
 }

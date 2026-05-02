@@ -87,7 +87,7 @@ services:
       [
         "/bin/sh",
         "-c",
-        "ollama pull mxbai-embed-large && ollama pull qwen2.5:7b",
+        "ollama pull mxbai-embed-large",
       ]
     environment:
       - OLLAMA_HOST=ollama:11434

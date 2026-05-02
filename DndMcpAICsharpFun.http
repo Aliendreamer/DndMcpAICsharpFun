@@ -1,5 +1,5 @@
-@baseUrl = http://localhost:5101
-@adminKey = xxxxx
+@baseUrl = http:\\localhost:5101
+@adminKey = devXXXdev
 
 ### Health — Liveness
 GET {{baseUrl}}/health
@@ -14,8 +14,9 @@ GET {{baseUrl}}/health/ready
 
 # ── Admin — Books ────────────────────────────────────────────────────────────
 # All admin requests require X-Admin-Api-Key header.
+# Lifecycle: register (multipart upload) → ingest-blocks (no-LLM end-to-end) → optional delete.
 
-### Admin Books — Register a PDF (stays Pending; call /extract or /ingest-json to start the pipeline)
+### Admin Books — Register a PDF (stays Pending; call /ingest-blocks to process)
 POST {{baseUrl}}/admin/books/register
 X-Admin-Api-Key: {{adminKey}}
 Content-Type: multipart/form-data; boundary=----Boundary
@@ -43,24 +44,12 @@ PlayerHandbook 2014
 GET {{baseUrl}}/admin/books
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Extract book with LLM (fires Stage 1 in background)
-GET {{baseUrl}}/admin/books/1/extract
-X-Admin-Api-Key: {{adminKey}}
-
-### Admin Books — List extracted JSON files for a book
-GET {{baseUrl}}/admin/books/1/extracted
-X-Admin-Api-Key: {{adminKey}}
-
-### Admin Books — Ingest from extracted JSON (fires Stage 2 in background)
-POST {{baseUrl}}/admin/books/1/ingest-json
+### Admin Books — Ingest blocks (no-LLM path: Docstrum blocks + bookmark metadata, embed direct to dnd_blocks)
+POST {{baseUrl}}/admin/books/1/ingest-blocks
 X-Admin-Api-Key: {{adminKey}}
 
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
-X-Admin-Api-Key: {{adminKey}}
-
-### Admin Books — Cancel an in-progress extraction for book 1
-POST {{baseUrl}}/admin/books/1/cancel-extract
 X-Admin-Api-Key: {{adminKey}}
 
 ###
@@ -68,7 +57,7 @@ X-Admin-Api-Key: {{adminKey}}
 # ── Qdrant — Direct collection management ─────────────────────────────────────
 # Call these directly against Qdrant (port 6333), not the app.
 @qdrantUrl = http://localhost:6333
-@collectionName = dnd_chunks
+@collectionName = dnd_blocks
 
 ### Qdrant — Delete entire collection (wipes all vectors; app recreates it on restart)
 DELETE {{qdrantUrl}}/collections/{{collectionName}}
@@ -96,13 +85,3 @@ X-Admin-Api-Key: {{adminKey}}
 
 ### Metrics — Prometheus scraping endpoint
 GET {{baseUrl}}/metrics
-
-# ── Single-page extraction ────────────────────────────────────────────────────
-
-### Extract single page (inspect result, no save)
-POST {{baseUrl}}/admin/books/1/extract-page/51
-X-Admin-Api-Key: {{adminKey}}
-
-### Extract single page and persist to disk
-POST {{baseUrl}}/admin/books/1/extract-page/51?save=true
-X-Admin-Api-Key: {{adminKey}}

@@ -14,4 +14,5 @@ public static class QdrantPayloadFields
     public const string SectionTitle = "section_title";
     public const string SectionStart = "section_start";
     public const string SectionEnd   = "section_end";
+    public const string BlockOrder   = "block_order";
 }

@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
-using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using Microsoft.Extensions.Options;
 using Qdrant.Client;
@@ -16,61 +15,45 @@ public sealed partial class QdrantVectorStoreService(
     IOptions<QdrantOptions> options,
     ILogger<QdrantVectorStoreService> logger) : IVectorStoreService
 {
-    private readonly string _collectionName = options.Value.CollectionName;
+    private readonly string _blocksCollectionName = options.Value.BlocksCollectionName;
 
-    public async Task UpsertAsync(
-        IList<(ContentChunk Chunk, float[] Vector, string FileHash)> points,
+    public async Task UpsertBlocksAsync(
+        IList<(BlockChunk Chunk, float[] Vector, string FileHash)> points,
         CancellationToken ct = default)
     {
-        var qdrantPoints = points.Select(p => BuildPoint(p.Chunk, p.Vector, p.FileHash)).ToList();
-        LogUpsertStart(logger, qdrantPoints.Count, _collectionName);
+        var qdrantPoints = points.Select(p => BuildBlockPoint(p.Chunk, p.Vector, p.FileHash)).ToList();
+        LogUpsertStart(logger, qdrantPoints.Count, _blocksCollectionName);
         var sw = Stopwatch.StartNew();
-        await client.UpsertAsync(_collectionName, qdrantPoints, cancellationToken: ct);
-        LogUpsertDone(logger, qdrantPoints.Count, _collectionName, sw.ElapsedMilliseconds);
+        await client.UpsertAsync(_blocksCollectionName, qdrantPoints, cancellationToken: ct);
+        LogUpsertDone(logger, qdrantPoints.Count, _blocksCollectionName, sw.ElapsedMilliseconds);
     }
 
-    public async Task DeleteByHashAsync(string fileHash, int chunkCount, CancellationToken ct = default)
+    public async Task DeleteBlocksByHashAsync(string fileHash, int blockCount, CancellationToken ct = default)
     {
-        var ids = Enumerable.Range(0, chunkCount)
+        var ids = Enumerable.Range(0, blockCount)
             .Select(i => DerivePointId(fileHash, i))
             .ToList();
-        await client.DeleteAsync(_collectionName, ids, cancellationToken: ct);
+        await client.DeleteAsync(_blocksCollectionName, ids, cancellationToken: ct);
     }
 
-    private static PointStruct BuildPoint(ContentChunk chunk, float[] vector, string fileHash)
+    private static PointStruct BuildBlockPoint(BlockChunk chunk, float[] vector, string fileHash)
     {
         var meta = chunk.Metadata;
-        var pointId = DerivePointId(fileHash, meta.ChunkIndex);
-
         var point = new PointStruct
         {
-            Id = pointId,
+            Id = DerivePointId(fileHash, meta.GlobalIndex),
             Vectors = vector,
         };
-
-        point.Payload[QdrantPayloadFields.Text]       = chunk.Text;
-        point.Payload[QdrantPayloadFields.SourceBook] = meta.SourceBook;
-        point.Payload[QdrantPayloadFields.Version]    = meta.Version.ToString();
-        point.Payload[QdrantPayloadFields.Category]   = meta.Category.ToString();
-        point.Payload[QdrantPayloadFields.Chapter]    = meta.Chapter;
-        point.Payload[QdrantPayloadFields.PageNumber] = (long)meta.PageNumber;
-        point.Payload[QdrantPayloadFields.ChunkIndex] = (long)meta.ChunkIndex;
-
-        if (meta.EntityName is not null)
-            point.Payload[QdrantPayloadFields.EntityName] = meta.EntityName;
-
-        if (meta.PageEnd.HasValue)
-            point.Payload[QdrantPayloadFields.PageEnd] = (long)meta.PageEnd.Value;
-
-        if (meta.SectionTitle is not null)
-            point.Payload[QdrantPayloadFields.SectionTitle] = meta.SectionTitle;
-
-        if (meta.SectionStart.HasValue)
-            point.Payload[QdrantPayloadFields.SectionStart] = (long)meta.SectionStart.Value;
-
-        if (meta.SectionEnd.HasValue)
-            point.Payload[QdrantPayloadFields.SectionEnd] = (long)meta.SectionEnd.Value;
-
+        point.Payload[QdrantPayloadFields.Text]         = chunk.Text;
+        point.Payload[QdrantPayloadFields.SourceBook]   = meta.SourceBook;
+        point.Payload[QdrantPayloadFields.Version]      = meta.Version.ToString();
+        point.Payload[QdrantPayloadFields.Category]     = meta.Category.ToString();
+        point.Payload[QdrantPayloadFields.SectionTitle] = meta.SectionTitle;
+        point.Payload[QdrantPayloadFields.SectionStart] = (long)meta.SectionStart;
+        point.Payload[QdrantPayloadFields.SectionEnd]   = (long)meta.SectionEnd;
+        point.Payload[QdrantPayloadFields.PageNumber]   = (long)meta.PageNumber;
+        point.Payload[QdrantPayloadFields.BlockOrder]   = (long)meta.BlockOrder;
+        point.Payload[QdrantPayloadFields.ChunkIndex]   = (long)meta.GlobalIndex;
         return point;
     }
 
@@ -78,7 +61,6 @@ public sealed partial class QdrantVectorStoreService(
     {
         var input = Encoding.UTF8.GetBytes(fileHash + chunkIndex.ToString());
         var hash = SHA256.HashData(input);
-        // Use first 16 bytes as a deterministic Guid
         return new Guid(hash[..16]);
     }
 

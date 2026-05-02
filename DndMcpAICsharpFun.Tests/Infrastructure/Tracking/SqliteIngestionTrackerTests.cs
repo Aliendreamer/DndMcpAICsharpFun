@@ -76,21 +76,6 @@ public sealed class SqliteIngestionTrackerTests : IDisposable
     }
 
     [Fact]
-    public async Task MarkExtractedAsync_SetsStatusExtracted()
-    {
-        var writer = _fixture.CreateTracker();
-        var created = await writer.CreateAsync(TrackerFixture.SampleRecord());
-
-        var updater = _fixture.CreateTracker();
-        await updater.MarkExtractedAsync(created.Id);
-
-        var reader = _fixture.CreateTracker();
-        var updated = await reader.GetByIdAsync(created.Id);
-        Assert.NotNull(updated);
-        Assert.Equal(IngestionStatus.Extracted, updated.Status);
-    }
-
-    [Fact]
     public async Task MarkJsonIngestedAsync_SetsStatusAndChunkCount()
     {
         var writer = _fixture.CreateTracker();

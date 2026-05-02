@@ -11,7 +11,7 @@ public sealed class RagRetrievalService(
     IOptions<QdrantOptions> qdrantOptions,
     IOptions<RetrievalOptions> retrievalOptions) : IRagRetrievalService
 {
-    private readonly string _collectionName = qdrantOptions.Value.CollectionName;
+    private readonly string _collectionName = qdrantOptions.Value.BlocksCollectionName;
     private readonly RetrievalOptions _options = retrievalOptions.Value;
 
     public async Task<IList<RetrievalResult>> SearchAsync(RetrievalQuery query, CancellationToken ct = default)

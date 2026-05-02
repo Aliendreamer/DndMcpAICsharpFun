@@ -1,6 +1,6 @@
 namespace DndMcpAICsharpFun.Features.Ingestion;
 
-public enum IngestionWorkType { Extract, IngestJson }
+public enum IngestionWorkType { IngestBlocks }
 
 public record IngestionWorkItem(IngestionWorkType Type, int BookId);
 
