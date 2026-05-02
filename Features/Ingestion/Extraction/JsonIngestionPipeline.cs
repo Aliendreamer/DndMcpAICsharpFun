@@ -35,7 +35,8 @@ public sealed class JsonIngestionPipeline(
                     EntityName:  entity.Name,
                     Chapter:     string.Empty,
                     PageNumber:  entity.Page,
-                    ChunkIndex:  chunkIndex++);
+                    ChunkIndex:  chunkIndex++,
+                    PageEnd:     entity.PageEnd);
 
                 chunks.Add(new ContentChunk(description, metadata));
             }
