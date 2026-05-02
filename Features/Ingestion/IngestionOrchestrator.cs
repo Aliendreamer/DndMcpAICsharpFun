@@ -18,8 +18,6 @@ public sealed partial class IngestionOrchestrator(
     IEntityJsonStore jsonStore,
     IJsonIngestionPipeline jsonPipeline,
     IOptions<IngestionOptions> ingestionOptions,
-    IPdfBookmarkReader bookmarkReader,
-    ITocCategoryClassifier tocClassifier,
     ILogger<IngestionOrchestrator> logger) : IIngestionOrchestrator
 {
     public async Task ExtractBookAsync(int recordId, CancellationToken cancellationToken = default)
@@ -53,10 +51,8 @@ public sealed partial class IngestionOrchestrator(
                 await tracker.ResetForReingestionAsync(recordId, CancellationToken.None);
             }
 
-            // TOC-guided classification: read bookmarks and classify into a category map
-            var bookmarks = bookmarkReader.ReadBookmarks(record.FilePath);
-            LogClassifyingToc(logger, bookmarks.Count, recordId);
-            var tocMap = await tocClassifier.ClassifyAsync(bookmarks, cancellationToken);
+            // TOC-guided classification: placeholder until Task 4 rewires with ITocMapExtractor
+            var tocMap = new TocCategoryMap([]);
 
             if (tocMap.IsEmpty)
                 LogTocFallback(logger, record.DisplayName, recordId);
@@ -87,8 +83,7 @@ public sealed partial class IngestionOrchestrator(
                         promptText, category.Value.ToString(), structuredPage.PageNumber,
                         record.DisplayName, record.Version, cancellationToken);
 
-                    if (extracted.Count > 0)
-                        await jsonStore.SavePageAsync(recordId, structuredPage, extracted, cancellationToken);
+                    await jsonStore.SavePageAsync(recordId, structuredPage, extracted, cancellationToken);
                 }
                 else
                 {
@@ -105,8 +100,7 @@ public sealed partial class IngestionOrchestrator(
                         pageEntities.AddRange(extracted);
                     }
 
-                    if (pageEntities.Count > 0)
-                        await jsonStore.SavePageAsync(recordId, structuredPage, pageEntities, cancellationToken);
+                    await jsonStore.SavePageAsync(recordId, structuredPage, pageEntities, cancellationToken);
                 }
 
                 LogExtractedPage(logger, structuredPage.PageNumber, pages.Count, recordId);
@@ -195,8 +189,8 @@ public sealed partial class IngestionOrchestrator(
         if (structuredPage is null) return null;
 
         var promptText = BuildPromptText(structuredPage.Blocks);
-        var bookmarks  = bookmarkReader.ReadBookmarks(record.FilePath);
-        var tocMap     = await tocClassifier.ClassifyAsync(bookmarks, ct);
+        // TOC-guided classification: placeholder until Task 4 rewires with ITocMapExtractor
+        var tocMap = new TocCategoryMap([]);
 
         List<ExtractedEntity> entities;
         var category = tocMap.IsEmpty ? null : tocMap.GetCategory(pageNumber);
@@ -280,9 +274,6 @@ public sealed partial class IngestionOrchestrator(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Extracted page {Page}/{Total} for book {BookId}")]
     private static partial void LogExtractedPage(ILogger logger, int page, int total, int bookId);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Classifying {BookmarkCount} TOC bookmarks for book {BookId}")]
-    private static partial void LogClassifyingToc(ILogger logger, int bookmarkCount, int bookId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "TOC classification succeeded for {DisplayName} (id={Id}) — using TOC-guided dispatch")]
     private static partial void LogTocGuided(ILogger logger, string displayName, int id);

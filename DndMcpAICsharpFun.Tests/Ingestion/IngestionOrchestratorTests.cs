@@ -19,8 +19,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
     private readonly ILlmEntityExtractor _entityExtractor = Substitute.For<ILlmEntityExtractor>();
     private readonly IEntityJsonStore _jsonStore = Substitute.For<IEntityJsonStore>();
     private readonly IJsonIngestionPipeline _jsonPipeline = Substitute.For<IJsonIngestionPipeline>();
-    private readonly IPdfBookmarkReader _bookmarkReader = Substitute.For<IPdfBookmarkReader>();
-    private readonly ITocCategoryClassifier _tocClassifier = Substitute.For<ITocCategoryClassifier>();
     private readonly string _tempFile;
 
     public IngestionOrchestratorTests()
@@ -40,7 +38,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
         return new IngestionOrchestrator(
             _tracker, _extractor, _vectorStore,
             _classifier, _entityExtractor, _jsonStore, _jsonPipeline, opts,
-            _bookmarkReader, _tocClassifier,
             NullLogger<IngestionOrchestrator>.Instance);
     }
 
@@ -134,9 +131,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
         };
         _tracker.GetByIdAsync(22, Arg.Any<CancellationToken>()).Returns(record);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TocCategoryMap([])));
         var expectedHash = await HashFileAsync(_tempFile);
         var sut = BuildSut();
 
@@ -171,9 +165,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
         _tracker.GetByIdAsync(20, Arg.Any<CancellationToken>()).Returns(record);
         // Page text is fewer than 100 characters — below the skip threshold
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TocCategoryMap([])));
         var sut = BuildSut();
 
         await sut.ExtractBookAsync(20);
@@ -195,11 +186,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
 
         var pageText = new string('x', 200); // well above 100-char threshold
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
-
-        // No bookmarks → empty TocCategoryMap → fall back to classifier
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TocCategoryMap([])));
 
         _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<string>>(["Spell"]));
@@ -273,10 +259,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var pageText = new string('x', 200);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
 
-        // Bookmark reader returns empty list → empty TocCategoryMap
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TocCategoryMap([])));
+        // TocCategoryMap is hardcoded as empty in the orchestrator (Task 4 wires it up)
 
         _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<string>>(["Spell"]));
@@ -306,13 +289,8 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var pageText = new string('x', 200);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
 
-        // Bookmark reader returns one bookmark mapping page 1 → Spell
-        var bookmarks = new List<PdfBookmark> { new PdfBookmark("Spells", 1) };
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns(bookmarks);
-
-        var tocMap = new TocCategoryMap([new TocSectionEntry("Spells", ContentCategory.Spell, 1)]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(tocMap));
+        // Note: TOC-guided dispatch is wired in Task 4; orchestrator currently uses empty TocCategoryMap
+        // so the fallback classifier path runs for this test.
 
         var entity = new ExtractedEntity(
             Page: 5, SourceBook: "PHB", Version: "Edition2014",
@@ -346,14 +324,7 @@ public sealed class IngestionOrchestratorTests : IDisposable
         var pageText = new string('x', 200);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
 
-        // TocCategoryMap with null category for all pages
-        var bookmarks = new List<PdfBookmark> { new PdfBookmark("Introduction", 1) };
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns(bookmarks);
-
-        // Map page 1+ → null (not a D&D content category)
-        var tocMap = new TocCategoryMap([new TocSectionEntry("Intro", null, 1)]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(tocMap));
+        // Note: TOC-guided dispatch is wired in Task 4; orchestrator currently uses empty TocCategoryMap
 
         var sut = BuildSut();
         await sut.ExtractBookAsync(42);
@@ -378,10 +349,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
 
         var pageText = new string('x', 200);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(5, pageText, [new PageBlock(1, "body", pageText)])]);
-
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TocCategoryMap([])));
 
         // Classifier throws OperationCanceledException to simulate cancellation
         _classifier.ClassifyPageAsync(pageText, Arg.Any<CancellationToken>())
@@ -409,9 +376,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
         };
         _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TocCategoryMap([])));
 
         var sut = BuildSut();
         await sut.ExtractBookAsync(recordId);
@@ -433,9 +397,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
         };
         _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TocCategoryMap([])));
 
         var sut = BuildSut();
         await sut.ExtractBookAsync(recordId);
@@ -457,9 +418,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
         };
         _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TocCategoryMap([])));
 
         var sut = BuildSut();
         await sut.ExtractBookAsync(recordId);
@@ -481,9 +439,6 @@ public sealed class IngestionOrchestratorTests : IDisposable
         };
         _tracker.GetByIdAsync(recordId, Arg.Any<CancellationToken>()).Returns(record);
         _extractor.ExtractPages(_tempFile).Returns([new StructuredPage(1, "short text", [new PageBlock(1, "body", "short text")])]);
-        _bookmarkReader.ReadBookmarks(_tempFile).Returns([]);
-        _tocClassifier.ClassifyAsync(Arg.Any<IReadOnlyList<PdfBookmark>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TocCategoryMap([])));
 
         var sut = BuildSut();
         await sut.ExtractBookAsync(recordId);
