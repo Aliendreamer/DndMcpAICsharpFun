@@ -276,6 +276,74 @@ public sealed class IngestionOrchestratorTests : IDisposable
             Arg.Any<CancellationToken>());
     }
 
+    // ── ExtractSinglePage ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ExtractSinglePageAsync_TocGuidedPage_ReturnsEntities()
+    {
+        var record = MakeRecord(60, tocPage: 1);
+        _tracker.GetByIdAsync(60, Arg.Any<CancellationToken>()).Returns(record);
+
+        var tocStructuredPage = new StructuredPage(1, "TOC", [new PageBlock(1, "body", "TOC")]);
+        _extractor.ExtractSinglePage(_tempFile, 1).Returns(tocStructuredPage);
+
+        var pageText = new string('x', 200);
+        _extractor.ExtractSinglePage(_tempFile, 45).Returns(
+            new StructuredPage(45, pageText, [new PageBlock(1, "h2", "Warlock")]));
+
+        _tocMapExtractor.ExtractMapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<TocSectionEntry>>([
+                new TocSectionEntry("Warlock", ContentCategory.Class, 45, 80)
+            ]));
+
+        var entity = new ExtractedEntity(
+            Page: 45, SourceBook: "PHB", Version: "Edition2014",
+            Partial: false, Type: "Class", Name: "Warlock",
+            Data: new JsonObject { ["description"] = "test" });
+
+        _entityExtractor.ExtractAsync(
+            Arg.Any<string>(), "Class", 45, "PHB", "Edition2014",
+            "Warlock", 45, 80, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<ExtractedEntity>>([entity]));
+
+        var sut = BuildSut();
+
+        var result = await sut.ExtractSinglePageAsync(60, 45, save: false);
+
+        Assert.NotNull(result);
+        Assert.Single(result!.Entities);
+        Assert.Equal("Warlock", result.Entities[0].Name);
+        await _entityExtractor.Received(1).ExtractAsync(
+            Arg.Any<string>(), "Class", 45, "PHB", "Edition2014",
+            "Warlock", 45, 80, Arg.Any<CancellationToken>());
+        await _jsonStore.DidNotReceive().SavePageAsync(
+            Arg.Any<int>(), Arg.Any<StructuredPage>(),
+            Arg.Any<IReadOnlyList<ExtractedEntity>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ExtractSinglePageAsync_TocPageNull_ReturnsEmptyEntities()
+    {
+        var record = MakeRecord(61, tocPage: null);
+        _tracker.GetByIdAsync(61, Arg.Any<CancellationToken>()).Returns(record);
+
+        var pageText = new string('x', 200);
+        _extractor.ExtractSinglePage(_tempFile, 45).Returns(
+            new StructuredPage(45, pageText, [new PageBlock(1, "body", pageText)]));
+
+        var sut = BuildSut();
+
+        var result = await sut.ExtractSinglePageAsync(61, 45, save: false);
+
+        Assert.NotNull(result);
+        Assert.Empty(result!.Entities);
+        await _entityExtractor.DidNotReceive().ExtractAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(),
+            Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<CancellationToken>());
+    }
+
     // ── IngestJson ───────────────────────────────────────────────────────────
 
     [Fact]
