@@ -189,11 +189,11 @@ public static partial class BooksAdminEndpoints
     private static async Task<IResult> ExtractPage(
         int id,
         int pageNumber,
-        [FromQuery] bool save,
         IIngestionOrchestrator orchestrator,
         IPdfStructuredExtractor extractor,
         IIngestionTracker tracker,
-        CancellationToken ct)
+        CancellationToken ct,
+        [FromQuery] bool? save = null)
     {
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)
@@ -206,7 +206,7 @@ public static partial class BooksAdminEndpoints
                 $"Page {pageNumber} is out of range. Book has {totalPages} pages.",
                 statusCode: 400);
 
-        var pageData = await orchestrator.ExtractSinglePageAsync(id, pageNumber, save, ct);
+        var pageData = await orchestrator.ExtractSinglePageAsync(id, pageNumber, save ?? false, ct);
         if (pageData is null)
             return Results.NotFound($"Book with id {id} not found");
 

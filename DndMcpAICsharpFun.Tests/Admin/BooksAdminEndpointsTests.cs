@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
-using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
+using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 using Microsoft.AspNetCore.Builder;
@@ -28,6 +28,7 @@ public sealed class BooksAdminEndpointsTests
         var orchestrator = Substitute.For<IIngestionOrchestrator>();
         var jsonStore = Substitute.For<IEntityJsonStore>();
         var registry = Substitute.For<IExtractionCancellationRegistry>();
+        var pdfExtractor = Substitute.For<IPdfStructuredExtractor>();
 
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -36,6 +37,7 @@ public sealed class BooksAdminEndpointsTests
         builder.Services.AddSingleton(orchestrator);
         builder.Services.AddSingleton(jsonStore);
         builder.Services.AddSingleton(registry);
+        builder.Services.AddSingleton(pdfExtractor);
         builder.Services.AddSingleton<ILogger<RegisterBookRequest>>(
             NullLogger<RegisterBookRequest>.Instance);
         builder.Services.AddSingleton<ILogger<RegisterBookByPathRequest>>(
@@ -353,5 +355,17 @@ public sealed class BooksAdminEndpointsTests
         var response = await client.PostAsync("/admin/books/1/cancel-extract", null);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    // POST /admin/books/{id}/extract-page/{pageNumber}
+    [Fact]
+    public async Task ExtractPage_UnknownBook_Returns404()
+    {
+        var (client, tracker, _, _, _, _) = await BuildClientAsync();
+        tracker.GetByIdAsync(999, Arg.Any<CancellationToken>()).Returns((IngestionRecord?)null);
+
+        var response = await client.PostAsync("/admin/books/999/extract-page/1", null);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }
