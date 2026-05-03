@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using DndMcpAICsharpFun.Domain;
 
 namespace DndMcpAICsharpFun.Infrastructure.Sqlite;
 
@@ -33,4 +34,6 @@ public sealed class IngestionRecord
     public DateTime? IngestedAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public BookType BookType { get; set; } = BookType.Unknown;
 }

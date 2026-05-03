@@ -11,4 +11,5 @@ public sealed record ChunkMetadata(
     int? PageEnd = null,
     string? SectionTitle = null,
     int? SectionStart = null,
-    int? SectionEnd = null);
+    int? SectionEnd = null,
+    BookType BookType = BookType.Unknown);

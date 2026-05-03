@@ -38,6 +38,11 @@ Edition2014
 Content-Disposition: form-data; name="displayName"
 
 PlayerHandbook 2014
+------Boundary
+# bookType: Core | Supplement | Adventure | Setting | Unknown (optional, defaults to Unknown)
+Content-Disposition: form-data; name="bookType"
+
+Core
 ------Boundary--
 
 ### Admin Books — List all books
@@ -74,6 +79,9 @@ GET {{qdrantUrl}}/collections/{{collectionName}}
 
 ### Retrieval — Public semantic search
 GET {{baseUrl}}/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5
+
+### Retrieval — Filter by bookType (Core | Supplement | Adventure | Setting | Unknown)
+GET {{baseUrl}}/retrieval/search?q=fireball&bookType=Core&topK=5
 
 ### Retrieval — Diagnostic search (admin, includes scores and Qdrant point IDs)
 GET {{baseUrl}}/admin/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5

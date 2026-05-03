@@ -69,6 +69,9 @@ public sealed class RagRetrievalService(
         if (!string.IsNullOrWhiteSpace(query.EntityName))
             conditions.Add(KeywordCondition(QdrantPayloadFields.EntityName, query.EntityName));
 
+        if (query.BookType.HasValue)
+            conditions.Add(KeywordCondition(QdrantPayloadFields.BookType, query.BookType.Value.ToString()));
+
         if (conditions.Count == 0)
             return null;
 

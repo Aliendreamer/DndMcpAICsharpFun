@@ -79,7 +79,8 @@ public sealed partial class BlockIngestionOrchestrator(
                     SectionEnd:   entry.EndPage ?? int.MaxValue,
                     PageNumber:   block.PageNumber,
                     BlockOrder:   block.Order,
-                    GlobalIndex:  globalIndex++);
+                    GlobalIndex:  globalIndex++,
+                    BookType:     record.BookType);
                 chunks.Add(new BlockChunk(block.Text, meta));
             }
 

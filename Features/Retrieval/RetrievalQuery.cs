@@ -8,4 +8,5 @@ public sealed record RetrievalQuery(
     ContentCategory? Category = null,
     string? SourceBook = null,
     string? EntityName = null,
+    BookType? BookType = null,
     int TopK = 5);

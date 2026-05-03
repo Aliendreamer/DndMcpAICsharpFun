@@ -17,6 +17,7 @@ public static class RetrievalEndpoints
         string? category,
         string? sourceBook,
         string? entityName,
+        string? bookType,
         int topK = 5,
         IRagRetrievalService retrieval = default!,
         CancellationToken ct = default)
@@ -24,7 +25,7 @@ public static class RetrievalEndpoints
         if (string.IsNullOrWhiteSpace(q))
             return Results.BadRequest("Query parameter 'q' is required.");
 
-        var query = BuildQuery(q, version, category, sourceBook, entityName, topK);
+        var query = BuildQuery(q, version, category, sourceBook, entityName, bookType, topK);
         var results = await retrieval.SearchAsync(query, ct);
         return Results.Ok(results);
     }
@@ -35,6 +36,7 @@ public static class RetrievalEndpoints
         string? category,
         string? sourceBook,
         string? entityName,
+        string? bookType,
         int topK = 5,
         IRagRetrievalService retrieval = default!,
         CancellationToken ct = default)
@@ -42,7 +44,7 @@ public static class RetrievalEndpoints
         if (string.IsNullOrWhiteSpace(q))
             return Results.BadRequest("Query parameter 'q' is required.");
 
-        var query = BuildQuery(q, version, category, sourceBook, entityName, topK);
+        var query = BuildQuery(q, version, category, sourceBook, entityName, bookType, topK);
         var results = await retrieval.SearchDiagnosticAsync(query, ct);
         return Results.Ok(results);
     }
@@ -53,10 +55,12 @@ public static class RetrievalEndpoints
         string? category,
         string? sourceBook,
         string? entityName,
+        string? bookType,
         int topK)
     {
         DndVersion? parsedVersion = Enum.TryParse<DndVersion>(version, ignoreCase: true, out var v) ? v : null;
         ContentCategory? parsedCategory = Enum.TryParse<ContentCategory>(category, ignoreCase: true, out var c) ? c : null;
+        BookType? parsedBookType = Enum.TryParse<BookType>(bookType, ignoreCase: true, out var b) ? b : null;
 
         return new RetrievalQuery(
             QueryText: q,
@@ -64,6 +68,7 @@ public static class RetrievalEndpoints
             Category: parsedCategory,
             SourceBook: sourceBook,
             EntityName: entityName,
+            BookType: parsedBookType,
             TopK: topK);
     }
 }

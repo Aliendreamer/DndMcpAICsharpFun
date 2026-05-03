@@ -60,6 +60,7 @@ public static partial class BooksAdminEndpoints
         Directory.CreateDirectory(booksPath);
 
         string? sourceName = null, version = null, displayName = null, originalFileName = null, filePath = null;
+        string? bookTypeRaw = null;
 
         var reader = new MultipartReader(boundary, httpContext.Request.Body);
         var section = await reader.ReadNextSectionAsync(ct);
@@ -93,6 +94,7 @@ public static partial class BooksAdminEndpoints
                         case "sourceName": sourceName = value; break;
                         case "version": version = value; break;
                         case "displayName": displayName = value; break;
+                        case "bookType": bookTypeRaw = value; break;
                     }
                 }
 
@@ -108,6 +110,10 @@ public static partial class BooksAdminEndpoints
                     $"Invalid version '{version}'. Valid values: {string.Join(", ", Enum.GetNames<DndVersion>())}",
                     statusCode: 400);
 
+            var bookType = Enum.TryParse<BookType>(bookTypeRaw, ignoreCase: true, out var parsedType)
+                ? parsedType
+                : BookType.Unknown;
+
             var record = new IngestionRecord
             {
                 FilePath = filePath,
@@ -117,6 +123,7 @@ public static partial class BooksAdminEndpoints
                 Version = parsedVersion.ToString(),
                 DisplayName = displayName,
                 Status = IngestionStatus.Pending,
+                BookType = bookType,
             };
 
             var created = await tracker.CreateAsync(record, ct);

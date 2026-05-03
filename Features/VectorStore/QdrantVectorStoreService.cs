@@ -54,6 +54,7 @@ public sealed partial class QdrantVectorStoreService(
         point.Payload[QdrantPayloadFields.PageNumber]   = (long)meta.PageNumber;
         point.Payload[QdrantPayloadFields.BlockOrder]   = (long)meta.BlockOrder;
         point.Payload[QdrantPayloadFields.ChunkIndex]   = (long)meta.GlobalIndex;
+        point.Payload[QdrantPayloadFields.BookType]     = meta.BookType.ToString();
         return point;
     }
 

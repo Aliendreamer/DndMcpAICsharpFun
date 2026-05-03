@@ -109,6 +109,77 @@ public sealed class BooksAdminEndpointsTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task RegisterBook_WithBookType_StoresParsedValue()
+    {
+        var (client, tracker, _, _) = await BuildClientAsync();
+        tracker.CreateAsync(Arg.Any<IngestionRecord>(), Arg.Any<CancellationToken>())
+            .Returns(MakeRecord());
+
+        using var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
+        content.Add(new StringContent("PHB"), "sourceName");
+        content.Add(new StringContent("Edition2014"), "version");
+        content.Add(new StringContent("Player's Handbook"), "displayName");
+        content.Add(new StringContent("supplement"), "bookType"); // case-insensitive
+
+        var response = await client.PostAsync("/admin/books/register", content);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        await tracker.Received(1).CreateAsync(
+            Arg.Is<IngestionRecord>(r => r.BookType == DndMcpAICsharpFun.Domain.BookType.Supplement),
+            Arg.Any<CancellationToken>());
+        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
+            File.Delete(f);
+    }
+
+    [Fact]
+    public async Task RegisterBook_MissingBookType_DefaultsToUnknown()
+    {
+        var (client, tracker, _, _) = await BuildClientAsync();
+        tracker.CreateAsync(Arg.Any<IngestionRecord>(), Arg.Any<CancellationToken>())
+            .Returns(MakeRecord());
+
+        using var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
+        content.Add(new StringContent("PHB"), "sourceName");
+        content.Add(new StringContent("Edition2014"), "version");
+        content.Add(new StringContent("Player's Handbook"), "displayName");
+
+        var response = await client.PostAsync("/admin/books/register", content);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        await tracker.Received(1).CreateAsync(
+            Arg.Is<IngestionRecord>(r => r.BookType == DndMcpAICsharpFun.Domain.BookType.Unknown),
+            Arg.Any<CancellationToken>());
+        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
+            File.Delete(f);
+    }
+
+    [Fact]
+    public async Task RegisterBook_InvalidBookType_DefaultsToUnknown()
+    {
+        var (client, tracker, _, _) = await BuildClientAsync();
+        tracker.CreateAsync(Arg.Any<IngestionRecord>(), Arg.Any<CancellationToken>())
+            .Returns(MakeRecord());
+
+        using var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
+        content.Add(new StringContent("PHB"), "sourceName");
+        content.Add(new StringContent("Edition2014"), "version");
+        content.Add(new StringContent("Player's Handbook"), "displayName");
+        content.Add(new StringContent("garbage"), "bookType");
+
+        var response = await client.PostAsync("/admin/books/register", content);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        await tracker.Received(1).CreateAsync(
+            Arg.Is<IngestionRecord>(r => r.BookType == DndMcpAICsharpFun.Domain.BookType.Unknown),
+            Arg.Any<CancellationToken>());
+        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
+            File.Delete(f);
+    }
+
     // GET /admin/books
     [Fact]
     public async Task GetAllBooks_Returns200WithList()

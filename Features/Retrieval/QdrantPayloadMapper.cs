@@ -19,7 +19,8 @@ public static class QdrantPayloadMapper
             PageEnd: GetIntOrNull(payload, QdrantPayloadFields.PageEnd),
             SectionTitle: GetStringOrNull(payload, QdrantPayloadFields.SectionTitle),
             SectionStart: GetIntOrNull(payload, QdrantPayloadFields.SectionStart),
-            SectionEnd: GetIntOrNull(payload, QdrantPayloadFields.SectionEnd));
+            SectionEnd: GetIntOrNull(payload, QdrantPayloadFields.SectionEnd),
+            BookType: ParseEnum<BookType>(payload, QdrantPayloadFields.BookType));
     }
 
     private static int? GetIntOrNull(IReadOnlyDictionary<string, Value> payload, string key)
