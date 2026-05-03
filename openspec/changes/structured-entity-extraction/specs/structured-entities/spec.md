@@ -13,7 +13,7 @@ The system SHALL define a common entity envelope used by every entity record acr
 - **THEN** the loader SHALL reject the record and surface a validation error identifying the missing field
 
 #### Scenario: Unknown entity type fails validation
-- **WHEN** a record has `type` that is not one of the 17 supported entity types
+- **WHEN** a record has `type` that is not one of the 20 supported entity types
 - **THEN** the loader SHALL reject the record with an error naming the unsupported type
 
 ### Requirement: Entity IDs SHALL follow a deterministic slug scheme
