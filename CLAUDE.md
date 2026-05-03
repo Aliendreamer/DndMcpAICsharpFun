@@ -41,6 +41,18 @@ There are no tests yet. When added, run them with `dotnet test`.
 
 The host listens on `http://localhost:5101` (set in `DndMcpAICsharpFun.http`). Override via `launchSettings.json` or environment variables if needed.
 
+### Structured Entity Extraction (vertical slice)
+
+The retrieval pipeline uses a dual-collection setup in Qdrant: `dnd_blocks` holds prose chunks for narrative retrieval, while `dnd_entities` holds typed entity records (Class, Monster, Spell, etc.) for structured lookups. Each entity's `canonicalText` is embedded into `dnd_entities` so structured queries return rule-accurate snippets alongside the parsed fields.
+
+Canonical JSON files at `data/canonical/<book-slug>.json` are the hand-correctable source of truth for structured entities. Ingestion reads these files via `CanonicalJsonLoader`, validates schema/IDs, and projects each entity into `dnd_entities`. LLM-driven extraction will land in Plan 2 of the structured-entity-extraction effort; for now the canonical JSON is hand-authored.
+
+New endpoints:
+- `POST /admin/books/{id}/ingest-entities` — ingest a book's canonical JSON into `dnd_entities`.
+- `GET /retrieval/entities/{id}` — fetch a single entity by ID.
+- `GET /retrieval/entities/search` — public typed entity search.
+- `GET /admin/retrieval/entities/search` — admin-side entity search with extra fields.
+
 ## Observability
 
 When the full stack is running (`docker compose up`), these UIs are available:

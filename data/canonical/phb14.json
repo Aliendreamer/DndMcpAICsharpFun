@@ -1,0 +1,183 @@
+{
+  "schemaVersion": "1",
+  "book": {
+    "sourceBook": "Player's Handbook 2014",
+    "edition": "Edition2014",
+    "fileHash": "phb14seed",
+    "displayName": "Player's Handbook 2014"
+  },
+  "entities": [
+    {
+      "id": "phb14.class.fighter",
+      "type": "Class",
+      "name": "Fighter",
+      "sourceBook": "Player's Handbook 2014",
+      "edition": "Edition2014",
+      "page": 70,
+      "firstAppearedIn": { "book": "Player's Handbook", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": ["core"],
+      "canonicalText": "Fighter — A master of martial combat, skilled with a variety of weapons and armor. Hit Die: d10. Primary abilities: Strength or Dexterity. Saving throw proficiencies: Strength and Constitution. Armor: all armor and shields. Weapons: simple and martial. Subclass (Martial Archetype) chosen at 3rd level. Notable features include Fighting Style and Second Wind at 1st level, Action Surge at 2nd level, Extra Attack at 5th, 11th, and 20th levels, and Indomitable starting at 9th level.",
+      "fields": {
+        "hitDie": "d10",
+        "primaryAbilities": ["Strength", "Dexterity"],
+        "savingThrowProficiencies": ["Strength", "Constitution"],
+        "armorProficiencies": ["light", "medium", "heavy", "shields"],
+        "weaponProficiencies": ["simple", "martial"],
+        "toolProficiencies": [],
+        "skillChoices": {
+          "count": 2,
+          "options": ["Acrobatics", "Animal Handling", "Athletics", "History", "Insight", "Intimidation", "Perception", "Survival"]
+        },
+        "startingEquipment": [
+          { "choose": 1, "options": ["chain mail", "leather armor, longbow, and 20 arrows"] },
+          { "choose": 1, "options": ["a martial weapon and a shield", "two martial weapons"] },
+          { "choose": 1, "options": ["a light crossbow and 20 bolts", "two handaxes"] },
+          { "choose": 1, "options": ["a dungeoneer's pack", "an explorer's pack"] }
+        ],
+        "multiclass": {
+          "prerequisites": { "operator": "or", "abilities": { "Strength": 13, "Dexterity": 13 } },
+          "proficienciesGained": ["light armor", "medium armor", "shields", "simple weapons", "martial weapons"]
+        },
+        "spellcasting": null,
+        "subclassSelectionLevel": 3,
+        "subclasses": [
+          "phb14.subclass.battle-master",
+          "phb14.subclass.champion",
+          "phb14.subclass.eldritch-knight"
+        ],
+        "asiLevels": [4, 6, 8, 12, 14, 16, 19],
+        "featuresByLevel": [
+          {
+            "level": 1,
+            "proficiencyBonus": 2,
+            "features": [
+              { "name": "Fighting Style", "ref": "phb14.feature.fighter.fighting-style", "summary": "Adopt a particular style of fighting as your specialty." },
+              { "name": "Second Wind", "ref": "phb14.feature.fighter.second-wind", "summary": "Bonus action to regain 1d10 + fighter level hit points; once per short or long rest." }
+            ]
+          },
+          {
+            "level": 3,
+            "proficiencyBonus": 2,
+            "features": [
+              { "name": "Martial Archetype", "ref": "phb14.feature.fighter.martial-archetype", "summary": "Choose an archetype: Champion, Battle Master, or Eldritch Knight." }
+            ]
+          },
+          {
+            "level": 5,
+            "proficiencyBonus": 3,
+            "features": [
+              { "name": "Extra Attack", "ref": "phb14.feature.fighter.extra-attack", "summary": "Attack twice, instead of once, whenever you take the Attack action on your turn." }
+            ]
+          },
+          {
+            "level": 11,
+            "proficiencyBonus": 4,
+            "features": [
+              { "name": "Extra Attack (2)", "ref": "phb14.feature.fighter.extra-attack-2", "summary": "Attack three times whenever you take the Attack action on your turn." }
+            ]
+          },
+          {
+            "level": 20,
+            "proficiencyBonus": 6,
+            "features": [
+              { "name": "Extra Attack (3)", "ref": "phb14.feature.fighter.extra-attack-3", "summary": "Attack four times whenever you take the Attack action on your turn." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "phb14.monster.aboleth",
+      "type": "Monster",
+      "name": "Aboleth",
+      "sourceBook": "Player's Handbook 2014",
+      "edition": "Edition2014",
+      "page": 13,
+      "firstAppearedIn": { "book": "Monster Manual", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": ["core"],
+      "canonicalText": "Aboleth — Large aberration, lawful evil. AC 17 (natural armor). HP 135 (18d10+36). Speed 10 ft., swim 40 ft. STR 21, DEX 9, CON 15, INT 18, WIS 15, CHA 18. Saving Throws CON +6, INT +8, WIS +6. Skills History +12, Perception +10. Senses darkvision 120 ft., passive Perception 20. Languages Deep Speech, telepathy 120 ft. Challenge 10 (5,900 XP). Traits include Amphibious, Mucous Cloud, and Probing Telepathy. Actions: Multiattack, Tentacle, Tail, Enslave (3/Day). Legendary Actions: Detect, Tail Swipe, Psychic Drain. Lair Actions in its watery lair.",
+      "fields": {
+        "size": "Large",
+        "type": "aberration",
+        "subtypes": [],
+        "alignment": "lawful evil",
+        "armorClass": { "value": 17, "source": "natural armor" },
+        "hitPoints": { "average": 135, "dice": "18d10 + 36" },
+        "speed": { "walk": 10, "swim": 40 },
+        "abilityScores": { "strength": 21, "dexterity": 9, "constitution": 15, "intelligence": 18, "wisdom": 15, "charisma": 18 },
+        "savingThrows": { "Constitution": 6, "Intelligence": 8, "Wisdom": 6 },
+        "skills": { "History": 12, "Perception": 10 },
+        "damageVulnerabilities": [],
+        "damageResistances": [],
+        "damageImmunities": [],
+        "conditionImmunities": [],
+        "senses": { "darkvision": 120, "passivePerception": 20 },
+        "languages": ["Deep Speech", "telepathy 120 ft."],
+        "challengeRating": { "cr": "10", "crNumeric": 10.0, "xp": 5900, "proficiencyBonus": 4 },
+        "environment": ["underdark", "underwater"],
+        "keywords": ["aquatic"],
+        "traits": [
+          { "name": "Amphibious", "ref": "phb14.trait.amphibious", "summary": "The aboleth can breathe air and water." },
+          { "name": "Mucous Cloud", "ref": "phb14.trait.mucous-cloud", "summary": "While underwater, the aboleth is surrounded by transformative mucus; creatures that touch it or hit it with a melee attack within 5 ft. must succeed on a DC 14 Constitution save or be diseased for 1d4 hours." },
+          { "name": "Probing Telepathy", "ref": "phb14.trait.probing-telepathy", "summary": "If a creature communicates telepathically with the aboleth, the aboleth learns the creature's greatest desires." }
+        ],
+        "actions": [
+          { "name": "Multiattack", "type": "Multiattack", "summary": "The aboleth makes three tentacle attacks." },
+          { "name": "Tentacle", "type": "MeleeWeaponAttack", "summary": "+9 to hit, reach 10 ft., one target. Hit: 12 (2d6+5) bludgeoning damage. Target must save DC 14 CON or be diseased.",
+            "attackBonus": 9, "reach": 10, "targets": "one target",
+            "damage": [ { "dice": "2d6 + 5", "average": 12, "type": "bludgeoning" } ] },
+          { "name": "Tail", "type": "MeleeWeaponAttack", "summary": "+9 to hit, reach 10 ft., one target. Hit: 15 (3d6+5) bludgeoning damage.",
+            "attackBonus": 9, "reach": 10, "targets": "one target",
+            "damage": [ { "dice": "3d6 + 5", "average": 15, "type": "bludgeoning" } ] },
+          { "name": "Enslave (3/Day)", "type": "Special", "summary": "The aboleth targets one creature within 30 ft.; target must succeed on DC 14 WIS save or be magically charmed by the aboleth until the aboleth dies or until it is on a different plane of existence from the target." }
+        ],
+        "bonusActions": [],
+        "reactions": [],
+        "legendaryActions": {
+          "perTurn": 3,
+          "actions": [
+            { "name": "Detect", "cost": 1, "summary": "The aboleth makes a Wisdom (Perception) check." },
+            { "name": "Tail Swipe", "cost": 1, "summary": "The aboleth makes one tail attack." },
+            { "name": "Psychic Drain", "cost": 2, "summary": "One creature charmed by the aboleth takes 10 (3d6) psychic damage; the aboleth regains hit points equal to the damage dealt." }
+          ]
+        },
+        "lairActions": {
+          "summary": "On initiative count 20, the aboleth takes a lair action: phantasmal mirage, water manipulation, or grasping tide.",
+          "actions": [
+            { "name": "Phantasmal Mirage", "summary": "The aboleth weaves an illusion to disguise the area." },
+            { "name": "Water Manipulation", "summary": "Pools of water within 90 ft. of the aboleth surge upward." },
+            { "name": "Grasping Tide", "summary": "Watery tendrils restrain creatures within 60 ft." }
+          ]
+        }
+      }
+    },
+    {
+      "id": "phb14.spell.fireball",
+      "type": "Spell",
+      "name": "Fireball",
+      "sourceBook": "Player's Handbook 2014",
+      "edition": "Edition2014",
+      "page": 241,
+      "firstAppearedIn": { "book": "Player's Handbook", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": ["core"],
+      "canonicalText": "Fireball — 3rd-level evocation. Casting Time: 1 action. Range: 150 feet. Components: V, S, M (a tiny ball of bat guano and sulfur). Duration: Instantaneous. A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw. A target takes 8d6 fire damage on a failed save, or half as much damage on a successful one. At Higher Levels: When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.",
+      "fields": {
+        "level": 3,
+        "school": "evocation",
+        "castingTime": "1 action",
+        "range": "150 feet",
+        "components": { "v": true, "s": true, "m": true, "material": "a tiny ball of bat guano and sulfur" },
+        "duration": "Instantaneous",
+        "ritual": false,
+        "concentration": false,
+        "description": "A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw. A target takes 8d6 fire damage on a failed save, or half as much damage on a successful one. The fire spreads around corners. It ignites flammable objects in the area that aren't being worn or carried.",
+        "atHigherLevels": "When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.",
+        "classes": ["Sorcerer", "Wizard"],
+        "damageTypes": ["fire"]
+      }
+    }
+  ]
+}
