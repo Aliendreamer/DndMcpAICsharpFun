@@ -105,6 +105,12 @@ public sealed class PdfPigBookmarkReaderTests
             Assert.Contains(result, b => b.Title == "Section 1.1" && b.PageNumber == 3);
             Assert.Contains(result, b => b.Title == "Part 2" && b.PageNumber == 4);
             Assert.Contains(result, b => b.Title == "Chapter 2" && b.PageNumber == 5);
+
+            // Parent titles are populated from the walked tree.
+            Assert.Null(result.First(b => b.Title == "Part 1").ParentTitle);
+            Assert.Equal("Part 1",   result.First(b => b.Title == "Chapter 1").ParentTitle);
+            Assert.Equal("Chapter 1", result.First(b => b.Title == "Section 1.1").ParentTitle);
+            Assert.Equal("Part 2",   result.First(b => b.Title == "Chapter 2").ParentTitle);
         }
         finally
         {

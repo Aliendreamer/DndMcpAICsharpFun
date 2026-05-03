@@ -18,16 +18,25 @@ public sealed partial class PdfPigBookmarkReader(
 
         var result = new List<PdfBookmark>();
         foreach (var root in bookmarks.Roots)
-            Walk(root, result);
+            Walk(root, result, parentTitle: null);
         return result;
     }
 
-    private static void Walk(BookmarkNode node, List<PdfBookmark> result)
+    private static void Walk(BookmarkNode node, List<PdfBookmark> result, string? parentTitle)
     {
+        string? selfTitle = null;
         if (node is DocumentBookmarkNode doc && IsMeaningfulTitle(doc.Title))
-            result.Add(new PdfBookmark(doc.Title, doc.PageNumber));
+        {
+            selfTitle = doc.Title;
+            result.Add(new PdfBookmark(doc.Title, doc.PageNumber, parentTitle));
+        }
+
+        // Children inherit the nearest meaningful ancestor's title — this lets
+        // MM's "Aboleth" / "Beholder" leaves under a parent "Monsters (A-Z)"
+        // bookmark inherit Monster category via BookmarkTocMapper fallback.
+        var contextForChildren = selfTitle ?? parentTitle;
         foreach (var child in node.Children)
-            Walk(child, result);
+            Walk(child, result, contextForChildren);
     }
 
     private static bool IsMeaningfulTitle(string title)

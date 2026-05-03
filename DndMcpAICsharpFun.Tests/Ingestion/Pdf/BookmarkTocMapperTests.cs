@@ -81,4 +81,55 @@ public sealed class BookmarkTocMapperTests
         var result = BookmarkTocMapper.Map(input);
         Assert.Equal(99, result[0].StartPage);
     }
+
+    [Fact]
+    public void Map_LeafWithoutKeyword_InheritsParentCategory()
+    {
+        var input = new[]
+        {
+            new PdfBookmark("Aboleth",  10, ParentTitle: "Monsters (A-Z)"),
+            new PdfBookmark("Beholder", 28, ParentTitle: "Monsters (A-Z)"),
+            new PdfBookmark("Goblin",   166, ParentTitle: "Monsters (A-Z)"),
+        };
+        var result = BookmarkTocMapper.Map(input);
+        Assert.All(result, e => Assert.Equal(ContentCategory.Monster, e.Category));
+    }
+
+    [Fact]
+    public void Map_LeafWithOwnKeyword_DoesNotInheritParent()
+    {
+        // "Magic Items" matches Item directly even though parent is Treasure
+        var input = new[] { new PdfBookmark("Magic Items", 200, ParentTitle: "Treasure") };
+        var result = BookmarkTocMapper.Map(input);
+        Assert.Equal(ContentCategory.Item, result[0].Category);
+    }
+
+    [Fact]
+    public void Map_NoParent_FallsBackToRule()
+    {
+        var input = new[] { new PdfBookmark("Aboleth", 10) };
+        var result = BookmarkTocMapper.Map(input);
+        Assert.Equal(ContentCategory.Rule, result[0].Category);
+    }
+
+    [Theory]
+    [InlineData("Aberrations")]
+    [InlineData("Beasts")]
+    [InlineData("Celestials")]
+    [InlineData("Dragons")]
+    [InlineData("Elementals")]
+    [InlineData("Fey")]
+    [InlineData("Fiends")]
+    [InlineData("Giants")]
+    [InlineData("Humanoids")]
+    [InlineData("Monstrosities")]
+    [InlineData("Oozes")]
+    [InlineData("Plants")]
+    [InlineData("Undead")]
+    [InlineData("Nonplayer Characters")]
+    public void Map_CreatureTypeKeyword_AssignsMonster(string title)
+    {
+        var result = BookmarkTocMapper.Map([new PdfBookmark(title, 1)]);
+        Assert.Equal(ContentCategory.Monster, result[0].Category);
+    }
 }

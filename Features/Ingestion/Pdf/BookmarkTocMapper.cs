@@ -10,7 +10,19 @@ public static class BookmarkTocMapper
 
         var entries = new List<TocSectionEntry>(bookmarks.Count);
         foreach (var b in bookmarks)
-            entries.Add(new TocSectionEntry(b.Title, GuessCategory(b.Title), b.PageNumber));
+        {
+            var category = GuessCategory(b.Title);
+            // Fall back to the parent bookmark's category when the leaf title
+            // matches no keyword (e.g., MM monster names like "Aboleth" under
+            // a parent "Monsters (A-Z)").
+            if (category == ContentCategory.Rule && !string.IsNullOrEmpty(b.ParentTitle))
+            {
+                var parentCategory = GuessCategory(b.ParentTitle);
+                if (parentCategory != ContentCategory.Rule)
+                    category = parentCategory;
+            }
+            entries.Add(new TocSectionEntry(b.Title, category, b.PageNumber));
+        }
         return entries;
     }
 
@@ -19,7 +31,11 @@ public static class BookmarkTocMapper
         var t = title.ToLowerInvariant();
 
         if (Contains(t, "spell")) return ContentCategory.Spell;
-        if (ContainsAny(t, "monster", "bestiary", "creature")) return ContentCategory.Monster;
+        if (ContainsAny(t, "monster", "bestiary", "creature",
+                            "aberration", "beast", "celestial", "dragon", "elemental",
+                            "fey", "fiend", "giant", "humanoid", "monstrosit",
+                            "ooze", "plant", "undead", "npc", "nonplayer character"))
+            return ContentCategory.Monster;
         if (ContainsAny(t, "equipment", "gear", "weapon", "armor", "armour", "magic item")) return ContentCategory.Item;
         // Class first — "Class Features" should land on Class, not Trait,
         // even though "feat" is a substring of "Features".
@@ -31,11 +47,11 @@ public static class BookmarkTocMapper
         if (ContainsAny(t, "god", "deity", "deities", "pantheon")) return ContentCategory.God;
         if (ContainsAny(t, "plane", "cosmology", "multiverse")) return ContentCategory.Plane;
         if (ContainsAny(t, "treasure", "loot", "hoard")) return ContentCategory.Treasure;
-        if (ContainsAny(t, "encounter")) return ContentCategory.Encounter;
+        if (ContainsAny(t, "encounter", "dungeon", "random encounter")) return ContentCategory.Encounter;
         if (ContainsAny(t, "trap")) return ContentCategory.Trap;
         if (ContainsAny(t, "lore", "history", "world")) return ContentCategory.Lore;
         if (ContainsAny(t, "combat", "attack")) return ContentCategory.Combat;
-        if (ContainsAny(t, "adventuring", "exploration", "resting", "travel")) return ContentCategory.Adventuring;
+        if (ContainsAny(t, "adventuring", "exploration", "resting", "travel", "adventure environment")) return ContentCategory.Adventuring;
 
         return ContentCategory.Rule;
     }
