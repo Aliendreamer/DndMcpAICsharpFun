@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Extensions;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Retrieval;
+using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Infrastructure.Docling;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
@@ -64,5 +65,6 @@ app.MapGroup("/admin").MapBooksAdmin();
 
 // Retrieval endpoints
 app.MapRetrievalEndpoints();
+app.MapEntityRetrievalEndpoints();
 
 app.Run();

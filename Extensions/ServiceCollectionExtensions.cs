@@ -99,6 +99,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IQdrantSearchClient>(static sp =>
             new QdrantSearchClientAdapter(sp.GetRequiredService<QdrantClient>()));
         services.AddScoped<IRagRetrievalService, RagRetrievalService>();
+        services.AddSingleton<DndMcpAICsharpFun.Features.Retrieval.Entities.IEntityRetrievalService, DndMcpAICsharpFun.Features.Retrieval.Entities.EntityRetrievalService>();
 
         return services;
     }

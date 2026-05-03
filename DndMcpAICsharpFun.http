@@ -87,6 +87,19 @@ GET {{baseUrl}}/retrieval/search?q=fireball&bookType=Core&topK=5
 GET {{baseUrl}}/admin/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5
 X-Admin-Api-Key: {{adminKey}}
 
+### Retrieval — Get entity by id
+GET {{baseUrl}}/retrieval/entities/test-book.class.fighter
+
+### Retrieval — Vector search over entities
+GET {{baseUrl}}/retrieval/entities/search?q=swashbuckler&type=Subclass
+
+### Retrieval — Search monsters by CR range and keyword
+GET {{baseUrl}}/retrieval/entities/search?q=swamp&type=Monster&crNumeric_lte=2&keyword=amphibian
+
+### Retrieval — Admin diagnostic entity search (full fields + pointId)
+GET {{baseUrl}}/admin/retrieval/entities/search?q=fireball&type=Spell&spellLevel=3
+X-Admin-Api-Key: {{adminKey}}
+
 ###
 
 # ── Observability ─────────────────────────────────────────────────────────────
