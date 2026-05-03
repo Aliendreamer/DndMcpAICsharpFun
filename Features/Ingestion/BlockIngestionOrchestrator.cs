@@ -22,6 +22,8 @@ public sealed partial class BlockIngestionOrchestrator(
 
     private const int EmbedBatchSize = 32;
     private const int MinBlockChars = 40;
+    private const int MaxBlockChars = 800;
+    private const int SplitOverlapChars = 100;
 
     public async Task IngestBlocksAsync(int recordId, CancellationToken cancellationToken = default)
     {
@@ -70,18 +72,24 @@ public sealed partial class BlockIngestionOrchestrator(
                 var entry = tocMap.GetEntry(block.PageNumber);
                 if (entry is null) continue;
 
-                var meta = new BlockMetadata(
-                    SourceBook:   record.DisplayName,
-                    Version:      version,
-                    Category:     entry.Category ?? ContentCategory.Rule,
-                    SectionTitle: entry.Title,
-                    SectionStart: entry.StartPage,
-                    SectionEnd:   entry.EndPage ?? int.MaxValue,
-                    PageNumber:   block.PageNumber,
-                    BlockOrder:   block.Order,
-                    GlobalIndex:  globalIndex++,
-                    BookType:     record.BookType);
-                chunks.Add(new BlockChunk(block.Text, meta));
+                // Long blocks are split into multiple chunks before embedding
+                // so the back of the block isn't lost to embed-context truncation.
+                // All splits share section/category/page/block_order; only chunk_index differs.
+                foreach (var splitText in SplitLongBlock(block.Text))
+                {
+                    var meta = new BlockMetadata(
+                        SourceBook:   record.DisplayName,
+                        Version:      version,
+                        Category:     entry.Category ?? ContentCategory.Rule,
+                        SectionTitle: entry.Title,
+                        SectionStart: entry.StartPage,
+                        SectionEnd:   entry.EndPage ?? int.MaxValue,
+                        PageNumber:   block.PageNumber,
+                        BlockOrder:   block.Order,
+                        GlobalIndex:  globalIndex++,
+                        BookType:     record.BookType);
+                    chunks.Add(new BlockChunk(splitText, meta));
+                }
             }
 
             if (chunks.Count == 0)
@@ -117,6 +125,39 @@ public sealed partial class BlockIngestionOrchestrator(
         {
             LogFailed(logger, ex, record.DisplayName, recordId);
             await tracker.MarkFailedAsync(recordId, ex.Message, CancellationToken.None);
+        }
+    }
+
+    /// <summary>
+    /// Splits a block's text into overlapping windows so each window fits comfortably
+    /// in the embedding model's context. Blocks shorter than <see cref="MaxBlockChars"/>
+    /// pass through unchanged.
+    /// </summary>
+    public static IEnumerable<string> SplitLongBlock(string text)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= MaxBlockChars)
+        {
+            yield return text;
+            yield break;
+        }
+
+        var pos = 0;
+        while (pos < text.Length)
+        {
+            var end = Math.Min(pos + MaxBlockChars, text.Length);
+
+            // Prefer breaking at a word boundary near the end of the window.
+            if (end < text.Length)
+            {
+                var searchFrom = Math.Max(pos + MaxBlockChars - 200, pos + 1);
+                var lastSpace = text.LastIndexOf(' ', end - 1, end - searchFrom);
+                if (lastSpace > pos + 100) end = lastSpace;
+            }
+
+            yield return text[pos..end];
+
+            if (end >= text.Length) yield break;
+            pos = Math.Max(pos + 1, end - SplitOverlapChars);
         }
     }
 

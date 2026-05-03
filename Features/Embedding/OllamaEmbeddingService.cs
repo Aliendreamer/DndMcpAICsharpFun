@@ -11,7 +11,7 @@ public sealed partial class OllamaEmbeddingService(
     IOptions<OllamaOptions> options,
     ILogger<OllamaEmbeddingService> logger) : IEmbeddingService
 {
-    private const int MaxEmbedChars = 1500;
+    private const int MaxEmbedChars = 800;
 
     private readonly string _model = options.Value.EmbeddingModel;
 
