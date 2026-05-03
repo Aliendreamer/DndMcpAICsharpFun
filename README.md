@@ -2,37 +2,52 @@
 
 A D&D-themed ASP.NET Core Web API on .NET 10 that ingests D&D rulebook PDFs, embeds their content via [Ollama](https://ollama.ai) into a [Qdrant](https://qdrant.tech) vector store, and exposes semantic search over HTTP — enabling AI assistants to query D&D rules, spells, monsters, and more via RAG (Retrieval-Augmented Generation).
 
+The ingestion pipeline uses [Docling](https://github.com/docling-project/docling) (run as a sidecar service) for layout-aware PDF extraction, so multi-column rulebooks like the PHB come out with correct reading order instead of column-scrambled text. There is no LLM call during ingestion — only an embedding call per chunk.
+
 ## Architecture
 
 ```text
-┌──────────────────────────────────────────────────────────────┐
-│                      Docker Compose Stack                    │
-│                                                              │
-│   ┌───────────────────────────────────────────────────── ┐   │
-│   │              ASP.NET Core app  :5101                 │   │
-│   │                                                      │   │
-│   │  Admin API          Ingestion Pipeline   Retrieval   │   │
-│   │  /admin/books  →  Background Service  →  /retrieval  │   │
-│   │  (register,        (PDF extract,        /search      │   │
-│   │   list, reingest)   chunk, embed)                    │   │
-│   └────────────────┬────────────┬────────────────────────┘   │
-│                    │            │                            │
-│              ┌─────▼──┐  ┌─────▼──┐  ┌────────┐              │
-│              │ Qdrant  │  │ Ollama  │  │ SQLite │            │
-│              │ :6333   │  │ :11434  │  │ /data  │            │
-│              └─────────┘  └─────────┘  └────────┘            │
-│                                                              │
-│  Observability                                               │
-│  Prometheus :9090  →  Grafana :3000                          │
-│  sqlite-web :8080     Qdrant UI :6333/dashboard              │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                        Docker Compose Stack                      │
+│                                                                  │
+│   ┌──────────────────────────────────────────────────────────┐   │
+│   │                ASP.NET Core app  :5101                   │   │
+│   │                                                          │   │
+│   │   Admin API          Ingestion Pipeline    Retrieval     │   │
+│   │   /admin/books   →   IngestionQueueWorker → /retrieval   │   │
+│   │   (register,         (block extract,         /search     │   │
+│   │    list, delete,      embed, upsert)                     │   │
+│   │    ingest-blocks)                                        │   │
+│   └──────┬───────────────┬───────────────┬───────────────────┘   │
+│          │               │               │                       │
+│   ┌──────▼─────┐  ┌──────▼─────┐  ┌──────▼─────┐  ┌─────────┐    │
+│   │  docling   │  │   Ollama   │  │   Qdrant   │  │ SQLite  │    │
+│   │  :5001     │  │   :11434   │  │   :6333    │  │  /data  │    │
+│   │ (layout)   │  │ (embed)    │  │ (vectors)  │  │ (state) │    │
+│   └────────────┘  └────────────┘  └────────────┘  └─────────┘    │
+│                                                                  │
+│   Observability                                                  │
+│   Prometheus :9090   →   Grafana :3000                           │
+│   sqlite-web :8080       Qdrant UI :6333/dashboard               │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-**Legacy chunking flow:** Register a PDF via the admin API → saved to the books volume → then call `POST /admin/books/{id}/reingest` → SHA-256 hashed → tracked in SQLite → PdfPig extracts pages → DndChunker splits into semantic chunks (spells, monsters, classes, etc.) → Ollama embeds each chunk → stored in Qdrant.
+**Ingestion flow** (single-stage, no LLM):
 
-**LLM extraction flow (two-pass):** `POST /admin/books/{id}/extract` → PdfPig extracts pages → Ollama (`llama3.2`) classifies each page → Ollama extracts typed entities (Spell, Monster, Class, etc.) → saved as JSON files on disk → merge pass joins entities split across page boundaries → `POST /admin/books/{id}/ingest-json` → embed each entity description → stored in Qdrant with clean metadata.
+1. `POST /admin/books/register` — multipart upload, streams the PDF straight to disk under a server-generated GUID name, persists an `IngestionRecord` (status `Pending`).
+2. `POST /admin/books/{id}/ingest-blocks` — enqueues background work that:
+   - Reads the PDF's bookmark tree (via PdfPig) for section/category metadata.
+   - Posts the PDF to docling-serve (async + polling), gets back layout-aware blocks with correct multi-column reading order.
+   - Filters out fragments (<40 chars) and pure-numeric tables.
+   - Embeds each block's text via Ollama (default model `mxbai-embed-large`, inputs truncated to 1500 chars).
+   - Upserts into the Qdrant `dnd_blocks` collection with full metadata payload.
+   - Marks the record `JsonIngested` with the final block count.
 
-**Retrieval flow:** `GET /retrieval/search?q=...` → query embedded by Ollama → Qdrant nearest-neighbour search → top-K results returned with source book, page, and category metadata.
+**Retrieval flow:**
+
+`GET /retrieval/search?q=...` → query embedded by Ollama → Qdrant nearest-neighbour search against `dnd_blocks` → top-K results returned with text, score, and metadata (source book, page, section, category, book type, edition).
+
+**Why bookmarks for sections?** Modern D&D PDFs have an embedded outline tree that maps `(section title, start page)` for every chapter and subsection. We walk it recursively (with parent-context propagation, so MM monster names like `"Aboleth"` inherit `Monster` category from their parent `"Monsters (A-Z)"`), giving us reliable section boundaries without any LLM cost.
 
 ## Prerequisites
 
@@ -140,10 +155,17 @@ This decrypts `Config/appsettings.Production.json` (which contains the admin API
 
 Both commands run `docker compose up --build -d` (detached). The app will be available at `http://localhost:5101` once all health checks pass.
 
+First boot is slow because:
+- `ollama-pull` downloads `mxbai-embed-large` (~1 GB).
+- `docling` pulls a ~3 GB image and loads its layout model on first health check (~60-90 s).
+
+The `app` service waits for both to be healthy before starting.
+
 To follow logs:
 
 ```bash
 docker compose logs -f app
+docker compose logs -f docling   # watch layout-analysis progress during ingestion
 ```
 
 To stop:
@@ -161,7 +183,7 @@ All endpoints are on `http://localhost:5101`.
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/health` | Liveness check |
-| `GET` | `/ready` | Readiness check (Qdrant + Ollama) |
+| `GET` | `/ready` | Readiness check (Qdrant + Ollama + docling) |
 
 ### Admin — Book Management
 
@@ -169,31 +191,56 @@ Requires header `X-Admin-Api-Key: <admin key>`.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/admin/books/register` | Upload a PDF and save it as `Pending`. Does **not** start ingestion. Form fields: `file` (PDF), `sourceName`, `version` (`Edition2014` or `Edition2024`), `displayName`. Call `/reingest`, `/extract`, or `/ingest-json` to start the pipeline. |
-| `POST` | `/admin/books/register-path` | Register a PDF already on the server by path. Stays `Pending` — no pipeline fires automatically. JSON body: `filePath`, `sourceName`, `version`, `displayName`. |
-| `GET` | `/admin/books` | List all registered books and their ingestion status |
-| `POST` | `/admin/books/{id}/reingest` | Reset a book to `Pending` and trigger re-ingestion |
-| `POST` | `/admin/books/{id}/extract` | **LLM extraction Stage 1** — classify and extract entities from each page into JSON files (background, returns 202) |
-| `GET` | `/admin/books/{id}/extracted` | List the JSON page files produced by Stage 1 |
-| `POST` | `/admin/books/{id}/ingest-json` | **LLM extraction Stage 2** — embed extracted entities and upsert to Qdrant (background, returns 202) |
-| `DELETE` | `/admin/books/{id}` | Delete a book: removes vectors from Qdrant, extracted JSON files, PDF from disk, and SQLite record |
+| `POST` | `/admin/books/register` | Upload a PDF and save it as `Pending`. Streams multipart body straight to disk; returns 202. Form fields: `file` (PDF), `version` (`Edition2014` or `Edition2024`), `displayName`, optional `bookType` (`Core` / `Supplement` / `Adventure` / `Setting` / `Unknown`, default `Unknown`). Does **not** start ingestion — call `/ingest-blocks` next. |
+| `GET` | `/admin/books` | List all registered books with status, displayName, version, bookType, and chunk count. |
+| `POST` | `/admin/books/{id}/ingest-blocks` | Enqueue Docling layout extraction + embedding + Qdrant upsert. Returns 202; work runs in the background queue. The same call re-runs the pipeline cleanly (deletes prior points by hash). |
+| `DELETE` | `/admin/books/{id}` | Remove the book: deletes Qdrant points by hash, deletes the PDF from disk, deletes the SQLite record. Returns 409 if the book is currently `Processing`. |
 
 ### Retrieval
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/retrieval/search` | Semantic search. Query params: `q` (required), `version`, `category`, `sourceBook`, `entityName`, `topK` (default 5) |
-| `GET` | `/admin/retrieval/search` | Same as above but returns full diagnostic payload including scores and Qdrant point IDs. Requires admin key. |
+| `GET` | `/retrieval/search` | Semantic search over `dnd_blocks`. Query params: `q` (required), `version`, `category`, `sourceBook`, `entityName`, `bookType`, `topK` (default 5, capped at `Retrieval:MaxTopK`). |
+| `GET` | `/admin/retrieval/search` | Same as above but returns `RetrievalDiagnosticResult` including the Qdrant point ID and exact score. Requires admin key. |
 
-**Content categories for `category` param:** `Spell`, `Monster`, `Class`, `Background`, `Item`, `Rule`, `Treasure`, `Encounter`, `Trap`
+**`version` values:** `Edition2014`, `Edition2024`.
 
-**`version` values:** `Edition2014`, `Edition2024`
+**`category` values:** `Spell`, `Monster`, `Class`, `Race`, `Background`, `Item`, `Rule`, `Combat`, `Adventuring`, `Condition`, `God`, `Plane`, `Treasure`, `Encounter`, `Trap`, `Trait`, `Lore`, `Unknown`.
+
+**`bookType` values:** `Core` (PHB/MM/DMG of any edition), `Supplement` (Volo's, Tasha's, Xanathar's, etc.), `Adventure` (Curse of Strahd, Tomb of Annihilation, etc.), `Setting` (Eberron, Wildemount, SCAG, etc.), `Unknown` (default).
+
+Filters compose. For example, `?q=fireball&category=Spell&bookType=Core&version=Edition2014` returns only 5e Core-rulebook spell blocks containing fireball-related content.
 
 ### Metrics
 
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/metrics` | Prometheus text format metrics. **Dev-only — unauthenticated. Disable in production via `OpenTelemetry:Enabled: false`.** |
+
+## How Books Are Tagged
+
+When you register a book, set `bookType` and `version` to make filtering useful later. Suggested mapping:
+
+| Book | `version` | `bookType` |
+| --- | --- | --- |
+| Player's Handbook 2014 / 2024 | `Edition2014` / `Edition2024` | `Core` |
+| Monster Manual 2014 / 2024 | `Edition2014` / `Edition2024` | `Core` |
+| Dungeon Master's Guide 2014 / 2024 | `Edition2014` / `Edition2024` | `Core` |
+| Volo's Guide to Monsters | `Edition2014` | `Supplement` |
+| Xanathar's Guide to Everything | `Edition2014` | `Supplement` |
+| Tasha's Cauldron of Everything | `Edition2014` | `Supplement` |
+| Mordenkainen Presents: Monsters of the Multiverse | `Edition2014` | `Supplement` |
+| Curse of Strahd, Tomb of Annihilation, etc. | `Edition2014` | `Adventure` |
+| Eberron: Rising from the Last War, Wildemount, SCAG | `Edition2014` | `Setting` |
+
+Mental shortcut: `version` describes which rules system the book was published for. `bookType` describes how it relates to the rules — Core = the canonical three, Supplement = adds rules content, Adventure = a story module, Setting = world/lore.
+
+## Ingestion Notes
+
+- **Docling on CPU** — `docling-serve-cpu` runs without GPU contention with Ollama. A PHB-class 300-page book takes ~25-30 minutes for layout analysis on a modern multi-core CPU. Subsequent books reuse the loaded model and run at the same per-book rate.
+- **Re-ingestion is idempotent** — calling `/ingest-blocks` again deletes the prior points (by file hash + global index) before upserting new ones. Safe to re-run if Docling output improves or you want to re-tag with a different `bookType`.
+- **Bookmark requirement** — books without an embedded bookmark/outline tree fail with a clear error. Almost every modern WotC PDF has bookmarks; pirated/scanned versions sometimes don't. If a book lacks bookmarks, switch source.
+- **Embedding truncation** — block text is pre-truncated to 1500 chars before embedding to fit `mxbai-embed-large`'s 512-token context. The full untruncated text is still stored in the Qdrant payload, so retrieval results show the complete block — only the embedding signal for very long blocks is approximate.
 
 ## Observability
 
@@ -205,5 +252,6 @@ When the stack is running, these UIs are available:
 | Prometheus | <http://localhost:9090> | Raw metrics and query UI |
 | sqlite-web | <http://localhost:8080> | Browse and query the `IngestionRecords` SQLite table |
 | Qdrant UI | <http://localhost:6333/dashboard> | Browse vector collections and run test queries |
+| docling-serve | <http://localhost:5001/docs> | Swagger UI for the docling layout service (mostly for debugging) |
 
 Grafana anonymous access is enabled in the dev stack (`GF_AUTH_ANONYMOUS_ORG_ROLE=Admin`). Remove this before any non-local deployment.
