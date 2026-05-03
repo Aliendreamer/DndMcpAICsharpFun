@@ -17,7 +17,7 @@
 ## File Structure
 
 ### Domain types (new)
-- `Domain/Entities/EntityType.cs` — enum of 17 entity types
+- `Domain/Entities/EntityType.cs` — enum of 20 entity types
 - `Domain/Entities/Provenance.cs` — `FirstAppearance`, `Revision` records
 - `Domain/Entities/EntityEnvelope.cs` — common envelope record (generic over `TFields`)
 - `Domain/Entities/Spellcasting.cs` — shared spellcasting block (used by Class & Monster)
