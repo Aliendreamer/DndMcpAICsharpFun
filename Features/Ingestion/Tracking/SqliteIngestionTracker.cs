@@ -85,11 +85,10 @@ public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTr
 
     public async Task MarkEntitiesIngestedAsync(int id, int entityCount, CancellationToken ct = default)
     {
-        // TODO(Task 17): swap to IngestionStatus.EntitiesIngested once the enum value is added.
         await db.IngestionRecords
             .Where(r => r.Id == id)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(r => r.Status, IngestionStatus.JsonIngested)
+                .SetProperty(r => r.Status, IngestionStatus.EntitiesIngested)
                 .SetProperty(r => r.ChunkCount, entityCount)
                 .SetProperty(r => r.IngestedAt, DateTime.UtcNow)
                 .SetProperty(r => r.Error, (string?)null), ct);
