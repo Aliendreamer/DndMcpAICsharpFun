@@ -1,7 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 
 using DndMcpAICsharpFun.Features.Embedding;
+using DndMcpAICsharpFun.Features.Entities;
+using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion;
+using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
@@ -71,6 +74,11 @@ internal static class ServiceCollectionExtensions
 
         services.AddScoped<IBlockIngestionOrchestrator, BlockIngestionOrchestrator>();
         services.AddScoped<IBookDeletionService, BookDeletionService>();
+
+        services.AddSingleton<CanonicalJsonLoader>();
+        services.AddSingleton<EntityCanonicalTextDispatcher>();
+        services.AddSingleton<EntityReferenceResolver>();
+        services.AddScoped<IEntityIngestionOrchestrator, EntityIngestionOrchestrator>();
 
         services.AddHostedService<QdrantCollectionInitializer>();
 

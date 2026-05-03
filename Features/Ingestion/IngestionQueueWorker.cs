@@ -19,12 +19,23 @@ public sealed partial class IngestionQueueWorker(
             try
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
-                var orchestrator = scope.ServiceProvider.GetRequiredService<IBlockIngestionOrchestrator>();
 
                 LogWorkItemStarted(logger, item.Type, item.BookId);
                 var sw = Stopwatch.StartNew();
 
-                await orchestrator.IngestBlocksAsync(item.BookId, stoppingToken);
+                switch (item.Type)
+                {
+                    case IngestionWorkType.IngestBlocks:
+                        var blockOrchestrator = scope.ServiceProvider.GetRequiredService<IBlockIngestionOrchestrator>();
+                        await blockOrchestrator.IngestBlocksAsync(item.BookId, stoppingToken);
+                        break;
+                    case IngestionWorkType.IngestEntities:
+                        var entityOrchestrator = scope.ServiceProvider.GetRequiredService<Entities.IEntityIngestionOrchestrator>();
+                        await entityOrchestrator.IngestEntitiesAsync(item.BookId, stoppingToken);
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Unknown ingestion work type: {item.Type}");
+                }
 
                 LogWorkItemCompleted(logger, item.Type, item.BookId, sw.ElapsedMilliseconds);
             }

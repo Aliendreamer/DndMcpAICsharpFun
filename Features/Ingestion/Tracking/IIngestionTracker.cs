@@ -9,6 +9,7 @@ public interface IIngestionTracker
     Task MarkHashAsync(int id, string fileHash, CancellationToken ct = default);
     Task MarkFailedAsync(int id, string error, CancellationToken ct = default);
     Task MarkJsonIngestedAsync(int id, int chunkCount, CancellationToken ct = default);
+    Task MarkEntitiesIngestedAsync(int id, int entityCount, CancellationToken ct = default);
     Task ResetForReingestionAsync(int id, CancellationToken ct = default);
     Task<IList<IngestionRecord>> GetPendingAndFailedAsync(CancellationToken ct = default);
     Task<IList<IngestionRecord>> GetAllAsync(CancellationToken ct = default);

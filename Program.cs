@@ -27,6 +27,7 @@ builder.Services.Configure<IngestionOptions>(builder.Configuration.GetSection("I
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
 builder.Services.Configure<RetrievalOptions>(builder.Configuration.GetSection("Retrieval"));
 builder.Services.Configure<DoclingOptions>(builder.Configuration.GetSection("Docling"));
+builder.Services.Configure<DndMcpAICsharpFun.Features.Ingestion.Entities.EntityIngestionOptions>(builder.Configuration.GetSection("EntityIngestion"));
 
 // builder.Services.AddAntiforgery();
 builder.Services.AddInfrastructureClients(builder.Configuration);
