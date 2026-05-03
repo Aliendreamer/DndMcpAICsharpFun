@@ -19,6 +19,7 @@ public static partial class BooksAdminEndpoints
         group.MapGet("/books", GetAllBooks);
         group.MapDelete("/books/{id:int}", DeleteBook);
         group.MapPost("/books/{id:int}/ingest-blocks", IngestBlocks).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/ingest-entities", IngestEntities).DisableAntiforgery();
         return group;
     }
 
@@ -36,6 +37,23 @@ public static partial class BooksAdminEndpoints
             return Results.Conflict("Book is currently processing.");
 
         queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestBlocks, id));
+        return Results.Accepted($"/admin/books/{id}");
+    }
+
+    private static async Task<IResult> IngestEntities(
+        int id,
+        IIngestionTracker tracker,
+        IIngestionQueue queue,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        if (record.Status == IngestionStatus.Processing)
+            return Results.Conflict("Book is currently processing.");
+
+        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestEntities, id));
         return Results.Accepted($"/admin/books/{id}");
     }
 

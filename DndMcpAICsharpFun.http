@@ -50,6 +50,10 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/ingest-blocks
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Ingest entities (reads data/canonical/<book>.json and persists structured entities)
+POST {{baseUrl}}/admin/books/1/ingest-entities
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}
