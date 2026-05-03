@@ -5,10 +5,10 @@
 Defines the requirements for registering D&D source PDFs, ingesting them into the Qdrant vector store via the no-LLM block path, and deleting them. Ingestion is a single stage: register → ingest-blocks → done. The legacy LLM-driven extract → JSON → embed pipeline has been removed (see `archive/2026-05-03-remove-llm-ingestion-path/`).
 ## Requirements
 ### Requirement: A PDF book can be registered via the admin API
-The system SHALL accept a PDF upload at `POST /admin/books/register` with form fields `sourceName`, `version`, `displayName`, and an optional `bookType` (one of `Core`, `Supplement`, `Adventure`, `Setting`, `Unknown` — case-insensitive; missing or unparseable values default to `Unknown` without HTTP 400). The handler SHALL persist an ingestion record carrying these fields, stream the multipart body directly to disk (no double-buffering), and store the file under a server-generated GUID name; the user-supplied filename is retained only as a sanitised display value.
+The system SHALL accept a PDF upload at `POST /admin/books/register` with form fields `version`, `displayName`, and an optional `bookType` (one of `Core`, `Supplement`, `Adventure`, `Setting`, `Unknown` — case-insensitive; missing or unparseable values default to `Unknown` without HTTP 400). The handler SHALL persist an ingestion record carrying these fields, stream the multipart body directly to disk (no double-buffering), and store the file under a server-generated GUID name; the user-supplied filename is retained only as a sanitised display value.
 
 #### Scenario: Valid PDF is registered successfully
-- **WHEN** a PDF file is uploaded with valid `sourceName`, `version`, and `displayName`
+- **WHEN** a PDF file is uploaded with valid `version` and `displayName`
 - **THEN** the system stores the file under `{BooksPath}/{guid}.pdf`, creates an `IngestionRecord` with status `Pending`, and returns HTTP 202
 
 #### Scenario: Non-PDF file is rejected
