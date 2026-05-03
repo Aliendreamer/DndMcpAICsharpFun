@@ -4,7 +4,7 @@ The project's north-star goal is a D&D AI **companion agent** that plans charact
 
 ## What Changes
 
-- **NEW** typed entity model with 17 types: Class, Subclass, Race, Subrace, Background, Feat, Spell, Weapon, Armor, Item, Magic Item, Monster, Trap, Disease/Poison, Vehicle/Mount, God, Plane, Faction, Location, Condition.
+- **NEW** typed entity model with 20 types: Class, Subclass, Race, Subrace, Background, Feat, Spell, Weapon, Armor, Item, Magic Item, Monster, Trap, Disease/Poison, Vehicle/Mount, God, Plane, Faction, Location, Condition.
 - **NEW** common entity envelope (`id`, `type`, `name`, `sourceBook`, `edition`, `page`, `firstAppearedIn`, `revisedIn[]`, `settingTags[]`, `canonicalText`, `fields`) with deterministic slug-style IDs (`<bookslug>.<type>.<entityslug>`) so cross-references between entities are stable and the agent can fetch by ID.
 - **NEW** Tier 3 per-type field schemas — full progression data, not just flat fields. Class includes `featuresByLevel`, `subclasses`, `spellcasting`, `multiclass`, `asiLevels`. Monster includes structured `actions[]`, `traits[]`, `legendaryActions`, `lairActions`, `spellcasting`, `keywords[]` (powering descriptive queries like "amphibian"), `crNumeric` for sortable filtering. Other 15 types follow the same envelope-plus-fields pattern.
 - **NEW** canonical JSON artifact per book at `data/canonical/<book>.json`, **checked into git**, hand-correctable, version-controlled. This is the source of truth for structured entities.
@@ -20,7 +20,7 @@ This change does **not** introduce the MCP server or agent layer — those are d
 
 ### New Capabilities
 
-- `structured-entities`: The typed entity data model — envelope, ID/slug scheme, per-type field schemas for all 17 entity types, canonical JSON artifact format, provenance fields (`firstAppearedIn`, `revisedIn`), setting tags. The contract for what an entity record looks like.
+- `structured-entities`: The typed entity data model — envelope, ID/slug scheme, per-type field schemas for all 20 entity types, canonical JSON artifact format, provenance fields (`firstAppearedIn`, `revisedIn`), setting tags. The contract for what an entity record looks like.
 - `entity-extraction-pipeline`: The one-time, per-book LLM extraction pipeline that consumes Docling output and produces canonical JSON conforming to the entity model. Includes orchestration, schema enforcement, error handling, and the workflow for re-running extraction when a schema or book changes.
 - `entity-vector-store`: The `dnd_entities` Qdrant collection — collection schema, payload-index design for structured filters, ingestion of canonical JSON into the collection, retrieval endpoints (by-ID, vector, structured filter).
 

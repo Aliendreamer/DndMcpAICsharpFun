@@ -2,7 +2,7 @@
 
 ### Requirement: Every structured entity record SHALL conform to a common envelope
 
-The system SHALL define a common entity envelope used by every entity record across all 17 entity types. The envelope SHALL contain the following fields: `id` (string), `type` (string, one of the 17 entity types), `name` (string), `sourceBook` (string), `edition` (string, one of `Edition2014`, `Edition2024`, or other recognized editions), `page` (integer or null), `firstAppearedIn` (object with `book`, `edition`, optional `page`), `revisedIn` (array of objects each with `book`, `edition`, `summary`), `settingTags` (array of strings), `canonicalText` (string), and `fields` (object containing type-specific fields).
+The system SHALL define a common entity envelope used by every entity record across all 20 entity types. The envelope SHALL contain the following fields: `id` (string), `type` (string, one of the 20 entity types), `name` (string), `sourceBook` (string), `edition` (string, one of `Edition2014`, `Edition2024`, or other recognized editions), `page` (integer or null), `firstAppearedIn` (object with `book`, `edition`, optional `page`), `revisedIn` (array of objects each with `book`, `edition`, `summary`), `settingTags` (array of strings), `canonicalText` (string), and `fields` (object containing type-specific fields).
 
 #### Scenario: Envelope shape is consistent across types
 - **WHEN** any entity record is loaded from a canonical JSON file
@@ -32,7 +32,7 @@ The system SHALL generate entity IDs as `<book-slug>.<type-slug>.<entity-slug>` 
 - **WHEN** an entity name contains non-ASCII characters (e.g. accents, ligatures)
 - **THEN** the slug component SHALL be ASCII-folded and kebab-cased deterministically (e.g. "Déjà Vu" → "deja-vu")
 
-### Requirement: The system SHALL support 17 entity types
+### Requirement: The system SHALL support 20 entity types
 
 The system SHALL recognise and accept records of these types: `Class`, `Subclass`, `Race`, `Subrace`, `Background`, `Feat`, `Spell`, `Weapon`, `Armor`, `Item`, `MagicItem`, `Monster`, `Trap`, `DiseasePoison`, `VehicleMount`, `God`, `Plane`, `Faction`, `Location`, `Condition`. Each SHALL have a defined `fields` schema.
 

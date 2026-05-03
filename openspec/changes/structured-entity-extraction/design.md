@@ -15,7 +15,7 @@ A previous LLM-based extraction path was removed (see `archive/2026-05-03-remove
 
 **Goals:**
 
-- Produce a typed, structured corpus covering 17 entity types (Class, Subclass, Race, Subrace, Background, Feat, Spell, Weapon, Armor, Item, Magic Item, Monster, Trap, Disease/Poison, Vehicle/Mount, God, Plane, Faction, Location, Condition) with Tier 3 fidelity — full progression data, not just flat fields.
+- Produce a typed, structured corpus covering 20 entity types (Class, Subclass, Race, Subrace, Background, Feat, Spell, Weapon, Armor, Item, Magic Item, Monster, Trap, Disease/Poison, Vehicle/Mount, God, Plane, Faction, Location, Condition) with Tier 3 fidelity — full progression data, not just flat fields.
 - Make the structured data **hand-correctable** via a checked-in canonical JSON artifact per book, so LLM extraction errors are fixable in PRs rather than invisible.
 - Add an `dnd_entities` Qdrant collection that stores embedded entities for vector lookup and structured-filter queries, alongside the unchanged `dnd_blocks` collection.
 - Provide ID-based exact lookup (`get_entity_by_id`) for build/plan workflows where the agent needs the canonical Rogue or Swashbuckler record.
@@ -87,7 +87,7 @@ Every entity record has the same outer envelope (id, type, name, sourceBook, edi
 
 **Why:**
 - Common envelope makes generic operations (lookup-by-id, vector search, provenance queries) work uniformly across types.
-- Per-type fields avoid forcing all 17 types into one bloated shared schema.
+- Per-type fields avoid forcing all 20 types into one bloated shared schema.
 
 ### D6. `canonicalText` is the embedded representation
 
