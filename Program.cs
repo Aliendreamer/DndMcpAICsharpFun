@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Extensions;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Retrieval;
+using DndMcpAICsharpFun.Infrastructure.Docling;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
@@ -25,6 +26,7 @@ builder.Services.Configure<OllamaOptions>(builder.Configuration.GetSection("Olla
 builder.Services.Configure<IngestionOptions>(builder.Configuration.GetSection("Ingestion"));
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
 builder.Services.Configure<RetrievalOptions>(builder.Configuration.GetSection("Retrieval"));
+builder.Services.Configure<DoclingOptions>(builder.Configuration.GetSection("Docling"));
 
 // builder.Services.AddAntiforgery();
 builder.Services.AddInfrastructureClients(builder.Configuration);
@@ -35,7 +37,8 @@ builder.Services.AddObservability(builder.Configuration);
 // Health checks
 builder.Services.AddHealthChecks()
     .AddCheck<QdrantHealthCheck>("qdrant")
-    .AddCheck<OllamaHealthCheck>("ollama");
+    .AddCheck<OllamaHealthCheck>("ollama")
+    .AddCheck<DoclingHealthCheck>("docling");
 
 var app = builder.Build();
 

@@ -21,10 +21,12 @@ public static class BookmarkTocMapper
         if (Contains(t, "spell")) return ContentCategory.Spell;
         if (ContainsAny(t, "monster", "bestiary", "creature")) return ContentCategory.Monster;
         if (ContainsAny(t, "equipment", "gear", "weapon", "armor", "armour", "magic item")) return ContentCategory.Item;
+        // Class first — "Class Features" should land on Class, not Trait,
+        // even though "feat" is a substring of "Features".
+        if (ContainsAny(t, "class", "barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard")) return ContentCategory.Class;
         if (ContainsAny(t, "feat", "trait", "personality")) return ContentCategory.Trait;
         if (ContainsAny(t, "background")) return ContentCategory.Background;
         if (ContainsAny(t, "race", "species")) return ContentCategory.Race;
-        if (ContainsAny(t, "class", "barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard")) return ContentCategory.Class;
         if (ContainsAny(t, "condition")) return ContentCategory.Condition;
         if (ContainsAny(t, "god", "deity", "deities", "pantheon")) return ContentCategory.God;
         if (ContainsAny(t, "plane", "cosmology", "multiverse")) return ContentCategory.Plane;

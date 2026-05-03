@@ -21,6 +21,24 @@ services:
         condition: service_healthy
       ollama-pull:
         condition: service_completed_successfully
+      docling:
+        condition: service_healthy
+    networks:
+      - dnd_net
+    restart: unless-stopped
+
+  docling:
+    image: ghcr.io/docling-project/docling-serve-cpu:latest
+    ports:
+      - "5001:5001"
+    environment:
+      - DOCLING_SERVE_MAX_SYNC_WAIT=1800
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
     networks:
       - dnd_net
     restart: unless-stopped

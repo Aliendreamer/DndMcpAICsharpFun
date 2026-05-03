@@ -44,7 +44,7 @@ PlayerHandbook 2014
 GET {{baseUrl}}/admin/books
 X-Admin-Api-Key: {{adminKey}}
 
-# Page segmenter selectable via Ingestion:BlockSegmenter ("docstrum" default | "xycut" — RecursiveXYCut alternative)
+# Block extraction is performed by the docling sidecar (layout-aware, multi-column-correct).
 ### Admin Books — Ingest blocks (no-LLM path: Docstrum blocks + bookmark metadata, embed direct to dnd_blocks)
 POST {{baseUrl}}/admin/books/1/ingest-blocks
 X-Admin-Api-Key: {{adminKey}}

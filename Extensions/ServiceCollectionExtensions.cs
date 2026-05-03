@@ -77,7 +77,9 @@ internal static class ServiceCollectionExtensions
         services.AddHostedService(sp => sp.GetRequiredService<IngestionQueueWorker>());
 
         services.AddSingleton<IPdfBookmarkReader, PdfPigBookmarkReader>();
-        services.AddSingleton<IPdfBlockExtractor, PdfPigBlockExtractor>();
+
+        services.AddSingleton<IDoclingPdfConverter, DoclingPdfConverter>();
+        services.AddSingleton<IPdfBlockExtractor, DoclingBlockExtractor>();
 
         return services;
     }
