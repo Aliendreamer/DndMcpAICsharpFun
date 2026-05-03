@@ -21,8 +21,16 @@ The system SHALL expose `GET /retrieval/search?q=<text>` and return a ranked lis
 - **WHEN** the same query is issued against an empty `dnd_blocks` collection
 - **THEN** the response is HTTP 200 with an empty list, not an error
 
-### Requirement: Results can be filtered by version, category, source book, and entity name
-The system SHALL apply Qdrant payload filters when `version`, `category`, `sourceBook`, or `entityName` query parameters are provided.
+### Requirement: Results can be filtered by version, category, source book, entity name, and book type
+The system SHALL apply Qdrant payload filters when `version`, `category`, `sourceBook`, `entityName`, or `bookType` query parameters are provided. `bookType` accepts case-insensitive values from the `BookType` enum (`Core`, `Supplement`, `Adventure`, `Setting`, `Unknown`); unparseable values are silently dropped.
+
+#### Scenario: BookType filter limits results to a publishing class
+- **WHEN** `GET /retrieval/search?q=fireball&bookType=Core` is called
+- **THEN** all returned results have `metadata.bookType == Core`
+
+#### Scenario: Filters compose
+- **WHEN** `bookType=Adventure&category=Monster` is set
+- **THEN** results match both filters simultaneously
 
 #### Scenario: Version filter limits results to the specified edition
 - **WHEN** `GET /retrieval/search?q=fireball&version=Edition2024` is called

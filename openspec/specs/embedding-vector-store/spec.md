@@ -18,7 +18,7 @@ The system SHALL embed block text in batches (default size 32, configurable via 
 - **THEN** embeddings and upserts are performed in multiple batches, each no larger than the configured size
 
 ### Requirement: Each Qdrant point carries the full block payload
-The system SHALL store the following fields on every Qdrant point: `text`, `source_book`, `version`, `category`, `section_title`, `section_start`, `section_end`, `page_number`, `block_order`, `chunk_index`.
+The system SHALL store the following fields on every Qdrant point: `text`, `source_book`, `version`, `category`, `section_title`, `section_start`, `section_end`, `page_number`, `block_order`, `chunk_index`, `book_type`.
 
 #### Scenario: Payload fields are written on upsert
 - **WHEN** a block is upserted into Qdrant
@@ -32,7 +32,7 @@ The system SHALL derive each Qdrant point ID as a UUID computed from the SHA-256
 - **THEN** each block produces the same point ID on both runs, resulting in upserts rather than inserts
 
 ### Requirement: The Qdrant blocks collection is initialised on startup
-The system SHALL create the Qdrant collection named by `Qdrant:BlocksCollectionName` (default `dnd_blocks`) with cosine distance and the configured vector size if it does not exist, and SHALL create payload indexes on `source_book`, `version`, `category`, `entity_name`, `section_title` (keyword) and `page_number`, `chunk_index`, `page_end`, `section_start`, `section_end`, `block_order` (integer). Initialisation SHALL retry on transient failures.
+The system SHALL create the Qdrant collection named by `Qdrant:BlocksCollectionName` (default `dnd_blocks`) with cosine distance and the configured vector size if it does not exist, and SHALL create payload indexes on `source_book`, `version`, `category`, `entity_name`, `section_title`, `book_type` (keyword) and `page_number`, `chunk_index`, `page_end`, `section_start`, `section_end`, `block_order` (integer). Initialisation SHALL retry on transient failures.
 
 #### Scenario: Collection is created when absent
 - **WHEN** the application starts and the blocks collection does not exist
