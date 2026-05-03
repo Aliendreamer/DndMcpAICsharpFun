@@ -23,6 +23,7 @@ public sealed partial class QdrantCollectionInitializer(
             try
             {
                 await EnsureCollectionAsync(_options.BlocksCollectionName, cancellationToken);
+                await EnsureCollectionAsync(_options.EntitiesCollectionName, cancellationToken);
                 return;
             }
             catch (Exception ex) when (attempt < maxAttempts)
@@ -54,7 +55,10 @@ public sealed partial class QdrantCollectionInitializer(
             cancellationToken: ct);
         LogCollectionCreated(logger, name, _options.VectorSize);
 
-        await CreatePayloadIndexesAsync(name, ct);
+        if (string.Equals(name, _options.EntitiesCollectionName, StringComparison.Ordinal))
+            await CreateEntityPayloadIndexesAsync(name, ct);
+        else
+            await CreatePayloadIndexesAsync(name, ct);
     }
 
     private async Task CreatePayloadIndexesAsync(string collection, CancellationToken ct)
@@ -82,6 +86,31 @@ public sealed partial class QdrantCollectionInitializer(
         ];
         foreach (var field in intFields)
             await client.CreatePayloadIndexAsync(collection, field, PayloadSchemaType.Integer, cancellationToken: ct);
+
+        LogPayloadIndexesCreated(logger, collection);
+    }
+
+    private async Task CreateEntityPayloadIndexesAsync(string collection, CancellationToken ct)
+    {
+        string[] keywordFields =
+        [
+            EntityPayloadFields.Type,
+            EntityPayloadFields.SourceBook,
+            EntityPayloadFields.Edition,
+            EntityPayloadFields.BookType,
+            EntityPayloadFields.SettingTags,
+            EntityPayloadFields.Keywords,
+            EntityPayloadFields.DamageType,
+            EntityPayloadFields.FirstBook,
+            EntityPayloadFields.FirstEdition,
+            EntityPayloadFields.FileHash,
+        ];
+        foreach (var field in keywordFields)
+            await client.CreatePayloadIndexAsync(collection, field, PayloadSchemaType.Keyword, cancellationToken: ct);
+
+        await client.CreatePayloadIndexAsync(collection, EntityPayloadFields.SpellLevel, PayloadSchemaType.Integer, cancellationToken: ct);
+        await client.CreatePayloadIndexAsync(collection, EntityPayloadFields.Page, PayloadSchemaType.Integer, cancellationToken: ct);
+        await client.CreatePayloadIndexAsync(collection, EntityPayloadFields.CrNumeric, PayloadSchemaType.Float, cancellationToken: ct);
 
         LogPayloadIndexesCreated(logger, collection);
     }
