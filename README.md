@@ -1,8 +1,26 @@
 # DndMcpAICsharpFun
 
-A D&D-themed ASP.NET Core Web API on .NET 10 that ingests D&D rulebook PDFs, embeds their content via [Ollama](https://ollama.ai) into a [Qdrant](https://qdrant.tech) vector store, and exposes semantic search over HTTP — enabling AI assistants to query D&D rules, spells, monsters, and more via RAG (Retrieval-Augmented Generation).
+A D&D AI **companion agent** backed by an ASP.NET Core Web API on .NET 10. The end goal is a phone-app assistant that **plans, recommends, and designs** — not just retrieves text — across three conversation classes:
+
+1. **Character planning & progression** — full level-by-level builds (e.g. *"plan a swashbuckler rogue"*, *"scale this hero to level 15 with options"*, *"feats for cleric/fighter multiclass after level 10"*). Requires per-level class/subclass features, ASI/feat slots, multiclass rules, spell scaling, equipment progression.
+2. **DM-side encounter & world design** — encounter math plus monster selection by descriptive criteria (e.g. *"3 amphibian monsters for a level-5 party"*). Requires monster structured data (CR, type, keywords) plus encounter-budget procedures.
+3. **Setting-aware lore lookup with ranking** — e.g. *"Eberron gods by influence, good/neutral only"*. Requires source/setting tags on entities and judgment-based ranking by the agent.
+4. **Provenance & publication history** — e.g. *"which book introduced the artificer"*, *"what did Tasha's add to the ranger"*, *"is this 2014 or 2024 only"*. Requires first-appearance metadata on every entity plus per-book "what this book added" summaries.
+
+The current repository is the **data and retrieval backbone** for that companion. It ingests D&D rulebook PDFs, embeds their content via [Ollama](https://ollama.ai) into a [Qdrant](https://qdrant.tech) vector store, and exposes semantic search over HTTP — a foundation that an MCP server, structured-extraction layer, and rule-procedure tools will eventually plug into so an AI agent can reason over the corpus to answer the queries above.
 
 The ingestion pipeline uses [Docling](https://github.com/docling-project/docling) (run as a sidecar service) for layout-aware PDF extraction, so multi-column rulebooks like the PHB come out with correct reading order instead of column-scrambled text. There is no LLM call during ingestion — only an embedding call per chunk.
+
+## Roadmap toward the companion agent
+
+What exists today is **flat retrieval over book content**. Reaching the companion-agent goal needs additional layers:
+
+- **Tier-3 structured extraction** — per-content-type entity records with full progression data (Class.featuresByLevel, Subclass progression, Spell scaling, Monster CR/type/keywords, Background skill profs, Race traits, Feats with prereqs, Magic Item rarity tiers). Likely a one-time LLM extraction pass per book producing a checked-in canonical JSON artifact.
+- **Rule procedures** — encounter XP budgets, multiclass prerequisites, spell-slot tables, ability score generation. Some as code (deterministic math), some as curated reference text the agent reasons over.
+- **Setting / source tagging** — tag entities by setting (Eberron, Forgotten Realms, etc.) so queries like "Eberron gods" filter correctly.
+- **MCP server** — expose retrieval, structured queries, and rule procedures as MCP tools an agent can call. HTTP transport for mobile-app and bot consumers.
+
+Each layer is its own design pass via the openspec workflow.
 
 ## Architecture
 
