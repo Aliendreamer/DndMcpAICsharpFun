@@ -1,4 +1,7 @@
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
+using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.Fonts.Standard14Fonts;
@@ -8,7 +11,11 @@ namespace DndMcpAICsharpFun.Tests.Ingestion.Pdf;
 
 public sealed class PdfPigBlockExtractorTests
 {
-    private static readonly PdfPigBlockExtractor Sut = new();
+    private static PdfPigBlockExtractor Build(string segmenter = "docstrum") =>
+        new(Options.Create(new IngestionOptions { BlockSegmenter = segmenter }),
+            NullLogger<PdfPigBlockExtractor>.Instance);
+
+    private static readonly PdfPigBlockExtractor Sut = Build();
 
     private static string BuildSinglePagePdf(Action<PdfDocumentBuilder, PdfPageBuilder> populate)
     {
@@ -116,5 +123,86 @@ public sealed class PdfPigBlockExtractorTests
         var a = new PdfBlock("text", 1, 0, box);
         var b = new PdfBlock("text", 1, 0, box);
         Assert.Equal(a, b);
+    }
+
+    [Fact]
+    public void Default_UsesDocstrum_ProducesBlocks()
+    {
+        var sut = Build();   // no explicit segmenter, default is docstrum
+        var path = BuildSinglePagePdf((b, page) =>
+        {
+            var font = b.AddStandard14Font(Standard14Font.Helvetica);
+            page.AddText("Default segmenter test.", 12, new PdfPoint(50, 750), font);
+        });
+        try
+        {
+            var result = sut.ExtractBlocks(path).ToList();
+            Assert.NotEmpty(result);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void XyCutSelected_ProducesBlocks()
+    {
+        var sut = Build("xycut");
+        var path = BuildSinglePagePdf((b, page) =>
+        {
+            var font = b.AddStandard14Font(Standard14Font.Helvetica);
+            page.AddText("Recursive XY-Cut segmenter test.", 12, new PdfPoint(50, 750), font);
+        });
+        try
+        {
+            var result = sut.ExtractBlocks(path).ToList();
+            Assert.NotEmpty(result);
+            Assert.All(result, blk => Assert.Equal(1, blk.PageNumber));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void InvalidValue_FallsBackToDocstrum_AndLogsWarning()
+    {
+        var captured = new CapturingLogger<PdfPigBlockExtractor>();
+        var sut = new PdfPigBlockExtractor(
+            Options.Create(new IngestionOptions { BlockSegmenter = "nonsense" }),
+            captured);
+        var path = BuildSinglePagePdf((b, page) =>
+        {
+            var font = b.AddStandard14Font(Standard14Font.Helvetica);
+            page.AddText("Fallback segmenter test.", 12, new PdfPoint(50, 750), font);
+        });
+        try
+        {
+            var result = sut.ExtractBlocks(path).ToList();
+            Assert.NotEmpty(result);
+            Assert.Contains(captured.Entries, e =>
+                e.Level == LogLevel.Warning && e.Message.Contains("nonsense", StringComparison.Ordinal));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+        IDisposable ILogger.BeginScope<TState>(TState state) => NullScope.Instance;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+            => Entries.Add((logLevel, formatter(state, exception)));
+
+        private sealed class NullScope : IDisposable
+        {
+            public static readonly NullScope Instance = new();
+            public void Dispose() { }
+        }
     }
 }
