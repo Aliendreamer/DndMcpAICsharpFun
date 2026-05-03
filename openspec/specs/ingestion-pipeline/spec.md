@@ -2,20 +2,20 @@
 
 ## Purpose
 
-Defines the requirements for registering, tracking, and ingesting D&D source books (PDFs) into the vector store, including the admin HTTP API, ingestion lifecycle, and background processing.
+Defines the requirements for registering D&D source PDFs, ingesting them into the Qdrant vector store via the no-LLM block path, and deleting them. Ingestion is a single stage: register → ingest-blocks → done. The legacy LLM-driven extract → JSON → embed pipeline has been removed (see `archive/2026-05-03-remove-llm-ingestion-path/`).
 
 ## Requirements
 
 ### Requirement: A PDF book can be registered via the admin API
-The system SHALL accept a PDF upload at `POST /admin/books/register` with form fields `sourceName`, `version`, and `displayName`, persist an ingestion record, and return HTTP 201 with the created record.
+The system SHALL accept a PDF upload at `POST /admin/books/register` with form fields `sourceName`, `version`, and `displayName`, persist an ingestion record, and return HTTP 202 with the created record. The handler SHALL stream the multipart body directly to disk (no double-buffering) and SHALL store the file under a server-generated GUID name; the user-supplied filename is retained only as a sanitised display value.
 
 #### Scenario: Valid PDF is registered successfully
 - **WHEN** a PDF file is uploaded with valid `sourceName`, `version`, and `displayName`
-- **THEN** the system stores the file, creates an `IngestionRecord` with status `Pending`, and returns HTTP 201
+- **THEN** the system stores the file under `{BooksPath}/{guid}.pdf`, creates an `IngestionRecord` with status `Pending`, and returns HTTP 202
 
 #### Scenario: Non-PDF file is rejected
 - **WHEN** a file that does not have a `.pdf` extension is uploaded
-- **THEN** the system returns HTTP 400
+- **THEN** the system returns HTTP 400 and the partially uploaded file (if any) is deleted
 
 #### Scenario: Invalid version value is rejected
 - **WHEN** the `version` field does not match a valid `DndVersion` enum name
@@ -23,7 +23,7 @@ The system SHALL accept a PDF upload at `POST /admin/books/register` with form f
 
 #### Scenario: Uploaded filename is sanitised against path traversal
 - **WHEN** an upload is submitted with a filename containing directory traversal sequences (e.g. `../../etc/passwd`)
-- **THEN** the system strips directory components and saves only the base filename
+- **THEN** the system strips directory components from the display name and never uses any user-controlled string as part of the on-disk path
 
 ### Requirement: All registered books can be listed
 The system SHALL return all ingestion records at `GET /admin/books`.
@@ -32,42 +32,80 @@ The system SHALL return all ingestion records at `GET /admin/books`.
 - **WHEN** `GET /admin/books` is called
 - **THEN** the system returns HTTP 200 with a JSON array of all `IngestionRecord` objects
 
-### Requirement: A book can be re-ingested on demand
-The system SHALL reset a book's ingestion status and trigger a new ingestion run at `POST /admin/books/{id}/reingest`.
+### Requirement: A registered book is ingested as embedded blocks
+The system SHALL expose `POST /admin/books/{id}/ingest-blocks` which enqueues a single-stage ingestion run that reads the PDF's bookmark tree, extracts layout-aware blocks via Docstrum, embeds each block's text via the configured embedding model, and upserts the resulting points into the blocks collection in Qdrant. The handler SHALL return HTTP 202 on enqueue, HTTP 404 when the record is missing, and HTTP 409 when the record's status is `Processing`.
 
-#### Scenario: Existing book is queued for re-ingestion
-- **WHEN** `POST /admin/books/{id}/reingest` is called with a valid book id
-- **THEN** the system resets the record to `Pending` status, starts ingestion asynchronously, and returns HTTP 202
+#### Scenario: Valid record is enqueued
+- **WHEN** `POST /admin/books/{id}/ingest-blocks` is called for an existing record whose status is not `Processing`
+- **THEN** the system enqueues an `IngestionWorkItem(Type: IngestBlocks, BookId: id)` and returns HTTP 202 with `Location: /admin/books/{id}`
 
-#### Scenario: Unknown book id returns 404
-- **WHEN** `POST /admin/books/{id}/reingest` is called with an id that does not exist
-- **THEN** the system returns HTTP 404
+#### Scenario: Unknown record returns 404
+- **WHEN** the request specifies an id that does not correspond to any record
+- **THEN** the system returns HTTP 404 without enqueuing work
 
-### Requirement: The ingestion orchestrator processes a book end-to-end
-The system SHALL compute the file hash as the first step of ingestion, persist it immediately, reuse it for duplicate detection and unchanged-file checks, then extract text, chunk, embed, upsert into the vector store, and mark the record `Completed`.
+#### Scenario: Already-processing record returns 409
+- **WHEN** the targeted record's status is `Processing`
+- **THEN** the system returns HTTP 409 without enqueuing work
 
-#### Scenario: Book is ingested successfully
-- **WHEN** `IngestBookAsync` is called for a `Pending` record
-- **THEN** the system computes and stores the hash, extracts pages, produces chunks, embeds and upserts them, and sets status to `Completed` with a chunk count
+### Requirement: Section discovery uses the PDF bookmark tree
+During ingestion the system SHALL read the PDF's embedded bookmark tree via `IPdfBookmarkReader.ReadBookmarks`, walk every node recursively, skip nodes whose title is shorter than three trimmed characters, and convert each remaining `(title, pageNumber)` pair into a `TocSectionEntry` with a category guessed from the title. End pages are derived from each subsequent entry's start page minus one (the last entry's end page is open-ended).
 
-#### Scenario: Unchanged book is skipped
-- **WHEN** `IngestBookAsync` is called for a `Completed` record whose file hash has not changed
-- **THEN** the system skips processing and leaves the record unchanged
+#### Scenario: A bookmarked PDF produces a populated section map
+- **WHEN** `IngestBlocksAsync` runs against a PDF that has an embedded bookmark tree
+- **THEN** the orchestrator builds a `TocCategoryMap` from the bookmarks and uses it to assign each block a section before embedding
 
-#### Scenario: Ingestion failure marks the record as Failed
-- **WHEN** an unhandled exception occurs during ingestion
-- **THEN** the system sets the record status to `Failed` and stores the error message
+#### Scenario: A PDF without bookmarks fails ingestion with a clear error
+- **WHEN** `IngestBlocksAsync` runs against a PDF whose bookmark tree is empty or absent
+- **THEN** the orchestrator marks the record `Failed` with an error message indicating that bookmark-driven block ingestion requires embedded bookmarks, and writes nothing to Qdrant
 
-### Requirement: A background service automatically processes pending and failed books
-The system SHALL poll for `Pending` and `Failed` records on a 24-hour cycle and attempt ingestion for each.
+#### Scenario: Single-letter divider bookmarks are skipped
+- **WHEN** the bookmark tree contains alphabetical-divider entries with titles like `"A"`, `"M"`, `"F"` (length < 3 after trim)
+- **THEN** those nodes SHALL not produce `TocSectionEntry` rows; their children are still walked, and pages they covered fall through to the nearest meaningful parent bookmark
 
-#### Scenario: Pending books are processed on the next cycle
-- **WHEN** the background service cycle runs and there are `Pending` records
-- **THEN** the service attempts ingestion for each record in sequence
+#### Scenario: Re-running ingest-blocks overwrites prior block points
+- **WHEN** `POST /admin/books/{id}/ingest-blocks` is issued twice in succession on the same book
+- **THEN** the second run deletes points associated with the previous file hash before upserting the new ones, leaving no duplicates and no orphans
 
-### Requirement: Ingestion detects duplicate books by file hash
-The system SHALL mark a newly registered book as `Duplicate` if another `Completed` record with the same SHA-256 hash already exists, without performing any embedding or vector store writes.
+### Requirement: A book can be deleted via the admin API
+The system SHALL expose `DELETE /admin/books/{id}` which removes the SQLite record, deletes the underlying PDF file from disk, and (when the record had a populated `ChunkCount`) deletes the associated points from the Qdrant blocks collection.
 
-#### Scenario: Duplicate book is marked and skipped
-- **WHEN** `IngestBookAsync` is called for a `Pending` record whose file hash matches an existing `Completed` record
-- **THEN** the system sets the record status to `Duplicate` and stops without producing chunks or writing to Qdrant
+#### Scenario: Existing book is deleted
+- **WHEN** `DELETE /admin/books/{id}` is called for a record not in `Processing` status
+- **THEN** the system removes the Qdrant points for its file hash, deletes the PDF file, deletes the SQLite row, and returns HTTP 204
+
+#### Scenario: Unknown book returns 404
+- **WHEN** the id does not match any record
+- **THEN** the system returns HTTP 404 and performs no deletion
+
+#### Scenario: Processing book returns 409
+- **WHEN** the targeted record's status is `Processing`
+- **THEN** the system returns HTTP 409 and performs no deletion
+
+### Requirement: The IngestionQueueWorker dispatches block ingestion
+The system SHALL dispatch every queued `IngestionWorkItem` to `IBlockIngestionOrchestrator.IngestBlocksAsync`. There is exactly one work-item type (`IngestBlocks`); the worker has no other branches.
+
+#### Scenario: Queue dispatches IngestBlocks items to the block orchestrator
+- **WHEN** an `IngestionWorkItem(IngestBlocks, BookId: 5)` is dequeued
+- **THEN** the worker invokes `IBlockIngestionOrchestrator.IngestBlocksAsync(5, ...)`
+
+### Requirement: Embedding inputs are pre-truncated to fit the model context
+The system SHALL pre-truncate every text passed to the embedding model to at most 1500 characters before issuing the embed request, to protect against the embedding model's context-length limit. Inputs that are truncated SHALL be logged at Warning level.
+
+#### Scenario: Long block text is truncated before embedding
+- **WHEN** the block ingestion path embeds a block whose text exceeds 1500 characters
+- **THEN** the embedding service truncates the input to 1500 characters and logs a warning, and the embed call succeeds without a context-length error
+
+### Requirement: Block ingestion filters fragments and numeric runs
+The system SHALL skip blocks shorter than 40 characters and blocks whose letter content is below 40% of total characters (treating digits, punctuation, and whitespace as non-letters). This removes single-word fragments and standalone numeric tables (e.g. spell-slot rows) that would otherwise pollute retrieval.
+
+#### Scenario: A 7-character fragment is skipped
+- **WHEN** a Docstrum block produces text `"god lhe"`
+- **THEN** the orchestrator skips it before embedding
+
+#### Scenario: A pure-numeric table row is skipped
+- **WHEN** a Docstrum block produces text `"19 4 3 3 3 2 1 1"` (no letters)
+- **THEN** the orchestrator skips it before embedding
+
+#### Scenario: A normal sentence with numbers is kept
+- **WHEN** a block produces `"Fireball deals 8d6 fire damage to creatures within a 20-foot radius."`
+- **THEN** the orchestrator keeps it (letters are well above 40% of total characters)
