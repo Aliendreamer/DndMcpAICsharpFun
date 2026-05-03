@@ -59,7 +59,7 @@ public static partial class BooksAdminEndpoints
         var booksPath = ingestionOptions.Value.BooksPath;
         Directory.CreateDirectory(booksPath);
 
-        string? sourceName = null, version = null, displayName = null, originalFileName = null, filePath = null;
+        string? version = null, displayName = null, originalFileName = null, filePath = null;
         string? bookTypeRaw = null;
 
         var reader = new MultipartReader(boundary, httpContext.Request.Body);
@@ -91,7 +91,6 @@ public static partial class BooksAdminEndpoints
                     var value = await sr.ReadToEndAsync(ct);
                     switch (cd.Name.Value)
                     {
-                        case "sourceName": sourceName = value; break;
                         case "version": version = value; break;
                         case "displayName": displayName = value; break;
                         case "bookType": bookTypeRaw = value; break;
@@ -103,8 +102,8 @@ public static partial class BooksAdminEndpoints
 
             if (filePath is null || originalFileName is null)
                 return Results.Problem("file is required.", statusCode: 400);
-            if (string.IsNullOrEmpty(sourceName) || string.IsNullOrEmpty(displayName))
-                return Results.Problem("sourceName and displayName are required.", statusCode: 400);
+            if (string.IsNullOrEmpty(displayName))
+                return Results.Problem("displayName is required.", statusCode: 400);
             if (!Enum.TryParse<DndVersion>(version, ignoreCase: true, out var parsedVersion))
                 return Results.Problem(
                     $"Invalid version '{version}'. Valid values: {string.Join(", ", Enum.GetNames<DndVersion>())}",
@@ -119,7 +118,6 @@ public static partial class BooksAdminEndpoints
                 FilePath = filePath,
                 FileName = originalFileName,
                 FileHash = string.Empty,
-                SourceName = sourceName,
                 Version = parsedVersion.ToString(),
                 DisplayName = displayName,
                 Status = IngestionStatus.Pending,

@@ -27,10 +27,6 @@ Content-Type: application/pdf
 
 < ./PlayerHandbook2014.pdf
 ------Boundary
-Content-Disposition: form-data; name="sourceName"
-
-2014
-------Boundary
 Content-Disposition: form-data; name="version"
 
 Edition2014

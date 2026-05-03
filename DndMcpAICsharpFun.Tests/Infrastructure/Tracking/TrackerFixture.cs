@@ -34,7 +34,6 @@ public sealed class TrackerFixture : IDisposable
         FilePath = "/tmp/test.pdf",
         FileName = "test.pdf",
         FileHash = string.Empty,
-        SourceName = "PHB",
         Version = "5e",
         DisplayName = "Player's Handbook",
         Status = IngestionStatus.Pending,

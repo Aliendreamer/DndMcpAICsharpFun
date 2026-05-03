@@ -16,9 +16,6 @@ public sealed class IngestionRecord
     [MaxLength(64)]
     public string FileHash { get; set; } = string.Empty;
 
-    [Required, MaxLength(100)]
-    public string SourceName { get; set; } = string.Empty;
-
     [Required, MaxLength(20)]
     public string Version { get; set; } = string.Empty;
 

@@ -47,7 +47,6 @@ public sealed class BooksAdminEndpointsTests
         FilePath = "/tmp/test.pdf",
         FileName = "test.pdf",
         FileHash = string.Empty,
-        SourceName = "PHB",
         Version = "5e",
         DisplayName = "Player's Handbook",
         Status = status,
@@ -63,7 +62,6 @@ public sealed class BooksAdminEndpointsTests
 
         using var content = new MultipartFormDataContent();
         content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
-        content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("Edition2014"), "version");
         content.Add(new StringContent("Player's Handbook"), "displayName");
 
@@ -71,7 +69,7 @@ public sealed class BooksAdminEndpointsTests
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         await tracker.Received(1).CreateAsync(
-            Arg.Is<IngestionRecord>(r => r.SourceName == "PHB" && r.DisplayName == "Player's Handbook"),
+            Arg.Is<IngestionRecord>(r => r.DisplayName == "Player's Handbook"),
             Arg.Any<CancellationToken>());
         foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
             File.Delete(f);
@@ -84,7 +82,6 @@ public sealed class BooksAdminEndpointsTests
 
         using var content = new MultipartFormDataContent();
         content.Add(new ByteArrayContent([0x00]), "file", "test.docx");
-        content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("5e"), "version");
         content.Add(new StringContent("PHB"), "displayName");
 
@@ -100,7 +97,6 @@ public sealed class BooksAdminEndpointsTests
 
         using var content = new MultipartFormDataContent();
         content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
-        content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("invalid_version"), "version");
         content.Add(new StringContent("PHB"), "displayName");
 
@@ -118,7 +114,6 @@ public sealed class BooksAdminEndpointsTests
 
         using var content = new MultipartFormDataContent();
         content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
-        content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("Edition2014"), "version");
         content.Add(new StringContent("Player's Handbook"), "displayName");
         content.Add(new StringContent("supplement"), "bookType"); // case-insensitive
@@ -142,7 +137,6 @@ public sealed class BooksAdminEndpointsTests
 
         using var content = new MultipartFormDataContent();
         content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
-        content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("Edition2014"), "version");
         content.Add(new StringContent("Player's Handbook"), "displayName");
 
@@ -165,7 +159,6 @@ public sealed class BooksAdminEndpointsTests
 
         using var content = new MultipartFormDataContent();
         content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
-        content.Add(new StringContent("PHB"), "sourceName");
         content.Add(new StringContent("Edition2014"), "version");
         content.Add(new StringContent("Player's Handbook"), "displayName");
         content.Add(new StringContent("garbage"), "bookType");
