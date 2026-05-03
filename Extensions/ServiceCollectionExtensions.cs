@@ -6,6 +6,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore;
+using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
@@ -66,6 +67,7 @@ internal static class ServiceCollectionExtensions
 
         services.AddScoped<IEmbeddingService, OllamaEmbeddingService>();
         services.AddScoped<IVectorStoreService, QdrantVectorStoreService>();
+        services.AddSingleton<IEntityVectorStore, QdrantEntityVectorStore>();
 
         services.AddScoped<IBlockIngestionOrchestrator, BlockIngestionOrchestrator>();
         services.AddScoped<IBookDeletionService, BookDeletionService>();
