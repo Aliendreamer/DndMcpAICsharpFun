@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "1",
+  "book": {
+    "sourceBook": "Test Book",
+    "edition": "Edition2014",
+    "fileHash": "deadbeef",
+    "displayName": "Test Book"
+  },
+  "entities": [
+    {
+      "id": "test-book.class.fighter",
+      "type": "Class",
+      "name": "Fighter",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 70,
+      "firstAppearedIn": { "book": "Player's Handbook", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": ["core"],
+      "canonicalText": "Fighter — Hit Die: d10. STR/CON saves. Heavy armor and martial weapons. ...",
+      "fields": {
+        "hitDie": "d10",
+        "primaryAbilities": ["Strength", "Dexterity"],
+        "savingThrowProficiencies": ["Strength", "Constitution"],
+        "armorProficiencies": ["light", "medium", "heavy", "shields"],
+        "weaponProficiencies": ["simple", "martial"],
+        "toolProficiencies": [],
+        "skillChoices": { "count": 2, "options": ["Acrobatics", "Athletics"] },
+        "startingEquipment": [
+          { "choose": 1, "options": ["chain mail", "leather armor"] }
+        ],
+        "multiclass": {
+          "prerequisites": { "operator": "or", "abilities": { "Strength": 13, "Dexterity": 13 } },
+          "proficienciesGained": ["light armor", "shields", "simple weapons", "martial weapons"]
+        },
+        "spellcasting": null,
+        "subclassSelectionLevel": 3,
+        "subclasses": [],
+        "asiLevels": [4, 6, 8, 12, 14, 16, 19],
+        "featuresByLevel": [
+          {
+            "level": 1,
+            "proficiencyBonus": 2,
+            "features": [
+              { "name": "Fighting Style", "ref": "test-book.feature.fighting-style", "summary": "Pick a Fighting Style." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "test-book.monster.bullywug",
+      "type": "Monster",
+      "name": "Bullywug",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 35,
+      "firstAppearedIn": { "book": "Monster Manual", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": ["core"],
+      "canonicalText": "Bullywug — Medium humanoid (bullywug), neutral evil. AC 14. HP 11 (2d8+2). ...",
+      "fields": {
+        "size": "Medium",
+        "type": "humanoid",
+        "subtypes": ["bullywug"],
+        "alignment": "neutral evil",
+        "armorClass": { "value": 14, "source": "leather armor, shield" },
+        "hitPoints": { "average": 11, "dice": "2d8 + 2" },
+        "speed": { "walk": 20, "swim": 40 },
+        "abilityScores": { "strength": 12, "dexterity": 12, "constitution": 13, "intelligence": 7, "wisdom": 10, "charisma": 7 },
+        "savingThrows": {},
+        "skills": { "Stealth": 3 },
+        "damageVulnerabilities": [],
+        "damageResistances": [],
+        "damageImmunities": [],
+        "conditionImmunities": [],
+        "senses": { "darkvision": 60, "passivePerception": 10 },
+        "languages": ["Bullywug"],
+        "challengeRating": { "cr": "1/4", "crNumeric": 0.25, "xp": 50, "proficiencyBonus": 2 },
+        "environment": ["swamp"],
+        "keywords": ["amphibian"],
+        "traits": [
+          { "name": "Amphibious", "ref": "test-book.trait.amphibious", "summary": "Can breathe air and water." }
+        ],
+        "actions": [
+          { "name": "Bite", "type": "MeleeWeaponAttack", "summary": "+3 to hit, reach 5 ft. Hit: 3 (1d4+1) piercing.",
+            "attackBonus": 3, "reach": 5, "targets": "one target",
+            "damage": [ { "dice": "1d4 + 1", "average": 3, "type": "piercing" } ] }
+        ],
+        "bonusActions": [],
+        "reactions": []
+      }
+    },
+    {
+      "id": "test-book.spell.fireball",
+      "type": "Spell",
+      "name": "Fireball",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 241,
+      "firstAppearedIn": { "book": "Player's Handbook", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": ["core"],
+      "canonicalText": "Fireball — 3rd-level evocation. ...",
+      "fields": {
+        "level": 3,
+        "school": "evocation",
+        "castingTime": "1 action",
+        "range": "150 feet",
+        "components": { "v": true, "s": true, "m": true, "material": "a tiny ball of bat guano and sulfur" },
+        "duration": "Instantaneous",
+        "ritual": false,
+        "concentration": false,
+        "description": "A bright streak flashes from your pointing finger to a point you choose...",
+        "atHigherLevels": "When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.",
+        "classes": ["Sorcerer", "Wizard"],
+        "damageTypes": ["fire"]
+      }
+    }
+  ]
+}

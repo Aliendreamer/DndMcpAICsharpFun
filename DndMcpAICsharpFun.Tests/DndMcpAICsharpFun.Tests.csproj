@@ -36,4 +36,10 @@
     <ProjectReference Include="..\DndMcpAICsharpFun.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Fixtures\canonical\**\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
