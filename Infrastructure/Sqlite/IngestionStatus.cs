@@ -7,6 +7,8 @@ public enum IngestionStatus
     Failed,
     Duplicate,
     JsonIngested,
+    EntitiesExtracting,
+    EntitiesExtracted,
     EntitiesIngesting,
     EntitiesIngested,
     EntitiesFailed,
