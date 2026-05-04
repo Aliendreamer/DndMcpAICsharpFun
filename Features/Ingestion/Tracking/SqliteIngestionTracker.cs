@@ -93,4 +93,38 @@ public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTr
                 .SetProperty(r => r.IngestedAt, DateTime.UtcNow)
                 .SetProperty(r => r.Error, (string?)null), ct);
     }
+
+    public async Task MarkEntitiesExtractingAsync(int bookId, CancellationToken ct = default)
+    {
+        await db.IngestionRecords
+            .Where(r => r.Id == bookId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Status, IngestionStatus.EntitiesIngesting)
+                .SetProperty(r => r.Error, (string?)null), ct);
+    }
+
+    public async Task MarkEntitiesExtractedAsync(int bookId, int entityCount, CancellationToken ct = default)
+    {
+        // Note: the LLM-extraction phase yields the canonical JSON; downstream
+        // ingestion (vector upsert) re-uses MarkEntitiesIngestedAsync. We set
+        // the same EntitiesIngested status here because, post-extraction, the
+        // structured data exists on disk and the row's EntityCount becomes
+        // meaningful. Do NOT overwrite ChunkCount.
+        await db.IngestionRecords
+            .Where(r => r.Id == bookId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Status, IngestionStatus.EntitiesIngested)
+                .SetProperty(r => r.EntityCount, entityCount)
+                .SetProperty(r => r.IngestedAt, DateTime.UtcNow)
+                .SetProperty(r => r.Error, (string?)null), ct);
+    }
+
+    public async Task MarkEntitiesFailedAsync(int bookId, string error, CancellationToken ct = default)
+    {
+        await db.IngestionRecords
+            .Where(r => r.Id == bookId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Status, IngestionStatus.EntitiesFailed)
+                .SetProperty(r => r.Error, error), ct);
+    }
 }

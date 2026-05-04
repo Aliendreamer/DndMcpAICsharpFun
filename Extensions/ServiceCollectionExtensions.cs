@@ -108,7 +108,15 @@ internal static class ServiceCollectionExtensions
     internal static IServiceCollection AddEntityExtraction(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<AnthropicOptions>(configuration.GetSection("Anthropic"));
+        services.Configure<EntityExtractionOptions>(configuration.GetSection("EntityExtraction"));
         services.AddHttpClient<IEntityExtractionLlmClient, AnthropicMessagesClient>();
+        services.AddSingleton<ExtractionPromptBuilder>();
+        services.AddSingleton<EntityCandidateScanner>();
+        services.AddSingleton<CanonicalJsonWriter>();
+        services.AddSingleton<ExtractionErrorsFile>();
+        services.AddSingleton<ExtractionWarningsFile>();
+        services.AddSingleton<ExtractionRetryPolicy>();
+        services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
         return services;
     }
 
