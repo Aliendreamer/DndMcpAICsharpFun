@@ -220,7 +220,7 @@
       }
     },
     "SpellcastingType": {
-      "type": "integer",
+      "type": "string",
       "description": "",
       "x-enumNames": [
         "Full",
@@ -231,16 +231,16 @@
         "None"
       ],
       "enum": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5
+        "Full",
+        "Half",
+        "Third",
+        "Pact",
+        "Innate",
+        "None"
       ]
     },
     "SpellPreparation": {
-      "type": "integer",
+      "type": "string",
       "description": "",
       "x-enumNames": [
         "Spellbook",
@@ -248,9 +248,9 @@
         "Prepared"
       ],
       "enum": [
-        0,
-        1,
-        2
+        "Spellbook",
+        "Known",
+        "Prepared"
       ]
     },
     "SpellSlotsRow": {

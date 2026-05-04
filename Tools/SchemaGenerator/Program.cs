@@ -20,9 +20,12 @@ var fieldsTypes = fieldsAssembly.GetTypes()
     .OrderBy(t => t.Name)
     .ToList();
 
+var serializerOptions = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+serializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+
 var settings = new SystemTextJsonSchemaGeneratorSettings
 {
-    SerializerOptions = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web),
+    SerializerOptions = serializerOptions,
     GenerateAbstractProperties = false,
     AlwaysAllowAdditionalObjectProperties = false,
 };
