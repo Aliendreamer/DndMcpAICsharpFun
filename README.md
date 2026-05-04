@@ -164,6 +164,16 @@ git-crypt unlock
 
 This decrypts `Config/appsettings.Production.json` (which contains the admin API key and other production secrets).
 
+### Anthropic API key
+
+Entity extraction calls the Claude Messages API. Provide the key via:
+
+```bash
+export Anthropic__ApiKey="sk-ant-..."
+```
+
+or in `Config/appsettings.Production.json` (git-crypt encrypted). The key is **not** in committed config; it must come from environment or encrypted production config.
+
 ### 2. Start the stack
 
 ```bash

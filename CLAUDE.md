@@ -45,13 +45,24 @@ The host listens on `http://localhost:5101` (set in `DndMcpAICsharpFun.http`). O
 
 The retrieval pipeline uses a dual-collection setup in Qdrant: `dnd_blocks` holds prose chunks for narrative retrieval, while `dnd_entities` holds typed entity records (Class, Monster, Spell, etc.) for structured lookups. Each entity's `canonicalText` is embedded into `dnd_entities` so structured queries return rule-accurate snippets alongside the parsed fields.
 
-Canonical JSON files at `data/canonical/<book-slug>.json` are the hand-correctable source of truth for structured entities. Ingestion reads these files via `CanonicalJsonLoader`, validates schema/IDs, and projects each entity into `dnd_entities`. LLM-driven extraction will land in Plan 2 of the structured-entity-extraction effort; for now the canonical JSON is hand-authored.
+Canonical JSON files at `data/canonical/<book-slug>.json` are the hand-correctable source of truth for structured entities. Ingestion reads these files via `CanonicalJsonLoader`, validates schema/IDs, and projects each entity into `dnd_entities`. Plan 2 of the structured-entity-extraction effort has shipped: a Claude-driven extraction pipeline produces `data/canonical/<book>.json` from Docling output (plus optional sibling `<book>.errors.json` and `<book>.warnings.json`). Hand-authoring is still allowed and remains the source of truth — extraction outputs are reviewed in PRs before they land.
 
 New endpoints:
 - `POST /admin/books/{id}/ingest-entities` — ingest a book's canonical JSON into `dnd_entities`.
+- `POST /admin/books/{id}/extract-entities` — run Claude-driven extraction; produces `data/canonical/<book-slug>.json` plus optional sibling `<book-slug>.errors.json` and `<book-slug>.warnings.json`. Pass `?force=true` to overwrite an existing canonical JSON.
+- `POST /admin/canonical/validate` — corpus-wide validation; 200 (clean) / 422 (FAIL-class issues like duplicate IDs across files or schema-version mismatches).
 - `GET /retrieval/entities/{id}` — fetch a single entity by ID.
 - `GET /retrieval/entities/search` — public typed entity search.
 - `GET /admin/retrieval/entities/search` — admin-side entity search with extra fields.
+
+**Adding a new book (Plan 2 onward):**
+1. `POST /admin/books/register` — upload PDF.
+2. `POST /admin/books/{id}/ingest-blocks` — populate `dnd_blocks`.
+3. `POST /admin/books/{id}/extract-entities` — produce canonical JSON.
+4. Review the canonical JSON diff in a PR; hand-correct any LLM mistakes.
+5. `POST /admin/canonical/validate` — pre-merge sanity check.
+6. Merge.
+7. `POST /admin/books/{id}/ingest-entities` — populate `dnd_entities`.
 
 ## Observability
 
