@@ -5,6 +5,7 @@ using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
+using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
@@ -101,6 +102,13 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<IRagRetrievalService, RagRetrievalService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.IEntityRetrievalService, DndMcpAICsharpFun.Features.Retrieval.Entities.EntityRetrievalService>();
 
+        return services;
+    }
+
+    internal static IServiceCollection AddEntityExtraction(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<AnthropicOptions>(configuration.GetSection("Anthropic"));
+        services.AddHttpClient<IEntityExtractionLlmClient, AnthropicMessagesClient>();
         return services;
     }
 
