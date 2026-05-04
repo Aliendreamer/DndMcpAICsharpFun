@@ -128,6 +128,59 @@ This powers "which book introduced the artificer" and "what did Tasha's add to t
 
 Each canonical JSON file carries a top-level `schemaVersion: "1"` field. Ingestion validates it before reading. Schema bumps trigger re-extraction (or a migration script). This avoids silent drift between the LLM-extracted JSON and the consumer code.
 
+### D13. Extraction LLM: Claude (remote API)
+
+Plan 2's extraction workhorse is Claude (default model: **Claude Sonnet** for cost/quality balance; Opus reserved as a spot-recovery escalation if Sonnet repeatedly fails on a specific entity). The implementation lives behind an `IEntityExtractionLlmClient` abstraction so the model is swappable.
+
+**Why over alternatives:**
+- *Local Ollama with a stronger 14B–70B model:* free, but 4–12 hours per book on consumer hardware and meaningfully worse at nested-schema structured extraction (this is exactly the failure mode that motivated removing the previous Ollama-based extractor in `archive/2026-05-03-remove-llm-ingestion-path/`). Hand-correction load would dominate.
+- *Hybrid local-first + remote fallback:* the entries that need the remote fallback are precisely the high-value Tier 3 ones (Class.featuresByLevel, Monster.legendaryActions). Falling back doesn't help if those are routinely the failure case. Two clients to maintain for marginal gain.
+
+**Cost envelope:** ~$5–20 per book at typical rulebook size; ~$50–150 lifetime cost for the bounded ~10-book corpus. One-time per book.
+
+**Pre-flight check at implementation time:** confirm the API tier supports programmatic Messages API access. If only chat-UI access is available, switch to a per-token API-key model immediately; the abstraction layer absorbs the change.
+
+### D14. Per-type JSON Schemas generated from C# records
+
+Per-entity-type JSON Schema files live at `Schemas/canonical/<TypeName>Fields.schema.json`, generated from each `<Type>Fields` record via **NJsonSchema** at build time. Schemas are checked into git so reviewers can see what the LLM is constrained against. The C# record remains the single source of truth; the schema is its derived artifact.
+
+**Two-layer enforcement:** at extraction time the schema is passed to Claude as a tool-input constraint (Claude's structured-output feature uses the schema to constrain generation). On the way back, the loader validates raw JSON against the schema *before* deserializing into the C# record, so schema drift between record and schema surfaces immediately.
+
+**Per-type hand-overrides allowed.** If the generated schema is awkward for a specific type (notably enum-string fields like `ActionType` where NJsonSchema may emit a generic `"type": "string"` instead of an `enum:` array), commit a hand-tuned version with a comment header documenting the deviation and the regeneration suppression.
+
+**Why over alternatives:**
+- *Hand-written schemas:* duplicates the C# records as a second source of truth; drift risk.
+- *No schema, prompt-only description:* loses Claude's structured-output constraint feature; quality drop on nested types.
+
+### D15. Reference integrity: strict intra-book + corpus-wide validate endpoint
+
+Cross-entity references are validated with two-tier strictness:
+
+- **Intra-book (extraction time):** `EntityReferenceResolver` at extraction time is invoked with awareness of the current book's slug prefix. Dangling refs whose target slug starts with the current book's slug prefix are FAILURES — they are recorded in `data/canonical/<book>.errors.json` and the offending entities are excluded from the canonical JSON. Claude is given a retry pass with the failure context, asked to either produce the missing entity or remove the ref. After the bounded retry budget, unresolved entries stay in the errors file for human review.
+- **Inter-book (extraction time):** dangling refs whose target slug points at a *different* book are warnings — they're written to a sibling `data/canonical/<book>.warnings.json` so they're a checked-in record but don't block extraction.
+- **Ingestion time:** unchanged from Plan 1 — warning-only.
+
+**NEW endpoint** `POST /admin/canonical/validate` runs the resolver across the entire `data/canonical/` corpus on demand. Returns 200 with a structured report when clean (per-book inter-book dangling refs, schema-version mismatches, duplicate IDs across books) and 422 with the same body shape when the report contains any FAIL-class issues (intra-book dangles or schema mismatches). Designed as an operator pre-merge check after a new book lands.
+
+**Why over alternatives:**
+- *Pure warn-only:* extraction quality bugs (the LLM forgot to emit the Subclass entity its parent Class references) become invisible until agent-runtime.
+- *Strict everywhere including inter-book:* impossible — book A can legitimately reference book B's entities before B is extracted; "strict everywhere" would prevent extraction order from being incremental.
+
+### D16. Errata refresh: no special tooling
+
+When WotC publishes errata, the operator workflow is: replace the PDF on disk → call `extract-entities?force=true` → review the canonical JSON diff in a PR → merge. `git diff` is the review tool. No selective per-entity re-extraction, no errata-document-aware patching, no diff-mode endpoint.
+
+**Why over alternatives:**
+- Errata are infrequent; bounded book count caps the operational cost.
+- The `?force=true` re-extraction cost (~20–30 min, ~$5–20) is acceptable for what's effectively a once-a-year event per book.
+- Building selective re-extraction or errata patching is YAGNI for a hobby project.
+
+If friction proves real later (e.g. errata cadence accelerates), revisit with selective re-extraction (`?onlyTypes=`/`?onlyIds=`).
+
+### D17. Plan 2 ships as one coherent implementation slice
+
+The Plan 2 scope is: extraction pipeline + Claude client + JSON-schema generation + corpus-wide validate endpoint + the strict-intra-book post-pass. No further sub-plans within Plan 2 — it ships as a single TDD plan via `superpowers:subagent-driven-development`. Plan 3 (backfill/rollout) remains a separate future plan per `series.md`.
+
 ## Risks / Trade-offs
 
 - **[LLM extraction quality is uneven]** → Mitigated by D1 (hand-correctable JSON) and an extraction-validation pass that flags incomplete or schema-violating records for human review before commit.
@@ -154,7 +207,4 @@ Rollback: drop the `dnd_entities` collection, leave canonical JSON in repo (stil
 
 ## Open Questions
 
-- **Which LLM is the extraction workhorse?** Local Ollama with a stronger model than mxbai (e.g., Llama 3.1 70B on a beefy box) keeps it free; remote (Claude / GPT) is faster and higher quality but costs ~$5–20 per book. Decision deferred until we benchmark a sample book against both options.
-- **JSON schema definition format.** TypeScript-style interfaces in code? JSON Schema files? OpenAPI fragments? We need *something* the LLM extraction prompt can constrain against and consumer code can validate against. Likely a per-type C# record model + a generated JSON Schema for prompt-time validation.
-- **Cross-entity reference integrity.** When Class.subclasses points to subclass IDs, what enforces those IDs exist? Lint pass after extraction? Fail ingestion on missing refs?
-- **What's the unit of provenance refresh?** When a new errata drops, re-extraction probably needs to be triggered manually and the resulting JSON diff reviewed. Acceptable for hobby cadence; may need automation later.
+All Plan 1 and Plan 2 design questions are now resolved (D1–D17). Plan 3 (backfill / rollout) will surface its own questions when its design is brainstormed; nothing else is open today.

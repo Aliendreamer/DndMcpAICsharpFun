@@ -64,17 +64,45 @@ The worker SHALL log structured progress events (entities-extracted, current typ
 - **WHEN** extraction completes (success or failure)
 - **THEN** a single summary log entry includes total entities, per-type counts, validation-failure count, and total elapsed time
 
-### Requirement: Cross-entity reference resolution SHALL run after extraction
+### Requirement: Cross-entity reference resolution SHALL distinguish intra-book from inter-book
 
-After all entities are extracted, the worker SHALL run a reference-resolution pass that validates every cross-entity reference (e.g. Class.subclasses[] → Subclass IDs). Dangling references SHALL be logged as warnings and SHALL NOT block the JSON from being written.
+After candidate entities are produced, the worker SHALL run a reference-resolution pass that classifies every dangling cross-entity reference by whether the target's slug prefix matches the current book's slug prefix.
+
+**Intra-book dangling references** (target slug prefix equals the current book's slug) SHALL be treated as extraction failures: the offending source entity SHALL be excluded from the canonical JSON and recorded in `data/canonical/<book-slug>.errors.json`. The worker MAY retry the affected entities with a corrective prompt up to a bounded retry budget, asking the LLM to either produce the missing target or remove the reference.
+
+**Inter-book dangling references** (target slug prefix differs from the current book's slug) SHALL be recorded in a sibling `data/canonical/<book-slug>.warnings.json` file and SHALL NOT block extraction or affect the canonical JSON.
 
 #### Scenario: All references resolve cleanly
-- **WHEN** every cross-entity reference matches a record in the same canonical JSON or a previously-loaded one
-- **THEN** the reference-resolution pass logs zero warnings
+- **WHEN** every cross-entity reference matches a record in the same canonical JSON or has a target outside the current book
+- **THEN** the canonical JSON is written and no errors file is produced; the warnings file is either absent or empty
 
-#### Scenario: Dangling reference produces a warning
-- **WHEN** a Class.subclasses[] entry references a Subclass ID not present in the canonical JSON
-- **THEN** a warning is logged identifying the source entity, the field path, and the missing target ID; the canonical JSON is still written
+#### Scenario: Intra-book dangling reference excludes the source entity
+- **WHEN** a Class entity references a Subclass ID with the same book-slug prefix as the current book and that Subclass entity is not produced after the bounded retry budget
+- **THEN** the source Class entity is excluded from the canonical JSON and an entry naming the source entity, the field path, and the missing target ID is appended to `data/canonical/<book-slug>.errors.json`
+
+#### Scenario: Inter-book dangling reference is recorded as a warning
+- **WHEN** an entity references an ID whose book-slug prefix differs from the current book's slug
+- **THEN** the canonical JSON is written with the entity intact and an entry naming the source entity, the field path, and the missing target ID is appended to `data/canonical/<book-slug>.warnings.json`
+
+### Requirement: Corpus-wide validation endpoint SHALL report cross-book integrity
+
+The system SHALL expose `POST /admin/canonical/validate` which scans every canonical JSON file under `data/canonical/`, loads them through the canonical loader, and runs the cross-entity reference resolver across the union. The endpoint SHALL return HTTP 200 with a structured report when zero FAIL-class issues are found, and HTTP 422 with the same body shape when any FAIL-class issue is present. FAIL-class issues are: schema-version mismatches, duplicate entity IDs across files, and intra-book dangling references that somehow survived extraction. Inter-book dangling references SHALL be reported as warnings (do not contribute to FAIL).
+
+#### Scenario: Clean corpus returns 200 with empty failures
+- **WHEN** `POST /admin/canonical/validate` is called against a corpus where every canonical JSON loads cleanly and every cross-entity reference resolves
+- **THEN** the response is HTTP 200 with a JSON body whose `failures` array is empty and whose `warnings` array contains any inter-book dangling references
+
+#### Scenario: Schema-version mismatch returns 422
+- **WHEN** any canonical JSON file in the corpus has `schemaVersion` other than the loader's `CurrentVersion`
+- **THEN** the response is HTTP 422 with a `failures` entry naming the offending file and the schema-version mismatch
+
+#### Scenario: Cross-file duplicate ID returns 422
+- **WHEN** two different canonical JSON files contain entities with the same `id`
+- **THEN** the response is HTTP 422 with a `failures` entry naming both files and the duplicated id
+
+#### Scenario: Inter-book dangling reference is reported as warning, not failure
+- **WHEN** an entity in book A references an ID whose book-slug prefix matches book B but book B's canonical JSON has not yet been ingested into the corpus
+- **THEN** the response is HTTP 200 with a `warnings` entry naming the dangling ref, and `failures` is empty
 
 ### Requirement: Re-extraction SHALL be idempotent and explicit
 
