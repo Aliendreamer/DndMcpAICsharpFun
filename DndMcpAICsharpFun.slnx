@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Tools/">
+    <Project Path="Tools/SchemaGenerator/SchemaGenerator.csproj" />
+  </Folder>
+  <Project Path="DndMcpAICsharpFun.csproj" />
+  <Project Path="DndMcpAICsharpFun.Tests/DndMcpAICsharpFun.Tests.csproj" />
+</Solution>

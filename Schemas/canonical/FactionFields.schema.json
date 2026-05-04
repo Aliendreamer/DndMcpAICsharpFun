@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "FactionFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "headquarters": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "DiseasePoisonFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "type": "string"
+    },
+    "saveDc": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "SubclassFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "parentClass": {
+      "type": "string"
+    },
+    "spellcasting": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/SpellcastingBlock"
+        }
+      ]
+    },
+    "featuresByLevel": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ClassLevelEntry"
+      }
+    }
+  },
+  "definitions": {
+    "SpellcastingBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/SpellcastingType"
+        },
+        "ability": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "ritualCasting": {
+          "type": "boolean"
+        },
+        "preparation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/SpellPreparation"
+            }
+          ]
+        },
+        "cantripsKnownByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "spellsKnownByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "spellList": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "spellSlotsByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/SpellSlotsRow"
+          }
+        },
+        "pactSlotsByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/PactSlotRow"
+          }
+        }
+      }
+    },
+    "SpellcastingType": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "Full",
+        "Half",
+        "Third",
+        "Pact",
+        "Innate",
+        "None"
+      ],
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "SpellPreparation": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "Spellbook",
+        "Known",
+        "Prepared"
+      ],
+      "enum": [
+        0,
+        1,
+        2
+      ]
+    },
+    "SpellSlotsRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "slotsByLevel": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    },
+    "PactSlotRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "slots": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "slotLevel": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "ClassLevelEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "proficiencyBonus": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FeatureRef"
+          }
+        }
+      }
+    },
+    "FeatureRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
