@@ -54,6 +54,14 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/ingest-entities
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Extract entities (LLM-driven; writes data/canonical/<book>.json). Initial run only.
+POST {{baseUrl}}/admin/books/1/extract-entities
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin Books — Re-extract entities (force overwrite of existing canonical JSON)
+POST {{baseUrl}}/admin/books/1/extract-entities?force=true
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}

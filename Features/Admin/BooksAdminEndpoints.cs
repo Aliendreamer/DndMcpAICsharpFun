@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 
 using DndMcpAICsharpFun.Domain;
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion;
+using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
@@ -20,6 +22,7 @@ public static partial class BooksAdminEndpoints
         group.MapDelete("/books/{id:int}", DeleteBook);
         group.MapPost("/books/{id:int}/ingest-blocks", IngestBlocks).DisableAntiforgery();
         group.MapPost("/books/{id:int}/ingest-entities", IngestEntities).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/extract-entities", ExtractEntities).DisableAntiforgery();
         return group;
     }
 
@@ -54,6 +57,33 @@ public static partial class BooksAdminEndpoints
             return Results.Conflict("Book is currently processing.");
 
         queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestEntities, id));
+        return Results.Accepted($"/admin/books/{id}");
+    }
+
+    private static async Task<IResult> ExtractEntities(
+        int id,
+        bool? force,
+        IIngestionTracker tracker,
+        IIngestionQueue queue,
+        IOptions<EntityExtractionOptions> opts,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        if (record.Status == IngestionStatus.Processing
+            || record.Status == IngestionStatus.EntitiesExtracting
+            || record.Status == IngestionStatus.EntitiesIngesting)
+            return Results.Conflict("Book is currently processing.");
+
+        var forceFlag = force ?? false;
+        var bookSlug = EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+        var canonicalPath = Path.Combine(opts.Value.CanonicalDirectory, $"{bookSlug}.json");
+        if (File.Exists(canonicalPath) && !forceFlag)
+            return Results.Conflict($"Canonical file already exists at {canonicalPath}. Use ?force=true to overwrite.");
+
+        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.ExtractEntities, id, Force: forceFlag));
         return Results.Accepted($"/admin/books/{id}");
     }
 
