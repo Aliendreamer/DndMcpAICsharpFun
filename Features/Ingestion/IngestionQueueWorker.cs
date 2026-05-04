@@ -33,6 +33,10 @@ public sealed partial class IngestionQueueWorker(
                         var entityOrchestrator = scope.ServiceProvider.GetRequiredService<Entities.IEntityIngestionOrchestrator>();
                         await entityOrchestrator.IngestEntitiesAsync(item.BookId, stoppingToken);
                         break;
+                    case IngestionWorkType.ExtractEntities:
+                        var extractor = scope.ServiceProvider.GetRequiredService<EntityExtraction.IEntityExtractionOrchestrator>();
+                        await extractor.ExtractAsync(item.BookId, item.Force, stoppingToken);
+                        break;
                     default:
                         throw new InvalidOperationException($"Unknown ingestion work type: {item.Type}");
                 }
