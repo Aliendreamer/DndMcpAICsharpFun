@@ -28,6 +28,8 @@ public sealed class IngestionRecord
 
     public int? ChunkCount { get; set; }
 
+    public int? EntityCount { get; set; }
+
     public DateTime? IngestedAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

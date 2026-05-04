@@ -50,4 +50,40 @@ public class EntityBookDeletionTests
         Directory.Delete(canonicalDir, recursive: true);
         if (File.Exists(pdfPath)) File.Delete(pdfPath);
     }
+
+    [Fact]
+    public async Task Delete_clears_block_points_when_book_is_entity_ingested()
+    {
+        var tracker = Substitute.For<IIngestionTracker>();
+        var record = new IngestionRecord
+        {
+            Id = 8,
+            DisplayName = "test-book",
+            FileHash = "deadbeef",
+            FilePath = Path.GetTempFileName(),
+            ChunkCount = 42,
+            EntityCount = 3,
+            Status = IngestionStatus.EntitiesIngested,
+        };
+        tracker.GetByIdAsync(8, Arg.Any<CancellationToken>()).Returns(record);
+
+        var blockStore = Substitute.For<IVectorStoreService>();
+        var entityStore = Substitute.For<IEntityVectorStore>();
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+
+        var svc = new BookDeletionService(
+            tracker, blockStore, entityStore,
+            Options.Create(new EntityIngestionOptions { CanonicalDirectory = canonicalDir }),
+            NullLogger<BookDeletionService>.Instance);
+
+        var result = await svc.DeleteBookAsync(8, CancellationToken.None);
+
+        Assert.Equal(DeleteBookResult.Deleted, result);
+        await blockStore.Received(1).DeleteBlocksByHashAsync("deadbeef", 42, Arg.Any<CancellationToken>());
+        await entityStore.Received(1).DeleteByFileHashAsync("deadbeef", Arg.Any<CancellationToken>());
+
+        Directory.Delete(canonicalDir, recursive: true);
+        if (File.Exists(record.FilePath)) File.Delete(record.FilePath);
+    }
 }

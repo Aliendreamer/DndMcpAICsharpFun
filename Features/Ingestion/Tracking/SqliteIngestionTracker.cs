@@ -89,7 +89,7 @@ public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTr
             .Where(r => r.Id == id)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(r => r.Status, IngestionStatus.EntitiesIngested)
-                .SetProperty(r => r.ChunkCount, entityCount)
+                .SetProperty(r => r.EntityCount, entityCount)
                 .SetProperty(r => r.IngestedAt, DateTime.UtcNow)
                 .SetProperty(r => r.Error, (string?)null), ct);
     }
