@@ -117,6 +117,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<ExtractionWarningsFile>();
         services.AddSingleton<ExtractionRetryPolicy>();
         services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
+        services.AddSingleton<DndMcpAICsharpFun.Features.Admin.CanonicalValidationService>();
         return services;
     }
 

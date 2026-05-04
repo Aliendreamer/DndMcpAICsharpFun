@@ -67,5 +67,6 @@ app.MapGroup("/admin").MapBooksAdmin();
 // Retrieval endpoints
 app.MapRetrievalEndpoints();
 app.MapEntityRetrievalEndpoints();
+app.MapCanonicalValidationEndpoints();
 
 app.Run();

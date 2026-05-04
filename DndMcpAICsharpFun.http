@@ -62,6 +62,10 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/extract-entities?force=true
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin — Validate the entire canonical corpus
+POST {{baseUrl}}/admin/canonical/validate
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}
