@@ -1,0 +1,9 @@
+<Project>
+  <Target Name="GenerateCanonicalSchemas"
+          BeforeTargets="BeforeBuild"
+          Condition="'$(SkipCanonicalSchemaGen)' != 'true'">
+    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)..\Tools\SchemaGenerator\SchemaGenerator.csproj&quot; /p:SkipCanonicalSchemaGen=true -- &quot;$(MSBuildThisFileDirectory)..\Schemas\canonical&quot;"
+          IgnoreExitCode="false"
+          WorkingDirectory="$(MSBuildThisFileDirectory).." />
+  </Target>
+</Project>

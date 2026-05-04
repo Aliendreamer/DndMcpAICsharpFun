@@ -34,4 +34,6 @@
     <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
   </ItemGroup>
 
+  <Import Project="Build/GenerateCanonicalSchemas.targets" />
+
 </Project>
