@@ -36,7 +36,7 @@ public sealed class EntityExtractionOrchestrator(
         Converters = { new JsonStringEnumConverter() },
     };
 
-    public async Task ExtractAsync(int bookId, bool force, CancellationToken ct)
+    public async Task ExtractAsync(int bookId, bool force, bool errorsOnly, CancellationToken ct)
     {
         var record = await tracker.GetByIdAsync(bookId, ct)
                     ?? throw new InvalidOperationException($"No ingestion record {bookId}");

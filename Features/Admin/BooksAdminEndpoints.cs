@@ -63,6 +63,7 @@ public static partial class BooksAdminEndpoints
     private static async Task<IResult> ExtractEntities(
         int id,
         bool? force,
+        bool? errorsOnly,
         IIngestionTracker tracker,
         IIngestionQueue queue,
         IOptions<EntityExtractionOptions> opts,
@@ -78,12 +79,24 @@ public static partial class BooksAdminEndpoints
             return Results.Conflict("Book is currently processing.");
 
         var forceFlag = force ?? false;
-        var bookSlug = EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
-        var canonicalPath = Path.Combine(opts.Value.CanonicalDirectory, $"{bookSlug}.json");
-        if (File.Exists(canonicalPath) && !forceFlag)
-            return Results.Conflict($"Canonical file already exists at {canonicalPath}. Use ?force=true to overwrite.");
+        var errorsOnlyFlag = errorsOnly ?? false;
 
-        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.ExtractEntities, id, Force: forceFlag));
+        if (forceFlag && errorsOnlyFlag)
+            return Results.Problem(
+                "?force and ?errorsOnly are mutually exclusive.",
+                statusCode: StatusCodes.Status400BadRequest);
+
+        if (!errorsOnlyFlag)
+        {
+            var bookSlug = EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+            var canonicalPath = Path.Combine(opts.Value.CanonicalDirectory, $"{bookSlug}.json");
+            if (File.Exists(canonicalPath) && !forceFlag)
+                return Results.Conflict($"Canonical file already exists at {canonicalPath}. Use ?force=true to overwrite.");
+        }
+
+        queue.TryEnqueue(new IngestionWorkItem(
+            IngestionWorkType.ExtractEntities, id,
+            Force: forceFlag, ErrorsOnly: errorsOnlyFlag));
         return Results.Accepted($"/admin/books/{id}");
     }
 

@@ -111,4 +111,45 @@ public sealed class ExtractEntitiesEndpointTests
         }
         finally { Directory.Delete(tempDir, true); }
     }
+
+    [Fact]
+    public async Task ExtractEntities_ErrorsOnlyTrue_Returns202_AndEnqueuesWithErrorsOnly()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var (client, tracker, queue) = await BuildClientAsync(tempDir);
+            tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
+                .Returns(MakeRecord(1));
+            queue.TryEnqueue(Arg.Any<IngestionWorkItem>()).Returns(true);
+
+            var response = await client.PostAsync("/admin/books/1/extract-entities?errorsOnly=true", null);
+
+            Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+            queue.Received(1).TryEnqueue(Arg.Is<IngestionWorkItem>(i =>
+                i.Type == IngestionWorkType.ExtractEntities
+                && i.BookId == 1
+                && i.ErrorsOnly));
+        }
+        finally { Directory.Delete(tempDir, true); }
+    }
+
+    [Fact]
+    public async Task ExtractEntities_ForceAndErrorsOnly_Returns400()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var (client, tracker, queue) = await BuildClientAsync(tempDir);
+            tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
+                .Returns(MakeRecord(1));
+
+            var response = await client.PostAsync("/admin/books/1/extract-entities?force=true&errorsOnly=true", null);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+        finally { Directory.Delete(tempDir, true); }
+    }
 }

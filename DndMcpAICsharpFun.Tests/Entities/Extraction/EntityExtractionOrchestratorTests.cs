@@ -88,7 +88,7 @@ public class EntityExtractionOrchestratorTests
                 logger: NullLogger<EntityExtractionOrchestrator>.Instance);
 
             // Act
-            await orchestrator.ExtractAsync(bookId, force: true, ct: CancellationToken.None);
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
 
             // Assert: errors file must exist and contain a no_schema entry.
             var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug

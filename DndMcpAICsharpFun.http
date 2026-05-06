@@ -62,6 +62,10 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/extract-entities?force=true
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Re-extract only failed entities (requires existing canonical JSON)
+POST {{baseUrl}}/admin/books/1/extract-entities?errorsOnly=true
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin — Validate the entire canonical corpus
 POST {{baseUrl}}/admin/canonical/validate
 X-Admin-Api-Key: {{adminKey}}
