@@ -4,11 +4,11 @@
 >
 > **Series tracking:** This is **Plan 2 of 3** of the `structured-entity-extraction` change. Plan 1 shipped (commit `5426634`); see `series.md`. Plan 3 (backfill / rollout) follows.
 
-**Goal:** Replace hand-authored canonical JSON with a Claude-driven extraction pipeline that consumes Docling output, emits canonical JSON conforming to per-type JSON Schemas, and exposes a corpus-wide validate endpoint.
+**Goal:** Replace hand-authored canonical JSON with an LLM-driven extraction pipeline (local Ollama, `qwen3:8b`) that consumes Docling output, emits canonical JSON conforming to per-type JSON Schemas, and exposes a corpus-wide validate endpoint.
 
-**Architecture:** A new `Features/Ingestion/EntityExtraction/` area hosts the extraction orchestrator, an `IEntityExtractionLlmClient` abstraction with a Claude (Anthropic Messages API) implementation, an extraction prompt builder, and an atomic-write canonical JSON producer. NJsonSchema generates per-type JSON Schemas at startup from the `<Type>Fields` records (Plan 1) and persists them to disk; those schemas are passed to Claude as **tool input schemas** so Claude is constrained to emit conformant JSON. The reference resolver gains intra-book/inter-book classification per Plan 2's design D15. A new admin endpoint runs corpus-wide validation on demand.
+**Architecture:** A new `Features/Ingestion/EntityExtraction/` area hosts the extraction orchestrator, an `IEntityExtractionLlmClient` abstraction with an Ollama-backed implementation (via `Microsoft.Extensions.AI` `IChatClient`), an extraction prompt builder, and an atomic-write canonical JSON producer. NJsonSchema generates per-type JSON Schemas at startup from the `<Type>Fields` records (Plan 1) and persists them to disk; those schemas are passed to Ollama as a **`format` constraint** (structured output) so the model is constrained to emit conformant JSON. The reference resolver gains intra-book/inter-book classification per Plan 2's design D15. A new admin endpoint runs corpus-wide validation on demand.
 
-**Tech Stack:** .NET 10, ASP.NET Core minimal API, System.Text.Json, **NJsonSchema 11.x** (schema generation), **HttpClient** against `https://api.anthropic.com/v1/messages` (no SDK; thin wrapper), xUnit, NSubstitute, Serena for all code edits.
+**Tech Stack:** .NET 10, ASP.NET Core minimal API, System.Text.Json, **NJsonSchema 11.x** (schema generation), **Microsoft.Extensions.AI.Ollama** (`IChatClient` against `http://ollama:11434`), xUnit, NSubstitute, Serena for all code edits.
 
 **Spec coverage in this plan:** `entity-extraction-pipeline` spec (full, including the new corpus-validate requirement), the remaining parts of `ingestion-pipeline` delta (`ExtractEntities` work-item type, status transitions for extraction phases).
 
@@ -18,7 +18,7 @@
 
 These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitigate them in implementation.
 
-- **D13 — LLM:** Anthropic Messages API. Default model `claude-sonnet-4-5-20250929` (or the latest Sonnet model ID at implementation time). Escalation model `claude-opus-4-5-20250929` only if Sonnet repeatedly fails on a specific entity. Implementation behind `IEntityExtractionLlmClient`.
+- **D13 — LLM (amended 2026-05-06):** Local Ollama at `http://ollama:11434`, model `qwen3:8b`. SDK abstraction: `Microsoft.Extensions.AI` `IChatClient` via `Microsoft.Extensions.AI.Ollama` NuGet. Schema constraint: Ollama `format` field (JSON schema object). Escalation model removed — all retries use the same `qwen3:8b`. Implementation behind `IEntityExtractionLlmClient` (interface unchanged). See `design-amendment-meai-ollama.md`.
 - **D14 — Schemas:** NJsonSchema generates `Schemas/canonical/<TypeName>Fields.schema.json` for each `<Type>Fields` record. Generation runs at build time (MSBuild target) into the source tree (committed). Hand-overrides allowed for any single type that comes out ugly — when overridden, suppress regeneration for that file via a `// SCHEMA-OVERRIDE` marker.
 - **D15 — Reference integrity:** intra-book dangles fail (errors.json + entity excluded); inter-book dangles warn (warnings.json + entity intact). New `POST /admin/canonical/validate` endpoint scans whole corpus.
 - **D16 — Errata:** no special tooling — `?force=true` re-extracts and `git diff` is the review tool.
@@ -37,10 +37,10 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 
 ### LLM client abstraction (new)
 - `Features/Ingestion/EntityExtraction/IEntityExtractionLlmClient.cs` — interface
-- `Features/Ingestion/EntityExtraction/AnthropicMessagesClient.cs` — `IEntityExtractionLlmClient` impl
-- `Features/Ingestion/EntityExtraction/AnthropicOptions.cs` — config (API key, base URL, default model, timeout, max retries)
+- `Features/Ingestion/EntityExtraction/OllamaEntityExtractionClient.cs` — `IEntityExtractionLlmClient` impl; depends on `IChatClient` from MEAI
 - `Features/Ingestion/EntityExtraction/ExtractionRequest.cs` — typed request record
-- `Features/Ingestion/EntityExtraction/ExtractionResponse.cs` — typed response record (raw JSON + tool_use input + token counts)
+- `Features/Ingestion/EntityExtraction/ExtractionResponse.cs` — typed response record (raw JSON + parsed fields + token counts)
+- `Infrastructure/Ollama/OllamaOptions.cs` — **modify**: add `ChatModel` property (alongside existing `BaseUrl` and `EmbeddingModel`)
 
 ### Extraction pipeline (new)
 - `Features/Ingestion/EntityExtraction/IEntityExtractionOrchestrator.cs` — interface
@@ -75,10 +75,11 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 - `Features/Admin/CanonicalValidationReport.cs` — DTO
 
 ### Config + DI (modify)
-- `Config/appsettings.json` — add `Anthropic` section, `EntityExtraction` section
-- `Config/appsettings.Production.json` — same (encrypted; mention in PR notes)
-- `Extensions/ServiceCollectionExtensions.cs` — register the new services
+- `Config/appsettings.json` — add `ChatModel` to existing `Ollama` section; add `EntityExtraction` section; no `Anthropic` section
+- `Extensions/ServiceCollectionExtensions.cs` — register the new services; wire `IChatClient` via MEAI Ollama
 - `Program.cs` — wire endpoint mappings
+- `docker-compose.yml` — `ollama-pull` entrypoint pulls both `mxbai-embed-large` and `qwen3:8b`
+- `DndMcpAICsharpFun.csproj` — add `Microsoft.Extensions.AI.Ollama` NuGet package
 
 ### HTTP reference (modify)
 - `DndMcpAICsharpFun.http` — add example requests for `extract-entities` and `canonical/validate`
@@ -329,16 +330,64 @@ git commit -m "feat(schemas): MSBuild target to regenerate schemas + fixture val
 
 ---
 
-## Task 3: AnthropicOptions + AnthropicMessagesClient + IEntityExtractionLlmClient
+## Task 3: OllamaEntityExtractionClient + IEntityExtractionLlmClient (MEAI+Ollama)
 
 **Files:**
 - Create: `Features/Ingestion/EntityExtraction/IEntityExtractionLlmClient.cs`
-- Create: `Features/Ingestion/EntityExtraction/AnthropicOptions.cs`
-- Create: `Features/Ingestion/EntityExtraction/AnthropicMessagesClient.cs`
+- Create: `Features/Ingestion/EntityExtraction/OllamaEntityExtractionClient.cs`
 - Create: `Features/Ingestion/EntityExtraction/ExtractionRequest.cs`
 - Create: `Features/Ingestion/EntityExtraction/ExtractionResponse.cs`
+- Modify: `Infrastructure/Ollama/OllamaOptions.cs` — add `ChatModel` property
+- Modify: `Config/appsettings.json` — add `ChatModel` to `Ollama` section
+- Modify: `Extensions/ServiceCollectionExtensions.cs` — register `IChatClient` + `IEntityExtractionLlmClient`
+- Modify: `DndMcpAICsharpFun.csproj` — add `Microsoft.Extensions.AI.Ollama` NuGet
+- Modify: `docker-compose.yml` — `ollama-pull` pulls `qwen3:8b` alongside `mxbai-embed-large`
+- Modify: `Program.cs` — wire `AddEntityExtraction`
 
-- [ ] **Step 1: Create ExtractionRequest.cs (via Serena)**
+- [ ] **Step 1: Add the NuGet package**
+
+```bash
+dotnet add DndMcpAICsharpFun.csproj package Microsoft.Extensions.AI.Ollama
+```
+
+Expected: package added, `dotnet build` still passes.
+
+- [ ] **Step 2: Extend OllamaOptions.cs (via Serena `insert_after_symbol`)**
+
+Read `Infrastructure/Ollama/OllamaOptions.cs` first. It currently has `BaseUrl` and `EmbeddingModel`. Add `ChatModel`:
+
+```csharp
+public string ChatModel { get; set; } = "qwen3:8b";
+```
+
+The complete file after edit:
+
+```csharp
+namespace DndMcpAICsharpFun.Infrastructure.Ollama;
+
+public sealed class OllamaOptions
+{
+    public string BaseUrl { get; set; } = "http://localhost:11434";
+    public string EmbeddingModel { get; set; } = "mxbai-embed-large";
+    public string ChatModel { get; set; } = "qwen3:8b";
+}
+```
+
+- [ ] **Step 3: Update appsettings.json (via Serena `replace_content`)**
+
+Find the existing `"Ollama"` section in `Config/appsettings.json` and add `ChatModel`:
+
+```json
+"Ollama": {
+  "BaseUrl": "http://localhost:11434",
+  "EmbeddingModel": "mxbai-embed-large",
+  "ChatModel": "qwen3:8b"
+}
+```
+
+There is **no** `"Anthropic"` section — all LLM inference is local.
+
+- [ ] **Step 4: Create ExtractionRequest.cs (via Serena)**
 
 ```csharp
 using System.Text.Json;
@@ -348,14 +397,14 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 public sealed record ExtractionRequest(
     string SystemPrompt,
     string UserPrompt,
-    string ToolName,             // e.g. "emit_class_fields"
-    string ToolDescription,      // human-readable
-    JsonElement ToolInputSchema, // the per-type JSON schema
+    string ToolName,             // e.g. "emit_class_fields" — describes the JSON object expected
+    string ToolDescription,      // human-readable description passed in the prompt
+    JsonElement ToolInputSchema, // the per-type JSON schema; passed as Ollama format constraint
     string ModelId,
     int MaxOutputTokens);
 ```
 
-- [ ] **Step 2: Create ExtractionResponse.cs (via Serena)**
+- [ ] **Step 5: Create ExtractionResponse.cs (via Serena)**
 
 ```csharp
 using System.Text.Json;
@@ -364,15 +413,15 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
 public sealed record ExtractionResponse(
     bool Success,
-    JsonElement? ToolInput,      // present when Success
-    string? StopReason,          // "tool_use", "end_turn", "max_tokens", etc.
+    JsonElement? ToolInput,      // parsed JSON fields — present when Success
+    string? StopReason,          // e.g. "stop", "length"
     int InputTokens,
     int OutputTokens,
     string? ErrorMessage,
-    string? RawJson);            // for debugging
+    string? RawJson);            // raw model output for debugging
 ```
 
-- [ ] **Step 3: Create IEntityExtractionLlmClient.cs (via Serena)**
+- [ ] **Step 6: Create IEntityExtractionLlmClient.cs (via Serena)**
 
 ```csharp
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -383,163 +432,106 @@ public interface IEntityExtractionLlmClient
 }
 ```
 
-- [ ] **Step 4: Create AnthropicOptions.cs (via Serena)**
+- [ ] **Step 7: Create OllamaEntityExtractionClient.cs (via Serena)**
 
 ```csharp
-namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
-
-public sealed class AnthropicOptions
-{
-    public string ApiKey { get; set; } = string.Empty;
-    public string BaseUrl { get; set; } = "https://api.anthropic.com/v1/messages";
-    public string ApiVersion { get; set; } = "2023-06-01";
-    public string DefaultModel { get; set; } = "claude-sonnet-4-5-20250929";
-    public string EscalationModel { get; set; } = "claude-opus-4-5-20250929";
-    public int RequestTimeoutSeconds { get; set; } = 180;
-    public int MaxOutputTokens { get; set; } = 4096;
-}
-```
-
-- [ ] **Step 5: Create AnthropicMessagesClient.cs (via Serena)**
-
-```csharp
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.AI;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
-public sealed class AnthropicMessagesClient(
-    HttpClient http,
-    IOptions<AnthropicOptions> options,
-    ILogger<AnthropicMessagesClient> logger) : IEntityExtractionLlmClient
+public sealed class OllamaEntityExtractionClient(
+    IChatClient chat,
+    ILogger<OllamaEntityExtractionClient> logger) : IEntityExtractionLlmClient
 {
-    private readonly AnthropicOptions _opts = options.Value;
-
     public async Task<ExtractionResponse> ExtractAsync(ExtractionRequest req, CancellationToken ct)
     {
-        var body = new JsonObject
+        var messages = new List<ChatMessage>
         {
-            ["model"] = req.ModelId,
-            ["max_tokens"] = req.MaxOutputTokens,
-            ["system"] = req.SystemPrompt,
-            ["messages"] = new JsonArray(new JsonObject
-            {
-                ["role"] = "user",
-                ["content"] = req.UserPrompt,
-            }),
-            ["tools"] = new JsonArray(new JsonObject
-            {
-                ["name"] = req.ToolName,
-                ["description"] = req.ToolDescription,
-                ["input_schema"] = JsonNode.Parse(req.ToolInputSchema.GetRawText()),
-            }),
-            ["tool_choice"] = new JsonObject { ["type"] = "tool", ["name"] = req.ToolName },
+            new(ChatRole.System, req.SystemPrompt),
+            new(ChatRole.User, req.UserPrompt),
         };
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, _opts.BaseUrl)
+        var chatOptions = new ChatOptions
         {
-            Content = JsonContent.Create(body),
+            ModelId = req.ModelId,
+            MaxOutputTokens = req.MaxOutputTokens,
+            ResponseFormat = ChatResponseFormat.ForJsonSchema(req.ToolInputSchema),
         };
-        request.Headers.Add("x-api-key", _opts.ApiKey);
-        request.Headers.Add("anthropic-version", _opts.ApiVersion);
-
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(TimeSpan.FromSeconds(_opts.RequestTimeoutSeconds));
 
         try
         {
-            using var resp = await http.SendAsync(request, cts.Token);
-            var responseText = await resp.Content.ReadAsStringAsync(cts.Token);
-            if (!resp.IsSuccessStatusCode)
-            {
-                logger.LogWarning("Anthropic API error {Status}: {Body}", (int)resp.StatusCode, responseText);
-                return new ExtractionResponse(
-                    Success: false, ToolInput: null, StopReason: null,
-                    InputTokens: 0, OutputTokens: 0,
-                    ErrorMessage: $"HTTP {(int)resp.StatusCode}: {responseText}",
-                    RawJson: responseText);
-            }
+            var response = await chat.CompleteAsync(messages, chatOptions, ct);
+            var rawText = response.Message.Text ?? string.Empty;
+            var inputTokens = response.Usage?.InputTokenCount ?? 0;
+            var outputTokens = response.Usage?.OutputTokenCount ?? 0;
+            var stopReason = response.FinishReason?.Value;
 
-            using var doc = JsonDocument.Parse(responseText);
-            var root = doc.RootElement;
-            var stopReason = root.TryGetProperty("stop_reason", out var sr) ? sr.GetString() : null;
-            var usage = root.TryGetProperty("usage", out var u) ? u : default;
-            var inputTokens = usage.ValueKind == JsonValueKind.Object && usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
-            var outputTokens = usage.ValueKind == JsonValueKind.Object && usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
-
-            JsonElement? toolInput = null;
-            if (root.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var block in content.EnumerateArray())
-                {
-                    if (block.TryGetProperty("type", out var t)
-                        && t.GetString() == "tool_use"
-                        && block.TryGetProperty("input", out var input))
-                    {
-                        toolInput = input.Clone();
-                        break;
-                    }
-                }
-            }
-
-            if (toolInput is null)
+            if (string.IsNullOrWhiteSpace(rawText))
             {
                 return new ExtractionResponse(
                     Success: false, ToolInput: null, StopReason: stopReason,
                     InputTokens: inputTokens, OutputTokens: outputTokens,
-                    ErrorMessage: $"No tool_use block in response (stop_reason={stopReason})",
-                    RawJson: responseText);
+                    ErrorMessage: "Empty response from Ollama",
+                    RawJson: null);
             }
 
-            return new ExtractionResponse(
-                Success: true, ToolInput: toolInput, StopReason: stopReason,
-                InputTokens: inputTokens, OutputTokens: outputTokens,
-                ErrorMessage: null, RawJson: responseText);
+            try
+            {
+                var doc = JsonDocument.Parse(rawText);
+                return new ExtractionResponse(
+                    Success: true, ToolInput: doc.RootElement.Clone(), StopReason: stopReason,
+                    InputTokens: inputTokens, OutputTokens: outputTokens,
+                    ErrorMessage: null, RawJson: rawText);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogWarning(
+                    "Ollama returned non-JSON for model {Model}: {Err} — raw: {Raw}",
+                    req.ModelId, ex.Message, rawText[..Math.Min(300, rawText.Length)]);
+                return new ExtractionResponse(
+                    Success: false, ToolInput: null, StopReason: stopReason,
+                    InputTokens: inputTokens, OutputTokens: outputTokens,
+                    ErrorMessage: $"Response was not valid JSON: {ex.Message}",
+                    RawJson: rawText);
+            }
         }
-        catch (TaskCanceledException) when (cts.IsCancellationRequested && !ct.IsCancellationRequested)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            logger.LogWarning(ex, "Ollama chat request failed for model {Model}", req.ModelId);
             return new ExtractionResponse(
                 Success: false, ToolInput: null, StopReason: null,
                 InputTokens: 0, OutputTokens: 0,
-                ErrorMessage: $"Anthropic request exceeded {_opts.RequestTimeoutSeconds}s timeout",
+                ErrorMessage: ex.Message,
                 RawJson: null);
         }
     }
 }
 ```
 
-- [ ] **Step 6: Add config keys**
+**Note on `ChatResponseFormat.ForJsonSchema`:** This method is in `Microsoft.Extensions.AI` and accepts a `JsonElement`. The MEAI Ollama adapter translates it to the Ollama `format` field (structured output). If the MEAI version in the project uses a different overload shape, use `new ChatResponseFormatJson(req.ToolInputSchema)` instead and verify compilation.
 
-Modify `Config/appsettings.json` via Serena `replace_content`. Add an `Anthropic` section under the root:
+- [ ] **Step 8: Register in DI (via Serena)**
 
-```json
-"Anthropic": {
-  "BaseUrl": "https://api.anthropic.com/v1/messages",
-  "ApiVersion": "2023-06-01",
-  "DefaultModel": "claude-sonnet-4-5-20250929",
-  "EscalationModel": "claude-opus-4-5-20250929",
-  "RequestTimeoutSeconds": 180,
-  "MaxOutputTokens": 4096
-}
-```
-
-The `ApiKey` is intentionally **not** in `appsettings.json` — it must come from environment variable `Anthropic__ApiKey` or `Config/appsettings.Production.json` (git-crypt encrypted). Document this in the README change at the end of the plan.
-
-- [ ] **Step 7: Register in DI**
-
-Modify `Extensions/ServiceCollectionExtensions.cs` (find the existing `AddIngestionPipeline` extension or add a new `AddEntityExtraction(IConfiguration)` extension):
+Modify `Extensions/ServiceCollectionExtensions.cs`. Add a new `AddEntityExtraction(IConfiguration)` extension method (or add to the existing one if present):
 
 ```csharp
+using Microsoft.Extensions.AI;
+
 public static IServiceCollection AddEntityExtraction(this IServiceCollection services, IConfiguration configuration)
 {
-    services.Configure<AnthropicOptions>(configuration.GetSection("Anthropic"));
-    services.AddHttpClient<IEntityExtractionLlmClient, AnthropicMessagesClient>();
+    // IChatClient for Ollama (MEAI) — used by OllamaEntityExtractionClient
+    services.AddSingleton<IChatClient>(sp =>
+    {
+        var opts = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
+        return new OllamaChatClient(new Uri(opts.BaseUrl), opts.ChatModel);
+    });
+    services.AddSingleton<IEntityExtractionLlmClient, OllamaEntityExtractionClient>();
     return services;
 }
 ```
+
+`OllamaOptions` is already bound in the existing Ollama DI registration — confirm via Serena `get_symbols_overview` on `ServiceCollectionExtensions.cs`; if it is bound there, skip re-binding. If it isn't, add `services.Configure<OllamaOptions>(configuration.GetSection("Ollama"));` to the top of `AddEntityExtraction`.
 
 Wire from `Program.cs`:
 
@@ -547,23 +539,53 @@ Wire from `Program.cs`:
 builder.Services.AddEntityExtraction(builder.Configuration);
 ```
 
-- [ ] **Step 8: Build**
+- [ ] **Step 9: Update docker-compose.yml `ollama-pull` (via Serena)**
 
-Run: `dotnet build`
-Expected: PASS.
+Find the `ollama-pull` service entrypoint in `docker-compose.yml` and change the pull command from:
 
-- [ ] **Step 9: Commit**
+```yaml
+        "ollama pull mxbai-embed-large",
+```
+
+to:
+
+```yaml
+        "ollama pull mxbai-embed-large && ollama pull qwen3:8b",
+```
+
+The full entrypoint block becomes:
+
+```yaml
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        "ollama pull mxbai-embed-large && ollama pull qwen3:8b",
+      ]
+```
+
+- [ ] **Step 10: Build**
+
+```bash
+dotnet build
+```
+
+Expected: PASS. No references to `AnthropicMessagesClient`, `AnthropicOptions`, or `HttpClient<AnthropicMessagesClient>` anywhere.
+
+- [ ] **Step 11: Commit**
 
 ```bash
 git add Features/Ingestion/EntityExtraction/IEntityExtractionLlmClient.cs \
-        Features/Ingestion/EntityExtraction/AnthropicOptions.cs \
-        Features/Ingestion/EntityExtraction/AnthropicMessagesClient.cs \
+        Features/Ingestion/EntityExtraction/OllamaEntityExtractionClient.cs \
         Features/Ingestion/EntityExtraction/ExtractionRequest.cs \
         Features/Ingestion/EntityExtraction/ExtractionResponse.cs \
+        Infrastructure/Ollama/OllamaOptions.cs \
         Config/appsettings.json \
         Extensions/ServiceCollectionExtensions.cs \
+        DndMcpAICsharpFun.csproj \
+        docker-compose.yml \
         Program.cs
-git commit -m "feat(extraction): IEntityExtractionLlmClient + Anthropic Messages client"
+git commit -m "feat(extraction): IEntityExtractionLlmClient + OllamaEntityExtractionClient via MEAI IChatClient"
 ```
 
 ---
@@ -1288,11 +1310,11 @@ public sealed class EntityExtractionOrchestrator(
     EntityReferenceResolver refResolver,
     ExtractionRetryPolicy retry,
     IOptions<EntityExtractionOptions> options,
-    IOptions<AnthropicOptions> anthropic,
+    IOptions<OllamaOptions> ollamaOpts,
     ILogger<EntityExtractionOrchestrator> logger) : IEntityExtractionOrchestrator
 {
     private readonly EntityExtractionOptions _opts = options.Value;
-    private readonly AnthropicOptions _anthro = anthropic.Value;
+    private readonly OllamaOptions _ollama = ollamaOpts.Value;
 
     public async Task ExtractAsync(int bookId, bool force, CancellationToken ct)
     {
@@ -1426,8 +1448,8 @@ public sealed class EntityExtractionOrchestrator(
             ToolName: toolName,
             ToolDescription: toolDescription,
             ToolInputSchema: schema,
-            ModelId: _anthro.DefaultModel,
-            MaxOutputTokens: _anthro.MaxOutputTokens);
+            ModelId: _ollama.ChatModel,
+            MaxOutputTokens: 4096);
 
         var response = await retry.ExecuteAsync(
             (attempt, c) => llm.ExtractAsync(request, c),
@@ -1536,6 +1558,8 @@ services.AddSingleton<ExtractionWarningsFile>();
 services.AddSingleton<ExtractionRetryPolicy>();
 services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
 ```
+
+`OllamaOptions` is already configured in the existing Ollama DI registration; the orchestrator injects `IOptions<OllamaOptions>` — no extra `Configure<>` call needed here.
 
 Add `EntityExtraction` section to `Config/appsettings.json`:
 
@@ -2056,18 +2080,24 @@ git commit -m "feat(admin): POST /admin/canonical/validate corpus-wide validatio
 
 The Plan 1 seed JSON was hand-authored. Plan 2 should validate end-to-end by re-extracting that book and reviewing the diff.
 
-This task is **manual** — requires API key + Docker stack + a real PDF.
+This task is **manual** — requires Docker stack + a real PDF + `qwen3:8b` pulled.
 
 - [ ] **Step 1: Boot the stack**
 ```bash
 ./start.sh Development
 ```
 
-- [ ] **Step 2: Set the Anthropic API key**
+The `ollama-pull` container will automatically pull `mxbai-embed-large` and `qwen3:8b` on first start. Watch it finish:
 ```bash
-export Anthropic__ApiKey="<your key>"
-docker compose restart app
+docker compose logs -f ollama-pull
 ```
+Expected: both pulls complete, container exits 0.
+
+- [ ] **Step 2: Verify Ollama has the chat model**
+```bash
+docker compose exec ollama ollama list
+```
+Expected output includes `qwen3:8b` and `mxbai-embed-large`. No API key required — all inference is local.
 
 - [ ] **Step 3: Register a real PHB 2014 PDF**
 ```bash
@@ -2156,7 +2186,7 @@ git commit -m "data(canonical): regenerate phb14.json via Plan 2 extraction pipe
 In the "Structured Entity Extraction (vertical slice)" section added in Plan 1, update the LLM-extraction note from "will land in Plan 2" to a current-state description. Add the new endpoints:
 
 ```markdown
-- `POST /admin/books/{id}/extract-entities` — run Claude-driven extraction; produces `data/canonical/<book-slug>.json` plus optional sibling `<book-slug>.errors.json` and `<book-slug>.warnings.json`. Pass `?force=true` to overwrite an existing canonical JSON.
+- `POST /admin/books/{id}/extract-entities` — run LLM-driven extraction (local Ollama `qwen3:8b`); produces `data/canonical/<book-slug>.json` plus optional sibling `<book-slug>.errors.json` and `<book-slug>.warnings.json`. Pass `?force=true` to overwrite an existing canonical JSON.
 - `POST /admin/canonical/validate` — corpus-wide validation; 200 (clean) / 422 (FAIL-class issues).
 ```
 
@@ -2166,7 +2196,7 @@ Also add to the operator workflow:
 **Adding a new book (Plan 2 onward):**
 1. `POST /admin/books/register` — upload PDF.
 2. `POST /admin/books/{id}/ingest-blocks` — populate `dnd_blocks`.
-3. `POST /admin/books/{id}/extract-entities` — produce canonical JSON.
+3. `POST /admin/books/{id}/extract-entities` — produce canonical JSON (requires Ollama running with `qwen3:8b`).
 4. Review the canonical JSON diff in a PR; hand-correct any LLM mistakes.
 5. `POST /admin/canonical/validate` — pre-merge sanity check.
 6. Merge.
@@ -2175,27 +2205,31 @@ Also add to the operator workflow:
 
 - [ ] **Step 2: Update README.md (via Serena)**
 
-Add a brief mention under the existing companion-agent vision that LLM-driven extraction now exists, with a pointer to the Anthropic API key requirement. One paragraph max — don't bloat the README.
+Add a brief mention under the existing companion-agent vision that LLM-driven extraction now exists, powered by local Ollama. One paragraph max — don't bloat the README.
 
 Specifically in the configuration section, document:
 
 ```markdown
-### Anthropic API key
+### Ollama models
 
-Entity extraction calls the Claude Messages API. Provide the key via:
+Entity extraction uses `qwen3:8b` via local Ollama. The docker-compose stack pulls it automatically
+(`ollama-pull` service). To pull manually:
 
 ```bash
-export Anthropic__ApiKey="sk-ant-..."
+docker compose run --rm ollama-pull
+# or directly:
+ollama pull qwen3:8b
 ```
 
-or in `Config/appsettings.Production.json` (git-crypt encrypted). The key is **not** in committed config.
+No external API key is required. The model and base URL are set in `Config/appsettings.json` under the
+`Ollama` section.
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add CLAUDE.md README.md
-git commit -m "docs: document Plan 2 extraction pipeline + Anthropic API key setup"
+git commit -m "docs: document Plan 2 extraction pipeline + Ollama model setup"
 ```
 
 ---
