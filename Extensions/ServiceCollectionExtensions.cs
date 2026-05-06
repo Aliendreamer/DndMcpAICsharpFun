@@ -91,7 +91,11 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<IPdfBookmarkReader, PdfPigBookmarkReader>();
 
-        services.AddSingleton<IDoclingPdfConverter, DoclingPdfConverter>();
+        services.AddSingleton<DoclingPdfConverter>();
+        services.AddSingleton<IDoclingPdfConverter>(sp => new DoclingDiskCache(
+            sp.GetRequiredService<DoclingPdfConverter>(),
+            sp.GetRequiredService<IOptions<EntityExtractionOptions>>(),
+            sp.GetRequiredService<ILogger<DoclingDiskCache>>()));
         services.AddSingleton<IPdfBlockExtractor, DoclingBlockExtractor>();
 
         return services;
