@@ -104,4 +104,35 @@ public sealed class DoclingDiskCacheTests
         }
         finally { Directory.Delete(dir, true); }
     }
+
+    [Fact]
+    public async Task NonExistentCacheDirectory_TreatedAsCacheMiss()
+    {
+        var pdfDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(pdfDir);
+        try
+        {
+            var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+            var pdfPath = Path.Combine(pdfDir, "test.pdf");
+            await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+
+            // Non-existent directory — the directory does not exist at all.
+            var nonExistentDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            var expected = new DoclingDocument("# Hello", []);
+            var inner = Substitute.For<IDoclingPdfConverter>();
+            inner.ConvertAsync(pdfPath, Arg.Any<CancellationToken>()).Returns(expected);
+
+            var opts = Options.Create(new EntityExtractionOptions { DoclingCacheDirectory = nonExistentDir });
+            var cache = new DoclingDiskCache(inner, opts, NullLogger<DoclingDiskCache>.Instance);
+
+            var result = await cache.ConvertAsync(pdfPath);
+
+            Assert.Equal(expected.Markdown, result.Markdown);
+            await inner.Received(1).ConvertAsync(pdfPath, Arg.Any<CancellationToken>());
+            // Cache dir should now be created by TryCacheAsync
+            Assert.True(Directory.Exists(nonExistentDir));
+        }
+        finally { Directory.Delete(pdfDir, true); }
+    }
 }

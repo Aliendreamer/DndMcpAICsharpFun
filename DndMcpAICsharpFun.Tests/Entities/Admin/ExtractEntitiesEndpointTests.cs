@@ -119,6 +119,10 @@ public sealed class ExtractEntitiesEndpointTests
         Directory.CreateDirectory(tempDir);
         try
         {
+            // errorsOnly requires an existing canonical file — create one
+            var canonicalPath = Path.Combine(tempDir, "test-book.json");
+            await File.WriteAllTextAsync(canonicalPath, "{}");
+
             var (client, tracker, queue) = await BuildClientAsync(tempDir);
             tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
                 .Returns(MakeRecord(1));
@@ -149,6 +153,25 @@ public sealed class ExtractEntitiesEndpointTests
             var response = await client.PostAsync("/admin/books/1/extract-entities?force=true&errorsOnly=true", null);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+        finally { Directory.Delete(tempDir, true); }
+    }
+
+    [Fact]
+    public async Task ExtractEntities_ErrorsOnlyTrue_WithoutCanonical_Returns409()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var (client, tracker, queue) = await BuildClientAsync(tempDir);
+            tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
+                .Returns(MakeRecord(1));
+            // No canonical file created in tempDir
+
+            var response = await client.PostAsync("/admin/books/1/extract-entities?errorsOnly=true", null);
+
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         }
         finally { Directory.Delete(tempDir, true); }
     }

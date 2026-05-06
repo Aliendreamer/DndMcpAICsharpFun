@@ -35,6 +35,7 @@ public sealed class DoclingDiskCache(
             }
         }
         catch (FileNotFoundException) { }
+        catch (DirectoryNotFoundException) { } // cache dir not created yet — treat as miss
         catch (JsonException ex)
         {
             logger.LogWarning(

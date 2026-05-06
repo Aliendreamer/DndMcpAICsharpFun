@@ -86,6 +86,14 @@ public static partial class BooksAdminEndpoints
                 "?force and ?errorsOnly are mutually exclusive.",
                 statusCode: StatusCodes.Status400BadRequest);
 
+        if (errorsOnlyFlag)
+        {
+            var bookSlug = EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+            var canonicalPath = Path.Combine(opts.Value.CanonicalDirectory, $"{bookSlug}.json");
+            if (!File.Exists(canonicalPath))
+                return Results.Conflict($"No canonical file found for {bookSlug}; run full extraction first.");
+        }
+
         if (!errorsOnlyFlag)
         {
             var bookSlug = EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
