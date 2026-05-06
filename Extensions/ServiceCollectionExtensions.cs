@@ -19,6 +19,8 @@ using DndMcpAICsharpFun.Infrastructure.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
+using Microsoft.Extensions.AI;
+
 using OllamaSharp;
 
 using OpenTelemetry.Metrics;
@@ -107,9 +109,13 @@ internal static class ServiceCollectionExtensions
 
     internal static IServiceCollection AddEntityExtraction(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<AnthropicOptions>(configuration.GetSection("Anthropic"));
         services.Configure<EntityExtractionOptions>(configuration.GetSection("EntityExtraction"));
-        services.AddHttpClient<IEntityExtractionLlmClient, AnthropicMessagesClient>();
+        services.AddSingleton<IChatClient>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
+            return new OllamaChatClient(new Uri(opts.BaseUrl), opts.ChatModel);
+        });
+        services.AddSingleton<IEntityExtractionLlmClient, OllamaEntityExtractionClient>();
         services.AddSingleton<ExtractionPromptBuilder>();
         services.AddSingleton<EntityCandidateScanner>();
         services.AddSingleton<CanonicalJsonWriter>();
