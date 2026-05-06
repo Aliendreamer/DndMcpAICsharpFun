@@ -5,6 +5,7 @@ using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+using DndMcpAICsharpFun.Infrastructure.Ollama;
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -22,11 +23,11 @@ public sealed class EntityExtractionOrchestrator(
     EntityReferenceResolver refResolver,
     ExtractionRetryPolicy retry,
     IOptions<EntityExtractionOptions> options,
-    IOptions<AnthropicOptions> anthropic,
+    IOptions<OllamaOptions> ollamaOpts,
     ILogger<EntityExtractionOrchestrator> logger) : IEntityExtractionOrchestrator
 {
     private readonly EntityExtractionOptions _opts = options.Value;
-    private readonly AnthropicOptions _anthro = anthropic.Value;
+    private readonly OllamaOptions _ollama = ollamaOpts.Value;
 
     public async Task ExtractAsync(int bookId, bool force, CancellationToken ct)
     {
@@ -105,8 +106,8 @@ public sealed class EntityExtractionOrchestrator(
                     ToolName: promptBuilder.ToolName(candidate.Type),
                     ToolDescription: promptBuilder.ToolDescription(candidate.Type),
                     ToolInputSchema: schema,
-                    ModelId: _anthro.DefaultModel,
-                    MaxOutputTokens: _anthro.MaxOutputTokens);
+                    ModelId: _ollama.ChatModel,
+                    MaxOutputTokens: 4096);
 
                 var response = await retry.ExecuteAsync(
                     operation: (_, c) => llm.ExtractAsync(request, c),

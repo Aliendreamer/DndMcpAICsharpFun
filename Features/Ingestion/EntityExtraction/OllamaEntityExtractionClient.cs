@@ -26,8 +26,8 @@ public sealed class OllamaEntityExtractionClient(
         {
             var response = await chat.GetResponseAsync(messages, chatOptions, ct);
             var rawText = response.Text ?? string.Empty;
-            var inputTokens = response.Usage?.InputTokenCount ?? 0;
-            var outputTokens = response.Usage?.OutputTokenCount ?? 0;
+            var inputTokens = (int)(response.Usage?.InputTokenCount ?? 0);
+            var outputTokens = (int)(response.Usage?.OutputTokenCount ?? 0);
             var stopReason = response.FinishReason?.Value;
 
             if (string.IsNullOrWhiteSpace(rawText))
