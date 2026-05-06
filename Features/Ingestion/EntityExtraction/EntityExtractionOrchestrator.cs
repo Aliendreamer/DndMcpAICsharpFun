@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
@@ -29,14 +30,17 @@ public sealed class EntityExtractionOrchestrator(
     private readonly EntityExtractionOptions _opts = options.Value;
     private readonly OllamaOptions _ollama = ollamaOpts.Value;
 
+    private static readonly JsonSerializerOptions CheckpointOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = false,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
     public async Task ExtractAsync(int bookId, bool force, CancellationToken ct)
     {
         var record = await tracker.GetByIdAsync(bookId, ct)
-                     ?? throw new InvalidOperationException($"No ingestion record {bookId}");
+                    ?? throw new InvalidOperationException($"No ingestion record {bookId}");
 
-        // Derive book slug (e.g. "phb14") from the display name via the same
-        // slug builder used at ingest time, then strip the trailing type/name
-        // segments — only the book prefix is meaningful here.
         var bookSlug = EntityIdSlug
             .For(record.DisplayName, EntityType.Class, "x")
             .Split('.')[0];
@@ -44,6 +48,8 @@ public sealed class EntityExtractionOrchestrator(
         var canonicalPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".json");
         var errorsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".errors.json");
         var warningsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".warnings.json");
+        var checkpointPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".progress.json");
+        var checkpointErrorsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".progress.errors.json");
 
         if (File.Exists(canonicalPath) && !force)
             throw new InvalidOperationException(
@@ -65,8 +71,7 @@ public sealed class EntityExtractionOrchestrator(
             var tocEntries = BookmarkTocMapper.Map(pdfBookmarks);
             var tocMap = new TocCategoryMap(tocEntries);
 
-            // 3. Project Docling items into ScannerInputs. Use the most-recent
-            //    heading text as the section title for following text/list items.
+            // 3. Project Docling items into ScannerInputs.
             var scannerInputs = BuildScannerInputs(doc.Items);
             var candidates = scanner.Scan(scannerInputs, tocMap).ToList();
 
@@ -77,26 +82,49 @@ public sealed class EntityExtractionOrchestrator(
             // 4. Load schemas keyed by EntityType.
             var schemas = LoadSchemas();
 
-            // 5. Iterate candidates: prompt the LLM, retry, collect.
-            var extracted = new List<EntityEnvelope>(candidates.Count);
-            var extractionErrors = new List<ExtractionErrorEntry>();
+            // 5. Resume from checkpoint if present, then iterate remaining candidates.
+            var (extracted, extractionErrors, doneIds) =
+                await LoadCheckpointAsync(checkpointPath, checkpointErrorsPath);
+
+            if (doneIds.Count > 0)
+                logger.LogInformation(
+                    "Resuming from checkpoint: {Done} candidates already processed ({Extracted} ok, {Errors} failed)",
+                    doneIds.Count, extracted.Count, extractionErrors.Count);
+
+            int success = extracted.Count;
+            int failed = extractionErrors.Count;
+            int processed = 0;
 
             var sw = Stopwatch.StartNew();
             var lastLog = TimeSpan.Zero;
-            int success = 0;
-            int failed = 0;
 
             for (int i = 0; i < candidates.Count; i++)
             {
                 ct.ThrowIfCancellationRequested();
                 var candidate = candidates[i];
+                var id = EntityIdSlug.For(record.DisplayName, candidate.Type, candidate.DisplayName);
+
+                if (doneIds.Contains(id))
+                    continue;
 
                 if (!schemas.TryGetValue(candidate.Type, out var schema))
                 {
                     logger.LogWarning(
                         "No schema for entity type {Type}; skipping candidate {Name}",
                         candidate.Type, candidate.DisplayName);
+                    extractionErrors.Add(new ExtractionErrorEntry(
+                        SourceEntityId: id,
+                        FieldPath: "(type)",
+                        MissingTargetId: string.Empty,
+                        ErrorKind: "no_schema",
+                        Detail: $"No JSON schema found for entity type {candidate.Type}"));
                     failed++;
+                    processed++;
+                    doneIds.Add(id);
+
+                    if (processed % _opts.CheckpointIntervalCandidates == 0)
+                        await WriteCheckpointAsync(checkpointPath, checkpointErrorsPath, extracted, extractionErrors);
+
                     continue;
                 }
 
@@ -107,7 +135,7 @@ public sealed class EntityExtractionOrchestrator(
                     ToolDescription: promptBuilder.ToolDescription(candidate.Type),
                     ToolInputSchema: schema,
                     ModelId: _ollama.ChatModel,
-                    MaxOutputTokens: 4096);
+                    MaxOutputTokens: _opts.MaxOutputTokensPerEntity);
 
                 var response = await retry.ExecuteAsync(
                     operation: (_, c) => llm.ExtractAsync(request, c),
@@ -120,16 +148,21 @@ public sealed class EntityExtractionOrchestrator(
                         "Extraction failed for {Type} '{Name}' (page {Page}): {Error}",
                         candidate.Type, candidate.DisplayName, candidate.Page, response.ErrorMessage);
                     extractionErrors.Add(new ExtractionErrorEntry(
-                        SourceEntityId: EntityIdSlug.For(record.DisplayName, candidate.Type, candidate.DisplayName),
+                        SourceEntityId: id,
                         FieldPath: "(extraction)",
-                        MissingTargetId: "",
+                        MissingTargetId: string.Empty,
                         ErrorKind: "extraction_failure",
                         Detail: response.ErrorMessage));
                     failed++;
+                    processed++;
+                    doneIds.Add(id);
+
+                    if (processed % _opts.CheckpointIntervalCandidates == 0)
+                        await WriteCheckpointAsync(checkpointPath, checkpointErrorsPath, extracted, extractionErrors);
+
                     continue;
                 }
 
-                var id = EntityIdSlug.For(record.DisplayName, candidate.Type, candidate.DisplayName);
                 var envelope = new EntityEnvelope(
                     Id: id,
                     Type: candidate.Type,
@@ -145,12 +178,17 @@ public sealed class EntityExtractionOrchestrator(
 
                 extracted.Add(envelope);
                 success++;
+                processed++;
+                doneIds.Add(id);
+
+                if (processed % _opts.CheckpointIntervalCandidates == 0)
+                    await WriteCheckpointAsync(checkpointPath, checkpointErrorsPath, extracted, extractionErrors);
 
                 if (sw.Elapsed - lastLog >= TimeSpan.FromSeconds(_opts.ProgressLogIntervalSeconds))
                 {
                     logger.LogInformation(
                         "Extraction progress: {Done}/{Total} ({Success} ok, {Failed} failed)",
-                        i + 1, candidates.Count, success, failed);
+                        success + failed, candidates.Count, success, failed);
                     lastLog = sw.Elapsed;
                 }
             }
@@ -160,8 +198,7 @@ public sealed class EntityExtractionOrchestrator(
             var classifier = new IntraBookReferenceClassifier(bookSlug);
             var (intra, inter) = classifier.Partition(refWarnings);
 
-            // 7. Drop any extracted entity that is the source of an intra-book
-            //    dangling reference; record those as errors.
+            // 7. Drop entities with intra-book dangling refs; record as errors.
             if (intra.Count > 0)
             {
                 var offenders = intra.Select(w => w.SourceEntityId)
@@ -201,6 +238,10 @@ public sealed class EntityExtractionOrchestrator(
             await errorsFile.WriteAsync(errorsPath, extractionErrors, ct);
             await warningsFile.WriteAsync(warningsPath, interWarnings, ct);
 
+            // Remove checkpoint files now that the final output is written.
+            File.Delete(checkpointPath);
+            File.Delete(checkpointErrorsPath);
+
             logger.LogInformation(
                 "Entity extraction complete: book {BookId}, {Clean} clean / {Errors} errors / {Warnings} warnings",
                 bookId, extracted.Count, extractionErrors.Count, interWarnings.Count);
@@ -222,6 +263,51 @@ public sealed class EntityExtractionOrchestrator(
         }
     }
 
+    private static async Task<(List<EntityEnvelope> Extracted, List<ExtractionErrorEntry> Errors, HashSet<string> DoneIds)>
+        LoadCheckpointAsync(string progressPath, string errorsPath)
+    {
+        var extracted = new List<EntityEnvelope>();
+        var errors = new List<ExtractionErrorEntry>();
+
+        try
+        {
+            await using var s = File.OpenRead(progressPath);
+            extracted = await JsonSerializer.DeserializeAsync<List<EntityEnvelope>>(s, CheckpointOptions) ?? [];
+        }
+        catch (FileNotFoundException) { }
+
+        try
+        {
+            await using var s = File.OpenRead(errorsPath);
+            errors = await JsonSerializer.DeserializeAsync<List<ExtractionErrorEntry>>(s, CheckpointOptions) ?? [];
+        }
+        catch (FileNotFoundException) { }
+
+        var doneIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var e in extracted) doneIds.Add(e.Id);
+        foreach (var e in errors) doneIds.Add(e.SourceEntityId);
+
+        return (extracted, errors, doneIds);
+    }
+
+    private static async Task WriteCheckpointAsync(
+        string progressPath, string errorsPath,
+        List<EntityEnvelope> extracted, List<ExtractionErrorEntry> errors)
+    {
+        var dir = Path.GetDirectoryName(progressPath) ?? ".";
+        Directory.CreateDirectory(dir);
+
+        var tmp1 = progressPath + ".tmp";
+        await using (var s = File.Create(tmp1))
+            await JsonSerializer.SerializeAsync(s, extracted, CheckpointOptions);
+        File.Move(tmp1, progressPath, overwrite: true);
+
+        var tmp2 = errorsPath + ".tmp";
+        await using (var s = File.Create(tmp2))
+            await JsonSerializer.SerializeAsync(s, errors, CheckpointOptions);
+        File.Move(tmp2, errorsPath, overwrite: true);
+    }
+
     private static IList<ScannerInput> BuildScannerInputs(IReadOnlyList<DoclingItem> items)
     {
         var inputs = new List<ScannerInput>(items.Count);
@@ -229,7 +315,6 @@ public sealed class EntityExtractionOrchestrator(
         foreach (var item in items)
         {
             var type = item.Type ?? string.Empty;
-            // Treat any heading-shaped item as a section boundary.
             if (type.StartsWith("section", StringComparison.OrdinalIgnoreCase) ||
                 type.StartsWith("heading", StringComparison.OrdinalIgnoreCase) ||
                 type.Equals("title", StringComparison.OrdinalIgnoreCase))
@@ -251,14 +336,16 @@ public sealed class EntityExtractionOrchestrator(
         foreach (var type in Enum.GetValues<EntityType>())
         {
             var path = Path.Combine(_opts.SchemasDirectory, $"{type}Fields.schema.json");
-            if (!File.Exists(path))
+            try
+            {
+                using var stream = File.OpenRead(path);
+                using var doc = JsonDocument.Parse(stream);
+                dict[type] = doc.RootElement.Clone();
+            }
+            catch (FileNotFoundException)
             {
                 logger.LogDebug("Schema file not found for {Type} at {Path}; type will be skipped", type, path);
-                continue;
             }
-            using var stream = File.OpenRead(path);
-            using var doc = JsonDocument.Parse(stream);
-            dict[type] = doc.RootElement.Clone();
         }
         return dict;
     }

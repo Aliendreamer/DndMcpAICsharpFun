@@ -6,7 +6,7 @@ public sealed record ExtractionErrorEntry(
     string SourceEntityId,
     string FieldPath,
     string MissingTargetId,
-    string ErrorKind,           // "intra_book_dangling_ref" | "schema_validation_failure"
+    string ErrorKind,   // "no_schema" | "extraction_failure" | "intra_book_dangling_ref" | "schema_validation_failure"
     string? Detail);
 
 public sealed class ExtractionErrorsFile
