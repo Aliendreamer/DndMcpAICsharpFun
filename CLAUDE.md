@@ -45,11 +45,11 @@ The host listens on `http://localhost:5101` (set in `DndMcpAICsharpFun.http`). O
 
 The retrieval pipeline uses a dual-collection setup in Qdrant: `dnd_blocks` holds prose chunks for narrative retrieval, while `dnd_entities` holds typed entity records (Class, Monster, Spell, etc.) for structured lookups. Each entity's `canonicalText` is embedded into `dnd_entities` so structured queries return rule-accurate snippets alongside the parsed fields.
 
-Canonical JSON files at `data/canonical/<book-slug>.json` are the hand-correctable source of truth for structured entities. Ingestion reads these files via `CanonicalJsonLoader`, validates schema/IDs, and projects each entity into `dnd_entities`. Plan 2 of the structured-entity-extraction effort has shipped: a Claude-driven extraction pipeline produces `data/canonical/<book>.json` from Docling output (plus optional sibling `<book>.errors.json` and `<book>.warnings.json`). Hand-authoring is still allowed and remains the source of truth — extraction outputs are reviewed in PRs before they land.
+Canonical JSON files at `data/canonical/<book-slug>.json` are the hand-correctable source of truth for structured entities. Ingestion reads these files via `CanonicalJsonLoader`, validates schema/IDs, and projects each entity into `dnd_entities`. Plan 2 of the structured-entity-extraction effort has shipped: an Ollama-driven extraction pipeline (local qwen3:8b) produces `data/canonical/<book>.json` from Docling output (plus optional sibling `<book>.errors.json` and `<book>.warnings.json`). Hand-authoring is still allowed and remains the source of truth — extraction outputs are reviewed in PRs before they land.
 
 New endpoints:
 - `POST /admin/books/{id}/ingest-entities` — ingest a book's canonical JSON into `dnd_entities`.
-- `POST /admin/books/{id}/extract-entities` — run Claude-driven extraction; produces `data/canonical/<book-slug>.json` plus optional sibling `<book-slug>.errors.json` and `<book-slug>.warnings.json`. Pass `?force=true` to overwrite an existing canonical JSON.
+- `POST /admin/books/{id}/extract-entities` — run Ollama-driven extraction (requires qwen3:8b pulled via ollama-pull); produces `data/canonical/<book-slug>.json` plus optional sibling `<book-slug>.errors.json` and `<book-slug>.warnings.json`. Pass `?force=true` to overwrite an existing canonical JSON.
 - `POST /admin/canonical/validate` — corpus-wide validation; 200 (clean) / 422 (FAIL-class issues like duplicate IDs across files or schema-version mismatches).
 - `GET /retrieval/entities/{id}` — fetch a single entity by ID.
 - `GET /retrieval/entities/search` — public typed entity search.
