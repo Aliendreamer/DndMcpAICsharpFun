@@ -22,4 +22,6 @@ public enum EntityType
     Faction,
     Location,
     Condition,
+    Lore,
+    Rule,
 }
