@@ -15,6 +15,42 @@
     },
     "description": {
       "type": "string"
+    },
+    "variants": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/MagicItemVariant"
+      }
+    }
+  },
+  "definitions": {
+    "MagicItemVariant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "rarity": {
+          "type": "string"
+        },
+        "bonus": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32"
+        },
+        "description": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
     }
   }
 }

@@ -3,6 +3,7 @@
   "title": "GodFields",
   "type": "object",
   "additionalProperties": false,
+  "required": ["alignment", "domains", "description"],
   "properties": {
     "alignment": {
       "type": "string"

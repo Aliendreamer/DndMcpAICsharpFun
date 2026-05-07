@@ -3,6 +3,7 @@
   "title": "MonsterFields",
   "type": "object",
   "additionalProperties": false,
+  "required": ["challengeRating", "size", "type"],
   "properties": {
     "size": {
       "type": "string"

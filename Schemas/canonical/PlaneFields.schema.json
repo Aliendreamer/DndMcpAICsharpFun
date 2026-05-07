@@ -3,6 +3,7 @@
   "title": "PlaneFields",
   "type": "object",
   "additionalProperties": false,
+  "required": ["category", "description"],
   "properties": {
     "category": {
       "type": "string"

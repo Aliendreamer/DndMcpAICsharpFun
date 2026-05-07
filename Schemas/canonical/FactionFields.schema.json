@@ -3,6 +3,7 @@
   "title": "FactionFields",
   "type": "object",
   "additionalProperties": false,
+  "required": ["description"],
   "properties": {
     "headquarters": {
       "type": [

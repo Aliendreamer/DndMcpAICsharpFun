@@ -3,6 +3,7 @@
   "title": "LocationFields",
   "type": "object",
   "additionalProperties": false,
+  "required": ["description"],
   "properties": {
     "category": {
       "type": "string"
