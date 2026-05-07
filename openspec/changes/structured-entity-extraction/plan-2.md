@@ -23,6 +23,7 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 - **D15 — Reference integrity:** intra-book dangles fail (errors.json + entity excluded); inter-book dangles warn (warnings.json + entity intact). New `POST /admin/canonical/validate` endpoint scans whole corpus.
 - **D16 — Errata:** no special tooling — `?force=true` re-extracts and `git diff` is the review tool.
 - **D17 — One coherent slice:** this plan is the whole Plan 2 scope.
+- **D18 — Extraction checkpoints (post-ship, 2026-05-06):** The orchestrator writes `data/canonical/<slug>.progress.json` (successful `EntityEnvelope` list) and `data/canonical/<slug>.progress.errors.json` (failed `ExtractionErrorEntry` list) every `EntityExtractionOptions.CheckpointIntervalCandidates` processed candidates (default 100). On restart, both files are loaded, already-processed candidate IDs are skipped, and extraction resumes from where it left off. Both files are deleted on successful completion. Files: `EntityExtractionOrchestrator.cs` (checkpoint load/write/resume logic), `EntityExtractionOptions.cs` (`CheckpointIntervalCandidates` property), `appsettings.json` (`EntityExtraction.CheckpointIntervalCandidates: 100`).
 
 ---
 
@@ -2243,6 +2244,7 @@ Before marking complete, verify against `entity-extraction-pipeline/spec.md`:
 - ✅ Docling output reused, not re-run (Task 10 — caching is via the existing converter; if no cache exists in Plan 1, the orchestrator just calls convert once per extraction)
 - ✅ Schema-constrained per-type extraction with errors-file output (Task 10)
 - ✅ Progress + summary logging (Task 10)
+- ✅ NEW (D18): Crash-resume checkpoint — `<slug>.progress.json` + `<slug>.progress.errors.json` every 100 candidates
 - ✅ Cross-entity reference resolution split intra/inter-book (Tasks 5 + 10)
 - ✅ Idempotent re-extraction with ?force=true (Task 13)
 - ✅ Atomic writes (Task 7)
