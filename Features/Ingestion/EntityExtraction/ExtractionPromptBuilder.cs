@@ -15,6 +15,7 @@ public sealed class ExtractionPromptBuilder
         sb.AppendLine($"Call the tool `{ToolName(type)}` with a JSON object that conforms exactly to its input_schema.");
         sb.AppendLine("Do not include any prose. The tool's input is the only output we read.");
         sb.AppendLine("If the source text is incomplete or ambiguous, leave optional fields null/absent rather than guessing.");
+        sb.AppendLine("The source text may contain OCR artifacts (e.g. 'gons' → 'gods', 'lhe' → 'the', 'encaunters' → 'encounters'). Use surrounding context to infer the correct meaning.");
         sb.AppendLine("Cross-entity references must use existing slug-style IDs of form `<book-slug>.<type-slug>.<entity-slug>`.");
         return sb.ToString();
     }
