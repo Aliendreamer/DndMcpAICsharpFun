@@ -16,7 +16,7 @@ public class CanonicalJsonLoaderTests
     {
         var loader = new CanonicalJsonLoader();
         var file = await loader.LoadAsync(FixturePath, CancellationToken.None);
-        file.Entities.Should().HaveCount(3);
+        file.Entities.Should().HaveCount(5);
         file.Book.SourceBook.Should().Be("Test Book");
         file.SchemaVersion.Should().Be("1");
     }

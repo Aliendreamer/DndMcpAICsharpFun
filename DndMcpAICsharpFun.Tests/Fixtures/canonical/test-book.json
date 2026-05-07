@@ -116,6 +116,38 @@
         "classes": ["Sorcerer", "Wizard"],
         "damageTypes": ["fire"]
       }
+    },
+    {
+      "id": "test-book.lore.the-planes",
+      "type": "Lore",
+      "name": "The Planes",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 42,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "The planes of existence are the realms of the multiverse.",
+      "fields": {
+        "category": "Cosmology",
+        "description": "An overview of the planes of existence and how they relate to the material world."
+      }
+    },
+    {
+      "id": "test-book.rule.encounter-building",
+      "type": "Rule",
+      "name": "Encounter Building",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 81,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "To build a balanced encounter, calculate the XP budget by party level and size.",
+      "fields": {
+        "category": "EncounterBuilding",
+        "description": "Procedure for calculating an XP budget and selecting monsters for a balanced encounter."
+      }
     }
   ]
 }
