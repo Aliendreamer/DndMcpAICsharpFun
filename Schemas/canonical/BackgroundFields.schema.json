@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "BackgroundFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "skillProficiencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "toolProficiencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "equipment": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "featureName": {
+      "type": "string"
+    },
+    "featureSummary": {
+      "type": "string"
+    }
+  }
+}

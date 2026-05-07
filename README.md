@@ -164,6 +164,18 @@ git-crypt unlock
 
 This decrypts `Config/appsettings.Production.json` (which contains the admin API key and other production secrets).
 
+### Ollama chat model (qwen3:8b)
+
+Entity extraction uses a local Ollama model (`qwen3:8b`). The `ollama-pull` service in docker-compose pulls it automatically on first start. To pull manually:
+
+```bash
+docker compose run --rm ollama-pull
+# or directly (if Ollama is running locally):
+ollama pull qwen3:8b
+```
+
+No external API key is required. The model is configured via `Ollama.ChatModel` in `Config/appsettings.json`.
+
 ### 2. Start the stack
 
 ```bash
@@ -174,7 +186,7 @@ This decrypts `Config/appsettings.Production.json` (which contains the admin API
 Both commands run `docker compose up --build -d` (detached). The app will be available at `http://localhost:5101` once all health checks pass.
 
 First boot is slow because:
-- `ollama-pull` downloads `mxbai-embed-large` (~1 GB).
+- `ollama-pull` downloads `mxbai-embed-large` (~1 GB) and `qwen3:8b` (~4.7 GB).
 - `docling` pulls a ~3 GB image and loads its layout model on first health check (~60-90 s).
 
 The `app` service waits for both to be healthy before starting.

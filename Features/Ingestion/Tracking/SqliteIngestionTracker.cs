@@ -93,4 +93,37 @@ public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTr
                 .SetProperty(r => r.IngestedAt, DateTime.UtcNow)
                 .SetProperty(r => r.Error, (string?)null), ct);
     }
+
+    public async Task MarkEntitiesExtractingAsync(int bookId, CancellationToken ct = default)
+    {
+        await db.IngestionRecords
+            .Where(r => r.Id == bookId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Status, IngestionStatus.EntitiesExtracting)
+                .SetProperty(r => r.Error, (string?)null), ct);
+    }
+
+    public async Task MarkEntitiesExtractedAsync(int bookId, int entityCount, CancellationToken ct = default)
+    {
+        // Extraction-phase completion: canonical JSON has been written to disk.
+        // Downstream ingestion (vector upsert into dnd_entities) is a separate
+        // phase and uses MarkEntitiesIngestedAsync to advance to EntitiesIngested.
+        // Do NOT overwrite ChunkCount.
+        await db.IngestionRecords
+            .Where(r => r.Id == bookId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Status, IngestionStatus.EntitiesExtracted)
+                .SetProperty(r => r.EntityCount, entityCount)
+                .SetProperty(r => r.IngestedAt, DateTime.UtcNow)
+                .SetProperty(r => r.Error, (string?)null), ct);
+    }
+
+    public async Task MarkEntitiesFailedAsync(int bookId, string error, CancellationToken ct = default)
+    {
+        await db.IngestionRecords
+            .Where(r => r.Id == bookId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Status, IngestionStatus.EntitiesFailed)
+                .SetProperty(r => r.Error, error), ct);
+    }
 }

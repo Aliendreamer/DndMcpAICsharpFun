@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "FeatFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "prerequisites": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "description": {
+      "type": "string"
+    },
+    "grants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

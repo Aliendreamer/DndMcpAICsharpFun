@@ -1,0 +1,622 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "MonsterFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "size": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "subtypes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "alignment": {
+      "type": "string"
+    },
+    "armorClass": {
+      "$ref": "#/definitions/ArmorClass"
+    },
+    "hitPoints": {
+      "$ref": "#/definitions/HitPoints"
+    },
+    "speed": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "format": "int32"
+      }
+    },
+    "abilityScores": {
+      "$ref": "#/definitions/AbilityScores"
+    },
+    "savingThrows": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "format": "int32"
+      }
+    },
+    "skills": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "format": "int32"
+      }
+    },
+    "damageVulnerabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "damageResistances": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "damageImmunities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "conditionImmunities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "senses": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "format": "int32"
+      }
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "challengeRating": {
+      "$ref": "#/definitions/ChallengeRating"
+    },
+    "environment": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "keywords": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "traits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/TraitRef"
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/MonsterAction"
+      }
+    },
+    "bonusActions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/MonsterAction"
+      }
+    },
+    "reactions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/MonsterAction"
+      }
+    },
+    "spellcasting": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/SpellcastingBlock"
+        }
+      ]
+    },
+    "legendaryActions": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/LegendaryBlock"
+        }
+      ]
+    },
+    "lairActions": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/LairBlock"
+        }
+      ]
+    },
+    "variantForms": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "definitions": {
+    "ArmorClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "source": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "HitPoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "average": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "dice": {
+          "type": "string"
+        }
+      }
+    },
+    "AbilityScores": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strength": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "dexterity": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "constitution": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "intelligence": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "wisdom": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "charisma": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "ChallengeRating": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cr": {
+          "type": "string"
+        },
+        "crNumeric": {
+          "type": "number",
+          "format": "double"
+        },
+        "xp": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "proficiencyBonus": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "TraitRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    },
+    "MonsterAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/ActionType"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "attackBonus": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32"
+        },
+        "reach": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32"
+        },
+        "range": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/AttackRange"
+            }
+          ]
+        },
+        "targets": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "damage": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/DamagePart"
+          }
+        },
+        "recharge": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "save": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/SaveBlock"
+            }
+          ]
+        }
+      }
+    },
+    "ActionType": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "Multiattack",
+        "MeleeWeaponAttack",
+        "RangedWeaponAttack",
+        "MeleeOrRangedWeaponAttack",
+        "Save",
+        "Passive",
+        "Other"
+      ],
+      "enum": [
+        "Multiattack",
+        "MeleeWeaponAttack",
+        "RangedWeaponAttack",
+        "MeleeOrRangedWeaponAttack",
+        "Save",
+        "Passive",
+        "Other"
+      ]
+    },
+    "AttackRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "normal": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "long": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32"
+        }
+      }
+    },
+    "DamagePart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dice": {
+          "type": "string"
+        },
+        "average": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "type": {
+          "type": "string"
+        },
+        "versatile": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "SaveBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ability": {
+          "type": "string"
+        },
+        "dc": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "SpellcastingBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/SpellcastingType"
+        },
+        "ability": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "ritualCasting": {
+          "type": "boolean"
+        },
+        "preparation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/SpellPreparation"
+            }
+          ]
+        },
+        "cantripsKnownByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "spellsKnownByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "spellList": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "spellSlotsByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/SpellSlotsRow"
+          }
+        },
+        "pactSlotsByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/PactSlotRow"
+          }
+        }
+      }
+    },
+    "SpellcastingType": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "Full",
+        "Half",
+        "Third",
+        "Pact",
+        "Innate",
+        "None"
+      ],
+      "enum": [
+        "Full",
+        "Half",
+        "Third",
+        "Pact",
+        "Innate",
+        "None"
+      ]
+    },
+    "SpellPreparation": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "Spellbook",
+        "Known",
+        "Prepared"
+      ],
+      "enum": [
+        "Spellbook",
+        "Known",
+        "Prepared"
+      ]
+    },
+    "SpellSlotsRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "slotsByLevel": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    },
+    "PactSlotRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "slots": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "slotLevel": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "LegendaryBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "perTurn": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LegendaryAction"
+          }
+        }
+      }
+    },
+    "LegendaryAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "cost": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    },
+    "LairBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initiativeCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LairActionEntry"
+          }
+        },
+        "regionalEffects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RegionalEffect"
+          }
+        }
+      }
+    },
+    "LairActionEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "type": "string"
+        }
+      }
+    },
+    "RegionalEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

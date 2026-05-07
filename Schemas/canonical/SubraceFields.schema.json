@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "SubraceFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "parentRace": {
+      "type": "string"
+    },
+    "abilityBonuses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/AbilityBonus"
+      }
+    },
+    "traits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/TraitRef"
+      }
+    }
+  },
+  "definitions": {
+    "AbilityBonus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ability": {
+          "type": "string"
+        },
+        "bonus": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "TraitRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

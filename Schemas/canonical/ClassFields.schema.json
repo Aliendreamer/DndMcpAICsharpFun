@@ -1,0 +1,327 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "ClassFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "hitDie": {
+      "type": "string"
+    },
+    "primaryAbilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "savingThrowProficiencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "armorProficiencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "weaponProficiencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "toolProficiencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "skillChoices": {
+      "$ref": "#/definitions/SkillChoice"
+    },
+    "startingEquipment": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/EquipmentChoice"
+      }
+    },
+    "multiclass": {
+      "$ref": "#/definitions/MulticlassBlock"
+    },
+    "spellcasting": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/SpellcastingBlock"
+        }
+      ]
+    },
+    "subclassSelectionLevel": {
+      "type": "integer",
+      "format": "int32"
+    },
+    "subclasses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "asiLevels": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "int32"
+      }
+    },
+    "featuresByLevel": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ClassLevelEntry"
+      }
+    }
+  },
+  "definitions": {
+    "SkillChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "EquipmentChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "choose": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "MulticlassBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "prerequisites": {
+          "$ref": "#/definitions/MulticlassPrerequisites"
+        },
+        "proficienciesGained": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "MulticlassPrerequisites": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operator": {
+          "type": "string"
+        },
+        "abilities": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    },
+    "SpellcastingBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/SpellcastingType"
+        },
+        "ability": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "ritualCasting": {
+          "type": "boolean"
+        },
+        "preparation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/SpellPreparation"
+            }
+          ]
+        },
+        "cantripsKnownByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "spellsKnownByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "spellList": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "spellSlotsByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/SpellSlotsRow"
+          }
+        },
+        "pactSlotsByLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/PactSlotRow"
+          }
+        }
+      }
+    },
+    "SpellcastingType": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "Full",
+        "Half",
+        "Third",
+        "Pact",
+        "Innate",
+        "None"
+      ],
+      "enum": [
+        "Full",
+        "Half",
+        "Third",
+        "Pact",
+        "Innate",
+        "None"
+      ]
+    },
+    "SpellPreparation": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "Spellbook",
+        "Known",
+        "Prepared"
+      ],
+      "enum": [
+        "Spellbook",
+        "Known",
+        "Prepared"
+      ]
+    },
+    "SpellSlotsRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "slotsByLevel": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    },
+    "PactSlotRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "slots": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "slotLevel": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "ClassLevelEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "proficiencyBonus": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FeatureRef"
+          }
+        }
+      }
+    },
+    "FeatureRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

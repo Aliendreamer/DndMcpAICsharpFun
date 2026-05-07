@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "TrapFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "difficulty": {
+      "type": "string"
+    },
+    "detectDc": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int32"
+    },
+    "disarmDc": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int32"
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

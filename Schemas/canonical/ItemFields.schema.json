@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "ItemFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "costCp": {
+      "type": "integer",
+      "format": "int32"
+    },
+    "weightLb": {
+      "type": "number",
+      "format": "double"
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

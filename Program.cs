@@ -34,6 +34,7 @@ builder.Services.Configure<DndMcpAICsharpFun.Features.Ingestion.Entities.EntityI
 builder.Services.AddInfrastructureClients(builder.Configuration);
 builder.Services.AddIngestionPipeline();
 builder.Services.AddRetrieval();
+builder.Services.AddEntityExtraction(builder.Configuration);
 builder.Services.AddObservability(builder.Configuration);
 
 // Health checks
@@ -66,5 +67,6 @@ app.MapGroup("/admin").MapBooksAdmin();
 // Retrieval endpoints
 app.MapRetrievalEndpoints();
 app.MapEntityRetrievalEndpoints();
+app.MapCanonicalValidationEndpoints();
 
 app.Run();

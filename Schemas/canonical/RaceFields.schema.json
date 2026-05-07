@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "RaceFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "size": {
+      "type": "string"
+    },
+    "speed": {
+      "type": "integer",
+      "format": "int32"
+    },
+    "abilityBonuses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/AbilityBonus"
+      }
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "traits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/TraitRef"
+      }
+    },
+    "subraces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "definitions": {
+    "AbilityBonus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ability": {
+          "type": "string"
+        },
+        "bonus": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "TraitRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

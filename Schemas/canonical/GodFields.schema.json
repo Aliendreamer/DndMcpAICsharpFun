@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "GodFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "alignment": {
+      "type": "string"
+    },
+    "domains": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "symbol": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "pantheon": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "plane": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

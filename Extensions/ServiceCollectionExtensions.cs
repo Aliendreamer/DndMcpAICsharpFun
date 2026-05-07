@@ -5,6 +5,7 @@ using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
+using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
@@ -17,6 +18,8 @@ using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+
+using Microsoft.Extensions.AI;
 
 using OllamaSharp;
 
@@ -88,7 +91,11 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<IPdfBookmarkReader, PdfPigBookmarkReader>();
 
-        services.AddSingleton<IDoclingPdfConverter, DoclingPdfConverter>();
+        services.AddSingleton<DoclingPdfConverter>();
+        services.AddSingleton<IDoclingPdfConverter>(sp => new DoclingDiskCache(
+            sp.GetRequiredService<DoclingPdfConverter>(),
+            sp.GetRequiredService<IOptions<EntityExtractionOptions>>(),
+            sp.GetRequiredService<ILogger<DoclingDiskCache>>()));
         services.AddSingleton<IPdfBlockExtractor, DoclingBlockExtractor>();
 
         return services;
@@ -101,6 +108,26 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<IRagRetrievalService, RagRetrievalService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.IEntityRetrievalService, DndMcpAICsharpFun.Features.Retrieval.Entities.EntityRetrievalService>();
 
+        return services;
+    }
+
+    internal static IServiceCollection AddEntityExtraction(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<EntityExtractionOptions>(configuration.GetSection("EntityExtraction"));
+        services.AddSingleton<IChatClient>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
+            return new OllamaChatClient(new Uri(opts.BaseUrl), opts.ChatModel);
+        });
+        services.AddSingleton<IEntityExtractionLlmClient, OllamaEntityExtractionClient>();
+        services.AddSingleton<ExtractionPromptBuilder>();
+        services.AddSingleton<EntityCandidateScanner>();
+        services.AddSingleton<CanonicalJsonWriter>();
+        services.AddSingleton<ExtractionErrorsFile>();
+        services.AddSingleton<ExtractionWarningsFile>();
+        services.AddSingleton<ExtractionRetryPolicy>();
+        services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
+        services.AddSingleton<DndMcpAICsharpFun.Features.Admin.CanonicalValidationService>();
         return services;
     }
 
