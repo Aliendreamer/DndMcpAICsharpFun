@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "RuleFields",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["category", "description"],
+  "properties": {
+    "category": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "sourceTable": {
+      "type": ["null", "string"]
+    }
+  }
+}
