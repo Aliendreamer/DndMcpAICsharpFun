@@ -1,0 +1,311 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-05-07",
+  "__export_source": "dnd-mcp-api",
+  "resources": [
+    {
+      "_id": "wrk_dnd_mcp",
+      "_type": "workspace",
+      "name": "DnD MCP API",
+      "description": "D&D MCP AI C# API — import into Yaak via File > Import"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "parentId": "wrk_dnd_mcp",
+      "name": "Base",
+      "data": {
+        "baseUrl": "http://localhost:5101",
+        "adminKey": "devXXXdev",
+        "qdrantUrl": "http://localhost:6333",
+        "collectionName": "dnd_blocks"
+      }
+    },
+    {
+      "_id": "fld_health",
+      "_type": "request_group",
+      "parentId": "wrk_dnd_mcp",
+      "name": "Health"
+    },
+    {
+      "_id": "fld_admin_books",
+      "_type": "request_group",
+      "parentId": "wrk_dnd_mcp",
+      "name": "Admin — Books"
+    },
+    {
+      "_id": "fld_qdrant",
+      "_type": "request_group",
+      "parentId": "wrk_dnd_mcp",
+      "name": "Qdrant — Direct"
+    },
+    {
+      "_id": "fld_retrieval",
+      "_type": "request_group",
+      "parentId": "wrk_dnd_mcp",
+      "name": "Retrieval"
+    },
+    {
+      "_id": "fld_observability",
+      "_type": "request_group",
+      "parentId": "wrk_dnd_mcp",
+      "name": "Observability"
+    },
+
+    {
+      "_id": "req_health_liveness",
+      "_type": "request",
+      "parentId": "fld_health",
+      "name": "Liveness",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/health",
+      "headers": [],
+      "body": {}
+    },
+    {
+      "_id": "req_health_readiness",
+      "_type": "request",
+      "parentId": "fld_health",
+      "name": "Readiness",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/ready",
+      "headers": [],
+      "body": {}
+    },
+    {
+      "_id": "req_health_ready_alias",
+      "_type": "request",
+      "parentId": "fld_health",
+      "name": "Readiness (alias)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/health/ready",
+      "headers": [],
+      "body": {}
+    },
+
+    {
+      "_id": "req_books_register",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Register a PDF",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/register",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          { "name": "file", "value": "", "fileName": "PlayerHandbook2014.pdf", "type": "file" },
+          { "name": "version", "value": "Edition2014" },
+          { "name": "displayName", "value": "PlayerHandbook 2014" },
+          { "name": "bookType", "value": "Core" }
+        ]
+      }
+    },
+    {
+      "_id": "req_books_list",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "List all books",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/admin/books",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+    {
+      "_id": "req_books_ingest_blocks",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Ingest blocks (no-LLM)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/ingest-blocks",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+    {
+      "_id": "req_books_ingest_entities",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Ingest entities (canonical JSON → dnd_entities)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/ingest-entities",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+    {
+      "_id": "req_books_extract_entities",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Extract entities (LLM — initial run)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/extract-entities",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+    {
+      "_id": "req_books_extract_entities_force",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Re-extract entities (force overwrite)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/extract-entities?force=true",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+    {
+      "_id": "req_books_extract_entities_errors_only",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Re-extract failed entities only (errorsOnly)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/extract-entities?errorsOnly=true",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+    {
+      "_id": "req_canonical_validate",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Validate canonical corpus",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/canonical/validate",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+    {
+      "_id": "req_books_delete",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Delete book",
+      "method": "DELETE",
+      "url": "{{ _.baseUrl }}/admin/books/1",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+
+    {
+      "_id": "req_qdrant_delete_collection",
+      "_type": "request",
+      "parentId": "fld_qdrant",
+      "name": "Delete collection (wipes all vectors)",
+      "method": "DELETE",
+      "url": "{{ _.qdrantUrl }}/collections/{{ _.collectionName }}",
+      "headers": [],
+      "body": {}
+    },
+    {
+      "_id": "req_qdrant_collection_info",
+      "_type": "request",
+      "parentId": "fld_qdrant",
+      "name": "Collection info (point count, status)",
+      "method": "GET",
+      "url": "{{ _.qdrantUrl }}/collections/{{ _.collectionName }}",
+      "headers": [],
+      "body": {}
+    },
+
+    {
+      "_id": "req_retrieval_search",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "Public semantic search",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5",
+      "headers": [],
+      "body": {}
+    },
+    {
+      "_id": "req_retrieval_search_booktype",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "Filter by bookType",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/retrieval/search?q=fireball&bookType=Core&topK=5",
+      "headers": [],
+      "body": {}
+    },
+    {
+      "_id": "req_retrieval_search_admin",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "Diagnostic search (admin, includes scores + pointIds)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/admin/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+    {
+      "_id": "req_retrieval_entity_by_id",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "Get entity by ID",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/retrieval/entities/test-book.class.fighter",
+      "headers": [],
+      "body": {}
+    },
+    {
+      "_id": "req_retrieval_entities_search",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "Vector search over entities",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/retrieval/entities/search?q=swashbuckler&type=Subclass",
+      "headers": [],
+      "body": {}
+    },
+    {
+      "_id": "req_retrieval_entities_monster",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "Search monsters by CR range + keyword",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/retrieval/entities/search?q=swamp&type=Monster&crNumeric_lte=2&keyword=amphibian",
+      "headers": [],
+      "body": {}
+    },
+    {
+      "_id": "req_retrieval_entities_admin",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "Admin entity search (full fields + pointId)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/admin/retrieval/entities/search?q=fireball&type=Spell&spellLevel=3",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+
+    {
+      "_id": "req_metrics",
+      "_type": "request",
+      "parentId": "fld_observability",
+      "name": "Prometheus metrics endpoint",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/metrics",
+      "headers": [],
+      "body": {}
+    }
+  ]
+}

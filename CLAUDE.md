@@ -82,3 +82,5 @@ When the full stack is running (`docker compose up`), these UIs are available:
 `DndMcpAICsharpFun.http` at the project root is the authoritative runnable reference for all API endpoints.
 
 **Rule:** When adding, changing, or removing any HTTP endpoint (`MapGet`, `MapPost`, `MapPut`, `MapDelete`), update `DndMcpAICsharpFun.http` in the same commit. Every registered route must have a corresponding example request in the file.
+
+**Rule:** `dnd-mcp-api.insomnia.json` at the project root is the Yaak-importable collection (Insomnia v4 format). Keep it in sync with `DndMcpAICsharpFun.http` — any change to the `.http` file must be reflected in the `.insomnia.json` file in the same commit. Import into Yaak via **File → Import**.
