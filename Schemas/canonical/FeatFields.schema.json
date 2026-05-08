@@ -1,23 +1,41 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "FeatFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "prerequisites": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+    "prerequisite": {
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
     },
-    "description": {
-      "type": "string"
+    "ability": {
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
     },
-    "grants": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+    "skillProficiencies": {
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "languageProficiencies": {
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "toolProficiencies": {
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "additionalSpells": {
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "resist": {
+      "type": ["array", "null"],
+      "items": { "type": ["string", "object"] }
+    },
+    "entries": {
+      "type": ["array", "null"],
+      "items": { "type": ["string", "object"] }
     }
   }
 }

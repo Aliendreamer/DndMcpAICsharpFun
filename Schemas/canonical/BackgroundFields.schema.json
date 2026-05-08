@@ -1,38 +1,33 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "BackgroundFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "skillProficiencies": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "languageProficiencies": {
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
     },
     "toolProficiencies": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
     },
-    "languages": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+    "startingEquipment": {
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
     },
-    "equipment": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+    "feats": {
+      "type": ["array", "null"],
+      "items": { "type": "object", "additionalProperties": true }
     },
-    "featureName": {
-      "type": "string"
-    },
-    "featureSummary": {
-      "type": "string"
+    "entries": {
+      "type": ["array", "null"],
+      "items": { "type": ["string", "object"] }
     }
   }
 }
