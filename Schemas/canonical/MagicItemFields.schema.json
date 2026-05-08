@@ -1,54 +1,35 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "MagicItemFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "rarity": {
-      "type": "string"
-    },
-    "itemCategory": {
-      "type": "string"
-    },
-    "attunement": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    },
+    "type": { "type": ["null", "string"] },
+    "rarity": { "type": ["null", "string"] },
+    "reqAttune": { "type": ["boolean", "null", "string"] },
+    "reqAttuneTags": { "type": ["array", "null"], "items": { "type": "object", "additionalProperties": true } },
+    "wondrous": { "type": ["boolean", "null"] },
+    "entries": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "bonusAc": { "type": ["null", "string"] },
+    "bonusWeapon": { "type": ["null", "string"] },
+    "bonusSpellAttack": { "type": ["null", "string"] },
+    "bonusSpellSaveDc": { "type": ["null", "string"] },
+    "bonusSavingThrow": { "type": ["null", "string"] },
+    "focus": { "type": ["array", "null"], "items": { "type": "string" } },
+    "attachedSpells": { "type": ["array", "null"], "items": { "type": "string" } },
+    "charges": { "type": ["integer", "null"], "format": "int32" },
+    "recharge": { "type": ["null", "string"] },
     "variants": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": ["array", "null"],
       "items": {
-        "$ref": "#/definitions/MagicItemVariant"
-      }
-    }
-  },
-  "definitions": {
-    "MagicItemVariant": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "rarity": {
-          "type": "string"
-        },
-        "bonus": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "int32"
-        },
-        "description": {
-          "type": [
-            "null",
-            "string"
-          ]
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "rarity": { "type": ["null", "string"] },
+          "bonus": { "type": ["integer", "null"], "format": "int32" },
+          "description": { "type": ["null", "string"] }
         }
       }
     }

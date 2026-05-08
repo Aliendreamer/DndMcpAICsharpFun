@@ -284,6 +284,45 @@
         "weight": 55,
         "entries": ["Made of interlocking metal rings, chain mail includes a layer of quilted fabric worn underneath to prevent chafing."]
       }
+    },
+    {
+      "id": "test-book.item.backpack",
+      "type": "Item",
+      "name": "Backpack",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 153,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "A backpack can hold one cubic foot or 30 pounds of gear.",
+      "fields": {
+        "type": "G",
+        "value": 200,
+        "weight": 5,
+        "entries": ["A backpack can hold one cubic foot or 30 pounds of gear."]
+      }
+    },
+    {
+      "id": "test-book.magic-item.cloak-of-protection",
+      "type": "MagicItem",
+      "name": "Cloak of Protection",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 159,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "You gain a +1 bonus to AC and saving throws while you wear this cloak.",
+      "fields": {
+        "type": "LA",
+        "rarity": "uncommon",
+        "reqAttune": true,
+        "wondrous": true,
+        "entries": ["You gain a +1 bonus to AC and saving throws while you wear this cloak."],
+        "bonusAc": "+1",
+        "bonusSavingThrow": "+1"
+      }
     }
   ]
 }
