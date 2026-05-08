@@ -23,6 +23,11 @@ public class SchemaGenerationTests
     [InlineData("test-book.armor.chain-mail", "ArmorFields")]
     [InlineData("test-book.item.backpack", "ItemFields")]
     [InlineData("test-book.magic-item.cloak-of-protection", "MagicItemFields")]
+    [InlineData("test-book.god.pelor", "GodFields")]
+    [InlineData("test-book.trap.pit-trap", "TrapFields")]
+    [InlineData("test-book.condition.blinded", "ConditionFields")]
+    [InlineData("test-book.disease-poison.sewer-plague", "DiseasePoisonFields")]
+    [InlineData("test-book.vehicle-mount.warhorse", "VehicleMountFields")]
     public async Task Generated_schema_validates_fixture_entity(string entityId, string schemaName)
     {
         var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "canonical", "test-book.json");

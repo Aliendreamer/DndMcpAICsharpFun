@@ -1,39 +1,18 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "GodFields",
   "type": "object",
   "additionalProperties": false,
-  "required": ["alignment", "domains", "description"],
+  "required": ["alignment", "domains", "entries"],
   "properties": {
-    "alignment": {
-      "type": "string"
-    },
-    "domains": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "symbol": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "pantheon": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "plane": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "description": {
-      "type": "string"
-    }
+    "alignment": { "type": "array", "items": { "type": "string" } },
+    "domains": { "type": "array", "items": { "type": "string" } },
+    "symbol": { "type": ["null", "string"] },
+    "pantheon": { "type": ["null", "string"] },
+    "plane": { "type": ["null", "string"] },
+    "province": { "type": ["null", "string"] },
+    "category": { "type": ["null", "string"] },
+    "entries": { "type": "array", "items": { "type": ["string", "object"] } }
   }
 }

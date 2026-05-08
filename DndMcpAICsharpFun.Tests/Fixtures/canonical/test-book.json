@@ -323,6 +323,101 @@
         "bonusAc": "+1",
         "bonusSavingThrow": "+1"
       }
+    },
+    {
+      "id": "test-book.god.pelor",
+      "type": "God",
+      "name": "Pelor",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 295,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "Pelor is the god of the sun and healing, revered throughout the world.",
+      "fields": {
+        "alignment": ["L", "G"],
+        "domains": ["Life", "Light"],
+        "symbol": "Sun face",
+        "pantheon": "Common",
+        "plane": "Mount Celestia",
+        "province": "Sun, light, strength, healing",
+        "category": "Greater Deity",
+        "entries": ["Pelor is the god of the sun and healing, revered throughout the world."]
+      }
+    },
+    {
+      "id": "test-book.trap.pit-trap",
+      "type": "Trap",
+      "name": "Pit Trap",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 122,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "A pit trap consists of a hidden hole in the floor.",
+      "fields": {
+        "trapHazType": "MECH",
+        "rating": [{ "tier": 1, "threat": "moderate" }],
+        "detectDc": 15,
+        "disarmDc": 15,
+        "entries": ["A pit trap consists of a hidden hole in the floor covered by a trapdoor or illusion."]
+      }
+    },
+    {
+      "id": "test-book.condition.blinded",
+      "type": "Condition",
+      "name": "Blinded",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 290,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "A blinded creature can't see and automatically fails any ability check that requires sight.",
+      "fields": {
+        "entries": [
+          { "type": "list", "items": [
+            "A blinded creature can't see and automatically fails any ability check that requires sight.",
+            "Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage."
+          ]}
+        ]
+      }
+    },
+    {
+      "id": "test-book.disease-poison.sewer-plague",
+      "type": "DiseasePoison",
+      "name": "Sewer Plague",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 257,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "Sewer plague is a filth disease that incubates in sewers and refuse heaps.",
+      "fields": {
+        "poisonTypes": ["contact"],
+        "entries": ["Sewer plague is a filth disease that incubates in sewers and refuse heaps."]
+      }
+    },
+    {
+      "id": "test-book.vehicle-mount.warhorse",
+      "type": "VehicleMount",
+      "name": "Warhorse",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 157,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "A warhorse is bred for combat with a speed of 60 feet.",
+      "fields": {
+        "vehicleType": "CREATURE",
+        "speed": { "walk": 60 },
+        "capacity": "480 lb.",
+        "entries": ["A warhorse is bred for combat and can be ridden into battle."]
+      }
     }
   ]
 }
