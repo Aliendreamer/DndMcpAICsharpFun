@@ -1,18 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "LoreFields",
   "type": "object",
   "additionalProperties": false,
-  "required": ["category", "description"],
+  "required": ["category", "entries"],
   "properties": {
-    "category": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    },
-    "settingContext": {
-      "type": ["null", "string"]
-    }
+    "category": { "type": "string" },
+    "settingContext": { "type": ["null", "string"] },
+    "entries": { "type": "array", "items": { "type": ["string", "object"] } }
   }
 }

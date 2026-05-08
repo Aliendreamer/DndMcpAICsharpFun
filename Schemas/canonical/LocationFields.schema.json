@@ -1,21 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "LocationFields",
   "type": "object",
   "additionalProperties": false,
-  "required": ["description"],
+  "required": ["entries"],
   "properties": {
-    "category": {
-      "type": "string"
-    },
-    "setting": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "description": {
-      "type": "string"
-    }
+    "category": { "type": ["null", "string"] },
+    "setting": { "type": ["null", "string"] },
+    "entries": { "type": "array", "items": { "type": ["string", "object"] } }
   }
 }

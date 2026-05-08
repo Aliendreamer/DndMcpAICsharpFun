@@ -134,7 +134,8 @@
       "canonicalText": "The planes of existence are the realms of the multiverse.",
       "fields": {
         "category": "Cosmology",
-        "description": "An overview of the planes of existence and how they relate to the material world."
+        "settingContext": null,
+        "entries": ["The planes of existence are the realms of the multiverse, home to immortals and mortals alike."]
       }
     },
     {
@@ -149,8 +150,8 @@
       "settingTags": [],
       "canonicalText": "To build a balanced encounter, calculate the XP budget by party level and size.",
       "fields": {
-        "category": "EncounterBuilding",
-        "description": "Procedure for calculating an XP budget and selecting monsters for a balanced encounter."
+        "ruleType": "O",
+        "entries": ["To build a balanced encounter, calculate the XP budget by party level and size, then select monsters whose XP totals fall within that budget."]
       }
     },
     {
@@ -417,6 +418,57 @@
         "speed": { "walk": 60 },
         "capacity": "480 lb.",
         "entries": ["A warhorse is bred for combat and can be ridden into battle."]
+      }
+    },
+    {
+      "id": "test-book.plane.nine-hells",
+      "type": "Plane",
+      "name": "The Nine Hells of Baator",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 63,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "The Nine Hells of Baator is a plane of absolute law and evil.",
+      "fields": {
+        "category": "Outer",
+        "entries": ["The Nine Hells of Baator is a plane of absolute law and evil, ruled by archdevils who answer to Asmodeus."],
+        "relatedPlanes": ["Acheron", "Gehenna"]
+      }
+    },
+    {
+      "id": "test-book.location.candlekeep",
+      "type": "Location",
+      "name": "Candlekeep",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 10,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": ["Forgotten Realms"],
+      "canonicalText": "Candlekeep is a great library fortress on the Sword Coast.",
+      "fields": {
+        "category": "Library-Fortress",
+        "setting": "Forgotten Realms",
+        "entries": ["Candlekeep is a great library fortress on the Sword Coast, home to the greatest collection of books and scrolls in Faerûn."]
+      }
+    },
+    {
+      "id": "test-book.faction.harpers",
+      "type": "Faction",
+      "name": "The Harpers",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 21,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": ["Forgotten Realms"],
+      "canonicalText": "The Harpers are a secret network of spellcasters and spies who oppose the rise of tyranny.",
+      "fields": {
+        "headquarters": "Twilight Hall, Berdusk",
+        "goals": ["Gather information", "Aid the weak", "Oppose tyrants"],
+        "entries": ["The Harpers are a secret network of spellcasters and spies who oppose the rise of tyranny."]
       }
     }
   ]

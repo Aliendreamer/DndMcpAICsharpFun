@@ -1,24 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "FactionFields",
   "type": "object",
   "additionalProperties": false,
-  "required": ["description"],
+  "required": ["entries"],
   "properties": {
-    "headquarters": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "goals": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "description": {
-      "type": "string"
-    }
+    "headquarters": { "type": ["null", "string"] },
+    "goals": { "type": ["array", "null"], "items": { "type": "string" } },
+    "entries": { "type": "array", "items": { "type": ["string", "object"] } }
   }
 }

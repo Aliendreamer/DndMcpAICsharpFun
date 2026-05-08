@@ -28,6 +28,9 @@ public class SchemaGenerationTests
     [InlineData("test-book.condition.blinded", "ConditionFields")]
     [InlineData("test-book.disease-poison.sewer-plague", "DiseasePoisonFields")]
     [InlineData("test-book.vehicle-mount.warhorse", "VehicleMountFields")]
+    [InlineData("test-book.plane.nine-hells", "PlaneFields")]
+    [InlineData("test-book.location.candlekeep", "LocationFields")]
+    [InlineData("test-book.faction.harpers", "FactionFields")]
     public async Task Generated_schema_validates_fixture_entity(string entityId, string schemaName)
     {
         var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "canonical", "test-book.json");

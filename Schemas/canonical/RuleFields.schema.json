@@ -1,18 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "RuleFields",
   "type": "object",
   "additionalProperties": false,
-  "required": ["category", "description"],
+  "required": ["entries"],
   "properties": {
-    "category": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    },
-    "sourceTable": {
-      "type": ["null", "string"]
-    }
+    "ruleType": { "type": ["null", "string"] },
+    "entries": { "type": "array", "items": { "type": ["string", "object"] } }
   }
 }

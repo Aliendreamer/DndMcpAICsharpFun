@@ -1,21 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "PlaneFields",
   "type": "object",
   "additionalProperties": false,
-  "required": ["category", "description"],
+  "required": ["category", "entries"],
   "properties": {
-    "category": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    },
-    "relatedPlanes": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    }
+    "category": { "type": "string" },
+    "entries": { "type": "array", "items": { "type": ["string", "object"] } },
+    "relatedPlanes": { "type": ["array", "null"], "items": { "type": "string" } }
   }
 }
