@@ -21,7 +21,7 @@ All schemas switch to these formats:
 | Descriptive text | `"description": "string"` | `"entries": ["string", {type,name,entries}]` |
 | Size | `"size": "Medium"` | `"size": ["M"]` |
 | Alignment | `"alignment": "Neutral Good"` | `"alignment": ["N", "G"]` |
-| Spell school | `"school": "Evocation"` | `"school": "EV"` |
+| Spell school | `"school": "Evocation"` | `"school": "V"` |
 | Ability scores | `"abilityScores": {strength: 10}` | `"str": 10, "dex": 14, ...` (flat) |
 | Challenge rating | `"challengeRating": {cr,crNumeric,xp,proficiencyBonus}` | `"cr": "1/4"` |
 | Skill values | `"skills": {"perception": 5}` | `"skill": {"perception": "+5"}` |
@@ -40,7 +40,7 @@ All schemas switch to these formats:
 ### Spell
 | Old field | New field |
 |---|---|
-| `school` string | `school` code (`"EV"`, `"C"`, `"A"`, `"T"`, `"D"`, `"N"`, `"I"`, `"EN"`) |
+| `school` string | `school` code (`"V"`, `"C"`, `"A"`, `"T"`, `"D"`, `"N"`, `"I"`, `"E"`) |
 | `castingTime` string | `time: [{number, unit}]` |
 | `range` string | `range: {type, distance: {type, amount}}` |
 | `duration` string | `duration: [{type, ...}]` |
@@ -199,7 +199,7 @@ Adopts 5etools `variantrule` shape:
 **Code lookup tables** (injected for relevant types):
 - Size: `T=Tiny, S=Small, M=Medium, L=Large, H=Huge, G=Gargantuan`
 - Alignment: `L=Lawful, C=Chaotic, G=Good, E=Evil, N=Neutral, U=Unaligned, A=Any`
-- Spell school: `A=Abjuration, C=Conjuration, D=Divination, EN=Enchantment, EV=Evocation, I=Illusion, N=Necromancy, T=Transmutation`
+- Spell school: `A=Abjuration, C=Conjuration, D=Divination, E=Enchantment, I=Illusion, N=Necromancy, T=Transmutation, V=Evocation`
 - Rule type: `C=Core, O=Optional, V=Variant`
 
 **entries format guidance:**

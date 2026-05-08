@@ -1,77 +1,98 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "SpellFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "level": {
-      "type": "integer",
-      "format": "int32"
-    },
-    "school": {
-      "type": "string"
-    },
-    "castingTime": {
-      "type": "string"
-    },
-    "range": {
-      "type": "string"
-    },
-    "components": {
-      "$ref": "#/definitions/SpellComponents"
-    },
-    "duration": {
-      "type": "string"
-    },
-    "ritual": {
-      "type": "boolean"
-    },
-    "concentration": {
-      "type": "boolean"
-    },
-    "description": {
-      "type": "string"
-    },
-    "atHigherLevels": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "classes": {
-      "type": "array",
+    "level": { "type": "integer", "format": "int32" },
+    "school": { "type": "string" },
+    "time": {
+      "type": ["array", "null"],
       "items": {
-        "type": "string"
-      }
-    },
-    "damageTypes": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    }
-  },
-  "definitions": {
-    "SpellComponents": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "v": {
-          "type": "boolean"
-        },
-        "s": {
-          "type": "boolean"
-        },
-        "m": {
-          "type": "boolean"
-        },
-        "material": {
-          "type": [
-            "null",
-            "string"
-          ]
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "number": { "type": "integer", "format": "int32" },
+          "unit": { "type": "string" },
+          "condition": { "type": ["null", "string"] }
         }
       }
+    },
+    "range": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": { "type": "string" },
+            "distance": {
+              "type": ["object", "null"],
+              "properties": {
+                "type": { "type": "string" },
+                "amount": { "type": ["integer", "null"], "format": "int32" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "components": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "v": { "type": "boolean" },
+        "s": { "type": "boolean" },
+        "m": { "type": ["null", "string", "object"] }
+      }
+    },
+    "duration": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "duration": { "type": ["object", "null"] },
+          "concentration": { "type": "boolean" },
+          "ends": { "type": ["array", "null"] }
+        }
+      }
+    },
+    "ritual": { "type": "boolean" },
+    "concentration": { "type": "boolean" },
+    "entries": {
+      "type": ["array", "null"],
+      "items": { "type": ["string", "object"] }
+    },
+    "entriesHigherLevel": {
+      "type": ["array", "null"],
+      "items": { "type": ["string", "object"] }
+    },
+    "damageInflict": {
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+    "savingThrow": {
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+    "classes": {
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+    "miscTags": {
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+    "areaTags": {
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+    "scalingLevelDice": { "type": ["object", "null"] },
+    "conditionInflict": {
+      "type": ["array", "null"],
+      "items": { "type": "string" }
     }
   }
 }

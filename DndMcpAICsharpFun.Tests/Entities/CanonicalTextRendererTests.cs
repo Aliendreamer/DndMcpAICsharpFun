@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities.Fields;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using FluentAssertions;
@@ -38,18 +39,26 @@ public class CanonicalTextRendererTests
         text1.Should().Contain("Fighter").And.Contain("d10").And.Contain("Strength, Constitution").And.Contain("Fighting Style");
     }
 
-    [Fact]
+   [Fact]
     public void Spell_text_includes_at_higher_levels()
     {
+        var mJson = JsonSerializer.Deserialize<JsonElement>("\"a tiny ball of bat guano and sulfur\"");
         var fields = new SpellFields(
-            Level: 3, School: "evocation",
-            CastingTime: "1 action", Range: "150 feet",
-            Components: new SpellComponents(true, true, true, "guano"),
-            Duration: "Instantaneous", Ritual: false, Concentration: false,
-            Description: "A bright streak.",
-            AtHigherLevels: "Damage increases.",
-            Classes: new[] { "Wizard" }, DamageTypes: new[] { "fire" });
+            Level: 3,
+            School: "V",
+            Time: new[] { new SpellTime(1, "action") },
+            Range: new SpellRange("point", new SpellDistance("feet", 150)),
+            Components: new SpellComponents(V: true, S: true, M: mJson),
+            Duration: new[] { new SpellDurationItem("instant") },
+            Ritual: false,
+            Concentration: false,
+            Entries: new[] { JsonSerializer.Deserialize<JsonElement>("\"A bright streak.\"") },
+            EntriesHigherLevel: new[] { JsonSerializer.Deserialize<JsonElement>("\"Damage increases.\"") },
+            DamageInflict: new[] { "fire" },
+            SavingThrow: null,
+            Classes: new[] { "Wizard" },
+            ConditionInflict: null);
         var text = new SpellCanonicalTextRenderer().Render("Fireball", fields);
-        text.Should().Contain("3rd-level evocation").And.Contain("Damage increases.");
+        text.Should().Contain("3rd-level Evocation").And.Contain("Damage increases.");
     }
 }

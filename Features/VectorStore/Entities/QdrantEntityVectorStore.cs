@@ -93,7 +93,7 @@ public sealed class QdrantEntityVectorStore(
             && lvl.TryGetInt32(out var lvlInt))
             payload[EntityPayloadFields.SpellLevel] = lvlInt;
 
-        if (envelope.Type == EntityType.Spell && envelope.Fields.TryGetProperty("damageTypes", out var dt)
+        if (envelope.Type == EntityType.Spell && envelope.Fields.TryGetProperty("damageInflict", out var dt)
             && dt.ValueKind == JsonValueKind.Array)
         {
             var types = dt.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()!).ToList();
