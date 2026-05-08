@@ -3,6 +3,9 @@ using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Domain.Entities.Fields;
 
+// TODO(5etools-alignment): ClassFields record below is unused (old schema shape: HitDie/FeaturesByLevel).
+// ClassLevelEntry and FeatureRef are still referenced by SubclassFields.
+
 public sealed record SkillChoice(int Count, IReadOnlyList<string> Options);
 
 public sealed record EquipmentChoice(int Choose, IReadOnlyList<string> Options);

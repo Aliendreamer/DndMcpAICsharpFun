@@ -16,7 +16,7 @@ public class CanonicalJsonLoaderTests
     {
         var loader = new CanonicalJsonLoader();
         var file = await loader.LoadAsync(FixturePath, CancellationToken.None);
-        file.Entities.Should().HaveCount(7);
+        file.Entities.Should().HaveCount(8);
         file.Book.SourceBook.Should().Be("Test Book");
         file.SchemaVersion.Should().Be("1");
     }
@@ -27,9 +27,13 @@ public class CanonicalJsonLoaderTests
         var loader = new CanonicalJsonLoader();
         var file = await loader.LoadAsync(FixturePath, CancellationToken.None);
         var fighter = file.Entities.Single(e => e.Id == "test-book.class.fighter");
-        var fields = loader.DeserialiseFields<ClassFields>(fighter);
-        fields.HitDie.Should().Be("d10");
-        fields.AsiLevels.Should().Equal(4, 6, 8, 12, 14, 16, 19);
+        // Verify the entity loads successfully; field names are now 5etools-style (hd, classFeatures, etc.)
+        // and do not map to the old ClassFields C# properties, so we verify via raw JSON instead.
+        fighter.Fields.TryGetProperty("hd", out var hd).Should().BeTrue();
+        hd.TryGetProperty("faces", out var faces).Should().BeTrue();
+        faces.GetInt32().Should().Be(10);
+        fighter.Fields.TryGetProperty("classFeatures", out var classFeatures).Should().BeTrue();
+        classFeatures.GetArrayLength().Should().Be(3);
     }
 
     [Fact]

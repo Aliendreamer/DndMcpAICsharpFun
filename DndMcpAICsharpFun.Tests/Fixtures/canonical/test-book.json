@@ -19,33 +19,41 @@
       "settingTags": ["core"],
       "canonicalText": "Fighter — Hit Die: d10. STR/CON saves. Heavy armor and martial weapons. ...",
       "fields": {
-        "hitDie": "d10",
-        "primaryAbilities": ["Strength", "Dexterity"],
-        "savingThrowProficiencies": ["Strength", "Constitution"],
-        "armorProficiencies": ["light", "medium", "heavy", "shields"],
-        "weaponProficiencies": ["simple", "martial"],
-        "toolProficiencies": [],
-        "skillChoices": { "count": 2, "options": ["Acrobatics", "Athletics"] },
-        "startingEquipment": [
-          { "choose": 1, "options": ["chain mail", "leather armor"] }
-        ],
-        "multiclass": {
-          "prerequisites": { "operator": "or", "abilities": { "Strength": 13, "Dexterity": 13 } },
-          "proficienciesGained": ["light armor", "shields", "simple weapons", "martial weapons"]
+        "hd": { "number": 1, "faces": 10 },
+        "proficiency": ["str", "con"],
+        "startingProficiencies": {
+          "armor": ["light", "medium", "heavy", "shields"],
+          "weapons": ["simple", "martial"],
+          "skills": { "choose": { "from": ["Acrobatics", "Athletics", "History", "Insight", "Intimidation", "Perception", "Survival"], "count": 2 } }
         },
-        "spellcasting": null,
-        "subclassSelectionLevel": 3,
-        "subclasses": [],
-        "asiLevels": [4, 6, 8, 12, 14, 16, 19],
-        "featuresByLevel": [
-          {
-            "level": 1,
-            "proficiencyBonus": 2,
-            "features": [
-              { "name": "Fighting Style", "ref": "test-book.feature.fighting-style", "summary": "Pick a Fighting Style." }
-            ]
-          }
-        ]
+        "classFeatures": [
+          { "classFeature": "Fighting Style|Fighter||1", "level": 1 },
+          { "classFeature": "Second Wind|Fighter||1", "level": 1 },
+          { "classFeature": "Action Surge|Fighter||2", "level": 2 }
+        ],
+        "entries": ["A master of martial combat, skilled with a variety of weapons and armor."]
+      }
+    },
+    {
+      "id": "test-book.subclass.battle-master",
+      "type": "Subclass",
+      "name": "Battle Master",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 73,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "Those who emulate the archetypal Battle Master employ martial techniques passed down through generations.",
+      "fields": {
+        "className": "Fighter",
+        "classSource": "PHB",
+        "shortName": "Battle Master",
+        "subclassFeatures": [
+          { "subclassFeature": "Combat Superiority|Fighter|PHB|Battle Master|PHB|3", "level": 3 },
+          { "subclassFeature": "Know Your Enemy|Fighter|PHB|Battle Master|PHB|7", "level": 7 }
+        ],
+        "entries": ["Those who emulate the archetypal Battle Master employ martial techniques passed down through generations."]
       }
     },
     {
