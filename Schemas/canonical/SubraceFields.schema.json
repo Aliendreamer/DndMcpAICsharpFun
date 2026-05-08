@@ -1,53 +1,94 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "SubraceFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "parentRace": {
-      "type": "string"
+    "raceName": {
+      "type": [
+        "null",
+        "string"
+      ]
     },
-    "abilityBonuses": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/AbilityBonus"
-      }
+    "raceSource": {
+      "type": [
+        "null",
+        "string"
+      ]
     },
-    "traits": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/TraitRef"
-      }
-    }
-  },
-  "definitions": {
-    "AbilityBonus": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "ability": {
-          "type": "string"
-        },
-        "bonus": {
-          "type": "integer",
-          "format": "int32"
+    "ability": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "speed": {
+      "oneOf": [
+        {},
+        {
+          "type": "null"
         }
+      ]
+    },
+    "darkvision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int32"
+    },
+    "skillProficiencies": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "languageProficiencies": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "weaponProficiencies": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "additionalSpells": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "resist": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "traitTags": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
       }
     },
-    "TraitRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "ref": {
-          "type": "string"
-        },
-        "summary": {
-          "type": "string"
-        }
-      }
+    "entries": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
     }
   }
 }

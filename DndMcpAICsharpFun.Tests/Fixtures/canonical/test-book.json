@@ -144,6 +144,43 @@
         "category": "EncounterBuilding",
         "description": "Procedure for calculating an XP budget and selecting monsters for a balanced encounter."
       }
+    },
+    {
+      "id": "test-book.race.human",
+      "type": "Race",
+      "name": "Human",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 29,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "Humans are the most adaptable and ambitious people among the common races.",
+      "fields": {
+        "size": ["M"],
+        "speed": { "walk": 30 },
+        "ability": [{ "str": 1, "dex": 1, "con": 1, "int": 1, "wis": 1, "cha": 1 }],
+        "languageProficiencies": [{ "common": true, "anyStandard": 1 }],
+        "entries": ["Humans are the most adaptable and ambitious people among the common races."]
+      }
+    },
+    {
+      "id": "test-book.subrace.high-elf",
+      "type": "Subrace",
+      "name": "High Elf",
+      "sourceBook": "Test Book",
+      "edition": "Edition2014",
+      "page": 23,
+      "firstAppearedIn": { "book": "Test Book", "edition": "Edition2014" },
+      "revisedIn": [],
+      "settingTags": [],
+      "canonicalText": "As a high elf, you have a keen mind and a mastery of at least the basics of magic.",
+      "fields": {
+        "raceName": "Elf",
+        "raceSource": "PHB",
+        "ability": [{ "int": 1 }],
+        "entries": ["As a high elf, you have a keen mind and a mastery of at least the basics of magic."]
+      }
     }
   ]
 }

@@ -1,69 +1,118 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "RaceFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "size": {
-      "type": "string"
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
     },
     "speed": {
-      "type": "integer",
+      "oneOf": [
+        {},
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ability": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "languageProficiencies": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "skillProficiencies": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "toolProficiencies": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "weaponProficiencies": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "armorProficiencies": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "darkvision": {
+      "type": [
+        "integer",
+        "null"
+      ],
       "format": "int32"
     },
-    "abilityBonuses": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/AbilityBonus"
-      }
-    },
-    "languages": {
-      "type": "array",
+    "traitTags": {
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "type": "string"
       }
     },
-    "traits": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/TraitRef"
-      }
+    "additionalSpells": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
     },
-    "subraces": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    }
-  },
-  "definitions": {
-    "AbilityBonus": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "ability": {
-          "type": "string"
-        },
-        "bonus": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
+    "resist": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
     },
-    "TraitRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "ref": {
-          "type": "string"
-        },
-        "summary": {
-          "type": "string"
-        }
-      }
+    "immune": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "entries": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "lineage": {
+      "type": [
+        "null",
+        "string"
+      ]
     }
   }
 }

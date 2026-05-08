@@ -1,11 +1,20 @@
+using System.Text.Json;
+
 namespace DndMcpAICsharpFun.Domain.Entities.Fields;
 
-public sealed record AbilityBonus(string Ability, int Bonus);
-
 public sealed record RaceFields(
-    string Size,
-    int Speed,
-    IReadOnlyList<AbilityBonus> AbilityBonuses,
-    IReadOnlyList<string> Languages,
-    IReadOnlyList<TraitRef> Traits,
-    IReadOnlyList<string> Subraces);
+    IReadOnlyList<string>? Size,
+    JsonElement? Speed,
+    IReadOnlyList<JsonElement>? Ability,
+    IReadOnlyList<JsonElement>? LanguageProficiencies,
+    IReadOnlyList<JsonElement>? SkillProficiencies,
+    IReadOnlyList<JsonElement>? ToolProficiencies,
+    IReadOnlyList<JsonElement>? WeaponProficiencies,
+    IReadOnlyList<JsonElement>? ArmorProficiencies,
+    int? Darkvision,
+    IReadOnlyList<string>? TraitTags,
+    IReadOnlyList<JsonElement>? AdditionalSpells,
+    IReadOnlyList<JsonElement>? Resist,
+    IReadOnlyList<JsonElement>? Immune,
+    IReadOnlyList<JsonElement>? Entries,
+    string? Lineage);

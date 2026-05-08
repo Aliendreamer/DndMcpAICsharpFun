@@ -14,6 +14,8 @@ public class SchemaGenerationTests
         [InlineData("test-book.spell.fireball", "SpellFields")]
     [InlineData("test-book.lore.the-planes", "LoreFields")]
     [InlineData("test-book.rule.encounter-building", "RuleFields")]
+    [InlineData("test-book.race.human", "RaceFields")]
+    [InlineData("test-book.subrace.high-elf", "SubraceFields")]
     public async Task Generated_schema_validates_fixture_entity(string entityId, string schemaName)
     {
         var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "canonical", "test-book.json");
