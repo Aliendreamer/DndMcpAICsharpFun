@@ -51,7 +51,8 @@ public sealed class EntityIngestionOrchestrator(
         {
             ct.ThrowIfCancellationRequested();
             var text = textDispatcher.Render(envelope);
-            renderedEnvelopes.Add(envelope with { CanonicalText = text });
+            var ds = string.IsNullOrEmpty(envelope.DataSource) ? "llm" : envelope.DataSource;
+            renderedEnvelopes.Add(envelope with { CanonicalText = text, DataSource = ds });
             texts.Add(text);
         }
 

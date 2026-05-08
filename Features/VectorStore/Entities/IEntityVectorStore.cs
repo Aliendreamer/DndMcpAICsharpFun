@@ -20,4 +20,6 @@ public interface IEntityVectorStore
     Task DeleteByFileHashAsync(string fileHash, CancellationToken ct = default);
     Task<EntityEnvelope?> GetByIdAsync(string id, CancellationToken ct = default);
     Task<IList<EntitySearchHit>> SearchAsync(float[] queryVector, EntityFilters filters, int topK, CancellationToken ct = default);
+    Task<IReadOnlyDictionary<string, string>> GetDataSourcesAsync(
+        IReadOnlyList<string> entityIds, CancellationToken ct = default);
 }

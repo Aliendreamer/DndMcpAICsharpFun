@@ -51,6 +51,32 @@ public class CanonicalJsonLoaderTests
     }
 
     [Fact]
+    public async Task Load_deserialises_class_fields_typed()
+    {
+        var loader = new CanonicalJsonLoader();
+        var file = await loader.LoadAsync(FixturePath, CancellationToken.None);
+        var fighter = file.Entities.Single(e => e.Id == "test-book.class.fighter");
+        var fields = loader.DeserialiseFields<ClassFields>(fighter);
+        fields.Hd.Should().NotBeNull();
+        fields.Hd!.Faces.Should().Be(10);
+        fields.Hd.Number.Should().Be(1);
+        fields.ClassFeatures.Should().NotBeNull().And.HaveCount(3);
+        fields.Proficiency.Should().Contain("str").And.Contain("con");
+    }
+
+    [Fact]
+    public async Task Load_deserialises_subclass_fields_typed()
+    {
+        var loader = new CanonicalJsonLoader();
+        var file = await loader.LoadAsync(FixturePath, CancellationToken.None);
+        var battleMaster = file.Entities.Single(e => e.Id == "test-book.subclass.battle-master");
+        var fields = loader.DeserialiseFields<SubclassFields>(battleMaster);
+        fields.ClassName.Should().Be("Fighter");
+        fields.ShortName.Should().Be("Battle Master");
+        fields.SubclassFeatures.Should().NotBeNull().And.HaveCount(2);
+    }
+
+    [Fact]
     public async Task Load_rejects_mismatched_schema_version()
     {
         var tmp = Path.GetTempFileName();

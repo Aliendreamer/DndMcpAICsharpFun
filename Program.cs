@@ -62,7 +62,9 @@ app.MapHealthChecks("/ready");
 app.MapHealthChecks("/health/ready");
 
 // Admin routes
-app.MapGroup("/admin").MapBooksAdmin();
+var admin = app.MapGroup("/admin");
+admin.MapBooksAdmin();
+admin.MapFivetoolsAdmin();
 
 // Retrieval endpoints
 app.MapRetrievalEndpoints();

@@ -32,6 +32,50 @@ public class CanonicalTextRendererTests
     }
 
     [Fact]
+    public void Class_renderer_includes_hitdie_proficiencies_and_features()
+    {
+        var features = new[]
+        {
+            JsonSerializer.Deserialize<JsonElement>("{\"classFeature\":\"Fighting Style|Fighter||1\",\"level\":1}"),
+            JsonSerializer.Deserialize<JsonElement>("{\"classFeature\":\"Second Wind|Fighter||1\",\"level\":1}"),
+            JsonSerializer.Deserialize<JsonElement>("{\"classFeature\":\"Action Surge|Fighter||2\",\"level\":2}"),
+        };
+        var fields = new ClassFields(
+            Hd: new HitDice(1, 10),
+            Proficiency: new[] { "str", "con" },
+            StartingProficiencies: null,
+            ClassFeatures: features,
+            Multiclassing: null,
+            Entries: null,
+            SubclassTitle: "Martial Archetype");
+        var text = new ClassCanonicalTextRenderer().Render("Fighter", fields);
+        text.Should().Contain("d10")
+            .And.Contain("STR, CON")
+            .And.Contain("Fighting Style (1)")
+            .And.Contain("Action Surge (2)");
+    }
+
+    [Fact]
+    public void Subclass_renderer_includes_classname_and_features()
+    {
+        var features = new[]
+        {
+            JsonSerializer.Deserialize<JsonElement>("{\"subclassFeature\":\"Combat Superiority|Fighter|PHB|Battle Master|PHB|3\",\"level\":3}"),
+            JsonSerializer.Deserialize<JsonElement>("{\"subclassFeature\":\"Know Your Enemy|Fighter|PHB|Battle Master|PHB|7\",\"level\":7}"),
+        };
+        var fields = new SubclassFields(
+            ClassName: "Fighter",
+            ClassSource: "PHB",
+            ShortName: "Battle Master",
+            SubclassFeatures: features,
+            Entries: null);
+        var text = new SubclassCanonicalTextRenderer().Render("Battle Master", fields);
+        text.Should().Contain("Fighter subclass")
+            .And.Contain("Combat Superiority (3)")
+            .And.Contain("Know Your Enemy (7)");
+    }
+
+    [Fact]
     public void Monster_text_includes_name_cr_and_type()
     {
         JsonElement? typeEl = JsonSerializer.Deserialize<JsonElement>("{\"type\":\"humanoid\",\"tags\":[\"bullywug\"]}");

@@ -74,6 +74,10 @@ X-Admin-Api-Key: {{adminKey}}
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin — Import all 5etools JSON files directly into dnd_entities
+POST {{baseUrl}}/admin/5etools/import
+X-Admin-Api-Key: {{adminKey}}
+
 ###
 
 # ── Qdrant — Direct collection management ─────────────────────────────────────

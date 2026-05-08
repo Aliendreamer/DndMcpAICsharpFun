@@ -82,6 +82,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<EntityCanonicalTextDispatcher>();
         services.AddSingleton<EntityReferenceResolver>();
         services.AddScoped<IEntityIngestionOrchestrator, EntityIngestionOrchestrator>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.FivetoolsIngestionService>();
 
         services.AddHostedService<QdrantCollectionInitializer>();
 

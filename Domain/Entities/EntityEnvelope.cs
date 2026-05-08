@@ -13,4 +13,5 @@ public sealed record EntityEnvelope(
     IReadOnlyList<Revision> RevisedIn,
     IReadOnlyList<string> SettingTags,
     string CanonicalText,
-    JsonElement Fields);
+    JsonElement Fields,
+    string DataSource = "");

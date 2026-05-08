@@ -189,6 +189,18 @@
       "body": {}
     },
     {
+      "_id": "req_5etools_import",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Import all 5etools JSON files into dnd_entities",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/5etools/import",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": {}
+    },
+    {
       "_id": "req_books_delete",
       "_type": "request",
       "parentId": "fld_admin_books",

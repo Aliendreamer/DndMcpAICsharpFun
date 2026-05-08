@@ -49,6 +49,34 @@ public sealed class QdrantEntityVectorStore(
         return results.Select(p => new EntitySearchHit(ToEnvelope(p.Payload), p.Score, p.Id.Uuid)).ToList();
     }
 
+    public async Task<IReadOnlyDictionary<string, string>> GetDataSourcesAsync(
+        IReadOnlyList<string> entityIds, CancellationToken ct = default)
+    {
+        if (entityIds.Count == 0) return new Dictionary<string, string>();
+        var filter = new Filter();
+        foreach (var id in entityIds)
+            filter.Should.Add(KW(EntityPayloadFields.Id, id));
+
+        const uint PageSize = 1000;
+        var sources = new Dictionary<string, string>();
+        PointId? offset = null;
+        do
+        {
+            var page = await client.ScrollAsync(
+                _collection, filter,
+                offset: offset,
+                limit: PageSize,
+                payloadSelector: true,
+                cancellationToken: ct);
+            foreach (var p in page.Result.Where(p => p.Payload.ContainsKey(EntityPayloadFields.Id)))
+                sources[p.Payload[EntityPayloadFields.Id].StringValue] =
+                    p.Payload.TryGetValue(EntityPayloadFields.DataSource, out var ds) ? ds.StringValue : "";
+            offset = page.NextPageOffset;
+        } while (offset is not null);
+
+        return sources;
+    }
+
     private static PointStruct ToPoint(EntityPoint p)
     {
         var payload = new Dictionary<string, Value>
@@ -62,6 +90,7 @@ public sealed class QdrantEntityVectorStore(
             [EntityPayloadFields.FirstBook]     = p.Envelope.FirstAppearedIn.Book,
             [EntityPayloadFields.FirstEdition]  = p.Envelope.FirstAppearedIn.Edition,
             [EntityPayloadFields.FileHash]      = p.FileHash,
+            [EntityPayloadFields.DataSource]    = p.Envelope.DataSource,
             [EntityPayloadFields.SettingTags]   = StringList(p.Envelope.SettingTags),
             [EntityPayloadFields.FieldsJson]    = p.Envelope.Fields.GetRawText(),
         };
@@ -132,7 +161,8 @@ public sealed class QdrantEntityVectorStore(
                 ? st.ListValue.Values.Select(v => v.StringValue).ToList()
                 : Array.Empty<string>(),
             CanonicalText: p[EntityPayloadFields.CanonicalText].StringValue,
-            Fields: fields);
+            Fields: fields,
+            DataSource: p.TryGetValue(EntityPayloadFields.DataSource, out var ds) ? ds.StringValue : "");
         return envelope;
     }
 

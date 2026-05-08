@@ -19,4 +19,5 @@ public static class EntityPayloadFields
     public const string FirstEdition    = "first_edition";
     public const string FieldsJson      = "fields_json";
     public const string FileHash        = "file_hash";
+    public const string DataSource      = "data_source";
 }
