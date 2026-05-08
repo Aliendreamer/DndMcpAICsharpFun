@@ -1,82 +1,23 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "WeaponFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "category": {
-      "type": "string"
-    },
-    "weaponType": {
-      "type": "string"
-    },
-    "costCp": {
-      "type": "integer",
-      "format": "int32"
-    },
-    "weightLb": {
-      "type": "number",
-      "format": "double"
-    },
-    "damage": {
-      "$ref": "#/definitions/DamagePart"
-    },
-    "range": {
-      "oneOf": [
-        {
-          "type": "null"
-        },
-        {
-          "$ref": "#/definitions/AttackRange"
-        }
-      ]
-    },
-    "properties": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    }
-  },
-  "definitions": {
-    "DamagePart": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "dice": {
-          "type": "string"
-        },
-        "average": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "type": {
-          "type": "string"
-        },
-        "versatile": {
-          "type": [
-            "null",
-            "string"
-          ]
-        }
-      }
-    },
-    "AttackRange": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "normal": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "long": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "int32"
-        }
-      }
-    }
+    "type": { "type": ["null", "string"] },
+    "weaponCategory": { "type": ["null", "string"] },
+    "dmg1": { "type": ["null", "string"] },
+    "dmg2": { "type": ["null", "string"] },
+    "dmgType": { "type": ["null", "string"] },
+    "property": { "type": ["array", "null"], "items": { "type": "string" } },
+    "range": { "type": ["null", "string"] },
+    "reload": { "type": ["integer", "null"], "format": "int32" },
+    "value": { "type": ["integer", "null"], "format": "int32" },
+    "weight": { "type": ["number", "null"], "format": "double" },
+    "age": { "type": ["null", "string"] },
+    "firearm": { "type": ["boolean", "null"] },
+    "ammoType": { "type": ["null", "string"] },
+    "entries": { "type": ["array", "null"], "items": { "type": ["string", "object"] } }
   }
 }

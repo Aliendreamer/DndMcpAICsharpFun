@@ -11,7 +11,7 @@ namespace DndMcpAICsharpFun.Tests.Entities.Ingestion;
 public class EntityIngestionOrchestratorTests
 {
     [Fact]
-    public async Task Ingests_ten_entities_from_fixture_and_calls_upsert_once()
+    public async Task Ingests_twelve_entities_from_fixture_and_calls_upsert_once()
     {
         var tracker = Substitute.For<IIngestionTracker>();
         var record = new IngestionRecord
@@ -49,8 +49,8 @@ public class EntityIngestionOrchestratorTests
 
         await store.Received(1).DeleteByFileHashAsync("deadbeef", Arg.Any<CancellationToken>());
         await store.Received(1).UpsertAsync(
-            Arg.Is<IList<EntityPoint>>(p => p.Count == 10),
+            Arg.Is<IList<EntityPoint>>(p => p.Count == 12),
             Arg.Any<CancellationToken>());
-        await tracker.Received(1).MarkEntitiesIngestedAsync(1, 10, Arg.Any<CancellationToken>());
+        await tracker.Received(1).MarkEntitiesIngestedAsync(1, 12, Arg.Any<CancellationToken>());
     }
 }

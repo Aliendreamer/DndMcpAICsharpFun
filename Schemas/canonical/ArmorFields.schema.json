@@ -1,32 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "ArmorFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "category": {
-      "type": "string"
-    },
-    "costGp": {
-      "type": "integer",
-      "format": "int32"
-    },
-    "weightLb": {
-      "type": "number",
-      "format": "double"
-    },
-    "acFormula": {
-      "type": "string"
-    },
-    "strengthRequirement": {
-      "type": [
-        "integer",
-        "null"
-      ],
-      "format": "int32"
-    },
-    "stealthDisadvantage": {
-      "type": "boolean"
-    }
+    "type": { "type": ["null", "string"] },
+    "ac": { "type": ["integer", "null"], "format": "int32" },
+    "strength": { "type": ["integer", "null"], "format": "int32" },
+    "stealth": { "type": ["boolean", "null"] },
+    "value": { "type": ["integer", "null"], "format": "int32" },
+    "weight": { "type": ["number", "null"], "format": "double" },
+    "entries": { "type": ["array", "null"], "items": { "type": ["string", "object"] } }
   }
 }
