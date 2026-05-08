@@ -61,4 +61,26 @@ public class CanonicalTextRendererTests
         var text = new SpellCanonicalTextRenderer().Render("Fireball", fields);
         text.Should().Contain("3rd-level Evocation").And.Contain("Damage increases.");
     }
+
+    [Fact]
+    public void Monster_text_includes_name_cr_and_type()
+    {
+        JsonElement? typeEl = JsonSerializer.Deserialize<JsonElement>("{\"type\":\"humanoid\",\"tags\":[\"bullywug\"]}");
+        JsonElement? crEl = JsonSerializer.Deserialize<JsonElement>("\"1/4\"");
+        var fields = new MonsterFields(
+            Size: new[] { "M" },
+            Type: typeEl,
+            Alignment: new[] { "N", "E" },
+            Ac: new[] { JsonSerializer.Deserialize<JsonElement>("15") },
+            Hp: new MonsterHp(11, "2d8+2"),
+            Speed: null, Str: 12, Dex: 12, Con: 13, Int: 7, Wis: 10, Cha: 7,
+            Save: null, Skill: null, Resist: null, Immune: null, Vulnerable: null,
+            ConditionImmune: null, Senses: null, Passive: 12, Languages: new[] { "Bullywug" },
+            Cr: crEl,
+            Trait: new[] { new MonsterBlock("Amphibious", new[] { JsonSerializer.Deserialize<JsonElement>("\"The bullywug can breathe air and water.\"") }) },
+            Action: null, Bonus: null, Reaction: null, Legendary: null, LegendaryHeader: null,
+            Lair: null, LairHeader: null, Spellcasting: null, Environment: null);
+        var text = new MonsterCanonicalTextRenderer().Render("Bullywug", fields);
+        text.Should().Contain("Bullywug").And.Contain("CR 1/4").And.Contain("Medium").And.Contain("Amphibious");
+    }
 }

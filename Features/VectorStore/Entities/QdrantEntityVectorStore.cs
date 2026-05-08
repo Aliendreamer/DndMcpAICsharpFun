@@ -81,13 +81,14 @@ public sealed class QdrantEntityVectorStore(
 
     private static void FlattenIndexedFields(EntityEnvelope envelope, Dictionary<string, Value> payload)
     {
-        if (envelope.Type == EntityType.Monster && envelope.Fields.TryGetProperty("challengeRating", out var cr)
-            && cr.TryGetProperty("crNumeric", out var crn) && crn.TryGetDouble(out var crd))
-            payload[EntityPayloadFields.CrNumeric] = crd;
-
-        if (envelope.Type == EntityType.Monster && envelope.Fields.TryGetProperty("keywords", out var kw)
-            && kw.ValueKind == JsonValueKind.Array)
-            payload[EntityPayloadFields.Keywords] = StringList(kw.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()!).ToList());
+        if (envelope.Type == EntityType.Monster && envelope.Fields.TryGetProperty("cr", out var cr))
+        {
+            double? crNumeric = null;
+            if (cr.ValueKind == JsonValueKind.String && TryParseCr(cr.GetString(), out var n1)) crNumeric = n1;
+            else if (cr.ValueKind == JsonValueKind.Object && cr.TryGetProperty("cr", out var crInner)
+                     && TryParseCr(crInner.GetString(), out var n2)) crNumeric = n2;
+            if (crNumeric.HasValue) payload[EntityPayloadFields.CrNumeric] = crNumeric.Value;
+        }
 
         if (envelope.Type == EntityType.Spell && envelope.Fields.TryGetProperty("level", out var lvl)
             && lvl.TryGetInt32(out var lvlInt))
@@ -170,4 +171,15 @@ public sealed class QdrantEntityVectorStore(
 
     private static Condition KW(string field, string value) =>
         new() { Field = new FieldCondition { Key = field, Match = new Match { Keyword = value } } };
+
+    private static bool TryParseCr(string? cr, out double value)
+    {
+        if (cr is null) { value = 0; return false; }
+        if (cr == "1/8") { value = 0.125; return true; }
+        if (cr == "1/4") { value = 0.25; return true; }
+        if (cr == "1/2") { value = 0.5; return true; }
+        if (double.TryParse(cr, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out value)) return true;
+        value = 0; return false;
+    }
 }

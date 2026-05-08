@@ -33,14 +33,17 @@ public class CanonicalJsonLoaderTests
     }
 
     [Fact]
-    public async Task Load_deserialises_monster_fields_with_keywords()
+    public async Task Load_deserialises_monster_fields_cr()
     {
         var loader = new CanonicalJsonLoader();
         var file = await loader.LoadAsync(FixturePath, CancellationToken.None);
         var bullywug = file.Entities.Single(e => e.Id == "test-book.monster.bullywug");
         var fields = loader.DeserialiseFields<MonsterFields>(bullywug);
-        fields.Keywords.Should().Contain("amphibian");
-        fields.ChallengeRating.CrNumeric.Should().Be(0.25);
+        var crText = fields.Cr.HasValue && fields.Cr.Value.ValueKind == System.Text.Json.JsonValueKind.String
+            ? fields.Cr.Value.GetString()
+            : fields.Cr?.GetProperty("cr").GetString();
+        crText.Should().Be("1/4");
+        fields.Str.Should().Be(12);
     }
 
     [Fact]

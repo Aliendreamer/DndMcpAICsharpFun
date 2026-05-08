@@ -58,37 +58,28 @@
       "firstAppearedIn": { "book": "Monster Manual", "edition": "Edition2014" },
       "revisedIn": [],
       "settingTags": ["core"],
-      "canonicalText": "Bullywug — Medium humanoid (bullywug), neutral evil. AC 14. HP 11 (2d8+2). ...",
+      "canonicalText": "Bullywug — Medium humanoid (bullywug), neutral evil. AC 15. HP 11 (2d8+2). ...",
       "fields": {
-        "size": "Medium",
-        "type": "humanoid",
-        "subtypes": ["bullywug"],
-        "alignment": "neutral evil",
-        "armorClass": { "value": 14, "source": "leather armor, shield" },
-        "hitPoints": { "average": 11, "dice": "2d8 + 2" },
+        "size": ["M"],
+        "type": { "type": "humanoid", "tags": ["bullywug"] },
+        "alignment": ["N", "E"],
+        "ac": [15],
+        "hp": { "average": 11, "formula": "2d8+2" },
         "speed": { "walk": 20, "swim": 40 },
-        "abilityScores": { "strength": 12, "dexterity": 12, "constitution": 13, "intelligence": 7, "wisdom": 10, "charisma": 7 },
-        "savingThrows": {},
-        "skills": { "Stealth": 3 },
-        "damageVulnerabilities": [],
-        "damageResistances": [],
-        "damageImmunities": [],
-        "conditionImmunities": [],
-        "senses": { "darkvision": 60, "passivePerception": 10 },
+        "str": 12, "dex": 12, "con": 13, "int": 7, "wis": 10, "cha": 7,
+        "skill": { "stealth": "+3", "perception": "+2" },
+        "passive": 12,
         "languages": ["Bullywug"],
-        "challengeRating": { "cr": "1/4", "crNumeric": 0.25, "xp": 50, "proficiencyBonus": 2 },
-        "environment": ["swamp"],
-        "keywords": ["amphibian"],
-        "traits": [
-          { "name": "Amphibious", "ref": "test-book.trait.amphibious", "summary": "Can breathe air and water." }
+        "cr": "1/4",
+        "trait": [
+          { "name": "Amphibious", "entries": ["The bullywug can breathe air and water."] },
+          { "name": "Speak with Frogs and Toads", "entries": ["The bullywug can communicate simple concepts to frogs and toads when it speaks in Bullywug."] }
         ],
-        "actions": [
-          { "name": "Bite", "type": "MeleeWeaponAttack", "summary": "+3 to hit, reach 5 ft. Hit: 3 (1d4+1) piercing.",
-            "attackBonus": 3, "reach": 5, "targets": "one target",
-            "damage": [ { "dice": "1d4 + 1", "average": 3, "type": "piercing" } ] }
-        ],
-        "bonusActions": [],
-        "reactions": []
+        "action": [
+          { "name": "Multiattack", "entries": ["The bullywug makes two melee attacks: one with its bite and one with its spear."] },
+          { "name": "Bite", "entries": ["{@atk mw} {@hit 3} to hit, reach 5 ft., one target. {@h}{@damage 1d4+1} bludgeoning damage."] },
+          { "name": "Spear", "entries": ["{@atk mw,rw} {@hit 3} to hit, reach 5 ft. or range 20/60 ft., one target. {@h}{@damage 1d6+1} piercing damage."] }
+        ]
       }
     },
     {
