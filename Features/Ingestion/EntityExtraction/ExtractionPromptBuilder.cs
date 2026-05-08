@@ -28,6 +28,8 @@ public sealed class ExtractionPromptBuilder
         sb.AppendLine("- Use `Monster` only when the entity has a stat block with a challenge rating.");
         if (type == EntityType.MagicItem)
             sb.AppendLine("If the source text describes multiple tiers or variants of the same item (e.g. +1/+2/+3), extract them as a single entity with a `variants` array rather than separate entities.");
+        if (type == EntityType.Trap)
+            sb.AppendLine("If the source text describes a group of trap variants (e.g. Simple Pit / Spiked Pit / Locking Pit), extract them as a single entity with a `variants` array. Each variant gets its own name, detectDc, disarmDc, difficulty, and description.");
         return sb.ToString();
     }
 
