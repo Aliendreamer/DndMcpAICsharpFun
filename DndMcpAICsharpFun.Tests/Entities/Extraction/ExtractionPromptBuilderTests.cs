@@ -31,4 +31,55 @@ public class ExtractionPromptBuilderTests
         new ExtractionPromptBuilder().ToolName(EntityType.MagicItem).Should().Be("emit_magic_item_fields");
         new ExtractionPromptBuilder().ToolName(EntityType.DiseasePoison).Should().Be("emit_disease_poison_fields");
     }
+
+    [Fact]
+    public void Spell_prompt_contains_school_code_table()
+    {
+        var b = new ExtractionPromptBuilder();
+        var prompt = b.BuildSystemPrompt("PHB", "Edition2014", EntityType.Spell);
+        prompt.Should().Contain("V=Evocation")
+              .And.Contain("C=Conjuration")
+              .And.Contain("\"school\": \"V\"");
+    }
+
+    [Fact]
+    public void Monster_prompt_contains_size_and_alignment_code_tables()
+    {
+        var b = new ExtractionPromptBuilder();
+        var prompt = b.BuildSystemPrompt("MM", "Edition2014", EntityType.Monster);
+        prompt.Should().Contain("M=Medium")
+              .And.Contain("L=Lawful")
+              .And.Contain("\"size\": [\"M\"]");
+    }
+
+    [Fact]
+    public void All_prompts_contain_entries_format_guidance()
+    {
+        var b = new ExtractionPromptBuilder();
+        foreach (var type in Enum.GetValues<EntityType>())
+        {
+            var prompt = b.BuildSystemPrompt("Test", "Edition2014", type);
+            prompt.Should().Contain("entries", because: $"{type} prompt should mention entries array");
+        }
+    }
+
+    [Fact]
+    public void Rule_prompt_contains_ruleType_codes()
+    {
+        var b = new ExtractionPromptBuilder();
+        var prompt = b.BuildSystemPrompt("DMG", "Edition2014", EntityType.Rule);
+        prompt.Should().Contain("ruleType")
+              .And.Contain("O=Optional")
+              .And.Contain("V=Variant");
+    }
+
+    [Fact]
+    public void God_prompt_contains_alignment_code_table()
+    {
+        var b = new ExtractionPromptBuilder();
+        var prompt = b.BuildSystemPrompt("MTF", "Edition2014", EntityType.God);
+        prompt.Should().Contain("L=Lawful")
+              .And.Contain("G=Good")
+              .And.Contain("\"alignment\": [\"L\", \"G\"]");
+    }
 }

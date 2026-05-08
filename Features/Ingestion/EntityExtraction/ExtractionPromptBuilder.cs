@@ -5,6 +5,32 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
 public sealed class ExtractionPromptBuilder
 {
+    private const string SizeCodes =
+        "Size codes: T=Tiny, S=Small, M=Medium, L=Large, H=Huge, G=Gargantuan. " +
+        "Use an array: \"size\": [\"M\"]";
+
+    private const string AlignmentCodes =
+        "Alignment codes: L=Lawful, C=Chaotic, G=Good, E=Evil, N=Neutral, U=Unaligned, A=Any. " +
+        "Use an array: \"alignment\": [\"L\", \"G\"] for Lawful Good.";
+
+    private const string SchoolCodes =
+        "Spell school codes: A=Abjuration, C=Conjuration, D=Divination, E=Enchantment, " +
+        "V=Evocation, I=Illusion, N=Necromancy, T=Transmutation. " +
+        "Example: \"school\": \"V\"";
+
+    private const string RuleTypeCodes =
+        "Rule type codes: C=Core rule, O=Optional rule, V=Variant rule. " +
+        "Example: \"ruleType\": \"O\"";
+
+    private const string EntriesGuidance =
+        "Produce descriptive text as a JSON `entries` array. " +
+        "Plain paragraphs are strings. Named subsections use: " +
+        "{\"type\":\"entries\",\"name\":\"Section Name\",\"entries\":[\"...\"]}. " +
+        "Lists use: {\"type\":\"list\",\"items\":[\"item1\",\"item2\"]}. " +
+        "Use inline tags where appropriate: {@damage 2d8} for damage rolls, " +
+        "{@dc 15} for DCs, {@condition prone} for conditions, " +
+        "{@item Javelin|PHB} for item references.";
+
     public string BuildSystemPrompt(string sourceBook, string edition, EntityType type)
     {
         var sb = new StringBuilder();
@@ -15,21 +41,70 @@ public sealed class ExtractionPromptBuilder
         sb.AppendLine($"Call the tool `{ToolName(type)}` with a JSON object that conforms exactly to its input_schema.");
         sb.AppendLine("Do not include any prose. The tool's input is the only output we read.");
         sb.AppendLine("If the source text is incomplete or ambiguous, leave optional fields null/absent rather than guessing.");
-        sb.AppendLine("The source text may contain OCR artifacts (e.g. 'gons' → 'gods', 'lhe' → 'the', 'encaunters' → 'encounters'). Use surrounding context to infer the correct meaning.");
+        sb.AppendLine("The source text may contain OCR artifacts (e.g. 'gons' → 'gods', 'lhe' → 'the'). Use surrounding context to infer the correct meaning.");
         sb.AppendLine("Cross-entity references must use existing slug-style IDs of form `<book-slug>.<type-slug>.<entity-slug>`.");
         sb.AppendLine();
         sb.AppendLine("Do not extract chapter titles, section headings, or table headers as entities. Only extract named, discrete game elements.");
         sb.AppendLine();
+        sb.AppendLine(EntriesGuidance);
+        sb.AppendLine();
         sb.AppendLine("Type routing guidance:");
-        sb.AppendLine("- Use `Lore` for named worldbuilding concepts, cosmology descriptions, pantheon overviews, religious philosophies, and cultural/setting flavour that is not a discrete game entity.");
+        sb.AppendLine("- Use `Lore` for named worldbuilding concepts, cosmology, pantheon overviews, philosophies, and cultural flavour that is not a discrete game entity.");
         sb.AppendLine("- Use `Rule` for mechanical procedures, encounter tables, adventure design guidelines, random tables, and DMing system explanations.");
         sb.AppendLine("- Use `God` only when the entity is a named deity with known alignment and at least one domain.");
         sb.AppendLine("- Use `Plane` only when the entity is a named plane of existence with a defined category (Inner, Outer, Transitive, Material, etc.).");
         sb.AppendLine("- Use `Monster` only when the entity has a stat block with a challenge rating.");
-        if (type == EntityType.MagicItem)
-            sb.AppendLine("If the source text describes multiple tiers or variants of the same item (e.g. +1/+2/+3), extract them as a single entity with a `variants` array rather than separate entities.");
-        if (type == EntityType.Trap)
-            sb.AppendLine("If the source text describes a group of trap variants (e.g. Simple Pit / Spiked Pit / Locking Pit), extract them as a single entity with a `variants` array. Each variant gets its own name, detectDc, disarmDc, difficulty, and description.");
+        sb.AppendLine();
+
+        switch (type)
+        {
+            case EntityType.Spell:
+                sb.AppendLine(SchoolCodes);
+                sb.AppendLine("Casting time example: \"time\": [{\"number\": 1, \"unit\": \"action\"}]");
+                sb.AppendLine("Range example: \"range\": {\"type\": \"point\", \"distance\": {\"type\": \"feet\", \"amount\": 150}}");
+                sb.AppendLine("Duration example: \"duration\": [{\"type\": \"instant\"}] or [{\"type\": \"timed\", \"duration\": {\"type\": \"minute\", \"amount\": 1}, \"concentration\": true}]");
+                sb.AppendLine("Components: v/s are booleans; m is the material text string, e.g. \"m\": \"a tiny ball of bat guano and sulfur\"");
+                break;
+
+            case EntityType.Monster:
+                sb.AppendLine(SizeCodes);
+                sb.AppendLine(AlignmentCodes);
+                sb.AppendLine("Type example: \"type\": {\"type\": \"humanoid\", \"tags\": [\"bullywug\"]}");
+                sb.AppendLine("AC example: \"ac\": [15] or \"ac\": [{\"ac\": 17, \"from\": [\"natural armor\"]}]");
+                sb.AppendLine("HP example: \"hp\": {\"average\": 11, \"formula\": \"2d8+2\"}");
+                sb.AppendLine("Ability scores are flat fields: \"str\": 12, \"dex\": 14, \"con\": 10, \"int\": 8, \"wis\": 10, \"cha\": 8");
+                sb.AppendLine("Skills example: \"skill\": {\"perception\": \"+5\", \"stealth\": \"+3\"}");
+                sb.AppendLine("CR example: \"cr\": \"1/4\"");
+                sb.AppendLine("Traits/actions use entries: \"trait\": [{\"name\": \"Amphibious\", \"entries\": [\"Can breathe air and water.\"]}]");
+                break;
+
+            case EntityType.Race:
+            case EntityType.Subrace:
+                sb.AppendLine(SizeCodes);
+                sb.AppendLine("Speed example: \"speed\": {\"walk\": 30, \"fly\": 30}");
+                sb.AppendLine("Ability bonuses example: \"ability\": [{\"str\": 2, \"dex\": 1}]");
+                sb.AppendLine("Language proficiencies example: \"languageProficiencies\": [{\"common\": true, \"anyStandard\": 1}]");
+                break;
+
+            case EntityType.God:
+                sb.AppendLine(AlignmentCodes);
+                sb.AppendLine("Example: \"alignment\": [\"L\", \"G\"] for Lawful Good");
+                break;
+
+            case EntityType.Rule:
+                sb.AppendLine(RuleTypeCodes);
+                break;
+
+            case EntityType.MagicItem:
+                sb.AppendLine("If the source text describes multiple tiers of the same item (e.g. +1/+2/+3), extract them as a single entity with a `variants` array.");
+                break;
+
+            case EntityType.Trap:
+                sb.AppendLine("If the source text describes a group of trap variants (e.g. Simple Pit / Spiked Pit), extract them as a single entity with a `variants` array.");
+                sb.AppendLine("trapHazType codes: MECH=Mechanical, MAG=Magical, SMPL=Simple, CMPX=Complex");
+                break;
+        }
+
         return sb.ToString();
     }
 
