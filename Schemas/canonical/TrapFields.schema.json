@@ -1,73 +1,30 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "TrapFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "difficulty": {
-      "type": "string"
-    },
-    "detectDc": {
-      "type": [
-        "integer",
-        "null"
-      ],
-      "format": "int32"
-    },
-    "disarmDc": {
-      "type": [
-        "integer",
-        "null"
-      ],
-      "format": "int32"
-    },
-    "description": {
-      "type": "string"
-    },
-    "variants": {
-      "type": [
-        "array",
-        "null"
-      ],
+    "trapHazType": { "type": ["null", "string"] },
+    "rating": {
+      "type": ["array", "null"],
       "items": {
-        "$ref": "#/definitions/TrapVariant"
-      }
-    }
-  },
-  "definitions": {
-    "TrapVariant": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "difficulty": {
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "detectDc": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "int32"
-        },
-        "disarmDc": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "int32"
-        },
-        "description": {
-          "type": [
-            "null",
-            "string"
-          ]
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "tier": { "type": "integer", "format": "int32" },
+          "threat": { "type": "string" }
         }
+      }
+    },
+    "detectDc": { "type": ["integer", "null"], "format": "int32" },
+    "disarmDc": { "type": ["integer", "null"], "format": "int32" },
+    "entries": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "variants": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "additionalProperties": true
       }
     }
   }

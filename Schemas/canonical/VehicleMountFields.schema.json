@@ -1,28 +1,21 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "VehicleMountFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "kind": {
-      "type": "string"
-    },
-    "speed": {
-      "type": [
-        "integer",
-        "null"
-      ],
-      "format": "int32"
-    },
-    "capacityLb": {
-      "type": [
-        "integer",
-        "null"
-      ],
-      "format": "int32"
-    },
-    "description": {
-      "type": "string"
-    }
+    "vehicleType": { "type": ["null", "string"] },
+    "speed": { "type": ["object", "null"], "additionalProperties": true },
+    "capacity": { "type": ["null", "string"] },
+    "entries": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "str": { "type": ["integer", "null"], "format": "int32" },
+    "dex": { "type": ["integer", "null"], "format": "int32" },
+    "con": { "type": ["integer", "null"], "format": "int32" },
+    "int": { "type": ["integer", "null"], "format": "int32" },
+    "wis": { "type": ["integer", "null"], "format": "int32" },
+    "cha": { "type": ["integer", "null"], "format": "int32" },
+    "hp": { "type": ["object", "null"], "additionalProperties": true },
+    "ac": { "type": ["array", "null"], "items": { "type": ["integer", "object"] } }
   }
 }

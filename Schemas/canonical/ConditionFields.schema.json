@@ -1,11 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "ConditionFields",
   "type": "object",
   "additionalProperties": false,
+  "required": ["entries"],
   "properties": {
-    "description": {
-      "type": "string"
-    }
+    "entries": { "type": "array", "items": { "type": ["string", "object"] } },
+    "conditionInflict": { "type": ["array", "null"], "items": { "type": "string" } }
   }
 }

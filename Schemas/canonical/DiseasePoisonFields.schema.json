@@ -1,17 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "$comment": "// SCHEMA-OVERRIDE: hand-authored 5etools-aligned schema; do not regenerate from C# class",
   "title": "DiseasePoisonFields",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "kind": {
-      "type": "string"
-    },
-    "saveDc": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    }
+    "poisonTypes": { "type": ["array", "null"], "items": { "type": "string" } },
+    "entries": { "type": ["array", "null"], "items": { "type": ["string", "object"] } }
   }
 }
