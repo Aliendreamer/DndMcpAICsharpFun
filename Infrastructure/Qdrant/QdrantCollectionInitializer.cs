@@ -44,16 +44,15 @@ public sealed partial class QdrantCollectionInitializer(
     private async Task EnsureCollectionAsync(string name, CancellationToken ct)
     {
         if (await client.CollectionExistsAsync(name, ct))
-        {
             LogCollectionExists(logger, name);
-            return;
+        else
+        {
+            await client.CreateCollectionAsync(
+                name,
+                new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine },
+                cancellationToken: ct);
+            LogCollectionCreated(logger, name, _options.VectorSize);
         }
-
-        await client.CreateCollectionAsync(
-            name,
-            new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine },
-            cancellationToken: ct);
-        LogCollectionCreated(logger, name, _options.VectorSize);
 
         if (string.Equals(name, _options.EntitiesCollectionName, StringComparison.Ordinal))
             await CreateEntityPayloadIndexesAsync(name, ct);
