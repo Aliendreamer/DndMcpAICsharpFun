@@ -21,9 +21,8 @@ public static class EntityRetrievalEndpoints
     private static async Task<IResult> SearchPublic(
         string? q, string? type, string? sourceBook, string? edition, string? bookType,
         string? settingTag, string? keyword, double? crNumeric_lte, double? crNumeric_gte,
-        int? spellLevel, string? damageType, int topK,
-        bool? srd, bool? srd52, bool? basicRules2024,
-        IEntityRetrievalService svc, CancellationToken ct)
+        int? spellLevel, string? damageType, bool? srd, bool? srd52, bool? basicRules2024,
+        IEntityRetrievalService svc, CancellationToken ct, int topK = 10)
     {
         if (string.IsNullOrWhiteSpace(q)) return Results.BadRequest("Query parameter 'q' is required.");
         var results = await svc.SearchAsync(BuildQuery(q, type, sourceBook, edition, bookType, settingTag, keyword, crNumeric_lte, crNumeric_gte, spellLevel, damageType, topK, srd, srd52, basicRules2024), ct);
@@ -33,9 +32,8 @@ public static class EntityRetrievalEndpoints
     private static async Task<IResult> SearchDiagnostic(
         string? q, string? type, string? sourceBook, string? edition, string? bookType,
         string? settingTag, string? keyword, double? crNumeric_lte, double? crNumeric_gte,
-        int? spellLevel, string? damageType, int topK,
-        bool? srd, bool? srd52, bool? basicRules2024,
-        IEntityRetrievalService svc, CancellationToken ct)
+        int? spellLevel, string? damageType, bool? srd, bool? srd52, bool? basicRules2024,
+        IEntityRetrievalService svc, CancellationToken ct, int topK = 10)
     {
         if (string.IsNullOrWhiteSpace(q)) return Results.BadRequest("Query parameter 'q' is required.");
         var results = await svc.SearchDiagnosticAsync(BuildQuery(q, type, sourceBook, edition, bookType, settingTag, keyword, crNumeric_lte, crNumeric_gte, spellLevel, damageType, topK, srd, srd52, basicRules2024), ct);

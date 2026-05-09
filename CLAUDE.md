@@ -56,13 +56,16 @@ New endpoints:
 - `GET /admin/retrieval/entities/search` — admin-side entity search with extra fields.
 
 **Adding a new book (Plan 2 onward):**
-1. `POST /admin/books/register` — upload PDF.
-2. `POST /admin/books/{id}/ingest-blocks` — populate `dnd_blocks`.
-3. `POST /admin/books/{id}/extract-entities` — produce canonical JSON.
-4. Review the canonical JSON diff in a PR; hand-correct any LLM mistakes.
-5. `POST /admin/canonical/validate` — pre-merge sanity check.
-6. Merge.
-7. `POST /admin/books/{id}/ingest-entities` — populate `dnd_entities`.
+1. Check `GET /admin/5etools/sources` — if the book appears in the list, note its source key (e.g. `MPMM`).
+2. `POST /admin/books/register` — upload PDF. If the book is in 5etools, pass `fivetoolsSourceKey=<KEY>` (e.g. `fivetoolsSourceKey=MPMM`). If not, omit it — the system generates its own IDs from `displayName`. The response always includes `suggestedSources` with fuzzy-matched candidates if you're unsure of the key.
+3. `POST /admin/books/{id}/ingest-blocks` — populate `dnd_blocks`.
+4. `POST /admin/books/{id}/extract-entities` — produce canonical JSON.
+5. Review the canonical JSON diff in a PR; hand-correct any LLM mistakes.
+6. `POST /admin/canonical/validate` — pre-merge sanity check.
+7. Merge.
+8. `POST /admin/books/{id}/ingest-entities` — populate `dnd_entities`.
+
+**5etools source key rule:** Always supply `fivetoolsSourceKey` for any official WotC book. This aligns entity IDs with the 5etools slug (e.g. `mpmm.monster.yuan-ti-anathema`), derives the correct edition from the registry's `publishedYear`, and ensures `POST /admin/5etools/import` can later supplement the same entities with 5etools-sourced data (traitTags → keywords, SRD flags, etc.). For homebrew or third-party books not covered by 5etools, omit the key — the system creates opaque IDs from the display name and that's fine.
 
 ## Observability
 

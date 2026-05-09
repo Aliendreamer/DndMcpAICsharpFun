@@ -31,7 +31,20 @@ public sealed class CanonicalJsonLoader
                 throw new CanonicalJsonSchemaException($"duplicate id '{e.Id}' in {path}");
         }
 
-        return file;
+        var promoted = file.Entities.Select(PromoteKeywords).ToList();
+        return file with { Entities = promoted };
+    }
+
+    private static EntityEnvelope PromoteKeywords(EntityEnvelope entity)
+    {
+        if (entity.Keywords.Count > 0) return entity;
+        if (entity.Fields.ValueKind != JsonValueKind.Object) return entity;
+        if (!entity.Fields.TryGetProperty("keywords", out var kws) || kws.ValueKind != JsonValueKind.Array) return entity;
+        var keywords = kws.EnumerateArray()
+            .Where(e => e.ValueKind == JsonValueKind.String)
+            .Select(e => e.GetString()!)
+            .ToList();
+        return keywords.Count > 0 ? entity with { Keywords = keywords } : entity;
     }
 
     public TFields DeserialiseFields<TFields>(EntityEnvelope envelope)

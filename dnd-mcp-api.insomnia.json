@@ -1,14 +1,16 @@
 {
   "_type": "export",
   "__export_format": 4,
-  "__export_date": "2026-05-07",
+  "__export_date": "2026-05-09",
   "__export_source": "dnd-mcp-api",
   "resources": [
     {
       "_id": "wrk_dnd_mcp",
       "_type": "workspace",
+      "parentId": null,
       "name": "DnD MCP API",
-      "description": "D&D MCP AI C# API — import into Yaak via File > Import"
+      "description": "D&D MCP AI C# API — import into Yaak via File > Import",
+      "scope": "collection"
     },
     {
       "_id": "env_base",
@@ -52,7 +54,6 @@
       "parentId": "wrk_dnd_mcp",
       "name": "Observability"
     },
-
     {
       "_id": "req_health_liveness",
       "_type": "request",
@@ -61,7 +62,11 @@
       "method": "GET",
       "url": "{{ _.baseUrl }}/health",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_health_readiness",
@@ -71,7 +76,11 @@
       "method": "GET",
       "url": "{{ _.baseUrl }}/ready",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_health_ready_alias",
@@ -81,9 +90,12 @@
       "method": "GET",
       "url": "{{ _.baseUrl }}/health/ready",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
-
     {
       "_id": "req_books_register",
       "_type": "request",
@@ -92,18 +104,44 @@
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/books/register",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
       "body": {
         "mimeType": "multipart/form-data",
         "params": [
-          { "name": "file", "value": "", "fileName": "PlayerHandbook2014.pdf", "type": "file" },
-          { "name": "version", "value": "Edition2014" },
-          { "name": "displayName", "value": "PlayerHandbook 2014" },
-          { "name": "bookType", "value": "Core" },
-          { "name": "fivetoolsSourceKey", "value": "PHB", "description": "Optional — links this book to a 5etools source for SRD/group metadata" }
+          {
+            "name": "file",
+            "value": "",
+            "fileName": "PlayerHandbook2014.pdf",
+            "type": "file"
+          },
+          {
+            "name": "version",
+            "value": "Edition2014",
+            "type": "text"
+          },
+          {
+            "name": "displayName",
+            "value": "Player Handbook 2014",
+            "type": "text"
+          },
+          {
+            "name": "bookType",
+            "value": "Core",
+            "type": "text"
+          },
+          {
+            "name": "fivetoolsSourceKey",
+            "value": "PHB",
+            "type": "text"
+          }
         ]
-      }
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_books_list",
@@ -113,9 +151,16 @@
       "method": "GET",
       "url": "{{ _.baseUrl }}/admin/books",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_books_ingest_blocks",
@@ -125,9 +170,16 @@
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/books/1/ingest-blocks",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_books_ingest_entities",
@@ -137,9 +189,16 @@
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/books/1/ingest-entities",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_books_extract_entities",
@@ -149,9 +208,16 @@
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/books/1/extract-entities",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_books_extract_entities_force",
@@ -159,11 +225,23 @@
       "parentId": "fld_admin_books",
       "name": "Re-extract entities (force overwrite)",
       "method": "POST",
-      "url": "{{ _.baseUrl }}/admin/books/1/extract-entities?force=true",
+      "url": "{{ _.baseUrl }}/admin/books/1/extract-entities",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "force",
+          "value": "true"
+        }
+      ],
+      "authentication": {}
     },
     {
       "_id": "req_books_extract_entities_errors_only",
@@ -171,11 +249,23 @@
       "parentId": "fld_admin_books",
       "name": "Re-extract failed entities only (errorsOnly)",
       "method": "POST",
-      "url": "{{ _.baseUrl }}/admin/books/1/extract-entities?errorsOnly=true",
+      "url": "{{ _.baseUrl }}/admin/books/1/extract-entities",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "errorsOnly",
+          "value": "true"
+        }
+      ],
+      "authentication": {}
     },
     {
       "_id": "req_canonical_validate",
@@ -185,9 +275,16 @@
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/canonical/validate",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_5etools_import",
@@ -197,9 +294,16 @@
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/5etools/import",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_5etools_sources_all",
@@ -209,10 +313,20 @@
       "method": "GET",
       "url": "{{ _.baseUrl }}/admin/5etools/sources",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" },
-        { "name": "Accept", "value": "application/json" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        },
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_5etools_sources_core",
@@ -220,12 +334,27 @@
       "parentId": "fld_admin_books",
       "name": "List 5etools sources — filtered by group=core",
       "method": "GET",
-      "url": "{{ _.baseUrl }}/admin/5etools/sources?group=core",
+      "url": "{{ _.baseUrl }}/admin/5etools/sources",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" },
-        { "name": "Accept", "value": "application/json" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        },
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "group",
+          "value": "core"
+        }
+      ],
+      "authentication": {}
     },
     {
       "_id": "req_books_delete",
@@ -235,11 +364,17 @@
       "method": "DELETE",
       "url": "{{ _.baseUrl }}/admin/books/1",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
-
     {
       "_id": "req_qdrant_delete_collection",
       "_type": "request",
@@ -248,7 +383,11 @@
       "method": "DELETE",
       "url": "{{ _.qdrantUrl }}/collections/{{ _.collectionName }}",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_qdrant_collection_info",
@@ -258,18 +397,42 @@
       "method": "GET",
       "url": "{{ _.qdrantUrl }}/collections/{{ _.collectionName }}",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
-
     {
       "_id": "req_retrieval_search",
       "_type": "request",
       "parentId": "fld_retrieval",
       "name": "Public semantic search",
       "method": "GET",
-      "url": "{{ _.baseUrl }}/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5",
+      "url": "{{ _.baseUrl }}/retrieval/search",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "q",
+          "value": "fireball"
+        },
+        {
+          "name": "version",
+          "value": "Edition2024"
+        },
+        {
+          "name": "category",
+          "value": "Spell"
+        },
+        {
+          "name": "topK",
+          "value": "5"
+        }
+      ],
+      "authentication": {}
     },
     {
       "_id": "req_retrieval_search_booktype",
@@ -277,9 +440,26 @@
       "parentId": "fld_retrieval",
       "name": "Filter by bookType",
       "method": "GET",
-      "url": "{{ _.baseUrl }}/retrieval/search?q=fireball&bookType=Core&topK=5",
+      "url": "{{ _.baseUrl }}/retrieval/search",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "q",
+          "value": "fireball"
+        },
+        {
+          "name": "bookType",
+          "value": "Core"
+        },
+        {
+          "name": "topK",
+          "value": "5"
+        }
+      ],
+      "authentication": {}
     },
     {
       "_id": "req_retrieval_search_admin",
@@ -287,11 +467,35 @@
       "parentId": "fld_retrieval",
       "name": "Diagnostic search (admin, includes scores + pointIds)",
       "method": "GET",
-      "url": "{{ _.baseUrl }}/admin/retrieval/search?q=fireball&version=Edition2024&category=Spell&topK=5",
+      "url": "{{ _.baseUrl }}/admin/retrieval/search",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "q",
+          "value": "fireball"
+        },
+        {
+          "name": "version",
+          "value": "Edition2024"
+        },
+        {
+          "name": "category",
+          "value": "Spell"
+        },
+        {
+          "name": "topK",
+          "value": "5"
+        }
+      ],
+      "authentication": {}
     },
     {
       "_id": "req_retrieval_entity_by_id",
@@ -301,7 +505,11 @@
       "method": "GET",
       "url": "{{ _.baseUrl }}/retrieval/entities/test-book.class.fighter",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "req_retrieval_entities_search",
@@ -309,9 +517,22 @@
       "parentId": "fld_retrieval",
       "name": "Vector search over entities",
       "method": "GET",
-      "url": "{{ _.baseUrl }}/retrieval/entities/search?q=swashbuckler&type=Subclass",
+      "url": "{{ _.baseUrl }}/retrieval/entities/search",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "q",
+          "value": "swashbuckler"
+        },
+        {
+          "name": "type",
+          "value": "Subclass"
+        }
+      ],
+      "authentication": {}
     },
     {
       "_id": "req_retrieval_entities_monster",
@@ -319,9 +540,34 @@
       "parentId": "fld_retrieval",
       "name": "Search monsters by CR range + keyword",
       "method": "GET",
-      "url": "{{ _.baseUrl }}/retrieval/entities/search?q=swamp&type=Monster&crNumeric_lte=2&keyword=amphibian",
+      "url": "{{ _.baseUrl }}/retrieval/entities/search",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "q",
+          "value": "swamp"
+        },
+        {
+          "name": "type",
+          "value": "Monster"
+        },
+        {
+          "name": "crNumeric_lte",
+          "value": "2"
+        },
+        {
+          "name": "keyword",
+          "value": "Amphibious"
+        },
+        {
+          "name": "topK",
+          "value": "5"
+        }
+      ],
+      "authentication": {}
     },
     {
       "_id": "req_retrieval_entities_admin",
@@ -329,11 +575,31 @@
       "parentId": "fld_retrieval",
       "name": "Admin entity search (full fields + pointId)",
       "method": "GET",
-      "url": "{{ _.baseUrl }}/admin/retrieval/entities/search?q=fireball&type=Spell&spellLevel=3",
+      "url": "{{ _.baseUrl }}/admin/retrieval/entities/search",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "q",
+          "value": "fireball"
+        },
+        {
+          "name": "type",
+          "value": "Spell"
+        },
+        {
+          "name": "spellLevel",
+          "value": "3"
+        }
+      ],
+      "authentication": {}
     },
     {
       "_id": "req_retrieval_entities_srd52",
@@ -341,11 +607,31 @@
       "parentId": "fld_retrieval",
       "name": "Entity search — SRD 5.2.1 filter",
       "method": "GET",
-      "url": "{{ _.baseUrl }}/retrieval/entities/search?q=fireball&srd52=true&topK=5",
+      "url": "{{ _.baseUrl }}/retrieval/entities/search",
       "headers": [
-        { "name": "Accept", "value": "application/json" }
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "q",
+          "value": "fireball"
+        },
+        {
+          "name": "srd52",
+          "value": "true"
+        },
+        {
+          "name": "topK",
+          "value": "5"
+        }
+      ],
+      "authentication": {}
     },
     {
       "_id": "req_retrieval_entities_admin_srd52",
@@ -353,14 +639,36 @@
       "parentId": "fld_retrieval",
       "name": "Admin entity search — SRD 5.2.1 filter (diagnostic)",
       "method": "GET",
-      "url": "{{ _.baseUrl }}/admin/retrieval/entities/search?q=fireball&srd52=true&topK=5",
+      "url": "{{ _.baseUrl }}/admin/retrieval/entities/search",
       "headers": [
-        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" },
-        { "name": "Accept", "value": "application/json" }
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        },
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
       ],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "q",
+          "value": "fireball"
+        },
+        {
+          "name": "srd52",
+          "value": "true"
+        },
+        {
+          "name": "topK",
+          "value": "5"
+        }
+      ],
+      "authentication": {}
     },
-
     {
       "_id": "req_metrics",
       "_type": "request",
@@ -369,7 +677,11 @@
       "method": "GET",
       "url": "{{ _.baseUrl }}/metrics",
       "headers": [],
-      "body": {}
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     }
   ]
 }

@@ -17,4 +17,8 @@ public sealed record EntityEnvelope(
     string DataSource = "",
     bool Srd = false,
     bool Srd52 = false,
-    bool BasicRules2024 = false);
+    bool BasicRules2024 = false,
+    IReadOnlyList<string> Keywords = null!)
+{
+    public IReadOnlyList<string> Keywords { get; init; } = Keywords ?? [];
+}

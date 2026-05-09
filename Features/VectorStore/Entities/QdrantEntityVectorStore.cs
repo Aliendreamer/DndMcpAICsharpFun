@@ -98,6 +98,8 @@ public sealed class QdrantEntityVectorStore(
             [EntityPayloadFields.FieldsJson]    = p.Envelope.Fields.GetRawText(),
         };
         if (p.Envelope.Page is { } page) payload[EntityPayloadFields.Page] = page;
+        if (p.Envelope.Keywords.Count > 0)
+            payload[EntityPayloadFields.Keywords] = StringList(p.Envelope.Keywords);
 
         // Surface filterable subset from `fields` for index-friendly access.
         FlattenIndexedFields(p.Envelope, payload);
@@ -168,7 +170,10 @@ public sealed class QdrantEntityVectorStore(
             DataSource: p.TryGetValue(EntityPayloadFields.DataSource, out var ds) ? ds.StringValue : "",
             Srd:            p.TryGetValue(EntityPayloadFields.Srd,            out var srdV)   && srdV.StringValue   == "true",
             Srd52:          p.TryGetValue(EntityPayloadFields.Srd52,          out var srd52V) && srd52V.StringValue  == "true",
-            BasicRules2024: p.TryGetValue(EntityPayloadFields.BasicRules2024, out var brV)    && brV.StringValue     == "true");
+            BasicRules2024: p.TryGetValue(EntityPayloadFields.BasicRules2024, out var brV)    && brV.StringValue     == "true",
+            Keywords: p.TryGetValue(EntityPayloadFields.Keywords, out var kw)
+                ? kw.ListValue.Values.Select(v => v.StringValue).ToList()
+                : Array.Empty<string>());
         return envelope;
     }
 

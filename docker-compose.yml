@@ -6,7 +6,7 @@ services:
     ports:
       - "5101:5101"
     environment:
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
       - Qdrant__Host=qdrant
       - Ollama__BaseUrl=http://ollama:11434
       - Ingestion__BooksPath=/books

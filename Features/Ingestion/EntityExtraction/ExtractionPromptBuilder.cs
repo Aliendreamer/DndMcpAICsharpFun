@@ -76,6 +76,7 @@ public sealed class ExtractionPromptBuilder
                 sb.AppendLine("Skills example: \"skill\": {\"perception\": \"+5\", \"stealth\": \"+3\"}");
                 sb.AppendLine("CR example: \"cr\": \"1/4\"");
                 sb.AppendLine("Traits/actions use entries: \"trait\": [{\"name\": \"Amphibious\", \"entries\": [\"Can breathe air and water.\"]}]");
+                sb.AppendLine("keywords: collect the name of each named trait or special ability visible in the stat block (e.g. [\"Pack Tactics\", \"Keen Senses\"]). Use names exactly as they appear in the text. Omit if none.");
                 break;
 
             case EntityType.Race:

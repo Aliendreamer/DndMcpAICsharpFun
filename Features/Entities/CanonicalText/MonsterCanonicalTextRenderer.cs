@@ -59,7 +59,11 @@ public sealed class MonsterCanonicalTextRenderer : IEntityCanonicalTextRenderer<
         if (f.Speed.HasValue && f.Speed.Value.ValueKind == JsonValueKind.Object)
         {
             var parts = f.Speed.Value.EnumerateObject()
-                .Select(p => $"{p.Name} {p.Value.GetInt32()} ft.");
+                .Select(p => p.Value.ValueKind == JsonValueKind.Number && p.Value.TryGetInt32(out var n)
+                    ? $"{p.Name} {n} ft."
+                    : p.Value.ValueKind == JsonValueKind.String
+                        ? $"{p.Name} {p.Value.GetString()}"
+                        : $"{p.Name} ?");
             sb.AppendLine($"Speed {string.Join(", ", parts)}");
         }
 

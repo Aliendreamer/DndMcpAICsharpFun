@@ -12,7 +12,7 @@ public sealed class SpellCanonicalTextRenderer : IEntityCanonicalTextRenderer<Sp
     public string Render(string name, SpellFields f)
     {
         var sb = new StringBuilder();
-        var schoolDisplay = f.School.ToUpperInvariant() switch
+        var schoolDisplay = (f.School ?? "").ToUpperInvariant() switch
         {
             "A" => "Abjuration", "C" => "Conjuration", "D" => "Divination",
             "E" => "Enchantment", "I" => "Illusion", "N" => "Necromancy",

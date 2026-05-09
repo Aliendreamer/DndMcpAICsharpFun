@@ -137,6 +137,11 @@
     "damageTags": { "type": ["array", "null"], "items": { "type": "string" } },
     "senseTags": { "type": ["array", "null"], "items": { "type": "string" } },
     "languageTags": { "type": ["array", "null"], "items": { "type": "string" } },
-    "actionTags": { "type": ["array", "null"], "items": { "type": "string" } }
+    "actionTags": { "type": ["array", "null"], "items": { "type": "string" } },
+    "keywords": {
+      "description": "Notable trait names from the stat block (e.g. Pack Tactics, Amphibious)",
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    }
   }
 }

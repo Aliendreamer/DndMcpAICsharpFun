@@ -221,7 +221,7 @@ Requires header `X-Admin-Api-Key: <admin key>`.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/admin/books/register` | Upload a PDF and save it as `Pending`. Streams multipart body straight to disk; returns 202. Form fields: `file` (PDF), `version` (`Edition2014` or `Edition2024`), `displayName`, optional `bookType` (`Core` / `Supplement` / `Adventure` / `Setting` / `Unknown`, default `Unknown`). Does **not** start ingestion — call `/ingest-blocks` next. |
+| `POST` | `/admin/books/register` | Upload a PDF and save it as `Pending`. Streams multipart body straight to disk; returns 202. Form fields: `file` (PDF), `version` (`Edition2014` or `Edition2024`), `displayName`, optional `bookType` (`Core` / `Supplement` / `Adventure` / `Setting` / `Unknown`, default `Unknown`), optional `fivetoolsSourceKey` (e.g. `MPMM` — see source key guidance below). Does **not** start ingestion — call `/ingest-blocks` next. Response always includes `suggestedSources` with fuzzy-matched 5etools candidates. |
 | `GET` | `/admin/books` | List all registered books with status, displayName, version, bookType, and chunk count. |
 | `POST` | `/admin/books/{id}/ingest-blocks` | Enqueue Docling layout extraction + embedding + Qdrant upsert. Returns 202; work runs in the background queue. The same call re-runs the pipeline cleanly (deletes prior points by hash). |
 | `DELETE` | `/admin/books/{id}` | Remove the book: deletes Qdrant points by hash, deletes the PDF from disk, deletes the SQLite record. Returns 409 if the book is currently `Processing`. |
@@ -249,21 +249,40 @@ Filters compose. For example, `?q=fireball&category=Spell&bookType=Core&version=
 
 ## How Books Are Tagged
 
-When you register a book, set `bookType` and `version` to make filtering useful later. Suggested mapping:
+### 5etools source key — match first, invent last
 
-| Book | `version` | `bookType` |
-| --- | --- | --- |
-| Player's Handbook 2014 / 2024 | `Edition2014` / `Edition2024` | `Core` |
-| Monster Manual 2014 / 2024 | `Edition2014` / `Edition2024` | `Core` |
-| Dungeon Master's Guide 2014 / 2024 | `Edition2014` / `Edition2024` | `Core` |
-| Volo's Guide to Monsters | `Edition2014` | `Supplement` |
-| Xanathar's Guide to Everything | `Edition2014` | `Supplement` |
-| Tasha's Cauldron of Everything | `Edition2014` | `Supplement` |
-| Mordenkainen Presents: Monsters of the Multiverse | `Edition2014` | `Supplement` |
-| Curse of Strahd, Tomb of Annihilation, etc. | `Edition2014` | `Adventure` |
-| Eberron: Rising from the Last War, Wildemount, SCAG | `Edition2014` | `Setting` |
+Before registering any official WotC book, call `GET /admin/5etools/sources` to look up its 5etools source key. Pass that key as `fivetoolsSourceKey` when registering.
 
-Mental shortcut: `version` describes which rules system the book was published for. `bookType` describes how it relates to the rules — Core = the canonical three, Supplement = adds rules content, Adventure = a story module, Setting = world/lore.
+**Why it matters:**
+- Entity IDs are slugged from the source key, so they match what `POST /admin/5etools/import` produces (e.g. `mpmm.monster.yuan-ti-anathema` instead of a display-name-derived slug).
+- Edition (`Edition2014` / `Edition2024`) is derived from the registry's `publishedYear` rather than what you type in `version`.
+- `traitTags` → `keywords`, SRD flags, and other 5etools metadata flow in automatically on import.
+- Without the key, entities extracted from a PDF and entities ingested from 5etools stay siloed — their IDs won't match.
+
+**If the book is not in 5etools** (homebrew, third-party, unofficial): omit `fivetoolsSourceKey`. The system generates IDs from `displayName` — perfectly fine, just not 5etools-aligned.
+
+**Not sure of the key?** The `POST /admin/books/register` response always includes `suggestedSources` — a ranked list of fuzzy name-matches from `books.json`. Check those before registering again.
+
+### `version` and `bookType`
+
+Set these to make filtering useful. Suggested mapping:
+
+| Book | `fivetoolsSourceKey` | `version` | `bookType` |
+| --- | --- | --- | --- |
+| Player's Handbook 2014 | `PHB` | `Edition2014` | `Core` |
+| Player's Handbook 2024 | `XPHB` | `Edition2024` | `Core` |
+| Monster Manual 2014 | `MM` | `Edition2014` | `Core` |
+| Monster Manual 2025 | `XMM` | `Edition2024` | `Core` |
+| Dungeon Master's Guide 2014 | `DMG` | `Edition2014` | `Core` |
+| Dungeon Master's Guide 2024 | `XDMG` | `Edition2024` | `Core` |
+| Volo's Guide to Monsters | `VGM` | `Edition2014` | `Supplement` |
+| Xanathar's Guide to Everything | `XGE` | `Edition2014` | `Supplement` |
+| Tasha's Cauldron of Everything | `TCE` | `Edition2014` | `Supplement` |
+| Mordenkainen Presents: Monsters of the Multiverse | `MPMM` | `Edition2014` | `Supplement` |
+| Curse of Strahd, Tomb of Annihilation, etc. | *(check sources)* | `Edition2014` | `Adventure` |
+| Eberron: Rising from the Last War, Wildemount, SCAG | *(check sources)* | `Edition2014` | `Setting` |
+
+Mental shortcut: `version` describes the rules edition the book was published for. `bookType` describes its role — Core = the canonical three, Supplement = adds rules content, Adventure = a story module, Setting = world/lore. When a `fivetoolsSourceKey` is supplied, `version`/`edition` is overridden by the registry anyway.
 
 ## Ingestion Notes
 

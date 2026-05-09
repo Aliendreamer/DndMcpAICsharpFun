@@ -130,8 +130,8 @@ GET {{baseUrl}}/retrieval/entities/test-book.class.fighter
 ### Retrieval — Vector search over entities
 GET {{baseUrl}}/retrieval/entities/search?q=swashbuckler&type=Subclass
 
-### Retrieval — Search monsters by CR range and keyword
-GET {{baseUrl}}/retrieval/entities/search?q=swamp&type=Monster&crNumeric_lte=2&keyword=amphibian
+### Retrieval — Search monsters by CR range and keyword (keywords come from 5etools traitTags e.g. Amphibious, Pack Tactics)
+GET {{baseUrl}}/retrieval/entities/search?q=swamp&type=Monster&crNumeric_lte=2&keyword=Amphibious&topK=5
 
 ### Retrieval — Admin diagnostic entity search (full fields + pointId)
 GET {{baseUrl}}/admin/retrieval/entities/search?q=fireball&type=Spell&spellLevel=3

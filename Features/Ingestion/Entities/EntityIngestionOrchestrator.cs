@@ -50,7 +50,16 @@ public sealed class EntityIngestionOrchestrator(
         foreach (var envelope in file.Entities)
         {
             ct.ThrowIfCancellationRequested();
-            var text = textDispatcher.Render(envelope);
+            string text;
+            try
+            {
+                text = textDispatcher.Render(envelope);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Skipping entity {Id} — render failed", envelope.Id);
+                continue;
+            }
             var ds = string.IsNullOrEmpty(envelope.DataSource) ? "llm" : envelope.DataSource;
             var sourceBook = record.FivetoolsSourceKey ?? envelope.SourceBook;
             renderedEnvelopes.Add(envelope with { CanonicalText = text, DataSource = ds, SourceBook = sourceBook });
