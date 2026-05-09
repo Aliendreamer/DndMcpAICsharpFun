@@ -39,6 +39,11 @@ PlayerHandbook 2014
 Content-Disposition: form-data; name="bookType"
 
 Core
+------Boundary
+# fivetoolsSourceKey (optional): e.g. PHB, MM, XGE — links this book to a 5etools source for SRD/group metadata
+Content-Disposition: form-data; name="fivetoolsSourceKey"
+
+PHB
 ------Boundary--
 
 ### Admin Books — List all books
@@ -77,6 +82,18 @@ X-Admin-Api-Key: {{adminKey}}
 ### Admin — Import all 5etools JSON files directly into dnd_entities
 POST {{baseUrl}}/admin/5etools/import
 X-Admin-Api-Key: {{adminKey}}
+
+### Admin — List all 5etools sources (full list)
+GET {{baseUrl}}/admin/5etools/sources
+X-Admin-Api-Key: {{adminKey}}
+Accept: application/json
+
+###
+
+### Admin — List 5etools sources filtered by group (e.g. core, setting, supplement, adventure)
+GET {{baseUrl}}/admin/5etools/sources?group=core
+X-Admin-Api-Key: {{adminKey}}
+Accept: application/json
 
 ###
 
@@ -119,6 +136,17 @@ GET {{baseUrl}}/retrieval/entities/search?q=swamp&type=Monster&crNumeric_lte=2&k
 ### Retrieval — Admin diagnostic entity search (full fields + pointId)
 GET {{baseUrl}}/admin/retrieval/entities/search?q=fireball&type=Spell&spellLevel=3
 X-Admin-Api-Key: {{adminKey}}
+
+### Retrieval — Entity search filtered to SRD 5.2.1 only
+GET {{baseUrl}}/retrieval/entities/search?q=fireball&srd52=true&topK=5
+Accept: application/json
+
+###
+
+### Retrieval — Admin entity search with SRD 5.2.1 filter (diagnostic)
+GET {{baseUrl}}/admin/retrieval/entities/search?q=fireball&srd52=true&topK=5
+X-Admin-Api-Key: {{adminKey}}
+Accept: application/json
 
 ###
 

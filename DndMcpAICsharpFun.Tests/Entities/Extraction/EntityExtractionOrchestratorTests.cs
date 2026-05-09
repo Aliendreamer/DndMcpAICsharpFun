@@ -73,6 +73,8 @@ public class EntityExtractionOrchestratorTests
 
             var orchestrator = new EntityExtractionOrchestrator(
                 tracker: tracker,
+                registry: new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
+                    Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json")),
                 docling: docling,
                 bookmarks: bookmarkReader,
                 llm: llm,
@@ -187,7 +189,8 @@ public class EntityExtractionOrchestratorTests
         DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker tracker,
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IDoclingPdfConverter docling,
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader bookmarkReader,
-        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm)
+        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm,
+        DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry? registry = null)
     {
         var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
         {
@@ -195,9 +198,14 @@ public class EntityExtractionOrchestratorTests
             SchemasDirectory   = schemasDir,
         });
         var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
+        // Use an empty registry (no books.json) when caller does not supply one.
+        var effectiveRegistry = registry
+            ?? new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
+                   Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json"));
 
         return new EntityExtractionOrchestrator(
             tracker:       tracker,
+            registry:      effectiveRegistry,
             docling:       docling,
             bookmarks:     bookmarkReader,
             llm:           llm,
@@ -563,6 +571,127 @@ public class EntityExtractionOrchestratorTests
                   && w.FieldPath      == "fields.someRef"
                   && w.MissingTargetId == "other-book.spell.fireball",
                 "pre-existing warning for a non-retried entity must be preserved");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir,   true); } catch { }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Task 7 — source key + edition propagation
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task FivetoolsSourceKey_propagates_source_and_edition_to_canonical_json()
+    {
+        // Arrange — use the real books.json (PHB: published 2014 → Edition2014).
+        var booksJsonPath = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "../../../../5etools/books.json"));
+
+        var registry = new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(booksJsonPath);
+
+        // Verify pre-condition: PHB is in the registry and was published before 2024.
+        var phbInfo = registry.TryGetBook("PHB");
+        phbInfo.Should().NotBeNull("PHB must be in 5etools/books.json for this test to be meaningful");
+        phbInfo!.PublishedYear.Should().BeLessThan(2024);
+
+        const int bookId = 200;
+        const string displayName = "Player's Handbook";
+
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+
+        // Write a minimal Monster schema so LLM is invoked.
+        File.WriteAllText(
+            Path.Combine(schemasDir, "MonsterFields.schema.json"),
+            "{ \"type\": \"object\" }");
+
+        try
+        {
+            // Record has FivetoolsSourceKey = "PHB".
+            var record = new DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord
+            {
+                Id                 = bookId,
+                FilePath           = "/dev/null",
+                FileName           = "phb.pdf",
+                FileHash           = "phbhash",
+                Version            = "5e",
+                DisplayName        = displayName,
+                FivetoolsSourceKey = "PHB",
+            };
+
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            // One monster candidate so LLM is called once.
+            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IDoclingPdfConverter>();
+            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingDocument(
+                "doc",
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingItem>
+                {
+                    new("heading", "Aboleth", 1, null),
+                    new("text",    "Aboleth — a slimy aberration.", 1, null),
+                });
+            docling.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(doclingDoc);
+
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
+                {
+                    new("Monsters", 1),
+                });
+
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+            using var fields = System.Text.Json.JsonDocument.Parse("{}");
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                   Success: true,
+                   ToolInput: fields.RootElement.Clone(),
+                   StopReason: "tool_use",
+                   InputTokens: 0,
+                   OutputTokens: 0,
+                   ErrorMessage: null,
+                   RawJson: null));
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, docling, bookmarkReader, llm, registry);
+
+            // Act
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Assert: canonical JSON must exist and carry source="PHB", edition="Edition2014".
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(displayName, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+
+            File.Exists(canonicalPath).Should().BeTrue("canonical JSON must be written");
+
+            var json = await File.ReadAllTextAsync(canonicalPath);
+            var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(
+                json,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                });
+
+            canonical.Should().NotBeNull();
+            canonical!.Entities.Should().HaveCount(1, "one monster candidate was successfully extracted");
+
+            var entity = canonical.Entities[0];
+            entity.SourceBook.Should().Be("PHB",
+                "FivetoolsSourceKey should override DisplayName as the source book");
+            entity.Edition.Should().Be("Edition2014",
+                "PHB was published in 2014, so edition must be Edition2014");
+            entity.FirstAppearedIn.Book.Should().Be("PHB");
+            entity.FirstAppearedIn.Edition.Should().Be("Edition2014");
         }
         finally
         {

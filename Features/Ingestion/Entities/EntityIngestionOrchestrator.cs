@@ -52,7 +52,8 @@ public sealed class EntityIngestionOrchestrator(
             ct.ThrowIfCancellationRequested();
             var text = textDispatcher.Render(envelope);
             var ds = string.IsNullOrEmpty(envelope.DataSource) ? "llm" : envelope.DataSource;
-            renderedEnvelopes.Add(envelope with { CanonicalText = text, DataSource = ds });
+            var sourceBook = record.FivetoolsSourceKey ?? envelope.SourceBook;
+            renderedEnvelopes.Add(envelope with { CanonicalText = text, DataSource = ds, SourceBook = sourceBook });
             texts.Add(text);
         }
 

@@ -46,7 +46,8 @@ public sealed class EntityRetrievalService(
             Type: q.Type, SourceBook: q.SourceBook, Edition: q.Edition,
             BookType: q.BookType, SettingTag: q.SettingTag, Keyword: q.Keyword,
             CrNumericLte: q.CrNumericLte, CrNumericGte: q.CrNumericGte,
-            SpellLevel: q.SpellLevel, DamageType: q.DamageType
+            SpellLevel: q.SpellLevel, DamageType: q.DamageType,
+            Srd: q.Srd, Srd52: q.Srd52, BasicRules2024: q.BasicRules2024
         ), topK, ct);
     }
 

@@ -6,6 +6,7 @@ using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using Microsoft.Extensions.Options;
 
@@ -13,6 +14,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
 public sealed class EntityExtractionOrchestrator(
     IIngestionTracker tracker,
+    BookSourceRegistry registry,
     IDoclingPdfConverter docling,
     IPdfBookmarkReader bookmarks,
     IEntityExtractionLlmClient llm,
@@ -138,6 +140,8 @@ public sealed class EntityExtractionOrchestrator(
         var sw      = Stopwatch.StartNew();
         var lastLog = TimeSpan.Zero;
 
+        var (sourceBook, edition) = DeriveSourceAndEdition(record);
+
         for (int i = 0; i < candidates.Count; i++)
         {
             ct.ThrowIfCancellationRequested();
@@ -207,10 +211,10 @@ public sealed class EntityExtractionOrchestrator(
                 Id:              id,
                 Type:            candidate.Type,
                 Name:            candidate.DisplayName,
-                SourceBook:      record.DisplayName,
-                Edition:         record.Version,
+                SourceBook:      sourceBook,
+                Edition:         edition,
                 Page:            candidate.Page,
-                FirstAppearedIn: new FirstAppearance(record.DisplayName, record.Version, candidate.Page),
+                FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
                 RevisedIn:       Array.Empty<Revision>(),
                 SettingTags:     Array.Empty<string>(),
                 CanonicalText:   string.Empty,
@@ -267,8 +271,8 @@ public sealed class EntityExtractionOrchestrator(
         var canonicalFile = new CanonicalJsonFile(
             SchemaVersion: CanonicalJsonSchema.CurrentVersion,
             Book: new CanonicalBookMetadata(
-                SourceBook:  record.DisplayName,
-                Edition:     record.Version,
+                SourceBook:  sourceBook,
+                Edition:     edition,
                 FileHash:    record.FileHash,
                 DisplayName: record.DisplayName),
             Entities: extracted);
@@ -391,14 +395,16 @@ public sealed class EntityExtractionOrchestrator(
                 continue;
             }
 
+            var (sourceBook, edition) = DeriveSourceAndEdition(record);
+
             newlyExtracted.Add(new EntityEnvelope(
                 Id:              id,
                 Type:            candidate.Type,
                 Name:            candidate.DisplayName,
-                SourceBook:      record.DisplayName,
-                Edition:         record.Version,
+                SourceBook:      sourceBook,
+                Edition:         edition,
                 Page:            candidate.Page,
-                FirstAppearedIn: new FirstAppearance(record.DisplayName, record.Version, candidate.Page),
+                FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
                 RevisedIn:       Array.Empty<Revision>(),
                 SettingTags:     Array.Empty<string>(),
                 CanonicalText:   string.Empty,
@@ -461,6 +467,15 @@ public sealed class EntityExtractionOrchestrator(
             bookId, newlyExtracted.Count, newErrors.Count, mergedWarnings.Count);
 
         await tracker.MarkEntitiesExtractedAsync(bookId, mergedEntities.Count, ct);
+    }
+
+    private (string SourceBook, string Edition) DeriveSourceAndEdition(DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord record)
+    {
+        var sourceBook = record.FivetoolsSourceKey ?? record.DisplayName;
+        var edition    = record.FivetoolsSourceKey is { } key && registry.TryGetBook(key) is { } info
+            ? (info.PublishedYear >= 2024 ? "Edition2024" : "Edition2014")
+            : record.Version;
+        return (sourceBook, edition);
     }
 
     private static async Task<(List<EntityEnvelope> Extracted, List<ExtractionErrorEntry> Errors, HashSet<string> DoneIds)>

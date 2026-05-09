@@ -1,6 +1,8 @@
 using System.Net;
+using System.Text.Json;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Ingestion;
+using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 using Microsoft.AspNetCore.Builder;
@@ -29,6 +31,9 @@ public sealed class BooksAdminEndpointsTests
         builder.Services.AddSingleton(deletionService);
         builder.Services.AddSingleton<ILogger<RegisterBookRequest>>(
             NullLogger<RegisterBookRequest>.Instance);
+        builder.Services.AddSingleton(
+            new BookSourceRegistry(
+                Path.Combine(AppContext.BaseDirectory, "../../../../5etools/books.json")));
         builder.Services.Configure<AdminOptions>(o => o.ApiKey = "test-key");
         builder.Services.Configure<IngestionOptions>(o => o.BooksPath = Path.GetTempPath());
 
@@ -257,5 +262,68 @@ public sealed class BooksAdminEndpointsTests
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         queue.Received(1).TryEnqueue(Arg.Is<IngestionWorkItem>(w =>
             w.Type == IngestionWorkType.IngestBlocks && w.BookId == 1));
+    }
+
+    // POST /admin/books/register — fivetoolsSourceKey tests
+
+    [Fact]
+    public async Task RegisterBook_WithValidSourceKey_StoresKey()
+    {
+        var (client, tracker, _, _) = await BuildClientAsync();
+        tracker.CreateAsync(Arg.Any<IngestionRecord>(), Arg.Any<CancellationToken>())
+            .Returns(MakeRecord());
+
+        using var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
+        content.Add(new StringContent("Edition2014"), "version");
+        content.Add(new StringContent("Player's Handbook"), "displayName");
+        content.Add(new StringContent("PHB"), "fivetoolsSourceKey");
+
+        var response = await client.PostAsync("/admin/books/register", content);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        await tracker.Received(1).CreateAsync(
+            Arg.Is<IngestionRecord>(r => r.FivetoolsSourceKey == "PHB"),
+            Arg.Any<CancellationToken>());
+        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
+            File.Delete(f);
+    }
+
+    [Fact]
+    public async Task RegisterBook_WithUnknownSourceKey_Returns422()
+    {
+        var (client, _, _, _) = await BuildClientAsync();
+
+        using var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
+        content.Add(new StringContent("Edition2014"), "version");
+        content.Add(new StringContent("Player's Handbook"), "displayName");
+        content.Add(new StringContent("NOTABOOK"), "fivetoolsSourceKey");
+
+        var response = await client.PostAsync("/admin/books/register", content);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RegisterBook_NoSourceKey_ResponseIncludesSuggestedSources()
+    {
+        var (client, tracker, _, _) = await BuildClientAsync();
+        tracker.CreateAsync(Arg.Any<IngestionRecord>(), Arg.Any<CancellationToken>())
+            .Returns(MakeRecord());
+
+        using var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent([0x25, 0x50, 0x44, 0x46]), "file", "test.pdf");
+        content.Add(new StringContent("Edition2014"), "version");
+        content.Add(new StringContent("Player's Handbook"), "displayName");
+        // No fivetoolsSourceKey
+
+        var response = await client.PostAsync("/admin/books/register", content);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("suggestedSources", body, StringComparison.OrdinalIgnoreCase);
+        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
+            File.Delete(f);
     }
 }

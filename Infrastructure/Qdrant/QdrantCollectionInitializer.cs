@@ -104,6 +104,9 @@ public sealed partial class QdrantCollectionInitializer(
             EntityPayloadFields.FirstBook,
             EntityPayloadFields.FirstEdition,
             EntityPayloadFields.FileHash,
+            EntityPayloadFields.Srd,            // new
+            EntityPayloadFields.Srd52,          // new
+            EntityPayloadFields.BasicRules2024, // new
         ];
         foreach (var field in keywordFields)
             await client.CreatePayloadIndexAsync(collection, field, PayloadSchemaType.Keyword, cancellationToken: ct);

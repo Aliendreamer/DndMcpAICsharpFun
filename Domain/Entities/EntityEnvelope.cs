@@ -14,4 +14,7 @@ public sealed record EntityEnvelope(
     IReadOnlyList<string> SettingTags,
     string CanonicalText,
     JsonElement Fields,
-    string DataSource = "");
+    string DataSource = "",
+    bool Srd = false,
+    bool Srd52 = false,
+    bool BasicRules2024 = false);

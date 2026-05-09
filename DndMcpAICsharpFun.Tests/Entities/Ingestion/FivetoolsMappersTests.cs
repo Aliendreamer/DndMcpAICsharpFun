@@ -216,4 +216,27 @@ public class FivetoolsMappersTests
         envelope!.Type.Should().Be(EntityType.VehicleMount);
         envelope.DataSource.Should().Be("5etools");
     }
+
+    [Fact]
+    public void MapSpell_WithSrd52Flag_SetsSrd52True()
+    {
+        var mapper = new FivetoolsSpellMapper();
+        var json = """{"name":"Fireball","source":"XPHB","page":274,"srd52":true}""";
+        var element = JsonDocument.Parse(json).RootElement;
+        var envelope = mapper.Map(element);
+        envelope.Should().NotBeNull();
+        envelope!.Srd52.Should().BeTrue();
+        envelope.Srd.Should().BeFalse();
+    }
+
+    [Fact]
+    public void MapMonster_WithSrdFlag_SetsSrdTrue()
+    {
+        var mapper = new FivetoolsMonsterMapper();
+        var json = """{"name":"Aboleth","source":"MM","page":13,"srd":true,"cr":"10"}""";
+        var element = JsonDocument.Parse(json).RootElement;
+        var envelope = mapper.Map(element);
+        envelope!.Srd.Should().BeTrue();
+        envelope.Srd52.Should().BeFalse();
+    }
 }

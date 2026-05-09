@@ -4,6 +4,7 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
@@ -15,6 +16,10 @@ namespace DndMcpAICsharpFun.Features.Admin;
 
 public static partial class BooksAdminEndpoints
 {
+    private sealed record RegisterBookResponse(
+        IngestionRecord Record,
+        IReadOnlyList<string> SuggestedSources);
+
     public static RouteGroupBuilder MapBooksAdmin(this RouteGroupBuilder group)
     {
         group.MapPost("/books/register", RegisterBook).DisableAntiforgery();
@@ -111,6 +116,7 @@ public static partial class BooksAdminEndpoints
     private static async Task<IResult> RegisterBook(
         HttpContext httpContext,
         IIngestionTracker tracker,
+        BookSourceRegistry registry,
         IOptions<IngestionOptions> ingestionOptions,
         ILogger<RegisterBookRequest> logger,
         CancellationToken ct)
@@ -130,6 +136,7 @@ public static partial class BooksAdminEndpoints
 
         string? version = null, displayName = null, originalFileName = null, filePath = null;
         string? bookTypeRaw = null;
+        string? fivetoolsSourceKey = null;
 
         var reader = new MultipartReader(boundary, httpContext.Request.Body);
         var section = await reader.ReadNextSectionAsync(ct);
@@ -163,6 +170,7 @@ public static partial class BooksAdminEndpoints
                         case "version": version = value; break;
                         case "displayName": displayName = value; break;
                         case "bookType": bookTypeRaw = value; break;
+                        case "fivetoolsSourceKey": fivetoolsSourceKey = value; break;
                     }
                 }
 
@@ -182,6 +190,10 @@ public static partial class BooksAdminEndpoints
                 ? parsedType
                 : BookType.Unknown;
 
+            if (fivetoolsSourceKey is not null && registry.TryGetBook(fivetoolsSourceKey) is null)
+                return Results.UnprocessableEntity(
+                    $"Unknown fivetoolsSourceKey '{fivetoolsSourceKey}'. Call GET /admin/5etools/sources for valid values.");
+
             var record = new IngestionRecord
             {
                 FilePath = filePath,
@@ -191,12 +203,16 @@ public static partial class BooksAdminEndpoints
                 DisplayName = displayName,
                 Status = IngestionStatus.Pending,
                 BookType = bookType,
+                FivetoolsSourceKey = fivetoolsSourceKey,
             };
 
             var created = await tracker.CreateAsync(record, ct);
             LogBookRegistered(logger, created.DisplayName, created.Id, originalFileName);
             filePath = null;
-            return Results.Accepted($"/admin/books/{created.Id}", created);
+            var suggestions = fivetoolsSourceKey is null
+                ? registry.SuggestByName(displayName ?? "")
+                : (IReadOnlyList<string>)Array.Empty<string>();
+            return Results.Accepted($"/admin/books/{created.Id}", new RegisterBookResponse(created, suggestions));
         }
         finally
         {

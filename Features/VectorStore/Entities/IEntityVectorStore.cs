@@ -12,7 +12,10 @@ public sealed record EntityFilters(
     double? CrNumericLte = null,
     double? CrNumericGte = null,
     int? SpellLevel = null,
-    string? DamageType = null);
+    string? DamageType = null,
+    bool? Srd = null,
+    bool? Srd52 = null,
+    bool? BasicRules2024 = null);
 
 public interface IEntityVectorStore
 {

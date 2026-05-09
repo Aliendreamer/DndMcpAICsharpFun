@@ -38,7 +38,10 @@ public abstract class FivetoolsMapperBase : IFivetoolsEntityMapper
             SettingTags: Array.Empty<string>(),
             CanonicalText: "",
             Fields: BuildFields(entry),
-            DataSource: "5etools");
+            DataSource: "5etools",
+            Srd:            entry.TryGetProperty("srd",            out var srd)    && srd.ValueKind    == JsonValueKind.True,
+            Srd52:          entry.TryGetProperty("srd52",          out var srd52)  && srd52.ValueKind  == JsonValueKind.True,
+            BasicRules2024: entry.TryGetProperty("basicRules2024", out var br2024) && br2024.ValueKind == JsonValueKind.True);
     }
 
     protected virtual JsonElement BuildFields(JsonElement entry) => entry.Clone();

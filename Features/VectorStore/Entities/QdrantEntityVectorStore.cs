@@ -91,6 +91,9 @@ public sealed class QdrantEntityVectorStore(
             [EntityPayloadFields.FirstEdition]  = p.Envelope.FirstAppearedIn.Edition,
             [EntityPayloadFields.FileHash]      = p.FileHash,
             [EntityPayloadFields.DataSource]    = p.Envelope.DataSource,
+            [EntityPayloadFields.Srd]           = p.Envelope.Srd ? "true" : "false",
+            [EntityPayloadFields.Srd52]         = p.Envelope.Srd52 ? "true" : "false",
+            [EntityPayloadFields.BasicRules2024]= p.Envelope.BasicRules2024 ? "true" : "false",
             [EntityPayloadFields.SettingTags]   = StringList(p.Envelope.SettingTags),
             [EntityPayloadFields.FieldsJson]    = p.Envelope.Fields.GetRawText(),
         };
@@ -162,7 +165,10 @@ public sealed class QdrantEntityVectorStore(
                 : Array.Empty<string>(),
             CanonicalText: p[EntityPayloadFields.CanonicalText].StringValue,
             Fields: fields,
-            DataSource: p.TryGetValue(EntityPayloadFields.DataSource, out var ds) ? ds.StringValue : "");
+            DataSource: p.TryGetValue(EntityPayloadFields.DataSource, out var ds) ? ds.StringValue : "",
+            Srd:            p.TryGetValue(EntityPayloadFields.Srd,            out var srdV)   && srdV.StringValue   == "true",
+            Srd52:          p.TryGetValue(EntityPayloadFields.Srd52,          out var srd52V) && srd52V.StringValue  == "true",
+            BasicRules2024: p.TryGetValue(EntityPayloadFields.BasicRules2024, out var brV)    && brV.StringValue     == "true");
         return envelope;
     }
 
@@ -193,6 +199,9 @@ public sealed class QdrantEntityVectorStore(
             if (f.CrNumericGte is { } v2) range.Gte = v2;
             must.Add(new Condition { Field = new FieldCondition { Key = EntityPayloadFields.CrNumeric, Range = range } });
         }
+        if (f.Srd == true)            must.Add(KW(EntityPayloadFields.Srd, "true"));
+        if (f.Srd52 == true)          must.Add(KW(EntityPayloadFields.Srd52, "true"));
+        if (f.BasicRules2024 == true) must.Add(KW(EntityPayloadFields.BasicRules2024, "true"));
         if (must.Count == 0) return null;
         var filter = new Filter();
         foreach (var c in must) filter.Must.Add(c);

@@ -35,4 +35,7 @@ public sealed class IngestionRecord
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public BookType BookType { get; set; } = BookType.Unknown;
+
+    [MaxLength(20)]
+    public string? FivetoolsSourceKey { get; set; }
 }

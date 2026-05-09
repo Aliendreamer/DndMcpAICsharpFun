@@ -7,6 +7,7 @@ using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
+using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore;
@@ -90,6 +91,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IIngestionQueue>(sp => sp.GetRequiredService<IngestionQueueWorker>());
         services.AddHostedService(sp => sp.GetRequiredService<IngestionQueueWorker>());
 
+        services.AddSingleton<BookSourceRegistry>();
         services.AddSingleton<IPdfBookmarkReader, PdfPigBookmarkReader>();
 
         services.AddSingleton<DoclingPdfConverter>();

@@ -14,4 +14,7 @@ public sealed record EntitySearchQuery(
     double? CrNumericGte,
     int? SpellLevel,
     string? DamageType,
-    int TopK);
+    int TopK,
+    bool? Srd = null,
+    bool? Srd52 = null,
+    bool? BasicRules2024 = null);
