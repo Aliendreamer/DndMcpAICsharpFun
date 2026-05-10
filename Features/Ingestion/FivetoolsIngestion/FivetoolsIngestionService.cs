@@ -112,4 +112,49 @@ public sealed class FivetoolsIngestionService(
         await store.UpsertAsync(points, ct);
         logger.LogInformation("5etools import: upserted {Count} entities", points.Count);
     }
+
+
+    /// <summary>
+    /// Builds a lookup of (name, sourceBook) → EntityType from all available 5etools source files.
+    /// Used by the canonical type-fixer to correct LLM-assigned entity types.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<(string name, string source), EntityType>> BuildTypeLookupAsync(
+        CancellationToken ct = default)
+    {
+        // Use last-writer-wins: if the same (name, source) appears in multiple entries
+        // (e.g. a subrace entry overrides a race entry for the same name), we keep the
+        // more-specific type that was registered last in the registry.
+        var lookup = new Dictionary<(string, string), EntityType>();
+
+        foreach (var entry in FivetoolsSourceRegistry.AllEntries)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!File.Exists(entry.RelativePath)) continue;
+            if (!Mappers.TryGetValue(entry.EntityType, out var mapper)) continue;
+
+            await using var stream = File.OpenRead(entry.RelativePath);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+
+            if (!doc.RootElement.TryGetProperty(entry.JsonArrayKey, out var arr)
+                || arr.ValueKind != JsonValueKind.Array)
+                continue;
+
+            foreach (var item in arr.EnumerateArray())
+            {
+                if (!item.TryGetProperty("name", out var nameProp)
+                    || nameProp.ValueKind != JsonValueKind.String)
+                    continue;
+                var name = nameProp.GetString();
+                if (string.IsNullOrWhiteSpace(name)) continue;
+
+                var source = item.TryGetProperty("source", out var src)
+                    && src.ValueKind == JsonValueKind.String
+                    ? src.GetString()! : "Unknown";
+
+                lookup[(name.ToLowerInvariant(), source.ToUpperInvariant())] = entry.EntityType;
+            }
+        }
+
+        return lookup;
+    }
 }

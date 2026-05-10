@@ -70,5 +70,6 @@ admin.MapFivetoolsAdmin();
 app.MapRetrievalEndpoints();
 app.MapEntityRetrievalEndpoints();
 app.MapCanonicalValidationEndpoints();
+app.MapCanonicalTypeFixerEndpoints();
 
 app.Run();

@@ -287,6 +287,30 @@
       "authentication": {}
     },
     {
+      "_id": "req_canonical_fix_types",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Fix canonical entity types (5etools reference)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/canonical/fix-types",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "book",
+          "value": "tce"
+        }
+      ],
+      "authentication": {}
+    },
+    {
       "_id": "req_5etools_import",
       "_type": "request",
       "parentId": "fld_admin_books",
