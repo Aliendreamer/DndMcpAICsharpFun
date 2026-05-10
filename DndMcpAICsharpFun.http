@@ -79,6 +79,15 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/canonical/validate
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin — Normalize entity names in canonical JSONs (title-case ALL-CAPS, flag OCR artifacts)
+# Response: { filesScanned, totalEntities, dryRun, changes: [{ file, titleCased, flagged, unchanged }] }
+POST {{baseUrl}}/admin/canonical/normalize
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin — Normalize (dry-run — shows counts without writing files)
+POST {{baseUrl}}/admin/canonical/normalize?dryRun=true
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin — Fix canonical entity types for a book using 5etools reference
 POST {{baseUrl}}/admin/canonical/fix-types?book=tce
 X-Admin-Api-Key: {{adminKey}}

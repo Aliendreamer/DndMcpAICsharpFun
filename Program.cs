@@ -71,5 +71,6 @@ app.MapRetrievalEndpoints();
 app.MapEntityRetrievalEndpoints();
 app.MapCanonicalValidationEndpoints();
 app.MapCanonicalTypeFixerEndpoints();
+app.MapCanonicalNameNormalizerEndpoints();
 
 app.Run();
