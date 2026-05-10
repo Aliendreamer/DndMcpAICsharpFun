@@ -7,17 +7,31 @@ public static class EntityIdSlug
 {
     private static readonly Dictionary<string, string> BookOverrides = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Player's Handbook 2014"] = "phb14",
-        ["Player's Handbook 2024"] = "phb24",
-        ["Monster Manual 2014"]    = "mm14",
-        ["Monster Manual 2024"]    = "mm24",
-        ["Dungeon Master's Guide 2014"] = "dmg14",
-        ["Dungeon Master's Guide 2024"] = "dmg24",
-        ["Tasha's Cauldron of Everything"] = "tasha",
-        ["Xanathar's Guide to Everything"] = "xanathar",
-        ["Volo's Guide to Monsters"] = "volo",
-        ["Mordenkainen Presents: Monsters of the Multiverse"] = "motm",
-        ["Eberron: Rising from the Last War"] = "eberron",
+        // Display name → slug
+        ["Player's Handbook 2014"]                            = "phb14",
+        ["Player's Handbook 2024"]                            = "phb24",
+        ["Monster Manual 2014"]                               = "mm14",
+        ["Monster Manual 2024"]                               = "mm24",
+        ["Dungeon Master's Guide 2014"]                       = "dmg14",
+        ["Dungeon Master's Guide 2024"]                       = "dmg24",
+        ["Dungeon Master's Guide"]                            = "dmg14",
+        ["Tasha's Cauldron of Everything"]                    = "tce",
+        ["Xanathar's Guide to Everything"]                    = "xgte",
+        ["Volo's Guide to Monsters"]                          = "vgm",
+        ["Mordenkainen Presents: Monsters of the Multiverse"] = "mpmm",
+        ["Eberron: Rising from the Last War"]                 = "erlw",
+        // Source key → slug (aligns 5etools pipeline with canonical pipeline)
+        ["PHB"]  = "phb14",
+        ["XPHB"] = "phb24",
+        ["DMG"]  = "dmg14",
+        ["XDMG"] = "dmg24",
+        ["MM"]   = "mm14",
+        ["MM25"] = "mm24",
+        ["TCE"]  = "tce",
+        ["XGTE"] = "xgte",
+        ["MPMM"] = "mpmm",
+        ["VGM"]  = "vgm",
+        ["ERLW"] = "erlw",
     };
 
     public static string For(string book, EntityType type, string name)

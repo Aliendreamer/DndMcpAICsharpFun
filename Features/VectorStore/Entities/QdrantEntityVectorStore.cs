@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
@@ -77,6 +78,8 @@ public sealed class QdrantEntityVectorStore(
         return sources;
     }
 
+    private static readonly Guid s_entityNs = new("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
+
     private static PointStruct ToPoint(EntityPoint p)
     {
         var payload = new Dictionary<string, Value>
@@ -101,12 +104,11 @@ public sealed class QdrantEntityVectorStore(
         if (p.Envelope.Keywords.Count > 0)
             payload[EntityPayloadFields.Keywords] = StringList(p.Envelope.Keywords);
 
-        // Surface filterable subset from `fields` for index-friendly access.
         FlattenIndexedFields(p.Envelope, payload);
 
         var point = new PointStruct
         {
-            Id = new PointId { Uuid = Guid.NewGuid().ToString() },
+            Id = new PointId { Uuid = CreateVersion5(s_entityNs, System.Text.Encoding.UTF8.GetBytes(p.Envelope.Id)).ToString() },
             Vectors = p.Vector,
         };
         foreach (var (k, v) in payload) point.Payload[k] = v;
@@ -225,5 +227,36 @@ public sealed class QdrantEntityVectorStore(
         if (double.TryParse(cr, System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out value)) return true;
         value = 0; return false;
+    }
+
+    /// <summary>Produces a deterministic UUID v5 (SHA-1 namespace + name hash).</summary>
+    private static Guid CreateVersion5(Guid namespaceId, byte[] name)
+    {
+        // Convert namespace GUID to big-endian network byte order for hashing
+        Span<byte> ns = stackalloc byte[16];
+        if (!namespaceId.TryWriteBytes(ns)) throw new InvalidOperationException();
+        // .NET stores Guid bytes in mixed-endian; swap to big-endian for RFC 4122
+        (ns[0], ns[3]) = (ns[3], ns[0]);
+        (ns[1], ns[2]) = (ns[2], ns[1]);
+        (ns[4], ns[5]) = (ns[5], ns[4]);
+        (ns[6], ns[7]) = (ns[7], ns[6]);
+
+        byte[] input = new byte[16 + name.Length];
+        ns.CopyTo(input);
+        name.CopyTo(input, 16);
+
+        byte[] hash = SHA1.HashData(input);
+
+        // Set version (5) and variant (RFC 4122)
+        hash[6] = (byte)((hash[6] & 0x0F) | 0x50);
+        hash[8] = (byte)((hash[8] & 0x3F) | 0x80);
+
+        // Convert first 16 bytes back from big-endian to .NET mixed-endian Guid layout
+        Span<byte> result = hash.AsSpan(0, 16);
+        (result[0], result[3]) = (result[3], result[0]);
+        (result[1], result[2]) = (result[2], result[1]);
+        (result[4], result[5]) = (result[5], result[4]);
+        (result[6], result[7]) = (result[7], result[6]);
+        return new Guid(result);
     }
 }
