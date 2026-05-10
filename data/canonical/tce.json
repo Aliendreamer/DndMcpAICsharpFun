@@ -78,7 +78,7 @@
     {
       "id": "tce.class.3rd-level-barbarian-f-eature",
       "type": "Class",
-      "name": "3rd-level barbarian f eature",
+      "name": "Primal Knowledge",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 25,
@@ -114,12 +114,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.7th-level-barbarian-f-eature",
       "type": "Class",
-      "name": "7th-level barbarian f eature",
+      "name": "Instinctive Pounce",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 25,
@@ -148,7 +148,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.primal-paths",
@@ -282,7 +282,7 @@
     {
       "id": "tce.class.3rd-level-path-of-the-beast-f-eature",
       "type": "Class",
-      "name": "3rd-level Path of the Beast f eature",
+      "name": "Form of the Beast",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 25,
@@ -319,12 +319,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.bestial-soul-6th-level-path-of-the-beast-f-eature",
       "type": "Class",
-      "name": "BESTIAL SOUL 6th-level Path of the Beast f eature",
+      "name": "Bestial Soul",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 26,
@@ -367,12 +367,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.infectious-fury-10th-level-path-of-the-beast-f-eature",
       "type": "Class",
-      "name": "INFECTIOUS FURY 10th-level Path of the Beast f eature",
+      "name": "Infectious Fury",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 26,
@@ -408,12 +408,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.call-the-hunt-14th-level-path-of-the-beast-f-eature",
       "type": "Class",
-      "name": "CALL THE HUNT 14th-level Path of the Beast f eature",
+      "name": "Call the Hunt",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 26,
@@ -452,7 +452,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.path-of-wild-magic",
@@ -491,7 +491,7 @@
     {
       "id": "tce.class.magic-awareness-3rd-level-path-of-wild-magic-f-eature",
       "type": "Class",
-      "name": "MAGIC AWARENESS 3rd-level Path of Wild Magic f eature",
+      "name": "Magic Awareness",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 26,
@@ -526,12 +526,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.3rd-level-path-of-wild-magic-f-eature",
       "type": "Class",
-      "name": "3rd-level Path of  Wild Magic f eature",
+      "name": "Wild Magic Surge",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 26,
@@ -566,7 +566,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.d8-magical-eff-ect",
@@ -659,7 +659,7 @@
     {
       "id": "tce.class.6th-level-path-of-w-ild-magic-f-eature",
       "type": "Class",
-      "name": "6th-level Path of  W ild Magic f eature",
+      "name": "Bolstering Magic",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 27,
@@ -690,12 +690,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.10th-level-path-of-w-ild-magic-f-eature",
       "type": "Class",
-      "name": "10th-level Path of W ild Magic f eature",
+      "name": "Unstable Backlash",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 27,
@@ -731,12 +731,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-path-of-wild-magic-f-eature",
       "type": "Class",
-      "name": "14th-level Path of  Wild Magic f eature",
+      "name": "Controlled Surge",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 27,
@@ -763,7 +763,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.bard",
@@ -793,7 +793,7 @@
     {
       "id": "tce.class.1st-level-bard-f-eature",
       "type": "Class",
-      "name": "1st-level bard f eature",
+      "name": "Magical Inspiration",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 28,
@@ -837,48 +837,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.2nd-level-bard-f-eature",
-      "type": "Class",
-      "name": "2nd-level bard f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 28,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 28
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "Rule",
-            "name": "Bardic Inspiration (2nd Level)",
-            "description": "If a creature has a Bardic Inspiration die from you and casts a spell that restores hit points or deals damage, the creature can roll that die and choose a target affected by the spell. Add the number rolled as a bonus to the hit points regained or the damage dealt. The Bardic Inspiration die is then lost.",
-            "prerequisites": [
-              "Creature has a Bardic Inspiration die from you",
-              "Spell is one that restores hit points or deals damage"
-            ],
-            "effect": "Roll the Bardic Inspiration die, add the result to the spell's effect, and lose the die."
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.4th-level-bard-f-eature",
       "type": "Class",
-      "name": "4th-level bard f eature",
+      "name": "Bardic Versatility",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 29,
@@ -920,7 +884,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.bard-colleges",
@@ -996,7 +960,7 @@
     {
       "id": "tce.class.3rd-level-college-of-creation-f-eature",
       "type": "Class",
-      "name": "3rd-level College of Creation f eature",
+      "name": "Mote of Potential",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 29,
@@ -1033,7 +997,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.monster.dancing-item",
@@ -1122,43 +1086,9 @@
       "needsReview": false
     },
     {
-      "id": "tce.class.a-cti-o-ns",
-      "type": "Class",
-      "name": "A CTI O NS",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 30,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 30
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Force-Empowered Slam",
-            "entries": [
-              "Melee Weapon Attack: {@modifier spell attack} to hit, reach 5 ft., one target you can see.",
-              "Hit: {@damage 1d10} + {@modifier proficiency bonus} force damage."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
       "id": "tce.class.6th-level-college-of-creation-f-eature",
       "type": "Class",
-      "name": "6th-level College of Creation f eature",
+      "name": "Animating Performance",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 30,
@@ -1200,7 +1130,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.creative-crescendo",
@@ -1302,7 +1232,7 @@
     {
       "id": "tce.class.silver-tongue-3rd-level-college-of-eloquence-f-eature",
       "type": "Class",
-      "name": "SILVER TONGUE 3rd-level College of  Eloquence f eature",
+      "name": "Silver Tongue",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 31,
@@ -1330,12 +1260,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.unsettling-words-3rd-level-college-of-eloquence-f-eature",
       "type": "Class",
-      "name": "UNSETTLING WORDS 3rd-level College of  Eloquence f eature",
+      "name": "Unsettling Words",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 31,
@@ -1369,12 +1299,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.6th-level-college-of-eloquence-f-eature",
       "type": "Class",
-      "name": "6th-level College of  Eloquence f eature",
+      "name": "Infectious Inspiration",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 31,
@@ -1402,12 +1332,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.universal-speech-6th-level-college-of-eloquence-f-eature",
       "type": "Class",
-      "name": "UNIVERSAL SPEECH 6th-level College of  Eloquence f eature",
+      "name": "Universal Speech",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 31,
@@ -1450,12 +1380,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-college-of-eloquence-f-eature",
       "type": "Class",
-      "name": "14th-level College of  Eloquence f eature",
+      "name": "Unfailing Inspiration",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 31,
@@ -1491,7 +1421,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.cleric",
@@ -1524,31 +1454,6 @@
       "basicRules2024": false,
       "keywords": [],
       "needsReview": false
-    },
-    {
-      "id": "tce.class.1st-level-cleric-f-eature",
-      "type": "Class",
-      "name": "1st-level cleric f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 31,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 31
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": []
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
     },
     {
       "id": "tce.class.3rd-level",
@@ -1610,7 +1515,7 @@
     {
       "id": "tce.class.2nd-level-cleric-f-eature",
       "type": "Class",
-      "name": "2nd-level cleric f eature",
+      "name": "Harness Divine Power",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 31,
@@ -1639,7 +1544,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.6th-level",
@@ -1732,7 +1637,7 @@
     {
       "id": "tce.class.4th-level-cleric-f-eature",
       "type": "Class",
-      "name": "4th-level cleric f eature",
+      "name": "Cantrip Versatility",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 32,
@@ -1761,7 +1666,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.blessed-strikes",
@@ -2031,7 +1936,7 @@
     {
       "id": "tce.class.1st-level-order-domain-f-eature",
       "type": "Class",
-      "name": "1st-level Order Domain f eature",
+      "name": "Voice of Authority",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 33,
@@ -2061,7 +1966,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.channel-divinity-order-s-demand",
@@ -2099,7 +2004,7 @@
     {
       "id": "tce.class.embodiment-of-the-law-6th-level-order-domain-f-eature",
       "type": "Class",
-      "name": "EMBODIMENT OF THE LAW 6th-level Order Domain f eature",
+      "name": "Embodiment of the Law",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 33,
@@ -2126,46 +2031,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.8th-level-order-domain-f-eature",
-      "type": "Class",
-      "name": "8th-level Order Domain f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 33,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 33
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "Rule",
-            "name": "Divine Infusion",
-            "description": "You gain the ability to infuse your weapon strikes with divine energy. Once on each of your turns when you hit a creature with a weapon attack, you can cause the attack to deal an extra {@damage 1d8} psychic damage to the target. When you reach 14th level, the extra damage increases to {@damage 2d8}.",
-            "domain": "Order",
-            "level": 8,
-            "book": "tasha"
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.17th-level-order-domain-f-eature",
       "type": "Class",
-      "name": "17th-level Order Domain f eature",
+      "name": "Order's Wrath",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 33,
@@ -2195,7 +2066,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.peace-domain",
@@ -2244,7 +2115,7 @@
     {
       "id": "tce.class.1st-level-peace-domain-f-eature",
       "type": "Class",
-      "name": "1st-level Peace Domain f eature",
+      "name": "Implement of Peace",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 34,
@@ -2269,43 +2140,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.1st-leve-peace-domain-f-eature",
-      "type": "Class",
-      "name": "1st-leve Peace Domain f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 34,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 34
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "Rule",
-            "text": "You gain proficiency in the {@skill Insight}, {@skill Performance}, or {@skill Persuasion} skill (your choice)."
-          }
-        ],
-        "multiclassing": null
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.emboldening-bond-1st-level-peace-domain-f-eature",
       "type": "Class",
-      "name": "EMBOLDENING BOND 1st-level Peace Domain f eature",
+      "name": "Emboldening Bond",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 34,
@@ -2341,12 +2181,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.channel-divinity-balm-of-peace-2nd-level-peace-domain-f-eature",
       "type": "Class",
-      "name": "CHANNEL DIVINITY:  BALM OF PEACE 2nd-level Peace Domain f eature",
+      "name": "Channel Divinity: Balm of Peace",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 34,
@@ -2385,12 +2225,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.protective-bond-6th-level-peace-domain-f-eature",
       "type": "Class",
-      "name": "PROTECTIVE BOND 6th-level Peace Domain f eature",
+      "name": "Protective Bond",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 34,
@@ -2436,12 +2276,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.potent-spellcasting-8th-level-peace-domain-f-eature",
       "type": "Class",
-      "name": "POTENT SPELLCASTING 8th-level Peace Domain f eature",
+      "name": "Potent Spellcasting",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 34,
@@ -2469,12 +2309,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.17th-level-peace-domain-f-eature",
       "type": "Class",
-      "name": "17th-level Peace Domain f eature",
+      "name": "Expansive Bond",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 34,
@@ -2507,7 +2347,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.twilight-domain",
@@ -2559,7 +2399,7 @@
     {
       "id": "tce.class.eyes-of-night-1st-level-twilight-domain-f-eature",
       "type": "Class",
-      "name": "EYES OF NIGHT 1st-level Twilight Domain f eature",
+      "name": "Eyes of Night",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 35,
@@ -2606,12 +2446,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.1st-level-twilight-domain-f-eature",
       "type": "Class",
-      "name": "1st-level Twilight Domain f eature",
+      "name": "Vigilant Blessing",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 36,
@@ -2649,12 +2489,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.channel-divinity-twilight-sanctuary-2nd-level-twilight-domain-f-eature",
       "type": "Class",
-      "name": "CHANNEL DIVINITY: TWILIGHT SANCTUARY 2nd-level Twilight Domain f eature",
+      "name": "Channel Divinity: Twilight Sanctuary",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 36,
@@ -2686,12 +2526,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.6th-level-twilight-domain-f-eature",
       "type": "Class",
-      "name": "6th-level Twilight Domain f eature",
+      "name": "Steps of Night",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 36,
@@ -2720,12 +2560,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.8th-level-twilight-domain-f-eature",
       "type": "Class",
-      "name": "8th-level Twilight Domain f eature",
+      "name": "Twilight Shroud",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 36,
@@ -2755,12 +2595,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.17th-level-twilight-domain-f-eature",
       "type": "Class",
-      "name": "17th-level Twilight Domain f eature",
+      "name": "Twilight Shroud (Improved)",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 36,
@@ -2788,7 +2628,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.druid",
@@ -2866,52 +2706,9 @@
       "needsReview": false
     },
     {
-      "id": "tce.class.l-st-level",
-      "type": "Class",
-      "name": "l ST LEVEL",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 36,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 36
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Protection from Evil and Good",
-            "entries": [
-              "A 1st-level spell that grants resistance to necrotic damage and grants advantage on saving throws against being charmed, frightened, or possessed."
-            ]
-          },
-          {
-            "type": "entries",
-            "name": "2nd Level Spells",
-            "entries": [
-              "Augury (ritual)",
-              "Continual Flame",
-              "Enlarge/Reduce",
-              "Summon Beast"
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
       "id": "tce.class.2nd-level-druid-f-eature",
       "type": "Class",
-      "name": "2nd-level druid f eature",
+      "name": "Wild Companion",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 36,
@@ -2940,12 +2737,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.4th-level-druid-f-eature",
       "type": "Class",
-      "name": "4th-level druid f eature",
+      "name": "Cantrip Versatility",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 37,
@@ -2976,7 +2773,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.druid-circles",
@@ -3057,7 +2854,7 @@
     {
       "id": "tce.class.circle-spells-2nd-level-circle-of-spores-f-eature",
       "type": "Class",
-      "name": "CIRCLE SPELLS 2nd-level Circle of  Spores f eature",
+      "name": "Circle Spells",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 37,
@@ -3097,12 +2894,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.halo-of-spores-2nd-level-circle-of-spores-f-eature",
       "type": "Class",
-      "name": "HALO OF SPORES 2nd-level Circle of  Spores f eature",
+      "name": "Halo of Spores",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 37,
@@ -3149,12 +2946,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.symbiotic-entity-2nd-level-circle-of-spores-f-eature",
       "type": "Class",
-      "name": "SYMBIOTIC ENTITY 2nd-level Circle of  Spores f eature",
+      "name": "Symbiotic Entity",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 38,
@@ -3221,12 +3018,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.fungal-infestation-6th-level-circle-of-spores-f-eature",
       "type": "Class",
-      "name": "FUNGAL INFESTATION 6th-level Circle of Spores f eature",
+      "name": "Fungal Infestation",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 38,
@@ -3275,12 +3072,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.10th-level-circle-of-spores-f-eature",
       "type": "Class",
-      "name": "10th-level Circle of  Spores f eature",
+      "name": "Fungal Body",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 38,
@@ -3310,12 +3107,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-circle-of-spores-f-eature",
       "type": "Class",
-      "name": "14th-level Circle of  Spores f eature",
+      "name": "Spreading Spores",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 39,
@@ -3341,7 +3138,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.circle-of-stars",
@@ -3371,7 +3168,7 @@
     {
       "id": "tce.class.2nd-level-circle-of-the-stars-f-eature",
       "type": "Class",
-      "name": "2nd-level Circle of the Stars f eature",
+      "name": "Starry Form",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 39,
@@ -3439,7 +3236,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.star-map",
@@ -3490,7 +3287,7 @@
     {
       "id": "tce.class.6th-level-circle-of-the-stars-f-eature",
       "type": "Class",
-      "name": "6th-level Circle of the Stars f eature",
+      "name": "Cosmic Omen",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 40,
@@ -3533,12 +3330,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.10th-level-circle-of-the-stars-f-eature",
       "type": "Class",
-      "name": "10th-level Circle of the Stars f eature",
+      "name": "Twinkling Constellations",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 40,
@@ -3574,12 +3371,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-circle-of-the-stars-f-eature",
       "type": "Class",
-      "name": "14th-level Circle of  the Stars f eature",
+      "name": "Full of Stars",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 40,
@@ -3605,7 +3402,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.circle-of-wildfire",
@@ -3669,7 +3466,7 @@
     {
       "id": "tce.class.2nd-level-circle-of-wildfire-f-eature",
       "type": "Class",
-      "name": "2nd-level Circle of Wildfire f eature",
+      "name": "Summon Wildfire Spirit",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 40,
@@ -3700,7 +3497,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.monster.wildfire-spirit",
@@ -3801,7 +3598,7 @@
     {
       "id": "tce.class.6th-level-circle-of-w-ildfire-f-eature",
       "type": "Class",
-      "name": "6th-level Circle of  W ildfire f eature",
+      "name": "Enhanced Bond",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 41,
@@ -3832,12 +3629,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.10th-level-circle-of-wildfire-f-eature",
       "type": "Class",
-      "name": "10th-level Circle of Wildfire f eature",
+      "name": "Cauterizing Flames",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 41,
@@ -3867,12 +3664,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-circle-of-w-ildfire-f-eature",
       "type": "Class",
-      "name": "14th-level Circle of  W ildfire f eature",
+      "name": "Blazing Revival",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 41,
@@ -3904,7 +3701,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.fighter",
@@ -3942,7 +3739,7 @@
     {
       "id": "tce.class.1st-level-fighter-f-eature",
       "type": "Class",
-      "name": "1st-level fighter f eature",
+      "name": "Additional Fighting Styles",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 42,
@@ -3970,7 +3767,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.blind-fighting",
@@ -4002,37 +3799,6 @@
       "basicRules2024": false,
       "keywords": [],
       "needsReview": false
-    },
-    {
-      "id": "tce.class.i-nterception",
-      "type": "Class",
-      "name": "I NTERCEPTION",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 42,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 42
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "Rule",
-            "name": "Interception",
-            "description": "When a creature you can see hits a target, other than you, within 5 feet of you with an attack, you can use your reaction to reduce the damage the target takes by {@damage 1d10} + your proficiency bonus (to a minimum of 0 damage). You must be wielding a shield or a simple or martial weapon to use this reaction."
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
     },
     {
       "id": "tce.class.superior-technique",
@@ -4169,7 +3935,7 @@
     {
       "id": "tce.class.4th-level-fighter-f-eature",
       "type": "Class",
-      "name": "4th-level fighter f eature",
+      "name": "Martial Versatility",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 43,
@@ -4212,7 +3978,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.maneuver-options",
@@ -4424,44 +4190,6 @@
       "needsReview": false
     },
     {
-      "id": "tce.class.q-u1ck-toss",
-      "type": "Class",
-      "name": "Q u1cK Toss",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 43,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 43
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "Rule",
-            "text": "As a bonus action, you can expend one superiority die and make a ranged attack with a weapon that has the thrown property."
-          },
-          {
-            "type": "Rule",
-            "text": "You can draw the weapon as part of making this attack."
-          },
-          {
-            "type": "Rule",
-            "text": "If you hit, add the superiority die to the weapon's damage roll."
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
       "id": "tce.class.tactical-assessment",
       "type": "Class",
       "name": "Tactical Assessment",
@@ -4566,7 +4294,7 @@
     {
       "id": "tce.class.psionic-power",
       "type": "Class",
-      "name": "PsIONIC PowER",
+      "name": "Psionic Power",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 44,
@@ -4624,7 +4352,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.telekinetic-adept",
@@ -4701,7 +4429,7 @@
     {
       "id": "tce.class.15th-level-psi-w-arrior-f-eature",
       "type": "Class",
-      "name": "15th-level Psi W arrior f eature",
+      "name": "Bulwark of Force",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 45,
@@ -4731,48 +4459,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.j8th-level-psi-w-arrior-f-eature",
-      "type": "Class",
-      "name": "J8th-level Psi W arrior f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 45,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 45
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Telekinesis Spellcasting",
-            "entries": [
-              "You can cast the {@spell telekinesis} spell, requiring no components, and your spellcasting ability for the spell is {@spellcasting_ability Intelligence}.",
-              "On each of your turns while you concentrate on the spell, including the turn when you cast it, you can make one attack with a weapon as a {@bonus_action}."
-            ]
-          },
-          {
-            "type": "rule",
-            "name": "Restrictions",
-            "entries": [
-              "Once you cast the spell with this feature, you can't do so again until you finish a long rest, unless you expend a {@item Psionic Energy die} to cast it again."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.rune-knight",
@@ -4812,7 +4499,7 @@
     {
       "id": "tce.class.3rd-level-rune-knight-f-eature",
       "type": "Class",
-      "name": "3rd-level Rune Knight f eature",
+      "name": "Rune Carver",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 45,
@@ -4841,41 +4528,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.3rd-level-rune-kni-sht-f-eature",
-      "type": "Class",
-      "name": "3rd-level Rune Kni Sht f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 45,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 45
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Rune Knight 3rd-Level Feature",
-            "entries": [
-              "You can use magic runes to enhance your gear. You learn two runes of your choice, from among the runes described below, and each time you gain a level in this class, you can replace one rune you know with a different one from this feature.",
-              "When you reach certain levels in this class, you learn additional runes, as shown in the Runes Known table."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.runes-known",
@@ -4954,7 +4607,7 @@
     {
       "id": "tce.class.giant-s-might-3rd-level-rune-knight-f-eature",
       "type": "Class",
-      "name": "GIANT'S MIGHT 3rd-level Rune Knight f eature",
+      "name": "Giant's Might",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 46,
@@ -4982,12 +4635,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.runic-shield-7th-level-rune-knight-f-eature",
       "type": "Class",
-      "name": "RUNIC SHIELD 7th-level Rune Knight f eature",
+      "name": "Runic Shield",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 46,
@@ -5016,7 +4669,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.great-stature",
@@ -5055,7 +4708,7 @@
     {
       "id": "tce.class.15th-level-rune-knight-f-eature",
       "type": "Class",
-      "name": "15th-level Rune Knight f eature",
+      "name": "Runic Juggernaut",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 47,
@@ -5083,12 +4736,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.18th-level-rune-knight-f-eature",
       "type": "Class",
-      "name": "18th-level Rune Knight f eature",
+      "name": "Master of Runes",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 47,
@@ -5117,7 +4770,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.battle-master-builds",
@@ -5763,7 +5416,7 @@
     {
       "id": "tce.class.2nd-level-monk-f-eature",
       "type": "Class",
-      "name": "2nd-level monk f eature",
+      "name": "Dedicated Weapon",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 49,
@@ -5799,12 +5452,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.3rd-level-monk-f-eature",
       "type": "Class",
-      "name": "3rd-level monk f eature",
+      "name": "Quickened Healing",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 49,
@@ -5839,12 +5492,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.4th-level-monk-f-eature",
       "type": "Class",
-      "name": "4th-level monk f eature",
+      "name": "Focused Aim",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 50,
@@ -5886,57 +5539,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.5th-level-monk-f-eature",
-      "type": "Class",
-      "name": "5th-level monk f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 50,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 50
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Ki-Etched Precision",
-            "entries": [
-              "When you miss with an attack roll, you can spend 1 to 3 ki points to increase your attack roll by 2 for each of these ki points you spend, potentially turning the miss into a hit."
-            ]
-          },
-          {
-            "type": "list",
-            "items": [
-              "1 to 3 ki points spent",
-              "Attack roll increased by 2 per ki point spent",
-              "May turn a miss into a hit"
-            ]
-          }
-        ],
-        "multiclassing": {
-          "entries": {
-            "type": "entries",
-            "name": "Multiclassing Considerations",
-            "entries": [
-              "This feature replaces the 4th-level Monk feature {@feature Ki-Etched Precision|tasha.class.monk.4th-level-ki-etched-precision}."
-            ]
-          }
-        }
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.monastic-traditions",
@@ -6148,7 +5751,7 @@
     {
       "id": "tce.class.3rd-level-w-ay-of-mercy-f-eature",
       "type": "Class",
-      "name": "3rd-level W ay of  Mercy f eature",
+      "name": "Hand of Harm",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 51,
@@ -6176,53 +5779,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.6th-leve-l-w-ay-of-mercy-f-eature",
-      "type": "Class",
-      "name": "6th-leve . l W ay of  Mercy f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 51,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 51
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "lore",
-            "name": "Way of Mercy 6th-Level Feature",
-            "content": "You can administer even greater cures with a touch, and if you feel it's necessary, you can use your knowledge to cause harm."
-          },
-          {
-            "type": "rule",
-            "name": "Hand of Healing Enhanced",
-            "content": "When you use Hand of Healing on a creature, you can also end one disease or one of the following conditions affecting the creature: blinded, deafened, paralyzed, poisoned, or stunned."
-          },
-          {
-            "type": "rule",
-            "name": "Hand of Harm Effect",
-            "content": "When you use Hand of Harm on a creature, you can subject that creature to the poisoned condition until the end of your next turn."
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.11th-level-w-ay-of-mercy-f-eature",
       "type": "Class",
-      "name": "11th-level W ay of  Mercy f eature",
+      "name": "Flurry of Healing and Harm",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 51,
@@ -6260,12 +5822,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.17th-level-way-of-mercy-f-eature",
       "type": "Class",
-      "name": "17th-level Way of  Mercy f eature",
+      "name": "Hand of Ultimate Mercy",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 51,
@@ -6301,7 +5863,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.way-of-the-astral-self",
@@ -6383,7 +5945,7 @@
     {
       "id": "tce.class.visage-of-the-astral-self-6th-level-way-of-the-astral-self-f-eature",
       "type": "Class",
-      "name": "VISAGE OF THE ASTRAL SELF 6th-level Way of  the Astral Self  f eature",
+      "name": "Visage of the Astral Self",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 51,
@@ -6432,12 +5994,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.11th-level-w-ay-of-the-astral-self-f-eature",
       "type": "Class",
-      "name": "11th-level W ay of  the Astral Self  f eature",
+      "name": "Body of the Astral Self",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 52,
@@ -6468,12 +6030,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.awakened-astral-self-17th-level-w-ay-of-the-astral-self-f-eature",
       "type": "Class",
-      "name": "AWAKENED ASTRAL SELF 17th-level W ay of  the Astral Self f eature",
+      "name": "Awakened Astral Self",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 52,
@@ -6518,7 +6080,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.forms-of-your-astral-self",
@@ -6631,48 +6193,6 @@
       "needsReview": false
     },
     {
-      "id": "tce.class.2nd-level-paladin-f-eature",
-      "type": "Class",
-      "name": "2nd-level paladin f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 53,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 53
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Spells Added to Paladin Spell List",
-            "entries": [
-              "Gentle Repose",
-              "Prayer of Healing",
-              "Warding Bond"
-            ]
-          },
-          {
-            "type": "list",
-            "items": [
-              "All spells are from the Player's Handbook unless marked with an asterisk (indicating they appear in Chapter 3 of Xanathar's Guide to Everything)",
-              "Additional spells from Xanathar's Guide to Everything are available"
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
       "id": "tce.class.blessed-warrior",
       "type": "Class",
       "name": "Blessed Warrior",
@@ -6767,7 +6287,7 @@
     {
       "id": "tce.class.3rd-level-paladin-f-eature",
       "type": "Class",
-      "name": "3rd-level paladin f eature",
+      "name": "Harness Divine Power",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 54,
@@ -6804,12 +6324,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.4th-level-paladin-f-eature",
       "type": "Class",
-      "name": "4th-level paladin f eature",
+      "name": "Cantrip Versatility",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 54,
@@ -6835,7 +6355,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.sacred-oaths",
@@ -6954,7 +6474,7 @@
     {
       "id": "tce.class.3rd-level-oath-of-glory-f-eature",
       "type": "Class",
-      "name": "3rd-level Oath of  Glory f eature",
+      "name": "Peerless Athlete",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 54,
@@ -6980,7 +6500,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.oath-of-glory-spells",
@@ -7008,60 +6528,9 @@
       "needsReview": false
     },
     {
-      "id": "tce.class.3rd-level-oath-of-glor-y-f-eature",
-      "type": "Class",
-      "name": "3rd-level Oath of  Glor y f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 55,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 55
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Peerless Athlete",
-            "entries": [
-              "As a bonus action, you can use your Channel Divinity to augment your athleticism. For the next 10 minutes, you have advantage on Strength (Athletics) and Dexterity (Acrobatics) checks; you can carry, push, drag, and lift twice as much weight as normal; and the distance of your long and high jumps increases by 10 feet (this extra distance costs movement as normal)."
-            ]
-          },
-          {
-            "type": "entries",
-            "name": "Inspiring Smite",
-            "entries": [
-              "Immediately after you deal damage to a creature with your Divine Smite feature, you can use your Channel Divinity as a bonus action and distribute temporary hit points to creatures of your choice within 30 feet of you, which can include you. The total number of temporary hit points equals 2d8 + your level in this class, divided among the chosen creatures however you like."
-            ]
-          }
-        ],
-        "multiclassing": {
-          "type": {
-            "name": "Oath of Glory",
-            "slug": "tce.subclass.oath-of-glory"
-          },
-          "feature": {
-            "type": "Rule",
-            "name": "3rd-level Oath of Glory Feature",
-            "description": "This feature grants two Channel Divinity options: Peerless Athlete and Inspiring Smite. See the Sacred Oath class feature for how Channel Divinity works."
-          }
-        }
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
       "id": "tce.class.7th-level-oath-of-glor-y-f-eature",
       "type": "Class",
-      "name": "7th-level Oath of  Glor y f eature",
+      "name": "Aura of Alacrity",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 55,
@@ -7084,12 +6553,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.15th-level-oath-of-glor-y-f-eature",
       "type": "Class",
-      "name": "15th-level Oath of Glor y f eature",
+      "name": "Glorious Defense",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 55,
@@ -7122,12 +6591,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.20th-level-oath-of-glor-y-f-eature",
       "type": "Class",
-      "name": "20th-level Oath of  Glor y f eature",
+      "name": "Living Legend",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 55,
@@ -7169,7 +6638,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.oath-of-the-watchers",
@@ -7251,7 +6720,7 @@
     {
       "id": "tce.class.3rd-level-oath-of-the-w-atchers-f-eature",
       "type": "Class",
-      "name": "3rd-level Oath of  the W atchers f eature",
+      "name": "Abjure the Extraplanar",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 56,
@@ -7280,7 +6749,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.channel-divinity",
@@ -7321,7 +6790,7 @@
     {
       "id": "tce.class.7th-level-oath-of-the-w-atchers-f-eature",
       "type": "Class",
-      "name": "7th-level Oath of the  W atchers f eature",
+      "name": "Aura of the Sentinel",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 56,
@@ -7356,7 +6825,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.vigilant-rebuke",
@@ -7420,7 +6889,7 @@
     {
       "id": "tce.class.20th-level-oath-of-the-w-atchers-f-eature",
       "type": "Class",
-      "name": "20th-level Oath of the W atchers f eature",
+      "name": "Mortal Bulwark",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 56,
@@ -7474,7 +6943,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.ranger",
@@ -7690,53 +7159,6 @@
       "needsReview": false
     },
     {
-      "id": "tce.class.2nd-level-ranger-f-eature",
-      "type": "Class",
-      "name": "2nd-level ranger f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 58,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 58
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Spell List Expansion",
-            "entries": [
-              "The spells in the following list expand the ranger spell list in the Player's Handbook. The list is organized by spell level, not character level. Each spell is in the Player's Handbook, unless it has an asterisk (a spell in chapter 3). Xanathar's Guide to Everything also offers more spells."
-            ]
-          },
-          {
-            "type": "entries",
-            "name": "Fighting Styles",
-            "entries": [
-              "When you choose a fighting style, the following styles are added to your list of options."
-            ]
-          },
-          {
-            "type": "entries",
-            "name": "Druidic Focus",
-            "entries": [
-              "You can use a druidic focus as a spellcasting focus for your ranger spells. A druidic focus might be a sprig of mistletoe or holly, a wand or rod made of yew or another special wood, a staff drawn whole from a living tree, or an object incorporating feathers, fur, bones, and teeth from sacred animals."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
       "id": "tce.class.druidic-warrior",
       "type": "Class",
       "name": "Druidic Warrior",
@@ -7787,7 +7209,7 @@
     {
       "id": "tce.class.3rd-level-ranger-f-eature-which-replaces-the-prime-val-awareness-f-eature",
       "type": "Class",
-      "name": "3rd-level ranger f eature,  which replaces the Prime­ val Awareness f eature",
+      "name": "Primal Awareness",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 58,
@@ -7831,7 +7253,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.primal-awareness-spells",
@@ -7870,7 +7292,7 @@
     {
       "id": "tce.class.4th-level-ranger-f-eature",
       "type": "Class",
-      "name": "4th-level ranger f eature",
+      "name": "Martial Versatility",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 58,
@@ -7897,12 +7319,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.10th-level-ranger-f-eature-which-replaces-the-hide-in-plain-sight-f-eature",
       "type": "Class",
-      "name": "10th-level ranger f eature,  which replaces the Hide in Plain Sight f eature",
+      "name": "Nature's Veil",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 58,
@@ -7931,7 +7353,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.ranger-archetypes",
@@ -8005,7 +7427,7 @@
     {
       "id": "tce.class.3rd-level-fey-w-anderer-f-eature",
       "type": "Class",
-      "name": "3rd-level Fey  W anderer f eature",
+      "name": "Dreadful Strikes",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 59,
@@ -8046,7 +7468,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.fey-wanderer-spells",
@@ -8160,7 +7582,7 @@
     {
       "id": "tce.class.be-g-uiling-twist",
       "type": "Class",
-      "name": "BE G UILING TWIST",
+      "name": "Beguiling Twist",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 60,
@@ -8191,50 +7613,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.11th-level-fey-w-anderer-f-eature",
-      "type": "Class",
-      "name": "11th-level Fey  W anderer f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 60,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 60
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "11th-level Fey Wanderer Feature",
-            "entries": [
-              "You know the *summon fey* spell (a spell in chapter 3). It doesn't count against the number of ranger spells you know, and you can cast it without a material component.",
-              "You can also cast it once without a spell slot, and you regain the ability to do so when you finish a long rest.",
-              "Whenever you start casting the spell, you can modify it so that it doesn't require concentration. If you do so, the spell's duration becomes 1 minute for that casting."
-            ]
-          }
-        ],
-        "multiclassing": {
-          "entries": {}
-        }
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.15th-level-fey-w-anderer-f-eature",
       "type": "Class",
-      "name": "15th-level Fey W anderer f eature",
+      "name": "Misty Wanderer",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 60,
@@ -8263,7 +7647,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.swarmkeeper",
@@ -8303,7 +7687,7 @@
     {
       "id": "tce.class.3rd-level-swarmkeeper-f-eature",
       "type": "Class",
-      "name": "3rd-level Swarmkeeper f eature",
+      "name": "Gathered Swarm",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 61,
@@ -8354,7 +7738,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.swarm-appearance",
@@ -8403,45 +7787,9 @@
       "needsReview": false
     },
     {
-      "id": "tce.class.i-t-s-your-swarm",
-      "type": "Class",
-      "name": "I T'S YOUR SWARM",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 61,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 61
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "rule",
-            "name": "Swarm Customization",
-            "description": "A Swarmkeeper's swarm and spells reflect their bond with nature spirits. Describe the swarm and magic in play (e.g., gaseous form could manifest as melting into the swarm, or arcane eye creating an extension). These descriptions enhance narrative storytelling without altering spell effects. See 'Personalizing Spells' in chapter 3 for more guidance."
-          },
-          {
-            "type": "rule",
-            "name": "Swarm Appearance",
-            "description": "The swarm's appearance is customizable. It may shift based on the ranger's mood or seasons. The ranger decides its form and presentation."
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
       "id": "tce.class.7th-level-swarmkeeper-f-eature",
       "type": "Class",
-      "name": "7th-level Swarmkeeper f eature",
+      "name": "Mighty Swarm",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 61,
@@ -8479,12 +7827,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.11th-level-swarmkeeper-f-eature",
       "type": "Class",
-      "name": "11th-level Swarmkeeper f eature",
+      "name": "Writhing Tide",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 61,
@@ -8520,12 +7868,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.15th-level-swarmkeeper-f-eature",
       "type": "Class",
-      "name": "15th-level Swarmkeeper f eature",
+      "name": "Storm of the Swarm",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 61,
@@ -8562,7 +7910,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.beast-master-companions",
@@ -8886,7 +8234,7 @@
     {
       "id": "tce.class.3rd-level-rogue-f-eature",
       "type": "Class",
-      "name": "3rd-level rogue f eature",
+      "name": "Steady Aim",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 63,
@@ -8915,7 +8263,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.roguish-archetypes",
@@ -8995,7 +8343,7 @@
     {
       "id": "tce.class.3rd-level-phantom-f-eature",
       "type": "Class",
-      "name": "3rd-level Phantom f eature",
+      "name": "Wails from the Grave",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 63,
@@ -9031,12 +8379,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.9th-level-phantom-f-eature",
       "type": "Class",
-      "name": "9th-level Phantom f eature",
+      "name": "Tokens of the Departed",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 64,
@@ -9092,12 +8440,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.13th-level-phantom-f-eature",
       "type": "Class",
-      "name": "13th-level Phantom f eature",
+      "name": "Ghost Walk",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 64,
@@ -9124,12 +8472,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.death-s-friend-17th-level-phantom-f-eature",
       "type": "Class",
-      "name": "DEATH'S FRIEND 17th-level Phantom f eature",
+      "name": "Death's Friend",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 64,
@@ -9168,7 +8516,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.soulknife",
@@ -9221,7 +8569,7 @@
     {
       "id": "tce.class.3rd-level-soulknife-f-eature",
       "type": "Class",
-      "name": "3rd-level Soulknife f eature",
+      "name": "Psychic Blades",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 65,
@@ -9267,59 +8615,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.3rd-level-soulknif-e-f-eature",
-      "type": "Class",
-      "name": "3rd-level Soulknif e f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 65,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 65
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Psychic Blade Manifestation",
-            "entries": [
-              "When you take the Attack action, you can manifest a psychic blade from your free hand and make the attack with that blade. This magic blade is a simple melee weapon with the finesse and thrown properties. It has a normal range of 60 feet and no long range. On a hit, it deals psychic damage equal to 1d6 plus your ability modifier used for the attack roll. The blade vanishes immediately after it hits or misses its target and leaves no mark on its target if it deals damage.",
-              {
-                "type": "list",
-                "items": [
-                  "Weapon Properties: Simple melee weapon, finesse, thrown (60-foot range)",
-                  "Damage: {@damage 1d6} psychic damage plus ability modifier"
-                ]
-              }
-            ]
-          },
-          {
-            "type": "entries",
-            "name": "Bonus Action Psychic Blade",
-            "entries": [
-              "After attacking with the blade, you can make a melee or ranged weapon attack with a second psychic blade as a bonus action on the same turn, provided your other hand is free to create it. This bonus attack deals {@damage 1d4} psychic damage instead of 1d6."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.9th-level-soulknif-e-f-eature",
       "type": "Class",
-      "name": "9th-level Soulknif e f eature",
+      "name": "Soul Blades",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 66,
@@ -9350,12 +8651,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.13th-level-soulknif-e-f-eature",
       "type": "Class",
-      "name": "13th-level Soulknif e f eature",
+      "name": "Psychic Veil",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 66,
@@ -9390,12 +8691,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.17th-level-soulknif-e-f-eature",
       "type": "Class",
-      "name": "17th-level Soulknif e f eature",
+      "name": "Rend Mind",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 66,
@@ -9426,7 +8727,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.sorcerer",
@@ -9464,7 +8765,7 @@
     {
       "id": "tce.class.1st-level-sorcerer-f-eature",
       "type": "Class",
-      "name": "1st-level sorcerer f eature",
+      "name": "Magical Guidance",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 66,
@@ -9484,7 +8785,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.cantrip-o-level",
@@ -9686,7 +8987,7 @@
     {
       "id": "tce.class.4th-level-sorcerer-f-eature",
       "type": "Class",
-      "name": "4th-level sorcerer f eature",
+      "name": "Sorcerous Versatility",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 67,
@@ -9714,7 +9015,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.sorcerous-origins",
@@ -9826,37 +9127,6 @@
       "needsReview": false
     },
     {
-      "id": "tce.class.5th-level-sorcerer-f-eature",
-      "type": "Class",
-      "name": "5th-level sorcerer f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 67,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 67
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "Rule",
-            "name": "Magic Success",
-            "description": "When you make an ability check that fails, you can spend {@cost 1 sorcery point} to reroll the d20, and you must use the new roll, potentially turning the failure into a success."
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
       "id": "tce.class.d6-origin",
       "type": "Class",
       "name": "d6 Origin",
@@ -9909,7 +9179,7 @@
     {
       "id": "tce.class.1st-level-aberrant-mind-f-eature",
       "type": "Class",
-      "name": "1st-level Aberrant Mind f eature",
+      "name": "Telepathic Speech",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 68,
@@ -9978,12 +9248,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.psi-o-n-i-c-spells",
       "type": "Class",
-      "name": "PSI O N I C SPELLS",
+      "name": "Psionic Spells",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 68,
@@ -10008,12 +9278,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.6th-level-aberrant-mind-f-eature",
       "type": "Class",
-      "name": "6th-level Aberrant Mind f eature",
+      "name": "Psionic Sorcery",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 69,
@@ -10049,12 +9319,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-aberrant-mind-f-eature",
       "type": "Class",
-      "name": "14th-level Aberrant Mind f eature",
+      "name": "Revelation in Flesh",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 69,
@@ -10092,12 +9362,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.18th-level-aberrant-mind-f-eature",
       "type": "Class",
-      "name": "18th-level Aberrant Mind f eature",
+      "name": "Warping Implosion",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 69,
@@ -10123,7 +9393,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.subclass.clockwork-soul",
@@ -10161,7 +9431,7 @@
     {
       "id": "tce.class.1st-level-clockwork-soul-f-eature",
       "type": "Class",
-      "name": "1st-level Clockwork Soul f eature",
+      "name": "Restore Balance",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 69,
@@ -10219,7 +9489,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.clockwork-spells",
@@ -10301,7 +9571,7 @@
     {
       "id": "tce.class.6th-level-clockwork-soul-f-eature",
       "type": "Class",
-      "name": "6th-level Clockwork Soul f eature",
+      "name": "Bastion of Law",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 70,
@@ -10357,12 +9627,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-clockwork-soul-f-eature",
       "type": "Class",
-      "name": "14th-level Clockwork Soul f eature",
+      "name": "Trance of Order",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 70,
@@ -10396,12 +9666,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.clockwork-cavalcade-18th-level-clockwork-soul-f-eature",
       "type": "Class",
-      "name": "CLOCKWORK CAVALCADE 18th-level Clockwork Soul f eature",
+      "name": "Clockwork Cavalcade",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 70,
@@ -10438,7 +9708,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.warlock",
@@ -10472,65 +9742,6 @@
       "basicRules2024": false,
       "keywords": [],
       "needsReview": false
-    },
-    {
-      "id": "tce.class.1st-level-warlock-f-eature",
-      "type": "Class",
-      "name": "1st-level warlock f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 71,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 71
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": []
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.3rd-level-warlock-f-eature",
-      "type": "Class",
-      "name": "3rd-level warlock f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 71,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 71
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Pact Boon Option (3rd Level)",
-            "entries": [
-              "When you choose your Pact Boon feature, the following option is available to you."
-            ]
-          }
-        ],
-        "multiclassing": null
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
     },
     {
       "id": "tce.class.pact-of-the-talisman",
@@ -10582,7 +9793,7 @@
     {
       "id": "tce.class.4th-level-warlock-f-eature",
       "type": "Class",
-      "name": "4th-level warlock f eature",
+      "name": "Eldritch Versatility",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 71,
@@ -10624,7 +9835,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.eldritch-invocation-options",
@@ -10650,48 +9861,6 @@
       "basicRules2024": false,
       "keywords": [],
       "needsReview": false
-    },
-    {
-      "id": "tce.class.prerequisite-12th-level-warlock-pact-of-the-t-alis-man-feature",
-      "type": "Class",
-      "name": "Prerequisite: 12th-level warlock, Pact of the T alis­ man feature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 71,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 71
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Talisman Teleportation",
-            "entries": [
-              "While someone else is wearing your talisman, you can use your action to teleport to the unoccupied space closest to them, provided the two of you are on the same plane of existence. The wearer of your talisman can do the same thing, using their action to teleport to you.",
-              "The teleportation can be used a number of times equal to your proficiency bonus, and all expended uses are restored when you finish a long rest."
-            ]
-          },
-          {
-            "type": "list",
-            "name": "Prerequisites",
-            "items": [
-              "12th-level warlock",
-              "Pact of the Talisman feature (page 71)"
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
     },
     {
       "id": "tce.class.eldritch-mind",
@@ -11067,7 +10236,7 @@
     {
       "id": "tce.class.1st-level-fathomless-f-eature",
       "type": "Class",
-      "name": "1st-level Fathomless f eature",
+      "name": "Tentacle of the Deeps",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 73,
@@ -11118,7 +10287,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.oceanic-soul",
@@ -11155,7 +10324,7 @@
     {
       "id": "tce.class.6th-level-fathomless-f-eature",
       "type": "Class",
-      "name": "6th-level Fathomless f eature",
+      "name": "Guardian Coil",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 74,
@@ -11184,12 +10353,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.10th-level-fathomless-f-eature",
       "type": "Class",
-      "name": "10th-level Fathomless f eature",
+      "name": "Grasping Tentacles",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 74,
@@ -11238,12 +10407,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-fathomless-f-eature",
       "type": "Class",
-      "name": "14th-level Fathomless f eature",
+      "name": "Fathomless Plunge",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 74,
@@ -11287,7 +10456,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.genie-expanded-spells",
@@ -11377,7 +10546,7 @@
     {
       "id": "tce.class.1st-level-genie-f-eature",
       "type": "Class",
-      "name": "1st-level Genie f eature",
+      "name": "Genie's Wrath",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 74,
@@ -11418,7 +10587,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.genie-s-vessel",
@@ -11480,7 +10649,7 @@
     {
       "id": "tce.class.6th-level-genie-f-eature",
       "type": "Class",
-      "name": "6th-level Genie f eature",
+      "name": "Elemental Gift",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 76,
@@ -11516,12 +10685,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.10th-level-genie-f-eature",
       "type": "Class",
-      "name": "10th-level Genie f eature",
+      "name": "Sanctuary Vessel",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 76,
@@ -11565,12 +10734,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-genie-f-eature",
       "type": "Class",
-      "name": "14th-level Genie f eature",
+      "name": "Limited Wish",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 76,
@@ -11607,7 +10776,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.wizard",
@@ -11639,37 +10808,6 @@
       "basicRules2024": false,
       "keywords": [],
       "needsReview": false
-    },
-    {
-      "id": "tce.class.1st-level-wizard-f-eature",
-      "type": "Class",
-      "name": "1st-level wizard f eature",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 76,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 76
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "Rule",
-            "name": "Wizard Spell List Expansion",
-            "text": "The following spells expand the wizard spell list in the Player's Handbook. Spells are organized by spell level, with school of magic noted and ritual tags indicated for spells cast as rituals. All spells are from the Player's Handbook except those marked with an asterisk (chapter 3). Xanath's Guide to Everything also provides additional spells."
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
     },
     {
       "id": "tce.class.cantrip-formulas",
@@ -11780,7 +10918,7 @@
     {
       "id": "tce.class.training-in-war-and-song-2nd-level-bladesinging-f-eature",
       "type": "Class",
-      "name": "TRAINING IN WAR AND SONG 2nd-level Bladesinging f eature",
+      "name": "Training in War and Song",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 77,
@@ -11836,7 +10974,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.blade-song",
@@ -11894,7 +11032,7 @@
     {
       "id": "tce.class.6th-level-bladesinging-f-eature",
       "type": "Class",
-      "name": "6th-level Bladesinging f eature",
+      "name": "Extra Attack",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 78,
@@ -11938,12 +11076,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.10th-level-bladesinging-f-eature",
       "type": "Class",
-      "name": "10th-level Bladesinging f eature",
+      "name": "Song of Defense",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 78,
@@ -11969,12 +11107,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-bladesinging-f-eature",
       "type": "Class",
-      "name": "14th-level Bladesinging f eature",
+      "name": "Song of Victory",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 78,
@@ -12011,55 +11149,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
-    },
-    {
-      "id": "tce.class.ma-ic-is-reat-al-ia-all-b1-1t-have-01-1-smelleia-a-book-tasl-a",
-      "type": "Class",
-      "name": "MA�ic is  �reAt  Al-\\IA All,  b1.1t hAve �01.1 smelleiA A  book? TASl/A",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 78,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 78
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Order of Scribes",
-            "entries": [
-              "A specialized group of wizards devoted to recording magical discoveries through spellbooks. Their primary mission is to preserve and share arcane knowledge across worlds.",
-              "Members of the Order magically awaken their spellbooks, transforming them into sentient companions that can communicate and provide guidance.",
-              "Unlike ordinary wizards, scribes engage in dialogue with their spellbooks, treating them as collaborative partners in magical study."
-            ]
-          },
-          {
-            "type": "list",
-            "items": [
-              "Primary function: Archiving magical discoveries",
-              "Distinctive trait: Awakened spellbooks as sentient companions",
-              "Cultural significance: Symbolizes the fusion of magic and scholarship"
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.2nd-level-order-of-scribes-f-eature",
       "type": "Class",
-      "name": "2nd-level Order of Scribes f eature",
+      "name": "Awakened Spellbook",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 78,
@@ -12129,12 +11224,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.6th-level-order-of-scribes-f-eature",
       "type": "Class",
-      "name": "6th-level Order of  Scribes f eature",
+      "name": "Manifest Mind",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 79,
@@ -12197,12 +11292,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.10th-level-order-of-scribes-f-eature",
       "type": "Class",
-      "name": "10th-level Order of  Scribes f eature",
+      "name": "Master Scrivener",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 79,
@@ -12248,12 +11343,12 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.class.14th-level-order-of-scribes-f-eature",
       "type": "Class",
-      "name": "14th-level Order of Scribes f eature",
+      "name": "One with the Word",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 79,
@@ -12291,7 +11386,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.spell.magical-miscellany",
@@ -14694,77 +13789,6 @@
       "needsReview": false
     },
     {
-      "id": "tce.item.wondrous-item-rare-requires-attunement-by-a-wizard",
-      "type": "Item",
-      "name": "Wondrous item, rare ( requires attunement by a wizard)",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 121,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 121
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "type": "item",
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Description",
-            "entries": [
-              "This brass disc of articulated, concentric rings unfolds into an armillary sphere. As a bonus action, you can unfold it into the sphere or back into a disc.",
-              "While you are holding the archive, you can use it as a spellcasting focus for your wizard spells."
-            ]
-          },
-          {
-            "type": "list",
-            "name": "Spells",
-            "items": [
-              "augury",
-              "divination",
-              "find the path",
-              "foresight",
-              "locate creature",
-              "locate object"
-            ]
-          },
-          {
-            "type": "entries",
-            "name": "Charges",
-            "entries": [
-              "The archive has 3 charges, and it regains 1d3 expended charges daily at dawn.",
-              "While holding it, you can use the charges in the following ways:"
-            ],
-            "subentries": [
-              {
-                "type": "entries",
-                "name": "Replace Prepared Spell",
-                "entries": [
-                  "If you spend 1 minute studying the archive, you can expend 1 charge to replace one of your prepared wizard spells with a different spell in the archive. The new spell must be of the divination school."
-                ]
-              },
-              {
-                "type": "entries",
-                "name": "Modify Rolls",
-                "entries": [
-                  "When a creature you can see within 30 feet of you makes an attack roll, an ability check, or a saving throw, you can use your reaction to expend 1 charge and force the creature to roll a d4 and apply the number rolled as a bonus or penalty (your choice) to the original roll. You can do this after you see the roll but before its effects are applied."
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
       "id": "tce.magicitem.atlas-of-endless-horizons",
       "type": "MagicItem",
       "name": "Atlas of Endless Horizons",
@@ -16110,7 +15134,7 @@
     {
       "id": "tce.item.i-lluminator-s-tattoo",
       "type": "Item",
-      "name": "I LLUMINATOR'S TATTOO",
+      "name": "Illuminator's Tattoo",
       "sourceBook": "TCE",
       "edition": "Edition2014",
       "page": 130,
@@ -16151,7 +15175,7 @@
       "srd52": false,
       "basicRules2024": false,
       "keywords": [],
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "tce.magicitem.libram-of-souls-and-flesh",
@@ -16433,53 +15457,6 @@
       "needsReview": false
     },
     {
-      "id": "tce.item.wondrous-item-rare-requires-attunement-by-a-bard",
-      "type": "Item",
-      "name": "Wondrous item, rare ( requires attunement by a bard)",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 132,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 132
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Mending",
-            "entries": [
-              "While holding this lyre, you can cast {@spell Mending} as an action."
-            ]
-          },
-          {
-            "type": "entries",
-            "name": "Damage Immunity Reaction",
-            "entries": [
-              "You can play the lyre as a reaction when an object or a structure you can see within {@range 300 feet} of you takes damage, causing it to be immune to that damage and any further damage of the same type until the start of your next turn."
-            ]
-          },
-          {
-            "type": "entries",
-            "name": "Arcane Spellcasting",
-            "entries": [
-              "You can play the lyre as an action to cast {@spell Fabricate}, {@spell Move Earth}, {@spell Passwall}, or {@spell Summon Construct} (appears in this book). That spell can't be cast from it again until the next dawn."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
-    },
-    {
       "id": "tce.magicitem.masquerade-tattoo",
       "type": "MagicItem",
       "name": "Masquerade Tattoo",
@@ -16615,96 +15592,6 @@
       "basicRules2024": false,
       "keywords": [],
       "needsReview": false
-    },
-    {
-      "id": "tce.item.a-ctions",
-      "type": "Item",
-      "name": "A CTIONS",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 133,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 133
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "item",
-            "name": "Destructive Fist",
-            "description": "Melee or Ranged Weapon Attack: +1 to hit, reach 10 ft. or range 120 ft., one target. Hit: 36 (4d12 + 10) force damage. If the target is an object, it takes triple damage."
-          },
-          {
-            "type": "item",
-            "name": "Crushing Leap",
-            "description": "If the servant jumps at least 25 feet as part of its movement, it can then use this action to land on its feet in a space that contains one or more other creatures. Each of those creatures is pushed to an unoccupied space within 5 feet of the servant and must make a DC 25 Dexterity saving throw. On a failed save, a creature takes 26 (4d12) bludgeoning damage and is knocked prone. On a successful save, a creature takes half as much damage and isn't knocked prone."
-          },
-          {
-            "type": "item",
-            "name": "Self-Destruct",
-            "description": "By inputting a specific series of lever pulls and button presses, the servant's two crew members can cause it to explode. If the code is discovered (the DM determines how), it requires two attuned crew members to be inside the servant and spend their actions on 3 consecutive rounds performing the command. Should the crew members begin the process of entering the code, though, the servant uses its Ghost in the Machine property and turns the crew members against each other. If the crew members successfully implement the code, at the end of the third round, the servant explodes. Every creature in a 100-foot-radius sphere centered on the servant must make a DC 25 Dexterity saving throw. On a failed save, a creature takes 87 (25d6) force damage, 87 (25d6) lightning damage, and 87 (25d6) thunder damage. On a successful save, a creature takes half as much damage. Objects and structures in the area take triple damage. Creatures inside the servant are slain instantly and leave behind no remains."
-          },
-          {
-            "type": "item",
-            "name": "Destroying the Servant",
-            "description": "The servant can be destroyed in two ways. After it has self-destructed, its disconnected pieces can be melted down in one of the forge-temples of its ancient Olman creators. Alternatively, if the servant strikes the Machine of Lum the Mad, both artifacts explode in an eruption that is three times the size and three times the damage as the servant's self-destruct property."
-          },
-          {
-            "type": "item",
-            "name": "Bite",
-            "description": "Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 1 piercing damage plus 2 (1d4) acid damage."
-          },
-          {
-            "type": "item",
-            "name": "Shape-Shift",
-            "description": "The mimic polymorphs into an object or back into its true, amorphous form. Its statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies."
-          },
-          {
-            "type": "item",
-            "name": "Mimic Colony Lair Actions",
-            "description": [
-              {
-                "type": "entries",
-                "name": "Restraining Targets",
-                "entries": [
-                  "The mimic colony chooses up to three creatures within 300 feet of it. Each target must succeed on a DC 15 Strength saving throw or have its speed reduced to 0 until initiative count 20 on the following round, as pieces of the environment grasp the target. If a target fails the save by 5 or more, it is restrained instead for that duration."
-                ]
-              },
-              {
-                "type": "entries",
-                "name": "Helping a Creature",
-                "entries": [
-                  "The mimic colony uses the Help action, aiding a creature of its choice within 300 feet of it."
-                ]
-              },
-              {
-                "type": "entries",
-                "name": "Acid Spittle",
-                "entries": [
-                  "The mimic colony chooses up to three creatures within 300 feet of it. Each target must succeed on a DC 15 Dexterity saving throw or take 13 (3d8) acid damage, as orifices appear on surfaces in the environment and launch caustic spittle."
-                ]
-              },
-              {
-                "type": "entries",
-                "name": "Reshaping Material",
-                "entries": [
-                  "The mimic colony chooses a cube of nonmagical, inanimate material in physical contact with it. The cube can be up to 15 feet on a side. The colony reshapes that material however it likes. This transformation lasts for 1 hour."
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
     },
     {
       "id": "tce.item.moon-sickle",
@@ -17844,58 +16731,6 @@
       "basicRules2024": false,
       "keywords": [],
       "needsReview": false
-    },
-    {
-      "id": "tce.monster.fi-e-n-ds",
-      "type": "Monster",
-      "name": "FI E N DS",
-      "sourceBook": "TCE",
-      "edition": "Edition2014",
-      "page": 149,
-      "firstAppearedIn": {
-        "book": "TCE",
-        "edition": "Edition2014",
-        "page": 149
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": {
-          "type": "fiend",
-          "tags": [
-            "desire"
-          ]
-        },
-        "cr": "1/4",
-        "hp": {
-          "average": 5,
-          "formula": "1d6+1"
-        },
-        "action": [
-          {
-            "name": "Desired Offering",
-            "entries": [
-              "Your soul",
-              "2 A desecrated holy object",
-              "3 Blood from a living or recently slain loved one",
-              "4 Breaking a sacred promise in the fiend's presence"
-            ]
-          }
-        ],
-        "keywords": [
-          "Desired Offering"
-        ]
-      },
-      "dataSource": "",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "keywords": [],
-      "needsReview": true
     },
     {
       "id": "tce.monster.oozes",

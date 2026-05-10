@@ -8,27 +8,6 @@
   },
   "entities": [
     {
-      "id": "dmg14.god.gons-of-your-world",
-      "type": "God",
-      "name": "Gons OF YouR WoRLD",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 10,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 10
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "Appendix B of the Player's Handbook presents a number of pantheons (loose groupings of deities not united by a single doctrine or philosophy) for use in your game, including the gods of established D&D worlds and fantasy-historical pantheons. You can adopt one of these pantheons for your campaign, or pick and choose deities and ideas from them as you please. See \"A Sample Pantheon\" in this section for an example.\n\nAs far as the game's rules are concerned, it doesn't matter if your world has hundreds of deities or a church devoted to a single god. In rules terms, clerics choose domains, not deities, so your world can associate domains with deities in any way you choose.\n\nNote: The entity \"Gons OF YouR WoRLD\" appears to be a placeholder or malformed reference. No specific deity details are provided in the source text beyond general pantheon information.\n\nSource text does not describe any specific attributes, domains, alignment, or other details about this entity. The name \"Gons OF YouR WoRLD\" does not correspond to any known D&D deity or pantheon from official sources.\n\nCross-entity references: None (no specific deity details provided)\n\nBook: Dungeon Master's Guide (2014)\n\nPage: 10\n\nType: Pantheon (general guidance, not a specific deity)\n\nSlug: dungeon-masters-guide.pantheon.gons-of-your-world\n\nStatus: Incomplete/placeholder reference (no specific deity data available)\n\nNotes: The text provides general rules about deities and pantheons but does not describe any specific deity named \"Gons OF YouR WoRLD\". This appears to be an error or placeholder in the original text."
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.god.loose-pantheons",
       "type": "God",
       "name": "Loose Pantheons",
@@ -69,28 +48,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.god.a-sample-pantheon",
-      "type": "God",
-      "name": "A SAMPLE PANTHEON",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 11,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 11
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "pantheon": "Dawn War Pantheon",
-        "description": "A sample pantheon assembled from preexisting elements for campaign use, featuring gods from various sources and three original deities."
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.god.other-religious-systems",
@@ -283,33 +240,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.plane.l-a-nar-categories",
-      "type": "Plane",
-      "name": "l: ..... A. NAR CATEGORIES",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 43,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 43
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "category": "Material Plane and Its Echoes",
-        "description": "The Feywild and Shadowfell are reflections of the Material Plane. They primarily serve as pathways to travel from one plane to another.",
-        "relatedPlanes": [
-          "Material Plane",
-          "Feywild",
-          "Shadowfell"
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.plane.putting-the-planes-together",
       "type": "Plane",
       "name": "Putting the Planes Together",
@@ -439,30 +369,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.plane.c-olor-pools",
-      "type": "Plane",
-      "name": "C OLOR POOLS",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 47,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 47
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "Gateways leading from the Astral Plane to other planes appear as two-dimensional pools of rippling colors, d6 x 10 feet in diameter.",
-        "relatedPlanes": [
-          "<dungeon-master-s-guide-2014>.plane.astral-plane"
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.plane.psychic-wind",
@@ -1326,32 +1232,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.plane.layers-of-the-o-uter-planes",
-      "type": "Plane",
-      "name": "LAYERS OF THE O UTER PLANES",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 58,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 58
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "Most of the Outer Planes include a number of distinct environments or realms. These realms are often imagined and depicted as a stack of related parts of the same plane, so travelers refer to them as layers. For example, Mount Celestia resembles a seven-tiered layer cake, the Nine Hells has nine layers, and the Abyss has a seemingly endless number of layers. Most portals from elsewhere reach the first layer of a multilayered plane. This layer is variously depicted as the top or bottom layer, depending on the plane. As the arrival point for most visitors, the first layer functions like a city gate for that plane.",
-        "relatedPlanes": [
-          "Mount Celestia",
-          "Nine Hells",
-          "Abyss"
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.plane.traveling-the-outer-planes",
       "type": "Plane",
       "name": "Traveling the Outer Planes",
@@ -1574,30 +1454,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.plane.optional-rule-overwhelming-joy",
-      "type": "Plane",
-      "name": "OPTIONAL RuLE: OvERWHELMING joY",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 60,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 60
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "Visitors spending any time on this plane risk becoming trapped by overwhelming sensations of contentment and happiness.",
-        "relatedPlanes": [
-          "dmg.plane.overwhelming-joy"
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.plane.the-beastlands",
@@ -1848,30 +1704,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.plane.o-ptional-rule-prison-plane",
-      "type": "Plane",
-      "name": "O PTIONAL RULE: PRISON PLANE",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 63,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 63
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "Magical efforts to leave the plane by any spell other than a wish simply fail. Portals and gates that open onto the plane become one-way only. Secret ways out of the plane exist, but they are hidden and well guarded by traps and deadly monsters.",
-        "relatedPlanes": [
-          "carceri"
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.plane.lades",
       "type": "Plane",
       "name": ":-lADES",
@@ -1896,30 +1728,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.plane.optional-rule-v-i-le-transformation",
-      "type": "Plane",
-      "name": "OPTIONAL RULE: V I LE TRANSFORMATION",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 63,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 63
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "A plane of eternal darkness and torment, where visitors must make a DC 10 Wisdom saving throw at the end of each long rest. Failed saves grant exhaustion levels that persist until the creature transforms into a larva upon reaching six levels. The plane is inhabited by fiends who harvest larvae for rituals.",
-        "relatedPlanes": [
-          "abyss"
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.larva",
@@ -2250,30 +2058,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.plane.t-he-outlands-and-sigil",
-      "type": "Plane",
-      "name": "T HE OUTLANDS AND SIGIL",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 67,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 67
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "The Outlands is the plane between the Outer Planes. It is the plane of neutrality, incorporating a little of everything and keeping all aspects in a paradoxical balance, simultaneously concordant and in opposition. The plane has varied terrain, with prairies, mountains, and shallow rivers. The Outlands is circular, like a great disk, and is considered a microcosm of the planes. Sixteen gate-towns surround the edge, each leading to an Outer Plane and sharing characteristics of their respective planes. The arrangement of the Outlands inspired the idea of the Great Wheel in the first place.",
-        "relatedPlanes": [
-          "Outer Planes"
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.plane.gate-towns-of-the-outlands",
       "type": "Plane",
       "name": "Gate-Towns of the Outlands",
@@ -2386,30 +2170,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.plane.known-worlds-d-f-the-i-material-plane",
-      "type": "Plane",
-      "name": "KNOWN WORLDS d F THE I MATERIAL PLANE",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 68,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 68
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "Worlds of the Material Plane are infinitely diverse. The most widely known worlds are the ones that have been published as official campaign settings for the D&D game over the years. If your campaign takes place on one of these worlds, that world belongs to you in your campaign. Your version of the world can diverge wildly from what's in print.",
-        "relatedPlanes": [
-          "<dungeon-masters-guide>.plane.material-plane"
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.monster.chapter-4-creating-nonplayer-characters",
       "type": "Monster",
       "name": "Chapter 4:  Creating Nonplayer Characters",
@@ -2456,25 +2216,6 @@
       "fields": {},
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.monster.quick-npcs",
-      "type": "Monster",
-      "name": "QuicK NPCs",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 89,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 89
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {},
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.detailed-npcs",
@@ -2704,25 +2445,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.monster.t-alent",
-      "type": "Monster",
-      "name": "T ALENT",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 90,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 90
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {},
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.monster.mannerism",
       "type": "Monster",
       "name": "Mannerism",
@@ -2757,25 +2479,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.monster.i-nteractions-with-others",
-      "type": "Monster",
-      "name": "I NTERACTIONS WITH OTHERS",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 90,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 90
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {},
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.useful-knowledge",
@@ -2862,36 +2565,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.monster.i-deal",
-      "type": "Monster",
-      "name": "I DEAL",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 90,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 90
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "type": "ideal",
-        "alignment": [
-          "suggestions only"
-        ],
-        "challengeRating": {},
-        "environment": [],
-        "keywords": [],
-        "legendaryActions": {},
-        "lairActions": {},
-        "variantForms": []
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.monster.npc-ideals",
       "type": "Monster",
       "name": "Npc Ideals",
@@ -2964,109 +2637,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.monster.f-l-aw-or-secret",
-      "type": "Monster",
-      "name": "F L AW OR SECRET",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 91,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 91
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "type": "monster",
-        "armorClass": {},
-        "hitPoints": {},
-        "speed": {},
-        "abilityScores": {},
-        "savingThrows": {},
-        "skills": {},
-        "damageResistances": [],
-        "damageImmunities": [],
-        "conditionImmunities": [],
-        "senses": [],
-        "challengeRating": {},
-        "spellcasting": [],
-        "legendaryActions": {},
-        "variantForms": []
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
-      "id": "dmg14.monster.monsters-as-npcs",
-      "type": "Monster",
-      "name": "MoNsTERS As NPCs",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 91,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 91
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "type": "beholder",
-        "alignment": [
-          "neutral evil"
-        ],
-        "traits": [
-          {
-            "name": "Ideal",
-            "summary": "Greed. It craves powerful magic items and surrounds itself with gold, platinum, and precious gems."
-          },
-          {
-            "name": "Bond",
-            "summary": "To its lair—an elaborate cavern complex carved out between the twisting sewers of Waterdeep, which it inherited from its predecessors and cherishes above all else."
-          },
-          {
-            "name": "Flaw",
-            "summary": "A weakness for exotic pleasures: finely prepared foods, scented oils, and rare spices and herbs."
-          }
-        ],
-        "actions": [
-          {
-            "name": "Movement",
-            "summary": "Uses the sewers beneath Waterdeep to access virtually any location within or under the city."
-          },
-          {
-            "name": "Speech",
-            "summary": "Slow and deliberate, preferring to turn its central eye away from creatures it speaks to."
-          }
-        ],
-        "spellcasting": [
-          {
-            "spellList": "Arcane"
-          }
-        ],
-        "legendaryActions": {
-          "actions": [
-            {
-              "name": "Magic Ring",
-              "summary": "One of the magic rings on its eye stalks can be used to cast a spell."
-            },
-            {
-              "name": "Scented Oil",
-              "summary": "A rare spice or herb can be used to create a magical effect."
-            }
-          ]
-        },
-        "variantForms": [
-          "Beholder"
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.monster.npc-statistics",
       "type": "Monster",
       "name": "Npc Statistics",
@@ -3088,25 +2658,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.monster.using-a-monster-s-tat-block",
-      "type": "Monster",
-      "name": "/ USING A MONSTER S-TAT BLOCK",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 92,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 92
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {},
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.using-classes-and-levels",
@@ -3161,123 +2712,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.monster.low-level-followers",
-      "type": "Monster",
-      "name": "Low-LEVEL FoLLOWERS",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 92,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 92
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "type": "monster",
-        "subtypes": [],
-        "keywords": [],
-        "actions": [],
-        "spellcasting": [
-          {
-            "cantripsKnownByLevel": [],
-            "spellsKnownByLevel": []
-          }
-        ],
-        "legendaryActions": {},
-        "lairActions": {},
-        "variantForms": []
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
-      "id": "dmg14.monster.a-dventurer-npcs",
-      "type": "Monster",
-      "name": "A DVENTURER NPCs",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 93,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 93
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {},
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
-      "id": "dmg14.monster.o-ptional-rule-loyalty",
-      "type": "Monster",
-      "name": "O PTIONAL RULE:  LOYALTY",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 93,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 93
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "type": "Monster",
-        "traits": [
-          {
-            "name": "LOYALTY",
-            "summary": "Optional rule for determining NPC loyalty to the party. NPCs may abandon or fight for the party based on factors like abuse, gratitude, or shared goals."
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
-      "id": "dmg14.monster.oyalty-score",
-      "type": "Monster",
-      "name": ":..oYALTY ScoRE",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 93,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 93
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "type": "rule",
-        "subtypes": [
-          "loyalty"
-        ],
-        "abilityScores": {
-          "charisma": 20
-        },
-        "bonusActions": [],
-        "reactions": [],
-        "spellcasting": [
-          {
-            "spellSlotsByLevel": []
-          }
-        ],
-        "lairActions": {
-          "actions": []
-        },
-        "variantForms": []
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.tracking-loyalty",
@@ -3388,34 +2822,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.monster.extras",
-      "type": "Monster",
-      "name": "ExTRAS",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 94,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 94
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "type": "Monster",
-        "subtypes": [],
-        "keywords": [],
-        "actions": [],
-        "reactions": [],
-        "legendaryActions": {},
-        "lairActions": {},
-        "variantForms": null
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.villain-s-scheme",
@@ -3850,38 +3256,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.class.rv-in-e-strike",
-      "type": "Class",
-      "name": "..... rv iN E  STRIKE",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 97,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 97
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "toolProficiencies": [],
-        "featuresByLevel": [
-          {
-            "level": 1,
-            "features": [
-              {
-                "name": "Divine Smite",
-                "summary": "Once per turn when hitting a creature with a weapon attack, deal 1d8 necrotic damage. At 14th level, this increases to 2d8 necrotic damage."
-              }
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.class.proved-reaper",
       "type": "Class",
       "name": "=  Proved Reaper",
@@ -4059,41 +3433,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.class.c-hannel-divinity",
-      "type": "Class",
-      "name": "C HANNEL DIVINITY",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 97,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 97
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "featuresByLevel": [
-          {
-            "level": 3,
-            "features": [
-              {
-                "name": "Control Undead",
-                "summary": "As an action, the paladin targets one undead creature within 30 feet. The target must make a Wisdom saving throw. On a failed save, the undead obeys the paladin's commands for 24 hours or until the paladin uses this Channel Divinity option again. Undead with a challenge rating equal to or greater than the paladin's level are immune to this effect."
-              },
-              {
-                "name": "Dreadful Aspect",
-                "summary": "As an action, the paladin creates a burst of magical menace. Each creature within 30 feet that can see the paladin must make a Wisdom saving throw. On a failed save, the target is frightened for 1 minute. If a creature frightened by this effect ends its turn more than 30 feet away from the paladin, it can attempt another Wisdom saving throw to end the effect."
-              }
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.class.aura-of-hate",
@@ -4300,70 +3639,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.trap.triggering-a-trap",
-      "type": "Trap",
-      "name": "TRIGGERING A TRAP",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 120,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 120
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "Most traps are triggered when a creature goes somewhere or touches something that the trap's creator wanted to protect. Common triggers include stepping on a pressure plate or a false section of floor, pulling a trip wire, turning a doorknob, and using the wrong key in a lock. Magic traps are often set to go off when a creature enters an area or touches an object. Some magic traps (such as the glyph of warding spell) have more complicated trigger conditions, including a password that prevents the trap from activating."
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
-      "id": "dmg14.trap.detecting-and-disabling-a-trap",
-      "type": "Trap",
-      "name": "DETECTING AND DISABLING A TRAP",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 120,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 120
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "detectDc": 0,
-        "description": "Characters might notice an uneven flagstone that conceals a pressure plate, spot the gleam of light off a trip wire, notice small holes in the walls from which jets of flame will erupt, or otherwise detect something that points to a trap's presence. A trap's description specifies the checks and DCs needed to detect it, disable it, or both. A character actively looking for a trap can attempt a Wisdom (Perception) check against the trap's DC. Passive Wisdom (Perception) scores may also detect traps in passing. Detecting a trap before triggering it allows attempts to disarm it, using Intelligence (Investigation) checks to deduce solutions followed by Dexterity checks with thieves' tools. Magic traps can be detected/disarmed via Intelligence (Arcana) checks (same DCs) or dispel magic (DC specified in trap description). Adjudication prioritizes narrative logic over die rolls, and some actions automatically reveal traps without checks (e.g., lifting a rug). Foiling traps may involve creative bypass methods (e.g., using a shield to block harmful effects). Traps often include mechanisms for disarming or bypassing them, especially for intelligent monsters placing them in lairs."
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
-      "id": "dmg14.trap.t-rap-effects",
-      "type": "Trap",
-      "name": "T RAP EFFECTS",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 121,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 121
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "The effects of traps can range from inconvenient to deadly, making use of elements such as arrows, spikes, blades, poison, toxic gas, blasts of fire, and deep pits. The deadliest traps combine multiple elements to kill, injure, contain, or drive off any creature unfortunate enough to trigger them. A trap's description specifies what happens when it is triggered.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonuses table and the Damage Severity by Level table for suggestions based on three levels of trap severity.\n\nA trap intended to be a setback is unlikely to kill or seriously harm characters of the indicated levels, whereas a dangerous trap is likely to seriously injure (and potentially kill) characters of the indicated levels. A deadly trap is likely to kill characters of the indicated levels.\n\nThe attack bonus of a trap, the save DC to resist its effects, and the damage it deals can vary depending on the trap's severity. Use the Trap Save DCs and Attack Bonclusions: The text describes trap effects and severity levels but does not provide specific numerical data. The severity levels are setback, dangerous, and deadly, each with distinct impacts on characters. The referenced tables (Trap Save DCs and Attack Bonuses, Damage Severity by Level) are not included here. The description field captures the general explanation of trap effects and severity. The severity_levels array includes the three categories with their respective descriptions. The name is "
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.trap.complex-traps",
@@ -5093,27 +4368,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.item.yfagic-item-categories",
-      "type": "Item",
-      "name": ".YfAGIC  ITEM CATEGORIES",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 139,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 139
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "Each magic item belongs to a category: armor, potions, rings, rods, scrolls, staffs, wands, weapons, or 'wondrous items.'"
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.item.rmor",
       "type": "Item",
       "name": "_ -\\rmor",
@@ -5133,27 +4387,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.item.p-otions",
-      "type": "Item",
-      "name": "P OTIONS",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 139,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 139
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "description": "Different kinds of magical liquids are grouped in the category of potions: brews made from enchanted herbs, water from magical fountains or sacred springs, and oils that are applied to a creature or object. Most potions consist of one ounce of liquid. Potions are consumable magic items. Drinking a potion or administering a potion to another character... (truncated text)."
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.item.treasure-hoard-challenge-17",
@@ -5546,62 +4779,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.item.c-ommand-word",
-      "type": "Item",
-      "name": "C OMMAND WORD",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 141,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 141
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Command Word",
-            "entries": [
-              "A command word is a word or phrase that must be spoken for an item to work. A magic item that requires a command word can't be activated in an area where sound is prevented, as in the area of the silence spell."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
-      "id": "dmg14.item.c-onsumables",
-      "type": "Item",
-      "name": "C ONSUMABLES",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 141,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 141
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "Rule",
-            "name": "Consumables",
-            "description": "Some items are used up when activated. A potion or elixir must be swallowed, or an oil applied to the body. The writing vanishes from a scroll when read. Once used, a consumable item loses its magic."
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.item.magic-item-formulas",
       "type": "Item",
       "name": "Magic Item  Formulas",
@@ -5658,37 +4835,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.item.magic-it-em-r-esilience",
-      "type": "Item",
-      "name": "MAGIC IT EM R ESILIENCE",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 141,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 141
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "type": "Rule",
-        "entries": [
-          {
-            "type": "entries",
-            "name": "Magic Item Resilience",
-            "entries": [
-              "Most magic items (excluding potions and scrolls) have resistance to all damage. Artifacts are practically indestructible, requiring extraordinary measures to destroy.",
-              "Magic items are at least as durable as nonmagical items of their kind."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.item.special-features",
       "type": "Item",
       "name": "Special Features",
@@ -5709,37 +4855,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.item.variant-wands-that-don-t-recharge",
-      "type": "Item",
-      "name": "VARIANT: WANDS THAT DoN'T RECHARGE",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 141,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 141
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "rule",
-            "name": "Wands That Don't Recharge",
-            "description": "A variant rule that makes wands incapable of regaining charges once expended. Increase the base number of charges to a maximum of 25. These charges are never regained once they're expended.",
-            "properties": {
-              "charge_limit": "25",
-              "recharge": "Never regained once expended"
-            }
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.item.d20-creator-or-intended-user",
@@ -7572,7 +6687,7 @@
     {
       "id": "dmg14.item.berserker-axe",
       "type": "Item",
-      "name": "BERSERKER AxE",
+      "name": "Berserker Axe",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 155,
@@ -7616,7 +6731,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.boots-of-elvenkind",
@@ -8408,7 +7523,7 @@
     {
       "id": "dmg14.item.c-loak-of-the-bat",
       "type": "Item",
-      "name": "C LOAK OF THE BAT",
+      "name": "Cloak of the Bat",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 159,
@@ -8462,12 +7577,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.c-loak-of-the-manta-ray",
       "type": "Item",
-      "name": "C LOAK OF THE MANTA RAY",
+      "name": "Cloak of the Manta Ray",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 159,
@@ -8490,7 +7605,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.cube-of-force-faces",
@@ -8739,103 +7854,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.item.a-question-of-enmity",
-      "type": "Item",
-      "name": "A QUESTION OF ENMITY",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 162,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 162
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "item",
-            "name": "Flames",
-            "description": "A powerful devil becomes your enemy. The devil seeks your ruin and plagues your life, savoring your suffering before attempting to slay you. This enmity lasts until either you or the devil dies."
-          },
-          {
-            "type": "item",
-            "name": "Rogue",
-            "description": "A nonplayer character of the DM's choice becomes hostile toward you. The identity of your new enemy isn't known until the NPC or someone else reveals it. Nothing less than a wish spell or divine intervention can end the NPC's hostility toward you."
-          },
-          {
-            "type": "item",
-            "name": "Euryale",
-            "description": "The card's medusa-like visage curses you. You take a -2 penalty on saving throws while cursed in this way. Only a god or the magic of <core-rulebook.item.deck-of-many-things>.The Fates card can end this curse."
-          },
-          {
-            "type": "item",
-            "name": "The Fates",
-            "description": "Reality's fabric unravels and spins anew, allowing you to avoid or erase one event as if it never happened. You can use the card's magic as soon as you draw the card or at any other time before you die."
-          },
-          {
-            "type": "item",
-            "name": "Fool",
-            "description": "You lose 10,000 XP, discard this card, and draw from the deck again, counting both draws as one of your declared draws. If losing that much XP would cause you to lose a level, you instead lose an amount that leaves you with just enough XP to keep your level."
-          },
-          {
-            "type": "item",
-            "name": "Gem",
-            "description": "Twenty-five pieces of jewelry worth 2,000 gp each or fifty gems worth 1,000 gp each appear at your feet."
-          },
-          {
-            "type": "item",
-            "name": "Idiot",
-            "description": "Permanently reduce your Intelligence by 1d4 + 1 (to a minimum score of 1). You can draw one additional card beyond your declared draws."
-          },
-          {
-            "type": "item",
-            "name": "Jester",
-            "description": "You gain 10,000 XP, or you can draw two additional cards beyond your declared draws."
-          },
-          {
-            "type": "item",
-            "name": "Key",
-            "description": "A rare or rarer magic weapon with which you are proficient appears in your hands. The DM chooses the weapon."
-          },
-          {
-            "type": "item",
-            "name": "Knight",
-            "description": "You gain the service of a 4th-level fighter who appears in a space you choose within 30 feet of you. The fighter is of the same race as you and serves you loyally until death, believing the fates have drawn him or her to you. You control this character."
-          },
-          {
-            "type": "item",
-            "name": "Moon",
-            "description": "You are granted the ability to cast the wish spell 1d3 times. <core-rulebook.spell.wish>"
-          },
-          {
-            "type": "item",
-            "name": "Ruin",
-            "description": "All forms of wealth that you carry or own, other than magic items, are lost to you. Portable property vanishes. Businesses, buildings, and land you own are lost in a way that alters reality the least. Any documentation that proves you should own something lost to this card also disappears."
-          },
-          {
-            "type": "item",
-            "name": "Skull",
-            "description": "You summon an avatar of death—a ghostly humanoid skeleton clad in a tattered black robe and carrying a spectral scythe. It appears in a space of the DM's choice within 10 feet of you and attacks you, warning all others that you must win the battle alone. The avatar fights until you die or it drops to 0 hit points, whereupon it disappears. If anyone tries to help you, the helper summons its own avatar of death. A creature slain by an avatar of death can't be restored to life."
-          },
-          {
-            "type": "item",
-            "name": "Star",
-            "description": "Increase one of your ability scores by 2. The score can exceed 20 but can't exceed 24."
-          },
-          {
-            "type": "item",
-            "name": "Sun",
-            "description": "You gain 50,000 XP, and a wondrous item (which the DM determines randomly) appears in your hands."
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.avatar-of-death",
@@ -9228,7 +8246,7 @@
     {
       "id": "dmg14.magicitem.dwarven-thrower",
       "type": "MagicItem",
-      "name": "DwARVEN THROWER",
+      "name": "Dwarven Thrower",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 167,
@@ -9255,7 +8273,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.fondrous-item-very-rare",
@@ -9975,7 +8993,7 @@
     {
       "id": "dmg14.magicitem.goggles-of-night",
       "type": "MagicItem",
-      "name": "GoGGLES oF NIGHT",
+      "name": "Goggles of Night",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 172,
@@ -10007,7 +9025,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.hammer-of-thunderbolts",
@@ -10371,7 +9389,7 @@
     {
       "id": "dmg14.item.h-orn-of-valhalla",
       "type": "Item",
-      "name": "H ORN OF VALHALLA",
+      "name": "Horn of Valhalla",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 175,
@@ -10420,12 +9438,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.horseshoes-of-a-zephyr",
       "type": "MagicItem",
-      "name": "HORSESHOES OF A ZEPHYR",
+      "name": "Horseshoes of a Zephyr",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 175,
@@ -10448,7 +9466,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.horseshoes-of-speed",
@@ -10959,7 +9977,7 @@
     {
       "id": "dmg14.item.m-ace-of-terror",
       "type": "Item",
-      "name": "M ACE OF TERROR",
+      "name": "Mace of Terror",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 180,
@@ -10988,7 +10006,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.mantle-of-spell-resistance",
@@ -11128,7 +10146,7 @@
     {
       "id": "dmg14.item.m-anual-of-quickness-of-action",
       "type": "Item",
-      "name": "M ANUAL OF QUICKNESS OF ACTION",
+      "name": "Manual of Quickness of Action",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 181,
@@ -11160,12 +10178,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.m-ariner-s-armor",
       "type": "Item",
-      "name": "M ARINER's ARMOR",
+      "name": "Mariner's Armor",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 181,
@@ -11197,12 +10215,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.m-edallion-of-thoughts",
       "type": "Item",
-      "name": "M EDALLION OF THOUGHTS",
+      "name": "Medallion of Thoughts",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 181,
@@ -11230,12 +10248,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.m-irror-of-life-trapping",
       "type": "Item",
-      "name": "M IRROR OF LIFE TRAPPING",
+      "name": "Mirror of Life Trapping",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 181,
@@ -11291,7 +10309,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.armor-medium-or-heavy-but-not-hide-uncommon",
@@ -11332,7 +10350,7 @@
     {
       "id": "dmg14.item.necklace-of-a-daptation",
       "type": "Item",
-      "name": "NECKLACE OF A DAPTATION",
+      "name": "Necklace of Adaptation",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 182,
@@ -11359,7 +10377,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.necklace-of-fireballs-wondrous-item-rare",
@@ -11646,7 +10664,7 @@
     {
       "id": "dmg14.magicitem.pearl-of-power",
       "type": "MagicItem",
-      "name": "PEARL OF PowER",
+      "name": "Pearl of Power",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 184,
@@ -11670,7 +10688,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.periapt-of-health-wondrous-item-uncommon",
@@ -13659,7 +12677,7 @@
     {
       "id": "dmg14.item.ron-of-lordly-might-rod-legendary-requires-attunement",
       "type": "Item",
-      "name": "Ron oF LoRDLY MIGHT Rod, legendary (requires attunement)",
+      "name": "Rod of Lordly Might",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 196,
@@ -13711,12 +12729,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.r-on-of-the-pact-keeper",
       "type": "Item",
-      "name": "R on OF THE PACT KEEPER",
+      "name": "Rod of the Pact Keeper",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 197,
@@ -13742,7 +12760,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.on-of-resurrection",
@@ -13796,37 +12814,9 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.item.o-n-of-rulership",
-      "type": "Item",
-      "name": "·  O n  OF RULERSHIP",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 197,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 197
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "name": "Rod of Rulership",
-            "type": "Rod",
-            "rarity": "rare",
-            "description": "This rod requires attunement. You can use an action to present the rod and command obedience from each creature of your choice that you can see within 120 feet of you. Each target must succeed on a DC 15 Wisdom saving throw or be charmed by you for 8 hours. While charmed in this way, the creature regards you as its trusted leader. If harmed by you or your companions, or commanded to do something contrary to its nature, a target ceases to be charmed. The rod can't be used again until the next dawn."
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.item.r-o-n-of-security",
       "type": "Item",
-      "name": "R o n  OF SECURITY",
+      "name": "Rod of Security",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 197,
@@ -13886,7 +12876,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.rope-of-climbing",
@@ -13989,7 +12979,7 @@
     {
       "id": "dmg14.item.s-carab-of-protection",
       "type": "Item",
-      "name": "S CARAB OF PROTECTION",
+      "name": "Scarab of Protection",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 199,
@@ -14013,7 +13003,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.scimitar-of-speed",
@@ -14786,7 +13776,7 @@
     {
       "id": "dmg14.item.staff-of-the-a-dder",
       "type": "Item",
-      "name": "STAFF OF THE A DDER",
+      "name": "Staff of the Adder",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 203,
@@ -14836,7 +13826,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.staff-of-the-magi",
@@ -15159,7 +14149,7 @@
     {
       "id": "dmg14.magicitem.sun-blade",
       "type": "MagicItem",
-      "name": "SuN BLADE",
+      "name": "Sun Blade",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 205,
@@ -15200,7 +14190,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.sword-of-answering",
@@ -15360,7 +14350,7 @@
     {
       "id": "dmg14.item.sword-of-wounding",
       "type": "Item",
-      "name": "SwoRD OF WouNDING",
+      "name": "Sword of Wounding",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 207,
@@ -15406,12 +14396,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.talisman-of-pure-goon",
       "type": "Item",
-      "name": "TALISMAN OF PuRE Goon",
+      "name": "Talisman of Pure Good",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 207,
@@ -15439,7 +14429,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.talisman-of-the-sphere",
@@ -15753,7 +14743,7 @@
     {
       "id": "dmg14.item.u-niversal-solvent",
       "type": "Item",
-      "name": "U NIVERSAL SOLVENT",
+      "name": "Universal Solvent",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 209,
@@ -15776,7 +14766,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.vicious-weapon-weapon-any-rare",
@@ -16222,35 +15212,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.item.wand-uncommon-requires-attunement-by-a-spellcaster",
-      "type": "Item",
-      "name": "Wand,  uncommon (requires attunement by a spellcaster)",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 212,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 212
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "item",
-            "name": "Wand",
-            "rarity": "uncommon",
-            "attunement": "requires attunement by a spellcaster",
-            "description": "This wand has 7 charges. While holding it, you can use an action to expend 1 charge to cast {@item Web|PHB.spell.Web} (save DC 15) from it. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll a d20. On a 1, the wand crumbles into ashes and is destroyed."
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.magicitem.wand-of-wonder",
       "type": "MagicItem",
       "name": "Wand of Wonder",
@@ -16643,36 +15604,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.item.a-lign-ment",
-      "type": "Item",
-      "name": "A LIGN MENT",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 216,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 216
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "rule",
-            "name": "Sentient Magic Item Alignment",
-            "description": "A sentient magic item has an alignment. Its creator or nature might suggest an alignment. If not, you can pick an alignment or roll on the following table.",
-            "rules": [
-              "A sentient magic item's alignment is determined by its creator, its nature, or a roll on a table (referenced but not detailed here)."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.item.characteristics",
       "type": "Item",
       "name": "Characteristics",
@@ -16701,33 +15632,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.item.special-p-urpose",
-      "type": "Item",
-      "name": "SPECIAL P URPOSE",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 216,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 216
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "rule",
-            "name": "Special Purpose",
-            "description": "You can give a sentient item an objective it pursues, perhaps to the exclusion of all else. As long as the wielder's use of the item aligns with that special purpose, the item remains cooperative. Deviating from this course might cause conflict between the wielder and the item, and could even cause the item to prevent the use of its activated properties. You can pick a special purpose or roll on the following table."
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.item.dlo-purpose",
@@ -17042,7 +15946,7 @@
     {
       "id": "dmg14.item.m-oonblade",
       "type": "Item",
-      "name": "M OONBLADE",
+      "name": "Moonblade",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 217,
@@ -17087,7 +15991,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.item.moonblade-properties",
@@ -17679,7 +16583,7 @@
     {
       "id": "dmg14.magicitem.axe-of-the-d-warvish-lords",
       "type": "MagicItem",
-      "name": "AxE OF THE D WARVISH LORDS",
+      "name": "Axe of the Dwarvish Lords",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 221,
@@ -17712,7 +16616,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.book-of-exalted-deeds",
@@ -17990,7 +16894,7 @@
     {
       "id": "dmg14.magicitem.o-rb-of-dragonkind",
       "type": "MagicItem",
-      "name": "O RB  OF DRAGONKIND",
+      "name": "Orb of Dragonkind",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 225,
@@ -18036,12 +16940,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.sword-of-kas",
       "type": "MagicItem",
-      "name": "SwoRD OF KAs",
+      "name": "Sword of Kas",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 226,
@@ -18103,7 +17007,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.wand-of-0rcus",
@@ -18697,7 +17601,7 @@
     {
       "id": "dmg14.magicitem.boon-of-combat-prowess",
       "type": "MagicItem",
-      "name": "BooN OF CoMBAT PROWESS",
+      "name": "Boon of Combat Prowess",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 232,
@@ -18719,7 +17623,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.boon-of-dimensional-travel",
@@ -18781,7 +17685,7 @@
     {
       "id": "dmg14.magicitem.boon-of-fortitude",
       "type": "MagicItem",
-      "name": "BooN OF FoRTITUDE",
+      "name": "Boon of Fortitude",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 232,
@@ -18803,7 +17707,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.boon-of-high-magic",
@@ -19045,7 +17949,7 @@
     {
       "id": "dmg14.magicitem.boon-of-planar-travel",
       "type": "MagicItem",
-      "name": "BooN oF PLANAR TRAVEL",
+      "name": "Boon of Planar Travel",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 232,
@@ -19067,7 +17971,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.boon-of-quick-casting",
@@ -19211,7 +18115,7 @@
     {
       "id": "dmg14.magicitem.boon-of-spell-mastery",
       "type": "MagicItem",
-      "name": "BooN OF SPELL MASTERY",
+      "name": "Boon of Spell Mastery",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 232,
@@ -19233,12 +18137,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.boon-of-spell-recall",
       "type": "MagicItem",
-      "name": "BooN OF SPELL RECALL",
+      "name": "Boon of Spell Recall",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 232,
@@ -19261,12 +18165,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.boon-of-the-fire-soul",
       "type": "MagicItem",
-      "name": "BooN OF THE FIRE SouL",
+      "name": "Boon of the Fire Soul",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 232,
@@ -19297,12 +18201,12 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.boon-of-tile-night-spirit",
       "type": "MagicItem",
-      "name": "BOON OF TilE NIGHT SPIRIT",
+      "name": "Boon of the Night Spirit",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 232,
@@ -19325,7 +18229,7 @@
         "variants": []
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.boon-of-the-stormborn",
@@ -19360,7 +18264,7 @@
     {
       "id": "dmg14.magicitem.boon-of-the-unfettered",
       "type": "MagicItem",
-      "name": "BooN OF THE UNFETTERED",
+      "name": "Boon of the Unfettered",
       "sourceBook": "DMG",
       "edition": "Edition2014",
       "page": 232,
@@ -19382,7 +18286,7 @@
         ]
       },
       "dataSource": "",
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "dmg14.magicitem.boon-of-truesight",
@@ -19892,89 +18796,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.monster.creating-a-monster",
-      "type": "Monster",
-      "name": "CREATING A MONSTER",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 273,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 273
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": {
-          "type": "humanoid",
-          "tags": [
-            "bullywug"
-          ]
-        },
-        "cr": "1/4",
-        "ac": [
-          15
-        ],
-        "hp": {
-          "average": 11,
-          "formula": "2d8+2"
-        },
-        "str": 12,
-        "dex": 14,
-        "con": 10,
-        "int": 8,
-        "wis": 10,
-        "cha": 8,
-        "skill": {
-          "perception": "+5",
-          "stealth": "+3"
-        },
-        "trait": [
-          {
-            "name": "Amphibious",
-            "entries": [
-              "Can breathe air and water."
-            ]
-          },
-          {
-            "name": "Poisonous",
-            "entries": [
-              "When a bullywug hits you with a bite, you take 2d8 poison damage, or the poison is harmless."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The bullywug makes two attacks with its bite."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@damage 2d8} piercing damage."
-            ]
-          }
-        ],
-        "legendary": [
-          {
-            "name": "Poisonous Breath",
-            "entries": [
-              "{@damage 10d8} poison damage in a 30-foot cone. Each creature in the area must succeed on a {@dc 15} Constitution saving throw or be poisoned for 1 minute."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.monster.modifying-a-monster",
       "type": "Monster",
       "name": "Modifying a  Monster",
@@ -20059,56 +18880,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.monster.adding-a-special-trait",
-      "type": "Monster",
-      "name": "ADDING A SPECIAL TRAIT",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 274,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 274
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": {
-          "type": "monstertemplate",
-          "tags": [
-            "customizable"
-          ]
-        },
-        "cr": "variable",
-        "hp": {
-          "average": 0,
-          "formula": "see below"
-        },
-        "action": [
-          {
-            "name": "Add Special Trait",
-            "entries": [
-              "Choose a special trait from the Monster Manual or create your own. Apply it to the monster's stat block."
-            ]
-          }
-        ],
-        "lair": [
-          {
-            "name": "Customization",
-            "entries": [
-              "Modify existing monsters by adding traits like Spider Climb, Two Heads, or flight capabilities via wings and speed adjustments."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.creating-uick-monster-stats",
@@ -20556,98 +19327,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.monster.creating-a-monster-stat-block",
-      "type": "Monster",
-      "name": "CREATING A MONSTER STAT BLOCK",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 275,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 275
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": {
-          "type": "monstet"
-        },
-        "cr": "1/4",
-        "ac": [
-          15
-        ],
-        "hp": {
-          "average": 11,
-          "formula": "2d8+2"
-        },
-        "str": 12,
-        "dex": 14,
-        "con": 10,
-        "int": 8,
-        "wis": 10,
-        "cha": 8,
-        "skill": {
-          "perception": "+5",
-          "stealth": "+3"
-        },
-        "trait": [
-          {
-            "name": "Amphibious",
-            "entries": [
-              "Can breathe air and water."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
-      "id": "dmg14.monster.step-1-n-ame",
-      "type": "Monster",
-      "name": "STEP 1. N AME",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 275,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 275
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [],
-        "type": {},
-        "cr": "",
-        "ac": [],
-        "hp": {},
-        "str": 0,
-        "dex": 0,
-        "con": 0,
-        "int": 0,
-        "wis": 0,
-        "cha": 0,
-        "skill": {},
-        "trait": [],
-        "action": [],
-        "legendary": [],
-        "regional": [],
-        "spellcasting": [],
-        "senseTags": [],
-        "languageTags": [],
-        "actionTags": []
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.monster.step-2-size",
       "type": "Monster",
       "name": "Step 2.  Size",
@@ -20795,85 +19474,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.monster.step-6-expected-challenge-r-ating",
-      "type": "Monster",
-      "name": "STEP 6.  EXPECTED CHALLENGE R ATING",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 275,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 275
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": {
-          "type": "monstertype",
-          "tags": [
-            "monster"
-          ]
-        },
-        "cr": "1/4",
-        "alignment": [
-          "L",
-          "G"
-        ],
-        "ac": [
-          15
-        ],
-        "hp": {
-          "average": 11,
-          "formula": "2d8+2"
-        },
-        "str": 12,
-        "dex": 14,
-        "con": 10,
-        "int": 8,
-        "wis": 10,
-        "cha": 8,
-        "skill": {
-          "perception": "+5",
-          "stealth": "+3"
-        },
-        "trait": [
-          {
-            "name": "Amphibious",
-            "entries": [
-              "Can breathe air and water."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "Make two attacks with its bite or tail."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@damage 2d8} piercing damage."
-            ]
-          },
-          {
-            "name": "Tail",
-            "entries": [
-              "{@damage 2d6} bludgeoning damage."
-            ]
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.step-7-armor-class",
@@ -21074,52 +19674,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.monster.step-9-damage-vul-er-bilities-resistances-and-hnn-itie",
-      "type": "Monster",
-      "name": "STEP 9.  DAMAGE VuL  \"ER..'\\BILITIES, RESISTANCES, AND hnn;. \"ITIE",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 277,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 277
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": {
-          "type": "monstrous humanoid",
-          "tags": [
-            "bullywug"
-          ]
-        },
-        "cr": "1/4",
-        "hp": {
-          "average": 11,
-          "formula": "2d8+2"
-        },
-        "action": [
-          {
-            "name": "Bite",
-            "entries": [
-              "{@damage 1d6}"
-            ]
-          }
-        ],
-        "actionTags": [
-          "Bite",
-          "Natural Weapon"
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.step-10-attack-bonuses",
@@ -22206,28 +20760,6 @@
       "needsReview": false
     },
     {
-      "id": "dmg14.item.creating-a-magic-item",
-      "type": "Item",
-      "name": "CREATING A MAGIC ITEM",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 284,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 284
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "type": "entries",
-        "entries": []
-      },
-      "dataSource": "",
-      "needsReview": true
-    },
-    {
       "id": "dmg14.item.modifying-an-item",
       "type": "Item",
       "name": "Modifying an Item",
@@ -22267,42 +20799,6 @@
       },
       "dataSource": "",
       "needsReview": false
-    },
-    {
-      "id": "dmg14.item.creating-a-new-item",
-      "type": "Item",
-      "name": "CREATING A NEW ITEM",
-      "sourceBook": "DMG",
-      "edition": "Edition2014",
-      "page": 284,
-      "firstAppearedIn": {
-        "book": "DMG",
-        "edition": "Edition2014",
-        "page": 284
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "entries": [
-          {
-            "type": "rule",
-            "name": "Magic Item Purpose",
-            "description": "A magic item should either let a character do something they couldn't do before, or improve their ability to do something they already can. {@example} The ring of jumping augments existing movement abilities, while the ring of the ram grants new force damage capability.",
-            "examples": [
-              "ring of jumping",
-              "ring of the ram"
-            ]
-          },
-          {
-            "type": "rule",
-            "name": "Item Design Simplicity",
-            "description": "Simpler item designs are easier to manage in play. Items with charges are acceptable, especially for multi-ability items. {@rule} Prioritize clear usage mechanics like always-active status or fixed daily uses."
-          }
-        ]
-      },
-      "dataSource": "",
-      "needsReview": true
     },
     {
       "id": "dmg14.monster.monsters-by-environment",
