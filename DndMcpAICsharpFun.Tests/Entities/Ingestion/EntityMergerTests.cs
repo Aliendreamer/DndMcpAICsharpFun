@@ -103,7 +103,7 @@ public class EntityMergerTests
     }
 
     [Fact]
-    public void DataSource_is_always_llm_after_merge()
+    public void DataSource_inherits_from_canonical()
     {
         var canonical = MakeEnvelope(dataSource: "llm");
         var existing  = MakeEnvelope(dataSource: "5etools");

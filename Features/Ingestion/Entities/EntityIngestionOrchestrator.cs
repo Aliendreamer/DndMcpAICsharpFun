@@ -43,11 +43,12 @@ public sealed class EntityIngestionOrchestrator(
             logger.LogWarning("Dangling entity reference: {Source} -> {Target} ({Path})",
                 w.SourceEntityId, w.MissingTargetId, w.FieldPath);
 
+        await store.DeleteByFileHashAsync(record.FileHash, ct);
+
         // Pre-fetch existing Qdrant data for all entities to enable per-field merge.
+        // (5etools points use a different file hash and are NOT deleted above.)
         var entityIds = file.Entities.Select(e => e.Id).ToList();
         var existing = await store.GetByIdsAsync(entityIds, ct);
-
-        await store.DeleteByFileHashAsync(record.FileHash, ct);
 
         var renderedEnvelopes = new List<EntityEnvelope>(file.Entities.Count);
         var texts = new List<string>(file.Entities.Count);

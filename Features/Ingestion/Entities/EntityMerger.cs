@@ -24,7 +24,6 @@ public static class EntityMerger
             BasicRules2024 = existing.BasicRules2024,
             Keywords       = keywords,
             Page           = page,
-            DataSource     = "llm",
         };
     }
 }
