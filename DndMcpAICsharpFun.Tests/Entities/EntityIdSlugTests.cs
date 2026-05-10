@@ -1,4 +1,6 @@
+using System.Text;
 using DndMcpAICsharpFun.Domain.Entities;
+using DndMcpAICsharpFun.Infrastructure;
 using FluentAssertions;
 using Xunit;
 
@@ -22,12 +24,31 @@ public class EntityIdSlugTests
             .Should().Be("phb14.spell.deja-vu");
     }
 
+    /// <summary>
+    /// Regression lock for the UUID v5 determinism that prevents orphaned Qdrant points.
+    /// The expected value was computed once from the algorithm and hardcoded here so that
+    /// any future change to the hashing logic (byte-swap order, version/variant bits, etc.)
+    /// is immediately caught.
+    /// Namespace: 6ba7b810-9dad-11d1-80b4-00c04fd430c8 (DNS namespace, RFC 4122 §C)
+    /// Name:      UTF-8 bytes of "phb14.class.fighter"
+    /// </summary>
     [Fact]
-    public void Same_input_yields_same_slug()
+    public void UuidV5_produces_known_deterministic_value_for_entity_id()
     {
-        var a = EntityIdSlug.For("Monster Manual 2014", EntityType.Monster, "Adult Red Dragon");
-        var b = EntityIdSlug.For("Monster Manual 2014", EntityType.Monster, "Adult Red Dragon");
-        a.Should().Be(b);
+        // Arrange
+        var ns = new Guid("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
+        var entityId = EntityIdSlug.For("PHB", EntityType.Class, "Fighter"); // == "phb14.class.fighter"
+        entityId.Should().Be("phb14.class.fighter"); // guard: slug must be stable too
+
+        var nameBytes = Encoding.UTF8.GetBytes(entityId);
+        var expected  = new Guid("ad8c7b93-b71f-54c1-bbb3-4ccb445a2d18");
+
+        // Act
+        var actual = UuidV5.Create(ns, nameBytes);
+
+        // Assert — if this changes, re-ingest ALL books before merging
+        actual.Should().Be(expected,
+            because: "Qdrant point IDs are derived from this UUID; any change creates orphaned points");
     }
 
     // Source key alias tests — both pipelines must produce the same slug
