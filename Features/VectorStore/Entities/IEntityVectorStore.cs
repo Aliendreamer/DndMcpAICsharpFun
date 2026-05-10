@@ -25,4 +25,6 @@ public interface IEntityVectorStore
     Task<IList<EntitySearchHit>> SearchAsync(float[] queryVector, EntityFilters filters, int topK, CancellationToken ct = default);
     Task<IReadOnlyDictionary<string, string>> GetDataSourcesAsync(
         IReadOnlyList<string> entityIds, CancellationToken ct = default);
+    Task<IReadOnlyDictionary<string, EntityEnvelope>> GetByIdsAsync(
+        IReadOnlyList<string> entityIds, CancellationToken ct = default);
 }
