@@ -43,6 +43,10 @@ public sealed class EntityIngestionOrchestrator(
             logger.LogWarning("Dangling entity reference: {Source} -> {Target} ({Path})",
                 w.SourceEntityId, w.MissingTargetId, w.FieldPath);
 
+        // Pre-fetch existing Qdrant data for all entities to enable per-field merge.
+        var entityIds = file.Entities.Select(e => e.Id).ToList();
+        var existing = await store.GetByIdsAsync(entityIds, ct);
+
         await store.DeleteByFileHashAsync(record.FileHash, ct);
 
         var renderedEnvelopes = new List<EntityEnvelope>(file.Entities.Count);
@@ -50,19 +54,25 @@ public sealed class EntityIngestionOrchestrator(
         foreach (var envelope in file.Entities)
         {
             ct.ThrowIfCancellationRequested();
+
+            // Merge with existing 5etools data if present.
+            var merged = existing.TryGetValue(envelope.Id, out var existingEnvelope)
+                ? EntityMerger.Merge(envelope, existingEnvelope)
+                : envelope;
+
             string text;
             try
             {
-                text = textDispatcher.Render(envelope);
+                text = textDispatcher.Render(merged);
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Skipping entity {Id} — render failed", envelope.Id);
+                logger.LogWarning(ex, "Skipping entity {Id} — render failed", merged.Id);
                 continue;
             }
-            var ds = string.IsNullOrEmpty(envelope.DataSource) ? "llm" : envelope.DataSource;
-            var sourceBook = record.FivetoolsSourceKey ?? envelope.SourceBook;
-            renderedEnvelopes.Add(envelope with { CanonicalText = text, DataSource = ds, SourceBook = sourceBook });
+            var ds = string.IsNullOrEmpty(merged.DataSource) ? "llm" : merged.DataSource;
+            var sourceBook = record.FivetoolsSourceKey ?? merged.SourceBook;
+            renderedEnvelopes.Add(merged with { CanonicalText = text, DataSource = ds, SourceBook = sourceBook });
             texts.Add(text);
         }
 
