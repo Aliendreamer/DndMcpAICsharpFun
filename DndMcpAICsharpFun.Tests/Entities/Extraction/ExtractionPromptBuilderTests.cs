@@ -82,4 +82,17 @@ public class ExtractionPromptBuilderTests
               .And.Contain("G=Good")
               .And.Contain("\"alignment\": [\"L\", \"G\"]");
     }
+
+    public static IEnumerable<object[]> AllEntityTypes =>
+        Enum.GetValues<EntityType>().Select(t => new object[] { t });
+
+    [Theory]
+    [MemberData(nameof(AllEntityTypes))]
+    public void System_prompt_includes_entity_type_classification_guidance(EntityType type)
+    {
+        var b = new ExtractionPromptBuilder();
+        var prompt = b.BuildSystemPrompt("PHB", "Edition2014", type);
+        prompt.Should().Contain("Subclass", because: "all prompts must list Subclass as a valid type");
+        prompt.Should().Contain("Class is a last resort", because: "all prompts must warn against defaulting to Class");
+    }
 }

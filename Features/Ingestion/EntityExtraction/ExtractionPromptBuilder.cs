@@ -55,6 +55,17 @@ public sealed class ExtractionPromptBuilder
         sb.AppendLine("- Use `Plane` only when the entity is a named plane of existence with a defined category (Inner, Outer, Transitive, Material, etc.).");
         sb.AppendLine("- Use `Monster` only when the entity has a stat block with a challenge rating.");
         sb.AppendLine();
+        sb.AppendLine("IMPORTANT — EntityType classification rules:");
+        sb.AppendLine("Valid types: Class, Subclass, Spell, Monster, Race, Subrace, Background, Feat, Item, MagicItem, Weapon, Armor, God, Trap, Condition, DiseasePoison, VehicleMount, Rule, Lore, Plane, Faction, Location.");
+        sb.AppendLine("- Use Subclass for named subclass entries (e.g. Path of Wild Magic, Circle of Spores, Oath of Glory).");
+        sb.AppendLine("- Use Spell for any named spell entry with casting time, range, duration, and components.");
+        sb.AppendLine("- Use Feat for player feats with prerequisites.");
+        sb.AppendLine("- Use Rule for metamagic options, fighting styles, eldritch invocations, maneuvers, and other optional mechanical add-ons.");
+        sb.AppendLine("- Use Class ONLY for a full base class entry (e.g. Barbarian, Fighter). Class is a last resort — prefer a more specific type.");
+        sb.AppendLine("- Use Faction for named political, religious, or social organisations with membership or hierarchy details (e.g. The Harpers, The Lords' Alliance).");
+        sb.AppendLine("- Use Location for named geographic places, settlements, dungeons, planes of existence, or dungeon sites.");
+        sb.AppendLine("If uncertain, pick the most specific applicable type over Class.");
+        sb.AppendLine();
 
         switch (type)
         {
