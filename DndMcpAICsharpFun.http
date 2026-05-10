@@ -1,5 +1,6 @@
-@baseUrl = http:\\localhost:5101
+@baseUrl = http://localhost:5101
 @adminKey = devXXXdev
+@mcpKey = devMcpKey
 
 ### Health — Liveness
 GET {{baseUrl}}/health
@@ -164,6 +165,20 @@ Accept: application/json
 GET {{baseUrl}}/admin/retrieval/entities/search?q=fireball&srd52=true&topK=5
 X-Admin-Api-Key: {{adminKey}}
 Accept: application/json
+
+###
+
+# ── MCP Server ───────────────────────────────────────────────────────────────
+# The /mcp endpoint uses the Model Context Protocol (Streamable HTTP transport).
+# It speaks JSON-RPC 2.0, not REST — use an MCP client, not curl.
+# Configure AI clients with:
+#   URL:    http://localhost:5101/mcp
+#   Header: X-Mcp-Api-Key: devMcpKey
+# Available tools: search_lore, search_entities, get_entity
+#
+# Verify the endpoint is alive (returns 405 Method Not Allowed for GET — that is correct):
+GET {{baseUrl}}/mcp
+X-Mcp-Api-Key: {{mcpKey}}
 
 ###
 

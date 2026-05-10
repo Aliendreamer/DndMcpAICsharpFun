@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Extensions;
 using DndMcpAICsharpFun.Features.Admin;
+using DndMcpAICsharpFun.Features.Mcp;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Infrastructure.Docling;
@@ -29,6 +30,7 @@ builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin
 builder.Services.Configure<RetrievalOptions>(builder.Configuration.GetSection("Retrieval"));
 builder.Services.Configure<DoclingOptions>(builder.Configuration.GetSection("Docling"));
 builder.Services.Configure<DndMcpAICsharpFun.Features.Ingestion.Entities.EntityIngestionOptions>(builder.Configuration.GetSection("EntityIngestion"));
+builder.Services.Configure<McpOptions>(builder.Configuration.GetSection("Mcp"));
 
 // builder.Services.AddAntiforgery();
 builder.Services.AddInfrastructureClients(builder.Configuration);
@@ -36,6 +38,10 @@ builder.Services.AddIngestionPipeline();
 builder.Services.AddRetrieval();
 builder.Services.AddEntityExtraction(builder.Configuration);
 builder.Services.AddObservability(builder.Configuration);
+
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithToolsFromAssembly();
 
 // Health checks
 builder.Services.AddHealthChecks()
@@ -53,6 +59,11 @@ app.UseSerilogRequestLogging(o =>
         ex is not null ? LogEventLevel.Error :
         ctx.Request.Path.StartsWithSegments("/metrics") ? LogEventLevel.Verbose :
         LogEventLevel.Information);
+// MCP — guard /mcp with key check, then map the MCP endpoint
+app.UseWhen(
+    ctx => ctx.Request.Path.StartsWithSegments("/mcp"),
+    branch => branch.UseMiddleware<McpAuthMiddleware>());
+
 app.MapAdminMiddleware();
 app.MapObservabilityEndpoints();
 
@@ -72,5 +83,6 @@ app.MapEntityRetrievalEndpoints();
 app.MapCanonicalValidationEndpoints();
 app.MapCanonicalTypeFixerEndpoints();
 app.MapCanonicalNameNormalizerEndpoints();
+app.MapMcp("/mcp");
 
 app.Run();

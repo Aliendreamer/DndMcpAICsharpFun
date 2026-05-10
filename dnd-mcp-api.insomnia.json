@@ -9,7 +9,7 @@
       "_type": "workspace",
       "parentId": null,
       "name": "DnD MCP API",
-      "description": "D&D MCP AI C# API — import into Yaak via File > Import",
+      "description": "D&D MCP AI C# API \u2014 import into Yaak via File > Import",
       "scope": "collection"
     },
     {
@@ -21,7 +21,8 @@
         "baseUrl": "http://localhost:5101",
         "adminKey": "devXXXdev",
         "qdrantUrl": "http://localhost:6333",
-        "collectionName": "dnd_blocks"
+        "collectionName": "dnd_blocks",
+        "mcpKey": "devMcpKey"
       }
     },
     {
@@ -34,19 +35,44 @@
       "_id": "fld_admin_books",
       "_type": "request_group",
       "parentId": "wrk_dnd_mcp",
-      "name": "Admin — Books"
+      "name": "Admin \u2014 Books"
     },
     {
       "_id": "fld_qdrant",
       "_type": "request_group",
       "parentId": "wrk_dnd_mcp",
-      "name": "Qdrant — Direct"
+      "name": "Qdrant \u2014 Direct"
     },
     {
       "_id": "fld_retrieval",
       "_type": "request_group",
       "parentId": "wrk_dnd_mcp",
       "name": "Retrieval"
+    },
+    {
+      "_id": "fld_mcp",
+      "_type": "request_group",
+      "parentId": "wrk_dnd_mcp",
+      "name": "MCP Server"
+    },
+    {
+      "_id": "req_mcp_check",
+      "_type": "request",
+      "parentId": "fld_mcp",
+      "name": "MCP \u2014 Endpoint check (GET \u2192 405 is correct)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/mcp",
+      "headers": [
+        {
+          "name": "X-Mcp-Api-Key",
+          "value": "{{ _.mcpKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
     },
     {
       "_id": "fld_observability",
@@ -185,7 +211,7 @@
       "_id": "req_books_ingest_entities",
       "_type": "request",
       "parentId": "fld_admin_books",
-      "name": "Ingest entities (canonical JSON → dnd_entities)",
+      "name": "Ingest entities (canonical JSON \u2192 dnd_entities)",
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/books/1/ingest-entities",
       "headers": [
@@ -204,7 +230,7 @@
       "_id": "req_books_extract_entities",
       "_type": "request",
       "parentId": "fld_admin_books",
-      "name": "Extract entities (LLM — initial run)",
+      "name": "Extract entities (LLM \u2014 initial run)",
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/books/1/extract-entities",
       "headers": [
@@ -356,7 +382,7 @@
       "_id": "req_5etools_sources_core",
       "_type": "request",
       "parentId": "fld_admin_books",
-      "name": "List 5etools sources — filtered by group=core",
+      "name": "List 5etools sources \u2014 filtered by group=core",
       "method": "GET",
       "url": "{{ _.baseUrl }}/admin/5etools/sources",
       "headers": [
@@ -629,7 +655,7 @@
       "_id": "req_retrieval_entities_srd52",
       "_type": "request",
       "parentId": "fld_retrieval",
-      "name": "Entity search — SRD 5.2.1 filter",
+      "name": "Entity search \u2014 SRD 5.2.1 filter",
       "method": "GET",
       "url": "{{ _.baseUrl }}/retrieval/entities/search",
       "headers": [
@@ -661,7 +687,7 @@
       "_id": "req_retrieval_entities_admin_srd52",
       "_type": "request",
       "parentId": "fld_retrieval",
-      "name": "Admin entity search — SRD 5.2.1 filter (diagnostic)",
+      "name": "Admin entity search \u2014 SRD 5.2.1 filter (diagnostic)",
       "method": "GET",
       "url": "{{ _.baseUrl }}/admin/retrieval/entities/search",
       "headers": [
