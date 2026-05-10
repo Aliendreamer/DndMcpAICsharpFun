@@ -207,6 +207,11 @@ public sealed class EntityExtractionOrchestrator(
                 continue;
             }
 
+            var rawInput = response.ToolInput!.Value;
+            string? confidence = rawInput.TryGetProperty("confidence", out var cp) ? cp.GetString() : null;
+            var fields = StripConfidence(rawInput);
+            var needsReview = ExtractionNeedsReview.Derive(candidate.DisplayName, confidence);
+
             var envelope = new EntityEnvelope(
                 Id:              id,
                 Type:            candidate.Type,
@@ -218,7 +223,8 @@ public sealed class EntityExtractionOrchestrator(
                 RevisedIn:       Array.Empty<Revision>(),
                 SettingTags:     Array.Empty<string>(),
                 CanonicalText:   string.Empty,
-                Fields:          response.ToolInput.Value);
+                Fields:          fields,
+                NeedsReview:     needsReview);
 
             extracted.Add(envelope);
             success++;
@@ -397,6 +403,11 @@ public sealed class EntityExtractionOrchestrator(
 
             var (sourceBook, edition) = DeriveSourceAndEdition(record);
 
+            var rawInput2 = response.ToolInput!.Value;
+            string? confidence2 = rawInput2.TryGetProperty("confidence", out var cp2) ? cp2.GetString() : null;
+            var fields2 = StripConfidence(rawInput2);
+            var needsReview2 = ExtractionNeedsReview.Derive(candidate.DisplayName, confidence2);
+
             newlyExtracted.Add(new EntityEnvelope(
                 Id:              id,
                 Type:            candidate.Type,
@@ -408,7 +419,8 @@ public sealed class EntityExtractionOrchestrator(
                 RevisedIn:       Array.Empty<Revision>(),
                 SettingTags:     Array.Empty<string>(),
                 CanonicalText:   string.Empty,
-                Fields:          response.ToolInput.Value));
+                Fields:          fields2,
+                NeedsReview:     needsReview2));
         }
 
         // Reference resolution on newly extracted only.
@@ -555,7 +567,7 @@ public sealed class EntityExtractionOrchestrator(
             {
                 using var stream = File.OpenRead(path);
                 using var doc = JsonDocument.Parse(stream);
-                dict[type] = doc.RootElement.Clone();
+                dict[type] = InjectConfidenceField(doc.RootElement.Clone());
             }
             catch (FileNotFoundException)
             {
@@ -563,5 +575,47 @@ public sealed class EntityExtractionOrchestrator(
             }
         }
         return dict;
+    }
+
+    private static JsonElement InjectConfidenceField(JsonElement schema)
+    {
+        using var ms = new System.IO.MemoryStream();
+        using var writer = new Utf8JsonWriter(ms);
+        writer.WriteStartObject();
+        foreach (var prop in schema.EnumerateObject())
+        {
+            if (prop.Name == "properties")
+            {
+                writer.WritePropertyName("properties");
+                writer.WriteStartObject();
+                foreach (var p in prop.Value.EnumerateObject())
+                    p.WriteTo(writer);
+                writer.WritePropertyName("confidence");
+                writer.WriteRawValue("{\"type\":\"string\",\"enum\":[\"low\",\"medium\",\"high\"]}");
+                writer.WriteEndObject();
+            }
+            else
+            {
+                prop.WriteTo(writer);
+            }
+        }
+        writer.WriteEndObject();
+        writer.Flush();
+        using var doc = JsonDocument.Parse(ms.ToArray());
+        return doc.RootElement.Clone();
+    }
+
+    private static JsonElement StripConfidence(JsonElement toolInput)
+    {
+        using var ms = new System.IO.MemoryStream();
+        using var writer = new Utf8JsonWriter(ms);
+        writer.WriteStartObject();
+        foreach (var prop in toolInput.EnumerateObject())
+            if (!string.Equals(prop.Name, "confidence", StringComparison.Ordinal))
+                prop.WriteTo(writer);
+        writer.WriteEndObject();
+        writer.Flush();
+        using var doc = JsonDocument.Parse(ms.ToArray());
+        return doc.RootElement.Clone();
     }
 }

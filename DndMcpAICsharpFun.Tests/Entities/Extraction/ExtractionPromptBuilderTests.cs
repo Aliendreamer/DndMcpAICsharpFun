@@ -95,4 +95,13 @@ public class ExtractionPromptBuilderTests
         prompt.Should().Contain("Subclass", because: "all prompts must list Subclass as a valid type");
         prompt.Should().Contain("Class is a last resort", because: "all prompts must warn against defaulting to Class");
     }
+
+    [Fact]
+    public void System_prompt_includes_title_case_naming_rule()
+    {
+        var b = new ExtractionPromptBuilder();
+        var prompt = b.BuildSystemPrompt("Player's Handbook", "Edition2014", EntityType.Class);
+        prompt.Should().Contain("title case");
+        prompt.Should().Contain("ALL CAPS");
+    }
 }

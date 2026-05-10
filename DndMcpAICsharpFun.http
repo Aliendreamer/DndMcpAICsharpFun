@@ -72,6 +72,10 @@ POST {{baseUrl}}/admin/books/1/extract-entities?errorsOnly=true
 X-Admin-Api-Key: {{adminKey}}
 
 ### Admin — Validate the entire canonical corpus
+# Response shape:
+# { "filesScanned": N, "totalEntities": N, "failures": [], "warnings": [],
+#   "needsReview": [{ "file": "tce.json", "count": 156 }] }
+# needsReview: entities flagged for human review (name quality). Not errors — returns 200.
 POST {{baseUrl}}/admin/canonical/validate
 X-Admin-Api-Key: {{adminKey}}
 

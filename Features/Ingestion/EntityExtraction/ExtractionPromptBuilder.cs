@@ -66,6 +66,14 @@ public sealed class ExtractionPromptBuilder
         sb.AppendLine("- Use Location for named geographic places, settlements, dungeons, planes of existence, or dungeon sites.");
         sb.AppendLine("If uncertain, pick the most specific applicable type over Class.");
         sb.AppendLine();
+        sb.AppendLine("IMPORTANT — Entity name casing:");
+        sb.AppendLine("Entity names MUST be written in title case following D&D conventions.");
+        sb.AppendLine("Capitalize all words except articles and short prepositions " +
+                      "(of, the, a, an, in, on, at, to, and, or, but, for, nor) unless they start the name.");
+        sb.AppendLine("PDF headings appear in ALL CAPS — you MUST convert them: " +
+                      "\"CIRCLE OF SPORES\" → \"Circle of Spores\", \"FIREBALL\" → \"Fireball\".");
+        sb.AppendLine("Correct apostrophe-S: \"TASHA'S\" → \"Tasha's\" (not \"Tasha'S\").");
+        sb.AppendLine();
 
         switch (type)
         {

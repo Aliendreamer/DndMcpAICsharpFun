@@ -17,6 +17,7 @@ public sealed class CanonicalValidationService(
     {
         var failures = new List<CanonicalValidationFailure>();
         var warnings = new List<CanonicalValidationWarning>();
+        var needsReviewWarnings = new List<CanonicalNeedsReviewWarning>();
         var allEntities = new List<EntityEnvelope>();
         var seenIds = new Dictionary<string, string>(StringComparer.Ordinal);  // id → file
 
@@ -50,6 +51,12 @@ public sealed class CanonicalValidationService(
                         seenIds[entity.Id] = path;
                     }
                 }
+
+                var reviewCount = loaded.Entities.Count(e => e.NeedsReview);
+                if (reviewCount > 0)
+                    needsReviewWarnings.Add(new CanonicalNeedsReviewWarning(
+                        File: Path.GetFileName(path),
+                        Count: reviewCount));
 
                 allEntities.AddRange(loaded.Entities);
             }
@@ -92,6 +99,6 @@ public sealed class CanonicalValidationService(
             }
         }
 
-        return new CanonicalValidationReport(files.Count, allEntities.Count, failures, warnings);
+        return new CanonicalValidationReport(files.Count, allEntities.Count, failures, warnings, needsReviewWarnings);
     }
 }

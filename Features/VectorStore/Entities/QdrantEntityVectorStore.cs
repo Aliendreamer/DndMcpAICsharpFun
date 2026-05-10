@@ -129,6 +129,7 @@ public sealed class QdrantEntityVectorStore(
             [EntityPayloadFields.Srd]           = p.Envelope.Srd ? "true" : "false",
             [EntityPayloadFields.Srd52]         = p.Envelope.Srd52 ? "true" : "false",
             [EntityPayloadFields.BasicRules2024]= p.Envelope.BasicRules2024 ? "true" : "false",
+            [EntityPayloadFields.NeedsReview]   = p.Envelope.NeedsReview ? "true" : "false",
             [EntityPayloadFields.SettingTags]   = StringList(p.Envelope.SettingTags),
             [EntityPayloadFields.FieldsJson]    = p.Envelope.Fields.GetRawText(),
         };
@@ -205,6 +206,7 @@ public sealed class QdrantEntityVectorStore(
             Srd:            p.TryGetValue(EntityPayloadFields.Srd,            out var srdV)   && srdV.StringValue   == "true",
             Srd52:          p.TryGetValue(EntityPayloadFields.Srd52,          out var srd52V) && srd52V.StringValue  == "true",
             BasicRules2024: p.TryGetValue(EntityPayloadFields.BasicRules2024, out var brV)    && brV.StringValue     == "true",
+            NeedsReview:    p.TryGetValue(EntityPayloadFields.NeedsReview,    out var nrV)    && nrV.StringValue     == "true",
             Keywords: p.TryGetValue(EntityPayloadFields.Keywords, out var kw)
                 ? kw.ListValue.Values.Select(v => v.StringValue).ToList()
                 : Array.Empty<string>());
