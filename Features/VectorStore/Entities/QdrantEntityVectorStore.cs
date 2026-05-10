@@ -261,6 +261,4 @@ public sealed class QdrantEntityVectorStore(
         value = 0; return false;
     }
 
-    /// <summary>Produces a deterministic UUID v5 (SHA-1 namespace + name hash).</summary>
-    
 }

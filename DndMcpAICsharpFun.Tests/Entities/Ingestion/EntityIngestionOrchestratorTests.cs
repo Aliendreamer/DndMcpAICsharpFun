@@ -111,10 +111,10 @@ public class EntityIngestionOrchestratorTests
                 return Task.CompletedTask;
             });
 
-        // Derive slug the same way the orchestrator does
-        var slug = EntityIdSlug
-            .For(record.DisplayName, EntityType.Class, "x")
-            .Split('.')[0];
+        // Derive slug the same way the orchestrator does (prefers FivetoolsSourceKey)
+        var slug = record.FivetoolsSourceKey is { } slugKey
+            ? EntityIdSlug.For(slugKey, EntityType.Class, "x").Split('.')[0]
+            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
         var tempDir = Path.GetTempPath();
         var canonicalPath = Path.Combine(tempDir, slug + ".json");
 

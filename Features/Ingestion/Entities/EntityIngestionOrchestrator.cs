@@ -30,9 +30,9 @@ public sealed class EntityIngestionOrchestrator(
         var record = await tracker.GetByIdAsync(bookId, ct)
                      ?? throw new InvalidOperationException($"No ingestion record {bookId}");
 
-        var bookSlug = EntityIdSlug
-            .For(record.DisplayName, EntityType.Class, "x")
-            .Split('.')[0];
+        var bookSlug = record.FivetoolsSourceKey is { } key
+            ? EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0]
+            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
         var path = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".json");
         if (!File.Exists(path))
             throw new FileNotFoundException($"Canonical JSON not found for book {bookId} at {path}", path);

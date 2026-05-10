@@ -52,6 +52,17 @@ public class EntityMergerTests
     }
 
     [Fact]
+    public void Fivetools_srd_flags_only_win_when_existing_is_5etools()
+    {
+        var canonical = MakeEnvelope(srd: false, srd52: false, basicRules2024: false);
+        var existing  = MakeEnvelope(srd: true,  srd52: true,  basicRules2024: true, dataSource: "llm");
+        var merged = EntityMerger.Merge(canonical, existing);
+        merged.Srd.Should().BeFalse();
+        merged.Srd52.Should().BeFalse();
+        merged.BasicRules2024.Should().BeFalse();
+    }
+
+    [Fact]
     public void Fivetools_type_wins_when_canonical_type_is_Class()
     {
         var canonical = MakeEnvelope(type: EntityType.Class);
