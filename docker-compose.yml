@@ -7,12 +7,14 @@ services:
       - "5101:5101"
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - Admin__ApiKey=${ADMIN_API_KEY:-devXXXdev}
       - Qdrant__Host=qdrant
       - Ollama__BaseUrl=http://ollama:11434
       - Ingestion__BooksPath=/books
     volumes:
       - ./books:/books
       - ./data:/app/data
+      - models_data:/app/models
     depends_on:
       qdrant:
         condition: service_healthy
@@ -22,6 +24,12 @@ services:
         condition: service_completed_successfully
       docling:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/5101' 2>/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - dnd_net
     restart: unless-stopped
@@ -34,12 +42,16 @@ services:
       - "5102:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - Ollama__Url=http://ollama:11434
+      - Mcp__Url=http://app:5101/mcp
       - Mcp__ApiKey=${MCP_API_KEY:-devMcpKey}
     depends_on:
       app:
-        condition: service_started
+        condition: service_healthy
       ollama:
         condition: service_healthy
+    volumes:
+      - companion_data:/app/data
     networks:
       - dnd_net
     restart: unless-stopped
@@ -196,6 +208,8 @@ volumes:
   ollama_data:
   prometheus_data:
   grafana_data:
+  companion_data:
+  models_data:
 
 networks:
   dnd_net:

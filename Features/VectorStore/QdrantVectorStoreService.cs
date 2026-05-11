@@ -6,6 +6,8 @@ using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using Microsoft.Extensions.Options;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
+using DomainSparseVector = DndMcpAICsharpFun.Features.Ingestion.SparseVector;
+using QdrantVector = Qdrant.Client.Grpc.Vector;
 
 namespace DndMcpAICsharpFun.Features.VectorStore;
 
@@ -13,15 +15,17 @@ namespace DndMcpAICsharpFun.Features.VectorStore;
 public sealed partial class QdrantVectorStoreService(
     QdrantClient client,
     IOptions<QdrantOptions> options,
+    QdrantSparseState sparseState,
     ILogger<QdrantVectorStoreService> logger) : IVectorStoreService
 {
     private readonly string _blocksCollectionName = options.Value.BlocksCollectionName;
 
     public async Task UpsertBlocksAsync(
-        IList<(BlockChunk Chunk, float[] Vector, string FileHash)> points,
+        IList<(BlockChunk Chunk, float[] Vector, DomainSparseVector Sparse, string FileHash)> points,
         CancellationToken ct = default)
     {
-        var qdrantPoints = points.Select(p => BuildBlockPoint(p.Chunk, p.Vector, p.FileHash)).ToList();
+        var useSparse = sparseState.SparseSupported;
+        var qdrantPoints = points.Select(p => BuildBlockPoint(p.Chunk, p.Vector, p.Sparse, p.FileHash, useSparse)).ToList();
         LogUpsertStart(logger, qdrantPoints.Count, _blocksCollectionName);
         var sw = Stopwatch.StartNew();
         await client.UpsertAsync(_blocksCollectionName, qdrantPoints, cancellationToken: ct);
@@ -36,14 +40,28 @@ public sealed partial class QdrantVectorStoreService(
         await client.DeleteAsync(_blocksCollectionName, ids, cancellationToken: ct);
     }
 
-    private static PointStruct BuildBlockPoint(BlockChunk chunk, float[] vector, string fileHash)
+    private static PointStruct BuildBlockPoint(
+        BlockChunk chunk, float[] vector, DomainSparseVector sparse, string fileHash, bool useSparse)
     {
         var meta = chunk.Metadata;
         var point = new PointStruct
         {
             Id = DerivePointId(fileHash, meta.GlobalIndex),
-            Vectors = vector,
         };
+
+        if (useSparse)
+        {
+            var sparseUintIndices = Array.ConvertAll(sparse.Indices, static i => (uint)i);
+            point.Vectors = new Dictionary<string, QdrantVector>
+            {
+                { "", vector },
+                { "text-sparse", (sparse.Values, sparseUintIndices) }
+            };
+        }
+        else
+        {
+            point.Vectors = vector;
+        }
         point.Payload[QdrantPayloadFields.Text]         = chunk.Text;
         point.Payload[QdrantPayloadFields.SourceBook]   = meta.SourceBook;
         point.Payload[QdrantPayloadFields.Version]      = meta.Version.ToString();

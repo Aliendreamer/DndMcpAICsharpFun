@@ -11,10 +11,16 @@ public sealed class RagRetrievalServiceTests
     private readonly IQdrantSearchClient _qdrant = Substitute.For<IQdrantSearchClient>();
     private readonly IEmbeddingService _embedding = Substitute.For<IEmbeddingService>();
 
-    private RagRetrievalService BuildSut(int maxTopK = 20, float scoreThreshold = 0.5f) =>
+    private static CrossEncoderReranker DisabledReranker() =>
+        new(new RerankerOptions { Enabled = false }, NullLogger<CrossEncoderReranker>.Instance);
+
+    private RagRetrievalService BuildSut(int maxTopK = 20, float scoreThreshold = 0.5f,
+        bool sparseSupported = false) =>
         new(_qdrant, _embedding,
             Options.Create(new QdrantOptions { BlocksCollectionName = "test-col" }),
-            Options.Create(new RetrievalOptions { MaxTopK = maxTopK, ScoreThreshold = scoreThreshold }));
+            Options.Create(new RetrievalOptions { MaxTopK = maxTopK, ScoreThreshold = scoreThreshold }),
+            new QdrantSparseState { SparseSupported = sparseSupported },
+            DisabledReranker());
 
     private void SetupEmbed() =>
         _embedding.EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>())
@@ -133,5 +139,27 @@ public sealed class RagRetrievalServiceTests
             Arg.Any<string>(), Arg.Any<ReadOnlyMemory<float>>(),
             null, Arg.Any<ulong>(),
             Arg.Any<float?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SearchAsync_WhenRerankerDisabled_ReturnsFirstTopKResults()
+    {
+        SetupEmbed();
+        var points = Enumerable.Range(1, 5)
+            .Select(i => MakePoint($"text-{i}", 0.9f - i * 0.1f, $"uuid-{i}"))
+            .ToList();
+        _qdrant.SearchAsync(
+                Arg.Any<string>(), Arg.Any<ReadOnlyMemory<float>>(),
+                Arg.Any<Filter?>(), Arg.Any<ulong>(),
+                Arg.Any<float?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<ScoredPoint>>(points));
+        var sut = BuildSut();
+
+        var results = await sut.SearchAsync(new RetrievalQuery("fireball", TopK: 3));
+
+        Assert.Equal(3, results.Count);
+        Assert.Equal("text-1", results[0].Text);
+        Assert.Equal("text-2", results[1].Text);
+        Assert.Equal("text-3", results[2].Text);
     }
 }

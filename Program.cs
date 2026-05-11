@@ -31,6 +31,11 @@ builder.Services.Configure<RetrievalOptions>(builder.Configuration.GetSection("R
 builder.Services.Configure<DoclingOptions>(builder.Configuration.GetSection("Docling"));
 builder.Services.Configure<DndMcpAICsharpFun.Features.Ingestion.Entities.EntityIngestionOptions>(builder.Configuration.GetSection("EntityIngestion"));
 builder.Services.Configure<McpOptions>(builder.Configuration.GetSection("Mcp"));
+builder.Services.Configure<RerankerOptions>(builder.Configuration.GetSection("Reranker"));
+builder.Services.AddSingleton<CrossEncoderReranker>(sp =>
+    new CrossEncoderReranker(
+        sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RerankerOptions>>().Value,
+        sp.GetRequiredService<ILogger<CrossEncoderReranker>>()));
 
 // builder.Services.AddAntiforgery();
 builder.Services.AddInfrastructureClients(builder.Configuration);
@@ -50,6 +55,8 @@ builder.Services.AddHealthChecks()
     .AddCheck<DoclingHealthCheck>("docling");
 
 var app = builder.Build();
+
+await app.Services.GetRequiredService<CrossEncoderReranker>().InitializeAsync();
 
 await app.MigrateDatabaseAsync();
 app.ValidateStartupConfiguration();

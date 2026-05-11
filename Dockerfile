@@ -3,9 +3,9 @@ WORKDIR /src
 
 COPY DndMcpAICsharpFun.csproj .
 COPY . .
-RUN dotnet restore
+RUN dotnet restore DndMcpAICsharpFun.csproj
 
-RUN dotnet publish -c Release -o /app/publish --no-restore
+RUN dotnet publish DndMcpAICsharpFun.csproj -c Release -o /app/publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app

@@ -1,9 +1,11 @@
+using DndMcpAICsharpFun.Features.Ingestion;
+
 namespace DndMcpAICsharpFun.Features.VectorStore;
 
 public interface IVectorStoreService
 {
     Task UpsertBlocksAsync(
-        IList<(BlockChunk Chunk, float[] Vector, string FileHash)> points,
+        IList<(BlockChunk Chunk, float[] Vector, SparseVector Sparse, string FileHash)> points,
         CancellationToken ct = default);
 
     Task DeleteBlocksByHashAsync(string fileHash, int blockCount, CancellationToken ct = default);

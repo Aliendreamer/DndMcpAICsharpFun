@@ -85,6 +85,7 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<IEntityIngestionOrchestrator, EntityIngestionOrchestrator>();
         services.AddScoped<DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.FivetoolsIngestionService>();
 
+        services.AddSingleton<QdrantSparseState>();
         services.AddHostedService<QdrantCollectionInitializer>();
 
         services.AddSingleton<IngestionQueueWorker>();

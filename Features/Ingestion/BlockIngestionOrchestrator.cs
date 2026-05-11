@@ -104,11 +104,12 @@ public sealed partial class BlockIngestionOrchestrator(
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var batch = chunks.Skip(i).Take(EmbedBatchSize).ToList();
-                var vectors = await embedding.EmbedAsync(
-                    batch.Select(static c => c.Text).ToList(), cancellationToken);
+                var batchTexts = batch.Select(static c => c.Text).ToList();
+                var vectors = await embedding.EmbedAsync(batchTexts, cancellationToken);
+                var sparseVectors = Bm25Vectorizer.ComputeBatch(batchTexts);
                 var points = batch
-                    .Zip(vectors, (chunk, vec) => (chunk, vec, hash))
-                    .Select(static t => (t.chunk, t.vec, t.hash))
+                    .Zip(vectors, static (chunk, vec) => (chunk, vec))
+                    .Zip(sparseVectors, (t, sparse) => (t.chunk, t.vec, sparse, hash))
                     .ToList();
                 await vectorStore.UpsertBlocksAsync(points, cancellationToken);
                 LogBatch(logger, i + batch.Count, chunks.Count, recordId);

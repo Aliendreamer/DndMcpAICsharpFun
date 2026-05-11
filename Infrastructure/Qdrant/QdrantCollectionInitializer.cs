@@ -9,6 +9,7 @@ namespace DndMcpAICsharpFun.Infrastructure.Qdrant;
 public sealed partial class QdrantCollectionInitializer(
     QdrantClient client,
     IOptions<QdrantOptions> options,
+    QdrantSparseState sparseState,
     ILogger<QdrantCollectionInitializer> logger) : IHostedService
 {
     private readonly QdrantOptions _options = options.Value;
@@ -24,6 +25,7 @@ public sealed partial class QdrantCollectionInitializer(
             {
                 await EnsureCollectionAsync(_options.BlocksCollectionName, cancellationToken);
                 await EnsureCollectionAsync(_options.EntitiesCollectionName, cancellationToken);
+                await DetectSparseVectorSupportAsync(_options.BlocksCollectionName, cancellationToken);
                 return;
             }
             catch (Exception ex) when (attempt < maxAttempts)
@@ -47,10 +49,22 @@ public sealed partial class QdrantCollectionInitializer(
             LogCollectionExists(logger, name);
         else
         {
-            await client.CreateCollectionAsync(
-                name,
-                new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine },
-                cancellationToken: ct);
+            var isBlocks = string.Equals(name, _options.BlocksCollectionName, StringComparison.Ordinal);
+            if (isBlocks && _options.HybridAlpha > 0)
+            {
+                await client.CreateCollectionAsync(
+                    name,
+                    new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine },
+                    sparseVectorsConfig: ("text-sparse", new SparseVectorParams()),
+                    cancellationToken: ct);
+            }
+            else
+            {
+                await client.CreateCollectionAsync(
+                    name,
+                    new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine },
+                    cancellationToken: ct);
+            }
             LogCollectionCreated(logger, name, _options.VectorSize);
         }
 
@@ -58,6 +72,22 @@ public sealed partial class QdrantCollectionInitializer(
             await CreateEntityPayloadIndexesAsync(name, ct);
         else
             await CreatePayloadIndexesAsync(name, ct);
+    }
+
+    private async Task DetectSparseVectorSupportAsync(string collectionName, CancellationToken ct)
+    {
+        if (_options.HybridAlpha <= 0)
+        {
+            sparseState.SparseSupported = false;
+            return;
+        }
+
+        var info = await client.GetCollectionInfoAsync(collectionName, ct);
+        var hasSparse = info.Config?.Params?.SparseVectorsConfig?.Map?.ContainsKey("text-sparse") == true;
+
+        sparseState.SparseSupported = hasSparse;
+        if (!hasSparse)
+            LogSparseVectorsMissing(logger, collectionName);
     }
 
     private async Task CreatePayloadIndexesAsync(string collection, CancellationToken ct)
@@ -131,4 +161,7 @@ public sealed partial class QdrantCollectionInitializer(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Created payload indexes on collection '{Collection}'")]
     private static partial void LogPayloadIndexesCreated(ILogger logger, string collection);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "'{Collection}' collection has no sparse vector support; hybrid search disabled until re-ingestion")]
+    private static partial void LogSparseVectorsMissing(ILogger logger, string collection);
 }

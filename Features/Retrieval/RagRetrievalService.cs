@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Features.Embedding;
+using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using Microsoft.Extensions.Options;
 using Qdrant.Client.Grpc;
@@ -9,20 +10,17 @@ public sealed class RagRetrievalService(
     IQdrantSearchClient qdrant,
     IEmbeddingService embedding,
     IOptions<QdrantOptions> qdrantOptions,
-    IOptions<RetrievalOptions> retrievalOptions) : IRagRetrievalService
+    IOptions<RetrievalOptions> retrievalOptions,
+    QdrantSparseState sparseState,
+    CrossEncoderReranker reranker) : IRagRetrievalService
 {
     private readonly string _collectionName = qdrantOptions.Value.BlocksCollectionName;
     private readonly RetrievalOptions _options = retrievalOptions.Value;
 
     public async Task<IList<RetrievalResult>> SearchAsync(RetrievalQuery query, CancellationToken ct = default)
     {
-        var points = await ExecuteSearchAsync(query, ct);
-        return points
-            .Select(static p => new RetrievalResult(
-                QdrantPayloadMapper.GetText(p.Payload),
-                QdrantPayloadMapper.ToChunkMetadata(p.Payload),
-                p.Score))
-            .ToList();
+        var candidates = await FetchCandidatesAsync(query, ct);
+        return await ApplyRerankerAsync(query, candidates, ct);
     }
 
     public async Task<IList<RetrievalDiagnosticResult>> SearchDiagnosticAsync(RetrievalQuery query, CancellationToken ct = default)
@@ -37,12 +35,51 @@ public sealed class RagRetrievalService(
             .ToList();
     }
 
-    private async Task<IReadOnlyList<ScoredPoint>> ExecuteSearchAsync(RetrievalQuery query, CancellationToken ct)
+    private async Task<IList<RetrievalResult>> FetchCandidatesAsync(RetrievalQuery query, CancellationToken ct)
+    {
+        var topK = reranker.Enabled
+            ? (ulong)Math.Min(_options.MaxTopK, 20)
+            : (ulong)Math.Min(query.TopK, _options.MaxTopK);
+
+        var points = await ExecuteSearchAsync(query, ct, topK);
+        return points
+            .Select(static p => new RetrievalResult(
+                QdrantPayloadMapper.GetText(p.Payload),
+                QdrantPayloadMapper.ToChunkMetadata(p.Payload),
+                p.Score))
+            .ToList();
+    }
+
+    private async Task<IList<RetrievalResult>> ApplyRerankerAsync(
+        RetrievalQuery query, IList<RetrievalResult> candidates, CancellationToken ct)
+    {
+        if (!reranker.Enabled || candidates.Count == 0)
+            return candidates.Take(query.TopK).ToList();
+
+        var passages = candidates.Select(static r => r.Text).ToList();
+        var scores = await reranker.RerankAsync(query.QueryText, passages, ct);
+        return reranker.SelectTopN(candidates, scores, query.TopK);
+    }
+
+    private async Task<IReadOnlyList<ScoredPoint>> ExecuteSearchAsync(
+        RetrievalQuery query, CancellationToken ct, ulong? overrideLimit = null)
     {
         var vectors = await embedding.EmbedAsync([query.QueryText], ct);
         var vector = vectors[0].AsMemory();
         var filter = BuildFilter(query);
-        var limit = (ulong)Math.Min(query.TopK, _options.MaxTopK);
+        var limit = overrideLimit ?? (ulong)Math.Min(query.TopK, _options.MaxTopK);
+
+        if (sparseState.SparseSupported)
+        {
+            var sparse = Bm25Vectorizer.ComputeBatch([query.QueryText])[0];
+            return await qdrant.QueryAsync(
+                _collectionName,
+                vector,
+                sparse,
+                filter: filter,
+                limit: limit,
+                cancellationToken: ct);
+        }
 
         return await qdrant.SearchAsync(
             _collectionName,
