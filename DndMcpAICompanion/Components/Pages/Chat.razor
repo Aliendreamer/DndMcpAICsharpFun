@@ -1,0 +1,76 @@
+@page "/"
+@rendermode InteractiveServer
+@using Microsoft.Extensions.AI
+@inject DndMcpAICompanion.Features.Chat.DndChatService ChatService
+@inject IJSRuntime JS
+
+<div class="chat-container">
+    <div class="chat-header">⚔️ D&D Companion</div>
+
+    <div class="messages" id="messages-container">
+        @foreach (var msg in ChatService.History)
+        {
+            <div class="message @(msg.Role == ChatRole.User ? "user" : "assistant")">
+                <div class="bubble">@msg.Text</div>
+            </div>
+        }
+        @if (_loading)
+        {
+            <div class="message assistant">
+                <div class="bubble loading">Thinking...</div>
+            </div>
+        }
+    </div>
+
+    <div class="input-row">
+        <input @bind="_input"
+               @bind:event="oninput"
+               @onkeydown="OnKeyDown"
+               disabled="@_loading"
+               placeholder="Ask about D&D rules, spells, monsters..." />
+        <button @onclick="Send" disabled="@_loading">Send</button>
+    </div>
+</div>
+
+@code {
+    private string _input = "";
+    private bool _loading;
+
+    protected override void OnInitialized()
+    {
+        if (ChatService.History.Count == 0)
+            ChatService.History.Add(new ChatMessage(
+                ChatRole.Assistant,
+                "Hello, adventurer! Ask me anything about D&D rules, spells, monsters, and lore."));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("scrollToBottom", "messages-container");
+    }
+
+    private async Task Send()
+    {
+        var msg = _input.Trim();
+        if (string.IsNullOrEmpty(msg) || _loading) return;
+
+        _input = "";
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            await ChatService.SendAsync(msg, CancellationToken.None);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await Send();
+    }
+}

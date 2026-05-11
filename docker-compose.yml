@@ -26,6 +26,24 @@ services:
       - dnd_net
     restart: unless-stopped
 
+  companion:
+    build:
+      context: ./DndMcpAICompanion
+      dockerfile: Dockerfile
+    ports:
+      - "5102:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - Mcp__ApiKey=${MCP_API_KEY:-devMcpKey}
+    depends_on:
+      app:
+        condition: service_started
+      ollama:
+        condition: service_healthy
+    networks:
+      - dnd_net
+    restart: unless-stopped
+
   docling:
     image: ghcr.io/docling-project/docling-serve-cpu:latest
     ports:
