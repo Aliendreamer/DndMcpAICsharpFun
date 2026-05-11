@@ -22,8 +22,10 @@ public sealed class SearXNGClient(
 
             return response.Results
                 .Where(r => _opts.AllowedDomains.Length == 0 ||
-                            _opts.AllowedDomains.Any(d =>
-                                r.Url?.Contains(d, StringComparison.OrdinalIgnoreCase) == true))
+                            (Uri.TryCreate(r.Url, UriKind.Absolute, out var uri) &&
+                             _opts.AllowedDomains.Any(d =>
+                                 uri.Host.Equals(d, StringComparison.OrdinalIgnoreCase) ||
+                                 uri.Host.EndsWith("." + d, StringComparison.OrdinalIgnoreCase))))
                 .Take(_opts.MaxResults)
                 .Select(r => new SearXNGResult(r.Title ?? "", r.Url ?? "", r.Content ?? ""))
                 .ToList();

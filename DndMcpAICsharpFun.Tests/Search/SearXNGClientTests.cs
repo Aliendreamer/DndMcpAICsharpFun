@@ -43,7 +43,8 @@ public sealed class SearXNGClientTests
     {
         var json = MakeJson(
             ("Fireball", "https://dndbeyond.com/spells/fireball", "8d6 fire damage"),
-            ("Some Blog", "https://randomblog.com/fireball", "random post"));
+            ("Some Blog", "https://randomblog.com/fireball", "random post"),
+            ("Evil Site", "https://evil.com?ref=dndbeyond.com", "phishing attempt"));
         var client = Build(json);
 
         var results = await client.SearchAsync("fireball", CancellationToken.None);
