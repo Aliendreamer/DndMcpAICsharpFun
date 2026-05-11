@@ -1,11 +1,25 @@
 @page "/"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.Extensions.AI
+@attribute [Authorize]
 @inject DndMcpAICompanion.Features.Chat.DndChatService ChatService
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <div class="chat-container">
-    <div class="chat-header">⚔️ D&D Companion</div>
+    <div class="chat-header">
+        <span>⚔️ D&D Companion</span>
+        <div class="header-user">
+            <AuthorizeView>
+                <Authorized>
+                    <span class="username">@context.User.Identity!.Name</span>
+                </Authorized>
+            </AuthorizeView>
+            <button class="logout-btn" @onclick="Logout">Logout</button>
+        </div>
+    </div>
 
     <div class="messages" id="messages-container">
         @foreach (var msg in ChatService.History)
@@ -73,4 +87,6 @@
         if (e.Key == "Enter" && !e.ShiftKey)
             await Send();
     }
+
+    private void Logout() => Nav.NavigateTo("/logout", forceLoad: true);
 }

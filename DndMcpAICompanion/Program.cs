@@ -1,6 +1,12 @@
+using DndMcpAICompanion.Features.Auth;
 using DndMcpAICompanion.Features.Chat;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 // Alias to avoid ambiguity with ModelContextProtocol.Client.McpClientOptions
 using AppMcpClientOptions = DndMcpAICompanion.Features.Chat.McpClientOptions;
@@ -17,8 +23,20 @@ var ollamaOpts = builder.Configuration.GetSection("Ollama").Get<OllamaOptions>()
 var mcpOpts = builder.Configuration.GetSection("Mcp").Get<AppMcpClientOptions>()
     ?? throw new InvalidOperationException("Mcp configuration is missing.");
 
-builder.Services.AddTransient<IChatClient>(
-    _ => new OllamaChatClient(new Uri(ollamaOpts.Url), ollamaOpts.Model));
+var companionDb = builder.Configuration["Data:CompanionDb"] ?? "data/companion.db";
+var dbDir = Path.GetDirectoryName(companionDb);
+if (!string.IsNullOrEmpty(dbDir)) Directory.CreateDirectory(dbDir);
+var connectionString = $"Data Source={companionDb}";
+
+builder.Services.AddSingleton(new UserRepository(connectionString));
+builder.Services.AddSingleton(new ChatRateLimiter(
+    builder.Configuration.GetValue("RateLimit:MessagesPerMinute", 10)));
+
+builder.Services.AddTransient<IChatClient>(_ =>
+{
+    IChatClient inner = new OllamaChatClient(new Uri(ollamaOpts.Url), ollamaOpts.Model);
+    return inner.AsBuilder().UseFunctionInvocation().Build();
+});
 
 var transport = new HttpClientTransport(new HttpClientTransportOptions
 {
@@ -34,11 +52,42 @@ var mcpTools = await mcpClient.ListToolsAsync();
 builder.Services.AddSingleton(mcpClient);
 builder.Services.AddSingleton<IReadOnlyList<AITool>>(mcpTools.Cast<AITool>().ToList());
 
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<DndChatService>();
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(o =>
+    {
+        o.LoginPath = "/login";
+        o.LogoutPath = "/logout";
+    });
+builder.Services.AddAuthorization();
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+var requestsPerMinute = builder.Configuration.GetValue("RateLimit:RequestsPerMinute", 60);
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddSlidingWindowLimiter("global", o =>
+    {
+        o.PermitLimit = requestsPerMinute;
+        o.Window = TimeSpan.FromMinutes(1);
+        o.SegmentsPerWindow = 6;
+        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        o.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 var app = builder.Build();
+
+// Initialize companion DB
+var userRepo = app.Services.GetRequiredService<UserRepository>();
+await userRepo.InitializeAsync();
+
+if (!await userRepo.ExistsAsync("test"))
+    await userRepo.CreateAsync("test", PasswordHasher.Hash("test"));
 
 if (string.IsNullOrWhiteSpace(mcpOpts.ApiKey))
     app.Logger.LogWarning("Mcp:ApiKey is not configured — MCP requests will be sent without authentication and will likely be rejected by the server.");
@@ -46,8 +95,19 @@ if (string.IsNullOrWhiteSpace(mcpOpts.ApiKey))
 app.Lifetime.ApplicationStopping.Register(() => mcpClient.DisposeAsync().AsTask().GetAwaiter().GetResult());
 
 app.UseStaticFiles();
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
+
+app.MapGet("/logout", async (HttpContext ctx) =>
+{
+    await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.Redirect("/login");
+}).RequireRateLimiting("global");
+
 app.MapRazorComponents<DndMcpAICompanion.Components.App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .RequireRateLimiting("global");
 
 app.Run();

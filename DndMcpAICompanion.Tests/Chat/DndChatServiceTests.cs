@@ -1,11 +1,12 @@
 using DndMcpAICompanion.Features.Chat;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.AI;
 using Xunit;
 
 namespace DndMcpAICompanion.Tests.Chat;
 
-file sealed class FakeChatClient : IChatClient
+internal sealed class FakeChatClient : IChatClient
 {
     public string Reply { get; set; } = "Test reply";
     public bool ShouldThrow { get; set; }
@@ -28,13 +29,21 @@ file sealed class FakeChatClient : IChatClient
     public void Dispose() { }
 }
 
+internal sealed class NullHttpContextAccessor : IHttpContextAccessor
+{
+    public HttpContext? HttpContext { get; set; }
+}
+
 public class DndChatServiceTests
 {
+    private static DndChatService CreateService(FakeChatClient client) =>
+        new(client, [], new NullHttpContextAccessor(), new ChatRateLimiter(1000));
+
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()
     {
         var client = new FakeChatClient { Reply = "Fireball deals 8d6 fire damage." };
-        var svc = new DndChatService(client, []);
+        var svc = CreateService(client);
 
         var reply = await svc.SendAsync("What does fireball do?", CancellationToken.None);
 
@@ -50,7 +59,7 @@ public class DndChatServiceTests
     public async Task SendAsync_returns_error_message_when_ollama_is_unreachable()
     {
         var client = new FakeChatClient { ShouldThrow = true };
-        var svc = new DndChatService(client, []);
+        var svc = CreateService(client);
 
         var reply = await svc.SendAsync("Hello", CancellationToken.None);
 

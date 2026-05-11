@@ -2,12 +2,25 @@ using Microsoft.Extensions.AI;
 
 namespace DndMcpAICompanion.Features.Chat;
 
-public sealed class DndChatService(IChatClient chatClient, IReadOnlyList<AITool> tools)
+public sealed class DndChatService(
+    IChatClient chatClient,
+    IReadOnlyList<AITool> tools,
+    IHttpContextAccessor httpContextAccessor,
+    ChatRateLimiter rateLimiter)
 {
     public List<ChatMessage> History { get; } = [];
 
     public async Task<string> SendAsync(string userMessage, CancellationToken ct)
     {
+        var ip = httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        if (!rateLimiter.TryAcquire(ip))
+        {
+            const string limited = "You're sending messages too quickly. Please wait a moment.";
+            History.Add(new ChatMessage(ChatRole.User, userMessage));
+            History.Add(new ChatMessage(ChatRole.Assistant, limited));
+            return limited;
+        }
+
         History.Add(new ChatMessage(ChatRole.User, userMessage));
         try
         {

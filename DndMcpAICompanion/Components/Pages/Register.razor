@@ -1,0 +1,79 @@
+@page "/register"
+@using DndMcpAICompanion.Features.Auth
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using System.Security.Claims
+@inject UserRepository UserRepo
+@inject NavigationManager Nav
+
+<PageTitle>Register</PageTitle>
+
+<div class="auth-container">
+    <h2>Create Account</h2>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <p class="error">@_error</p>
+    }
+
+    <EditForm Model="_model" OnValidSubmit="OnSubmit" FormName="register" method="post">
+        <div class="form-group">
+            <label>Username</label>
+            <InputText @bind-Value="_model.Username" />
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <InputText type="password" @bind-Value="_model.Password" />
+        </div>
+        <div class="form-group">
+            <label>Confirm Password</label>
+            <InputText type="password" @bind-Value="_model.Confirm" />
+        </div>
+        <button type="submit">Register</button>
+    </EditForm>
+
+    <p><a href="/login">Already have an account? Sign in</a></p>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private RegisterModel _model { get; set; } = new();
+
+    private string _error = "";
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private async Task OnSubmit()
+    {
+        if (_model.Password != _model.Confirm)
+        {
+            _error = "Passwords do not match";
+            return;
+        }
+
+        if (await UserRepo.ExistsAsync(_model.Username))
+        {
+            _error = "Username already taken";
+            return;
+        }
+
+        var hash = PasswordHasher.Hash(_model.Password);
+        await UserRepo.CreateAsync(_model.Username, hash);
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.Name, _model.Username)
+        };
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+        Nav.NavigateTo("/", true);
+    }
+
+    private sealed class RegisterModel
+    {
+        public string Username { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string Confirm { get; set; } = "";
+    }
+}
