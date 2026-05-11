@@ -24,6 +24,8 @@ services:
         condition: service_completed_successfully
       docling:
         condition: service_healthy
+      searxng:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/5101' 2>/dev/null || exit 1"]
       interval: 15s
@@ -199,6 +201,17 @@ services:
       - ./data:/app/data
     depends_on:
       - app
+    networks:
+      - dnd_net
+    restart: unless-stopped
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./infra/searxng/settings.yml:/etc/searxng/settings.yml:ro
     networks:
       - dnd_net
     restart: unless-stopped
