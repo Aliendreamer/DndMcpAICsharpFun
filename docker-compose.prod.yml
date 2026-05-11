@@ -11,6 +11,7 @@ services:
       - Ollama__BaseUrl=http://ollama:11434
       - Ingestion__BooksPath=/books
       - Ingestion__DatabasePath=/data/ingestion.db
+      - SearXNG__Url=http://searxng:8080
     volumes:
       - books_data:/books
       - app_data:/data
@@ -23,6 +24,8 @@ services:
         condition: service_completed_successfully
       docling:
         condition: service_healthy
+      searxng:
+        condition: service_started
     networks:
       - dnd_net
     restart: unless-stopped
@@ -144,6 +147,16 @@ services:
       - app_data:/data
     depends_on:
       - app
+    networks:
+      - dnd_net
+    restart: unless-stopped
+
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./infra/searxng/settings.yml:/etc/searxng/settings.yml:ro
     networks:
       - dnd_net
     restart: unless-stopped

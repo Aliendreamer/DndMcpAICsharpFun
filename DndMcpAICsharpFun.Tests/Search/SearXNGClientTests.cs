@@ -8,11 +8,14 @@ internal sealed class FakeMessageHandler(string json, HttpStatusCode status = Ht
     : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request, CancellationToken ct) =>
-        Task.FromResult(new HttpResponseMessage(status)
+        HttpRequestMessage request, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(new HttpResponseMessage(status)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         });
+    }
 }
 
 public sealed class SearXNGClientTests
@@ -74,5 +77,16 @@ public sealed class SearXNGClientTests
         var results = await client.SearchAsync("fireball", CancellationToken.None);
 
         Assert.Empty(results);
+    }
+
+    [Fact]
+    public async Task SearchAsync_PropagatesCancellation()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var client = Build(MakeJson(("T", "https://dndbeyond.com/x", "c")));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => client.SearchAsync("fireball", cts.Token));
     }
 }

@@ -30,6 +30,10 @@ public sealed class SearXNGClient(
                 .Select(r => new SearXNGResult(r.Title ?? "", r.Url ?? "", r.Content ?? ""))
                 .ToList();
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogWarning("SearXNG search failed: {Message}", ex.Message);

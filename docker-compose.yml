@@ -11,6 +11,7 @@ services:
       - Qdrant__Host=qdrant
       - Ollama__BaseUrl=http://ollama:11434
       - Ingestion__BooksPath=/books
+      - SearXNG__Url=http://searxng:8080
     volumes:
       - ./books:/books
       - ./data:/app/data
