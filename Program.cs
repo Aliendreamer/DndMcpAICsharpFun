@@ -41,6 +41,7 @@ builder.Services.AddSingleton<CrossEncoderReranker>(sp =>
 builder.Services.AddInfrastructureClients(builder.Configuration);
 builder.Services.AddIngestionPipeline();
 builder.Services.AddRetrieval();
+builder.Services.AddWebSearch(builder.Configuration);
 builder.Services.AddEntityExtraction(builder.Configuration);
 builder.Services.AddObservability(builder.Configuration);
 

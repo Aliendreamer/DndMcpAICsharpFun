@@ -10,6 +10,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
+using DndMcpAICsharpFun.Features.Search;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure;
@@ -112,6 +113,19 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<IRagRetrievalService, RagRetrievalService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.IEntityRetrievalService, DndMcpAICsharpFun.Features.Retrieval.Entities.EntityRetrievalService>();
 
+        return services;
+    }
+
+    internal static IServiceCollection AddWebSearch(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<SearXNGOptions>(configuration.GetSection("SearXNG"));
+        services.AddHttpClient<SearXNGClient>((sp, client) =>
+        {
+            var opts = sp.GetRequiredService<IOptions<SearXNGOptions>>().Value;
+            client.BaseAddress = new Uri(opts.Url);
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
         return services;
     }
 
