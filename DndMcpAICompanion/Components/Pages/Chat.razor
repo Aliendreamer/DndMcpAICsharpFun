@@ -42,6 +42,10 @@
                @onkeydown="OnKeyDown"
                disabled="@_loading"
                placeholder="Ask about D&D rules, spells, monsters..." />
+        <label class="web-search-toggle">
+            <input type="checkbox" @bind="_webSearchEnabled" disabled="@_loading" />
+            Search web
+        </label>
         <button @onclick="Send" disabled="@_loading">Send</button>
     </div>
 </div>
@@ -49,6 +53,8 @@
 @code {
     private string _input = "";
     private bool _loading;
+    private bool _webSearchEnabled;
+    private bool _scrollRequired;
 
     protected override void OnInitialized()
     {
@@ -60,7 +66,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JS.InvokeVoidAsync("scrollToBottom", "messages-container");
+        if (firstRender || _scrollRequired)
+        {
+            _scrollRequired = false;
+            await JS.InvokeVoidAsync("scrollToBottom", "messages-container");
+        }
     }
 
     private async Task Send()
@@ -70,11 +80,12 @@
 
         _input = "";
         _loading = true;
+        _scrollRequired = true;
         StateHasChanged();
 
         try
         {
-            await ChatService.SendAsync(msg, CancellationToken.None);
+            await ChatService.SendAsync(msg, _webSearchEnabled, CancellationToken.None);
         }
         finally
         {

@@ -10,7 +10,7 @@ public sealed class DndChatService(
 {
     public List<ChatMessage> History { get; } = [];
 
-    public async Task<string> SendAsync(string userMessage, CancellationToken ct)
+    public async Task<string> SendAsync(string userMessage, bool allowWebSearch, CancellationToken ct)
     {
         var ip = httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         if (!rateLimiter.TryAcquire(ip))
@@ -21,16 +21,24 @@ public sealed class DndChatService(
             return limited;
         }
 
+        var activeTools = allowWebSearch
+            ? tools
+            : tools.Where(t => t is not AIFunction fn || fn.Name != "search_web").ToList();
+
         History.Add(new ChatMessage(ChatRole.User, userMessage));
         try
         {
             var response = await chatClient.GetResponseAsync(
                 History,
-                new ChatOptions { Tools = [.. tools] },
+                new ChatOptions { Tools = [.. activeTools] },
                 ct);
             var reply = response.Text ?? string.Empty;
             History.Add(new ChatMessage(ChatRole.Assistant, reply));
             return reply;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception)
         {
