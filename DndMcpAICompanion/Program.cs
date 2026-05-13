@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 
 using DndMcpAICompanion.Features.Auth;
+using DndMcpAICompanion.Features.Campaign;
 using DndMcpAICompanion.Features.Chat;
 
 using Microsoft.AspNetCore.Authentication;
@@ -30,6 +31,8 @@ if (!string.IsNullOrEmpty(dbDir)) Directory.CreateDirectory(dbDir);
 var connectionString = $"Data Source={companionDb}";
 
 builder.Services.AddSingleton(new UserRepository(connectionString));
+builder.Services.AddSingleton(new CampaignRepository(connectionString));
+builder.Services.AddSingleton(new HeroRepository(connectionString));
 builder.Services.AddSingleton(new ChatRateLimiter(
     builder.Configuration.GetValue("RateLimit:MessagesPerMinute", 10)));
 
@@ -86,6 +89,9 @@ var app = builder.Build();
 // Initialize companion DB
 var userRepo = app.Services.GetRequiredService<UserRepository>();
 await userRepo.InitializeAsync();
+
+var campaignRepo = app.Services.GetRequiredService<CampaignRepository>();
+await campaignRepo.InitializeAsync();
 
 if (!await userRepo.ExistsAsync("test"))
     await userRepo.CreateAsync("test", PasswordHasher.Hash("test"));

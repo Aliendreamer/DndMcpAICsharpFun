@@ -1,0 +1,100 @@
+@page "/campaigns/{Id:long}"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@using DndMcpAICompanion.Features.Campaign
+@attribute [Authorize]
+@inject CampaignRepository CampaignRepo
+@inject HeroRepository HeroRepo
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>@(_campaign?.Name ?? "Campaign")</PageTitle>
+
+@if (_campaign is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="campaign-detail">
+        <nav><a href="/campaigns">← Campaigns</a></nav>
+        <h1>@_campaign.Name</h1>
+        @if (!string.IsNullOrEmpty(_campaign.Description))
+        {
+            <p class="campaign-desc">@_campaign.Description</p>
+        }
+
+        <h2>Party</h2>
+        <div class="hero-roster">
+            @foreach (var hero in _heroes)
+            {
+                var sheet = hero.LatestSnapshot?.Sheet;
+                <div class="hero-card" @onclick="() => GoToHero(hero.Id)">
+                    <strong>@hero.Name</strong>
+                    @if (sheet is not null)
+                    {
+                        <span>@sheet.Class @(string.IsNullOrEmpty(sheet.Subclass) ? "" : $"({sheet.Subclass})") · Lv @sheet.Level</span>
+                        <span>HP @sheet.CurrentHitPoints / @sheet.MaxHitPoints · AC @sheet.ArmorClass</span>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (_showAddHero)
+        {
+            <div class="add-hero-form">
+                <input @bind="_newHeroName" placeholder="Hero name" />
+                @if (!string.IsNullOrEmpty(_addHeroError))
+                {
+                    <p class="error">@_addHeroError</p>
+                }
+                <button @onclick="AddHeroAsync">Add</button>
+                <button @onclick="CancelAddHero">Cancel</button>
+            </div>
+        }
+        else
+        {
+            <button @onclick="ShowAddHero">+ Add Hero</button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public long Id { get; set; }
+
+    private Campaign? _campaign;
+    private List<Hero> _heroes = [];
+    private long _userId;
+    private bool _showAddHero;
+    private string _newHeroName = "";
+    private string _addHeroError = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        _userId = long.Parse(state.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        _campaign = await CampaignRepo.GetByIdAsync(Id, _userId);
+        if (_campaign is null)
+        {
+            Nav.NavigateTo("/campaigns");
+            return;
+        }
+        _heroes = await HeroRepo.GetByCampaignAsync(Id);
+    }
+
+    private void GoToHero(long heroId) => Nav.NavigateTo($"/campaigns/{Id}/heroes/{heroId}");
+    private void ShowAddHero() => _showAddHero = true;
+    private void CancelAddHero() { _showAddHero = false; _addHeroError = ""; }
+
+    private async Task AddHeroAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newHeroName))
+        {
+            _addHeroError = "Name is required.";
+            return;
+        }
+        var heroId = await HeroRepo.CreateAsync(Id, _newHeroName.Trim());
+        Nav.NavigateTo($"/campaigns/{Id}/heroes/{heroId}");
+    }
+}
