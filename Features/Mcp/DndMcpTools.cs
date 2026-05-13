@@ -1,9 +1,11 @@
 using System.ComponentModel;
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
+
 using ModelContextProtocol.Server;
 
 namespace DndMcpAICsharpFun.Features.Mcp;
@@ -32,17 +34,16 @@ public sealed class DndMcpTools(IRagRetrievalService ragService, IEntityRetrieva
         var results = await ragService.SearchAsync(
             new RetrievalQuery(query, dndVersion, contentCategory, TopK: topK), ct);
 
-        if (results.Count == 0)
-            return "No lore results found.";
-
-        return JsonSerializer.Serialize(results.Select(r => new
-        {
-            title = r.Metadata.SectionTitle ?? r.Metadata.Chapter,
-            text = r.Text,
-            sourceBook = r.Metadata.SourceBook,
-            category = r.Metadata.Category.ToString(),
-            score = r.Score
-        }), _json);
+        return results.Count == 0
+            ? "No lore results found."
+            : JsonSerializer.Serialize(results.Select(r => new
+            {
+                title = r.Metadata.SectionTitle ?? r.Metadata.Chapter,
+                text = r.Text,
+                sourceBook = r.Metadata.SourceBook,
+                category = r.Metadata.Category.ToString(),
+                score = r.Score
+            }), _json);
     }
 
     [McpServerTool, Description(
