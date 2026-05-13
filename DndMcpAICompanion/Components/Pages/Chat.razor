@@ -6,21 +6,8 @@
 @attribute [Authorize]
 @inject DndMcpAICompanion.Features.Chat.DndChatService ChatService
 @inject IJSRuntime JS
-@inject NavigationManager Nav
 
 <div class="chat-container">
-    <div class="chat-header">
-        <span>⚔️ D&D Companion</span>
-        <div class="header-user">
-            <AuthorizeView>
-                <Authorized>
-                    <span class="username">@context.User.Identity!.Name</span>
-                </Authorized>
-            </AuthorizeView>
-            <button class="logout-btn" @onclick="Logout">Logout</button>
-        </div>
-    </div>
-
     <div class="messages" id="messages-container">
         @foreach (var msg in ChatService.History)
         {
@@ -37,11 +24,12 @@
     </div>
 
     <div class="input-row">
-        <input @bind="_input"
-               @bind:event="oninput"
-               @onkeydown="OnKeyDown"
-               disabled="@_loading"
-               placeholder="Ask about D&D rules, spells, monsters..." />
+        <textarea @bind="_input"
+                  @bind:event="oninput"
+                  @onkeydown="OnKeyDown"
+                  disabled="@_loading"
+                  rows="1"
+                  placeholder="Ask about D&D rules, spells, monsters..."></textarea>
         <label class="web-search-toggle">
             <input type="checkbox" @bind="_webSearchEnabled" disabled="@_loading" />
             Search web
@@ -99,5 +87,5 @@
             await Send();
     }
 
-    private void Logout() => Nav.NavigateTo("/logout", forceLoad: true);
+
 }

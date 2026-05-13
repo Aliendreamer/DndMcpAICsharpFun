@@ -6,6 +6,7 @@ namespace DndMcpAICompanion.Features.Campaign;
 public sealed record Hero(long Id, long CampaignId, string Name, DateTime CreatedAt, HeroSnapshot? LatestSnapshot);
 public sealed record HeroSnapshot(long Id, long HeroId, int SessionNumber, string SessionLabel, int Level, DateTime CreatedAt, CharacterSheet Sheet);
 public sealed record HeroSnapshotMeta(long Id, long HeroId, int SessionNumber, string SessionLabel, int Level, DateTime CreatedAt);
+public sealed record HeroWithCampaign(Hero Hero, string CampaignName);
 
 public sealed class HeroRepository(string connectionString)
 {
@@ -29,6 +30,35 @@ public sealed class HeroRepository(string connectionString)
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
             results.Add(ReadHero(reader));
+        return results;
+    }
+
+    public async Task<List<HeroWithCampaign>> GetAllByUserAsync(long userId)
+    {
+        await using var conn = new SqliteConnection(connectionString);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            SELECT h.Id, h.CampaignId, h.Name, h.CreatedAt,
+                   s.Id, s.SessionNumber, s.SessionLabel, s.Level, s.CreatedAt, s.CharacterJson,
+                   c.Name as CampaignName
+            FROM Heroes h
+            JOIN Campaigns c ON c.Id = h.CampaignId
+            LEFT JOIN HeroSnapshots s ON s.Id = (
+                SELECT Id FROM HeroSnapshots WHERE HeroId = h.Id ORDER BY CreatedAt DESC LIMIT 1
+            )
+            WHERE c.UserId = @uid
+            ORDER BY c.Name, h.Name
+            """;
+        cmd.Parameters.AddWithValue("@uid", userId);
+        var results = new List<HeroWithCampaign>();
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var hero = ReadHero(reader);
+            var campaignName = reader.GetString(10);
+            results.Add(new HeroWithCampaign(hero, campaignName));
+        }
         return results;
     }
 

@@ -1,5 +1,34 @@
 @inherits LayoutComponentBase
+@inject AuthenticationStateProvider Auth
+@inject NavigationManager Nav
 
-<main>
-    @Body
-</main>
+<div class="app-layout">
+    <nav class="sidebar">
+        <div class="sidebar-brand">⚔ DnD Companion</div>
+
+        <div class="sidebar-nav">
+            <NavLink href="/" Match="NavLinkMatch.All" ActiveClass="active">💬 Chat</NavLink>
+            <NavLink href="/campaigns" ActiveClass="active">🗺 Campaigns</NavLink>
+            <NavLink href="/heroes" ActiveClass="active">🦸 Heroes</NavLink>
+        </div>
+
+        <div class="sidebar-footer">
+            <span class="sidebar-username">@_username</span>
+            <a href="/logout" class="sidebar-logout">⏻ Logout</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        @Body
+    </main>
+</div>
+
+@code {
+    private string _username = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        _username = state.User.Identity?.Name ?? "";
+    }
+}
