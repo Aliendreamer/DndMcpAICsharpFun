@@ -17,7 +17,7 @@
 All schemas switch to these formats:
 
 | Concept | Old (ours) | New (5etools) |
-|---|---|---|
+| --- | --- | --- |
 | Descriptive text | `"description": "string"` | `"entries": ["string", {type,name,entries}]` |
 | Size | `"size": "Medium"` | `"size": ["M"]` |
 | Alignment | `"alignment": "Neutral Good"` | `"alignment": ["N", "G"]` |
@@ -39,7 +39,7 @@ All schemas switch to these formats:
 
 ### Spell
 | Old field | New field |
-|---|---|
+| --- | --- |
 | `school` string | `school` code (`"V"`, `"C"`, `"A"`, `"T"`, `"D"`, `"N"`, `"I"`, `"E"`) |
 | `castingTime` string | `time: [{number, unit}]` |
 | `range` string | `range: {type, distance: {type, amount}}` |
@@ -52,7 +52,7 @@ All schemas switch to these formats:
 
 ### Monster
 | Old field | New field |
-|---|---|
+| --- | --- |
 | `size` string | `size: ["M"]` code array |
 | `type` string + `subtypes[]` | `type: {type: "humanoid", tags: [...]}` |
 | `alignment` string | `alignment: ["N", "G"]` code array |
@@ -72,7 +72,7 @@ All schemas switch to these formats:
 
 ### Race
 | Old field | New field |
-|---|---|
+| --- | --- |
 | `size` string | `size: ["M"]` code array |
 | `speed` integer | `speed: {walk: 30}` object |
 | `abilityBonuses[]` | `ability: [{dex:2, wis:1}]` |
@@ -101,7 +101,7 @@ Simplified 5etools shape:
 
 ### God (Deity)
 | Old field | New field |
-|---|---|
+| --- | --- |
 | `alignment` string | `alignment: ["N", "E"]` code array |
 | `description` string | `entries[]` |
 | `domains[]` | unchanged |
@@ -111,7 +111,7 @@ Simplified 5etools shape:
 
 ### Trap
 | Old field | New field |
-|---|---|
+| --- | --- |
 | `difficulty` string | `trapHazType` code (`"MECH"`, `"MAG"`, `"SMPL"`, `"CMPX"`) |
 | `description` string | `entries[]` |
 | `detectDc`, `disarmDc` | **kept** as explicit fields — useful for MCP filtering, 5etools buries these in prose |
@@ -217,7 +217,7 @@ Use inline tags: {@damage 2d8} for damage rolls, {@dc 15} for DCs,
 ## Migration
 
 | Artifact | Change |
-|---|---|
+| --- | --- |
 | 22 `*Fields.schema.json` | Rewritten to 5etools format |
 | `phb14.json` (3 sample entities) | Fields migrated to new format |
 | `test-book.json` fixtures | Updated to match new schemas |

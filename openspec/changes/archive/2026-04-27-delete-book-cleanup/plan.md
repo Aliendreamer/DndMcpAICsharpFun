@@ -13,7 +13,7 @@
 ## File map
 
 | Action | Path |
-|--------|------|
+| --- | --- |
 | Modify | `Features/Ingestion/Tracking/IIngestionTracker.cs` |
 | Modify | `Features/Ingestion/Tracking/SqliteIngestionTracker.cs` |
 | Modify | `Features/VectorStore/IVectorStoreService.cs` |

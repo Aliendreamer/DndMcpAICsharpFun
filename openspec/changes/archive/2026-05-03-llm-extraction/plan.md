@@ -13,7 +13,7 @@
 ## File Map
 
 | Action | File |
-|--------|------|
+| --- | --- |
 | Create | `Domain/ExtractedEntity.cs` |
 | Create | `Features/Ingestion/Extraction/ILlmClassifier.cs` |
 | Create | `Features/Ingestion/Extraction/OllamaLlmClassifier.cs` |
@@ -1363,7 +1363,7 @@ git commit -m "feat: register LLM extraction services, pull llama3.2 in docker-c
 ## Spec Coverage Checklist
 
 | Spec Requirement | Implemented In |
-|---|---|
+| --- | --- |
 | ILlmClassifier — Pass 1 classification | Task 2 |
 | ILlmEntityExtractor — Pass 2 per-type extraction | Task 3 |
 | IEntityJsonStore — page JSON files | Task 4 |

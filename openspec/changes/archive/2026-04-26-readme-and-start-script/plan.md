@@ -13,7 +13,7 @@
 ## File Map
 
 | File | Action | Responsibility |
-|------|--------|---------------|
+| --- | --- | --- |
 | `docker-compose.yml` | Modify (lines 8-9 of app service) | Dynamic env var, remove Admin__ApiKey |
 | `start.sh` | Create | Stack launcher with env validation |
 | `README.md` | Rewrite | Full developer onboarding doc |
@@ -165,7 +165,7 @@ Append to `README.md`:
 ## Prerequisites
 
 | Tool | Version | Purpose |
-|------|---------|---------|
+| --- | --- | --- |
 | [Docker](https://docs.docker.com/get-docker/) | 27+ | Container runtime |
 | [docker compose](https://docs.docker.com/compose/) | v2 (CLI plugin) | Stack orchestration |
 | [git-crypt](https://github.com/AGWA/git-crypt) | any | Decrypt config files |
@@ -315,7 +315,7 @@ All endpoints are on `http://localhost:5101`.
 ### Health
 
 | Method | Path | Description |
-|--------|------|-------------|
+| --- | --- | --- |
 | `GET` | `/health` | Liveness check |
 | `GET` | `/ready` | Readiness check (Qdrant + Ollama) |
 
@@ -324,7 +324,7 @@ All endpoints are on `http://localhost:5101`.
 Requires header `X-Api-Key: <admin key>`.
 
 | Method | Path | Description |
-|--------|------|-------------|
+| --- | --- | --- |
 | `POST` | `/admin/books/register` | Upload a PDF and register it for ingestion. Form fields: `file` (PDF), `sourceName`, `version` (`Edition2014` or `Edition2024`), `displayName` |
 | `GET` | `/admin/books` | List all registered books and their ingestion status |
 | `POST` | `/admin/books/{id}/reingest` | Reset a book to `Pending` and trigger re-ingestion |
@@ -332,7 +332,7 @@ Requires header `X-Api-Key: <admin key>`.
 ### Retrieval
 
 | Method | Path | Description |
-|--------|------|-------------|
+| --- | --- | --- |
 | `GET` | `/retrieval/search` | Semantic search. Query params: `q` (required), `version`, `category`, `sourceBook`, `entityName`, `topK` (default 5) |
 | `GET` | `/admin/retrieval/search` | Same as above but returns full diagnostic payload including scores and Qdrant point IDs. Requires admin key. |
 
@@ -343,7 +343,7 @@ Requires header `X-Api-Key: <admin key>`.
 ### Metrics
 
 | Method | Path | Description |
-|--------|------|-------------|
+| --- | --- | --- |
 | `GET` | `/metrics` | Prometheus text format metrics. **Dev-only — unauthenticated. Disable in production via `OpenTelemetry:Enabled: false`.** |
 ```
 
@@ -365,7 +365,7 @@ Append to `README.md`:
 When the stack is running, these UIs are available:
 
 | Service | URL | Description |
-|---------|-----|-------------|
+| --- | --- | --- |
 | Grafana | http://localhost:3000 | Pre-provisioned dashboards: .NET runtime, Qdrant, Ollama |
 | Prometheus | http://localhost:9090 | Raw metrics and query UI |
 | sqlite-web | http://localhost:8080 | Browse and query the `IngestionRecords` SQLite table |

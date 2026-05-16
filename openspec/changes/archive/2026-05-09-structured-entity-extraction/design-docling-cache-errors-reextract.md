@@ -71,7 +71,7 @@ The "no schema for type" branch in the extraction loop currently logs a warning 
 ## File Changes
 
 | File | Change |
-|---|---|
+| --- | --- |
 | `Features/Ingestion/Pdf/DoclingDiskCache.cs` | New — `IDoclingPdfConverter` caching decorator |
 | `Features/Ingestion/EntityExtraction/EntityExtractionOptions.cs` | Add `DoclingCacheDirectory = "data/docling-cache"` |
 | `Config/appsettings.json` | Add `DoclingCacheDirectory` to `EntityExtraction` section |
@@ -84,7 +84,7 @@ The "no schema for type" branch in the extraction loop currently logs a warning 
 ### Tests
 
 | File | What it tests |
-|---|---|
+| --- | --- |
 | `DndMcpAICsharpFun.Tests/Ingestion/Pdf/DoclingDiskCacheTests.cs` | Cache miss calls through; cache hit skips converter; corrupt file recovers |
 | `DndMcpAICsharpFun.Tests/Ingestion/EntityExtraction/EntityExtractionOrchestratorTests.cs` | `errorsOnly` skips non-error candidates; merges into existing JSON; `no_schema` written to errors |
 | `DndMcpAICsharpFun.Tests/Admin/BooksAdminEndpointsTests.cs` | `?errorsOnly=true` passed through to orchestrator |

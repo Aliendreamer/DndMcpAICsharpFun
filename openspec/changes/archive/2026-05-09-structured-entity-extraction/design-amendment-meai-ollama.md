@@ -26,7 +26,7 @@ Replace D13 entirely:
 ## What Changes vs Plan 2
 
 | Plan 2 (original) | This amendment |
-|---|---|
+| --- | --- |
 | `AnthropicMessagesClient.cs` | `OllamaEntityExtractionClient.cs` |
 | `AnthropicOptions.cs` (API key, base URL, model) | Removed; `OllamaOptions.ChatModel` field added |
 | Anthropic tool-use schema constraint | Ollama `format: { ...json schema... }` |

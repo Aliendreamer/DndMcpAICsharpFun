@@ -41,7 +41,7 @@ Each chunk produces a small, focused JSON. Merging is a deterministic code opera
 Text-only pipeline only. **VL models are rejected** — cannot fit on hardware (8 GB VRAM, RTX 5070 Ti).
 
 | Model | Verdict |
-|---|---|
+| --- | --- |
 | `Qwen2.5-7B-Instruct` | Preferred — good structured extraction |
 | `Qwen3-8B-Instruct` | Preferred — current default (`qwen3:8b`) |
 | `Qwen2.5-VL-*` / `Qwen3-VL-*` | **No** — VRAM limit |
@@ -52,7 +52,7 @@ Text-only pipeline only. **VL models are rejected** — cannot fit on hardware (
 ## What Changes
 
 | Component | Change |
-|---|---|
+| --- | --- |
 | `DoclingPdfConverter` output | Expose block-level items (already available as `DoclingItem` list) |
 | `EntityCandidateScanner` | Group `DoclingItem`s into chunk windows instead of full-page text |
 | `ExtractionRequest` | `UserPrompt` contains one chunk, not one full candidate text |

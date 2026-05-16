@@ -72,7 +72,7 @@ New endpoints:
 When the full stack is running (`docker compose up`), these UIs are available:
 
 | Service | URL | Notes |
-|---------|-----|-------|
+| --- | --- | --- |
 | Grafana | <http://localhost:3000> | Pre-provisioned dashboards for .NET, Qdrant, Ollama |
 | Prometheus | <http://localhost:9090> | Metrics scraping and querying |
 | sqlite-web | <http://localhost:8080> | Browse `IngestionRecords` table |

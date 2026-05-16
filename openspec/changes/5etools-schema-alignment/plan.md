@@ -13,7 +13,7 @@
 ## File Map
 
 | File | Action |
-|---|---|
+| --- | --- |
 | `Schemas/canonical/SpellFields.schema.json` | Rewrite |
 | `Schemas/canonical/MonsterFields.schema.json` | Rewrite |
 | `Schemas/canonical/RaceFields.schema.json` | Rewrite |

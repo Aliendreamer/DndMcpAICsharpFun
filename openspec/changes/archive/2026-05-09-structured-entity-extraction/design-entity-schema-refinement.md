@@ -46,7 +46,7 @@ properties:
 Add `required` arrays to force the LLM to prove it has a real entity. Section headings cannot fill these fields and will be routed to `Lore`, `Rule`, or skipped.
 
 | Type | New required fields |
-|------|-------------------|
+| --- | --- |
 | `God` | `alignment`, `domains`, `description` |
 | `Plane` | `category`, `description` |
 | `Monster` | `challengeRating`, `size`, `type` |
@@ -86,7 +86,7 @@ Pages like "ARMOR, +1, +2, OR +3" describe multiple tiers of the same item. The 
 **Files additionally affected:**
 
 | File | Change |
-|------|--------|
+| --- | --- |
 | `Schemas/canonical/MagicItemFields.schema.json` | Add optional `variants` array |
 | `Features/Ingestion/EntityExtraction/ExtractionPromptBuilder.cs` | Add MagicItem variant instruction |
 
@@ -110,7 +110,7 @@ Two additions to `ExtractionPromptBuilder.BuildSystemPrompt`:
 ## Files Affected
 
 | File | Change |
-|------|--------|
+| --- | --- |
 | `Domain/Entities/EntityType.cs` | Add `Lore`, `Rule` to enum |
 | `Schemas/canonical/LoreFields.schema.json` | New file |
 | `Schemas/canonical/RuleFields.schema.json` | New file |

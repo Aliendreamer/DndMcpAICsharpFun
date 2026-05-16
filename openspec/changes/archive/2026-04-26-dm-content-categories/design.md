@@ -25,7 +25,7 @@ Each detector implements:
 **`TreasurePatternDetector`** (3 signals, threshold 2/3 = 0.67 → rounds to 1 hit needed for 0.33, 2 for 0.67):
 
 | Signal | Rationale |
-|--------|-----------|
+| --- | --- |
 | `"Treasure Hoard"` | Explicit DMG section header |
 | `"Art Objects"` | Consistent label in treasure tables |
 | `"Gemstones"` | Consistent label in treasure tables |
@@ -35,7 +35,7 @@ Each detector implements:
 **`EncounterPatternDetector`** (3 signals):
 
 | Signal | Rationale |
-|--------|-----------|
+| --- | --- |
 | `"Encounter Difficulty"` | DMG encounter-building section phrase |
 | `"XP Threshold"` | Used in encounter difficulty tables |
 | `"Random Encounter"` | Explicit encounter table heading |
@@ -45,7 +45,7 @@ Each detector implements:
 **`TrapPatternDetector`** (3 signals):
 
 | Signal | Rationale |
-|--------|-----------|
+| --- | --- |
 | `"Trigger:"` | Every trap description starts with a Trigger block |
 | `"Effect:"` | Every trap description has an Effect block |
 | `"Disarm DC:"` | Trap-specific mechanic label |

@@ -58,7 +58,7 @@ Current problems:
 **Field priority:**
 
 | Field | Winner | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | `fields`, `canonicalText` | Canonical | Richer extraction from full PDF text |
 | `firstAppearedIn` | Canonical | Extracted with page context |
 | `type` | 5etools | Authoritative classification |

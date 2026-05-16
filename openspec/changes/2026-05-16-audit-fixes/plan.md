@@ -17,7 +17,7 @@
 ## File Map
 
 | File | Tasks |
-|---|---|
+| --- | --- |
 | `Features/Admin/BooksAdminEndpoints.cs` | 1, 13 |
 | `Features/Ingestion/BookDeletionService.cs` | 1 |
 | `Features/Ingestion/Entities/EntityIngestionOrchestrator.cs` | 2 |

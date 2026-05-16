@@ -78,7 +78,7 @@ Merges an ordered list of partial `JsonElement` field objects into one final obj
 Merge rules (applied field by field):
 
 | Field kind | Rule |
-|---|---|
+| --- | --- |
 | Scalar (string, number, bool) | First non-null wins; later chunks cannot overwrite |
 | Array (`entries`, `variants`, `traits`, `actions`, `reactions`, `legendaryActions`, etc.) | Concatenate all arrays in chunk order |
 | Array dedup | If items have a `"name"` property, drop later duplicates with the same name |
@@ -217,7 +217,7 @@ if (recoverer.TryRecover(rawText, out var recovered))
 ## File Map
 
 | Action | Path |
-|---|---|
+| --- | --- |
 | Create | `Features/Ingestion/EntityExtraction/SemanticChunker.cs` |
 | Create | `Features/Ingestion/EntityExtraction/EntityFieldMerger.cs` |
 | Create | `Features/Ingestion/EntityExtraction/PartialJsonRecoverer.cs` |

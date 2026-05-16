@@ -13,7 +13,7 @@
 ## File Map
 
 | File | Action |
-|------|--------|
+| --- | --- |
 | `Domain/Entities/EntityType.cs` | Add `Lore`, `Rule` |
 | `Schemas/canonical/LoreFields.schema.json` | Create |
 | `Schemas/canonical/RuleFields.schema.json` | Create |
