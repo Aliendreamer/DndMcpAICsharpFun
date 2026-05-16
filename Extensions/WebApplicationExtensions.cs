@@ -43,7 +43,7 @@ internal static class WebApplicationExtensions
     internal static void MapObservabilityEndpoints(this WebApplication app)
     {
         var otelOptions = app.Configuration.GetSection("OpenTelemetry").Get<OpenTelemetryOptions>() ?? new OpenTelemetryOptions();
-        if (otelOptions.Enabled && app.Environment.IsDevelopment())
+        if (otelOptions.Enabled)
             app.MapPrometheusScrapingEndpoint();
     }
 }
