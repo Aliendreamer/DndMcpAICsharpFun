@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
 
+using System.Security.Cryptography;
+
 namespace DndMcpAICsharpFun.Features.Mcp;
 
 public sealed class McpAuthMiddleware(RequestDelegate next, IOptions<McpOptions> options)
@@ -11,7 +13,9 @@ public sealed class McpAuthMiddleware(RequestDelegate next, IOptions<McpOptions>
     {
         if (string.IsNullOrEmpty(_apiKey) ||
             !ctx.Request.Headers.TryGetValue(HeaderName, out var key) ||
-            key.ToString() != _apiKey)
+            !CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(key.ToString()),
+                System.Text.Encoding.UTF8.GetBytes(_apiKey)))
         {
             ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;

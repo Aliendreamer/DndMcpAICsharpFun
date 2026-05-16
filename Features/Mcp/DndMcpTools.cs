@@ -28,6 +28,9 @@ public sealed class DndMcpTools(IRagRetrievalService ragService, IEntityRetrieva
         [Description("Maximum number of results (default 5)")] int topK = 5,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(query))
+            return "Error: query must not be empty.";
+
         var dndVersion = Enum.TryParse<DndVersion>(version, out var v) ? v : (DndVersion?)null;
         var contentCategory = Enum.TryParse<ContentCategory>(category, out var c) ? c : (ContentCategory?)null;
 
@@ -64,6 +67,9 @@ public sealed class DndMcpTools(IRagRetrievalService ragService, IEntityRetrieva
         [Description("Number of results (default 10)")] int topK = 10,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(query))
+            return "Error: query must not be empty.";
+
         var entityType = Enum.TryParse<EntityType>(type, out var t) ? t : (EntityType?)null;
 
         var results = await entityService.SearchAsync(
@@ -105,6 +111,9 @@ public sealed class DndMcpTools(IRagRetrievalService ragService, IEntityRetrieva
         [Description("Canonical entity ID from a previous search_entities result")] string id,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(id))
+            return "Error: id must not be empty.";
+
         var result = await entityService.GetByIdAsync(id, ct);
         if (result is null)
             return $"Entity not found: {id}";

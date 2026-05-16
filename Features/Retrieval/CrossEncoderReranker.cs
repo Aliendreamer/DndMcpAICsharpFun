@@ -112,6 +112,13 @@ public sealed class CrossEncoderReranker(
         };
 
         using var results = _session!.Run(inputs);
-        return results.First().AsTensor<float>().First();
+        var outputList = results.ToList();
+        if (outputList.Count == 0)
+            throw new InvalidOperationException("ONNX reranker returned no output tensors.");
+        var tensor = outputList[0].AsTensor<float>();
+        var scores = tensor.ToArray();
+        if (scores.Length == 0)
+            throw new InvalidOperationException("ONNX reranker output tensor is empty.");
+        return scores[0];
     }
 }

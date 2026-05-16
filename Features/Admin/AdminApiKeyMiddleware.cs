@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
 
+using System.Security.Cryptography;
+
 namespace DndMcpAICsharpFun.Features.Admin;
 
 public sealed class AdminApiKeyMiddleware(RequestDelegate next, IOptions<AdminOptions> options)
@@ -9,8 +11,11 @@ public sealed class AdminApiKeyMiddleware(RequestDelegate next, IOptions<AdminOp
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (!context.Request.Headers.TryGetValue(HeaderName, out var provided) ||
-            provided != _apiKey)
+        if (string.IsNullOrEmpty(_apiKey) ||
+            !context.Request.Headers.TryGetValue(HeaderName, out var provided) ||
+            !CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(provided.ToString()),
+                System.Text.Encoding.UTF8.GetBytes(_apiKey)))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
