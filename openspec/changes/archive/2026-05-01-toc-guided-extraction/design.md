@@ -7,6 +7,7 @@ PDF files published by Wizards of the Coast and most third-party D&D publishers 
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Read PDF bookmarks once per extraction run to build a page-range → `ContentCategory?` map
 - Use the LLM once per book to classify bookmark titles into `ContentCategory` values
 - Reduce per-page LLM calls from 8 to at most 1 (0 for pages with no mapped category)
@@ -14,6 +15,7 @@ PDF files published by Wizards of the Coast and most third-party D&D publishers 
 - On cancel: delete `extracted/{bookId}/` folder, reset status to `Pending`
 
 **Non-Goals:**
+
 - Persisting the TOC map across runs (ephemeral — recomputed each `/extract`)
 - Handling scanned/image-based PDFs with no embedded bookmarks (fall back to current behaviour)
 - Cancelling queued-but-not-started work items (only the actively running extraction)

@@ -7,6 +7,7 @@ Campaigns and heroes are personal — one user owns them, no sharing. A hero bel
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Create, view, and delete campaigns per user
 - Add heroes to a campaign, view and edit their full character sheet
 - Each hero edit creates a new snapshot (Memento) labeled with a session number/label
@@ -15,6 +16,7 @@ Campaigns and heroes are personal — one user owns them, no sharing. A hero bel
 - Unit tests for repositories and CharacterSheet serialization
 
 **Non-Goals:**
+
 - Sharing campaigns between users
 - Importing characters from D&D Beyond or external formats
 - AI integration with party data (separate spec)
@@ -138,6 +140,7 @@ The strongly-typed record above. Serialized with `System.Text.Json` (default opt
 
 ### `Features/Campaign/CampaignRepository.cs`
 Raw ADO.NET, `Microsoft.Data.Sqlite`. Methods:
+
 - `InitializeAsync()` — creates all three tables if not exists
 - `GetAllAsync(long userId)` — returns all campaigns for user
 - `GetByIdAsync(long id, long userId)` — single campaign, null if not found or wrong user
@@ -146,6 +149,7 @@ Raw ADO.NET, `Microsoft.Data.Sqlite`. Methods:
 
 ### `Features/Campaign/HeroRepository.cs`
 Raw ADO.NET. Methods:
+
 - `GetByCampaignAsync(long campaignId)` — all heroes for a campaign (with latest snapshot)
 - `GetByIdAsync(long id)` — single hero + latest snapshot
 - `GetSnapshotsAsync(long heroId)` — all snapshots ordered by CreatedAt DESC (metadata only, no JSON)
@@ -157,12 +161,14 @@ Raw ADO.NET. Methods:
 ### Blazor Pages
 
 **`Components/Pages/Campaign/Campaigns.razor`** (`/campaigns`)
+
 - Grid of campaign cards: name, hero count, last updated
 - "New Campaign" inline form (name + description)
 - Delete button per campaign (with confirm)
 - Requires auth (`[Authorize]`)
 
 **`Components/Pages/Campaign/CampaignDetail.razor`** (`/campaigns/{Id:int}`)
+
 - Campaign name + description header
 - Party roster: one card per hero (name, class, level, current HP / max HP)
 - "Add Hero" button (name input, then redirect to hero detail)
@@ -171,6 +177,7 @@ Raw ADO.NET. Methods:
 **`Components/Pages/Campaign/HeroDetail.razor`** (`/campaigns/{CampaignId:int}/heroes/{HeroId:int}`)
 
 View mode — structured sheet layout:
+
 - **Header**: name, race, class/subclass, level, background, XP
 - **Ability Scores**: 6-block grid with score and computed modifier
 - **Combat**: HP bar (current/max), AC, Speed, Initiative, Proficiency Bonus

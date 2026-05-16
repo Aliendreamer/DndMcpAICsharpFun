@@ -5,11 +5,13 @@ The registration form for `/admin/books/register` accepts `sourceName`, `version
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Remove `sourceName` from the registration surface and from the SQLite schema.
 - Keep all other fields and behaviours unchanged.
 - Make the EF migration idempotent and reversible (`Down` re-adds the column as nullable).
 
 **Non-Goals:**
+
 - Adding a new short-form tag in its place. If MCP design surfaces a real need for one, it's a separate change.
 - Migrating the `sourceName` data anywhere. The data is dropped on migration. It was never used; nothing depends on it.
 

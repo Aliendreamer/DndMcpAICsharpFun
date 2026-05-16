@@ -3,6 +3,7 @@
 ### Requirement: CanonicalNameNormalizerService normalizes entity names
 
 `CanonicalNameNormalizerService` SHALL process canonical JSON files and for each entity:
+
 - If the name is entirely uppercase (`name.isupper()` equivalent: all letters are uppercase and at least one letter exists and length > 1) AND has no other OCR artifacts: convert to D&D title case and leave `needsReview` unchanged (defaults to `false`).
 - If the name has any OCR artifact (as detected by `ExtractionNeedsReview.HasOcrArtifacts`): set `needsReview = true`, leave the name unchanged.
 - Otherwise: leave name and `needsReview` unchanged (set `needsReview = false` if absent).
@@ -32,6 +33,7 @@ The service SHALL be idempotent: running it twice on the same file produces iden
 ### Requirement: D&D title-case algorithm
 
 The title-case conversion SHALL:
+
 - Capitalize the first letter of every word except articles and prepositions (`of, the, a, an, in, on, at, to, and, or, but, for, nor`) unless the word starts the name.
 - Capitalize the first letter after a hyphen.
 - Correct apostrophe-S: `'S` → `'s` (e.g., `TASHA'S` → `Tasha's`).

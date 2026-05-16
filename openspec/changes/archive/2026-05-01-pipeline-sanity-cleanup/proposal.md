@@ -17,9 +17,11 @@ The codebase accumulated two ingestion pipelines during development: an old patt
 ## Capabilities
 
 ### New Capabilities
+
 - none
 
 ### Modified Capabilities
+
 - `ingestion-pipeline`: `IngestBookAsync` / Reingest path removed; `ExtractBookAsync` gains idempotent re-extraction cleanup
 
 ## Impact

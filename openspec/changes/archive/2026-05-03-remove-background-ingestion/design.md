@@ -10,11 +10,13 @@ When a book is registered via `POST /admin/books/register` or `POST /admin/books
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Book registration saves the file and creates a `Pending` record — nothing more.
 - All pipeline execution is explicit: `/reingest` for the legacy path; `/extract` + `/ingest-json` for LLM extraction.
 - Remove dead code: `IngestionBackgroundService`, its DI wiring, and its tests.
 
 **Non-Goals:**
+
 - No changes to `/reingest`, `/extract`, `/ingest-json`, or `IngestBookAsync` / `ExtractBookAsync` / `IngestJsonAsync` logic.
 - No changes to the HTTP request/response shapes or authentication.
 - No new retry or scheduling mechanism to replace the background service.
@@ -26,6 +28,7 @@ When a book is registered via `POST /admin/books/register` or `POST /admin/books
 **Chosen:** Delete `IngestionBackgroundService` and its registration unconditionally.
 
 **Alternatives considered:**
+
 - Feature flag (`Ingestion:AutoIngest: false`) — adds configuration surface and keeps dead code alive. Not worth it; the explicit-trigger model is the intended design going forward.
 - Keep background service but disable auto-fire on register — splits the "auto-ingest" behavior across two places, making the intent harder to follow.
 

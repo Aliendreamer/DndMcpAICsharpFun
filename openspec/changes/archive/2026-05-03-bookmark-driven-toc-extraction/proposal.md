@@ -23,6 +23,7 @@ D&D rulebook PDFs (and almost all professionally-published PDFs) embed a structu
 <!-- none -->
 
 ### Modified Capabilities
+
 - `ingestion-pipeline`: Section discovery now reads the PDF bookmark tree instead of LLM-parsing a TOC page; the `tocPage` registration field is removed.
 - `llm-extraction`: The TOC-map extractor and its prompt are removed. LLM usage in extraction is now strictly per-page entity extraction.
 - `http-contracts`: `POST /admin/books/register` no longer accepts `tocPage`; `POST /admin/books/{id}/debug-toc` is removed.

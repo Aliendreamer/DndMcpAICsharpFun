@@ -30,6 +30,7 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 ## File structure
 
 ### Schema generation (new)
+
 - `Build/GenerateCanonicalSchemas.targets` — MSBuild target that runs the schema generator on build
 - `Tools/SchemaGenerator/SchemaGenerator.csproj` — small console tool that uses NJsonSchema to emit `Schemas/canonical/<Type>Fields.schema.json`
 - `Tools/SchemaGenerator/Program.cs` — generator entry point
@@ -37,6 +38,7 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 - `Schemas/canonical/*.schema.json` — generated artifacts (committed; 20 files for the 20 entity types)
 
 ### LLM client abstraction (new)
+
 - `Features/Ingestion/EntityExtraction/IEntityExtractionLlmClient.cs` — interface
 - `Features/Ingestion/EntityExtraction/OllamaEntityExtractionClient.cs` — `IEntityExtractionLlmClient` impl; depends on `IChatClient` from MEAI
 - `Features/Ingestion/EntityExtraction/ExtractionRequest.cs` — typed request record
@@ -44,6 +46,7 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 - `Infrastructure/Ollama/OllamaOptions.cs` — **modify**: add `ChatModel` property (alongside existing `BaseUrl` and `EmbeddingModel`)
 
 ### Extraction pipeline (new)
+
 - `Features/Ingestion/EntityExtraction/IEntityExtractionOrchestrator.cs` — interface
 - `Features/Ingestion/EntityExtraction/EntityExtractionOrchestrator.cs` — main orchestrator
 - `Features/Ingestion/EntityExtraction/ExtractionPromptBuilder.cs` — per-type prompt construction
@@ -56,13 +59,16 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 - `Features/Ingestion/EntityExtraction/IntraBookReferenceClassifier.cs` — given current book's slug prefix, classify a dangling ref as intra/inter-book
 
 ### Reference resolver upgrade (modify)
+
 - `Features/Entities/EntityReferenceResolver.cs` — add overload that accepts a `currentBookSlug` and partitions warnings into intra-book FAIL vs inter-book WARN
 
 ### Docling cache reuse (modify)
+
 - `Features/Ingestion/Pdf/IDoclingPdfConverter.cs` — review and confirm caching surface; if no cache exists, add a per-book in-memory cache with the file hash as key
 - (Possibly new) `Features/Ingestion/Pdf/DoclingOutputCache.cs` — singleton cache mapping `fileHash → DoclingDocument`
 
 ### Status / queue (modify)
+
 - `Features/Ingestion/IIngestionQueue.cs` — add `ExtractEntities` enum value
 - `Features/Ingestion/IngestionQueueWorker.cs` — dispatch the new work item type
 - `Infrastructure/Sqlite/IngestionStatus.cs` — confirm `EntitiesExtracting`, `EntitiesExtracted`, `EntitiesFailed` exist; add if missing
@@ -70,12 +76,14 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 - `Features/Ingestion/Tracking/SqliteIngestionTracker.cs` — implementations
 
 ### Admin endpoints (modify + new)
+
 - `Features/Admin/BooksAdminEndpoints.cs` — add `POST /admin/books/{id}/extract-entities` with `?force=true`
 - `Features/Admin/CanonicalValidationEndpoints.cs` — new file; `POST /admin/canonical/validate`
 - `Features/Admin/CanonicalValidationService.cs` — implementation: load all canonical JSON, run resolver, return structured report
 - `Features/Admin/CanonicalValidationReport.cs` — DTO
 
 ### Config + DI (modify)
+
 - `Config/appsettings.json` — add `ChatModel` to existing `Ollama` section; add `EntityExtraction` section; no `Anthropic` section
 - `Extensions/ServiceCollectionExtensions.cs` — register the new services; wire `IChatClient` via MEAI Ollama
 - `Program.cs` — wire endpoint mappings
@@ -83,9 +91,11 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 - `DndMcpAICsharpFun.csproj` — add `Microsoft.Extensions.AI.Ollama` NuGet package
 
 ### HTTP reference (modify)
+
 - `DndMcpAICsharpFun.http` — add example requests for `extract-entities` and `canonical/validate`
 
 ### Tests (new)
+
 - `DndMcpAICsharpFun.Tests/Entities/Extraction/ExtractionPromptBuilderTests.cs`
 - `DndMcpAICsharpFun.Tests/Entities/Extraction/IntraBookReferenceClassifierTests.cs`
 - `DndMcpAICsharpFun.Tests/Entities/Extraction/EntityCandidateScannerTests.cs`
@@ -96,6 +106,7 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 - `DndMcpAICsharpFun.Tests/Entities/Schemas/SchemaGenerationTests.cs` — confirms a generated schema validates a known-good fixture
 
 ### Fixtures (new)
+
 - `DndMcpAICsharpFun.Tests/Fixtures/extraction/sample-monster-stat-block.txt` — raw Docling-shaped input
 - `DndMcpAICsharpFun.Tests/Fixtures/extraction/expected-monster.json` — expected canonical output
 
@@ -115,6 +126,7 @@ These are locked from `design.md` Plan 2 decisions D13–D17 — do not relitiga
 ## Task 1: NJsonSchema package + SchemaGenerator console tool
 
 **Files:**
+
 - Create: `Tools/SchemaGenerator/SchemaGenerator.csproj`
 - Create: `Tools/SchemaGenerator/Program.cs`
 - Modify: `DndMcpAICsharpFun.sln` (add the new project)
@@ -226,6 +238,7 @@ git commit -m "feat(schemas): NJsonSchema generator + 20 per-type entity schemas
 ## Task 2: MSBuild target to keep schemas regenerated
 
 **Files:**
+
 - Create: `Build/GenerateCanonicalSchemas.targets`
 - Modify: `DndMcpAICsharpFun.csproj`
 
@@ -334,6 +347,7 @@ git commit -m "feat(schemas): MSBuild target to regenerate schemas + fixture val
 ## Task 3: OllamaEntityExtractionClient + IEntityExtractionLlmClient (MEAI+Ollama)
 
 **Files:**
+
 - Create: `Features/Ingestion/EntityExtraction/IEntityExtractionLlmClient.cs`
 - Create: `Features/Ingestion/EntityExtraction/OllamaEntityExtractionClient.cs`
 - Create: `Features/Ingestion/EntityExtraction/ExtractionRequest.cs`
@@ -594,6 +608,7 @@ git commit -m "feat(extraction): IEntityExtractionLlmClient + OllamaEntityExtrac
 ## Task 4: ExtractionPromptBuilder
 
 **Files:**
+
 - Create: `Features/Ingestion/EntityExtraction/ExtractionPromptBuilder.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/Extraction/ExtractionPromptBuilderTests.cs`
 
@@ -732,6 +747,7 @@ git commit -m "feat(extraction): prompt builder + EntityCandidate record"
 ## Task 5: IntraBookReferenceClassifier
 
 **Files:**
+
 - Create: `Features/Ingestion/EntityExtraction/IntraBookReferenceClassifier.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/Extraction/IntraBookReferenceClassifierTests.cs`
 
@@ -829,6 +845,7 @@ git commit -m "feat(extraction): intra/inter-book reference classifier"
 ## Task 6: EntityCandidateScanner — Docling output → candidate entities
 
 **Files:**
+
 - Create: `Features/Ingestion/EntityExtraction/EntityCandidateScanner.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/Extraction/EntityCandidateScannerTests.cs`
 
@@ -979,6 +996,7 @@ git commit -m "feat(extraction): EntityCandidateScanner maps Docling sections to
 ## Task 7: CanonicalJsonWriter — atomic temp + rename
 
 **Files:**
+
 - Create: `Features/Ingestion/EntityExtraction/CanonicalJsonWriter.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/Extraction/CanonicalJsonWriterTests.cs`
 
@@ -1111,6 +1129,7 @@ git commit -m "feat(extraction): atomic canonical JSON writer (temp + rename)"
 ## Task 8: ExtractionErrorsFile + ExtractionWarningsFile — sibling artifacts
 
 **Files:**
+
 - Create: `Features/Ingestion/EntityExtraction/ExtractionErrorsFile.cs`
 - Create: `Features/Ingestion/EntityExtraction/ExtractionWarningsFile.cs`
 
@@ -1204,6 +1223,7 @@ git commit -m "feat(extraction): sibling errors.json + warnings.json writers"
 ## Task 9: ExtractionRetryPolicy
 
 **Files:**
+
 - Create: `Features/Ingestion/EntityExtraction/ExtractionRetryPolicy.cs`
 
 - [ ] **Step 1: Implement (via Serena)**
@@ -1251,6 +1271,7 @@ git commit -m "feat(extraction): bounded retry policy with exponential backoff"
 ## Task 10: EntityExtractionOrchestrator — main extraction flow
 
 **Files:**
+
 - Create: `Features/Ingestion/EntityExtraction/IEntityExtractionOrchestrator.cs`
 - Create: `Features/Ingestion/EntityExtraction/EntityExtractionOrchestrator.cs`
 - Create: `Features/Ingestion/EntityExtraction/EntityExtractionOptions.cs`
@@ -1590,6 +1611,7 @@ git commit -m "feat(extraction): EntityExtractionOrchestrator end-to-end pipelin
 ## Task 11: IngestionStatus + tracker methods for extraction phases
 
 **Files:**
+
 - Modify: `Infrastructure/Sqlite/IngestionStatus.cs` (verify enum has `EntitiesExtracting`, `EntitiesExtracted` — add if missing)
 - Modify: `Features/Ingestion/Tracking/IIngestionTracker.cs`
 - Modify: `Features/Ingestion/Tracking/SqliteIngestionTracker.cs`
@@ -1687,6 +1709,7 @@ git commit -m "feat(ingestion): IngestionStatus + tracker methods for entity ext
 ## Task 12: IngestionWorkType.ExtractEntities + queue dispatch
 
 **Files:**
+
 - Modify: `Features/Ingestion/IIngestionQueue.cs`
 - Modify: `Features/Ingestion/IngestionQueueWorker.cs`
 
@@ -1728,6 +1751,7 @@ git commit -m "feat(ingestion): ExtractEntities work-item type + queue dispatch"
 ## Task 13: POST /admin/books/{id}/extract-entities endpoint
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/Admin/ExtractEntitiesEndpointTests.cs`
 - Modify: `DndMcpAICsharpFun.http`
@@ -1837,6 +1861,7 @@ git commit -m "feat(admin): POST /admin/books/{id}/extract-entities (with ?force
 ## Task 14: CanonicalValidationService + endpoint
 
 **Files:**
+
 - Create: `Features/Admin/CanonicalValidationReport.cs`
 - Create: `Features/Admin/CanonicalValidationService.cs`
 - Create: `Features/Admin/CanonicalValidationEndpoints.cs`
@@ -2179,6 +2204,7 @@ git commit -m "data(canonical): regenerate phb14.json via Plan 2 extraction pipe
 ## Task 16: Documentation update
 
 **Files:**
+
 - Modify: `CLAUDE.md`
 - Modify: `README.md`
 
@@ -2189,6 +2215,7 @@ In the "Structured Entity Extraction (vertical slice)" section added in Plan 1, 
 ```markdown
 - `POST /admin/books/{id}/extract-entities` — run LLM-driven extraction (local Ollama `qwen3:8b`); produces `data/canonical/<book-slug>.json` plus optional sibling `<book-slug>.errors.json` and `<book-slug>.warnings.json`. Pass `?force=true` to overwrite an existing canonical JSON.
 - `POST /admin/canonical/validate` — corpus-wide validation; 200 (clean) / 422 (FAIL-class issues).
+
 ```
 
 Also add to the operator workflow:
@@ -2202,6 +2229,7 @@ Also add to the operator workflow:
 5. `POST /admin/canonical/validate` — pre-merge sanity check.
 6. Merge.
 7. `POST /admin/books/{id}/ingest-entities` — populate `dnd_entities`.
+
 ```
 
 - [ ] **Step 2: Update README.md (via Serena)**
@@ -2251,6 +2279,7 @@ Before marking complete, verify against `entity-extraction-pipeline/spec.md`:
 - ✅ NEW: corpus-wide `POST /admin/canonical/validate` (Task 14)
 
 `ingestion-pipeline` delta extraction parts:
+
 - ✅ `IngestionWorkType.ExtractEntities` work-item type (Task 12)
 - ✅ Status track for `EntitiesExtracting` / `EntitiesExtracted` / `EntitiesFailed` (Task 11)
 

@@ -58,6 +58,7 @@
 ## Task 1: ClassFields + SubclassFields C# record alignment
 
 **Files:**
+
 - Modify: `Domain/Entities/Fields/ClassFields.cs`
 - Modify: `Domain/Entities/Fields/SubclassFields.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/CanonicalJsonLoaderTests.cs`
@@ -161,6 +162,7 @@ git commit -m "feat(domain): align ClassFields + SubclassFields records to 5etoo
 ## Task 2: ClassCanonicalTextRenderer + SubclassCanonicalTextRenderer
 
 **Files:**
+
 - Create: `Features/Entities/CanonicalText/ClassCanonicalTextRenderer.cs`
 - Create: `Features/Entities/CanonicalText/SubclassCanonicalTextRenderer.cs`
 - Modify: `Features/Entities/CanonicalText/EntityCanonicalTextDispatcher.cs`
@@ -402,6 +404,7 @@ git commit -m "feat(renderers): add ClassCanonicalTextRenderer + SubclassCanonic
 ## Task 3: SimpleEntityRenderers for all remaining types
 
 **Files:**
+
 - Create: `Features/Entities/CanonicalText/SimpleEntityRenderers.cs`
 - Modify: `Features/Entities/CanonicalText/EntityCanonicalTextDispatcher.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/CanonicalText/SimpleEntityRendererTests.cs`
@@ -889,6 +892,7 @@ git commit -m "feat(renderers): add per-type simple renderers for all remaining 
 ## Task 4: EntityEnvelope DataSource field + provenance tracking
 
 **Files:**
+
 - Modify: `Domain/Entities/EntityEnvelope.cs`
 - Modify: `Infrastructure/Qdrant/EntityPayloadFields.cs`
 - Modify: `Features/VectorStore/Entities/IEntityVectorStore.cs`
@@ -1073,6 +1077,7 @@ git commit -m "feat(provenance): add DataSource field to EntityEnvelope; stamp l
 ## Task 5: FivetoolsSourceRegistry
 
 **Files:**
+
 - Create: `Features/Ingestion/FivetoolsIngestion/FivetoolsSourceRegistry.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/Ingestion/FivetoolsSourceRegistryTests.cs`
 
@@ -1227,6 +1232,7 @@ git commit -m "feat(5etools): add FivetoolsSourceRegistry with all known file en
 ## Task 6: Mapper infrastructure + Class/Subclass/Monster/Spell mappers
 
 **Files:**
+
 - Create: `Features/Ingestion/FivetoolsIngestion/IFivetoolsEntityMapper.cs`
 - Create: `Features/Ingestion/FivetoolsIngestion/FivetoolsMapperBase.cs`
 - Create: `Features/Ingestion/FivetoolsIngestion/Mappers/FivetoolsClassMapper.cs`
@@ -1437,6 +1443,7 @@ git commit -m "feat(5etools): add mapper infra + Class/Subclass/Monster/Spell ma
 ## Task 7: Race/Subrace/Background/Feat/Item/MagicItem/Weapon/Armor mappers
 
 **Files:**
+
 - Create: `Features/Ingestion/FivetoolsIngestion/Mappers/FivetoolsRaceMapper.cs`
 - Create: `Features/Ingestion/FivetoolsIngestion/Mappers/FivetoolsSubraceMapper.cs`
 - Create: `Features/Ingestion/FivetoolsIngestion/Mappers/FivetoolsBackgroundMapper.cs`
@@ -1629,6 +1636,7 @@ git commit -m "feat(5etools): add Race/Subrace/Background/Feat/Item/MagicItem/We
 ## Task 8: God/Trap/Condition/DiseasePoison/VehicleMount/Rule mappers
 
 **Files:**
+
 - Create: `Features/Ingestion/FivetoolsIngestion/Mappers/FivetoolsGodMapper.cs`
 - Create: `Features/Ingestion/FivetoolsIngestion/Mappers/FivetoolsTrapMapper.cs`
 - Create: `Features/Ingestion/FivetoolsIngestion/Mappers/FivetoolsConditionMapper.cs`
@@ -1738,6 +1746,7 @@ git commit -m "feat(5etools): add God/Trap/Condition/DiseasePoison/Vehicle/Rule 
 ## Task 9: FivetoolsIngestionService + endpoint + DI wiring
 
 **Files:**
+
 - Create: `Features/Ingestion/FivetoolsIngestion/FivetoolsIngestionService.cs`
 - Create: `Features/Admin/FivetoolsAdminEndpoints.cs`
 - Modify: `Extensions/ServiceCollectionExtensions.cs`
@@ -2008,6 +2017,7 @@ git commit -m "feat(5etools): add FivetoolsIngestionService + POST /admin/5etool
 ## Self-Review
 
 **Spec coverage:**
+
 - ✅ `POST /admin/5etools/import` — Task 9
 - ✅ Static source registry — Task 5
 - ✅ All entity types covered — Tasks 6/7/8
@@ -2023,6 +2033,7 @@ git commit -m "feat(5etools): add FivetoolsIngestionService + POST /admin/5etool
 **Placeholder scan:** None found.
 
 **Type consistency:**
+
 - `FivetoolsMapperBase.Map()` → returns `EntityEnvelope?` — matches `IFivetoolsEntityMapper` interface throughout
 - `DataSource` field added to `EntityEnvelope` as last positional parameter with default `""` — all existing `with` expressions in orchestrator are unaffected
 - `GetDataSourcesAsync` on `IEntityVectorStore` matches usage in `FivetoolsIngestionService`

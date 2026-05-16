@@ -5,11 +5,13 @@
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Retry the same LLM call up to `LlmExtractionRetries` times before giving up
 - Return `[]` on total failure — no garbage data saved
 - Make retry count configurable via `IngestionOptions` without requiring a redeploy
 
 **Non-Goals:**
+
 - Prompt mutation on retry (same prompt each attempt — can be improved later)
 - Exponential backoff or delay between retries (not needed for a local LLM)
 - Retry on non-parse failures (network errors, cancellation — those propagate as-is)

@@ -13,6 +13,7 @@
 ## File Map
 
 **Create:**
+
 - `Domain/TocSectionEntry.cs` — record with Title, Category, StartPage, EndPage
 - `Features/Ingestion/Extraction/ITocMapExtractor.cs` — interface
 - `Features/Ingestion/Extraction/OllamaTocMapExtractor.cs` — implementation
@@ -21,6 +22,7 @@
 - `DndMcpAICsharpFun.Tests/Ingestion/Extraction/PageBlockGrouperTests.cs`
 
 **Modify:**
+
 - `Domain/ContentCategory.cs` — add Trait, Lore
 - `Domain/ExtractedEntity.cs` — add SectionTitle, SectionStart, SectionEnd
 - `Domain/ChunkMetadata.cs` — add SectionTitle, SectionStart, SectionEnd
@@ -45,11 +47,13 @@
 - `DndMcpAICsharpFun.Tests/Ingestion/Extraction/JsonIngestionPipelineTests.cs` — add section propagation test
 
 **Delete:**
+
 - `Features/Ingestion/Extraction/ITocCategoryClassifier.cs`
 - `Features/Ingestion/Extraction/OllamaTocCategoryClassifier.cs`
 - `DndMcpAICsharpFun.Tests/Ingestion/Extraction/OllamaTocCategoryClassifierTests.cs`
 
 **Migration:**
+
 - New EF migration `AddTocPageToIngestionRecord`
 
 ---
@@ -57,6 +61,7 @@
 ## Task 1: Domain Foundations
 
 **Files:**
+
 - Modify: `Domain/ContentCategory.cs`
 - Create: `Domain/TocSectionEntry.cs`
 - Modify: `Features/Ingestion/Extraction/TocCategoryMap.cs`
@@ -459,6 +464,7 @@ git commit -m "feat: add Trait/Lore categories, TocSectionEntry, TocCategoryMap.
 ## Task 2: TOC Map Extractor
 
 **Files:**
+
 - Create: `Features/Ingestion/Extraction/ITocMapExtractor.cs`
 - Create: `Features/Ingestion/Extraction/OllamaTocMapExtractor.cs`
 - Create: `DndMcpAICsharpFun.Tests/Ingestion/Extraction/OllamaTocMapExtractorTests.cs`
@@ -790,6 +796,7 @@ git commit -m "feat: replace OllamaTocCategoryClassifier with OllamaTocMapExtrac
 ## Task 3: Section Grouper
 
 **Files:**
+
 - Create: `Features/Ingestion/Extraction/PageBlockGrouper.cs`
 - Create: `DndMcpAICsharpFun.Tests/Ingestion/Extraction/PageBlockGrouperTests.cs`
 
@@ -936,6 +943,7 @@ git commit -m "feat: add PageBlockGrouper for h1/h2-bounded section grouping"
 ## Task 4: Extraction Pipeline Changes
 
 **Files:**
+
 - Modify: `Features/Ingestion/Extraction/ILlmEntityExtractor.cs`
 - Modify: `Features/Ingestion/Extraction/OllamaLlmEntityExtractor.cs`
 - Modify: `Features/Ingestion/IngestionOrchestrator.cs`
@@ -1800,6 +1808,7 @@ git commit -m "feat: add section context to ExtractAsync, update orchestrator to
 ## Task 5: Registration API Changes
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs`
 - Modify: `DndMcpAICsharpFun.http`
 - Modify: `DndMcpAICsharpFun.Tests/Admin/BooksAdminEndpointsTests.cs`
@@ -2311,6 +2320,7 @@ git commit -m "feat: require tocPage on register, remove register-path endpoint"
 ## Task 6: Qdrant Payload Fields
 
 **Files:**
+
 - Modify: `Domain/ChunkMetadata.cs`
 - Modify: `Infrastructure/Qdrant/QdrantPayloadFields.cs`
 - Modify: `Infrastructure/Qdrant/QdrantCollectionInitializer.cs`
@@ -2467,6 +2477,7 @@ Do not commit yet; wait until Task 7 is complete and everything builds.
 ## Task 7: ExtractedEntity Propagation
 
 **Files:**
+
 - Modify: `Domain/ExtractedEntity.cs`
 - Modify: `Features/Ingestion/Extraction/OllamaLlmEntityExtractor.cs`
 - Modify: `Features/Ingestion/Extraction/EntityJsonStore.cs`

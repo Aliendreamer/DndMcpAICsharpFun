@@ -13,6 +13,7 @@
 ## File Map
 
 **Create:**
+
 - `Features/Search/SearXNGOptions.cs` — config record (Url, MaxResults, AllowedDomains)
 - `Features/Search/SearXNGResult.cs` — result record (Title, Url, Snippet)
 - `Features/Search/SearXNGClient.cs` — typed HttpClient with domain filtering
@@ -21,6 +22,7 @@
 - `DndMcpAICsharpFun.Tests/Search/SearXNGClientTests.cs` — unit tests for client
 
 **Modify:**
+
 - `Extensions/ServiceCollectionExtensions.cs` — add `AddWebSearch()` extension
 - `Config/appsettings.json` — add `"SearXNG"` section
 - `docker-compose.yml` — add `searxng` service, add it to `app` depends_on
@@ -33,6 +35,7 @@
 ## Task 1: SearXNG Client (TDD)
 
 **Files:**
+
 - Create: `Features/Search/SearXNGOptions.cs`
 - Create: `Features/Search/SearXNGResult.cs`
 - Create: `Features/Search/SearXNGClient.cs`
@@ -232,6 +235,7 @@ git commit -m "feat(search): add SearXNGClient with domain filtering"
 ## Task 2: SearchWebTool + Service Registration + Config
 
 **Files:**
+
 - Create: `Features/Search/SearchWebTool.cs`
 - Modify: `Extensions/ServiceCollectionExtensions.cs`
 - Modify: `Config/appsettings.json`
@@ -342,6 +346,7 @@ git commit -m "feat(search): add search_web MCP tool and SearXNG service registr
 ## Task 3: Docker Compose + SearXNG Settings
 
 **Files:**
+
 - Create: `infra/searxng/settings.yml`
 - Modify: `docker-compose.yml`
 
@@ -364,6 +369,7 @@ search:
   formats:
     - html
     - json
+
 ```
 
 - [ ] **Step 3.2: Add `searxng` service to `docker-compose.yml`**
@@ -404,6 +410,7 @@ git commit -m "feat(search): add SearXNG Docker Compose service"
 ## Task 4: DndChatService — allowWebSearch (TDD)
 
 **Files:**
+
 - Modify: `DndMcpAICompanion.Tests/Chat/DndChatServiceTests.cs`
 - Modify: `DndMcpAICompanion/Features/Chat/DndChatService.cs`
 
@@ -599,6 +606,7 @@ git commit -m "feat(search): gate search_web behind allowWebSearch in DndChatSer
 ## Task 5: Chat.razor — Web Search Checkbox
 
 **Files:**
+
 - Modify: `DndMcpAICompanion/Components/Pages/Chat.razor`
 
 - [ ] **Step 5.1: Replace `DndMcpAICompanion/Components/Pages/Chat.razor`**

@@ -42,6 +42,7 @@
 ### Task 1: Foundation — OllamaOptions, IngestionStatus, ExtractedEntity
 
 **Files:**
+
 - Modify: `Infrastructure/Ollama/OllamaOptions.cs`
 - Modify: `Infrastructure/Sqlite/IngestionStatus.cs`
 - Create: `Domain/ExtractedEntity.cs`
@@ -121,6 +122,7 @@ git commit -m "feat: add ExtractionModel to OllamaOptions, Extracted/JsonIngeste
 ### Task 2: ILlmClassifier + OllamaLlmClassifier (Pass 1)
 
 **Files:**
+
 - Create: `Features/Ingestion/Extraction/ILlmClassifier.cs`
 - Create: `Features/Ingestion/Extraction/OllamaLlmClassifier.cs`
 
@@ -222,6 +224,7 @@ git commit -m "feat: add ILlmClassifier + OllamaLlmClassifier (Pass 1 page class
 ### Task 3: ILlmEntityExtractor + OllamaLlmEntityExtractor (Pass 2)
 
 **Files:**
+
 - Create: `Features/Ingestion/Extraction/ILlmEntityExtractor.cs`
 - Create: `Features/Ingestion/Extraction/OllamaLlmEntityExtractor.cs`
 
@@ -374,6 +377,7 @@ git commit -m "feat: add ILlmEntityExtractor + OllamaLlmEntityExtractor (Pass 2 
 ### Task 4: IEntityJsonStore + EntityJsonStore
 
 **Files:**
+
 - Create: `Features/Ingestion/Extraction/IEntityJsonStore.cs`
 - Create: `Features/Ingestion/Extraction/EntityJsonStore.cs`
 - Create: `DndMcpAICsharpFun.Tests/Ingestion/Extraction/EntityJsonStoreTests.cs`
@@ -697,6 +701,7 @@ git commit -m "feat: add IEntityJsonStore + EntityJsonStore with merge pass"
 ### Task 5: IJsonIngestionPipeline + JsonIngestionPipeline (Stage 2)
 
 **Files:**
+
 - Create: `Features/Ingestion/Extraction/IJsonIngestionPipeline.cs`
 - Create: `Features/Ingestion/Extraction/JsonIngestionPipeline.cs`
 - Create: `DndMcpAICsharpFun.Tests/Ingestion/Extraction/JsonIngestionPipelineTests.cs`
@@ -863,6 +868,7 @@ git commit -m "feat: add IJsonIngestionPipeline + JsonIngestionPipeline (Stage 2
 ### Task 6: Tracker extension — MarkExtractedAsync + MarkJsonIngestedAsync
 
 **Files:**
+
 - Modify: `Features/Ingestion/Tracking/IIngestionTracker.cs`
 - Modify: `Features/Ingestion/Tracking/SqliteIngestionTracker.cs`
 
@@ -942,6 +948,7 @@ git commit -m "feat: add MarkExtractedAsync and MarkJsonIngestedAsync to tracker
 ### Task 7: IIngestionOrchestrator extension + Stage 1 implementation
 
 **Files:**
+
 - Modify: `Features/Ingestion/IIngestionOrchestrator.cs`
 - Modify: `Features/Ingestion/IngestionOrchestrator.cs`
 
@@ -1153,6 +1160,7 @@ git commit -m "feat: implement ExtractBookAsync and IngestJsonAsync on Ingestion
 ### Task 8: New Admin Endpoints
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs`
 - Modify: `DndMcpAICsharpFun.http`
 
@@ -1291,6 +1299,7 @@ git commit -m "feat: add extract, extracted, ingest-json admin endpoints"
 ### Task 9: Service Registration, docker-compose, appsettings
 
 **Files:**
+
 - Modify: `Extensions/ServiceCollectionExtensions.cs`
 - Modify: `docker-compose.yml`
 - Modify: `Config/appsettings.json`

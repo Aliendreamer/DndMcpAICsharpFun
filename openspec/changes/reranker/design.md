@@ -9,6 +9,7 @@ The model is loaded once at startup via `Microsoft.ML.OnnxRuntime` and kept in m
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Rerank Qdrant retrieval results using a cross-encoder before passing to the LLM
 - Download and cache the ONNX model at startup with a clear log message
 - Keep reranking in-process (no sidecar, no extra container)
@@ -16,6 +17,7 @@ The model is loaded once at startup via `Microsoft.ML.OnnxRuntime` and kept in m
 - Configurable TopK (candidates fetched from Qdrant) and TopN (passed to LLM)
 
 **Non-Goals:**
+
 - GPU inference — CPU only for now
 - Training or fine-tuning the reranker on D&D data
 - Streaming reranker scores to callers

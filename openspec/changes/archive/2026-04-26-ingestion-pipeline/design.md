@@ -3,6 +3,7 @@
 The foundation change provides DI-registered Qdrant, Ollama, and PdfPig clients plus admin key middleware. This change builds the pipeline that goes from a registered PDF book to chunks stored in Qdrant, coordinated by a background service and tracked in SQLite for idempotency.
 
 Key constraints:
+
 - PDF books are mounted in a Docker volume; the app cannot enumerate files freely — books must be explicitly registered via the admin endpoint
 - The same book file may be re-added with a different name; SHA256 hash is the canonical identity
 - Ingestion can fail partway through (e.g. Ollama down); the tracker must support clean retry
@@ -11,6 +12,7 @@ Key constraints:
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Admin endpoint to register books with rich metadata (source, version, display name)
 - SQLite tracker that prevents re-ingesting an already-completed file
 - Background service that retries failed ingestions automatically every 24h
@@ -20,6 +22,7 @@ Key constraints:
 - Entity name extraction per chunk
 
 **Non-Goals:**
+
 - Embedding (handled in `embedding-vector-store` change)
 - Storing chunks in Qdrant (handled in `embedding-vector-store` change)
 - OCR for scanned PDFs
@@ -32,6 +35,7 @@ Key constraints:
 `IngestionRecord` entity tracked by `IngestionDbContext` (EF Core + SQLite provider). Migrations generated and applied on startup.
 
 Alternatives considered:
+
 - Dapper + raw SQL: less ceremony for a simple table but more boilerplate for migrations
 - In-memory: doesn't survive restarts
 
@@ -57,6 +61,7 @@ ChunkingStrategy:
   2. If pattern found → start new chunk at that boundary
   3. If resulting chunk > MaxTokens → sub-split with OverlapTokens overlap
   4. If no pattern found in a window → fixed-size split at sentence boundary
+
 ```
 
 MaxTokens default: 512 tokens (configurable via `IngestionOptions`)
@@ -87,6 +92,7 @@ Each detector returns a `float confidence`. Highest confidence above threshold (
 ### D6 — Background service period: 24h with immediate first run
 
 `IngestionBackgroundService` extends `BackgroundService`. On `ExecuteAsync`:
+
 1. Run one ingestion pass immediately on startup
 2. Then wait 24 hours, repeat
 

@@ -7,6 +7,7 @@ The project ingests D&D content from two sources: 5etools JSON files (direct, st
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Bind each `IngestionRecord` to an optional 5etools source key
 - Derive edition, group, display abbreviation, and year from that key at runtime
 - Normalize `sourceBook` in Qdrant across both pipelines to the source key
@@ -14,6 +15,7 @@ The project ingests D&D content from two sources: 5etools JSON files (direct, st
 - Allow MCP tools to resolve intent aliases ("core books", "2024", "srd") to source key lists
 
 **Non-Goals:**
+
 - Modifying any file under `5etools/`
 - Automatic PDF→source-key detection (matching is manual at registration, with suggestions)
 - Full SRD flag population for extracted entities (defaults to `false`; hand-correctable)

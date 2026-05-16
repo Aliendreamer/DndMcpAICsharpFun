@@ -17,6 +17,7 @@
 ## File Structure
 
 ### Domain types (new)
+
 - `Domain/Entities/EntityType.cs` — enum of 20 entity types
 - `Domain/Entities/Provenance.cs` — `FirstAppearance`, `Revision` records
 - `Domain/Entities/EntityEnvelope.cs` — common envelope record (generic over `TFields`)
@@ -28,9 +29,11 @@
 - `Domain/Entities/CanonicalJsonFile.cs` — top-level JSON envelope (schemaVersion, book, entities[])
 
 ### Slug + ID (new)
+
 - `Domain/Entities/EntityIdSlug.cs` — deterministic slug generator
 
 ### Canonical JSON loading (new)
+
 - `Features/Entities/CanonicalJsonLoader.cs` — reads, validates, deserialises a canonical JSON file
 - `Features/Entities/EntityReferenceResolver.cs` — flags dangling cross-entity refs as warnings
 - `Features/Entities/CanonicalText/IEntityCanonicalTextRenderer.cs` — interface
@@ -40,12 +43,14 @@
 - `Features/Entities/CanonicalText/EntityCanonicalTextDispatcher.cs` — picks renderer by type
 
 ### Qdrant entity collection (new)
+
 - `Infrastructure/Qdrant/EntityPayloadFields.cs` — payload key constants
 - `Features/VectorStore/Entities/EntityPoint.cs` — record bundling (envelope, vector) for upsert
 - `Features/VectorStore/Entities/IEntityVectorStore.cs` — upsert / delete-by-book / get-by-id / search
 - `Features/VectorStore/Entities/QdrantEntityVectorStore.cs` — Qdrant impl
 
 ### Ingestion (modified + new)
+
 - `Features/Ingestion/IIngestionQueue.cs` — extend `IngestionWorkType` enum (modify)
 - `Features/Ingestion/IngestionQueueWorker.cs` — dispatch new work-item type (modify)
 - `Features/Ingestion/Entities/IEntityIngestionOrchestrator.cs` — interface
@@ -55,6 +60,7 @@
 - `Features/Ingestion/BookDeletionService.cs` — extend deletion to cover entity points + canonical JSON (modify)
 
 ### Retrieval (new)
+
 - `Features/Retrieval/Entities/EntityRetrievalEndpoints.cs` — minimal API endpoints
 - `Features/Retrieval/Entities/IEntityRetrievalService.cs` — interface
 - `Features/Retrieval/Entities/EntityRetrievalService.cs` — impl
@@ -63,14 +69,17 @@
 - `Features/Retrieval/Entities/EntityFullResult.cs` — full record with `fields` JSON
 
 ### Config (modified)
+
 - `Infrastructure/Qdrant/QdrantOptions.cs` — add `EntitiesCollectionName` (modify)
 - `Infrastructure/Qdrant/QdrantCollectionInitializer.cs` — bootstrap entity collection + indexes (modify)
 - `Config/appsettings.json` — add new key (modify)
 
 ### Test fixtures (new)
+
 - `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json` — minimal: 1 Class (Fighter), 1 Monster (Bullywug), 1 Spell (Fireball)
 
 ### Tests (new)
+
 - `DndMcpAICsharpFun.Tests/Entities/EntityIdSlugTests.cs`
 - `DndMcpAICsharpFun.Tests/Entities/CanonicalJsonLoaderTests.cs`
 - `DndMcpAICsharpFun.Tests/Entities/EntityReferenceResolverTests.cs`
@@ -80,6 +89,7 @@
 - `DndMcpAICsharpFun.Tests/Entities/Deletion/EntityBookDeletionTests.cs`
 
 ### HTTP reference (modified)
+
 - `DndMcpAICsharpFun.http` — add example requests for the new endpoints
 
 ---
@@ -97,6 +107,7 @@
 ## Task 1: EntityType enum
 
 **Files:**
+
 - Create: `Domain/Entities/EntityType.cs`
 - Test: `DndMcpAICsharpFun.Tests/Entities/EntityTypeTests.cs` (smoke only)
 
@@ -183,6 +194,7 @@ Expected: PASS.
 - [ ] **Step 5: Update spec/proposal/design language to "20 entity types"**
 
 Edit (via Serena) the three documents to replace "17 entity types" / "17 types" with "20 entity types" / "20 types":
+
 - `openspec/changes/structured-entity-extraction/proposal.md`
 - `openspec/changes/structured-entity-extraction/design.md`
 - `openspec/changes/structured-entity-extraction/specs/structured-entities/spec.md`
@@ -202,6 +214,7 @@ git commit -m "feat(entities): introduce EntityType enum (20 types)"
 ## Task 2: Provenance + Spellcasting shared records
 
 **Files:**
+
 - Create: `Domain/Entities/Provenance.cs`
 - Create: `Domain/Entities/Spellcasting.cs`
 
@@ -257,6 +270,7 @@ git commit -m "feat(entities): add Provenance and Spellcasting records"
 ## Task 3: EntityEnvelope (open envelope, fields as JsonElement)
 
 **Files:**
+
 - Create: `Domain/Entities/EntityEnvelope.cs`
 - Test: included in Task 5 (loader tests).
 
@@ -300,6 +314,7 @@ git commit -m "feat(entities): add EntityEnvelope record"
 ## Task 4: ClassFields, MonsterFields, SpellFields (the three with full schemas)
 
 **Files:**
+
 - Create: `Domain/Entities/Fields/ClassFields.cs`
 - Create: `Domain/Entities/Fields/MonsterFields.cs`
 - Create: `Domain/Entities/Fields/SpellFields.cs`
@@ -675,6 +690,7 @@ git commit -m "feat(entities): add remaining per-type fields records"
 ## Task 6: EntityIdSlug generator
 
 **Files:**
+
 - Create: `Domain/Entities/EntityIdSlug.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/EntityIdSlugTests.cs`
 
@@ -808,6 +824,7 @@ git commit -m "feat(entities): deterministic entity ID slug generator"
 ## Task 7: CanonicalJsonFile envelope record
 
 **Files:**
+
 - Create: `Domain/Entities/CanonicalJsonFile.cs`
 
 - [ ] **Step 1: Implement (via Serena)**
@@ -849,6 +866,7 @@ git commit -m "feat(entities): add CanonicalJsonFile envelope and schema version
 ## Task 8: Hand-written test fixture canonical JSON
 
 **Files:**
+
 - Create: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
 
 - [ ] **Step 1: Write the fixture**
@@ -1010,6 +1028,7 @@ git commit -m "test(entities): add canonical JSON fixture (Fighter, Bullywug, Fi
 ## Task 9: CanonicalJsonLoader (read + validate envelope, dispatch fields per type)
 
 **Files:**
+
 - Create: `Features/Entities/CanonicalJsonLoader.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/CanonicalJsonLoaderTests.cs`
 
@@ -1168,6 +1187,7 @@ git commit -m "feat(entities): canonical JSON loader with schema/dup-id validati
 ## Task 10: Reference resolver (warn on dangling cross-entity references)
 
 **Files:**
+
 - Create: `Features/Entities/EntityReferenceResolver.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/EntityReferenceResolverTests.cs`
 
@@ -1312,6 +1332,7 @@ git commit -m "feat(entities): cross-entity reference resolver emits dangling-re
 ## Task 11: Canonical text renderers (Class, Monster, Spell)
 
 **Files:**
+
 - Create: `Features/Entities/CanonicalText/IEntityCanonicalTextRenderer.cs`
 - Create: `Features/Entities/CanonicalText/ClassCanonicalTextRenderer.cs`
 - Create: `Features/Entities/CanonicalText/MonsterCanonicalTextRenderer.cs`
@@ -1543,6 +1564,7 @@ git commit -m "feat(entities): canonical text renderers for Class, Monster, Spel
 ## Task 12: EntityPayloadFields constants + QdrantOptions update
 
 **Files:**
+
 - Create: `Infrastructure/Qdrant/EntityPayloadFields.cs`
 - Modify: `Infrastructure/Qdrant/QdrantOptions.cs` (add `EntitiesCollectionName`)
 
@@ -1604,6 +1626,7 @@ git commit -m "feat(qdrant): add EntityPayloadFields and EntitiesCollectionName 
 ## Task 13: Extend QdrantCollectionInitializer to bootstrap dnd_entities + indexes
 
 **Files:**
+
 - Modify: `Infrastructure/Qdrant/QdrantCollectionInitializer.cs`
 - Test: integration test (add to existing or create) — see Task 14.
 
@@ -1677,6 +1700,7 @@ git commit -m "feat(qdrant): bootstrap dnd_entities collection with payload inde
 ## Task 14: IEntityVectorStore + QdrantEntityVectorStore impl
 
 **Files:**
+
 - Create: `Features/VectorStore/Entities/EntityPoint.cs`
 - Create: `Features/VectorStore/Entities/IEntityVectorStore.cs`
 - Create: `Features/VectorStore/Entities/QdrantEntityVectorStore.cs`
@@ -1927,6 +1951,7 @@ git commit -m "feat(vectorstore): add IEntityVectorStore with Qdrant impl + filt
 ## Task 15: Extend IngestionWorkType with IngestEntities
 
 **Files:**
+
 - Modify: `Features/Ingestion/IIngestionQueue.cs` (add enum value)
 - Modify: `Features/Ingestion/IngestionQueueWorker.cs` (dispatch new type)
 
@@ -1967,6 +1992,7 @@ Combine into Task 16's commit.
 ## Task 16: IEntityIngestionOrchestrator + EntityIngestionOrchestrator
 
 **Files:**
+
 - Create: `Features/Ingestion/Entities/IEntityIngestionOrchestrator.cs`
 - Create: `Features/Ingestion/Entities/EntityIngestionOrchestrator.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/Ingestion/EntityIngestionOrchestratorTests.cs`
@@ -2146,6 +2172,7 @@ git commit -m "feat(ingestion): EntityIngestionOrchestrator + queue dispatch + t
 ## Task 17: IngestionStatus extension
 
 **Files:**
+
 - Modify: `Infrastructure/Sqlite/IngestionStatus.cs`
 - Modify: `Infrastructure/Sqlite/IngestionRecord.cs` (if a separate sub-status track is preferred — but for Plan 1 we extend the single enum)
 
@@ -2203,6 +2230,7 @@ git commit -m "feat(ingestion): IngestionStatus values for entity ingestion phas
 ## Task 18: POST /admin/books/{id}/ingest-entities endpoint
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs`
 - Test: `DndMcpAICsharpFun.Tests/Entities/Admin/IngestEntitiesEndpointTests.cs`
 
@@ -2290,6 +2318,7 @@ git commit -m "feat(admin): POST /admin/books/{id}/ingest-entities endpoint"
 ## Task 19: Entity retrieval endpoints (by-id + search + admin)
 
 **Files:**
+
 - Create: `Features/Retrieval/Entities/EntitySearchQuery.cs`
 - Create: `Features/Retrieval/Entities/EntitySearchResult.cs`
 - Create: `Features/Retrieval/Entities/EntityFullResult.cs`
@@ -2530,6 +2559,7 @@ git commit -m "feat(retrieval): /retrieval/entities/* endpoints (by-id, search, 
 ## Task 20: Endpoint integration tests
 
 **Files:**
+
 - Create: `DndMcpAICsharpFun.Tests/Entities/Retrieval/EntityRetrievalEndpointsTests.cs`
 
 - [ ] **Step 1: Write tests (use the `WebApplicationFactory<Program>` pattern from existing tests)**
@@ -2585,6 +2615,7 @@ git commit -m "test(retrieval): negative-path tests for entity endpoints"
 ## Task 21: Extend DELETE /admin/books/{id} to clean up entity points + canonical JSON
 
 **Files:**
+
 - Modify: `Features/Ingestion/BookDeletionService.cs`
 - Modify: `Features/Ingestion/IBookDeletionService.cs` (signature unchanged, but impl widens)
 - Test: `DndMcpAICsharpFun.Tests/Entities/Deletion/EntityBookDeletionTests.cs`
@@ -2735,6 +2766,7 @@ git commit -m "feat(entities): seed canonical JSON for phb14 (Fighter, Aboleth, 
 Before marking complete, re-check the plan against the relevant specs:
 
 **`structured-entities` spec** — every requirement covered:
+
 - Common envelope (Tasks 3, 9): ✓
 - Slug scheme (Task 6): ✓
 - 20 entity types (Task 1, 4, 5): ✓
@@ -2748,6 +2780,7 @@ Before marking complete, re-check the plan against the relevant specs:
 - Cross-entity refs + dangling-warning resolver (Task 10): ✓
 
 **`entity-vector-store` spec** — covered:
+
 - Separate collection (Tasks 12, 13): ✓
 - Embed canonicalText (Task 16): ✓
 - Per-book ingestion endpoint with idempotency (Tasks 14, 16, 18): ✓
@@ -2758,11 +2791,13 @@ Before marking complete, re-check the plan against the relevant specs:
 - Block index untouched (no edits to existing block path): ✓
 
 **`rag-retrieval` delta** — covered:
+
 - Entity-aware endpoints alongside block search (Task 19): ✓
 - Server-side structured filters with composing AND semantics (Tasks 14, 19): ✓
 - Envelope-only search results vs full fields by ID (Task 19): ✓
 
 **`ingestion-pipeline` delta (entity-ingestion parts only — extraction in Plan 2)** — covered:
+
 - Queue work-item type for `IngestEntities` (Task 15): ✓
 - Status track for entity-ingestion phases (Task 17): ✓
 - Deletion cleanup (Task 21): ✓

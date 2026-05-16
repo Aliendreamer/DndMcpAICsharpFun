@@ -12,9 +12,11 @@ The active ingestion path is the no-LLM `block-ingestion` capability (Docstrum l
 The system SHALL NOT perform LLM-based entity extraction during ingestion. There is no `OllamaLlmEntityExtractor`, no per-page JSON store, no LLM-related admin endpoint (`/extract`, `/ingest-json`, `/extract-page`, `/cancel-extract` are all unregistered), and no `Ollama:ExtractionModel` configuration. The only Ollama interaction during ingestion or retrieval is the embedding model.
 
 #### Scenario: No LLM call is made during block ingestion
+
 - **WHEN** `POST /admin/books/{id}/ingest-blocks` runs to completion against a registered PDF
 - **THEN** the only Ollama HTTP requests issued are `POST /api/embed` for the configured `Ollama:EmbeddingModel`; no `POST /api/chat` or `POST /api/generate` is sent
 
 #### Scenario: Removed admin endpoints are not registered
+
 - **WHEN** the application starts and the route table is enumerated
 - **THEN** `/admin/books/{id}/extract`, `/admin/books/{id}/ingest-json`, `/admin/books/{id}/extract-page/{n}`, and `/admin/books/{id}/cancel-extract` are absent

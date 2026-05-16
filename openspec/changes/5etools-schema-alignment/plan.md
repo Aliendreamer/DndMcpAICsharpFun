@@ -47,6 +47,7 @@
 ### Task 1: Spell schema
 
 **Files:**
+
 - Modify: `Schemas/canonical/SpellFields.schema.json`
 - Modify: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Schemas/SchemaGenerationTests.cs`
@@ -213,6 +214,7 @@ git commit -m "feat(schemas): align SpellFields to 5etools format"
 ### Task 2: Monster schema
 
 **Files:**
+
 - Modify: `Schemas/canonical/MonsterFields.schema.json`
 - Modify: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
 
@@ -418,6 +420,7 @@ git commit -m "feat(schemas): align MonsterFields to 5etools format"
 ### Task 3: Race + Subrace schemas
 
 **Files:**
+
 - Modify: `Schemas/canonical/RaceFields.schema.json`
 - Modify: `Schemas/canonical/SubraceFields.schema.json`
 - Modify: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
@@ -572,6 +575,7 @@ git commit -m "feat(schemas): align RaceFields and SubraceFields to 5etools form
 ### Task 4: Class + Subclass schemas
 
 **Files:**
+
 - Modify: `Schemas/canonical/ClassFields.schema.json`
 - Modify: `Schemas/canonical/SubclassFields.schema.json`
 - Modify: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
@@ -726,6 +730,7 @@ git commit -m "feat(schemas): align ClassFields and SubclassFields to 5etools fo
 ### Task 5: Background + Feat schemas
 
 **Files:**
+
 - Modify: `Schemas/canonical/BackgroundFields.schema.json`
 - Modify: `Schemas/canonical/FeatFields.schema.json`
 - Modify: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
@@ -863,6 +868,7 @@ git commit -m "feat(schemas): align BackgroundFields and FeatFields to 5etools f
 ### Task 6: Weapon + Armor schemas
 
 **Files:**
+
 - Modify: `Schemas/canonical/WeaponFields.schema.json`
 - Modify: `Schemas/canonical/ArmorFields.schema.json`
 - Modify: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
@@ -1000,6 +1006,7 @@ git commit -m "feat(schemas): align WeaponFields and ArmorFields to 5etools form
 ### Task 7: Item + MagicItem schemas
 
 **Files:**
+
 - Modify: `Schemas/canonical/ItemFields.schema.json`
 - Modify: `Schemas/canonical/MagicItemFields.schema.json`
 - Modify: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
@@ -1143,6 +1150,7 @@ git commit -m "feat(schemas): align ItemFields and MagicItemFields to 5etools fo
 ### Task 8: God schema
 
 **Files:**
+
 - Modify: `Schemas/canonical/GodFields.schema.json`
 - Modify: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Schemas/SchemaGenerationTests.cs`
@@ -1231,6 +1239,7 @@ git commit -m "feat(schemas): align GodFields to 5etools format"
 ### Task 9: Trap + Condition + DiseasePoison + VehicleMount schemas
 
 **Files:**
+
 - Modify: `Schemas/canonical/TrapFields.schema.json`
 - Modify: `Schemas/canonical/ConditionFields.schema.json`
 - Modify: `Schemas/canonical/DiseasePoisonFields.schema.json`
@@ -1457,6 +1466,7 @@ git commit -m "feat(schemas): align Trap, Condition, DiseasePoison, VehicleMount
 ### Task 10: Phase 2 custom types (Plane, Location, Faction, Lore, Rule)
 
 **Files:**
+
 - Modify: `Schemas/canonical/PlaneFields.schema.json`
 - Modify: `Schemas/canonical/LocationFields.schema.json`
 - Modify: `Schemas/canonical/FactionFields.schema.json`
@@ -1663,6 +1673,7 @@ git commit -m "feat(schemas): align Phase 2 custom types to 5etools conventions"
 ### Task 11: Update ExtractionPromptBuilder
 
 **Files:**
+
 - Modify: `Features/Ingestion/EntityExtraction/ExtractionPromptBuilder.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Extraction/ExtractionPromptBuilderTests.cs`
 
@@ -1895,6 +1906,7 @@ git commit -m "feat(extraction): add 5etools code tables and entries format guid
 ### Task 12: Migrate phb14.json sample data
 
 **Files:**
+
 - Modify: `data/canonical/phb14.json`
 
 - [ ] **Step 1: Read the current phb14.json structure**
@@ -2006,6 +2018,7 @@ git commit -m "chore(data): migrate phb14.json sample entities to 5etools format
 ## Self-Review
 
 **Spec coverage:**
+
 - ✅ Phase 1 — 17 5etools-equivalent types: Spell (T1), Monster (T2), Race/Subrace (T3), Class/Subclass (T4), Background/Feat (T5), Weapon/Armor (T6), Item/MagicItem (T7), God (T8), Trap/Condition/DiseasePoison/VehicleMount (T9)
 - ✅ Phase 2 — 5 custom types: Plane/Location/Faction/Lore/Rule (T10)
 - ✅ Core conventions: `entries[]`, code values, flat ability scores, `cr` string — all applied per type

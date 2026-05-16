@@ -24,6 +24,7 @@ The only page (`/`). Full-width messenger layout: scrollable message list above,
 
 ### `Program.cs`
 Registers:
+
 - `OllamaChatClient` as `IChatClient` (singleton)
 - MCP client pointed at the server URL with the API key from config (singleton)
 - `DndChatService` as scoped
@@ -66,6 +67,7 @@ A `CompanionOptions` record and `McpClientOptions` record bind these sections. T
 ## Docker Compose
 
 New service `companion` added to `docker-compose.yml`:
+
 - Image built from `DndMcpAICompanion/Dockerfile`
 - Port `5102:8080`
 - Depends on `app` and `ollama`

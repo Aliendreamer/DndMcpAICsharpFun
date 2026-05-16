@@ -7,6 +7,7 @@ The `IngestBookAsync` method currently computes the hash mid-flow, after an earl
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Provide `DELETE /admin/books/{id}` that atomically cleans up all three storage layers
 - Block deletion of in-progress records (409) to avoid partial cleanup races
 - Allow deletion of Pending, Failed, and Duplicate records without touching Qdrant
@@ -14,6 +15,7 @@ The `IngestBookAsync` method currently computes the hash mid-flow, after an earl
 - Keep all orchestration in `IIngestionOrchestrator` — endpoint stays thin
 
 **Non-Goals:**
+
 - Bulk delete
 - Soft delete / recycle bin
 - Cascading re-ingestion of related records on delete

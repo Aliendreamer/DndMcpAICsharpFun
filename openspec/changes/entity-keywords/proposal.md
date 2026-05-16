@@ -16,9 +16,11 @@ The `keyword` filter on entity search endpoints is dead code — the `keywords` 
 ## Capabilities
 
 ### New Capabilities
+
 - `entity-keywords`: Keywords field on entities — populated from 5etools `traitTags` and LLM extraction, indexed in Qdrant, filterable via `?keyword=` query param
 
 ### Modified Capabilities
+
 - `entity-extraction-pipeline`: Extraction schema gains a `keywords` array field; system prompt guidance updated to populate it
 - `entity-vector-store`: `ToPoint` writes keywords payload; `ToEnvelope` reads it back; filter condition is now active
 - `structured-entities`: `EntityEnvelope` gains `Keywords` field; canonical JSON schema updated

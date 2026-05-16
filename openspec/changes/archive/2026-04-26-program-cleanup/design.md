@@ -5,12 +5,14 @@
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Extract DI registrations into `Extensions/ServiceCollectionExtensions.cs` with four focused methods
 - Extract app-level concerns into `Extensions/WebApplicationExtensions.cs` with four focused methods
 - Reduce `Program.cs` to a readable ~30-line composition root
 - Zero behavior changes — all tests pass, all endpoints identical
 
 **Non-Goals:**
+
 - No changes to any Feature or Infrastructure files
 - No changes to configuration, options classes, or appsettings
 - No introduction of new abstractions or interfaces

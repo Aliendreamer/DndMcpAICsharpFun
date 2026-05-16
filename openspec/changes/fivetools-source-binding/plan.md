@@ -13,10 +13,12 @@
 ## File Map
 
 **New files:**
+
 - `Features/Ingestion/FivetoolsIngestion/BookSourceRegistry.cs` — singleton registry
 - `DndMcpAICsharpFun.Tests/Ingestion/FivetoolsIngestion/BookSourceRegistryTests.cs`
 
 **Modified files:**
+
 - `Infrastructure/Sqlite/IngestionRecord.cs` — add `FivetoolsSourceKey`
 - `Domain/Entities/EntityEnvelope.cs` — add `Srd`, `Srd52`, `BasicRules2024`
 - `Infrastructure/Qdrant/EntityPayloadFields.cs` — add SRD constants
@@ -40,6 +42,7 @@
 ## Task 1: BookSourceRegistry
 
 **Files:**
+
 - Create: `Features/Ingestion/FivetoolsIngestion/BookSourceRegistry.cs`
 - Create: `DndMcpAICsharpFun.Tests/Ingestion/FivetoolsIngestion/BookSourceRegistryTests.cs`
 
@@ -317,6 +320,7 @@ git commit -m "feat(registry): add BookSourceRegistry singleton loading 5etools/
 ## Task 2: IngestionRecord FivetoolsSourceKey Column
 
 **Files:**
+
 - Modify: `Infrastructure/Sqlite/IngestionRecord.cs`
 - Run migration command to generate `Migrations/` files
 
@@ -361,6 +365,7 @@ git commit -m "feat(db): add nullable FivetoolsSourceKey column to IngestionReco
 ## Task 3: EntityEnvelope SRD Flags
 
 **Files:**
+
 - Modify: `Domain/Entities/EntityEnvelope.cs`
 
 - [ ] **Step 3.1: Add optional SRD properties to the record**
@@ -406,6 +411,7 @@ git commit -m "feat(entity): add Srd/Srd52/BasicRules2024 optional flags to Enti
 ## Task 4: Qdrant SRD Payload Fields
 
 **Files:**
+
 - Modify: `Infrastructure/Qdrant/EntityPayloadFields.cs`
 - Modify: `Infrastructure/Qdrant/QdrantCollectionInitializer.cs`
 - Modify: `Features/VectorStore/Entities/IEntityVectorStore.cs`
@@ -515,6 +521,7 @@ git commit -m "feat(qdrant): add srd/srd52/basicRules2024 payload fields and fil
 ## Task 5: FivetoolsMapper SRD Reading
 
 **Files:**
+
 - Modify: `Features/Ingestion/FivetoolsIngestion/FivetoolsMapperBase.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Ingestion/FivetoolsMappersTests.cs`
 
@@ -601,6 +608,7 @@ git commit -m "feat(mapper): read srd/srd52/basicRules2024 flags from 5etools en
 ## Task 6: Registration Endpoint + GET /admin/5etools/sources
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs`
 - Modify: `Features/Admin/FivetoolsAdminEndpoints.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Admin/BooksAdminEndpointsTests.cs`
@@ -794,6 +802,7 @@ git commit -m "feat(admin): fivetoolsSourceKey on registration + GET /admin/5eto
 ## Task 7: Extraction Source Key Propagation
 
 **Files:**
+
 - Modify: `Features/Ingestion/EntityExtraction/EntityExtractionOrchestrator.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Extraction/EntityExtractionOrchestratorTests.cs`
 
@@ -870,6 +879,7 @@ git commit -m "feat(extraction): propagate FivetoolsSourceKey and derived editio
 ## Task 8: Ingestion SourceBook Normalisation
 
 **Files:**
+
 - Modify: `Features/Ingestion/Entities/EntityIngestionOrchestrator.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Ingestion/EntityIngestionOrchestratorTests.cs`
 
@@ -957,6 +967,7 @@ git commit -m "feat(ingestion): normalise Qdrant sourceBook to FivetoolsSourceKe
 ## Task 9: Entity Search SRD Filter Parameters
 
 **Files:**
+
 - Modify: `Features/Retrieval/Entities/EntitySearchQuery.cs`
 - Modify: `Features/Retrieval/Entities/EntityRetrievalEndpoints.cs`
 - Modify: `Features/Retrieval/Entities/EntityRetrievalService.cs`
@@ -1069,6 +1080,7 @@ git commit -m "feat(retrieval): expose srd/srd52/basicRules2024 filter params on
 ## Task 10: HTTP Contracts
 
 **Files:**
+
 - Modify: `DndMcpAICsharpFun.http`
 - Modify: `dnd-mcp-api.insomnia.json`
 
@@ -1132,6 +1144,7 @@ Accept: application/json
 - [ ] **Step 10.2: Sync `dnd-mcp-api.insomnia.json`**
 
 Add matching request entries in `dnd-mcp-api.insomnia.json` for:
+
 - `GET /admin/5etools/sources`
 - `GET /admin/5etools/sources?group=core`
 - Updated `POST /admin/books/register` with `fivetoolsSourceKey` field

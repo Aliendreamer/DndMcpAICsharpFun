@@ -13,6 +13,7 @@
 ### Task 1: NuGet Package + Configuration
 
 **Files:**
+
 - Modify: `DndMcpAICsharpFun.csproj`
 - Modify: `Config/appsettings.json`
 - Modify: `Config/appsettings.Development.json`
@@ -58,6 +59,7 @@ Expected: `Build succeeded. 0 Warning(s). 0 Error(s).`
 ### Task 2: McpOptions + McpAuthMiddleware
 
 **Files:**
+
 - Create: `Features/Mcp/McpOptions.cs`
 - Create: `Features/Mcp/McpAuthMiddleware.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/Mcp/McpAuthMiddlewareTests.cs`
@@ -210,6 +212,7 @@ git commit -m "feat(mcp): add McpOptions, McpAuthMiddleware, NuGet package, conf
 ### Task 3: DndMcpTools
 
 **Files:**
+
 - Create: `Features/Mcp/DndMcpTools.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/Mcp/DndMcpToolsTests.cs`
 
@@ -536,6 +539,7 @@ git commit -m "feat(mcp): add DndMcpTools with search_lore, search_entities, get
 ### Task 4: Registration in Program.cs
 
 **Files:**
+
 - Modify: `Program.cs`
 
 - [ ] **Step 1: Add using and options registration**
@@ -595,6 +599,7 @@ git commit -m "feat(mcp): register MCP server and map /mcp endpoint with auth gu
 ### Task 5: HTTP Collection Updates
 
 **Files:**
+
 - Modify: `DndMcpAICsharpFun.http`
 - Modify: `dnd-mcp-api.insomnia.json`
 

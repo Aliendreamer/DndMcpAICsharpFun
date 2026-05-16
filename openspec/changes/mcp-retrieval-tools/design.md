@@ -5,12 +5,14 @@ The project is an ASP.NET Core Web API on .NET 10 using minimal APIs and vertica
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Expose a Streamable HTTP MCP server at `/mcp`
 - Protect the endpoint with a dedicated `X-Mcp-Api-Key` (separate from admin key)
 - Provide three tools: `search_lore`, `search_entities`, `get_entity`
 - Design `Features/Mcp/` so future tool files are discovered automatically with no registration changes
 
 **Non-Goals:**
+
 - Conversation history or session state (lives in the Blazor companion)
 - Admin/ingestion tools over MCP (admin key remains separate)
 - stdio transport (HTTP only; the companion calls over the network)

@@ -7,12 +7,14 @@ The one hard constraint: MCP client initialisation is async (`await McpClient.Cr
 ## Goals / Non-Goals
 
 **Goals:**
+
 - `Program.cs` reduced to ~25 lines: configuration loading, option binding, async MCP init, extension method calls, `app.Run()`
 - One file per concern in `DndMcpAICompanion/Extensions/`
 - Each extension method is independently readable and testable in isolation
 - Zero behaviour changes
 
 **Non-Goals:**
+
 - Changing any runtime behaviour (auth flow, rate limit settings, MCP tool registration, etc.)
 - Introducing new abstractions or interfaces beyond the extension methods themselves
 - Making MCP init injectable / async-friendly (out of scope for this change)
@@ -43,9 +45,11 @@ MCP client creation requires two awaited calls before services can be registered
 ## Risks / Trade-offs
 
 - **Risk**: Extension files are thin wrappers with no logic → they become boilerplate if services grow significantly.  
+
   **Mitigation**: Each extension grows with its concern; splitting further is easy later.
 
 - **Risk**: Passing `McpClient` + tools into `AddMcpClient` as parameters instead of resolving from config couples the call site.  
+
   **Mitigation**: Accepted trade-off — async init is a genuine seam that can't be hidden in sync registration.
 
 ## Migration Plan

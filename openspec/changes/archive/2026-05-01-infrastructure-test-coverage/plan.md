@@ -13,9 +13,11 @@
 ## File Map
 
 **Modified (production):**
+
 - `Features/Ingestion/Extraction/OllamaLlmClassifier.cs` — change constructor param `OllamaApiClient` → `IOllamaApiClient`
 
 **Created (tests):**
+
 - `DndMcpAICsharpFun.Tests/Infrastructure/Tracking/TrackerFixture.cs` — shared SQLite connection + DbContext factory
 - `DndMcpAICsharpFun.Tests/Infrastructure/Tracking/SqliteIngestionTrackerTests.cs` — 10 tests
 - `DndMcpAICsharpFun.Tests/Ingestion/Extraction/OllamaLlmClassifierTests.cs` — 5 tests
@@ -28,6 +30,7 @@
 The classifier currently takes `OllamaApiClient` (concrete). Change it to `IOllamaApiClient` so tests can inject a substitute. The DI container already registers `IOllamaApiClient` as an alias for `OllamaApiClient` in `ServiceCollectionExtensions.cs`.
 
 **Files:**
+
 - Modify: `Features/Ingestion/Extraction/OllamaLlmClassifier.cs`
 
 - [ ] **Step 1: Change the constructor parameter type**
@@ -74,6 +77,7 @@ git commit -m "refactor: use IOllamaApiClient in OllamaLlmClassifier for testabi
 Create a test fixture that opens a `SqliteConnection("DataSource=:memory:")`, keeps it alive for the test class lifetime, applies EF migrations, and provides a factory for fresh tracker instances per operation. Fresh tracker = fresh `DbContext` = no change-tracker cache pollution after bulk `ExecuteUpdateAsync` calls.
 
 **Files:**
+
 - Create: `DndMcpAICsharpFun.Tests/Infrastructure/Tracking/TrackerFixture.cs`
 
 - [ ] **Step 1: Verify `SqliteConnection` is available without adding a package**
@@ -159,6 +163,7 @@ git commit -m "test: add TrackerFixture for in-memory SQLite tracker tests"
 Each test creates a fresh `TrackerFixture` (one connection per test class, fresh tracker per operation) to ensure complete isolation.
 
 **Files:**
+
 - Create: `DndMcpAICsharpFun.Tests/Infrastructure/Tracking/SqliteIngestionTrackerTests.cs`
 
 - [ ] **Step 1: Create the test class skeleton**
@@ -392,6 +397,7 @@ git commit -m "test: add SqliteIngestionTracker tests with in-memory SQLite"
 Pure unit tests. The classifier uses `IOllamaApiClient` (after Task 1 change). The LLM response format is `{"types": ["Spell", "Monster"]}` — a JSON object with a `types` key. The classifier also accepts bare arrays `["Spell"]` as fallback.
 
 **Files:**
+
 - Create: `DndMcpAICsharpFun.Tests/Ingestion/Extraction/OllamaLlmClassifierTests.cs`
 
 - [ ] **Step 1: Create the test file with helpers**
@@ -538,6 +544,7 @@ git commit -m "test: add OllamaLlmClassifier unit tests"
 Follow the exact pattern from `CancelExtractEndpointTests.cs`: `WebApplication.CreateBuilder()` + `UseTestServer()`. The admin middleware is NOT added here — tests call endpoints directly without any API key header. All external services are NSubstitute mocks.
 
 **Files:**
+
 - Create: `DndMcpAICsharpFun.Tests/Admin/BooksAdminEndpointsTests.cs`
 
 - [ ] **Step 1: Create the test file with `BuildClientAsync` helper**

@@ -16,11 +16,16 @@ Replace D13 entirely:
 
 - **LLM runtime:** Ollama (`http://ollama:11434`), already running in docker-compose
 - **Model:** `qwen3:8b` — fits fully in 8 GB VRAM at Q4 quantisation (~4.7 GB); good instruction
+
   following and schema-constrained JSON output
+
 - **SDK abstraction:** `Microsoft.Extensions.AI` (`IChatClient`) via `Microsoft.Extensions.AI.Ollama`
+
   NuGet — provider-portable; future swap to any MEAI-compatible backend is a one-line DI change
+
 - **Schema constraint:** Ollama `format` field (JSON schema object) instead of Anthropic tool-use
 - **Escalation model:** removed — running a 30b model CPU-only would be too slow on this hardware;
+
   retry logic stays (bounded retries with re-prompt) but all retries use the same `qwen3:8b`
 
 ## What Changes vs Plan 2
@@ -80,6 +85,8 @@ with no extra instrumentation code.
 To swap providers in future (e.g. back to Claude, or to Groq/OpenAI):
 
 1. Replace the MEAI Ollama registration in `ServiceCollectionExtensions` with the target provider's
+
    MEAI adapter.
+
 2. Update the relevant config section.
 3. `OllamaEntityExtractionClient` and everything above it are unchanged.

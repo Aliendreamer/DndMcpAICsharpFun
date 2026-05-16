@@ -5,11 +5,13 @@ The project uses xUnit + NSubstitute throughout `DndMcpAICsharpFun.Tests/`. Thre
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Cover all `IIngestionTracker` methods with real EF Core + SQLite roundtrips (no mocks for the DB layer)
 - Cover `OllamaLlmClassifier` happy path, empty/invalid responses, and cancellation with a mocked LLM client
 - Cover all `BooksAdminEndpoints` routes at the HTTP level with mocked external services
 
 **Non-Goals:**
+
 - Testcontainers for Qdrant or Ollama (deferred to a future phase)
 - Production code changes
 - 100% branch coverage of every edge case in untested files not listed above

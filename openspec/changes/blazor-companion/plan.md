@@ -50,6 +50,7 @@ docker-compose.yml               ← add companion service
 ### Task 1: Project Scaffold
 
 **Files:**
+
 - Create: `DndMcpAICompanion/DndMcpAICompanion.csproj`
 - Create: `DndMcpAICompanion/Config/appsettings.json`
 - Create: `DndMcpAICompanion/Config/appsettings.Development.json`
@@ -139,6 +140,7 @@ Expected: `Restore completed` with no errors.
 ### Task 2: Configuration Options
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Features/Chat/OllamaOptions.cs`
 - Create: `DndMcpAICompanion/Features/Chat/McpClientOptions.cs`
 
@@ -183,6 +185,7 @@ Expected: `Build succeeded. 0 Error(s).`
 ### Task 3: DndChatService (TDD)
 
 **Files:**
+
 - Create: `DndMcpAICompanion.Tests/DndMcpAICompanion.Tests.csproj`
 - Create: `DndMcpAICompanion.Tests/Chat/DndChatServiceTests.cs`
 - Create: `DndMcpAICompanion/Features/Chat/DndChatService.cs`
@@ -351,6 +354,7 @@ git commit -m "feat(companion): scaffold project, config options, DndChatService
 ### Task 4: Program.cs — Wire Everything Together
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Program.cs`
 
 - [ ] **Step 1: Create Program.cs**
@@ -420,6 +424,7 @@ Expected: `Build succeeded. 0 Error(s).` (Will warn about missing `App` componen
 ### Task 5: Blazor Boilerplate Components
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Components/App.razor`
 - Create: `DndMcpAICompanion/Components/Routes.razor`
 - Create: `DndMcpAICompanion/Components/Layout/MainLayout.razor`
@@ -593,6 +598,7 @@ Expected: `Build succeeded. 0 Error(s).`
 ### Task 6: Chat.razor Page
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Components/Pages/Chat.razor`
 
 - [ ] **Step 1: Create Chat.razor**
@@ -690,6 +696,7 @@ git commit -m "feat(companion): add Blazor boilerplate, Chat.razor page, Program
 ### Task 7: Docker
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Dockerfile`
 - Modify: `docker-compose.yml`
 

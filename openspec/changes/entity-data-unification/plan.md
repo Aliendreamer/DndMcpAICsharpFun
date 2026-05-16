@@ -15,6 +15,7 @@
 ## Task 1: Fix EntityIdSlug.BookOverrides + Deterministic UUID static field
 
 **Files:**
+
 - Modify: `Domain/Entities/EntityIdSlug.cs`
 - Modify: `Features/VectorStore/Entities/QdrantEntityVectorStore.cs`
 - Test: `DndMcpAICsharpFun.Tests/Domain/EntityIdSlugTests.cs`
@@ -127,6 +128,7 @@ git commit -m "feat(entity-ids): unify book prefix slugs — add source key alia
 ## Task 2: GetByIdsAsync on IEntityVectorStore
 
 **Files:**
+
 - Modify: `Features/VectorStore/Entities/IEntityVectorStore.cs`
 - Modify: `Features/VectorStore/Entities/QdrantEntityVectorStore.cs`
 - Test: `DndMcpAICsharpFun.Tests/Entities/VectorStore/QdrantEntityVectorStoreTests.cs` (if exists, else create)
@@ -233,6 +235,7 @@ git commit -m "feat(vector-store): add GetByIdsAsync batch fetch for pre-merge l
 ## Task 3: EntityMerger
 
 **Files:**
+
 - Create: `Features/Ingestion/Entities/EntityMerger.cs`
 - Create: `DndMcpAICsharpFun.Tests/Entities/Ingestion/EntityMergerTests.cs`
 
@@ -419,6 +422,7 @@ git commit -m "feat(entity-merge): add EntityMerger with per-field priority rule
 ## Task 4: Wire Merge into EntityIngestionOrchestrator + Revert Runtime Rewriting
 
 **Files:**
+
 - Modify: `Features/Ingestion/Entities/EntityIngestionOrchestrator.cs`
 - Test: `DndMcpAICsharpFun.Tests/Entities/Ingestion/EntityIngestionOrchestratorTests.cs`
 
@@ -593,6 +597,7 @@ git commit -m "feat(ingest): wire EntityMerger into orchestrator, remove runtime
 ## Task 5: CanonicalTypeFixerService + Admin Endpoint
 
 **Files:**
+
 - Create: `Features/Admin/CanonicalTypeFixerService.cs`
 - Modify: `Features/Admin/FivetoolsAdminEndpoints.cs` (add fix-types route)
 - Modify: `DndMcpAICsharpFun.http`
@@ -887,6 +892,7 @@ git commit -m "feat(admin): add POST /admin/canonical/fix-types endpoint and Can
 ## Task 6: Update Extraction Prompt for Correct EntityType
 
 **Files:**
+
 - Modify: `Features/Ingestion/EntityExtraction/ExtractionPromptBuilder.cs`
 - Test: `DndMcpAICsharpFun.Tests/Entities/Extraction/ExtractionPromptBuilderTests.cs`
 

@@ -7,6 +7,7 @@ The `ITocCategoryClassifier` exists but only returns `(startPage, category)` per
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Parse one TOC page via LLM to produce a full `{title, category, startPage, endPage}[]` map
 - Use that map to give the LLM entity-level context on every extraction call
 - Group page blocks by heading so each LLM call covers one focused section
@@ -15,6 +16,7 @@ The `ITocCategoryClassifier` exists but only returns `(startPage, category)` per
 - Remove `register-path` endpoint; require `tocPage` on book registration
 
 **Non-Goals:**
+
 - Multi-page TOC support (one page is sufficient for PHB-style books)
 - Automatic TOC page detection (user provides `tocPage`)
 - Changing the embedding model or retrieval scoring logic

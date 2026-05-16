@@ -13,6 +13,7 @@
 ### Task 1: EntityEnvelope.NeedsReview + EntityPayloadFields
 
 **Files:**
+
 - Modify: `Domain/Entities/EntityEnvelope.cs`
 - Modify: `Infrastructure/Qdrant/EntityPayloadFields.cs`
 - Test: `DndMcpAICsharpFun.Tests/Entities/EntityEnvelopeTests.cs` (create if absent)
@@ -151,6 +152,7 @@ git commit -m "feat(entity): add NeedsReview flag to EntityEnvelope and payload 
 ### Task 2: QdrantEntityVectorStore — persist NeedsReview
 
 **Files:**
+
 - Modify: `Features/VectorStore/Entities/QdrantEntityVectorStore.cs`
 
 `NeedsReview` follows the same boolean-as-string pattern used by `Srd`, `Srd52`, and `BasicRules2024`. No separate test is needed — the integration path is covered by the ingestion/retrieval round-trip already tested in `EntityIngestionOrchestratorTests`.
@@ -198,6 +200,7 @@ git commit -m "feat(qdrant): persist NeedsReview flag in entity payload"
 ### Task 3: Extraction prompt — naming-case rule
 
 **Files:**
+
 - Modify: `Features/Ingestion/EntityExtraction/ExtractionPromptBuilder.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Extraction/ExtractionPromptBuilderTests.cs`
 
@@ -268,12 +271,14 @@ git commit -m "feat(extraction): add title-case naming rule to extraction system
 ### Task 4: Schema confidence injection + orchestrator NeedsReview
 
 **Files:**
+
 - Modify: `Features/Ingestion/EntityExtraction/EntityExtractionOrchestrator.cs`
 - Test: `DndMcpAICsharpFun.Tests/Entities/Extraction/NeedsReviewHeuristicTests.cs` (create)
 
 The JSON schemas in `Schemas/canonical/` have `"additionalProperties": false`, so we must inject the `confidence` field programmatically rather than editing all 22 files. We do this in `LoadSchemas()`.
 
 After the LLM responds, we:
+
 1. Read `confidence` from `ToolInput`
 2. Strip it from the JSON so it's not persisted in `Fields`
 3. Apply heuristic to the entity name
@@ -495,6 +500,7 @@ git commit -m "feat(extraction): derive NeedsReview from LLM confidence + OCR he
 ### Task 5: Validation — NeedsReview warnings
 
 **Files:**
+
 - Modify: `Features/Admin/CanonicalValidationReport.cs`
 - Modify: `Features/Admin/CanonicalValidationService.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Admin/CanonicalValidationEndpointTests.cs`
@@ -772,6 +778,7 @@ git commit -m "feat(validation): report needsReview entity count per file as war
 ### Task 6: Python normalization script
 
 **Files:**
+
 - Create: `scripts/normalize_canonical_names.py`
 - Create: `tests/test_normalize_names.py`
 

@@ -5,6 +5,7 @@ The canonical name normalization logic was delivered as a Python script (`script
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Implement `CanonicalNameNormalizerService` in C# that replicates the Python script's behaviour exactly
 - Expose `POST /admin/canonical/normalize` with `?dryRun=true` support
 - Reuse `ExtractionNeedsReview.HasOcrArtifacts` for the heuristic — no duplication
@@ -12,6 +13,7 @@ The canonical name normalization logic was delivered as a Python script (`script
 - xUnit test coverage for the normalizer service
 
 **Non-Goals:**
+
 - Changing `EntityEnvelope`, Qdrant payload, or the extraction pipeline
 - Streaming progress (a synchronous response with counts is sufficient)
 - Any UI or scheduled execution

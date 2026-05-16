@@ -3,6 +3,7 @@
 The chunking pipeline uses `IPatternDetector` implementations to score a chunk of text against known content patterns. `ContentCategoryDetector` picks the highest-scoring detector above a 0.7 confidence threshold, falling back to the chapter default. Adding a new category requires exactly two things: a new enum value and a new detector class — no changes to the pipeline itself.
 
 Each detector implements:
+
 - `Detect(string text) → float` — score in [0, 1]; counts keyword hits / total signals
 - `IsEntityBoundary(string line) → bool` — true when a line marks the start of a new entity of this type
 - `Category` property — returns the matching `ContentCategory` value
@@ -10,10 +11,12 @@ Each detector implements:
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Tag treasure hoard/table chunks, encounter table/difficulty chunks, and trap description chunks correctly during ingestion
 - Follow the exact same pattern as existing detectors (no architectural change)
 
 **Non-Goals:**
+
 - Adventure hooks, dungeon room descriptions, NPC stat blocks (future work)
 - Retroactive re-ingestion of already-indexed books (run reingest via `/admin/books/{id}/reingest` if needed)
 - Fuzzy/ML-based detection

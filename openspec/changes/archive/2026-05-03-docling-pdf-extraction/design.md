@@ -9,6 +9,7 @@ We integrate as a sidecar Docker service rather than embedding Python into the .
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Eliminate multi-column word scrambling for PHB-style books.
 - Preserve all existing ingestion APIs and Qdrant payload shape so retrieval is unaffected.
 - Run docling-serve CPU-only to avoid contending with Ollama for the user's 8 GB VRAM.
@@ -16,6 +17,7 @@ We integrate as a sidecar Docker service rather than embedding Python into the .
 - Treat docling-serve as a normal service in the stack: health-checked, restart-policied, dependent service for `app`.
 
 **Non-Goals:**
+
 - Removing PdfPig entirely. The block extractor abstraction stays; PdfPig is still the fallback for unusual PDFs and the default for deployments not opting in.
 - Replacing the bookmark-driven section/category mapping. Docling produces section headings of its own, but our `BookmarkTocMapper` already does this job and feeds the same `TocCategoryMap` shape; we don't need two sources of truth for sections.
 - Embedding-model changes. Those are a separate decision (see the parking-lot note in the previous xycut experiment).

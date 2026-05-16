@@ -21,9 +21,11 @@ A real fix needs layout analysis at the word level — detecting columns, orderi
 ## Capabilities
 
 ### New Capabilities
+
 - `docling-pdf-extraction`: a sidecar-driven PDF-to-blocks pipeline that replaces PdfPig+Docstrum when configured. Specifies the HTTP contract with docling-serve, the `DoclingDocument` shape we expect, and the mapping from Docling structural blocks to our `PdfBlock` records.
 
 ### Modified Capabilities
+
 - `block-extraction`: gains the third `"docling"` value for `Ingestion:BlockSegmenter`. Selection of the underlying extractor is now a factory choice, not a fixed instance.
 - `ingestion-pipeline`: documents the new compose service and the configuration knobs for it.
 - `docker-stack`: adds the new `docling` service and updates the dependency graph (`app` depends on docling being healthy).

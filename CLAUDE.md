@@ -48,6 +48,7 @@ The retrieval pipeline uses a dual-collection setup in Qdrant: `dnd_blocks` hold
 Canonical JSON files at `data/canonical/<book-slug>.json` are the hand-correctable source of truth for structured entities. Ingestion reads these files via `CanonicalJsonLoader`, validates schema/IDs, and projects each entity into `dnd_entities`. Plan 2 of the structured-entity-extraction effort has shipped: an Ollama-driven extraction pipeline (local qwen3:8b) produces `data/canonical/<book>.json` from Docling output (plus optional sibling `<book>.errors.json` and `<book>.warnings.json`). Hand-authoring is still allowed and remains the source of truth — extraction outputs are reviewed in PRs before they land.
 
 New endpoints:
+
 - `POST /admin/books/{id}/ingest-entities` — ingest a book's canonical JSON into `dnd_entities`.
 - `POST /admin/books/{id}/extract-entities` — run Ollama-driven extraction (requires qwen3:8b pulled via ollama-pull); produces `data/canonical/<book-slug>.json` plus optional sibling `<book-slug>.errors.json` and `<book-slug>.warnings.json`. Pass `?force=true` to overwrite an existing canonical JSON. During the run, checkpoint files `<book-slug>.progress.json` and `<book-slug>.progress.errors.json` are written every 100 candidates and deleted on success; a crashed run resumes from the checkpoint on retry.
 - `POST /admin/canonical/validate` — corpus-wide validation; 200 (clean) / 422 (FAIL-class issues like duplicate IDs across files or schema-version mismatches).
@@ -56,6 +57,7 @@ New endpoints:
 - `GET /admin/retrieval/entities/search` — admin-side entity search with extra fields.
 
 **Adding a new book (Plan 2 onward):**
+
 1. Check `GET /admin/5etools/sources` — if the book appears in the list, note its source key (e.g. `MPMM`).
 2. `POST /admin/books/register` — upload PDF. If the book is in 5etools, pass `fivetoolsSourceKey=<KEY>` (e.g. `fivetoolsSourceKey=MPMM`). If not, omit it — the system generates its own IDs from `displayName`. The response always includes `suggestedSources` with fuzzy-matched candidates if you're unsure of the key.
 3. `POST /admin/books/{id}/ingest-blocks` — populate `dnd_blocks`.

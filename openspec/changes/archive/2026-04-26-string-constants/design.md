@@ -5,11 +5,13 @@ Four files share a set of Qdrant payload field names as raw string literals: `Qd
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Single source of truth for every Qdrant payload field name
 - Compile-time catch for any key mismatch between write and read paths
 - Zero behaviour change — all existing data in Qdrant remains valid
 
 **Non-Goals:**
+
 - Changing field names or payload schema
 - Abstracting Qdrant behind a generic key-value interface
 - Replacing `DndVersion` / `ContentCategory` `.ToString()` serialisation
@@ -36,6 +38,7 @@ public static class QdrantPayloadFields
 ```
 
 Alternatives considered:
+
 - **Enum with `[EnumMember]`**: requires a custom serialiser or `.GetAttributeValue()` helper to recover the string; adds ceremony for no gain since these strings never appear in a switch or comparison against each other.
 - **`static readonly string`**: heap-allocated, no compiler inlining. `const` is substituted at compile time and is the idiomatic choice for fixed string keys.
 

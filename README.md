@@ -186,6 +186,7 @@ No external API key is required. The model is configured via `Ollama.ChatModel` 
 Both commands run `docker compose up --build -d` (detached). The app will be available at `http://localhost:5101` once all health checks pass.
 
 First boot is slow because:
+
 - `ollama-pull` downloads `mxbai-embed-large` (~1 GB) and `qwen3:8b` (~4.7 GB).
 - `docling` pulls a ~3 GB image and loads its layout model on first health check (~60-90 s).
 
@@ -254,6 +255,7 @@ Filters compose. For example, `?q=fireball&category=Spell&bookType=Core&version=
 Before registering any official WotC book, call `GET /admin/5etools/sources` to look up its 5etools source key. Pass that key as `fivetoolsSourceKey` when registering.
 
 **Why it matters:**
+
 - Entity IDs are slugged from the source key, so they match what `POST /admin/5etools/import` produces (e.g. `mpmm.monster.yuan-ti-anathema` instead of a display-name-derived slug).
 - Edition (`Edition2014` / `Edition2024`) is derived from the registry's `publishedYear` rather than what you type in `version`.
 - `traitTags` → `keywords`, SRD flags, and other 5etools metadata flow in automatically on import.

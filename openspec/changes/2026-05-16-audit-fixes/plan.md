@@ -57,6 +57,7 @@
 **Bug:** `BooksAdminEndpoints.ExtractEntities` and `BookDeletionService.DeleteBookAsync` always derive the canonical file slug from `record.DisplayName`. But `EntityIngestionOrchestrator.IngestEntitiesAsync` derives it from `record.FivetoolsSourceKey` when present. For any WotC book (PHB, MM, etc.), this means extract writes `players-handbook.json` but ingest looks for `phb.json` — extraction succeeds, ingestion throws `FileNotFoundException`. Deletion also leaves the canonical file on disk forever.
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs` — `ExtractEntities` method (lines 67–113)
 - Modify: `Features/Ingestion/BookDeletionService.cs` — `DeleteBookAsync` method (lines 17–46)
 
@@ -118,6 +119,7 @@ Expected: `Build succeeded. 0 Warning(s) 0 Error(s)`
 **Bug B:** When a book was registered but never block-ingested, `record.FileHash` is `""`. Calling `DeleteByFileHashAsync("")` issues a Qdrant delete matching ALL points whose `file_hash` payload is empty — potentially wiping unrelated data.
 
 **Files:**
+
 - Modify: `Features/Ingestion/Entities/EntityIngestionOrchestrator.cs` — `IngestEntitiesAsync` method (lines 27–91)
 
 - [ ] **Step 1: Read `IngestEntitiesAsync` via Serena**
@@ -129,6 +131,7 @@ mcp__serena__find_symbol("EntityIngestionOrchestrator/IngestEntitiesAsync", incl
 - [ ] **Step 2: Guard the delete on empty FileHash and flip order to upsert-first**
 
 Replace the body of `IngestEntitiesAsync` using `mcp__serena__replace_symbol_body`. The key changes are:
+
 1. Move `await store.DeleteByFileHashAsync(...)` to AFTER `await store.UpsertAsync(points, ct)`.
 2. Wrap the delete in `if (!string.IsNullOrEmpty(record.FileHash))`.
 
@@ -158,6 +161,7 @@ Expected: `Build succeeded. 0 Warning(s) 0 Error(s)`
 **Bug:** `DeleteBlocksByHashAsync` derives Qdrant point IDs as `DerivePointId(fileHash, 0..ChunkCount-1)`. If `ChunkCount` in SQLite diverges from what was actually written to Qdrant (partial ingest failure), the wrong set of IDs is deleted, leaving orphaned vectors. Fix: delete by payload filter on `file_hash` field instead of derived IDs.
 
 **Files:**
+
 - Modify: `Features/VectorStore/QdrantVectorStoreService.cs` — `DeleteBlocksByHashAsync` (lines 34–40)
 - Modify: `Features/VectorStore/IVectorStoreService.cs` — remove `blockCount` parameter
 - Modify: `Features/Ingestion/BlockIngestionOrchestrator.cs` — call site
@@ -217,6 +221,7 @@ Expected: `Build succeeded. 0 Warning(s) 0 Error(s)`
 **Bug:** `ToEnvelope` accesses mandatory payload fields like `p[EntityPayloadFields.Id].StringValue` with no `TryGetValue` guard. If any field is absent (e.g., a point written by an older schema version), it throws `KeyNotFoundException`. `Enum.Parse<EntityType>` on the `Type` field throws `ArgumentException` if the string value no longer matches an enum name.
 
 **Files:**
+
 - Modify: `Features/VectorStore/Entities/QdrantEntityVectorStore.cs` — `ToEnvelope` (lines 184–213)
 
 - [ ] **Step 1: Read `ToEnvelope` via Serena**
@@ -305,6 +310,7 @@ Expected: `Build succeeded. 0 Warning(s) 0 Error(s)`
 **Bug:** `response.Embeddings` is typed `IList<float[]>?`. A model mismatch or malformed Ollama response returns null. All callers immediately index `[0]` — `NullReferenceException` at runtime.
 
 **Files:**
+
 - Modify: `Features/Embedding/OllamaEmbeddingService.cs` — `EmbedAsync` method
 
 - [ ] **Step 1: Read `EmbedAsync` via Serena**
@@ -363,6 +369,7 @@ git commit -m "fix: data integrity — slug consistency, upsert-before-delete, p
 **Bug:** `search_lore`, `search_entities`, and `get_entity` accept `string query`/`string id` but pass them to Ollama/Qdrant with no null/empty guard. Empty-string embedding returns zero-vector (silent bad results); `get_entity("")` may crash with `RpcException`.
 
 **Files:**
+
 - Modify: `Features/Mcp/DndMcpTools.cs` — all three tool methods
 
 - [ ] **Step 1: Read `DndMcpTools` via Serena**
@@ -409,6 +416,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug B (MEDIUM):** `doc["entities"]!.AsArray()` and `entity!["name"]!.GetValue<string>()` use `!` null-forgiving but have no runtime guard. A malformed canonical file causes `NullReferenceException`.
 
 **Files:**
+
 - Modify: `Features/Admin/CanonicalTypeFixerService.cs` — `FixTypesAsync`
 - Modify: `Features/Admin/CanonicalTypeFixerEndpoints.cs` — endpoint that receives the `book` query param
 
@@ -472,6 +480,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug B:** Both middlewares use `string !=` (early-exit equality) — not constant-time. Should use `CryptographicOperations.FixedTimeEquals`.
 
 **Files:**
+
 - Modify: `Features/Admin/AdminApiKeyMiddleware.cs` — `InvokeAsync`
 - Modify: `Features/Mcp/McpAuthMiddleware.cs` — `InvokeAsync`
 
@@ -519,6 +528,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug:** `ScorePair` ends with `results.First().AsTensor<float>().First()`. If the ONNX model output is empty or the tensor has zero elements, `InvalidOperationException` is thrown, crashing the entire reranker for the request.
 
 **Files:**
+
 - Modify: `Features/Retrieval/CrossEncoderReranker.cs` — `ScorePair` (lines 75–115)
 
 - [ ] **Step 1: Read `ScorePair` via Serena**
@@ -560,6 +570,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug:** `Chat.razor` passes `CancellationToken.None` to `ChatService.SendAsync`. When a user navigates away mid-generation, the Ollama call (with `Timeout.InfiniteTimeSpan`) runs to completion. Under concurrent users this exhausts Ollama's concurrency capacity.
 
 **Files:**
+
 - Modify: `DndMcpAICompanion/Components/Pages/Chat.razor`
 
 - [ ] **Step 1: Read `Chat.razor` via Serena**
@@ -627,6 +638,7 @@ git commit -m "fix: security + crash fixes — MCP input validation, path traver
 **Bug:** `app.Lifetime.ApplicationStopping.Register(() => mcpClient.DisposeAsync().AsTask().GetAwaiter().GetResult())` blocks the host shutdown thread with no timeout, potentially hanging shutdown indefinitely if the MCP client dispose stalls.
 
 **Files:**
+
 - Modify: `DndMcpAICompanion/Extensions/AppExtensions.cs`
 
 - [ ] **Step 1: Read `AppExtensions` via Serena**
@@ -672,6 +684,7 @@ dotnet build DndMcpAICompanion/DndMcpAICompanion.csproj --no-restore 2>&1 | tail
 **Bug B:** `QdrantSparseState.SparseSupported` is a plain `bool` with no `volatile` annotation — written by the hosted service thread, read by concurrent request handlers.
 
 **Files:**
+
 - Modify: `Infrastructure/Qdrant/QdrantCollectionInitializer.cs` — `StartAsync`
 - Modify: `Infrastructure/Qdrant/QdrantSparseState.cs`
 
@@ -717,6 +730,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug:** `IngestBlocks` only guards `Processing`. `IngestEntities` only guards `Processing`. Neither guards `EntitiesExtracting` or `EntitiesIngesting`. Two rapid calls can both pass the guard before the worker sets the status, causing double ingestion.
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs` — `IngestBlocks` and `IngestEntities` methods
 
 - [ ] **Step 1: Read both methods**
@@ -760,6 +774,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug B:** `File.Delete(checkpointPath)` is unguarded. If the file is locked (antivirus, another process), it throws, triggering the outer catch which marks the book as failed even though extraction succeeded.
 
 **Files:**
+
 - Modify: `Features/Ingestion/EntityExtraction/EntityExtractionOrchestrator.cs` — `RunFullExtractionAsync` (around lines 276–295)
 
 - [ ] **Step 1: Read `RunFullExtractionAsync` via Serena**
@@ -782,6 +797,7 @@ catch (Exception ex) { logger.LogWarning(ex, "Could not delete checkpoint errors
 - [ ] **Step 3: Move `MarkEntitiesExtractedAsync` BEFORE `File.Delete` calls**
 
 Reorder the sequence to:
+
 1. `writer.WriteAsync(...)` — write canonical JSON
 2. `errorsFile.WriteAsync(...)` — write errors
 3. `warningsFile.WriteAsync(...)` — write warnings
@@ -805,6 +821,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug B:** `WriteCheckpointAsync` writes to a `.tmp` file then calls `File.Move`. If `File.Move` throws, the `.tmp` file leaks on disk.
 
 **Files:**
+
 - Modify: `Features/Ingestion/EntityExtraction/EntityExtractionOrchestrator.cs` — `LoadSchemas` and `WriteCheckpointAsync`
 
 - [ ] **Step 1: Read both methods**
@@ -889,6 +906,7 @@ git commit -m "fix: operational correctness — shutdown timeout, Qdrant init fa
 **Bug:** `/metrics` (Prometheus scraping) is exposed in all environments with no auth and no environment check. The CLAUDE.md acknowledges it is local-dev only, but nothing enforces that.
 
 **Files:**
+
 - Modify: `Extensions/WebApplicationExtensions.cs` — where `MapPrometheusScrapingEndpoint()` is called
 
 - [ ] **Step 1: Read the file**
@@ -919,6 +937,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug:** `GetAllBooks` calls `tracker.GetAllAsync()` which does a full `ToListAsync()` with no `Take(n)`. Serializes the entire table on every call.
 
 **Files:**
+
 - Modify: `Features/Ingestion/Tracking/SqliteIngestionTracker.cs` — `GetAllAsync`
 - Modify: `Features/Admin/BooksAdminEndpoints.cs` — `GetAllBooks` handler to pass a limit
 
@@ -972,6 +991,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug:** `RegisterBook` returns `Results.Accepted(uri, body)` (HTTP 202). The resource is created synchronously before the response is sent — 201 Created is correct.
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs` — `RegisterBook` handler
 
 - [ ] **Step 1: Find the `RegisterBook` method**
@@ -1001,6 +1021,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug:** `DoclingBlockExtractor.ExtractBlocks` passes `CancellationToken.None` to `converter.ConvertAsync`. A host shutdown signal during PDF conversion (which can take 30+ minutes) is silently ignored.
 
 **Files:**
+
 - Modify: `Features/Ingestion/Pdf/DoclingBlockExtractor.cs` — `ExtractBlocks`
 - Modify: `Features/Ingestion/Pdf/IPdfBlockExtractor.cs` — add CT parameter to interface
 
@@ -1070,6 +1091,7 @@ git commit -m "fix: low-severity — metrics dev-only, admin books pagination, r
 **Bug:** No options class implements `IValidateOptions<T>` or chains `.ValidateDataAnnotations().ValidateOnStart()`. A misconfigured `OllamaOptions.EmbeddingModel = ""` or `QdrantOptions.Port = 0` is discovered only at the first runtime failure, not at startup.
 
 **Files:**
+
 - Modify: `Extensions/ServiceCollectionExtensions.cs` — all `Configure<T>` calls
 - Modify: Key Options classes to add `[Required]` attributes: `OllamaOptions`, `QdrantOptions`, `DoclingOptions`, `EntityExtractionOptions`
 
@@ -1111,6 +1133,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug:** `POST /admin/canonical/validate` returns 200 even when `NeedsReview` warnings exist. A CI script gating on status code cannot distinguish "all clean" from "warnings present".
 
 **Files:**
+
 - Modify: `Features/Admin/CanonicalValidationEndpoints.cs`
 
 - [ ] **Step 1: Read the endpoint**
@@ -1140,6 +1163,7 @@ dotnet build DndMcpAICsharpFun.csproj --no-restore 2>&1 | tail -5
 **Bug:** `/register` in the companion Blazor app has no rate limiting specific to account creation. The global sliding window limiter (60 req/min) is too generous. An attacker can enumerate usernames (distinct error messages) and bulk-register accounts.
 
 **Files:**
+
 - Modify: `DndMcpAICompanion/Extensions/RateLimitExtensions.cs` — add a registration-specific limiter
 - Modify: `DndMcpAICompanion/Components/Pages/Register.razor` — apply the limiter
 

@@ -12,12 +12,14 @@ Reading-order detection (`UnsupervisedReadingOrderDetector`) operates on the res
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Add the smallest possible code change that lets us A/B the two segmenters against the same PHB corpus and the same probe queries.
 - Make the choice operator-controlled (config), not user-controlled (no per-request override needed).
 - Preserve current behaviour when the new config is unset.
 - Keep both implementations live so we can revert by flipping a string.
 
 **Non-Goals:**
+
 - Picking the winner in this change. The decision is data-driven and happens after the experiment.
 - Tuning either segmenter's parameters (Docstrum has within-line / between-line / between-column multipliers; RXY-Cut has minimum-cell-area thresholds). Defaults only.
 - Adding any other segmenter (custom column-aware, OCR-based, third-party). Those are bigger changes deferred to follow-ups.

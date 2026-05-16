@@ -45,6 +45,7 @@ We are now committing to the block path as the only ingestion path. Carrying the
 <!-- none -->
 
 ### Modified Capabilities
+
 - `ingestion-pipeline`: extraction is now single-stage (`/ingest-blocks`); the multi-stage extract → JSON → ingest flow is removed.
 - `llm-extraction`: this capability disappears entirely as a current behaviour. The spec entry is preserved for historical reference but every active requirement is removed (delta uses `## REMOVED Requirements`).
 - `embedding-vector-store`: only one collection (`dnd_blocks`) is created and managed.

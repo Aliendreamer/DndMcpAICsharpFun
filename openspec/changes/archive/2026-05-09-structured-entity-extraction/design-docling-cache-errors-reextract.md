@@ -33,11 +33,13 @@ A caching decorator that wraps `IDoclingPdfConverter`. Registered in DI in place
 **Write strategy:** atomic temp-file + rename (same pattern as `CanonicalJsonWriter`).
 
 Flow:
+
 1. Hash the file.
 2. If `<hash>.json` exists → deserialise and return.
 3. If not → call inner converter, serialise result to `<hash>.json`, return result.
 
 Error handling:
+
 - Corrupt cache file (`JsonException` on read) → delete file, call through to real Docling, re-cache.
 - Cache write failure → log warning at `Warning` level, return the result anyway (degraded, not broken).
 
@@ -48,10 +50,12 @@ In production docker-compose, `data/docling-cache/` should be backed by a named 
 **Trigger:** `?errorsOnly=true` on `POST /admin/books/{id}/extract-entities`.
 
 **Pre-conditions (checked before anything else):**
+
 - `<slug>.json` must exist — if not, throw `InvalidOperationException`: *"No canonical JSON found for {bookSlug}; run full extraction first."*
 - `<slug>.errors.json` must exist and be non-empty — if not, log `"No errors file found for {bookSlug}; nothing to retry."` and return early (200).
 
 **Flow:**
+
 1. Load `<slug>.errors.json` → build `HashSet<string> retrySet` from `SourceEntityId`.
 2. Call `ConvertAsync` → cache hit, returns instantly.
 3. Scan candidates (same scanner as full extraction).

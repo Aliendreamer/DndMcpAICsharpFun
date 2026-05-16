@@ -25,6 +25,7 @@
         - dnd_net
       restart: unless-stopped
     ```
+
 - [ ] 2.2 Same change in `docker-compose.prod.yml`.
 - [ ] 2.3 Add `docling: { condition: service_healthy }` under `app.depends_on` in both compose files.
 
@@ -38,6 +39,7 @@
         public int RequestTimeoutSeconds { get; set; } = 600;
     }
     ```
+
 - [ ] 3.2 Bind `Docling` section in `Program.cs` (or wherever the other options are bound).
 - [ ] 3.3 Add the `Docling` section to `Config/appsettings.json` with the defaults.
 - [ ] 3.4 Define `Features/Ingestion/Pdf/DoclingDocument.cs`:
@@ -76,6 +78,7 @@
             : sp.GetRequiredService<PdfPigBlockExtractor>();
     });
     ```
+
 - [ ] 6.2 Register `PdfPigBlockExtractor` and `DoclingBlockExtractor` as concrete singletons so the factory can resolve either.
 
 ## 7. Health check

@@ -7,6 +7,7 @@ Serilog integrates as a drop-in replacement for the default provider: all existi
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Replace default logging provider with Serilog, configuration-driven via `appsettings`
 - Persist logs to daily-rolling files with CLEF (Compact Log Event Format) structured JSON, 7-day retention
 - Log every HTTP request/response via `UseSerilogRequestLogging()` middleware
@@ -14,6 +15,7 @@ Serilog integrates as a drop-in replacement for the default provider: all existi
 - Clean up dev config: remove overrides for libraries not in the project, add `DndMcpAICsharpFun: Debug`
 
 **Non-Goals:**
+
 - Centralised log aggregation (Seq, Elastic, Loki) — out of scope; CLEF file format makes future adoption trivial
 - Log-based alerting or dashboards
 - Changing any public API or altering behavior; logging is purely additive

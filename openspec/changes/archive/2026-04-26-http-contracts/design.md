@@ -5,11 +5,13 @@ The project exposes 8 HTTP endpoints across three feature areas (health, admin b
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Create `DndMcpAICsharpFun.http` as the single runnable reference for all endpoints
 - Add a CLAUDE.md rule making `.http` file updates mandatory when routes change
 - Cover all 8 current routes with realistic example requests
 
 **Non-Goals:**
+
 - No test or CI check to enforce sync mechanically
 - No per-environment variable files (`.env`, `http-client.env.json`)
 - No generated or scripted `.http` output — the file is hand-maintained

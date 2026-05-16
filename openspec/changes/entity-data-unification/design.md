@@ -7,6 +7,7 @@ Two pipelines write entities into the `dnd_entities` Qdrant collection:
 2. **Canonical ingest** (`POST /admin/books/{id}/ingest-entities`) — loads `data/canonical/<book-slug>.json`, embeds entities, upserts. LLM-extracted data has rich `fields` JSON and `canonicalText` but historically typed everything as `Class` and used display-name-derived book slugs (`tasha`, `dungeon-master-s-guide`) instead of source key slugs (`tce`, `dmg14`).
 
 Current problems:
+
 - Random GUIDs as Qdrant point IDs → upsert never overwrites, every ingest adds new copies
 - Mismatched book prefix slugs → `tce.subclass.foo` (5etools) vs `tasha.class.foo` (canonical) = two separate points
 - Both pipelines store full entity data → duplicates bloat the collection and confuse semantic search
@@ -14,6 +15,7 @@ Current problems:
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Single Qdrant point per logical D&D entity
 - Entity IDs consistent across both pipelines: `{sourcekeyslug}.{typeslug}.{nameslug}`
 - Best data from each source: canonical `fields`/`canonicalText`, 5etools `type`/`srd`/`keywords`
@@ -21,6 +23,7 @@ Current problems:
 - Existing canonical JSONs corrected without re-extraction
 
 **Non-Goals:**
+
 - Merging block-level (`dnd_blocks`) data
 - Cross-book entity deduplication (same monster in multiple books stays separate)
 - Automatic conflict resolution when both sources have contradicting field values
@@ -83,10 +86,12 @@ Current problems:
 1. Deploy code changes (EntityIdSlug, deterministic UUIDs, EntityMerger, fix-types endpoint)
 2. Run `POST /admin/5etools/import` to re-import all 5etools data with deterministic UUIDs
 3. For each canonical book:
+
    a. `POST /admin/canonical/fix-types?book=<slug>` — correct types + IDs in JSON
    b. Review git diff of canonical JSON
    c. `POST /admin/canonical/validate` — confirm clean
    d. `POST /admin/books/{id}/ingest-entities` — re-ingest with merge
+
 4. Verify via `GET /retrieval/entities/search` — no duplicate IDs in results
 
 **Rollback:** No data is deleted during migration — old random-UUID points remain until overwritten. Rolling back the code restores previous behavior; old points are still queryable.

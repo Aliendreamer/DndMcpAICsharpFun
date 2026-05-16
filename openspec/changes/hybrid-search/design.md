@@ -9,6 +9,7 @@ The existing `dnd_blocks` collection has dense vectors only. This change adds a 
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Produce BM25 sparse vectors for every ingested block and upsert them alongside dense vectors
 - Enable hybrid search on `dnd_blocks` using Qdrant's built-in `Query` API with RRF fusion
 - Migrate the existing collection to support sparse vectors without data loss
@@ -16,6 +17,7 @@ The existing `dnd_blocks` collection has dense vectors only. This change adds a 
 - Keep all existing MCP tool signatures and API contracts unchanged
 
 **Non-Goals:**
+
 - SPLADE or other neural sparse models — BM25 only
 - Per-query alpha tuning exposed to callers
 - Adding hybrid search to the entity collection (block search first)

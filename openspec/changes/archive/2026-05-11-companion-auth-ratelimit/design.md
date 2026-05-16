@@ -9,6 +9,7 @@ Rate limiting targets the `SendAsync` call in `DndChatService` rather than the H
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Username + hashed password accounts in companion SQLite
 - Cookie auth protecting all companion pages except `/login` and `/register`
 - Per-IP sliding-window rate limiter on chat message sends (configurable limit)
@@ -16,6 +17,7 @@ Rate limiting targets the `SendAsync` call in `DndChatService` rather than the H
 - Graceful rate limit error shown in chat (not a crash or redirect)
 
 **Non-Goals:**
+
 - OAuth / social login (future)
 - Roles or permissions (future, when campaign management arrives)
 - Email verification or password reset (out of scope for now)

@@ -32,6 +32,7 @@
 Add `MarkHashAsync` to the tracker: sets `FileHash` and `Status = Processing` in one DB call, replacing the two-step pattern of "mark processing then store hash".
 
 **Files:**
+
 - Modify: `Features/Ingestion/Tracking/IIngestionTracker.cs`
 - Modify: `Features/Ingestion/Tracking/SqliteIngestionTracker.cs`
 
@@ -76,6 +77,7 @@ git commit -m "feat: add MarkHashAsync to IIngestionTracker"
 Add `GetCompletedByHashAsync`, `MarkDuplicateAsync`, and `DeleteAsync` to the tracker.
 
 **Files:**
+
 - Modify: `Features/Ingestion/Tracking/IIngestionTracker.cs`
 - Modify: `Features/Ingestion/Tracking/SqliteIngestionTracker.cs`
 
@@ -132,6 +134,7 @@ git commit -m "feat: add duplicate detection and delete methods to IIngestionTra
 Add `DeleteByHashAsync` to `IVectorStoreService` and implement it in `QdrantVectorStoreService` using the existing `DerivePointId` helper and Qdrant's `IReadOnlyList<Guid>` delete overload.
 
 **Files:**
+
 - Modify: `Features/VectorStore/IVectorStoreService.cs`
 - Modify: `Features/VectorStore/QdrantVectorStoreService.cs`
 
@@ -177,6 +180,7 @@ git commit -m "feat: add DeleteByHashAsync to IVectorStoreService"
 Create the result type used by `DeleteBookAsync`.
 
 **Files:**
+
 - Create: `Features/Ingestion/DeleteBookResult.cs`
 
 - [ ] **Step 1: Create the file**
@@ -213,6 +217,7 @@ git commit -m "feat: add DeleteBookResult enum"
 Extend `IIngestionOrchestrator` and inject `IVectorStoreService` into `IngestionOrchestrator`.
 
 **Files:**
+
 - Modify: `Features/Ingestion/IIngestionOrchestrator.cs`
 - Modify: `Features/Ingestion/IngestionOrchestrator.cs`
 
@@ -263,6 +268,7 @@ Expected: error `CS0535` — `IngestionOrchestrator` does not implement `DeleteB
 Add the `DeleteBookAsync` implementation and its log message.
 
 **Files:**
+
 - Modify: `Features/Ingestion/IngestionOrchestrator.cs`
 
 - [ ] **Step 1: Write the failing test first**
@@ -429,6 +435,7 @@ git commit -m "feat: implement DeleteBookAsync on IngestionOrchestrator"
 Restructure `IngestBookAsync`: compute hash first, call `MarkHashAsync`, check for duplicates, then proceed with extraction. Remove the second hash computation.
 
 **Files:**
+
 - Modify: `Features/Ingestion/IngestionOrchestrator.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Ingestion/IngestionOrchestratorTests.cs`
 
@@ -594,6 +601,7 @@ git commit -m "feat: hash-first refactor and duplicate detection in IngestBookAs
 Wire the endpoint in `BooksAdminEndpoints` and add the example to the `.http` file.
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs`
 - Modify: `DndMcpAICsharpFun.http`
 
@@ -675,6 +683,7 @@ git commit -m "feat: add DELETE /admin/books/{id} endpoint"
 Update the living specs in `openspec/specs/` to reflect the changes.
 
 **Files:**
+
 - Modify: `openspec/specs/ingestion-pipeline/spec.md`
 - Create: `openspec/specs/book-deletion/spec.md`
 

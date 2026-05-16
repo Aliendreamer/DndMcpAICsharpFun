@@ -7,6 +7,7 @@ This change removes the LLM path completely. The intent is not "deprecate" — i
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Eliminate every code path, configuration knob, dependency, route, work-item type, Qdrant collection, and test that exists solely to support the LLM ingestion flow.
 - Leave the block-ingestion path and retrieval untouched in observable behaviour.
 - Preserve `DELETE /admin/books/{id}` (registration cleanup) — that workflow is still needed for the block path.
@@ -14,6 +15,7 @@ This change removes the LLM path completely. The intent is not "deprecate" — i
 - Make the change atomic from an operational point of view: after one rebuild and restart, the system is in the new shape; no half-deployed state.
 
 **Non-Goals:**
+
 - Migrating existing data in `dnd_chunks`. Operators reclaim disk manually (`DELETE /collections/dnd_chunks` against Qdrant).
 - Removing the `qwen2.5:7b` model from the local Ollama volume. Pull list is updated; existing volumes retain the model until pruned.
 - Renaming `IngestionStatus.JsonIngested` to a more semantically appropriate `Ingested`. The enum value name lives in production SQLite as a string; renaming would require a data migration. The cosmetic improvement is not worth the complexity here.

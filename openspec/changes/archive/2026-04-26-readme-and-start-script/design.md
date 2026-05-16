@@ -5,11 +5,13 @@ The project has a working ingestion pipeline, RAG retrieval, admin API, and full
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Write a README that fully onboards a new developer: project purpose, architecture, prerequisites with versions, Claude Code plugin setup, running locally, API reference, observability
 - Add `start.sh` that encapsulates the correct `docker compose` invocation and validates the environment argument
 - Clean up `docker-compose.yml` to remove the unnecessary `Admin__ApiKey` env var and make `ASPNETCORE_ENVIRONMENT` dynamic
 
 **Non-Goals:**
+
 - No CI/CD documentation (not yet in place)
 - No secrets or API keys in the README
 - No MCP server documentation (not yet built)

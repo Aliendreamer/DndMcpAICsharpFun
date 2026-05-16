@@ -16,10 +16,12 @@ Extraction times out on dense pages (Class, Race) because the LLM receives an en
 ## Capabilities
 
 ### New Capabilities
+
 - `toc-map-extraction`: LLM parses a single TOC page and returns a structured map of all sections with title, category, and page range
 - `section-level-extraction`: Per-page blocks grouped by heading; each group extracted as a focused LLM call with entity context hint
 
 ### Modified Capabilities
+
 - `ingestion-pipeline`: Book registration requires `tocPage`; extraction loop changed to section-level grouping
 - `llm-extraction`: Extraction prompt enriched with entity name, category, and page range context; new Trait/Lore categories supported
 - `embedding-vector-store`: Chunks carry `section_title`, `section_start`, `section_end` Qdrant payload fields

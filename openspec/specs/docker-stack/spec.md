@@ -8,10 +8,12 @@ Defines the containerisation and Docker Compose requirements for running the ful
 The system SHALL provide a `docker-compose.yml` that defines six services: `app` (ASP.NET Core), `qdrant` (vector store), `ollama` (embedding model host), `prometheus` (metrics collection), `grafana` (dashboards), and `sqlite-web` (database browser), all on a shared internal network.
 
 #### Scenario: Stack starts cleanly
+
 - **WHEN** `docker compose up` is run from the project root
 - **THEN** all six services start and reach a healthy state
 
 #### Scenario: App waits for dependencies
+
 - **WHEN** Qdrant or Ollama has not yet passed its health check
 - **THEN** the `app` service does not report healthy until both dependencies are ready
 
@@ -19,10 +21,12 @@ The system SHALL provide a `docker-compose.yml` that defines six services: `app`
 The system SHALL define named Docker volumes: one for the PDF books directory (mounted into `app`) and one for Qdrant storage data.
 
 #### Scenario: Books volume is mounted in app container
+
 - **WHEN** the `app` container starts
 - **THEN** the books volume is accessible at the configured `Ingestion:BooksPath`
 
 #### Scenario: Qdrant data survives container restart
+
 - **WHEN** the `qdrant` container is restarted
 - **THEN** previously stored collections and vectors are still present
 
@@ -30,6 +34,7 @@ The system SHALL define named Docker volumes: one for the PDF books directory (m
 The system SHALL provide a `Dockerfile` with a build stage (`sdk:10.0`) and a runtime stage (`aspnet:10.0`), producing a minimal final image.
 
 #### Scenario: Image builds successfully
+
 - **WHEN** `docker build` is run from the project root
 - **THEN** the image is produced without error and contains no SDK tooling
 
@@ -37,6 +42,7 @@ The system SHALL provide a `Dockerfile` with a build stage (`sdk:10.0`) and a ru
 The system SHALL read the admin API key from the encrypted `Config/appsettings.Production.json` file loaded automatically by the ASP.NET Core host at runtime. The `Admin__ApiKey` environment variable SHALL NOT be defined in `docker-compose.yml`.
 
 #### Scenario: Key is loaded from encrypted config
+
 - **WHEN** the `app` container starts with git-crypt-decrypted config files present
 - **THEN** the app reads `Admin:ApiKey` from `Config/appsettings.Production.json` without any environment variable override
 
@@ -44,10 +50,12 @@ The system SHALL read the admin API key from the encrypted `Config/appsettings.P
 The system SHALL define `prometheus` (prom/prometheus:latest) and `grafana` (grafana/grafana:latest) services in `docker-compose.yml` on the `dnd_net` network, with named volumes for persistent storage and bind-mounted config from the `infra/` directory.
 
 #### Scenario: Prometheus is reachable on host port 9090
+
 - **WHEN** `docker compose up` is run
 - **THEN** `http://localhost:9090` serves the Prometheus UI
 
 #### Scenario: Grafana is reachable on host port 3000
+
 - **WHEN** `docker compose up` is run
 - **THEN** `http://localhost:3000` serves the Grafana UI
 
@@ -55,6 +63,7 @@ The system SHALL define `prometheus` (prom/prometheus:latest) and `grafana` (gra
 The system SHALL define a `sqlite-web` service using `coleifer/sqlite-web` mounted to the `app_data` volume at `/data/ingestion.db`, exposed on host port `8080`.
 
 #### Scenario: sqlite-web is reachable on host port 8080
+
 - **WHEN** `docker compose up` is run and the app has created the SQLite database
 - **THEN** `http://localhost:8080` serves the sqlite-web UI with `IngestionRecords` visible
 
@@ -62,10 +71,12 @@ The system SHALL define a `sqlite-web` service using `coleifer/sqlite-web` mount
 The system SHALL define named volumes `prometheus_data` and `grafana_data` in `docker-compose.yml` in addition to the existing `books_data`, `qdrant_data`, `app_data`, and `ollama_data` volumes.
 
 #### Scenario: Prometheus volume persists data
+
 - **WHEN** the `prometheus` container is restarted
 - **THEN** previously scraped metrics remain queryable
 
 #### Scenario: Grafana volume persists settings
+
 - **WHEN** the `grafana` container is restarted
 - **THEN** provisioned datasources and dashboards are still present
 
@@ -73,10 +84,12 @@ The system SHALL define named volumes `prometheus_data` and `grafana_data` in `d
 The system SHALL configure the `app` service in `docker-compose.yml` to read `ASPNETCORE_ENVIRONMENT` from the host shell environment via `${ASPNETCORE_ENVIRONMENT}`, allowing the value to be controlled by `start.sh` without hardcoding.
 
 #### Scenario: Development environment is set via start.sh
+
 - **WHEN** `./start.sh Development` is run
 - **THEN** the `app` container receives `ASPNETCORE_ENVIRONMENT=Development` and loads `Config/appsettings.Development.json`
 
 #### Scenario: Production environment is set via start.sh
+
 - **WHEN** `./start.sh Production` is run
 - **THEN** the `app` container receives `ASPNETCORE_ENVIRONMENT=Production` and loads `Config/appsettings.Production.json`
 
@@ -84,10 +97,12 @@ The system SHALL configure the `app` service in `docker-compose.yml` to read `AS
 The `docker-compose.yml` and `docker-compose.prod.yml` files SHALL include a `docling` service running a tagged release of `docling-serve-cpu`, exposing the docling-serve HTTP API on the internal Docker network. The service SHALL define a healthcheck that returns success when the API responds, with a `start_period` long enough to cover model load (at least 60 seconds). The `app` service SHALL declare `docling` as a dependency with `condition: service_healthy`.
 
 #### Scenario: Stack comes up cleanly from a fresh volume
+
 - **WHEN** `docker compose up -d` is invoked with no pre-existing volumes
 - **THEN** the `docling` container starts, completes model load, becomes healthy, and only then does `app` start
 
 #### Scenario: docling failure prevents app startup
+
 - **WHEN** the docling image is corrupt or the container fails to become healthy
 - **THEN** `app` does not start; `docker compose ps` shows docling in unhealthy state and app in created/blocked state
 
@@ -95,6 +110,7 @@ The `docker-compose.yml` and `docker-compose.prod.yml` files SHALL include a `do
 The docling service SHALL use the CPU image variant (`docling-serve-cpu`) to avoid contending with the Ollama service for GPU resources, and SHALL pin a specific image tag (not `latest`) to prevent silent upstream upgrades from breaking the integration.
 
 #### Scenario: GPU is reserved exclusively for Ollama
+
 - **WHEN** `docker compose config` is rendered
 - **THEN** the `docling` service has no `deploy.resources.reservations.devices` entry; only `ollama` reserves the NVIDIA device
 

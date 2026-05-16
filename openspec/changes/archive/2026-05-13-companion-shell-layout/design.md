@@ -5,6 +5,7 @@
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Left sidebar shell visible on all authenticated pages: app name, Chat / Campaigns / Heroes links, username, logout
 - `AuthLayout.razor` — centered card layout for login/register with no sidebar
 - `/heroes` page listing all heroes across the user's campaigns, linking to each hero's campaign-scoped detail URL
@@ -12,6 +13,7 @@
 - Auth form CSS and sidebar CSS added to `app.css`
 
 **Non-Goals:**
+
 - Mobile-responsive collapsible sidebar (out of scope)
 - Hero creation from the heroes page (heroes are created inside campaigns)
 - Changing any existing page routing or business logic
@@ -41,7 +43,9 @@ Sidebar and auth styles are appended to the existing `app.css`. No new CSS files
 ## Risks / Trade-offs
 
 - **Risk**: Sidebar grows cluttered as more pages are added.  
+
   **Mitigation**: Three links is fine for now; collapsing or grouping can be added later.
 
 - **Risk**: Auth state flash — sidebar might briefly appear before redirecting unauthenticated users.  
+
   **Mitigation**: `AuthorizeRouteView` in `Routes.razor` handles redirects; `MainLayout` only renders sidebar content, not auth guards.

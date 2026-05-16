@@ -7,11 +7,13 @@ Additionally, `ExtractBookAsync` has no idempotency guard: calling it on a `Json
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Remove all code, registrations, and tests belonging to the old chunking pipeline
 - Make `ExtractBookAsync` safe to call repeatedly at any book status
 - Leave `ContentChunk`, `ChunkMetadata`, `ContentCategory` intact — still used by `JsonIngestionPipeline`
 
 **Non-Goals:**
+
 - Changing the LLM extraction logic itself
 - Changing the embedding or vector store services
 - Adding new API surface
@@ -23,6 +25,7 @@ Additionally, `ExtractBookAsync` has no idempotency guard: calling it on a `Json
 
 **Idempotency cleanup lives inside `ExtractBookAsync`, not the endpoint**
 The endpoint just enqueues work and returns 202. Business logic (cleanup, state transitions) belongs in the orchestrator. `ExtractBookAsync` checks `record.Status` at the start and performs the appropriate cleanup before extraction begins:
+
 - `JsonIngested` → `vectorStore.DeleteByHashAsync(fileHash, chunkCount)` + `jsonStore.DeleteAllPages` + `tracker.ResetForReingestionAsync`
 - `Extracted` → `jsonStore.DeleteAllPages` + `tracker.ResetForReingestionAsync`
 - `Pending` / `Failed` → no cleanup needed, proceed directly

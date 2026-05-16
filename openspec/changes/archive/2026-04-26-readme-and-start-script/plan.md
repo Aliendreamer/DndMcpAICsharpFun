@@ -23,6 +23,7 @@
 ### Task 1: Fix docker-compose.yml
 
 **Files:**
+
 - Modify: `docker-compose.yml` (app service environment block)
 
 - [ ] **Step 1.1: Replace the hardcoded environment block**
@@ -32,12 +33,14 @@ The current `app` service environment block is:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - Admin__ApiKey=${ADMIN_API_KEY}
+
 ```
 
 Replace it with:
 ```yaml
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+
 ```
 
 - [ ] **Step 1.2: Verify config parses**
@@ -54,6 +57,7 @@ Expected: exits 0. The only output may be a warning about `ASPNETCORE_ENVIRONMEN
 ### Task 2: Create start.sh
 
 **Files:**
+
 - Create: `start.sh`
 
 - [ ] **Step 2.1: Create the file**
@@ -100,6 +104,7 @@ Expected output: `Error: environment must be Development or Production`
 ### Task 3: Write README — Overview and Architecture
 
 **Files:**
+
 - Modify: `README.md`
 
 - [ ] **Step 3.1: Write the full Overview and Architecture sections**
@@ -154,6 +159,7 @@ Expected: `# DndMcpAICsharpFun`
 ### Task 4: Write README — Prerequisites and Claude Code Setup
 
 **Files:**
+
 - Modify: `README.md` (append)
 
 - [ ] **Step 4.1: Append the Prerequisites section**
@@ -260,6 +266,7 @@ Claude Code will automatically connect to it when you open `.cs` files, providin
 ### Task 5: Write README — Running Locally and API Reference
 
 **Files:**
+
 - Modify: `README.md` (append)
 
 - [ ] **Step 5.1: Append the Running Locally section**
@@ -352,6 +359,7 @@ Requires header `X-Api-Key: <admin key>`.
 ### Task 6: Write README — Observability
 
 **Files:**
+
 - Modify: `README.md` (append)
 
 - [ ] **Step 6.1: Append the Observability section**

@@ -7,6 +7,7 @@ The embedding model is `nomic-embed-text`, the standard free local model for sem
 ## Goals / Non-Goals
 
 **Goals:**
+
 - `IEmbeddingService`: thin wrapper over OllamaSharp `/api/embed`, injectable and swappable
 - `IVectorStoreService`: thin wrapper over `Qdrant.Client`, injectable and swappable
 - `EmbeddingIngestor`: implements `IEmbeddingIngestor`, batches chunks → embed → upsert
@@ -14,6 +15,7 @@ The embedding model is `nomic-embed-text`, the standard free local model for sem
 - All `ChunkMetadata` fields stored as Qdrant point payload for filtering
 
 **Non-Goals:**
+
 - Retrieval / search (handled in `rag-retrieval` change)
 - Support for multiple embedding models simultaneously
 - Qdrant collection sharding or replication config
@@ -26,6 +28,7 @@ The embedding model is `nomic-embed-text`, the standard free local model for sem
 All books, versions, and categories go into one collection. Filtering by `version`, `category`, `source_book` etc. is done at query time via Qdrant payload filters.
 
 Alternatives considered:
+
 - Separate collection per book/version: simpler per-collection queries but complex cross-version retrieval; no single query can span editions
 - Separate collection per category: same cross-category problem
 
@@ -58,6 +61,7 @@ Rationale: Decoupled from ingestion. If Qdrant is unavailable at startup, the he
 ### D6 — All ChunkMetadata fields indexed as Qdrant payload
 
 Payload fields stored and indexed for filtering:
+
 - `source_book` (keyword)
 - `version` (keyword)
 - `category` (keyword)

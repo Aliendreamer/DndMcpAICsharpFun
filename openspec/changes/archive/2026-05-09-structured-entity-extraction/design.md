@@ -39,6 +39,7 @@ A previous LLM-based extraction path was removed (see `archive/2026-05-03-remove
 Each book that's been entity-extracted gets a `data/canonical/<book-slug>.json` file committed to the repo. This is the single source of truth for that book's structured entities. Ingestion reads it; LLM extraction produces it; humans correct it.
 
 **Why over alternatives:**
+
 - *Computed-at-ingest, no artifact:* LLM mistakes are invisible — only discoverable via wrong agent answers, with nowhere to fix them. Rejected.
 - *Database-only canonical (SQLite):* loses git history, diffability, code-review of corrections. Schema changes require migrations.
 - *Database with JSON export:* doubles machinery and creates a sync question.
@@ -52,6 +53,7 @@ The checked-in JSON serves as a hand-correctable, version-controlled, diffable k
 Extraction runs as an explicit admin-triggered job per book, **not** as part of every `ingest-blocks` call. The job consumes the same Docling output that block ingestion uses (so no double layout-analysis pass), runs the LLM with strict per-content-type schemas, and writes the canonical JSON.
 
 **Why over alternatives:**
+
 - *Per-block LLM at every ingest:* recreates the slow-ingest problem we just escaped.
 - *Pure deterministic regex parsers:* breaks on every supplement that formats stat blocks slightly differently. Tier 3 prose-heavy fields (Class.featuresByLevel, Subclass features) are unreasonable for regex.
 - *Hybrid (parsers + LLM fallback) at ingest:* still slow per ingest; complexity for marginal gain over D2.
@@ -61,10 +63,12 @@ Once-per-book amortises the cost: the book set is small (~10 books) and the sche
 ### D3. Dual-collection vector store: `dnd_entities` + `dnd_blocks`
 
 Two separate Qdrant collections:
+
 - `dnd_blocks` (unchanged) — continues serving prose/lore/rules-text queries.
 - `dnd_entities` (new) — one point per entity, embedded via the entity's `canonicalText`. Payload carries the full envelope (id, type, name, sourceBook, edition, page, firstAppearedIn, revisedIn, settingTags) plus a flattened/indexed subset of the type-specific fields for filtering (e.g., `crNumeric`, `spellLevel`, `damageType`).
 
 **Why over alternatives:**
+
 - *Single collection with mixed records:* makes it hard to scope vector searches and confuses payload schemas.
 - *Entities-only (replace blocks):* loses retrieval over rules-prose, adventure narrative, and setting lore that doesn't fit a clean entity schema.
 
@@ -75,6 +79,7 @@ Different query shapes need different indexes. Agent (or caller) picks the right
 Entity IDs are deterministic from `(book, type, name)`: `phb14.class.fighter`, `mm14.monster.aboleth`, `tasha.subclass.swashbuckler`. They are *not* random GUIDs.
 
 **Why:**
+
 - Cross-references between entities (Class → Subclass refs, Background → Skill refs, Class → Spell List ref) need stable IDs.
 - The agent can use IDs in its outputs and the user can deep-link to specific entities.
 - Re-running extraction on the same book produces the same IDs (idempotency).
@@ -86,6 +91,7 @@ Entity IDs are deterministic from `(book, type, name)`: `phb14.class.fighter`, `
 Every entity record has the same outer envelope (id, type, name, sourceBook, edition, page, firstAppearedIn, revisedIn[], settingTags[], canonicalText, fields), with type-specific fields nested under `fields`. The Class and Monster `fields` schemas were ratified during brainstorming as exemplars (see `proposal.md`); the other 15 follow the same pattern.
 
 **Why:**
+
 - Common envelope makes generic operations (lookup-by-id, vector search, provenance queries) work uniformly across types.
 - Per-type fields avoid forcing all 20 types into one bloated shared schema.
 
@@ -94,6 +100,7 @@ Every entity record has the same outer envelope (id, type, name, sourceBook, edi
 Each entity has a `canonicalText` field containing a deterministic textual rendering of the entity (e.g. for a Spell, the full spell text including header + body + at-higher-levels; for a Class, a textual summary plus a rendering of the level table; for a Monster, the stat block as text). This text is what the embedding model sees — not the raw block text from the PDF.
 
 **Why:**
+
 - Decouples the embedded representation from PDF-extraction noise.
 - Lets us tune the canonical-text format per type for retrieval quality.
 - Agents querying the entity index get clean, structured text plus the structured `fields`.
@@ -115,6 +122,7 @@ Monster (and any entity with structured actions) tags each action with a typed `
 ### D10. Provenance via `firstAppearedIn` + `revisedIn[]`
 
 Every entity carries:
+
 - `firstAppearedIn: { book, edition, page? }` — where the entity *first appeared* in any D&D edition (may differ from `sourceBook` when the record came from a later reprint).
 - `revisedIn[]: [{ book, edition, summary }]` — every meaningful revision.
 
@@ -133,6 +141,7 @@ Each canonical JSON file carries a top-level `schemaVersion: "1"` field. Ingesti
 Plan 2's extraction workhorse is Claude (default model: **Claude Sonnet** for cost/quality balance; Opus reserved as a spot-recovery escalation if Sonnet repeatedly fails on a specific entity). The implementation lives behind an `IEntityExtractionLlmClient` abstraction so the model is swappable.
 
 **Why over alternatives:**
+
 - *Local Ollama with a stronger 14B–70B model:* free, but 4–12 hours per book on consumer hardware and meaningfully worse at nested-schema structured extraction (this is exactly the failure mode that motivated removing the previous Ollama-based extractor in `archive/2026-05-03-remove-llm-ingestion-path/`). Hand-correction load would dominate.
 - *Hybrid local-first + remote fallback:* the entries that need the remote fallback are precisely the high-value Tier 3 ones (Class.featuresByLevel, Monster.legendaryActions). Falling back doesn't help if those are routinely the failure case. Two clients to maintain for marginal gain.
 
@@ -149,6 +158,7 @@ Per-entity-type JSON Schema files live at `Schemas/canonical/<TypeName>Fields.sc
 **Per-type hand-overrides allowed.** If the generated schema is awkward for a specific type (notably enum-string fields like `ActionType` where NJsonSchema may emit a generic `"type": "string"` instead of an `enum:` array), commit a hand-tuned version with a comment header documenting the deviation and the regeneration suppression.
 
 **Why over alternatives:**
+
 - *Hand-written schemas:* duplicates the C# records as a second source of truth; drift risk.
 - *No schema, prompt-only description:* loses Claude's structured-output constraint feature; quality drop on nested types.
 
@@ -163,6 +173,7 @@ Cross-entity references are validated with two-tier strictness:
 **NEW endpoint** `POST /admin/canonical/validate` runs the resolver across the entire `data/canonical/` corpus on demand. Returns 200 with a structured report when clean (per-book inter-book dangling refs, schema-version mismatches, duplicate IDs across books) and 422 with the same body shape when the report contains any FAIL-class issues (intra-book dangles or schema mismatches). Designed as an operator pre-merge check after a new book lands.
 
 **Why over alternatives:**
+
 - *Pure warn-only:* extraction quality bugs (the LLM forgot to emit the Subclass entity its parent Class references) become invisible until agent-runtime.
 - *Strict everywhere including inter-book:* impossible — book A can legitimately reference book B's entities before B is extracted; "strict everywhere" would prevent extraction order from being incremental.
 
@@ -171,6 +182,7 @@ Cross-entity references are validated with two-tier strictness:
 When WotC publishes errata, the operator workflow is: replace the PDF on disk → call `extract-entities?force=true` → review the canonical JSON diff in a PR → merge. `git diff` is the review tool. No selective per-entity re-extraction, no errata-document-aware patching, no diff-mode endpoint.
 
 **Why over alternatives:**
+
 - Errata are infrequent; bounded book count caps the operational cost.
 - The `?force=true` re-extraction cost (~20–30 min, ~$5–20) is acceptable for what's effectively a once-a-year event per book.
 - Building selective re-extraction or errata patching is YAGNI for a hobby project.

@@ -7,6 +7,7 @@ TBD - created by archiving change test-coverage-wave-2. Update Purpose after arc
 `OllamaHealthCheck.CheckHealthAsync` SHALL return `HealthCheckResult.Healthy()` when `ListLocalModelsAsync` completes without throwing.
 
 #### Scenario: ListLocalModelsAsync succeeds
+
 - **WHEN** `CheckHealthAsync` is called and `ListLocalModelsAsync` returns successfully
 - **THEN** the result status is `HealthStatus.Healthy`
 
@@ -14,6 +15,7 @@ TBD - created by archiving change test-coverage-wave-2. Update Purpose after arc
 `OllamaHealthCheck.CheckHealthAsync` SHALL return `HealthCheckResult.Unhealthy` with description "Ollama is unreachable" when `ListLocalModelsAsync` throws any exception.
 
 #### Scenario: ListLocalModelsAsync throws exception
+
 - **WHEN** `CheckHealthAsync` is called and `ListLocalModelsAsync` throws an `HttpRequestException`
 - **THEN** the result status is `HealthStatus.Unhealthy`
 - **AND** the result description is "Ollama is unreachable"

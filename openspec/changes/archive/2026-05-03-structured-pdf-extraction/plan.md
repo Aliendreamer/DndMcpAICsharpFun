@@ -13,6 +13,7 @@
 ## File Map
 
 **New files:**
+
 - `Domain/PageBlock.cs` — `record PageBlock(int Order, string Level, string Text)`
 - `Domain/StructuredPage.cs` — `record StructuredPage(int PageNumber, string RawText, IReadOnlyList<PageBlock> Blocks)`
 - `Domain/PageData.cs` — combines structured page + extracted entities for storage
@@ -21,6 +22,7 @@
 - `DndMcpAICsharpFun.Tests/Ingestion/Pdf/PdfPigStructuredExtractorTests.cs`
 
 **Modified files:**
+
 - `Domain/ExtractedEntity.cs` — add `int? PageEnd = null`
 - `Domain/ChunkMetadata.cs` — add `int? PageEnd = null`
 - `Features/Ingestion/Extraction/IEntityJsonStore.cs` — new save/load signatures
@@ -41,6 +43,7 @@
 - `DndMcpAICsharpFun.Tests/Ingestion/IngestionOrchestratorTests.cs` — swap extractor mock
 
 **Deleted files:**
+
 - `Features/Ingestion/Pdf/IPdfTextExtractor.cs`
 - `Features/Ingestion/Pdf/PdfPigTextExtractor.cs`
 
@@ -49,6 +52,7 @@
 ## Task 1: Domain records
 
 **Files:**
+
 - Create: `Domain/PageBlock.cs`
 - Create: `Domain/StructuredPage.cs`
 - Create: `Domain/PageData.cs`
@@ -147,6 +151,7 @@ git commit -m "feat: add PageBlock, StructuredPage, PageData domain records; add
 ## Task 2: IPdfStructuredExtractor + heading inference unit tests
 
 **Files:**
+
 - Create: `Features/Ingestion/Pdf/IPdfStructuredExtractor.cs`
 - Create: `Features/Ingestion/Pdf/PdfPigStructuredExtractor.cs`
 - Create: `DndMcpAICsharpFun.Tests/Ingestion/Pdf/PdfPigStructuredExtractorTests.cs`
@@ -473,6 +478,7 @@ git commit -m "feat: add IPdfStructuredExtractor and PdfPigStructuredExtractor w
 ## Task 3: Enriched EntityJsonStore
 
 **Files:**
+
 - Modify: `Features/Ingestion/Extraction/IEntityJsonStore.cs`
 - Modify: `Features/Ingestion/Extraction/EntityJsonStore.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Ingestion/Extraction/EntityJsonStoreTests.cs`
@@ -896,6 +902,7 @@ git commit -m "feat: enrich EntityJsonStore with structured blocks + PageEnd tra
 ## Task 4: JsonIngestionPipeline — use PageData + propagate PageEnd
 
 **Files:**
+
 - Modify: `Features/Ingestion/Extraction/JsonIngestionPipeline.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Ingestion/Extraction/JsonIngestionPipelineTests.cs`
 
@@ -995,6 +1002,7 @@ git commit -m "feat: JsonIngestionPipeline reads PageData and propagates PageEnd
 ## Task 5: IngestionOrchestrator — wire structured extractor
 
 **Files:**
+
 - Modify: `Features/Ingestion/IngestionOrchestrator.cs`
 - Modify: `Features/Ingestion/IIngestionOrchestrator.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Ingestion/IngestionOrchestratorTests.cs`
@@ -1272,6 +1280,7 @@ git commit -m "feat: wire IPdfStructuredExtractor into orchestrator; add BuildPr
 ## Task 6: Qdrant PageEnd payload + collection index
 
 **Files:**
+
 - Modify: `Infrastructure/Qdrant/QdrantPayloadFields.cs`
 - Modify: `Infrastructure/Qdrant/QdrantCollectionInitializer.cs`
 - Modify: `Features/VectorStore/QdrantVectorStoreService.cs`
@@ -1340,6 +1349,7 @@ git commit -m "feat: add page_end Qdrant payload field and collection index"
 ## Task 7: Single-page extract endpoint
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs`
 - Modify: `DndMcpAICsharpFun.http`
 
@@ -1424,6 +1434,7 @@ git commit -m "feat: add POST /admin/books/{id}/extract-page/{pageNumber} synchr
 ## Task 8: DI wiring — swap extractor, remove old extractor
 
 **Files:**
+
 - Modify: `Extensions/ServiceCollectionExtensions.cs`
 - Delete: `Features/Ingestion/Pdf/IPdfTextExtractor.cs`
 - Delete: `Features/Ingestion/Pdf/PdfPigTextExtractor.cs`
@@ -1483,6 +1494,7 @@ git commit -m "feat: swap IPdfTextExtractor for IPdfStructuredExtractor in DI; d
 ## Task 9: Embedding model config upgrade
 
 **Files:**
+
 - Modify: `Config/appsettings.json`
 - Modify: `docker-compose.yml`
 
@@ -1543,6 +1555,7 @@ git commit -m "feat: upgrade embedding model to mxbai-embed-large (1024 dims); n
 ## Task 10: Final test run and admin endpoint integration test
 
 **Files:**
+
 - Modify: `DndMcpAICsharpFun.Tests/Admin/BooksAdminEndpointsTests.cs`
 
 - [ ] **Step 10.1: Add extract-page endpoint test**

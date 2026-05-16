@@ -12,9 +12,11 @@ When the LLM returns unparseable JSON during entity extraction, the current fall
 ## Capabilities
 
 ### New Capabilities
+
 - none
 
 ### Modified Capabilities
+
 - `llm-extraction`: error handling for invalid JSON in Pass 2 now retries before skipping, instead of saving garbage fallback data
 
 ## Impact

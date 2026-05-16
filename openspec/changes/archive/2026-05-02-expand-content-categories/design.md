@@ -3,18 +3,21 @@
 The ingestion pipeline classifies PDF pages into `ContentCategory` values and stores them as vector metadata in Qdrant. The current enum has 9 values: `Spell`, `Monster`, `Class`, `Background`, `Item`, `Rule`, `Treasure`, `Encounter`, `Trap`. `Rule` is overloaded — it covers combat rules, adventuring rules, conditions, divine lore, and planar lore. This causes poor retrieval precision and makes the TOC classifier return `null` for recognizable chapter types.
 
 Two bugs were also found during live testing:
+
 1. `PdfPigBookmarkReader` flattened all bookmark descendants (188 for PHB), causing the TOC Ollama call to produce invalid JSON. Fix: return only root + depth-1 nodes (~20 items).
 2. `OllamaLlmEntityExtractor` only handled bare JSON arrays; the model sometimes returns `{"entities":[...]}`. Fix: unwrap single-key objects in `StripFences`.
 
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Add `God`, `Combat`, `Adventuring`, `Condition`, `Plane`, `Race` to `ContentCategory`
 - Update all LLM prompts and TypeFields to reflect the expanded list
 - Fix the bookmark depth bug and the JSON unwrap bug
 - Keep `Rule` as the catch-all for anything that doesn't fit a specific category
 
 **Non-Goals:**
+
 - Database migration (category is stored as a plain string — no schema change)
 - Changing the embedding model or vector store structure
 - Re-ingesting previously processed books (user can re-trigger extraction)

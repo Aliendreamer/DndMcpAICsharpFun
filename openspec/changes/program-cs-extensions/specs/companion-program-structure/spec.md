@@ -4,6 +4,7 @@
 The system SHALL provide an extension method `AddDndConfiguration` on `WebApplicationBuilder` in `Extensions/ConfigurationExtensions.cs` that loads `Config/appsettings.json`, the environment-specific overlay, and environment variables, so `Program.cs` makes a single call instead of three chained `AddJsonFile`/`AddEnvironmentVariables` calls.
 
 #### Scenario: Configuration sources are loaded via extension method
+
 - **WHEN** `builder.AddDndConfiguration()` is called
 - **THEN** `Config/appsettings.json`, `Config/appsettings.<env>.json`, and environment variables are added to the configuration pipeline
 
@@ -11,6 +12,7 @@ The system SHALL provide an extension method `AddDndConfiguration` on `WebApplic
 The system SHALL provide an extension method `AddDatabase` on `IServiceCollection` in `Extensions/DatabaseExtensions.cs` that resolves the SQLite connection string, ensures the data directory exists, and registers `UserRepository`, `CampaignRepository`, `HeroRepository`, and `ChatRateLimiter` as singletons.
 
 #### Scenario: Database services are registered via extension method
+
 - **WHEN** `services.AddDatabase(configuration)` is called
 - **THEN** `UserRepository`, `CampaignRepository`, `HeroRepository`, and `ChatRateLimiter` are registered in the DI container with a shared connection string derived from `Data:CompanionDb`
 
@@ -18,6 +20,7 @@ The system SHALL provide an extension method `AddDatabase` on `IServiceCollectio
 The system SHALL provide an extension method `AddDndChat` on `IServiceCollection` in `Extensions/ChatExtensions.cs` that registers `IHttpContextAccessor`, a transient `IChatClient` (Ollama with function invocation), and scoped `DndChatService`.
 
 #### Scenario: Chat services are registered via extension method
+
 - **WHEN** `services.AddDndChat(ollamaOpts)` is called
 - **THEN** `IHttpContextAccessor`, `IChatClient` (OllamaChatClient with `UseFunctionInvocation`), and `DndChatService` are registered in the DI container
 
@@ -25,6 +28,7 @@ The system SHALL provide an extension method `AddDndChat` on `IServiceCollection
 The system SHALL provide an extension method `AddMcpClient` on `IServiceCollection` in `Extensions/McpExtensions.cs` that accepts an already-initialised `McpClient` and tools list and registers them as singletons, allowing `Program.cs` to retain the async initialisation while keeping registration logic out of the entry point.
 
 #### Scenario: MCP client is registered via extension method
+
 - **WHEN** `services.AddMcpClient(mcpClient, mcpTools)` is called with a pre-built client and tools list
 - **THEN** `McpClient` and `IReadOnlyList<AITool>` are registered as singletons in the DI container
 
@@ -32,6 +36,7 @@ The system SHALL provide an extension method `AddMcpClient` on `IServiceCollecti
 The system SHALL provide an extension method `AddDndAuthentication` on `IServiceCollection` in `Extensions/AuthExtensions.cs` that registers cookie authentication with `/login` and `/logout` paths, and adds authorization services.
 
 #### Scenario: Authentication is registered via extension method
+
 - **WHEN** `services.AddDndAuthentication()` is called
 - **THEN** cookie authentication with `LoginPath = "/login"` and `LogoutPath = "/logout"` and authorization services are registered in the DI container
 
@@ -39,6 +44,7 @@ The system SHALL provide an extension method `AddDndAuthentication` on `IService
 The system SHALL provide an extension method `AddDndRateLimiting` on `IServiceCollection` in `Extensions/RateLimitExtensions.cs` that registers a sliding window rate limiter named `"global"` using settings from configuration.
 
 #### Scenario: Rate limiting is registered via extension method
+
 - **WHEN** `services.AddDndRateLimiting(configuration)` is called
 - **THEN** a sliding window limiter named `"global"` is registered with permit limit and window values from `RateLimit:RequestsPerMinute`
 
@@ -46,6 +52,7 @@ The system SHALL provide an extension method `AddDndRateLimiting` on `IServiceCo
 The system SHALL provide an extension method `AddDndBlazor` on `IServiceCollection` in `Extensions/BlazorExtensions.cs` that calls `AddRazorComponents().AddInteractiveServerComponents()`.
 
 #### Scenario: Blazor is registered via extension method
+
 - **WHEN** `services.AddDndBlazor()` is called
 - **THEN** Razor components with interactive server render mode are registered in the DI container
 
@@ -53,6 +60,7 @@ The system SHALL provide an extension method `AddDndBlazor` on `IServiceCollecti
 The system SHALL provide an extension method `InitializeDatabaseAsync` on `WebApplication` in `Extensions/AppExtensions.cs` that calls `InitializeAsync` on all repositories and seeds the test user if absent.
 
 #### Scenario: Database is initialised via extension method
+
 - **WHEN** `await app.InitializeDatabaseAsync()` is called on the built application
 - **THEN** `UserRepository.InitializeAsync`, `CampaignRepository.InitializeAsync` are awaited and the `"test"` user is created if it does not exist
 
@@ -60,6 +68,7 @@ The system SHALL provide an extension method `InitializeDatabaseAsync` on `WebAp
 The system SHALL provide an extension method `UseDndMiddleware` on `WebApplication` in `Extensions/AppExtensions.cs` that calls `UseStaticFiles`, `UseRateLimiter`, `UseAuthentication`, `UseAuthorization`, and `UseAntiforgery` in the correct order.
 
 #### Scenario: Middleware pipeline is configured via extension method
+
 - **WHEN** `app.UseDndMiddleware()` is called
 - **THEN** static files, rate limiter, authentication, authorization, and antiforgery middleware are added to the pipeline in that order
 
@@ -67,6 +76,7 @@ The system SHALL provide an extension method `UseDndMiddleware` on `WebApplicati
 The system SHALL provide an extension method `MapDndEndpoints` on `WebApplication` in `Extensions/AppExtensions.cs` that maps the `/logout` GET endpoint and the Razor component tree with interactive server render mode and global rate limiting.
 
 #### Scenario: Endpoints are mapped via extension method
+
 - **WHEN** `app.MapDndEndpoints(mcpOpts)` is called
 - **THEN** the `/logout` route and Razor components (`App`) with `RequireRateLimiting("global")` are registered
 
@@ -74,5 +84,6 @@ The system SHALL provide an extension method `MapDndEndpoints` on `WebApplicatio
 The system SHALL ensure `DndMcpAICompanion/Program.cs` contains only configuration loading (`AddDndConfiguration`), option binding for `OllamaOptions` and `McpClientOptions`, async MCP client initialisation, calls to the extension methods above, and `app.Run()` — with no inline DI registration logic, no inline middleware calls, and no inline endpoint lambdas beyond the retained async MCP setup.
 
 #### Scenario: Program.cs has no inline service registration logic
+
 - **WHEN** `Program.cs` is read
 - **THEN** all service registrations are delegated to named extension methods and no `builder.Services.Add*` calls appear inline except through extension methods

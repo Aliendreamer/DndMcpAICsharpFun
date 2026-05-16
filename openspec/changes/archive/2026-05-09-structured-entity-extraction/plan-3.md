@@ -17,10 +17,12 @@
 ## File structure
 
 ### New files
+
 - `Features/Ingestion/Pdf/DoclingDiskCache.cs` — `IDoclingPdfConverter` caching decorator
 - `DndMcpAICsharpFun.Tests/Ingestion/Pdf/DoclingDiskCacheTests.cs` — cache tests
 
 ### Modified files
+
 - `Features/Ingestion/EntityExtraction/EntityExtractionOptions.cs` — add `DoclingCacheDirectory`
 - `Config/appsettings.json` — add `DoclingCacheDirectory`
 - `Extensions/ServiceCollectionExtensions.cs` — wrap `DoclingPdfConverter` with `DoclingDiskCache`
@@ -46,6 +48,7 @@
 ## Task 1: DoclingDiskCache
 
 **Files:**
+
 - Create: `Features/Ingestion/Pdf/DoclingDiskCache.cs`
 - Modify: `Features/Ingestion/EntityExtraction/EntityExtractionOptions.cs`
 - Modify: `Config/appsettings.json`
@@ -348,6 +351,7 @@ git commit -m "feat(ingestion): add DoclingDiskCache — SHA-256-keyed disk cach
 ## Task 2: Record `no_schema` skips in `errors.json`
 
 **Files:**
+
 - Modify: `Features/Ingestion/EntityExtraction/EntityExtractionOrchestrator.cs`
 
 - [ ] **Step 1: Call Serena `initial_instructions`** (if starting fresh session)
@@ -434,6 +438,7 @@ git commit -m "feat(extraction): record no_schema skips in errors.json so they a
 ## Task 3: `errorsOnly` plumbing — interface, queue, endpoint, HTTP file
 
 **Files:**
+
 - Modify: `Features/Ingestion/IIngestionQueue.cs`
 - Modify: `Features/Ingestion/IngestionQueueWorker.cs`
 - Modify: `Features/Ingestion/EntityExtraction/IEntityExtractionOrchestrator.cs`
@@ -628,6 +633,7 @@ git commit -m "feat(extraction): add errorsOnly plumbing — interface, queue, e
 ## Task 4: `errorsOnly` orchestrator logic
 
 **Files:**
+
 - Modify: `Features/Ingestion/EntityExtraction/EntityExtractionOrchestrator.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Extraction/EntityExtractionOrchestratorTests.cs`
 
@@ -1122,6 +1128,7 @@ git commit -m "feat(extraction): implement errorsOnly branch — retry failed en
 ## Self-review
 
 **Spec coverage:**
+
 - ✅ `DoclingDiskCache` — SHA-256 key, disk write, corrupt-cache recovery (Task 1)
 - ✅ `DoclingCacheDirectory` config (Task 1)
 - ✅ DI wiring — `DoclingPdfConverter` wrapped by `DoclingDiskCache` (Task 1)

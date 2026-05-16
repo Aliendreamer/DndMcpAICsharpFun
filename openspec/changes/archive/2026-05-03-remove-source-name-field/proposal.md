@@ -26,6 +26,7 @@ Removing `sourceName` shrinks the registration surface, drops a vestigial SQLite
 <!-- none -->
 
 ### Modified Capabilities
+
 - `ingestion-pipeline`: register endpoint no longer accepts `sourceName`; record schema loses the column.
 - `http-contracts`: `.http` register example loses the `sourceName` form part.
 

@@ -4,6 +4,7 @@
 `OllamaEmbeddingService` SHALL accept `IOllamaApiClient` in its constructor instead of `OllamaApiClient`.
 
 #### Scenario: Constructor uses interface type
+
 - **WHEN** `OllamaEmbeddingService` is registered in DI
 - **THEN** it can be resolved with `OllamaApiClient` (which implements `IOllamaApiClient`)
 
@@ -11,5 +12,6 @@
 `OllamaHealthCheck` SHALL accept `IOllamaApiClient` in its constructor instead of `OllamaApiClient`.
 
 #### Scenario: Constructor uses interface type
+
 - **WHEN** `OllamaHealthCheck` is registered in DI
 - **THEN** it can be resolved with `OllamaApiClient` (which implements `IOllamaApiClient`)

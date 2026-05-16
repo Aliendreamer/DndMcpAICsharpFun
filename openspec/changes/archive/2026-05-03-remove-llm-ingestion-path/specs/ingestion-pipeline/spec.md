@@ -20,17 +20,21 @@
 During ingestion, the system SHALL read the PDF's embedded bookmark tree via `IPdfBookmarkReader.ReadBookmarks`, walk every node recursively, skip nodes whose title is shorter than three trimmed characters, and convert each remaining `(title, pageNumber)` pair to a `TocSectionEntry`. End pages SHALL be derived from each subsequent entry's start page minus one (the last entry's end page is open-ended). This requirement applies to the block-ingestion path; no other ingestion path exists after this change.
 
 #### Scenario: A bookmarked PDF produces a populated section map
+
 - **WHEN** `IngestBlocksAsync` runs against a PDF that has an embedded bookmark tree
 - **THEN** the orchestrator builds a `TocCategoryMap` from the bookmarks and uses it to assign each block a section before embedding
 
 #### Scenario: A PDF without bookmarks fails ingestion with a clear error
+
 - **WHEN** `IngestBlocksAsync` runs against a PDF whose bookmark tree is empty or absent
 - **THEN** the orchestrator marks the record `Failed` with an error message indicating that bookmark-driven block ingestion requires embedded bookmarks, and writes nothing to Qdrant
 
 #### Scenario: Single-letter divider bookmarks are skipped
+
 - **WHEN** the bookmark tree contains alphabetical-divider entries with titles like `"A"`, `"B"`, `"M"` (length < 3 after trim)
 - **THEN** those nodes SHALL not produce `TocSectionEntry` rows; their children are still walked, and pages they covered fall through to the nearest meaningful parent bookmark
 
 #### Scenario: Re-running ingest-blocks overwrites prior block points
+
 - **WHEN** `POST /admin/books/{id}/ingest-blocks` is issued twice in succession on the same book
 - **THEN** the second run deletes points associated with the previous file hash before upserting the new ones, leaving no duplicates and no orphans

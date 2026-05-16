@@ -9,6 +9,7 @@ This is the standard architecture for MCP-backed RAG: the consumer is itself an 
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Build a parallel, opt-in ingestion path that produces an embedded Qdrant collection in minutes instead of hours.
 - Keep the existing LLM path completely intact — both paths usable side-by-side.
 - Make the choice of which collection retrieval queries a configuration switch, no code change required.
@@ -16,6 +17,7 @@ This is the standard architecture for MCP-backed RAG: the consumer is itself an 
 - Reuse existing bookmark machinery for section/category metadata.
 
 **Non-Goals:**
+
 - Replacing the LLM path. After A/B comparison the user will decide what to keep; this change does not delete anything.
 - Stat-block-aware segmentation (D&D monster stat blocks). Docstrum may segment those imperfectly; that is acceptable for a first iteration. Tuning is a follow-up.
 - Cross-page block continuation merging. If a block runs from page N onto page N+1, each becomes its own Qdrant point. This is acceptable because retrieval pulls top-K matches and a well-phrased query will retrieve adjacent blocks together.

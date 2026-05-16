@@ -7,6 +7,7 @@ The target runtime environment is Docker Compose: one network, three services (`
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Folder structure that supports feature-sliced vertical organisation
 - Docker Compose stack that is runnable locally and portable to any Docker host
 - Typed options classes bound from `appsettings.json` for all infrastructure clients
@@ -15,6 +16,7 @@ The target runtime environment is Docker Compose: one network, three services (`
 - API key middleware applied to all `/admin/*` routes
 
 **Non-Goals:**
+
 - Any ingestion, embedding, or retrieval logic
 - MCP endpoints
 - Authentication beyond the single admin API key
@@ -52,6 +54,7 @@ Rationale: The user explicitly chose Option B (lean, direct). SK adds abstractio
 A single `X-Admin-Api-Key` request header checked against a configured value. Applied only to `/admin/*` via route-based middleware.
 
 Alternatives considered:
+
 - ASP.NET Core built-in API key auth: more ceremony for a single key scenario
 - JWT: overkill for an internal admin surface
 

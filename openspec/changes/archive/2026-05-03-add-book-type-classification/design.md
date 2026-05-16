@@ -13,12 +13,14 @@ The `BookType` field collapses that long enumeration into a five-value categoric
 ## Goals / Non-Goals
 
 **Goals:**
+
 - One orthogonal field that lets retrieval distinguish core rules from supplement rules from adventure-specific from setting-specific content.
 - Strictly additive: no existing record or Qdrant point is invalidated; default behaviour for unfiltered queries is unchanged.
 - Operator-friendly registration: optional, case-insensitive, missing/invalid values do not break the upload.
 - Composable with existing `version` and `source_book` filters.
 
 **Non-Goals:**
+
 - Auto-classifying books from PDF content. Tagging is a manual step at registration time.
 - Multi-tag support (a book is exactly one type). If a book legitimately defies the taxonomy, the operator picks the closest fit or registers as `Unknown`.
 - Backfilling pre-existing `dnd_blocks` points. Operators delete-and-re-ingest if they want pre-existing books retroactively tagged.

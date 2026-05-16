@@ -15,6 +15,7 @@
 The current pipeline sends one `EntityCandidate` (a full section's concatenated text) to the LLM in a single call. For dense pages — trap variant tables, scroll lists, item groups — this produces 24–45 KB of JSON output, blowing past the `MaxOutputTokensPerEntity` budget. The model truncates mid-JSON and the whole candidate is marked as failed.
 
 Root causes:
+
 1. No pre-splitting of large sections before the LLM call.
 2. No partial recovery when truncation does occur.
 3. No worked examples in the prompt — the model has to infer output shape from schema description alone.
@@ -44,6 +45,7 @@ When a candidate is below the threshold, `SemanticChunker` returns it as a singl
 **File:** `Features/Ingestion/EntityExtraction/SemanticChunker.cs`
 
 Splits a candidate's text at structural boundaries in priority order:
+
 1. Sub-headings: lines starting with `##` or `###`
 2. Table separators: lines matching `/^\|[-| ]+\|$/` (split before the table)
 3. Double newline (paragraph break)
@@ -86,6 +88,7 @@ Merge rules (applied field by field):
 | Unknown/new fields | First non-null wins (safe default) |
 
 Edge cases:
+
 - List of one element → returns it unchanged.
 - All partials empty → returns empty object `{}`.
 - Chunk₁ items always appear before Chunk₂ items in concatenated arrays.

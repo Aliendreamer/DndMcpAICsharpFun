@@ -5,6 +5,7 @@ The ingestion pipeline extracts D&D entities from PDFs using PdfPig for text ext
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Fix multi-column text ordering using `DocstrumBoundingBoxes` + `UnsupervisedReadingOrderDetector`
 - Give the LLM heading context via `[H2]/[H3]/body` formatted prompt input
 - Store structured blocks alongside entities in per-page JSON
@@ -13,6 +14,7 @@ The ingestion pipeline extracts D&D entities from PDFs using PdfPig for text ext
 - Add synchronous single-page extraction endpoint for fast iteration
 
 **Non-Goals:**
+
 - Backwards compatibility with existing extracted JSON files (volumes are wiped)
 - Per-block embeddings (entity descriptions remain the embedding unit)
 - OCR or scanned PDF support

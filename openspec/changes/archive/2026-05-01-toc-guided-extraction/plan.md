@@ -13,6 +13,7 @@
 ## File Map
 
 **New files:**
+
 - `Features/Ingestion/Pdf/PdfBookmark.cs` — `record PdfBookmark(string Title, int PageNumber)`
 - `Features/Ingestion/Pdf/IPdfBookmarkReader.cs` — interface
 - `Features/Ingestion/Pdf/PdfPigBookmarkReader.cs` — PdfPig implementation
@@ -26,6 +27,7 @@
 - `DndMcpAICsharpFun.Tests/Ingestion/ExtractionCancellationRegistryTests.cs`
 
 **Modified files:**
+
 - `Features/Ingestion/IngestionOrchestrator.cs` — inject new services, update `ExtractBookAsync`
 - `Features/Ingestion/IngestionQueueWorker.cs` — register/unregister CTS around Extract work items
 - `Features/Admin/BooksAdminEndpoints.cs` — add `CancelExtract` endpoint + register in `MapBooksAdmin`
@@ -37,6 +39,7 @@
 ## Task 1: PdfBookmark record + IPdfBookmarkReader + PdfPigBookmarkReader
 
 **Files:**
+
 - Create: `Features/Ingestion/Pdf/PdfBookmark.cs`
 - Create: `Features/Ingestion/Pdf/IPdfBookmarkReader.cs`
 - Create: `Features/Ingestion/Pdf/PdfPigBookmarkReader.cs`
@@ -123,6 +126,7 @@ git commit -m "feat: add IPdfBookmarkReader and PdfPigBookmarkReader"
 ## Task 2: TocCategoryMap + ITocCategoryClassifier + OllamaTocCategoryClassifier
 
 **Files:**
+
 - Create: `Features/Ingestion/Extraction/TocCategoryMap.cs`
 - Create: `Features/Ingestion/Extraction/ITocCategoryClassifier.cs`
 - Create: `Features/Ingestion/Extraction/OllamaTocCategoryClassifier.cs`
@@ -472,6 +476,7 @@ git commit -m "feat: add TocCategoryMap, ITocCategoryClassifier, and OllamaTocCa
 ## Task 3: IExtractionCancellationRegistry + ExtractionCancellationRegistry
 
 **Files:**
+
 - Create: `Features/Ingestion/IExtractionCancellationRegistry.cs`
 - Create: `Features/Ingestion/ExtractionCancellationRegistry.cs`
 - Create: `DndMcpAICsharpFun.Tests/Ingestion/ExtractionCancellationRegistryTests.cs`
@@ -599,6 +604,7 @@ git commit -m "feat: add IExtractionCancellationRegistry and ExtractionCancellat
 ## Task 4: Update IngestionOrchestrator.ExtractBookAsync
 
 **Files:**
+
 - Modify: `Features/Ingestion/IngestionOrchestrator.cs`
 
 The current `IngestionOrchestrator` constructor injects `ILlmClassifier` and `ILlmEntityExtractor`. We add `IPdfBookmarkReader` and `ITocCategoryClassifier`. The `ExtractBookAsync` method gets a TOC pre-pass and per-page category dispatch. The `OperationCanceledException` handler resets status to `Pending`.
@@ -747,6 +753,7 @@ git commit -m "feat: TOC-guided extraction dispatch in IngestionOrchestrator"
 ## Task 5: Update IngestionQueueWorker for per-job CTS
 
 **Files:**
+
 - Modify: `Features/Ingestion/IngestionQueueWorker.cs`
 
 - [ ] **Step 5.1: Inject IExtractionCancellationRegistry and wrap Extract work items**
@@ -841,6 +848,7 @@ git commit -m "feat: register per-job CTS in IngestionQueueWorker for extraction
 ## Task 6: Add cancel-extract admin endpoint
 
 **Files:**
+
 - Modify: `Features/Admin/BooksAdminEndpoints.cs`
 - Modify: `DndMcpAICsharpFun.http`
 
@@ -889,6 +897,7 @@ git commit -m "feat: add POST /admin/books/{id}/cancel-extract endpoint"
 ## Task 7: Register new services in ServiceCollectionExtensions
 
 **Files:**
+
 - Modify: `Extensions/ServiceCollectionExtensions.cs`
 
 - [ ] **Step 7.1: Add registrations to AddIngestionPipeline**

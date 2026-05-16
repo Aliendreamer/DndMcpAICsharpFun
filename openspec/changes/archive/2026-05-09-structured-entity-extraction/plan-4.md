@@ -34,6 +34,7 @@
 ### Task 1: Add `Lore` and `Rule` to `EntityType` enum
 
 **Files:**
+
 - Modify: `Domain/Entities/EntityType.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/EntityTypeTests.cs`
 
@@ -124,6 +125,7 @@ git commit -m "feat(entities): add Lore and Rule to EntityType enum"
 ### Task 2: Create `LoreFields` and `RuleFields` schemas + fixture entities
 
 **Files:**
+
 - Create: `Schemas/canonical/LoreFields.schema.json`
 - Create: `Schemas/canonical/RuleFields.schema.json`
 - Modify: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
@@ -280,6 +282,7 @@ git commit -m "feat(schemas): add LoreFields and RuleFields schemas"
 ### Task 3: Tighten required fields on God, Plane, Monster, Location, Faction
 
 **Files:**
+
 - Modify: `Schemas/canonical/GodFields.schema.json`
 - Modify: `Schemas/canonical/PlaneFields.schema.json`
 - Modify: `Schemas/canonical/MonsterFields.schema.json`
@@ -544,6 +547,7 @@ git commit -m "feat(schemas): add required fields to God, Plane, Monster, Locati
 ### Task 4: Add `variants` array to `MagicItemFields`
 
 **Files:**
+
 - Modify: `Schemas/canonical/MagicItemFields.schema.json`
 - Modify: `DndMcpAICsharpFun.Tests/Fixtures/canonical/test-book.json`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Schemas/SchemaGenerationTests.cs`
@@ -667,6 +671,7 @@ git commit -m "feat(schemas): add variants array to MagicItemFields"
 ### Task 5: Update `ExtractionPromptBuilder` with heading filter, type routing, and variant hint
 
 **Files:**
+
 - Modify: `Features/Ingestion/EntityExtraction/ExtractionPromptBuilder.cs`
 - Modify: `DndMcpAICsharpFun.Tests/Entities/Extraction/ExtractionPromptBuilderTests.cs`
 
@@ -857,6 +862,7 @@ git commit -m "feat(extraction): add heading filter, type routing, and variant h
 ## Self-Review
 
 **Spec coverage:**
+
 - ✅ `Lore` + `Rule` enum values — Task 1
 - ✅ `LoreFields.schema.json` + `RuleFields.schema.json` — Task 2
 - ✅ Required fields: God, Plane, Monster, Location, Faction — Task 3

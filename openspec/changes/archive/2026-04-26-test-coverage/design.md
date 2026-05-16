@@ -5,12 +5,14 @@ The project has zero automated tests. All business logic (pattern detectors, chu
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Add `DndMcpAICsharpFun.Tests` xUnit project to the solution
 - Reach ≥ 70% line and branch coverage on production code
 - Cover all 7 pattern detectors, `ContentCategoryDetector`, `EntityNameExtractor`, `QdrantPayloadMapper`, `AdminApiKeyMiddleware`, `EmbeddingIngestor`, `IngestionOrchestrator`, `RagRetrievalService`, and admin/retrieval endpoints
 - Enforce coverage threshold in CI via `coverlet` `<CoverageThresholdPercent>` or MSBuild fail-on-threshold
 
 **Non-Goals:**
+
 - 100% coverage — infrastructure code (`QdrantVectorStoreService`, `PdfPigTextExtractor`, `OllamaEmbeddingService`) wraps external I/O and is excluded from coverage targets
 - Integration tests against real Qdrant/Ollama/SQLite — unit tests only (mocked dependencies)
 - E2E HTTP tests via `WebApplicationFactory` — out of scope for this change
@@ -30,6 +32,7 @@ NSubstitute's API is more readable and does not require `.Object` unwrapping. Mo
 All tests in one `DndMcpAICsharpFun.Tests` project, organized by namespace mirroring the source. Avoids over-engineering at this stage — split later if project grows.
 
 **Excluded from coverage:**
+
 - `Migrations/` — EF-generated
 - `Infrastructure/Ollama/`, `Infrastructure/Qdrant/QdrantVectorStoreService.cs`, `Infrastructure/Qdrant/QdrantCollectionInitializer.cs`, `Infrastructure/Sqlite/SqliteIngestionTracker.cs` — external I/O wrappers
 - `Features/Ingestion/Pdf/PdfPigTextExtractor.cs` — PDF parsing, requires real files

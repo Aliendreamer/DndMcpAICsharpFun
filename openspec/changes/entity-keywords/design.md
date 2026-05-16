@@ -10,6 +10,7 @@ The `keywords` Qdrant payload field and the `keyword` query-string filter exist 
 ## Goals / Non-Goals
 
 **Goals:**
+
 - `EntityEnvelope` carries `Keywords: IReadOnlyList<string>`
 - 5etools `traitTags` → `Keywords` for Monster entities; other entity types get empty list for now
 - Canonical JSON files can store and round-trip a `keywords` array
@@ -19,6 +20,7 @@ The `keywords` Qdrant payload field and the `keyword` query-string filter exist 
 - Re-ingest 5etools after the change to populate existing index
 
 **Non-Goals:**
+
 - Populating keywords for non-Monster entity types from 5etools (Spell, Class, Item, etc.) — deferred
 - Retroactively re-extracting existing canonical JSON files for keywords — the field will be empty for old extractions; only new extractions benefit
 - Fuzzy / partial keyword matching — exact keyword match only (Qdrant keyword index)

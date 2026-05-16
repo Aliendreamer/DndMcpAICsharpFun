@@ -13,9 +13,11 @@ Book records can be registered with incorrect metadata (wrong version, placehold
 ## Capabilities
 
 ### New Capabilities
+
 - `book-deletion`: Admin endpoint and orchestrator logic for fully removing a book record, its file, and its Qdrant vectors
 
 ### Modified Capabilities
+
 - `ingestion-pipeline`: Hash is now computed once and used for both duplicate detection and the unchanged-file guard; `Duplicate` status is now reachable via normal ingestion flow
 
 ## Impact

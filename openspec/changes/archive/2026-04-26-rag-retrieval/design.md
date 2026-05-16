@@ -5,6 +5,7 @@
 ## Goals / Non-Goals
 
 **Goals:**
+
 - `IRagRetrievalService.SearchAsync(RetrievalQuery)` → `IList<RetrievalResult>`
 - Filter support: `Version`, `Category`, `SourceBook`, `EntityName` (all optional, ANDed together)
 - Configurable `TopK` (default 5, max 20)
@@ -13,6 +14,7 @@
 - Admin diagnostic endpoint: `GET /admin/retrieval/search` with full filter set
 
 **Non-Goals:**
+
 - Re-ranking or cross-encoder scoring
 - Query expansion or HyDE (hypothetical document embeddings)
 - Caching of query embeddings

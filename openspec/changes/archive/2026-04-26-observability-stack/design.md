@@ -5,6 +5,7 @@ The current stack (ASP.NET Core app + Qdrant + Ollama) runs entirely in Docker C
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Instrument the .NET app with OpenTelemetry (ASP.NET Core, HttpClient, runtime metrics) exported as Prometheus scrape endpoint
 - Add Prometheus service that scrapes the app, Qdrant native metrics endpoint, and Ollama metrics endpoint
 - Add Grafana with fully-provisioned datasource and starter dashboards (no manual click-through setup)
@@ -13,6 +14,7 @@ The current stack (ASP.NET Core app + Qdrant + Ollama) runs entirely in Docker C
 - Keep all new services opt-in for CI (profiles or separate compose override)
 
 **Non-Goals:**
+
 - Distributed tracing (spans, Jaeger, Tempo) — metrics only in this iteration
 - Alerting rules or PagerDuty integration
 - Log aggregation (Loki, ELK)
@@ -26,6 +28,7 @@ The current stack (ASP.NET Core app + Qdrant + Ollama) runs entirely in Docker C
 **Choice**: `OpenTelemetry.Exporter.Prometheus.AspNetCore` which adds a `/metrics` route directly to the existing Kestrel host.
 
 **Alternatives considered**:
+
 - *OTLP push to an OTel Collector* — more flexible but adds another container and moving parts for what is essentially a local dev stack.
 - *App.Metrics / Prometheus.NET standalone* — older ecosystem, OTel is the forward-looking standard in .NET.
 
@@ -42,6 +45,7 @@ The current stack (ASP.NET Core app + Qdrant + Ollama) runs entirely in Docker C
 **Choice**: `coleifer/sqlite-web` image, bind-mounted to the same `app_data` volume at `/data/ingestion.db`.
 
 **Alternatives considered**:
+
 - *Adminer* — heavier, multi-database oriented, overkill for a single SQLite file.
 - *DB Browser for SQLite desktop app* — not accessible via browser, can't run in compose.
 

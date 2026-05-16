@@ -82,6 +82,7 @@ All schemas switch to these formats:
 
 ### Class / Subclass
 Simplified 5etools shape:
+
 - `hd: {number:1, faces:8}` — hit die
 - `proficiency[]` — saving throw proficiency codes  
 - `startingProficiencies: {armor[], weapons[], skills}` 
@@ -90,11 +91,13 @@ Simplified 5etools shape:
 - Subclass adds: `shortName`, `subclassFeatures[]`
 
 ### Background
+
 - `entries[]` for description
 - `skillProficiencies[]`, `languageProficiencies[]`, `startingEquipment[]`
 - `feats[]` for background feats (2024 rules)
 
 ### Feat
+
 - `prerequisite[]` for requirements
 - `entries[]` for description
 - `ability[]` for ASI grants
@@ -119,11 +122,13 @@ Simplified 5etools shape:
 | `variants[]` | unchanged |
 
 ### Condition / DiseasePoison
+
 - `entries[]` for description
 - `conditionInflict[]` for conditions that inflict other conditions
 
 ### Item / Weapon / Armor / MagicItem
 All items unify around:
+
 - `type` code (`"M"` melee weapon, `"R"` ranged, `"LA"` light armor, `"SCF"` spellcasting focus, etc.)
 - `entries[]` for description
 - `rarity` string (magic items)
@@ -133,6 +138,7 @@ All items unify around:
 - `variants[]` unchanged (our addition for +1/+2/+3 tiers)
 
 ### VehicleMount
+
 - `entries[]` for description
 - `speed: {walk, fly, swim}` object
 - `capacity` string
@@ -197,6 +203,7 @@ Adopts 5etools `variantrule` shape:
 `ExtractionPromptBuilder.BuildSystemPrompt` updated per entity type to include:
 
 **Code lookup tables** (injected for relevant types):
+
 - Size: `T=Tiny, S=Small, M=Medium, L=Large, H=Huge, G=Gargantuan`
 - Alignment: `L=Lawful, C=Chaotic, G=Good, E=Evil, N=Neutral, U=Unaligned, A=Any`
 - Spell school: `A=Abjuration, C=Conjuration, D=Divination, E=Enchantment, I=Illusion, N=Necromancy, T=Transmutation, V=Evocation`

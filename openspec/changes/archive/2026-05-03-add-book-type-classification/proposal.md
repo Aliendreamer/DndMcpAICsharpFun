@@ -22,9 +22,11 @@ Adding an explicit `BookType` classification (Core / Supplement / Adventure / Se
 ## Capabilities
 
 ### New Capabilities
+
 - `book-type-classification`: a small standalone capability defining the BookType taxonomy and the contract for tagging registered books and filtering retrieval results.
 
 ### Modified Capabilities
+
 - `ingestion-pipeline`: the register endpoint accepts an additional optional form field; the ingestion orchestrator propagates the value into block metadata.
 - `embedding-vector-store`: every Qdrant block point gains a `book_type` keyword payload field with a payload index.
 - `rag-retrieval`: `/retrieval/search` and `/admin/retrieval/search` accept an additional optional `bookType` query parameter that filters by exact match.

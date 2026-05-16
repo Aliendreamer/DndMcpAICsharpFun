@@ -9,6 +9,7 @@ SearXNG is a self-hosted metasearch engine that aggregates Google, Bing, DuckDuc
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Add a `search_web(query)` MCP tool backed by a local SearXNG instance
 - Filter results to a configurable allowlist of D&D-relevant domains
 - Return empty when no results match the domain filter (no unfiltered fallback)
@@ -16,6 +17,7 @@ SearXNG is a self-hosted metasearch engine that aggregates Google, Bing, DuckDuc
 - Companion checkbox controls whether the AI can call `search_web` — unchecked means the tool is not in the active list for that call
 
 **Non-Goals:**
+
 - Caching or deduplicating web results
 - Full-page content fetching (snippets only)
 - Any changes to existing MCP tools or the RAG pipeline
@@ -63,6 +65,7 @@ SearXNGClient.SearchAsync(query)
 
 ### `Features/Search/SearXNGOptions.cs`
 Record bound from `"SearXNG"` config section:
+
 - `Url` — base URL of the SearXNG instance (default `http://searxng:8080`)
 - `MaxResults` — max results to request (default 5)
 - `AllowedDomains` — string array of domain substrings to filter by (e.g. `["dndbeyond.com", "5etools.com", "reddit.com", "enworld.org", "roll20.net", "sageadvice.eu"]`)
@@ -72,6 +75,7 @@ Record with `Title`, `Url`, `Snippet` mapped from SearXNG JSON (`results[].title
 
 ### `Features/Search/SearXNGClient.cs`
 Typed `HttpClient`. `SearchAsync(string query, CancellationToken ct)`:
+
 1. GET `/search?q=<query>&format=json&language=en`
 2. Deserialize `results` array
 3. Filter: keep entries where `Url` contains any `AllowedDomains` entry (case-insensitive)
@@ -79,28 +83,33 @@ Typed `HttpClient`. `SearchAsync(string query, CancellationToken ct)`:
 
 ### `Features/Search/SearchWebTool.cs`
 `[McpServerToolType]` class, single `[McpServerTool]` method `search_web(string query)`:
+
 - Description: *"Search the live web for D&D rules, lore, or community discussions not found in local books. Only call this when the user explicitly asks to search the web."*
 - Calls `SearXNGClient.SearchAsync`
 - Returns JSON array of `{ title, url, snippet }` or `"No web results found."` if empty
 
 ### `DndMcpAICompanion/Features/Chat/DndChatService.cs`
 `SendAsync(string userMessage, bool allowWebSearch, CancellationToken ct)`:
+
 - Builds active tools: `allowWebSearch ? tools : tools.Where(t => t.Metadata?.Name != "search_web")`
 - Passes filtered list to `ChatOptions.Tools`
 
 ### `DndMcpAICompanion/Components/Pages/Chat.razor`
+
 - `bool _webSearchEnabled` field, default `false`
 - Checkbox rendered near the send button, label "Search web"
 - Passes `_webSearchEnabled` to `SendAsync`
 
 ### `infra/searxng/settings.yml`
 Minimal SearXNG config:
+
 - `server.secret_key`: fixed local string
 - `server.limiter`: `false`
 - `search.formats`: `[html, json]`
 
 ### `docker-compose.yml`
 New `searxng` service:
+
 - Image: `searxng/searxng:latest`
 - Port: `8888:8080` (host:container)
 - Network: `dnd_net`

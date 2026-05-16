@@ -7,6 +7,7 @@ Two canonical files are affected today (tce.json: 234 all-caps / 140 mixed; dmg1
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Extraction prompt instructs the LLM to output title-case names going forward
 - LLM emits a `confidence` field per entity; post-processing maps it + heuristic → `needsReview`
 - `EntityEnvelope` carries `NeedsReview`; canonical JSON persists it
@@ -14,6 +15,7 @@ Two canonical files are affected today (tce.json: 234 all-caps / 140 mixed; dmg1
 - One-time normalization script fixes existing canonical JSONs without re-extraction
 
 **Non-Goals:**
+
 - Automatically correcting OCR-garbled names (requires human judgment)
 - Blocking ingestion of `needsReview` entities (review is advisory, not a gate)
 - Re-extracting all books automatically (per-book on-demand only)
@@ -35,6 +37,7 @@ Two canonical files are affected today (tce.json: 234 all-caps / 140 mixed; dmg1
 **Rationale:** `canonicalText` is re-rendered at ingest time from structured fields, so artifacts there self-correct once `name` is fixed. `fields` is raw 5etools JSON or LLM-extracted prose; normalizing it is out of scope.
 
 **Heuristic rules (any match → flag):**
+
 1. Name is all-caps and length > 1 (`name.isupper()`)
 2. Name contains a letter-space-letter break typical of split OCR words (regex `[a-z] [a-z]` after lowercasing, but only within a word context — e.g., `f eature`)
 3. Name contains noise sequences: `....`, repeated punctuation, or `l:` patterns

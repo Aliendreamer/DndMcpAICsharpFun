@@ -10,6 +10,7 @@ Fix systematic mis-classification in the structured entity extraction pipeline: 
 ## Background
 
 Evidence from the DMG extraction run (Plan 2/3):
+
 - 73/99 early entities were `Plane` — chapter headings like "HAPTER 2: CREATING A MULTIVERSE" passed because `PlaneFields` has no required fields.
 - `God` entities included "FORCES AND PHILOSOPHIES", "LOOSE PANTHEONS", "HUMANOIDS AND THE GODS" — section headings, not deities.
 - `Monster` included "FEYWILD" and "ETHEREAL PLANE ENCOUNTERS" — wrong type, no gate.
@@ -133,6 +134,7 @@ Two additions to `ExtractionPromptBuilder.BuildSystemPrompt`:
 ## Success Criteria
 
 After the next full DMG extraction with these changes:
+
 - Section headings no longer appear as `God` or `Plane` entities.
 - `Lore` captures philosophical/worldbuilding content (philosophies, pantheon descriptions, cosmology overviews).
 - `Rule` captures mechanical content (encounter tables, adventure design procedures).

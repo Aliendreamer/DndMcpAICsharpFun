@@ -13,6 +13,7 @@
 ## File Map
 
 **Create:**
+
 - `DndMcpAICompanion/Features/Campaign/CharacterSheet.cs` — mutable class, all character fields, static modifier helpers
 - `DndMcpAICompanion/Features/Campaign/CampaignRepository.cs` — Campaign/CampaignSummary records, all 3 table CREATE, CRUD
 - `DndMcpAICompanion/Features/Campaign/HeroRepository.cs` — Hero/HeroSnapshot/HeroSnapshotMeta records, snapshot CRUD
@@ -24,6 +25,7 @@
 - `DndMcpAICompanion.Tests/Campaign/HeroRepositoryTests.cs`
 
 **Modify:**
+
 - `DndMcpAICompanion/Program.cs` — register both repositories as singletons, call `InitializeAsync`
 
 ---
@@ -31,6 +33,7 @@
 ## Task 1: CharacterSheet Model + Serialization Tests
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Features/Campaign/CharacterSheet.cs`
 - Create: `DndMcpAICompanion.Tests/Campaign/CharacterSheetSerializationTests.cs`
 
@@ -193,6 +196,7 @@ git commit -m "feat(campaign): add CharacterSheet model with serialization"
 ## Task 2: CampaignRepository + Tests
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Features/Campaign/CampaignRepository.cs`
 - Create: `DndMcpAICompanion.Tests/Campaign/CampaignRepositoryTests.cs`
 
@@ -447,6 +451,7 @@ git commit -m "feat(campaign): add CampaignRepository with SQLite schema"
 ## Task 3: HeroRepository + Tests
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Features/Campaign/HeroRepository.cs`
 - Create: `DndMcpAICompanion.Tests/Campaign/HeroRepositoryTests.cs`
 
@@ -754,6 +759,7 @@ git commit -m "feat(campaign): add HeroRepository with Memento snapshot support"
 ## Task 4: Register Repositories in Program.cs
 
 **Files:**
+
 - Modify: `DndMcpAICompanion/Program.cs`
 
 - [ ] **Step 4.1: Add registrations to Program.cs**
@@ -798,6 +804,7 @@ git commit -m "feat(campaign): register CampaignRepository and HeroRepository at
 ## Task 5: Campaigns.razor
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Components/Pages/Campaign/Campaigns.razor`
 
 - [ ] **Step 5.1: Create `DndMcpAICompanion/Components/Pages/Campaign/Campaigns.razor`**
@@ -943,6 +950,7 @@ git commit -m "feat(campaign): add Campaigns list page"
 ## Task 6: CampaignDetail.razor
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Components/Pages/Campaign/CampaignDetail.razor`
 
 - [ ] **Step 6.1: Create `DndMcpAICompanion/Components/Pages/Campaign/CampaignDetail.razor`**
@@ -1066,6 +1074,7 @@ git commit -m "feat(campaign): add CampaignDetail party roster page"
 ## Task 7: HeroDetail.razor
 
 **Files:**
+
 - Create: `DndMcpAICompanion/Components/Pages/Campaign/HeroDetail.razor`
 
 - [ ] **Step 7.1: Create `DndMcpAICompanion/Components/Pages/Campaign/HeroDetail.razor`**

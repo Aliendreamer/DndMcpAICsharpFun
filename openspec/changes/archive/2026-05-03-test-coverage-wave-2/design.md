@@ -7,12 +7,14 @@ The project has six classes at 0% coverage: `PdfPigTextExtractor`, `OllamaEmbedd
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Reach ~75%+ line coverage
 - Test `PdfPigTextExtractor`, `OllamaEmbeddingService`, `OllamaHealthCheck`, and `RetrievalEndpoints`
 - Fix `IOllamaApiClient` abstraction on embedding and health check
 - Exclude Qdrant and DI-wiring code from coverage reporting (intentionally untestable without infrastructure)
 
 **Non-Goals:**
+
 - Testing Qdrant vector store functionality (requires Testcontainers / external service)
 - Testing `ServiceCollectionExtensions` or `Program.cs` wiring end-to-end
 - Testing `WebApplicationExtensions` DB migration code

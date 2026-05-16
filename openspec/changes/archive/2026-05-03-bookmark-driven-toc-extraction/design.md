@@ -7,6 +7,7 @@ The PHB (and almost all professionally-published D&D rulebooks) embed a bookmark
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Eliminate the LLM-on-TOC-page parsing step entirely.
 - Use embedded PDF bookmarks as the deterministic source of section boundaries.
 - Drop the `tocPage` registration field; users no longer need to know or specify a TOC page.
@@ -14,6 +15,7 @@ The PHB (and almost all professionally-published D&D rulebooks) embed a bookmark
 - Maintain admin/MCP API ergonomics: registration becomes simpler, not more complex.
 
 **Non-Goals:**
+
 - Supporting bookmark-less PDFs gracefully (e.g., scanned books, stripped exports). These will fail extraction with a clear error; OCR / column-aware text recovery is out of scope.
 - Changing how categories are *consumed* downstream (Qdrant payloads, retrieval filters). Only how they're *assigned* during ingestion changes.
 - Re-introducing any LLM-based TOC parsing as a fallback. We accept the trade-off in favor of a simpler pipeline.
