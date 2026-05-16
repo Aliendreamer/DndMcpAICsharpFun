@@ -93,7 +93,7 @@ public static partial class BooksAdminEndpoints
 
         if (errorsOnlyFlag)
         {
-            var bookSlug = EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+            var bookSlug = CanonicalSlugFor(record);
             var canonicalPath = Path.Combine(opts.Value.CanonicalDirectory, $"{bookSlug}.json");
             if (!File.Exists(canonicalPath))
                 return Results.Conflict($"No canonical file found for {bookSlug}; run full extraction first.");
@@ -101,7 +101,7 @@ public static partial class BooksAdminEndpoints
 
         if (!errorsOnlyFlag)
         {
-            var bookSlug = EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+            var bookSlug = CanonicalSlugFor(record);
             var canonicalPath = Path.Combine(opts.Value.CanonicalDirectory, $"{bookSlug}.json");
             if (File.Exists(canonicalPath) && !forceFlag)
                 return Results.Conflict($"Canonical file already exists at {canonicalPath}. Use ?force=true to overwrite.");
@@ -266,6 +266,11 @@ public static partial class BooksAdminEndpoints
         if (cleaned.Length > 200) cleaned = cleaned[..200];
         return cleaned.Length == 0 ? "upload.pdf" : cleaned;
     }
+
+    private static string CanonicalSlugFor(IngestionRecord record) =>
+        record.FivetoolsSourceKey is { } key
+            ? EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0]
+            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
 }
 
 [ExcludeFromCodeCoverage]

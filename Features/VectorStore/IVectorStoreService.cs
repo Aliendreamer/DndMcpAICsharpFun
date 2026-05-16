@@ -8,5 +8,5 @@ public interface IVectorStoreService
         IList<(BlockChunk Chunk, float[] Vector, SparseVector Sparse, string FileHash)> points,
         CancellationToken ct = default);
 
-    Task DeleteBlocksByHashAsync(string fileHash, int blockCount, CancellationToken ct = default);
+    Task DeleteBlocksByHashAsync(string fileHash, CancellationToken ct = default);
 }

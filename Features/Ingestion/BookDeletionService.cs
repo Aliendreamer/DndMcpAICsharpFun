@@ -24,13 +24,15 @@ public sealed partial class BookDeletionService(
         if (record.Status == IngestionStatus.Processing)
             return DeleteBookResult.Conflict;
 
-        if (record.ChunkCount.HasValue && record.ChunkCount.Value > 0 && !string.IsNullOrEmpty(record.FileHash))
-            await vectorStore.DeleteBlocksByHashAsync(record.FileHash, record.ChunkCount.Value, cancellationToken);
+        if (!string.IsNullOrEmpty(record.FileHash))
+            await vectorStore.DeleteBlocksByHashAsync(record.FileHash, cancellationToken);
 
         if (!string.IsNullOrEmpty(record.FileHash))
             await entityStore.DeleteByFileHashAsync(record.FileHash, cancellationToken);
 
-        var canonicalSlug = EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+        var canonicalSlug = record.FivetoolsSourceKey is { } key
+            ? EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0]
+            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
         var canonicalPath = Path.Combine(entityIngestionOptions.Value.CanonicalDirectory, canonicalSlug + ".json");
         if (File.Exists(canonicalPath))
         {

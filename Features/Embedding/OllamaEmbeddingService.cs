@@ -48,7 +48,9 @@ public sealed partial class OllamaEmbeddingService(
             };
             var response = await client.EmbedAsync(request, ct);
             LogEmbedBatchDone(logger, texts.Count, _model, sw.ElapsedMilliseconds);
-            return response.Embeddings;
+            return response.Embeddings
+                ?? throw new InvalidOperationException(
+                    $"Ollama returned null embeddings for model '{_model}'. Check that the model is loaded and supports embedding.");
         }
         catch (HttpRequestException ex)
         {

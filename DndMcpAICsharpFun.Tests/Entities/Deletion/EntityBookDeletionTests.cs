@@ -80,7 +80,7 @@ public class EntityBookDeletionTests
         var result = await svc.DeleteBookAsync(8, CancellationToken.None);
 
         Assert.Equal(DeleteBookResult.Deleted, result);
-        await blockStore.Received(1).DeleteBlocksByHashAsync("deadbeef", 42, Arg.Any<CancellationToken>());
+        await blockStore.Received(1).DeleteBlocksByHashAsync("deadbeef", Arg.Any<CancellationToken>());
         await entityStore.Received(1).DeleteByFileHashAsync("deadbeef", Arg.Any<CancellationToken>());
 
         Directory.Delete(canonicalDir, recursive: true);

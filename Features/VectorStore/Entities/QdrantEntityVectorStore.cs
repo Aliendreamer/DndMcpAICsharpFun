@@ -48,7 +48,11 @@ public sealed class QdrantEntityVectorStore(
             limit: (ulong)topK,
             payloadSelector: true,
             cancellationToken: ct);
-        return results.Select(p => new EntitySearchHit(ToEnvelope(p.Payload), p.Score, p.Id.Uuid)).ToList();
+        return results
+            .Select(p => ToEnvelope(p.Payload) is { } env ? new EntitySearchHit(env, p.Score, p.Id.Uuid) : null)
+            .Where(h => h is not null)
+            .Select(h => h!)
+            .ToList();
     }
 
     public async Task<IReadOnlyDictionary<string, EntityEnvelope>> GetByIdsAsync(
@@ -71,10 +75,11 @@ public sealed class QdrantEntityVectorStore(
                 limit: PageSize,
                 payloadSelector: true,
                 cancellationToken: ct);
-            foreach (var p in page.Result.Where(p => p.Payload.ContainsKey(EntityPayloadFields.Id)))
+            foreach (var p in page.Result)
             {
                 var envelope = ToEnvelope(p.Payload);
-                result[envelope.Id] = envelope;
+                if (envelope is not null)
+                    result[envelope.Id] = envelope;
             }
             offset = page.NextPageOffset;
         } while (offset is not null);
@@ -182,35 +187,56 @@ public sealed class QdrantEntityVectorStore(
         return new Value { ListValue = list };
     }
 
-    private static EntityEnvelope ToEnvelope(Google.Protobuf.Collections.MapField<string, Value> p)
+    private static EntityEnvelope? ToEnvelope(Google.Protobuf.Collections.MapField<string, Value> p)
     {
+        if (!p.TryGetValue(EntityPayloadFields.Id, out var idV) ||
+            !p.TryGetValue(EntityPayloadFields.Type, out var typeV) ||
+            !p.TryGetValue(EntityPayloadFields.Name, out var nameV) ||
+            !p.TryGetValue(EntityPayloadFields.SourceBook, out var sbV) ||
+            !p.TryGetValue(EntityPayloadFields.Edition, out var edV) ||
+            !p.TryGetValue(EntityPayloadFields.CanonicalText, out var ctV))
+            return null;
+
+        if (!Enum.TryParse<EntityType>(typeV.StringValue, out var entityType))
+            return null;
+
         var fieldsJson = p.TryGetValue(EntityPayloadFields.FieldsJson, out var fv) ? fv.StringValue : "{}";
-        var fields = JsonDocument.Parse(fieldsJson).RootElement.Clone();
-        var envelope = new EntityEnvelope(
-            Id: p[EntityPayloadFields.Id].StringValue,
-            Type: Enum.Parse<EntityType>(p[EntityPayloadFields.Type].StringValue),
-            Name: p[EntityPayloadFields.Name].StringValue,
-            SourceBook: p[EntityPayloadFields.SourceBook].StringValue,
-            Edition: p[EntityPayloadFields.Edition].StringValue,
+        JsonElement fields;
+        try
+        {
+            using var doc = JsonDocument.Parse(fieldsJson);
+            fields = doc.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        var firstBook    = p.TryGetValue(EntityPayloadFields.FirstBook,    out var fb) ? fb.StringValue : string.Empty;
+        var firstEdition = p.TryGetValue(EntityPayloadFields.FirstEdition, out var fe) ? fe.StringValue : string.Empty;
+
+        return new EntityEnvelope(
+            Id: idV.StringValue,
+            Type: entityType,
+            Name: nameV.StringValue,
+            SourceBook: sbV.StringValue,
+            Edition: edV.StringValue,
             Page: p.TryGetValue(EntityPayloadFields.Page, out var pp) ? (int?)pp.IntegerValue : null,
-            FirstAppearedIn: new FirstAppearance(
-                p[EntityPayloadFields.FirstBook].StringValue,
-                p[EntityPayloadFields.FirstEdition].StringValue),
+            FirstAppearedIn: new FirstAppearance(firstBook, firstEdition),
             RevisedIn: Array.Empty<Revision>(),
-            SettingTags: p.TryGetValue(EntityPayloadFields.SettingTags, out var st)
-                ? st.ListValue.Values.Select(v => v.StringValue).ToList()
-                : Array.Empty<string>(),
-            CanonicalText: p[EntityPayloadFields.CanonicalText].StringValue,
+            SettingTags: p.TryGetValue(EntityPayloadFields.SettingTags, out var st) && st.ListValue is { } stList
+                ? stList.Values.Select(v => v.StringValue).ToList()
+                : (IReadOnlyList<string>)Array.Empty<string>(),
+            CanonicalText: ctV.StringValue,
             Fields: fields,
             DataSource: p.TryGetValue(EntityPayloadFields.DataSource, out var ds) ? ds.StringValue : "",
             Srd:            p.TryGetValue(EntityPayloadFields.Srd,            out var srdV)   && srdV.StringValue   == "true",
-            Srd52:          p.TryGetValue(EntityPayloadFields.Srd52,          out var srd52V) && srd52V.StringValue  == "true",
-            BasicRules2024: p.TryGetValue(EntityPayloadFields.BasicRules2024, out var brV)    && brV.StringValue     == "true",
-            NeedsReview:    p.TryGetValue(EntityPayloadFields.NeedsReview,    out var nrV)    && nrV.StringValue     == "true",
-            Keywords: p.TryGetValue(EntityPayloadFields.Keywords, out var kw)
-                ? kw.ListValue.Values.Select(v => v.StringValue).ToList()
-                : Array.Empty<string>());
-        return envelope;
+            Srd52:          p.TryGetValue(EntityPayloadFields.Srd52,          out var srd52V) && srd52V.StringValue == "true",
+            BasicRules2024: p.TryGetValue(EntityPayloadFields.BasicRules2024, out var brV)    && brV.StringValue    == "true",
+            NeedsReview:    p.TryGetValue(EntityPayloadFields.NeedsReview,    out var nrV)    && nrV.StringValue    == "true",
+            Keywords: p.TryGetValue(EntityPayloadFields.Keywords, out var kw) && kw.ListValue is { } kwList
+                ? kwList.Values.Select(v => v.StringValue).ToList()
+                : (IReadOnlyList<string>)Array.Empty<string>());
     }
 
     private static Filter MatchKeyword(string field, string value)

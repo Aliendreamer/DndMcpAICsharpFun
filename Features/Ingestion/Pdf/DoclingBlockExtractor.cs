@@ -1,5 +1,3 @@
-using UglyToad.PdfPig.Core;
-
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
 public sealed partial class DoclingBlockExtractor(
@@ -25,7 +23,7 @@ public sealed partial class DoclingBlockExtractor(
             var order = perPageOrder.TryGetValue(item.PageNumber, out var n) ? n : 0;
             perPageOrder[item.PageNumber] = order + 1;
 
-            yield return new PdfBlock(text, item.PageNumber, order, default(PdfRectangle));
+            yield return new PdfBlock(text, item.PageNumber, order);
         }
     }
 

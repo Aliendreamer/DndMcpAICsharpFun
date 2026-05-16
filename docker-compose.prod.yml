@@ -102,7 +102,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
@@ -122,8 +122,8 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
     volumes:
-      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
@@ -156,7 +156,7 @@ services:
     ports:
       - "8888:8080"
     volumes:
-      - ./infra/searxng/settings.yml:/etc/searxng/settings.yml:ro
+      - ./docker/searxng/settings.yml:/etc/searxng/settings.yml:ro
     networks:
       - dnd_net
     restart: unless-stopped

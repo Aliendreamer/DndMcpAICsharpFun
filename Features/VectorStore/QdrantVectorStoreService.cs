@@ -32,12 +32,18 @@ public sealed partial class QdrantVectorStoreService(
         LogUpsertDone(logger, qdrantPoints.Count, _blocksCollectionName, sw.ElapsedMilliseconds);
     }
 
-    public async Task DeleteBlocksByHashAsync(string fileHash, int blockCount, CancellationToken ct = default)
+    public async Task DeleteBlocksByHashAsync(string fileHash, CancellationToken ct = default)
     {
-        var ids = Enumerable.Range(0, blockCount)
-            .Select(i => DerivePointId(fileHash, i))
-            .ToList();
-        await client.DeleteAsync(_blocksCollectionName, ids, cancellationToken: ct);
+        var filter = new Filter();
+        filter.Must.Add(new Condition
+        {
+            Field = new FieldCondition
+            {
+                Key = QdrantPayloadFields.FileHash,
+                Match = new Match { Keyword = fileHash }
+            }
+        });
+        await client.DeleteAsync(_blocksCollectionName, filter, cancellationToken: ct);
     }
 
     private static PointStruct BuildBlockPoint(
@@ -73,6 +79,7 @@ public sealed partial class QdrantVectorStoreService(
         point.Payload[QdrantPayloadFields.BlockOrder]   = (long)meta.BlockOrder;
         point.Payload[QdrantPayloadFields.ChunkIndex]   = (long)meta.GlobalIndex;
         point.Payload[QdrantPayloadFields.BookType]     = meta.BookType.ToString();
+        point.Payload[QdrantPayloadFields.FileHash]     = fileHash;
         return point;
     }
 

@@ -43,10 +43,8 @@ public sealed class EntityIngestionOrchestrator(
             logger.LogWarning("Dangling entity reference: {Source} -> {Target} ({Path})",
                 w.SourceEntityId, w.MissingTargetId, w.FieldPath);
 
-        await store.DeleteByFileHashAsync(record.FileHash, ct);
-
         // Pre-fetch existing Qdrant data for all entities to enable per-field merge.
-        // (5etools points use a different file hash and are NOT deleted above.)
+        // (5etools points use a different file hash and are NOT deleted below.)
         var entityIds = file.Entities.Select(e => e.Id).ToList();
         var existing = await store.GetByIdsAsync(entityIds, ct);
 
@@ -85,7 +83,13 @@ public sealed class EntityIngestionOrchestrator(
         for (int i = 0; i < renderedEnvelopes.Count; i++)
             points.Add(new EntityPoint(renderedEnvelopes[i], vectors[i], record.FileHash));
 
+        // Upsert first — if this fails, the old vectors are still intact.
         await store.UpsertAsync(points, ct);
+
+        // Delete old vectors only after upsert succeeds.
+        // Guard: skip if FileHash is empty (book registered but never block-ingested).
+        if (!string.IsNullOrEmpty(record.FileHash))
+            await store.DeleteByFileHashAsync(record.FileHash, ct);
 
         await tracker.MarkEntitiesIngestedAsync(bookId, points.Count, ct);
         logger.LogInformation("Entity ingestion complete: book {BookId}, {Count} entities", bookId, points.Count);

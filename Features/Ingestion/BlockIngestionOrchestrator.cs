@@ -52,7 +52,7 @@ public sealed partial class BlockIngestionOrchestrator(
             }
 
             if (record.ChunkCount.HasValue)
-                await vectorStore.DeleteBlocksByHashAsync(hash, record.ChunkCount.Value, CancellationToken.None);
+                await vectorStore.DeleteBlocksByHashAsync(hash, CancellationToken.None);
 
             var tocEntries = BookmarkTocMapper.Map(bookmarks);
             var tocMap = new TocCategoryMap(tocEntries);
