@@ -41,7 +41,9 @@ public static partial class BooksAdminEndpoints
         if (record is null)
             return Results.NotFound($"Book with id {id} not found");
 
-        if (record.Status == IngestionStatus.Processing)
+        if (record.Status is IngestionStatus.Processing
+            or IngestionStatus.EntitiesExtracting
+            or IngestionStatus.EntitiesIngesting)
             return Results.Conflict("Book is currently processing.");
 
         queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestBlocks, id));
@@ -58,7 +60,9 @@ public static partial class BooksAdminEndpoints
         if (record is null)
             return Results.NotFound($"Book with id {id} not found");
 
-        if (record.Status == IngestionStatus.Processing)
+        if (record.Status is IngestionStatus.Processing
+            or IngestionStatus.EntitiesExtracting
+            or IngestionStatus.EntitiesIngesting)
             return Results.Conflict("Book is currently processing.");
 
         queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestEntities, id));

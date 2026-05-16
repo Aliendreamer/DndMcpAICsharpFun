@@ -36,7 +36,7 @@ public sealed partial class QdrantCollectionInitializer(
             catch (Exception ex)
             {
                 LogCollectionInitFailed(logger, ex, _options.BlocksCollectionName);
-                return;
+                throw; // crash the host — Qdrant is required
             }
         }
     }

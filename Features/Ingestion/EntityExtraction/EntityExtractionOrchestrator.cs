@@ -287,15 +287,19 @@ public sealed class EntityExtractionOrchestrator(
         await errorsFile.WriteAsync(errorsPath, extractionErrors, ct);
         await warningsFile.WriteAsync(warningsPath, interWarnings, ct);
 
+        // Update SQLite FIRST so that if checkpoint deletion fails, the record is already consistent.
+        await tracker.MarkEntitiesExtractedAsync(bookId, extracted.Count, ct);
+
         // Remove checkpoint files now that the final output is written.
-        File.Delete(checkpointPath);
-        File.Delete(checkpointErrorsPath);
+        try { File.Delete(checkpointPath); }
+        catch (Exception ex) { logger.LogWarning(ex, "Could not delete checkpoint file {Path}", checkpointPath); }
+
+        try { File.Delete(checkpointErrorsPath); }
+        catch (Exception ex) { logger.LogWarning(ex, "Could not delete checkpoint errors file {Path}", checkpointErrorsPath); }
 
         logger.LogInformation(
             "Entity extraction complete: book {BookId}, {Clean} clean / {Errors} errors / {Warnings} warnings",
             bookId, extracted.Count, extractionErrors.Count, interWarnings.Count);
-
-        await tracker.MarkEntitiesExtractedAsync(bookId, extracted.Count, ct);
     }
 
     private async Task RunErrorsOnlyAsync(
@@ -527,12 +531,28 @@ public sealed class EntityExtractionOrchestrator(
         var tmp1 = progressPath + ".tmp";
         await using (var s = File.Create(tmp1))
             await JsonSerializer.SerializeAsync(s, extracted, CheckpointOptions);
-        File.Move(tmp1, progressPath, overwrite: true);
+        try
+        {
+            File.Move(tmp1, progressPath, overwrite: true);
+        }
+        catch
+        {
+            try { File.Delete(tmp1); } catch { /* best effort */ }
+            throw;
+        }
 
         var tmp2 = errorsPath + ".tmp";
         await using (var s = File.Create(tmp2))
             await JsonSerializer.SerializeAsync(s, errors, CheckpointOptions);
-        File.Move(tmp2, errorsPath, overwrite: true);
+        try
+        {
+            File.Move(tmp2, errorsPath, overwrite: true);
+        }
+        catch
+        {
+            try { File.Delete(tmp2); } catch { /* best effort */ }
+            throw;
+        }
     }
 
     private static IList<ScannerInput> BuildScannerInputs(IReadOnlyList<DoclingItem> items)
@@ -572,6 +592,14 @@ public sealed class EntityExtractionOrchestrator(
             catch (FileNotFoundException)
             {
                 logger.LogDebug("Schema file not found for {Type} at {Path}; type will be skipped", type, path);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogWarning(ex, "Schema file for {Type} at {Path} is malformed; type will be skipped", type, path);
+            }
+            catch (IOException ex)
+            {
+                logger.LogWarning(ex, "Could not read schema file for {Type} at {Path}; type will be skipped", type, path);
             }
         }
         return dict;

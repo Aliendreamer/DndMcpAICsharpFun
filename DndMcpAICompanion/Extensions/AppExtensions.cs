@@ -36,7 +36,23 @@ internal static class AppExtensions
         if (string.IsNullOrWhiteSpace(mcpOpts.ApiKey))
             app.Logger.LogWarning("Mcp:ApiKey is not configured — MCP requests will be sent without authentication and will likely be rejected by the server.");
 
-        app.Lifetime.ApplicationStopping.Register(() => mcpClient.DisposeAsync().AsTask().GetAwaiter().GetResult());
+        app.Lifetime.ApplicationStopping.Register(() =>
+        {
+            try
+            {
+                mcpClient.DisposeAsync().AsTask()
+                    .WaitAsync(TimeSpan.FromSeconds(5))
+                    .GetAwaiter().GetResult();
+            }
+            catch (TimeoutException)
+            {
+                // MCP client did not dispose within 5 s — proceeding with shutdown.
+            }
+            catch
+            {
+                // Dispose errors are non-fatal during shutdown.
+            }
+        });
 
         app.MapGet("/logout", async (HttpContext ctx) =>
         {
