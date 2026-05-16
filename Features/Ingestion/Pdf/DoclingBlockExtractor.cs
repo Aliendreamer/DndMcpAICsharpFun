@@ -4,12 +4,12 @@ public sealed partial class DoclingBlockExtractor(
     IDoclingPdfConverter converter,
     ILogger<DoclingBlockExtractor> logger) : IPdfBlockExtractor
 {
-    public IEnumerable<PdfBlock> ExtractBlocks(string filePath)
+    public IEnumerable<PdfBlock> ExtractBlocks(string filePath, CancellationToken ct = default)
     {
         // Docling exposes only an async API; ExtractBlocks is sync to match the
         // existing interface. Running inside BackgroundService → no
         // SynchronizationContext, so blocking on the task is safe.
-        var doc = converter.ConvertAsync(filePath, CancellationToken.None)
+        var doc = converter.ConvertAsync(filePath, ct)
             .GetAwaiter().GetResult();
 
         LogConverted(logger, Path.GetFileName(filePath), doc.Items.Count);

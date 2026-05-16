@@ -53,8 +53,12 @@ public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTr
             .OrderBy(r => r.CreatedAt)
             .ToListAsync(ct);
 
-    public async Task<IList<IngestionRecord>> GetAllAsync(CancellationToken ct = default) =>
-        await db.IngestionRecords.OrderBy(r => r.CreatedAt).ToListAsync(ct);
+    public async Task<List<IngestionRecord>> GetAllAsync(int limit = 100, int offset = 0, CancellationToken ct = default) =>
+        await db.IngestionRecords
+            .OrderBy(r => r.Id)
+            .Skip(offset)
+            .Take(limit)
+            .ToListAsync(ct);
 
     public async Task MarkDuplicateAsync(int id, CancellationToken ct = default)
     {

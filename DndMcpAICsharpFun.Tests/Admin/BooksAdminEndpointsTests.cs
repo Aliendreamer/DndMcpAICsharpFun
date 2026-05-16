@@ -59,7 +59,7 @@ public sealed class BooksAdminEndpointsTests
 
     // POST /admin/books/register
     [Fact]
-    public async Task RegisterBook_ValidPdf_Returns202()
+    public async Task RegisterBook_ValidPdf_Returns201()
     {
         var (client, tracker, _, _) = await BuildClientAsync();
         tracker.CreateAsync(Arg.Any<IngestionRecord>(), Arg.Any<CancellationToken>())
@@ -72,7 +72,7 @@ public sealed class BooksAdminEndpointsTests
 
         var response = await client.PostAsync("/admin/books/register", content);
 
-        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         await tracker.Received(1).CreateAsync(
             Arg.Is<IngestionRecord>(r => r.DisplayName == "Player's Handbook"),
             Arg.Any<CancellationToken>());
@@ -125,7 +125,7 @@ public sealed class BooksAdminEndpointsTests
 
         var response = await client.PostAsync("/admin/books/register", content);
 
-        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         await tracker.Received(1).CreateAsync(
             Arg.Is<IngestionRecord>(r => r.BookType == DndMcpAICsharpFun.Domain.BookType.Supplement),
             Arg.Any<CancellationToken>());
@@ -147,7 +147,7 @@ public sealed class BooksAdminEndpointsTests
 
         var response = await client.PostAsync("/admin/books/register", content);
 
-        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         await tracker.Received(1).CreateAsync(
             Arg.Is<IngestionRecord>(r => r.BookType == DndMcpAICsharpFun.Domain.BookType.Unknown),
             Arg.Any<CancellationToken>());
@@ -170,7 +170,7 @@ public sealed class BooksAdminEndpointsTests
 
         var response = await client.PostAsync("/admin/books/register", content);
 
-        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         await tracker.Received(1).CreateAsync(
             Arg.Is<IngestionRecord>(r => r.BookType == DndMcpAICsharpFun.Domain.BookType.Unknown),
             Arg.Any<CancellationToken>());
@@ -183,7 +183,7 @@ public sealed class BooksAdminEndpointsTests
     public async Task GetAllBooks_Returns200WithList()
     {
         var (client, tracker, _, _) = await BuildClientAsync();
-        tracker.GetAllAsync().Returns(Task.FromResult<IList<IngestionRecord>>([MakeRecord()]));
+        tracker.GetAllAsync().Returns(Task.FromResult(new List<IngestionRecord> { MakeRecord() }));
 
         var response = await client.GetAsync("/admin/books");
 
@@ -281,7 +281,7 @@ public sealed class BooksAdminEndpointsTests
 
         var response = await client.PostAsync("/admin/books/register", content);
 
-        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         await tracker.Received(1).CreateAsync(
             Arg.Is<IngestionRecord>(r => r.FivetoolsSourceKey == "PHB"),
             Arg.Any<CancellationToken>());
@@ -320,7 +320,7 @@ public sealed class BooksAdminEndpointsTests
 
         var response = await client.PostAsync("/admin/books/register", content);
 
-        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("suggestedSources", body, StringComparison.OrdinalIgnoreCase);
         foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))

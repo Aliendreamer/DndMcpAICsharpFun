@@ -216,7 +216,7 @@ public static partial class BooksAdminEndpoints
             var suggestions = fivetoolsSourceKey is null
                 ? registry.SuggestByName(displayName ?? "")
                 : (IReadOnlyList<string>)Array.Empty<string>();
-            return Results.Accepted($"/admin/books/{created.Id}", new RegisterBookResponse(created, suggestions));
+            return Results.Created($"/admin/books/{created.Id}", new RegisterBookResponse(created, suggestions));
         }
         finally
         {
@@ -225,9 +225,13 @@ public static partial class BooksAdminEndpoints
         }
     }
 
-    private static async Task<IResult> GetAllBooks(IIngestionTracker tracker)
+    private static async Task<IResult> GetAllBooks(
+        IIngestionTracker tracker,
+        int limit = 100,
+        int offset = 0,
+        CancellationToken ct = default)
     {
-        var records = await tracker.GetAllAsync();
+        var records = await tracker.GetAllAsync(limit, offset, ct);
         return Results.Ok(records);
     }
 

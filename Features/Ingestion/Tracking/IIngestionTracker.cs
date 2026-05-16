@@ -15,7 +15,7 @@ public interface IIngestionTracker
     Task MarkEntitiesFailedAsync(int bookId, string error, CancellationToken ct = default);
     Task ResetForReingestionAsync(int id, CancellationToken ct = default);
     Task<IList<IngestionRecord>> GetPendingAndFailedAsync(CancellationToken ct = default);
-    Task<IList<IngestionRecord>> GetAllAsync(CancellationToken ct = default);
+    Task<List<IngestionRecord>> GetAllAsync(int limit = 100, int offset = 0, CancellationToken ct = default);
     Task<IngestionRecord?> GetByIdAsync(int id, CancellationToken ct = default);
     Task MarkDuplicateAsync(int id, CancellationToken ct = default);
     Task<bool> DeleteAsync(int id, CancellationToken ct = default);
