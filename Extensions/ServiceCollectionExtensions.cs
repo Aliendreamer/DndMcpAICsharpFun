@@ -117,7 +117,10 @@ internal static class ServiceCollectionExtensions
     internal static IServiceCollection AddWebSearch(
         this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<SearXNGOptions>(configuration.GetSection("SearXNG"));
+        services.AddOptions<SearXNGOptions>()
+            .BindConfiguration("SearXNG")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         services.AddHttpClient<SearXNGClient>((sp, client) =>
         {
             var opts = sp.GetRequiredService<IOptions<SearXNGOptions>>().Value;
@@ -129,7 +132,10 @@ internal static class ServiceCollectionExtensions
 
     internal static IServiceCollection AddEntityExtraction(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<EntityExtractionOptions>(configuration.GetSection("EntityExtraction"));
+        services.AddOptions<EntityExtractionOptions>()
+            .BindConfiguration("EntityExtraction")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         services.AddSingleton<IChatClient>(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;

@@ -1,7 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace DndMcpAICsharpFun.Infrastructure.Qdrant;
 
 public sealed class QdrantOptions
 {
+    [Required]
     public string Host { get; set; } = "localhost";
     public int Port { get; set; } = 6334;
     public int VectorSize { get; set; } = 768;

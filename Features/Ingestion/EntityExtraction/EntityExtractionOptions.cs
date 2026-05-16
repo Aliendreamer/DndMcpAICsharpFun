@@ -1,8 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
 public sealed class EntityExtractionOptions
 {
+    [Required]
     public string CanonicalDirectory { get; set; } = "data/canonical";
+    [Required]
     public string SchemasDirectory { get; set; } = "Schemas/canonical";
     public int MaxRetriesPerEntity { get; set; } = 3;
     public int MaxOutputTokensPerEntity { get; set; } = 8192;

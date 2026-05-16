@@ -3,9 +3,12 @@
 @using DndMcpAICompanion.Features.Auth
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.Extensions.Caching.Memory
 @using System.Security.Claims
 @inject UserRepository UserRepo
 @inject NavigationManager Nav
+@inject IMemoryCache Cache
+@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Register</PageTitle>
 
@@ -47,6 +50,20 @@
 
     private async Task OnSubmit()
     {
+        var ip = HttpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var key = $"reg:{ip}";
+        var count = Cache.GetOrCreate(key, e =>
+        {
+            e.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            return 0;
+        });
+        if (count >= 5)
+        {
+            _error = "Too many registration attempts. Try again later.";
+            return;
+        }
+        Cache.Set(key, count + 1, TimeSpan.FromMinutes(10));
+
         if (_model.Password != _model.Confirm)
         {
             _error = "Passwords do not match";

@@ -8,7 +8,7 @@ public static class CanonicalValidationEndpoints
             CanonicalValidationService svc, CancellationToken ct) =>
         {
             var report = await svc.ValidateAsync(ct);
-            return report.Failures.Count > 0
+            return report.Failures.Count > 0 || report.NeedsReview.Count > 0
                 ? Results.UnprocessableEntity(report)
                 : Results.Ok(report);
         });

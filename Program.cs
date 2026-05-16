@@ -23,15 +23,42 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 // Options
-builder.Services.Configure<QdrantOptions>(builder.Configuration.GetSection("Qdrant"));
-builder.Services.Configure<OllamaOptions>(builder.Configuration.GetSection("Ollama"));
-builder.Services.Configure<IngestionOptions>(builder.Configuration.GetSection("Ingestion"));
-builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
-builder.Services.Configure<RetrievalOptions>(builder.Configuration.GetSection("Retrieval"));
-builder.Services.Configure<DoclingOptions>(builder.Configuration.GetSection("Docling"));
-builder.Services.Configure<DndMcpAICsharpFun.Features.Ingestion.Entities.EntityIngestionOptions>(builder.Configuration.GetSection("EntityIngestion"));
-builder.Services.Configure<McpOptions>(builder.Configuration.GetSection("Mcp"));
-builder.Services.Configure<RerankerOptions>(builder.Configuration.GetSection("Reranker"));
+builder.Services.AddOptions<QdrantOptions>()
+    .BindConfiguration("Qdrant")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<OllamaOptions>()
+    .BindConfiguration("Ollama")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<IngestionOptions>()
+    .BindConfiguration("Ingestion")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<AdminOptions>()
+    .BindConfiguration("Admin")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<RetrievalOptions>()
+    .BindConfiguration("Retrieval")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<DoclingOptions>()
+    .BindConfiguration("Docling")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<DndMcpAICsharpFun.Features.Ingestion.Entities.EntityIngestionOptions>()
+    .BindConfiguration("EntityIngestion")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<McpOptions>()
+    .BindConfiguration("Mcp")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<RerankerOptions>()
+    .BindConfiguration("Reranker")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddSingleton<CrossEncoderReranker>(sp =>
     new CrossEncoderReranker(
         sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RerankerOptions>>().Value,
