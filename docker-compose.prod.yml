@@ -22,8 +22,40 @@ services:
         condition: service_healthy
       ollama-pull:
         condition: service_completed_successfully
+      marker:
+        condition: service_healthy
       searxng:
         condition: service_started
+    networks:
+      - dnd_net
+    restart: unless-stopped
+
+  marker:
+    build:
+      context: ./docker/marker
+      dockerfile: Dockerfile
+    volumes:
+      - books_data:/books:ro
+      - marker_models:/root/.cache/datalab
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request, json; r=urllib.request.urlopen('http://localhost:5002/health', timeout=5); d=json.loads(r.read()); exit(0 if d.get('models_loaded') else 1)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 10m
     networks:
       - dnd_net
     restart: unless-stopped
@@ -145,6 +177,7 @@ services:
 
 volumes:
   books_data:
+  marker_models:
   qdrant_data:
   app_data:
   ollama_data:
