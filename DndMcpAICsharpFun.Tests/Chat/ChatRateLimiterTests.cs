@@ -1,8 +1,8 @@
-using DndMcpAICompanion.Features.Chat;
+using DndMcpAICsharpFun.Features.Chat;
 using FluentAssertions;
 using Xunit;
 
-namespace DndMcpAICompanion.Tests.Chat;
+namespace DndMcpAICsharpFun.Tests.Chat;
 
 public class ChatRateLimiterTests
 {

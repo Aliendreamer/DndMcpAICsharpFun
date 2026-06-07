@@ -1,10 +1,11 @@
-using DndMcpAICompanion.Features.Chat;
+using DndMcpAICsharpFun.Features.Chat;
+using DndMcpAICsharpFun.Tests.Persistence;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.AI;
 using Xunit;
 
-namespace DndMcpAICompanion.Tests.Chat;
+namespace DndMcpAICsharpFun.Tests.Chat;
 
 internal sealed class FakeChatClient : IChatClient
 {
@@ -36,11 +37,24 @@ internal sealed class NullHttpContextAccessor : IHttpContextAccessor
     public HttpContext? HttpContext { get; set; }
 }
 
-public class DndChatServiceTests
+internal sealed class FakeMcpToolsProvider(IReadOnlyList<AITool> tools) : IMcpToolsProvider
 {
-    private static DndChatService CreateService(FakeChatClient client,
-        IReadOnlyList<AITool>? tools = null) =>
-        new(client, tools ?? [], new NullHttpContextAccessor(), new ChatRateLimiter(1000));
+    public Task<IReadOnlyList<AITool>> GetToolsAsync(CancellationToken ct = default) =>
+        Task.FromResult(tools);
+}
+
+public sealed class DndChatServiceTests : IDisposable
+{
+    private readonly TestDb _db = new();
+
+    public void Dispose() => _db.Dispose();
+
+    private DndChatService CreateService(FakeChatClient client, IReadOnlyList<AITool>? tools = null) =>
+        new(client,
+            new FakeMcpToolsProvider(tools ?? []),
+            new ChatRepository(_db),
+            new NullHttpContextAccessor(),
+            new ChatRateLimiter(1000));
 
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()

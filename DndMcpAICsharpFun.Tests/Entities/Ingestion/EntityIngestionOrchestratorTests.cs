@@ -1,3 +1,4 @@
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;

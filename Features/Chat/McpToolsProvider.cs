@@ -5,6 +5,12 @@ using AppMcpClientOptions = DndMcpAICsharpFun.Features.Chat.McpClientOptions;
 
 namespace DndMcpAICsharpFun.Features.Chat;
 
+/// <summary>Supplies the MCP tool set to the chat service.</summary>
+public interface IMcpToolsProvider
+{
+    Task<IReadOnlyList<AITool>> GetToolsAsync(CancellationToken ct = default);
+}
+
 /// <summary>
 /// Lazily creates the MCP client and lists its tools on first use. In the merged
 /// single-process host the MCP server and client share a process, so creating the
@@ -12,7 +18,7 @@ namespace DndMcpAICsharpFun.Features.Chat;
 /// </summary>
 public sealed class McpToolsProvider(
     IOptions<AppMcpClientOptions> options,
-    ILogger<McpToolsProvider> logger) : IAsyncDisposable
+    ILogger<McpToolsProvider> logger) : IMcpToolsProvider, IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
     private McpClient? _client;

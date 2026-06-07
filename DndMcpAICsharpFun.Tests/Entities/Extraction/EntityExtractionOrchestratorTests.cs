@@ -29,7 +29,7 @@ public class EntityExtractionOrchestratorTests
             const string displayName = "Test Book";
             const string version = "5e";
 
-            var record = new DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
                 Id = bookId,
                 FilePath = "/dev/null",
@@ -129,7 +129,7 @@ public class EntityExtractionOrchestratorTests
     private static (
         string canonicalDir,
         string schemasDir,
-        DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord record,
+        DndMcpAICsharpFun.Domain.IngestionRecord record,
         DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker tracker,
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter converter,
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader bookmarkReader,
@@ -146,7 +146,7 @@ public class EntityExtractionOrchestratorTests
             Path.Combine(schemasDir, "MonsterFields.schema.json"),
             "{ \"type\": \"object\" }");
 
-        var record = new DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord
+        var record = new DndMcpAICsharpFun.Domain.IngestionRecord
         {
             Id          = bookId,
             FilePath    = "/dev/null",
@@ -610,7 +610,7 @@ public class EntityExtractionOrchestratorTests
 
         try
         {
-            var record = new DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
                 Id          = bookId,
                 FilePath    = "/dev/null",
@@ -776,7 +776,7 @@ public class EntityExtractionOrchestratorTests
         try
         {
             // Record has FivetoolsSourceKey = "PHB".
-            var record = new DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
                 Id                 = bookId,
                 FilePath           = "/dev/null",

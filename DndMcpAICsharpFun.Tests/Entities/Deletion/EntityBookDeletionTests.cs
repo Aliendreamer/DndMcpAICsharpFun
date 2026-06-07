@@ -1,3 +1,4 @@
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;

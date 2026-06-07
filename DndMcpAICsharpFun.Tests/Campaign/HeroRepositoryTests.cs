@@ -1,30 +1,25 @@
-using System.Text.Json;
-using DndMcpAICompanion.Features.Campaign;
+using DndMcpAICsharpFun.Domain;
+using DndMcpAICsharpFun.Features.Campaigns;
+using DndMcpAICsharpFun.Tests.Persistence;
 using FluentAssertions;
-using Microsoft.Data.Sqlite;
 using Xunit;
 
-namespace DndMcpAICompanion.Tests.Campaign;
+namespace DndMcpAICsharpFun.Tests.Campaign;
 
-public sealed class HeroRepositoryTests : IAsyncLifetime
+public sealed class HeroRepositoryTests : IDisposable
 {
-    private readonly string _connStr = $"Data Source=hero_{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
-    private SqliteConnection _keepAlive = null!;
-    private CampaignRepository _campRepo = null!;
-    private HeroRepository _repo = null!;
-    private long _campaignId;
+    private readonly TestDb _db = new();
+    private readonly HeroRepository _repo;
+    private readonly long _campaignId;
 
-    public async Task InitializeAsync()
+    public HeroRepositoryTests()
     {
-        _keepAlive = new SqliteConnection(_connStr);
-        await _keepAlive.OpenAsync();
-        _campRepo = new CampaignRepository(_connStr);
-        await _campRepo.InitializeAsync();
-        _repo = new HeroRepository(_connStr);
-        _campaignId = await _campRepo.CreateAsync(1, "Test Campaign", "");
+        var campRepo = new CampaignRepository(_db);
+        _repo = new HeroRepository(_db);
+        _campaignId = campRepo.CreateAsync(1, "Test Campaign", "").GetAwaiter().GetResult();
     }
 
-    public async Task DisposeAsync() => _keepAlive.Dispose();
+    public void Dispose() => _db.Dispose();
 
     [Fact]
     public async Task CreateAsync_InsertsHeroWithBlankSnapshot()

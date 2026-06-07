@@ -1,8 +1,8 @@
-using DndMcpAICompanion.Features.Auth;
+using DndMcpAICsharpFun.Features.Auth;
 using FluentAssertions;
 using Xunit;
 
-namespace DndMcpAICompanion.Tests.Auth;
+namespace DndMcpAICsharpFun.Tests.Auth;
 
 public sealed class PasswordHasherTests
 {

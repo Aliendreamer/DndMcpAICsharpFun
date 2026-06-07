@@ -1,5 +1,6 @@
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
-using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using DndMcpAICsharpFun.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,24 +9,24 @@ namespace DndMcpAICsharpFun.Tests.Infrastructure.Tracking;
 public sealed class TrackerFixture : IDisposable
 {
     private readonly SqliteConnection _connection;
-    private readonly DbContextOptions<IngestionDbContext> _options;
+    private readonly DbContextOptions<AppDbContext> _options;
 
     public TrackerFixture()
     {
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
 
-        _options = new DbContextOptionsBuilder<IngestionDbContext>()
+        _options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlite(_connection)
             .Options;
 
-        using var db = new IngestionDbContext(_options);
+        using var db = new AppDbContext(_options);
         db.Database.Migrate();
     }
 
     public SqliteIngestionTracker CreateTracker()
     {
-        var db = new IngestionDbContext(_options);
+        var db = new AppDbContext(_options);
         return new SqliteIngestionTracker(db);
     }
 

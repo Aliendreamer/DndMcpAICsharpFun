@@ -1,9 +1,10 @@
+using DndMcpAICsharpFun.Domain;
 using System.Text.Json;
-using DndMcpAICompanion.Features.Campaign;
+using DndMcpAICsharpFun.Features.Campaigns;
 using FluentAssertions;
 using Xunit;
 
-namespace DndMcpAICompanion.Tests.Campaign;
+namespace DndMcpAICsharpFun.Tests.Campaign;
 
 public sealed class CharacterSheetSerializationTests
 {

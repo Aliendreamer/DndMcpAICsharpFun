@@ -1,3 +1,4 @@
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
 namespace DndMcpAICsharpFun.Tests.Infrastructure.Tracking;

@@ -11,6 +11,7 @@ internal static class ChatExtensions
         var chatModel = config["Ollama:ChatModel"] ?? "qwen3:8b";
         services.AddHttpContextAccessor();
         services.AddSingleton<McpToolsProvider>();
+        services.AddSingleton<IMcpToolsProvider>(sp => sp.GetRequiredService<McpToolsProvider>());
         services.AddTransient<IChatClient>(_ =>
         {
             IChatClient inner = new OllamaChatClient(new Uri(baseUrl), chatModel);

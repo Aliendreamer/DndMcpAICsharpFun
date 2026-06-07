@@ -6,7 +6,7 @@ namespace DndMcpAICsharpFun.Features.Chat;
 
 public sealed class DndChatService(
     IChatClient chatClient,
-    McpToolsProvider toolsProvider,
+    IMcpToolsProvider toolsProvider,
     ChatRepository chatRepository,
     IHttpContextAccessor httpContextAccessor,
     ChatRateLimiter rateLimiter)

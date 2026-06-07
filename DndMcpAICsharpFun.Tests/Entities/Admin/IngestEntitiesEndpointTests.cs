@@ -1,3 +1,4 @@
+using DndMcpAICsharpFun.Domain;
 using System.Net;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Ingestion;
