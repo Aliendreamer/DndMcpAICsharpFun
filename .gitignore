@@ -488,4 +488,4 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
-.worktrees/
+.worktrees/models/
