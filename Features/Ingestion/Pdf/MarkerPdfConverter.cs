@@ -7,12 +7,6 @@ using Microsoft.Extensions.Options;
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
 /// <summary>
-/// SPIKE — Marker-based implementation of <see cref="IPdfStructureConverter"/> for the
-/// marker-vs-docling conversion comparison (openspec/changes/marker-converter-spike).
-/// Not registered in DI; constructed directly by the comparison harness.
-/// Maps the Marker JSON block tree onto <see cref="PdfStructureDocument"/> items.
-/// </summary>
-/// <summary>
 /// Production Marker-based implementation of <see cref="IPdfStructureConverter"/>.
 /// Submits the PDF to the Marker wrapper API, polls for completion, and maps
 /// the resulting JSON block tree onto <see cref="PdfStructureDocument"/>.
@@ -64,6 +58,9 @@ public sealed partial class MarkerPdfConverter(
         var timeout = TimeSpan.FromMinutes(opts.ConversionTimeoutMinutes);
         var pollInterval = TimeSpan.FromSeconds(opts.PollIntervalSeconds);
 
+        const int MaxTransientFailures = 5;
+        int consecutivePollFailures = 0;
+
         while (true)
         {
             ct.ThrowIfCancellationRequested();
@@ -75,8 +72,34 @@ public sealed partial class MarkerPdfConverter(
 
             await Task.Delay(pollInterval, ct);
 
-            var status = await http.GetFromJsonAsync<JsonElement>(
-                $"{opts.Url}/status/{jobId}", ct);
+            JsonElement status;
+            try
+            {
+                status = await http.GetFromJsonAsync<JsonElement>(
+                    $"{opts.Url}/status/{jobId}", ct);
+                consecutivePollFailures = 0; // reset on success
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw; // caller-requested cancellation always propagates immediately
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+            {
+                consecutivePollFailures++;
+                if (consecutivePollFailures >= MaxTransientFailures)
+                {
+                    logger.LogError(ex,
+                        "Marker status poll failed {Attempts} consecutive times for job {JobId}; giving up",
+                        consecutivePollFailures, jobId);
+                    throw;
+                }
+
+                logger.LogWarning(ex,
+                    "Transient Marker status-poll failure #{Attempt}/{Max} for job {JobId}; will retry",
+                    consecutivePollFailures, MaxTransientFailures, jobId);
+                continue;
+            }
+
             var state = status.GetProperty("state").GetString();
 
             if (state == "done") break;
@@ -87,7 +110,36 @@ public sealed partial class MarkerPdfConverter(
                     $"{(status.TryGetProperty("error", out var err) ? err.GetString() : "unknown error")}");
         }
 
-        var result = await http.GetFromJsonAsync<JsonElement>($"{opts.Url}/result/{jobId}", ct);
+        JsonElement result;
+        int consecutiveResultFailures = 0;
+        while (true)
+        {
+            try
+            {
+                result = await http.GetFromJsonAsync<JsonElement>($"{opts.Url}/result/{jobId}", ct);
+                break;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+            {
+                consecutiveResultFailures++;
+                if (consecutiveResultFailures >= MaxTransientFailures)
+                {
+                    logger.LogError(ex,
+                        "Marker result fetch failed {Attempts} consecutive times for job {JobId}; giving up",
+                        consecutiveResultFailures, jobId);
+                    throw;
+                }
+
+                logger.LogWarning(ex,
+                    "Transient Marker result-fetch failure #{Attempt}/{Max} for job {JobId}; will retry",
+                    consecutiveResultFailures, MaxTransientFailures, jobId);
+                await Task.Delay(pollInterval, ct);
+            }
+        }
 
         logger.LogInformation(
             "Marker conversion completed for {FileName} in {Elapsed:F1}s",
