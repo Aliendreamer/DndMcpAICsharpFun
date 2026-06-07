@@ -6,6 +6,8 @@ using DndMcpAICsharpFun.Infrastructure.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
+using DndMcpAICsharpFun.Infrastructure.Persistence;
+
 namespace DndMcpAICsharpFun.Extensions;
 
 [ExcludeFromCodeCoverage]
@@ -14,7 +16,7 @@ internal static class WebApplicationExtensions
     internal static async Task MigrateDatabaseAsync(this WebApplication app)
     {
         using var scope = app.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<IngestionDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
         // WAL mode allows concurrent reads while the background worker holds a write lock.
         // The pragma is persistent — it only needs to run once after the DB is created.

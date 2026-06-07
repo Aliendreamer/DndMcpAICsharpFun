@@ -31,6 +31,8 @@ using OpenTelemetry.Resources;
 
 using Qdrant.Client;
 
+using DndMcpAICsharpFun.Infrastructure.Persistence;
+
 namespace DndMcpAICsharpFun.Extensions;
 
 [ExcludeFromCodeCoverage]
@@ -60,11 +62,14 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<IOllamaApiClient>(sp => sp.GetRequiredService<OllamaApiClient>());
 
-        services.AddDbContext<IngestionDbContext>(static (sp, options) =>
+        services.AddDbContextFactory<AppDbContext>(static (sp, options) =>
         {
             var ingestionOpts = sp.GetRequiredService<IOptions<IngestionOptions>>().Value;
             options.UseSqlite($"Data Source={ingestionOpts.DatabasePath}");
         });
+        // Scoped AppDbContext (for the ingestion tracker + startup migration) delegates to the factory.
+        services.AddScoped<AppDbContext>(sp =>
+            sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 
         return services;
     }

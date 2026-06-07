@@ -11,12 +11,8 @@ internal static class AppExtensions
 {
     internal static async Task InitializeDatabaseAsync(this WebApplication app)
     {
+        // Schema is created by EF migrations (MigrateDatabaseAsync). Seed a dev login for convenience.
         var userRepo = app.Services.GetRequiredService<UserRepository>();
-        await userRepo.InitializeAsync();
-
-        var campaignRepo = app.Services.GetRequiredService<CampaignRepository>();
-        await campaignRepo.InitializeAsync();
-
         if (!await userRepo.ExistsAsync("test"))
             await userRepo.CreateAsync("test", PasswordHasher.Hash("test"));
     }

@@ -1,5 +1,5 @@
-using System.Text.Json;
-using Microsoft.Data.Sqlite;
+using DndMcpAICsharpFun.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 using DndMcpAICsharpFun.Domain;
 
@@ -10,163 +10,90 @@ namespace DndMcpAICsharpFun.Features.Campaigns;
 
 
 
-public sealed class HeroRepository(string connectionString)
+public sealed class HeroRepository(IDbContextFactory<AppDbContext> dbf)
 {
     public async Task<List<Hero>> GetByCampaignAsync(long campaignId)
     {
-        await using var conn = new SqliteConnection(connectionString);
-        await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-            SELECT h.Id, h.CampaignId, h.Name, h.CreatedAt,
-                   s.Id, s.SessionNumber, s.SessionLabel, s.Level, s.CreatedAt, s.CharacterJson
-            FROM Heroes h
-            LEFT JOIN HeroSnapshots s ON s.Id = (
-                SELECT Id FROM HeroSnapshots WHERE HeroId = h.Id ORDER BY CreatedAt DESC LIMIT 1
-            )
-            WHERE h.CampaignId = @cid
-            ORDER BY h.CreatedAt ASC
-            """;
-        cmd.Parameters.AddWithValue("@cid", campaignId);
-        var results = new List<Hero>();
-        await using var reader = await cmd.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-            results.Add(ReadHero(reader));
-        return results;
+        await using var db = await dbf.CreateDbContextAsync();
+        var heroes = await db.Heroes.AsNoTracking()
+            .Where(h => h.CampaignId == campaignId)
+            .OrderBy(h => h.CreatedAt)
+            .ToListAsync();
+        foreach (var h in heroes)
+            h.LatestSnapshot = await LatestSnapshotAsync(db, h.Id);
+        return heroes;
     }
 
     public async Task<List<HeroWithCampaign>> GetAllByUserAsync(long userId)
     {
-        await using var conn = new SqliteConnection(connectionString);
-        await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-            SELECT h.Id, h.CampaignId, h.Name, h.CreatedAt,
-                   s.Id, s.SessionNumber, s.SessionLabel, s.Level, s.CreatedAt, s.CharacterJson,
-                   c.Name as CampaignName
-            FROM Heroes h
-            JOIN Campaigns c ON c.Id = h.CampaignId
-            LEFT JOIN HeroSnapshots s ON s.Id = (
-                SELECT Id FROM HeroSnapshots WHERE HeroId = h.Id ORDER BY CreatedAt DESC LIMIT 1
-            )
-            WHERE c.UserId = @uid
-            ORDER BY c.Name, h.Name
-            """;
-        cmd.Parameters.AddWithValue("@uid", userId);
-        var results = new List<HeroWithCampaign>();
-        await using var reader = await cmd.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
+        await using var db = await dbf.CreateDbContextAsync();
+        var rows = await (from h in db.Heroes.AsNoTracking()
+                          join c in db.Campaigns.AsNoTracking() on h.CampaignId equals c.Id
+                          where c.UserId == userId
+                          orderby c.Name, h.Name
+                          select new { Hero = h, CampaignName = c.Name }).ToListAsync();
+        var results = new List<HeroWithCampaign>(rows.Count);
+        foreach (var row in rows)
         {
-            var hero = ReadHero(reader);
-            var campaignName = reader.GetString(10);
-            results.Add(new HeroWithCampaign(hero, campaignName));
+            row.Hero.LatestSnapshot = await LatestSnapshotAsync(db, row.Hero.Id);
+            results.Add(new HeroWithCampaign(row.Hero, row.CampaignName));
         }
         return results;
     }
 
     public async Task<Hero?> GetByIdAsync(long id)
     {
-        await using var conn = new SqliteConnection(connectionString);
-        await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-            SELECT h.Id, h.CampaignId, h.Name, h.CreatedAt,
-                   s.Id, s.SessionNumber, s.SessionLabel, s.Level, s.CreatedAt, s.CharacterJson
-            FROM Heroes h
-            LEFT JOIN HeroSnapshots s ON s.Id = (
-                SELECT Id FROM HeroSnapshots WHERE HeroId = h.Id ORDER BY CreatedAt DESC LIMIT 1
-            )
-            WHERE h.Id = @id
-            """;
-        cmd.Parameters.AddWithValue("@id", id);
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (!await reader.ReadAsync()) return null;
-        return ReadHero(reader);
+        await using var db = await dbf.CreateDbContextAsync();
+        var hero = await db.Heroes.AsNoTracking().FirstOrDefaultAsync(h => h.Id == id);
+        if (hero is null) return null;
+        hero.LatestSnapshot = await LatestSnapshotAsync(db, hero.Id);
+        return hero;
     }
 
     public async Task<List<HeroSnapshotMeta>> GetSnapshotsAsync(long heroId)
     {
-        await using var conn = new SqliteConnection(connectionString);
-        await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT Id, HeroId, SessionNumber, SessionLabel, Level, CreatedAt FROM HeroSnapshots WHERE HeroId = @id ORDER BY CreatedAt DESC";
-        cmd.Parameters.AddWithValue("@id", heroId);
-        var results = new List<HeroSnapshotMeta>();
-        await using var reader = await cmd.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-            results.Add(new HeroSnapshotMeta(reader.GetInt64(0), reader.GetInt64(1), reader.GetInt32(2), reader.GetString(3), reader.GetInt32(4), DateTime.Parse(reader.GetString(5))));
-        return results;
+        await using var db = await dbf.CreateDbContextAsync();
+        return await db.HeroSnapshots.AsNoTracking()
+            .Where(s => s.HeroId == heroId)
+            .OrderByDescending(s => s.CreatedAt)
+            .Select(s => new HeroSnapshotMeta(s.Id, s.HeroId, s.SessionNumber, s.SessionLabel, s.Level, s.CreatedAt))
+            .ToListAsync();
     }
 
     public async Task<HeroSnapshot?> GetSnapshotAsync(long snapshotId)
     {
-        await using var conn = new SqliteConnection(connectionString);
-        await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT Id, HeroId, SessionNumber, SessionLabel, Level, CreatedAt, CharacterJson FROM HeroSnapshots WHERE Id = @id";
-        cmd.Parameters.AddWithValue("@id", snapshotId);
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (!await reader.ReadAsync()) return null;
-        return new HeroSnapshot(reader.GetInt64(0), reader.GetInt64(1), reader.GetInt32(2), reader.GetString(3), reader.GetInt32(4), DateTime.Parse(reader.GetString(5)),
-            JsonSerializer.Deserialize<CharacterSheet>(reader.GetString(6))!);
+        await using var db = await dbf.CreateDbContextAsync();
+        return await db.HeroSnapshots.AsNoTracking().FirstOrDefaultAsync(s => s.Id == snapshotId);
     }
 
     public async Task<long> CreateAsync(long campaignId, string name)
     {
-        await using var conn = new SqliteConnection(connectionString);
-        await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "INSERT INTO Heroes (CampaignId, Name, CreatedAt) VALUES (@c, @n, @t); SELECT last_insert_rowid();";
-        cmd.Parameters.AddWithValue("@c", campaignId);
-        cmd.Parameters.AddWithValue("@n", name);
-        cmd.Parameters.AddWithValue("@t", DateTime.UtcNow.ToString("O"));
-        var heroId = (long)(await cmd.ExecuteScalarAsync())!;
-
-        await using var cmd2 = conn.CreateCommand();
-        cmd2.CommandText = "INSERT INTO HeroSnapshots (HeroId, SessionNumber, SessionLabel, Level, CreatedAt, CharacterJson) VALUES (@h, 0, 'Created', 0, @t, @j)";
-        cmd2.Parameters.AddWithValue("@h", heroId);
-        cmd2.Parameters.AddWithValue("@t", DateTime.UtcNow.ToString("O"));
-        cmd2.Parameters.AddWithValue("@j", JsonSerializer.Serialize(new CharacterSheet()));
-        await cmd2.ExecuteNonQueryAsync();
-        return heroId;
+        await using var db = await dbf.CreateDbContextAsync();
+        var hero = new Hero(0, campaignId, name, DateTime.UtcNow);
+        db.Heroes.Add(hero);
+        await db.SaveChangesAsync();
+        db.HeroSnapshots.Add(new HeroSnapshot(0, hero.Id, 0, "Created", 0, DateTime.UtcNow, new CharacterSheet()));
+        await db.SaveChangesAsync();
+        return hero.Id;
     }
 
     public async Task SaveSnapshotAsync(long heroId, int sessionNumber, string sessionLabel, CharacterSheet sheet)
     {
-        await using var conn = new SqliteConnection(connectionString);
-        await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "INSERT INTO HeroSnapshots (HeroId, SessionNumber, SessionLabel, Level, CreatedAt, CharacterJson) VALUES (@h, @sn, @sl, @lv, @t, @j)";
-        cmd.Parameters.AddWithValue("@h", heroId);
-        cmd.Parameters.AddWithValue("@sn", sessionNumber);
-        cmd.Parameters.AddWithValue("@sl", sessionLabel);
-        cmd.Parameters.AddWithValue("@lv", sheet.Level);
-        cmd.Parameters.AddWithValue("@t", DateTime.UtcNow.ToString("O"));
-        cmd.Parameters.AddWithValue("@j", JsonSerializer.Serialize(sheet));
-        await cmd.ExecuteNonQueryAsync();
+        await using var db = await dbf.CreateDbContextAsync();
+        db.HeroSnapshots.Add(new HeroSnapshot(0, heroId, sessionNumber, sessionLabel, sheet.Level, DateTime.UtcNow, sheet));
+        await db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(long id)
     {
-        await using var conn = new SqliteConnection(connectionString);
-        await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "DELETE FROM HeroSnapshots WHERE HeroId = @id; DELETE FROM Heroes WHERE Id = @id;";
-        cmd.Parameters.AddWithValue("@id", id);
-        await cmd.ExecuteNonQueryAsync();
+        await using var db = await dbf.CreateDbContextAsync();
+        await db.HeroSnapshots.Where(s => s.HeroId == id).ExecuteDeleteAsync();
+        await db.Heroes.Where(h => h.Id == id).ExecuteDeleteAsync();
     }
 
-    private static Hero ReadHero(SqliteDataReader reader)
-    {
-        HeroSnapshot? snapshot = null;
-        if (!reader.IsDBNull(4))
-        {
-            snapshot = new HeroSnapshot(
-                reader.GetInt64(4), reader.GetInt64(0),
-                reader.GetInt32(5), reader.GetString(6), reader.GetInt32(7),
-                DateTime.Parse(reader.GetString(8)),
-                JsonSerializer.Deserialize<CharacterSheet>(reader.GetString(9))!);
-        }
-        return new Hero(reader.GetInt64(0), reader.GetInt64(1), reader.GetString(2), DateTime.Parse(reader.GetString(3)), snapshot);
-    }
+    private static Task<HeroSnapshot?> LatestSnapshotAsync(AppDbContext db, long heroId) =>
+        db.HeroSnapshots.AsNoTracking()
+            .Where(s => s.HeroId == heroId)
+            .OrderByDescending(s => s.CreatedAt)
+            .FirstOrDefaultAsync();
 }

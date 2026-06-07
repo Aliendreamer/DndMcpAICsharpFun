@@ -1,0 +1,55 @@
+using System.Text.Json;
+using DndMcpAICsharpFun.Domain;
+using Microsoft.EntityFrameworkCore;
+
+namespace DndMcpAICsharpFun.Infrastructure.Persistence;
+
+/// <summary>
+/// The single EF Core context for the application: ingestion records plus the
+/// user-facing companion data (users, campaigns, heroes, snapshots, chat).
+/// </summary>
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
+    public DbSet<IngestionRecord> IngestionRecords => Set<IngestionRecord>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Campaign> Campaigns => Set<Campaign>();
+    public DbSet<Hero> Heroes => Set<Hero>();
+    public DbSet<HeroSnapshot> HeroSnapshots => Set<HeroSnapshot>();
+    public DbSet<ChatTurn> ChatTurns => Set<ChatTurn>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<IngestionRecord>(e =>
+        {
+            e.HasIndex(r => r.FileHash);
+            e.HasIndex(r => r.Status);
+            e.Property(r => r.Status).HasConversion<string>();
+            e.Property(r => r.BookType).HasConversion<string>();
+        });
+
+        modelBuilder.Entity<User>(e =>
+        {
+            e.HasIndex(u => u.Username).IsUnique();
+        });
+
+        modelBuilder.Entity<Campaign>();
+
+        modelBuilder.Entity<Hero>();
+
+        modelBuilder.Entity<HeroSnapshot>(e =>
+        {
+            // CharacterSheet is stored as a JSON string column (matches the legacy CharacterJson column).
+            e.Property(s => s.Sheet)
+                .HasColumnName("CharacterJson")
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<CharacterSheet>(v, (JsonSerializerOptions?)null)!);
+        });
+
+        modelBuilder.Entity<ChatTurn>(e =>
+        {
+            e.HasIndex(m => new { m.UserId, m.CampaignId, m.HeroId });
+            e.HasIndex(m => m.CreatedAt);
+        });
+    }
+}
