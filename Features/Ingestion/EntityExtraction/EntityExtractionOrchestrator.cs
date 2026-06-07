@@ -15,7 +15,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 public sealed class EntityExtractionOrchestrator(
     IIngestionTracker tracker,
     BookSourceRegistry registry,
-    IPdfStructureConverter docling,
+    IPdfStructureConverter converter,
     IPdfBookmarkReader bookmarks,
     IEntityExtractionLlmClient llm,
     ExtractionPromptBuilder promptBuilder,
@@ -65,20 +65,20 @@ public sealed class EntityExtractionOrchestrator(
                 "Entity extraction starting: book {BookId} ({DisplayName}), file {FilePath}, errorsOnly={ErrorsOnly}",
                 bookId, record.DisplayName, record.FilePath, errorsOnly);
 
-            // 1. Convert PDF via Docling (markdown + structured items).
-            var doc = await docling.ConvertAsync(record.FilePath, ct);
+            // 1. Convert PDF via Marker (markdown + structured items).
+            var doc = await converter.ConvertAsync(record.FilePath, ct);
 
             // 2. Read bookmarks → TocCategoryMap.
             var pdfBookmarks = bookmarks.ReadBookmarks(record.FilePath);
             var tocEntries   = BookmarkTocMapper.Map(pdfBookmarks);
             var tocMap       = new TocCategoryMap(tocEntries);
 
-            // 3. Project Docling items into ScannerInputs.
+            // 3. Project structure items into ScannerInputs.
             var scannerInputs = BuildScannerInputs(doc.Items);
             var candidates    = scanner.Scan(scannerInputs, tocMap).ToList();
 
             logger.LogInformation(
-                "Entity extraction: {CandidateCount} candidates from {ItemCount} Docling items",
+                "Entity extraction: {CandidateCount} candidates from {ItemCount} structure items",
                 candidates.Count, doc.Items.Count);
 
             // 4. Load schemas keyed by EntityType.

@@ -14,7 +14,7 @@ public sealed class PdfConversionDiskCache(
     /// <summary>
     /// Suffix appended after the SHA-256 hash for cache files written by this version.
     /// Legacy files (<c>&lt;hash&gt;.json</c>) are intentionally ignored — they were
-    /// written by the Docling converter and may have a different schema.
+    /// written by an older converter version and may have a different schema.
     /// </summary>
     private const string CacheSuffix = ".marker.json";
 

@@ -9,7 +9,7 @@ A D&D AI **companion agent** backed by an ASP.NET Core Web API on .NET 10. The e
 
 The current repository is the **data and retrieval backbone** for that companion. It ingests D&D rulebook PDFs, embeds their content via [Ollama](https://ollama.ai) into a [Qdrant](https://qdrant.tech) vector store, and exposes semantic search over HTTP — a foundation that an MCP server, structured-extraction layer, and rule-procedure tools will eventually plug into so an AI agent can reason over the corpus to answer the queries above.
 
-The ingestion pipeline uses [Docling](https://github.com/docling-project/docling) (run as a sidecar service) for layout-aware PDF extraction, so multi-column rulebooks like the PHB come out with correct reading order instead of column-scrambled text. There is no LLM call during ingestion — only an embedding call per chunk.
+The ingestion pipeline uses [Marker](https://github.com/VikParuchuri/marker) (run as a sidecar service) for layout-aware PDF extraction, so multi-column rulebooks like the PHB come out with correct reading order instead of column-scrambled text. There is no LLM call during ingestion — only an embedding call per chunk.
 
 ## Roadmap toward the companion agent
 
@@ -39,8 +39,8 @@ Each layer is its own design pass via the openspec workflow.
 │   └──────┬───────────────┬───────────────┬───────────────────┘   │
 │          │               │               │                       │
 │   ┌──────▼─────┐  ┌──────▼─────┐  ┌──────▼─────┐  ┌─────────┐    │
-│   │  docling   │  │   Ollama   │  │   Qdrant   │  │ SQLite  │    │
-│   │  :5001     │  │   :11434   │  │   :6333    │  │  /data  │    │
+│   │   marker   │  │   Ollama   │  │   Qdrant   │  │ SQLite  │    │
+│   │  :5002     │  │   :11434   │  │   :6333    │  │  /data  │    │
 │   │ (layout)   │  │ (embed)    │  │ (vectors)  │  │ (state) │    │
 │   └────────────┘  └────────────┘  └────────────┘  └─────────┘    │
 │                                                                  │
@@ -55,7 +55,7 @@ Each layer is its own design pass via the openspec workflow.
 1. `POST /admin/books/register` — multipart upload, streams the PDF straight to disk under a server-generated GUID name, persists an `IngestionRecord` (status `Pending`).
 2. `POST /admin/books/{id}/ingest-blocks` — enqueues background work that:
    - Reads the PDF's bookmark tree (via PdfPig) for section/category metadata.
-   - Posts the PDF to docling-serve (async + polling), gets back layout-aware blocks with correct multi-column reading order.
+   - Posts the PDF to the Marker service (async + polling), gets back layout-aware blocks with correct multi-column reading order.
    - Filters out fragments (<40 chars) and pure-numeric tables.
    - Embeds each block's text via Ollama (default model `mxbai-embed-large`, inputs truncated to 1500 chars).
    - Upserts into the Qdrant `dnd_blocks` collection with full metadata payload.
@@ -188,7 +188,7 @@ Both commands run `docker compose up --build -d` (detached). The app will be ava
 First boot is slow because:
 
 - `ollama-pull` downloads `mxbai-embed-large` (~1 GB) and `qwen3:8b` (~4.7 GB).
-- `docling` pulls a ~3 GB image and loads its layout model on first health check (~60-90 s).
+- `marker` pulls its image and loads its layout model on first health check (~5-10 min).
 
 The `app` service waits for both to be healthy before starting.
 
@@ -196,7 +196,7 @@ To follow logs:
 
 ```bash
 docker compose logs -f app
-docker compose logs -f docling   # watch layout-analysis progress during ingestion
+docker compose logs -f marker    # watch layout-analysis progress during ingestion
 ```
 
 To stop:
@@ -214,7 +214,7 @@ All endpoints are on `http://localhost:5101`.
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/health` | Liveness check |
-| `GET` | `/ready` | Readiness check (Qdrant + Ollama + docling) |
+| `GET` | `/ready` | Readiness check (Qdrant + Ollama + Marker) |
 
 ### Admin — Book Management
 
@@ -224,7 +224,7 @@ Requires header `X-Admin-Api-Key: <admin key>`.
 | --- | --- | --- |
 | `POST` | `/admin/books/register` | Upload a PDF and save it as `Pending`. Streams multipart body straight to disk; returns 202. Form fields: `file` (PDF), `version` (`Edition2014` or `Edition2024`), `displayName`, optional `bookType` (`Core` / `Supplement` / `Adventure` / `Setting` / `Unknown`, default `Unknown`), optional `fivetoolsSourceKey` (e.g. `MPMM` — see source key guidance below). Does **not** start ingestion — call `/ingest-blocks` next. Response always includes `suggestedSources` with fuzzy-matched 5etools candidates. |
 | `GET` | `/admin/books` | List all registered books with status, displayName, version, bookType, and chunk count. |
-| `POST` | `/admin/books/{id}/ingest-blocks` | Enqueue Docling layout extraction + embedding + Qdrant upsert. Returns 202; work runs in the background queue. The same call re-runs the pipeline cleanly (deletes prior points by hash). |
+| `POST` | `/admin/books/{id}/ingest-blocks` | Enqueue Marker layout extraction + embedding + Qdrant upsert. Returns 202; work runs in the background queue. The same call re-runs the pipeline cleanly (deletes prior points by hash). |
 | `DELETE` | `/admin/books/{id}` | Remove the book: deletes Qdrant points by hash, deletes the PDF from disk, deletes the SQLite record. Returns 409 if the book is currently `Processing`. |
 
 ### Retrieval
@@ -288,8 +288,8 @@ Mental shortcut: `version` describes the rules edition the book was published fo
 
 ## Ingestion Notes
 
-- **Docling on CPU** — `docling-serve-cpu` runs without GPU contention with Ollama. A PHB-class 300-page book takes ~25-30 minutes for layout analysis on a modern multi-core CPU. Subsequent books reuse the loaded model and run at the same per-book rate.
-- **Re-ingestion is idempotent** — calling `/ingest-blocks` again deletes the prior points (by file hash + global index) before upserting new ones. Safe to re-run if Docling output improves or you want to re-tag with a different `bookType`.
+- **Marker GPU** — the `marker` service requires a GPU for practical conversion speed. A PHB-class 300-page book takes ~2 hours on GPU; the first boot loads the model (~5-10 min). Subsequent books reuse the loaded model.
+- **Re-ingestion is idempotent** — calling `/ingest-blocks` again deletes the prior points (by file hash + global index) before upserting new ones. Safe to re-run after re-ingestion or to re-tag with a different `bookType`.
 - **Bookmark requirement** — books without an embedded bookmark/outline tree fail with a clear error. Almost every modern WotC PDF has bookmarks; pirated/scanned versions sometimes don't. If a book lacks bookmarks, switch source.
 - **Embedding truncation** — block text is pre-truncated to 1500 chars before embedding to fit `mxbai-embed-large`'s 512-token context. The full untruncated text is still stored in the Qdrant payload, so retrieval results show the complete block — only the embedding signal for very long blocks is approximate.
 
@@ -303,6 +303,6 @@ When the stack is running, these UIs are available:
 | Prometheus | <http://localhost:9090> | Raw metrics and query UI |
 | sqlite-web | <http://localhost:8080> | Browse and query the `IngestionRecords` SQLite table |
 | Qdrant UI | <http://localhost:6333/dashboard> | Browse vector collections and run test queries |
-| docling-serve | <http://localhost:5001/docs> | Swagger UI for the docling layout service (mostly for debugging) |
+| marker | <http://localhost:5002/docs> | Swagger UI for the Marker layout service (mostly for debugging) |
 
 Grafana anonymous access is enabled in the dev stack (`GF_AUTH_ANONYMOUS_ORG_ROLE=Admin`). Remove this before any non-local deployment.

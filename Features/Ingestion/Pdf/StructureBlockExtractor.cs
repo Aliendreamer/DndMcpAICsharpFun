@@ -1,12 +1,12 @@
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
-public sealed partial class DoclingBlockExtractor(
+public sealed partial class StructureBlockExtractor(
     IPdfStructureConverter converter,
-    ILogger<DoclingBlockExtractor> logger) : IPdfBlockExtractor
+    ILogger<StructureBlockExtractor> logger) : IPdfBlockExtractor
 {
     public IEnumerable<PdfBlock> ExtractBlocks(string filePath, CancellationToken ct = default)
     {
-        // Docling exposes only an async API; ExtractBlocks is sync to match the
+        // The structure converter exposes only an async API; ExtractBlocks is sync to match the
         // existing interface. Running inside BackgroundService → no
         // SynchronizationContext, so blocking on the task is safe.
         var doc = converter.ConvertAsync(filePath, ct)
@@ -27,6 +27,6 @@ public sealed partial class DoclingBlockExtractor(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Docling produced {ItemCount} items for {FileName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Marker produced {ItemCount} items for {FileName}")]
     private static partial void LogConverted(ILogger logger, string fileName, int itemCount);
 }

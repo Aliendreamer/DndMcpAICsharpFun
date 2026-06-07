@@ -2,7 +2,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
 namespace DndMcpAICsharpFun.Tests.Ingestion.Pdf;
 
-public sealed class DoclingBlockExtractorTests
+public sealed class StructureBlockExtractorTests
 {
     private static readonly PdfStructureDocument SampleDoc = new(
         Markdown: "irrelevant",
@@ -20,7 +20,7 @@ public sealed class DoclingBlockExtractorTests
         var converter = Substitute.For<IPdfStructureConverter>();
         converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(SampleDoc));
-        var sut = new DoclingBlockExtractor(converter, NullLogger<DoclingBlockExtractor>.Instance);
+        var sut = new StructureBlockExtractor(converter, NullLogger<StructureBlockExtractor>.Instance);
 
         var result = sut.ExtractBlocks("/tmp/fake.pdf").ToList();
 
@@ -48,7 +48,7 @@ public sealed class DoclingBlockExtractorTests
         var converter = Substitute.For<IPdfStructureConverter>();
         converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(doc));
-        var sut = new DoclingBlockExtractor(converter, NullLogger<DoclingBlockExtractor>.Instance);
+        var sut = new StructureBlockExtractor(converter, NullLogger<StructureBlockExtractor>.Instance);
 
         var result = sut.ExtractBlocks("/tmp/x.pdf").ToList();
 

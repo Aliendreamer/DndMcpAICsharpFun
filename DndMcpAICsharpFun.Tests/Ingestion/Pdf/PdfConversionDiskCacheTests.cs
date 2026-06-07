@@ -169,7 +169,7 @@ public sealed class PdfConversionDiskCacheTests
     [Fact]
     public async Task LegacyCacheFile_IsIgnored_InnerConverterCalled()
     {
-        // If only <hash>.json (legacy Docling cache) exists, the cache must treat it as a miss
+        // If only <hash>.json (legacy cache without .marker.json suffix) exists, the cache must treat it as a miss
         // and call the inner converter.
         var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(dir);

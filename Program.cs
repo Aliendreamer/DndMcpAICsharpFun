@@ -3,7 +3,7 @@ using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Mcp;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
-using DndMcpAICsharpFun.Infrastructure.Docling;
+
 using DndMcpAICsharpFun.Infrastructure.Marker;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
@@ -42,10 +42,6 @@ builder.Services.AddOptions<AdminOptions>()
     .ValidateOnStart();
 builder.Services.AddOptions<RetrievalOptions>()
     .BindConfiguration("Retrieval")
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-builder.Services.AddOptions<DoclingOptions>()
-    .BindConfiguration("Docling")
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.Services.AddOptions<MarkerOptions>()

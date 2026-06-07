@@ -8,7 +8,7 @@ public class EntityExtractionOrchestratorTests
     [Fact]
     public void Type_resolves_to_concrete_orchestrator()
     {
-        // Smoke test — happy-path test is deferred (needs fake Docling output).
+        // Smoke test — happy-path test is deferred (needs fake converter output).
         // Confirms the type is wired and the IEntityExtractionOrchestrator interface exists.
         typeof(IEntityExtractionOrchestrator).Should().NotBeNull();
         typeof(EntityExtractionOrchestrator).Should().Implement<IEntityExtractionOrchestrator>();
@@ -43,15 +43,15 @@ public class EntityExtractionOrchestratorTests
             var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
             tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
 
-            // Fake docling: returns one text item at page 1.
-            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
-            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+            // Fake converter: returns one text item at page 1.
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
                 "# Aboleth\nA monster.",
                 new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
                 {
                     new("text", "Aboleth — a slimy aberration.", 1, null),
                 });
-            docling.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(doclingDoc);
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
 
             // Fake bookmark reader: returns one bookmark that maps page 1 to Monsters.
             var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
@@ -75,7 +75,7 @@ public class EntityExtractionOrchestratorTests
                 tracker: tracker,
                 registry: new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
                     Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json")),
-                docling: docling,
+                converter: converter,
                 bookmarks: bookmarkReader,
                 llm: llm,
                 promptBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
@@ -131,7 +131,7 @@ public class EntityExtractionOrchestratorTests
         string schemasDir,
         DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord record,
         DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker tracker,
-        DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter docling,
+        DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter converter,
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader bookmarkReader,
         DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm)
         BuildTwoMonsterHarness(int bookId, string displayName)
@@ -160,8 +160,8 @@ public class EntityExtractionOrchestratorTests
         tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
 
         // Two heading/text pairs → two candidates: "Aboleth" and "Beholder".
-        var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
-        var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+        var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+        var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
             "doc",
             new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
             {
@@ -170,7 +170,7 @@ public class EntityExtractionOrchestratorTests
                 new("heading", "Beholder", 2, null),
                 new("text",    "Beholder — a tyrant.", 2, null),
             });
-        docling.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(doclingDoc);
+        converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
 
         var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
         bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
@@ -182,14 +182,14 @@ public class EntityExtractionOrchestratorTests
 
         var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
 
-        return (canonicalDir, schemasDir, record, tracker, docling, bookmarkReader, llm);
+        return (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm);
     }
 
     private static EntityExtractionOrchestrator BuildOrchestrator(
         string canonicalDir,
         string schemasDir,
         DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker tracker,
-        DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter docling,
+        DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter converter,
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader bookmarkReader,
         DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm,
         DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry? registry = null)
@@ -208,7 +208,7 @@ public class EntityExtractionOrchestratorTests
         return new EntityExtractionOrchestrator(
             tracker:       tracker,
             registry:      effectiveRegistry,
-            docling:       docling,
+            converter:       converter,
             bookmarks:     bookmarkReader,
             llm:           llm,
             promptBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
@@ -231,7 +231,7 @@ public class EntityExtractionOrchestratorTests
         const int bookId = 100;
         const string displayName = "Test Book";
 
-        var (canonicalDir, schemasDir, record, tracker, docling, bookmarkReader, llm)
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm)
             = BuildTwoMonsterHarness(bookId, displayName);
 
         try
@@ -283,7 +283,7 @@ public class EntityExtractionOrchestratorTests
                    ErrorMessage: null,
                    RawJson: null));
 
-            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, docling, bookmarkReader, llm);
+            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm);
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: false, errorsOnly: true, ct: CancellationToken.None);
@@ -306,7 +306,7 @@ public class EntityExtractionOrchestratorTests
         const int bookId = 101;
         const string displayName = "Test Book";
 
-        var (canonicalDir, schemasDir, record, tracker, docling, bookmarkReader, llm)
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm)
             = BuildTwoMonsterHarness(bookId, displayName);
 
         try
@@ -367,7 +367,7 @@ public class EntityExtractionOrchestratorTests
                    ErrorMessage: null,
                    RawJson: null));
 
-            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, docling, bookmarkReader, llm);
+            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm);
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: false, errorsOnly: true, ct: CancellationToken.None);
@@ -399,7 +399,7 @@ public class EntityExtractionOrchestratorTests
         const int bookId = 102;
         const string displayName = "Test Book";
 
-        var (canonicalDir, schemasDir, record, tracker, docling, bookmarkReader, llm)
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm)
             = BuildTwoMonsterHarness(bookId, displayName);
 
         try
@@ -423,7 +423,7 @@ public class EntityExtractionOrchestratorTests
 
             File.Exists(errorsPath).Should().BeFalse("test pre-condition: no errors file");
 
-            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, docling, bookmarkReader, llm);
+            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm);
 
             // Act — should not throw.
             await orchestrator.ExtractAsync(bookId, force: false, errorsOnly: true, ct: CancellationToken.None);
@@ -450,7 +450,7 @@ public class EntityExtractionOrchestratorTests
         const int bookId = 103;
         const string displayName = "Test Book";
 
-        var (canonicalDir, schemasDir, record, tracker, docling, bookmarkReader, llm)
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm)
             = BuildTwoMonsterHarness(bookId, displayName);
 
         try
@@ -459,7 +459,7 @@ public class EntityExtractionOrchestratorTests
             var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
             File.Exists(canonicalPath).Should().BeFalse("test pre-condition: no canonical file");
 
-            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, docling, bookmarkReader, llm);
+            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm);
 
             // Act + Assert
             var act = async () => await orchestrator.ExtractAsync(
@@ -481,7 +481,7 @@ public class EntityExtractionOrchestratorTests
         const int bookId = 104;
         const string displayName = "Test Book";
 
-        var (canonicalDir, schemasDir, record, tracker, docling, bookmarkReader, llm)
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm)
             = BuildTwoMonsterHarness(bookId, displayName);
 
         try
@@ -556,7 +556,7 @@ public class EntityExtractionOrchestratorTests
                    ErrorMessage: null,
                    RawJson: null));
 
-            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, docling, bookmarkReader, llm);
+            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm);
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: false, errorsOnly: true, ct: CancellationToken.None);
@@ -629,8 +629,8 @@ public class EntityExtractionOrchestratorTests
             var part1 = new string('a', 400);
             var part2 = new string('b', 400);
 
-            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
-            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
                 "doc",
                 new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
                 {
@@ -638,7 +638,7 @@ public class EntityExtractionOrchestratorTests
                     new("text",    part1,       1, null),
                     new("text",    part2,       1, null),
                 });
-            docling.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(doclingDoc);
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
 
             // Bookmark maps page 1 → "Traps and Hazards" section → Trap entity type.
             var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
@@ -691,7 +691,7 @@ public class EntityExtractionOrchestratorTests
             var orchestrator = new EntityExtractionOrchestrator(
                 tracker:       tracker,
                 registry:      registry,
-                docling:       docling,
+                converter:       converter,
                 bookmarks:     bookmarkReader,
                 llm:           llm,
                 promptBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
@@ -791,15 +791,15 @@ public class EntityExtractionOrchestratorTests
             tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
 
             // One monster candidate so LLM is called once.
-            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
-            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
                 "doc",
                 new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
                 {
                     new("heading", "Aboleth", 1, null),
                     new("text",    "Aboleth — a slimy aberration.", 1, null),
                 });
-            docling.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(doclingDoc);
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
 
             var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
             bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
@@ -823,7 +823,7 @@ public class EntityExtractionOrchestratorTests
                    RawJson: null));
 
             var orchestrator = BuildOrchestrator(
-                canonicalDir, schemasDir, tracker, docling, bookmarkReader, llm, registry);
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm, registry);
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
