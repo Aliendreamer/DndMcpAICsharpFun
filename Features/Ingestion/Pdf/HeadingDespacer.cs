@@ -9,8 +9,14 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 /// sometimes inserts spurious spaces between characters, yielding garbled tokens
 /// such as <c>ABER R ATIONS</c>, <c>H U MANOIDS</c>, or <c>BARD C OLLEGE S</c>.
 /// <see cref="Normalize"/> detects all-caps headings and repeatedly collapses
-/// 1–3 letter garbage fragments (non-whitelisted, non-numeric) into their neighbours
+/// 1–2 letter garbage fragments (non-whitelisted, non-numeric) into their neighbours
 /// until a fixpoint is reached.
+/// </para>
+/// <para>
+/// 3-letter fragments are never treated as garbage to avoid false merges such as
+/// <c>WAR DOMAIN</c> → <c>WARDOMAIN</c>. Vocabulary-dependent garble
+/// (e.g. <c>CON STRUCTS</c>) is left as-is and caught downstream by the
+/// <c>needsReview</c> heuristic.
 /// </para>
 /// <para>
 /// Conservative: only all-uppercase headings are processed; mixed-case input is
@@ -21,28 +27,22 @@ public static partial class HeadingDespacer
 {
     // ── Whitelist ────────────────────────────────────────────────────────────
     // 1-2 letter legitimate standalone words (per design contract) plus dice tokens.
-    // Also includes THE and other common 3-letter words that should never be merged
-    // even when appearing adjacent to garbage fragments.
+    // 3-letter fragments are never garbage (threshold is 1–2), so no 3-letter entries
+    // are needed here for garbage detection.
+    // D&D stat/currency abbreviations (2 letters) are explicitly whitelisted to prevent
+    // spurious merges such as "XP COSTS" → "XPCOSTS" or "AC BONUS" → "ACBONUS".
 
     private static readonly HashSet<string> Whitelist = new(StringComparer.Ordinal)
     {
         // 1-letter
         "A", "I",
-        // 2-letter
+        // 2-letter common words
         "OF", "TO", "IN", "ON", "AT", "BY", "OR", "AN", "AS", "IT", "IS",
         "BE", "DO", "NO", "SO", "UP", "WE",
+        // 2-letter D&D stat / currency abbreviations (must never merge)
+        "XP", "HP", "AC", "DC", "CR", "GP", "SP", "CP", "EP", "PP",
         // Dice tokens
         "D4", "D6", "D8", "D10", "D12", "D20",
-        // Common 3-letter English words that must never merge
-        "THE", "AND", "FOR", "BUT", "NOT", "ALL", "ONE", "TWO", "HIS", "HER",
-        "WAS", "ARE", "HAD", "HAS", "DID", "CAN", "MAY", "OUR", "OLD", "NEW",
-        "OWN", "USE", "WAY", "SEE", "GET", "HOW", "NOW", "OUT", "WHO", "WHY",
-        "HIM", "ITS", "ACT", "AGE", "AID", "AIM", "AIR", "APT", "ART", "AWE",
-        "AGO", "ARC", "ASH",
-        // D&D-relevant 3-letter standalone words
-        "ELF", "ORC", "FEY", "BOW", "GEM", "ROD", "LAW", "SUN", "SKY", "WEB",
-        "GOD", "INN", "KEY", "OAK", "PIT", "RAW", "ROW", "SIX", "TEN", "TOE",
-        "TOP", "TRY", "VEX", "VIA", "VOW", "WIT", "WOE",
     };
 
     // ── Regex ────────────────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ public static partial class HeadingDespacer
 
         // Phase 2 – absorb isolated 1-letter whitelisted fragments (A, I) that
         // are immediately followed by a garbage-merged fragment.
-        // Example: "A CTIONS" → "ACTIONS" (from "A CTI O NS").
+        // Example: "A CTIONS" → "ACTIONS" (from "A CTI ONS" after Phase 1).
         for (int i = 0; i + 1 < fragments.Length; i++)
         {
             if (fragments[i].Length == 1 && Whitelist.Contains(fragments[i])
@@ -163,11 +163,13 @@ public static partial class HeadingDespacer
 
     /// <summary>
     /// A fragment is "garbage" (a product of letter-spacing) when it consists
-    /// entirely of letters, has 1–3 characters, and is not a known standalone word.
+    /// entirely of letters, has 1–2 characters, and is not a known standalone word.
+    /// 3-letter fragments are never garbage to avoid false merges such as
+    /// "WAR DOMAIN" → "WARDOMAIN" or "RED DRAGON" → "REDDRAGON".
     /// Fragments containing digits or punctuation are never garbage.
     /// </summary>
     private static bool IsGarbage(string fragment)
-        => fragment.Length is >= 1 and <= 3
+        => fragment.Length is >= 1 and <= 2
            && fragment.All(char.IsLetter)
            && !Whitelist.Contains(fragment);
 
