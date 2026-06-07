@@ -14,4 +14,5 @@ public sealed class EntityExtractionOptions
     public int CheckpointIntervalCandidates { get; set; } = 100;
     public string DoclingCacheDirectory { get; set; } = "data/docling-cache";
     public string ExamplesDirectory { get; set; } = "Schemas/examples";
+    public int MaxTokensPerChunk { get; set; } = 2000;
 }

@@ -85,6 +85,8 @@ public class EntityExtractionOrchestratorTests
                 warningsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
                 refResolver: new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
                 retry: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRetryPolicy { MaxAttempts = 1 },
+                chunker: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.SemanticChunker(),
+                merger: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityFieldMerger(),
                 options: opts,
                 ollamaOpts: ollamaOpts,
                 logger: NullLogger<EntityExtractionOrchestrator>.Instance);
@@ -216,6 +218,8 @@ public class EntityExtractionOrchestratorTests
             warningsFile:  new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
             refResolver:   new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
             retry:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRetryPolicy { MaxAttempts = 1 },
+            chunker:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.SemanticChunker(),
+            merger:        new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityFieldMerger(),
             options:       opts,
             ollamaOpts:    ollamaOpts,
             logger:        NullLogger<EntityExtractionOrchestrator>.Instance);
@@ -582,6 +586,165 @@ public class EntityExtractionOrchestratorTests
     // ─────────────────────────────────────────────────────────────────────────
     //  Task 7 — source key + edition propagation
     // ─────────────────────────────────────────────────────────────────────────
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Task 6 — chunked split-and-merge extraction loop
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ExtractAsync_OversizedCandidate_SplitsIntoChunksAndMergesResults()
+    {
+        // Arrange
+        const int bookId = 300;
+        const string displayName = "Test Book";
+
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+
+        // Write a minimal Trap schema so LLM is invoked for that type.
+        File.WriteAllText(
+            Path.Combine(schemasDir, "TrapFields.schema.json"),
+            "{ \"type\": \"object\" }");
+
+        try
+        {
+            var record = new DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord
+            {
+                Id          = bookId,
+                FilePath    = "/dev/null",
+                FileName    = "test.pdf",
+                FileHash    = "abc123",
+                Version     = "5e",
+                DisplayName = displayName,
+            };
+
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            // Two text items under the same heading produce a candidate whose Text is:
+            //   new string('a', 400) + "\n\n" + new string('b', 400)   (~802 chars)
+            // SemanticChunker with MaxTokensPerChunk=150 (≈600 chars) splits that into 2 chunks.
+            var part1 = new string('a', 400);
+            var part2 = new string('b', 400);
+
+            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IDoclingPdfConverter>();
+            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingDocument(
+                "doc",
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingItem>
+                {
+                    new("heading", "Pit Trap", 1, null),
+                    new("text",    part1,       1, null),
+                    new("text",    part2,       1, null),
+                });
+            docling.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(doclingDoc);
+
+            // Bookmark maps page 1 → "Traps and Hazards" section → Trap entity type.
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
+                {
+                    new("Traps and Hazards", 1),
+                });
+
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+
+            // First call returns partial with "name" and first entries array.
+            using var partial1Doc = System.Text.Json.JsonDocument.Parse(
+                "{\"name\":\"Pit Trap\",\"entries\":[\"from chunk one\"]}");
+            // Second call returns partial with second entries array and trapHazType.
+            using var partial2Doc = System.Text.Json.JsonDocument.Parse(
+                "{\"entries\":[\"from chunk two\"],\"trapHazType\":\"MECH\"}");
+
+            var callCount = 0;
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(_ =>
+               {
+                   callCount++;
+                   var toolInput = callCount == 1
+                       ? partial1Doc.RootElement.Clone()
+                       : partial2Doc.RootElement.Clone();
+                   return new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                       Success: true,
+                       ToolInput: toolInput,
+                       StopReason: "tool_use",
+                       InputTokens: 0,
+                       OutputTokens: 0,
+                       ErrorMessage: null,
+                       RawJson: null);
+               });
+
+            // Options: MaxTokensPerChunk = 150 so the 800-char text is split.
+            var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
+            {
+                CanonicalDirectory = canonicalDir,
+                SchemasDirectory   = schemasDir,
+                MaxTokensPerChunk  = 150,
+            });
+            var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
+            var registry   = new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
+                Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json"));
+
+            var orchestrator = new EntityExtractionOrchestrator(
+                tracker:       tracker,
+                registry:      registry,
+                docling:       docling,
+                bookmarks:     bookmarkReader,
+                llm:           llm,
+                promptBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
+                scanner:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(),
+                writer:        new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+                errorsFile:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
+                warningsFile:  new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
+                refResolver:   new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
+                retry:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRetryPolicy { MaxAttempts = 1 },
+                chunker:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.SemanticChunker(),
+                merger:        new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityFieldMerger(),
+                options:       opts,
+                ollamaOpts:    ollamaOpts,
+                logger:        NullLogger<EntityExtractionOrchestrator>.Instance);
+
+            // Act
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Assert: LLM was called exactly 2 times (once per chunk).
+            callCount.Should().Be(2, "the oversized candidate must be split into 2 chunks");
+
+            // Assert: canonical JSON was written with one entity whose fields contain merged data.
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(displayName, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+
+            File.Exists(canonicalPath).Should().BeTrue("canonical JSON must be written");
+
+            var json = await File.ReadAllTextAsync(canonicalPath);
+            var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(
+                json,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+                });
+
+            canonical.Should().NotBeNull();
+            canonical!.Entities.Should().HaveCount(1, "one trap candidate was successfully extracted");
+
+            var fieldsJson = canonical.Entities[0].Fields.GetRawText();
+            fieldsJson.Should().Contain("from chunk one",  "merged fields must include chunk-1 entry");
+            fieldsJson.Should().Contain("from chunk two",  "merged fields must include chunk-2 entry");
+            fieldsJson.Should().Contain("trapHazType",     "merged fields must include trapHazType from chunk 2");
+            fieldsJson.Should().Contain("MECH",            "merged fields must include MECH value from chunk 2");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir,   true); } catch { }
+        }
+    }
 
     [Fact]
     public async Task FivetoolsSourceKey_propagates_source_and_edition_to_canonical_json()

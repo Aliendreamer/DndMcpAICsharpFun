@@ -25,6 +25,8 @@ public sealed class EntityExtractionOrchestrator(
     ExtractionWarningsFile warningsFile,
     EntityReferenceResolver refResolver,
     ExtractionRetryPolicy retry,
+    SemanticChunker chunker,
+    EntityFieldMerger merger,
     IOptions<EntityExtractionOptions> options,
     IOptions<OllamaOptions> ollamaOpts,
     ILogger<EntityExtractionOrchestrator> logger) : IEntityExtractionOrchestrator
@@ -172,31 +174,19 @@ public sealed class EntityExtractionOrchestrator(
                 continue;
             }
 
-            var request = new ExtractionRequest(
-                SystemPrompt:    promptBuilder.BuildSystemPrompt(record.DisplayName, record.Version, candidate.Type),
-                UserPrompt:      promptBuilder.BuildUserPrompt(candidate),
-                ToolName:        promptBuilder.ToolName(candidate.Type),
-                ToolDescription: promptBuilder.ToolDescription(candidate.Type),
-                ToolInputSchema: schema,
-                ModelId:         _ollama.ChatModel,
-                MaxOutputTokens: _opts.MaxOutputTokensPerEntity);
+            var (fieldsResult, extractError) = await ExtractCandidateFieldsAsync(record, candidate, schema, ct);
 
-            var response = await retry.ExecuteAsync(
-                operation: (_, c) => llm.ExtractAsync(request, c),
-                isSuccess: r => r.Success,
-                ct);
-
-            if (!response.Success || response.ToolInput is null)
+            if (fieldsResult is null)
             {
                 logger.LogWarning(
                     "Extraction failed for {Type} '{Name}' (page {Page}): {Error}",
-                    candidate.Type, candidate.DisplayName, candidate.Page, response.ErrorMessage);
+                    candidate.Type, candidate.DisplayName, candidate.Page, extractError);
                 extractionErrors.Add(new ExtractionErrorEntry(
                     SourceEntityId: id,
                     FieldPath: "(extraction)",
                     MissingTargetId: string.Empty,
                     ErrorKind: "extraction_failure",
-                    Detail: response.ErrorMessage));
+                    Detail: extractError));
                 failed++;
                 processed++;
                 doneIds.Add(id);
@@ -207,7 +197,7 @@ public sealed class EntityExtractionOrchestrator(
                 continue;
             }
 
-            var rawInput = response.ToolInput!.Value;
+            var rawInput = fieldsResult.Value;
             string? confidence = rawInput.TryGetProperty("confidence", out var cp) ? cp.GetString() : null;
             var fields = StripConfidence(rawInput);
             var needsReview = ExtractionNeedsReview.Derive(candidate.DisplayName, confidence);
@@ -377,37 +367,25 @@ public sealed class EntityExtractionOrchestrator(
                 continue;
             }
 
-            var request = new ExtractionRequest(
-                SystemPrompt:    promptBuilder.BuildSystemPrompt(record.DisplayName, record.Version, candidate.Type),
-                UserPrompt:      promptBuilder.BuildUserPrompt(candidate),
-                ToolName:        promptBuilder.ToolName(candidate.Type),
-                ToolDescription: promptBuilder.ToolDescription(candidate.Type),
-                ToolInputSchema: schema,
-                ModelId:         _ollama.ChatModel,
-                MaxOutputTokens: _opts.MaxOutputTokensPerEntity);
+            var (fieldsResult2, extractError2) = await ExtractCandidateFieldsAsync(record, candidate, schema, ct);
 
-            var response = await retry.ExecuteAsync(
-                operation: (_, c) => llm.ExtractAsync(request, c),
-                isSuccess: r => r.Success,
-                ct);
-
-            if (!response.Success || response.ToolInput is null)
+            if (fieldsResult2 is null)
             {
                 logger.LogWarning(
                     "Re-extraction failed for {Type} '{Name}': {Error}",
-                    candidate.Type, candidate.DisplayName, response.ErrorMessage);
+                    candidate.Type, candidate.DisplayName, extractError2);
                 newErrors.Add(new ExtractionErrorEntry(
                     SourceEntityId:  id,
                     FieldPath:       "(extraction)",
                     MissingTargetId: string.Empty,
                     ErrorKind:       "extraction_failure",
-                    Detail:          response.ErrorMessage));
+                    Detail:          extractError2));
                 continue;
             }
 
             var (sourceBook, edition) = DeriveSourceAndEdition(record);
 
-            var rawInput2 = response.ToolInput!.Value;
+            var rawInput2 = fieldsResult2.Value;
             string? confidence2 = rawInput2.TryGetProperty("confidence", out var cp2) ? cp2.GetString() : null;
             var fields2 = StripConfidence(rawInput2);
             var needsReview2 = ExtractionNeedsReview.Derive(candidate.DisplayName, confidence2);
@@ -631,6 +609,63 @@ public sealed class EntityExtractionOrchestrator(
         writer.Flush();
         using var doc = JsonDocument.Parse(ms.ToArray());
         return doc.RootElement.Clone();
+    }
+
+    /// <summary>
+    /// Runs the LLM over the candidate, chunking oversized text and merging
+    /// partial results. Returns null Fields when every chunk failed; ErrorMessage
+    /// carries the last failure. Single chunk → single call, no merge (existing path).
+    /// </summary>
+    private async Task<(JsonElement? Fields, string? ErrorMessage)> ExtractCandidateFieldsAsync(
+        DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord record,
+        EntityCandidate candidate,
+        JsonElement schema,
+        CancellationToken ct)
+    {
+        var chunks = chunker.Split(candidate.Text, _opts.MaxTokensPerChunk);
+        var partials = new List<JsonElement>();
+        var chunkFailures = new List<int>();
+        string? lastError = null;
+
+        for (int c = 0; c < chunks.Count; c++)
+        {
+            var chunkCandidate = chunks.Count == 1 ? candidate : candidate with { Text = chunks[c] };
+            var request = new ExtractionRequest(
+                SystemPrompt:    promptBuilder.BuildSystemPrompt(record.DisplayName, record.Version, candidate.Type),
+                UserPrompt:      promptBuilder.BuildUserPrompt(chunkCandidate),
+                ToolName:        promptBuilder.ToolName(candidate.Type),
+                ToolDescription: promptBuilder.ToolDescription(candidate.Type),
+                ToolInputSchema: schema,
+                ModelId:         _ollama.ChatModel,
+                MaxOutputTokens: _opts.MaxOutputTokensPerEntity);
+
+            var response = await retry.ExecuteAsync(
+                operation: (_, c2) => llm.ExtractAsync(request, c2),
+                isSuccess: r => r.Success,
+                ct);
+
+            if (response.Success && response.ToolInput is not null)
+            {
+                partials.Add(response.ToolInput.Value);
+            }
+            else
+            {
+                chunkFailures.Add(c);
+                lastError = response.ErrorMessage;
+            }
+        }
+
+        if (partials.Count == 0)
+            return (null, lastError ?? "all chunks failed");
+
+        if (chunkFailures.Count > 0)
+            logger.LogWarning(
+                "Partial extraction for {Type} '{Name}': chunks [{Failed}] failed, {Ok}/{Total} ok",
+                candidate.Type, candidate.DisplayName,
+                string.Join(',', chunkFailures), partials.Count, chunks.Count);
+
+        var merged = partials.Count == 1 ? partials[0] : merger.Merge(partials);
+        return (merged, null);
     }
 
     private static JsonElement StripConfidence(JsonElement toolInput)
