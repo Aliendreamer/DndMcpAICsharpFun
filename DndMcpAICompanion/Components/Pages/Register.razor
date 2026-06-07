@@ -77,11 +77,12 @@
         }
 
         var hash = PasswordHasher.Hash(_model.Password);
-        await UserRepo.CreateAsync(_model.Username, hash);
+        var userId = await UserRepo.CreateAsync(_model.Username, hash);
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.Name, _model.Username)
+            new(ClaimTypes.Name, _model.Username),
+            new(ClaimTypes.NameIdentifier, userId.ToString())
         };
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));

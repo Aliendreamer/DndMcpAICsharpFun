@@ -41,15 +41,15 @@ public sealed class UserRepository(string connectionString)
         return Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
     }
 
-    public async Task CreateAsync(string username, string passwordHash)
+    public async Task<long> CreateAsync(string username, string passwordHash)
     {
         await using var conn = new SqliteConnection(connectionString);
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "INSERT INTO Users (Username, PasswordHash) VALUES (@u, @h)";
+        cmd.CommandText = "INSERT INTO Users (Username, PasswordHash) VALUES (@u, @h) RETURNING Id";
         cmd.Parameters.AddWithValue("@u", username);
         cmd.Parameters.AddWithValue("@h", passwordHash);
-        await cmd.ExecuteNonQueryAsync();
+        return (long)(await cmd.ExecuteScalarAsync())!;
     }
 }
 
