@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines the requirements for the Qdrant entity collection (`dnd_entities`): its creation, payload schema, indexes, entity ingestion, retrieval-by-ID, and entity vector search. The entity collection is independent of the blocks collection (`dnd_blocks`) and stores one point per structured entity record.
-
 ## Requirements
-
 ### Requirement: A separate Qdrant collection SHALL store entity embeddings
 
 The system SHALL create and use a Qdrant collection named by configuration `Qdrant:EntitiesCollectionName` (default `dnd_entities`). This collection SHALL be distinct from `dnd_blocks` and SHALL NOT be used for block-level retrieval.
@@ -22,12 +20,17 @@ The system SHALL create and use a Qdrant collection named by configuration `Qdra
 
 ### Requirement: Entity ingestion SHALL embed `canonicalText` and store the full envelope as payload
 
-For each entity in a canonical JSON file, the ingestion worker SHALL embed the entity's `canonicalText` and upsert one Qdrant point into `dnd_entities`. The point's payload SHALL include all envelope fields (id, type, name, sourceBook, edition, page, firstAppearedIn, revisedIn, settingTags, canonicalText) and a flattened/indexed subset of type-specific fields suitable for filtering (e.g. `crNumeric`, `spellLevel`, `damageType`, `keywords[]`).
+For each entity in a canonical JSON file, the ingestion worker SHALL embed the entity's `canonicalText` and upsert one Qdrant point into `dnd_entities`. The point's payload SHALL include all envelope fields (id, type, name, sourceBook, edition, page, firstAppearedIn, revisedIn, settingTags, canonicalText, keywords) and a flattened/indexed subset of type-specific fields suitable for filtering (e.g. `crNumeric`, `spellLevel`, `damageType`, `keywords[]`). The `keywords` payload field SHALL be written as a repeated keyword value (one entry per keyword string) so the Qdrant keyword index can match individual values.
 
-#### Scenario: Entity is embedded once and upserted with full payload
+#### Scenario: Entity is embedded once and upserted with full payload including keywords
 
-- **WHEN** a canonical JSON file with N entities is ingested
-- **THEN** exactly N points exist in `dnd_entities` and each carries the envelope fields plus indexable type-specific fields
+- **WHEN** a canonical JSON file with N entities is ingested and some entities have non-empty `keywords`
+- **THEN** exactly N points exist in `dnd_entities`, each carrying the envelope fields plus indexable type-specific fields, and points with keywords have the `keywords` payload field populated
+
+#### Scenario: Entity with empty keywords is upserted without keywords payload field
+
+- **WHEN** an entity has `keywords = []`
+- **THEN** the Qdrant point is upserted without a `keywords` payload key (or with an empty array), and keyword filter queries do not match it
 
 #### Scenario: Re-ingesting a canonical JSON deletes prior points before upserting
 
@@ -117,3 +120,44 @@ The system SHALL NOT mix entity points and block points in the same Qdrant colle
 
 - **WHEN** `GET /retrieval/entities/search?q=fireball` is called against a populated block collection
 - **THEN** the search queries only `dnd_entities` and returns entity records, not block records
+
+### Requirement: Entity vector search SHALL support filtering by keyword
+
+The vector store SHALL apply a keyword filter condition when `EntityFilters.Keyword` is non-null, restricting results to points whose `keywords` payload array contains an exact match for the supplied value.
+
+#### Scenario: Keyword filter applied in Qdrant query
+
+- **WHEN** `EntityFilters.Keyword = "Amphibious"` is passed to the vector store
+- **THEN** the Qdrant query includes a must-condition matching `keywords == "Amphibious"` and only matching points are returned
+
+#### Scenario: No keyword filter leaves results unrestricted by keywords
+
+- **WHEN** `EntityFilters.Keyword` is null
+- **THEN** no keyword must-condition is added to the Qdrant query
+
+### Requirement: Deterministic point IDs
+`IEntityVectorStore.UpsertAsync` SHALL write Qdrant points with UUIDs derived deterministically from each entity's `id` string (UUID v5, DNS namespace). Random GUIDs SHALL NOT be used.
+
+#### Scenario: Re-ingest does not create duplicates
+
+- **WHEN** `ingest-entities` is run twice for the same book with the same canonical data
+- **THEN** the Qdrant collection SHALL contain the same number of points after both runs (second run overwrites first)
+
+### Requirement: Batch entity fetch by ID list
+`IEntityVectorStore` SHALL expose `GetByIdsAsync(IList<string> entityIds, CancellationToken ct)` returning `IReadOnlyDictionary<string, EntityEnvelope>` — a map from entity ID to its current stored envelope. Entity IDs not found in the collection SHALL be absent from the result dictionary.
+
+#### Scenario: Known IDs are returned
+
+- **WHEN** `GetByIdsAsync(["tce.subclass.circle-of-spores"])` is called and that entity exists
+- **THEN** the result SHALL contain one entry with key `"tce.subclass.circle-of-spores"`
+
+#### Scenario: Unknown IDs are absent
+
+- **WHEN** `GetByIdsAsync(["nonexistent.class.foo"])` is called
+- **THEN** the result SHALL be an empty dictionary
+
+#### Scenario: Large batch is handled
+
+- **WHEN** `GetByIdsAsync` is called with 500 entity IDs
+- **THEN** all matching entities SHALL be returned without truncation
+

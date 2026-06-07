@@ -3,17 +3,15 @@
 ## Purpose
 
 Defines the data model for structured D&D entity records: the common envelope, the deterministic slug-based ID scheme, the 20 supported entity types and their field schemas, and the canonical JSON file format used as the source of truth for entity ingestion.
-
 ## Requirements
-
 ### Requirement: Every structured entity record SHALL conform to a common envelope
 
-The system SHALL define a common entity envelope used by every entity record across all 20 entity types. The envelope SHALL contain the following fields: `id` (string), `type` (string, one of the 20 entity types), `name` (string), `sourceBook` (string), `edition` (string, one of `Edition2014`, `Edition2024`, or other recognized editions), `page` (integer or null), `firstAppearedIn` (object with `book`, `edition`, optional `page`), `revisedIn` (array of objects each with `book`, `edition`, `summary`), `settingTags` (array of strings), `canonicalText` (string), and `fields` (object containing type-specific fields).
+The system SHALL define a common entity envelope used by every entity record across all 20 entity types. The envelope SHALL contain the following fields: `id` (string), `type` (string, one of the 20 entity types), `name` (string), `sourceBook` (string), `edition` (string, one of `Edition2014`, `Edition2024`, or other recognized editions), `page` (integer or null), `firstAppearedIn` (object with `book`, `edition`, optional `page`), `revisedIn` (array of objects each with `book`, `edition`, `summary`), `settingTags` (array of strings), `keywords` (array of strings, defaults to empty), `canonicalText` (string), and `fields` (object containing type-specific fields).
 
 #### Scenario: Envelope shape is consistent across types
 
 - **WHEN** any entity record is loaded from a canonical JSON file
-- **THEN** it has all envelope fields present (`fields` may be empty for trivial types but the key SHALL exist)
+- **THEN** it has all envelope fields present (`fields` may be empty for trivial types but the key SHALL exist; `keywords` defaults to `[]` when absent)
 
 #### Scenario: Missing required envelope field fails validation
 
@@ -24,6 +22,11 @@ The system SHALL define a common entity envelope used by every entity record acr
 
 - **WHEN** a record has `type` that is not one of the 20 supported entity types
 - **THEN** the loader SHALL reject the record with an error naming the unsupported type
+
+#### Scenario: Entity with keywords round-trips through canonical JSON
+
+- **WHEN** an entity with `keywords = ["Pack Tactics", "Keen Senses"]` is serialised to canonical JSON and re-loaded
+- **THEN** the loaded entity has the same `keywords` array
 
 ### Requirement: Entity IDs SHALL follow a deterministic slug scheme
 
@@ -174,3 +177,72 @@ When one entity references another (e.g. `Class.subclasses[]` listing subclass I
 
 - **WHEN** a Class record references a subclass ID that does not exist in any loaded canonical JSON
 - **THEN** the loader emits a warning identifying the source entity, the target ID, and the field path
+
+### Requirement: Entity ID format uses source key slug as book prefix
+All entity IDs SHALL follow the format `{sourcekeyslug}.{typeslug}.{nameslug}` where `sourcekeyslug` is the lowercase 5etools source key (with year suffix for editions where needed), `typeslug` is the lowercase `EntityType` name, and `nameslug` is the kebab-case entity name.
+
+Edition slug conventions:
+
+- PHB (2014): `phb14`
+- PHB (2024 / XPHB): `phb24`
+- DMG (2014): `dmg14`
+- DMG (2024 / XDMG): `dmg24`
+- MM (2014): `mm14`
+- MM (2025): `mm24`
+- TCE: `tce`
+- XGTE: `xgte`
+- MPMM: `mpmm`
+
+#### Scenario: Tasha's subclass entity ID
+
+- **WHEN** "Circle of Spores" (Druid subclass, TCE) is stored
+- **THEN** its entity ID SHALL be `"tce.subclass.circle-of-spores"`
+
+#### Scenario: PHB class entity ID
+
+- **WHEN** "Fighter" (Class, PHB 2014) is stored
+- **THEN** its entity ID SHALL be `"phb14.class.fighter"`
+
+#### Scenario: Both pipelines produce the same ID
+
+- **WHEN** 5etools import and canonical ingest both process "Circle of Spores" from TCE
+- **THEN** both SHALL produce entity ID `"tce.subclass.circle-of-spores"`
+- **THEN** the Qdrant collection SHALL contain exactly one point for this entity after both pipelines run
+
+### Requirement: EntityEnvelope carries a NeedsReview flag
+`EntityEnvelope` SHALL include a `bool NeedsReview` property (default `false`). This field SHALL be:
+
+- Serialized to and from canonical JSON as `"needsReview": true/false`
+- Preserved through `CanonicalJsonLoader`, `EntityMerger`, and ingestion without modification
+- Stored in the Qdrant point payload as `needs_review` (bool)
+
+#### Scenario: NeedsReview default is false
+
+- **WHEN** a canonical JSON entity has no `needsReview` field
+- **THEN** `EntityEnvelope.NeedsReview` SHALL be `false`
+
+#### Scenario: NeedsReview persists through merge
+
+- **WHEN** `EntityMerger.Merge(canonical, existing)` is called and `canonical.NeedsReview` is `true`
+- **THEN** the merged result SHALL have `NeedsReview = true`
+
+### Requirement: Canonical JSON validation reports needsReview entities as warnings
+`POST /admin/canonical/validate` SHALL count entities with `needsReview: true` per file and include them in the response warnings. The warning SHALL state the count and instruct the reviewer to fix the name/type/fields and clear the flag before re-ingesting.
+
+Entities with `needsReview: true` SHALL NOT cause validation to return a non-200 status — they are warnings, not errors.
+
+#### Scenario: Validation warns on needsReview entities
+
+- **WHEN** `tce.json` contains 47 entities with `"needsReview": true`
+- **THEN** the validation response SHALL include a warning: `{ "file": "tce.json", "type": "needs_review", "count": 47, "message": "47 entities need review..." }`
+
+#### Scenario: Validation with no needsReview entities has no warning
+
+- **WHEN** all entities in all canonical files have `"needsReview": false`
+- **THEN** the validation response SHALL contain no `needs_review` warnings
+
+#### Scenario: Ingestion proceeds for needsReview entities
+
+- **WHEN** `POST /admin/books/{id}/ingest-entities` is called and some entities have `needsReview: true`
+- **THEN** those entities SHALL be ingested normally — `needsReview` does not block ingestion
+

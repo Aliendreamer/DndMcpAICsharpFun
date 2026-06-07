@@ -1,0 +1,77 @@
+## ADDED Requirements
+### Requirement: search_lore tool performs prose RAG search
+The server SHALL expose a `search_lore` MCP tool that queries `IRagRetrievalService` and returns matching prose blocks.
+
+Parameters:
+
+- `query` (string, required) — natural language question
+- `version` (string, optional) — `"Edition2014"` or `"Edition2024"`
+- `category` (string, optional) — content category e.g. `"Spell"`, `"Combat"`, `"Condition"`
+- `topK` (int, optional, default 5) — number of results
+
+#### Scenario: Basic lore search returns results
+
+- **WHEN** a client calls `search_lore` with a non-empty `query`
+- **THEN** the tool returns up to `topK` prose blocks with title, text, sourceBook, category, and score
+
+#### Scenario: search_lore with edition filter narrows results
+
+- **WHEN** a client calls `search_lore` with `query` and `version="Edition2024"`
+- **THEN** only blocks from Edition2024 sources are returned
+
+#### Scenario: search_lore with unknown version returns empty gracefully
+
+- **WHEN** a client calls `search_lore` with an unrecognised `version` string
+- **THEN** the tool returns an empty result list without throwing
+
+### Requirement: search_entities tool performs structured entity search
+The server SHALL expose a `search_entities` MCP tool that queries `IEntityRetrievalService` and returns matching entity records.
+
+Parameters:
+
+- `query` (string, required) — search text
+- `type` (string, optional) — entity type e.g. `"Spell"`, `"Monster"`, `"Class"`, `"Subclass"`
+- `edition` (string, optional) — `"Edition2014"` or `"Edition2024"`
+- `keyword` (string, optional) — trait tag keyword e.g. `"Amphibious"`, `"Pack Tactics"`
+- `crMax` (double, optional) — maximum challenge rating (for monsters)
+- `spellLevel` (int, optional) — spell level filter
+- `srd` (bool, optional) — restrict to SRD 5.1 entities
+- `srd52` (bool, optional) — restrict to SRD 5.2.1 entities
+- `topK` (int, optional, default 10) — number of results
+
+#### Scenario: Basic entity search returns results
+
+- **WHEN** a client calls `search_entities` with a non-empty `query`
+- **THEN** the tool returns up to `topK` entity records with id, name, type, sourceBook, edition, canonicalText, and fields
+
+#### Scenario: search_entities with type filter narrows results
+
+- **WHEN** a client calls `search_entities` with `query` and `type="Monster"`
+- **THEN** only Monster entities are returned
+
+#### Scenario: search_entities with crMax filter narrows monster results
+
+- **WHEN** a client calls `search_entities` with `type="Monster"` and `crMax=2`
+- **THEN** only monsters with CR ≤ 2 are returned
+
+#### Scenario: search_entities with invalid type returns empty gracefully
+
+- **WHEN** a client calls `search_entities` with an unrecognised `type` string
+- **THEN** the tool returns an empty result list without throwing
+
+### Requirement: get_entity tool fetches a single entity by ID
+The server SHALL expose a `get_entity` MCP tool that retrieves one entity from `IEntityRetrievalService` by its canonical ID.
+
+Parameters:
+
+- `id` (string, required) — canonical entity ID e.g. `"phb.spell.fireball"`
+
+#### Scenario: get_entity returns the entity for a known ID
+
+- **WHEN** a client calls `get_entity` with a valid entity ID
+- **THEN** the tool returns the full entity record
+
+#### Scenario: get_entity returns not-found message for unknown ID
+
+- **WHEN** a client calls `get_entity` with an ID that does not exist
+- **THEN** the tool returns a clear "entity not found" message string rather than throwing

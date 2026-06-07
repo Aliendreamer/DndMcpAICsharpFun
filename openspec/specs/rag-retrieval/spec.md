@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines the requirements for vector similarity search over the Qdrant blocks collection with optional metadata filters, returning ranked relevant blocks for AI consumption. Retrieval always queries the blocks collection (`Qdrant:BlocksCollectionName`); there is no runtime selector.
-
 ## Requirements
-
 ### Requirement: Public search endpoint accepts a natural-language query
 The system SHALL expose `GET /retrieval/search?q=<text>` and return a ranked list of matching blocks with text, metadata, and similarity score.
 
@@ -136,3 +134,50 @@ The `/retrieval/entities/search` endpoint SHALL accept the following query param
 
 - **WHEN** an entity appears in both a `/retrieval/entities/search` result and a subsequent `/retrieval/entities/{id}` lookup
 - **THEN** the search result contains the envelope without `fields`; the by-ID response contains the envelope plus the full `fields` block
+
+### Requirement: Retrieval search returns hybrid-ranked results
+The system SHALL issue hybrid search queries (dense + BM25 sparse, RRF fusion) when the `dnd_blocks` collection has sparse vector support. When sparse support is unavailable the system SHALL fall back to pure dense vector search. All existing filter parameters (`version`, `category`, `sourceBook`, `entityName`, `bookType`) SHALL apply to hybrid queries identically to dense-only queries. The result schema and MCP tool signatures SHALL remain unchanged.
+
+#### Scenario: Hybrid search used when collection supports it
+
+- **WHEN** `/retrieval/search` is called and the collection has sparse vectors
+- **THEN** results are ranked by RRF fusion of dense and BM25 scores
+
+#### Scenario: Filters compose with hybrid search
+
+- **WHEN** `/retrieval/search` is called with a `category` filter and sparse vector support is available
+- **THEN** results are filtered by category AND ranked by hybrid scores
+
+#### Scenario: Exact name query ranks correctly
+
+- **WHEN** the query is "Sentinel feat" and the Sentinel feat block is in the corpus
+- **THEN** the Sentinel feat block appears in the top results
+
+#### Scenario: Dense fallback when sparse unavailable
+
+- **WHEN** `/retrieval/search` is called and the collection has no sparse vectors
+- **THEN** results are returned using dense vector similarity only with no error
+
+### Requirement: Retrieval search reranks candidates before returning results
+The system SHALL fetch `Reranker:TopK` candidates from Qdrant (default 20) and pass them through the cross-encoder reranker, returning the top `Reranker:TopN` results (default 5) ordered by reranker score. When reranking is disabled, the system SHALL return the top `Reranker:TopN` candidates ordered by Qdrant similarity score. All existing filter parameters (`version`, `category`, `sourceBook`, `entityName`, `bookType`) SHALL apply before candidate selection. The result schema and MCP tool signatures SHALL remain unchanged.
+
+#### Scenario: Reranked results returned when reranker enabled
+
+- **WHEN** `/retrieval/search` is called with reranking enabled
+- **THEN** up to TopN results are returned, ordered by cross-encoder relevance score
+
+#### Scenario: Qdrant-ordered results returned when reranker disabled
+
+- **WHEN** `/retrieval/search` is called with `Reranker:Enabled = false`
+- **THEN** the top TopN results by Qdrant similarity score are returned without a reranker call
+
+#### Scenario: Filters applied before reranking
+
+- **WHEN** `/retrieval/search` is called with a `category` filter and reranking enabled
+- **THEN** only blocks matching the filter are candidates for reranking
+
+#### Scenario: Result count does not exceed TopN
+
+- **WHEN** `/retrieval/search` is called
+- **THEN** the response contains at most `Reranker:TopN` results regardless of how many Qdrant candidates were fetched
+

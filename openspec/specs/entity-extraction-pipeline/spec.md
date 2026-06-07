@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines the requirements for the out-of-band LLM-driven entity extraction pipeline. Extraction converts Docling-processed book text into canonical JSON files (`data/canonical/<book-slug>.json`) containing structured entity records. Extraction is decoupled from block ingestion and is triggered explicitly via an admin endpoint.
-
 ## Requirements
-
 ### Requirement: Entity extraction SHALL be triggered out-of-band via an admin endpoint
 
 The system SHALL expose `POST /admin/books/{id}/extract-entities` which enqueues a one-time entity extraction job for the specified book. The extraction job SHALL NOT run as part of `POST /admin/books/{id}/ingest-blocks`. The handler SHALL return HTTP 202 on enqueue, HTTP 404 when the record is missing, and HTTP 409 when the record's status indicates an extraction or ingestion is already in progress.
@@ -155,3 +153,97 @@ If extraction fails for any reason, the canonical JSON file SHALL not be partial
 
 - **WHEN** extraction completes successfully
 - **THEN** the canonical JSON appears at its final path via a single atomic rename from the temp file
+
+### Requirement: Extraction SHALL produce canonical JSON entities with a `keywords` field for Monster type
+
+When the LLM extraction pipeline processes a Monster entity, the resulting canonical JSON record SHALL include a `keywords` array under `fields` containing the names of notable traits visible in the stat block (e.g. `"Pack Tactics"`, `"Amphibious"`, `"Undead Fortitude"`). The array SHALL be empty when no notable traits are identified. Non-Monster entity types are not required to produce `keywords`.
+
+#### Scenario: Monster extraction produces keywords from trait names
+
+- **WHEN** the LLM extracts a monster whose stat block includes traits named `"Pack Tactics"` and `"Keen Senses"`
+- **THEN** the resulting canonical JSON entity has `"fields": { ..., "keywords": ["Pack Tactics", "Keen Senses"] }`
+
+#### Scenario: Monster with no notable traits produces empty keywords
+
+- **WHEN** the LLM extracts a monster with no named traits (e.g. a simple creature)
+- **THEN** the resulting canonical JSON entity has `"fields": { ..., "keywords": [] }`
+
+#### Scenario: Non-Monster entities omit keywords field
+
+- **WHEN** the LLM extracts a Spell or Class entity
+- **THEN** the resulting canonical JSON entity does not include a `keywords` field under `fields`
+
+### Requirement: LLM extraction produces correct entity type
+The extraction system prompt SHALL instruct the LLM to classify each extracted entity with the correct `EntityType` based on the content it reads — `Class`, `Subclass`, `Spell`, `Monster`, `Feat`, `Item`, `MagicItem`, `Race`, `Subrace`, `Background`, `Rule`, `God`, `Condition`, `DiseasePoison`, `Weapon`, `Armor`, `Trap`, `VehicleMount` — rather than defaulting all entities to `Class`.
+
+The prompt SHALL include:
+
+- The full list of valid `EntityType` values
+- Examples of how to classify common D&D content (subclass features → `Subclass`, spell entries → `Spell`, etc.)
+- The rule: if uncertain, prefer the most specific applicable type over `Class`
+
+#### Scenario: Subclass correctly typed
+
+- **WHEN** the LLM extracts an entity for "Circle of Spores" from Tasha's Cauldron of Everything
+- **THEN** the extracted entity SHALL have `type: "Subclass"` not `type: "Class"`
+
+#### Scenario: Rule entry correctly typed
+
+- **WHEN** the LLM extracts an entity for "Transmuted Spell" (a metamagic option)
+- **THEN** the extracted entity SHALL have `type: "Rule"` not `type: "Class"`
+
+#### Scenario: Unknown content falls back gracefully
+
+- **WHEN** the LLM cannot determine a specific type for an entity
+- **THEN** the LLM SHALL use `Class` as the fallback and include a note in `canonicalText`
+
+### Requirement: Extraction prompt produces title-case entity names
+The extraction system prompt SHALL include the rule: entity names MUST be output in title case following D&D conventions — capitalize all words except articles and prepositions (`of, the, a, an, in, on, at, to, and, or, but, for, nor`) unless they appear at the start of the name. ALL-CAPS names as they appear in PDF headings MUST be converted.
+
+#### Scenario: LLM outputs title-case name
+
+- **WHEN** the source PDF contains the heading `CIRCLE OF SPORES`
+- **THEN** the extracted entity `name` SHALL be `"Circle of Spores"`, not `"CIRCLE OF SPORES"`
+
+### Requirement: Extraction schema includes a per-entity confidence field
+The JSON schema provided to the LLM for entity extraction SHALL include a `confidence` field with allowed values `"low"`, `"medium"`, or `"high"`. The LLM SHALL set this field based on how cleanly it could identify the entity's name, type, and canonical content from the PDF text.
+
+- `"high"`: name, type, and content are unambiguous
+- `"medium"`: one of name/type/content required a judgment call
+- `"low"`: significant ambiguity; the entity may be misidentified or incomplete
+
+The `confidence` field is used only during post-processing and SHALL NOT be persisted to the canonical JSON.
+
+#### Scenario: Low-confidence entity flagged for review
+
+- **WHEN** the LLM extracts an entity and outputs `"confidence": "low"`
+- **THEN** the post-processing step SHALL set `needsReview: true` on that entity
+
+#### Scenario: High-confidence entity not flagged by confidence alone
+
+- **WHEN** the LLM extracts an entity and outputs `"confidence": "high"`
+- **THEN** the `needsReview` flag SHALL NOT be set by the confidence check (heuristic may still flag it)
+
+### Requirement: Post-processing applies OCR-artifact heuristic to entity names
+After LLM extraction, a post-processing step SHALL inspect each entity's `name` field and set `needsReview = true` if any of the following are true:
+
+1. `name.isupper()` is true and `len(name) > 1` (all-caps — LLM ignored the naming rule)
+2. The lowercased name matches the regex `\b[a-z] [a-z]\b` (letter-space-letter split word)
+3. The name contains `\.{3,}` or other noise sequences of repeated punctuation
+4. A single word in the name has more than 3 upper/lower case alternations (e.g., `WoRLd`)
+
+#### Scenario: All-caps name after extraction is flagged
+
+- **WHEN** an extracted entity has `"name": "BESTIAL SOUL"` (LLM did not follow naming rule)
+- **THEN** `needsReview` SHALL be set to `true`
+
+#### Scenario: Split-word OCR artifact is flagged
+
+- **WHEN** an extracted entity has `"name": "Path of the Beast f eature"`
+- **THEN** `needsReview` SHALL be set to `true`
+
+#### Scenario: Clean title-case name passes heuristic
+
+- **WHEN** an extracted entity has `"name": "Circle of Spores"` and `"confidence": "high"`
+- **THEN** `needsReview` SHALL remain `false`
+
