@@ -142,7 +142,11 @@ internal static class ServiceCollectionExtensions
             return new OllamaChatClient(new Uri(opts.BaseUrl), opts.ChatModel);
         });
         services.AddSingleton<IEntityExtractionLlmClient, OllamaEntityExtractionClient>();
-        services.AddSingleton<ExtractionPromptBuilder>();
+        services.AddSingleton(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value;
+            return new ExtractionPromptBuilder(ExtractionPromptBuilder.LoadExamples(opts.ExamplesDirectory));
+        });
         services.AddSingleton<PartialJsonRecoverer>();
         services.AddSingleton<SemanticChunker>();
         services.AddSingleton<EntityFieldMerger>();

@@ -13,4 +13,5 @@ public sealed class EntityExtractionOptions
     public int ProgressLogIntervalSeconds { get; set; } = 60;
     public int CheckpointIntervalCandidates { get; set; } = 100;
     public string DoclingCacheDirectory { get; set; } = "data/docling-cache";
+    public string ExamplesDirectory { get; set; } = "Schemas/examples";
 }

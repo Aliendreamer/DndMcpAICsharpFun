@@ -104,4 +104,29 @@ public class ExtractionPromptBuilderTests
         prompt.Should().Contain("title case");
         prompt.Should().Contain("ALL CAPS");
     }
+
+    [Fact]
+    public void BuildSystemPrompt_WithExampleForType_IncludesExampleOutput()
+    {
+        var examples = new Dictionary<EntityType, string>
+        {
+            [EntityType.Spell] = """{"name":"Fireball","level":3,"school":"V"}""",
+        };
+        var b = new ExtractionPromptBuilder(examples);
+
+        var prompt = b.BuildSystemPrompt("PHB", "5e", EntityType.Spell);
+
+        prompt.Should().Contain("Example output:");
+        prompt.Should().Contain("\"name\":\"Fireball\"");
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_WithoutExampleForType_OmitsExampleSection()
+    {
+        var b = new ExtractionPromptBuilder();
+
+        var prompt = b.BuildSystemPrompt("PHB", "5e", EntityType.Spell);
+
+        prompt.Should().NotContain("Example output:");
+    }
 }

@@ -3,8 +3,12 @@ using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
-public sealed class ExtractionPromptBuilder
+public sealed class ExtractionPromptBuilder(
+    IReadOnlyDictionary<EntityType, string>? examples = null)
 {
+    private readonly IReadOnlyDictionary<EntityType, string> _examples =
+        examples ?? new Dictionary<EntityType, string>();
+
     private const string SizeCodes =
         "Size codes: T=Tiny, S=Small, M=Medium, L=Large, H=Huge, G=Gargantuan. " +
         "Use an array: \"size\": [\"M\"]";
@@ -125,6 +129,13 @@ public sealed class ExtractionPromptBuilder
                 break;
         }
 
+        if (_examples.TryGetValue(type, out var example))
+        {
+            sb.AppendLine();
+            sb.AppendLine("Example output:");
+            sb.AppendLine(example);
+        }
+
         return sb.ToString();
     }
 
@@ -158,4 +169,23 @@ public sealed class ExtractionPromptBuilder
 
     public string ToolDescription(EntityType type) =>
         $"Emit a structured {type} entity's `fields` object. The input MUST validate against the provided schema.";
+
+    /// <summary>
+    /// Loads one example JSON file per entity type from <paramref name="directory"/>
+    /// (file name = exact EntityType name, e.g. "Spell.json"). Missing files are
+    /// skipped silently. A missing directory yields an empty dictionary.
+    /// </summary>
+    public static IReadOnlyDictionary<EntityType, string> LoadExamples(string directory)
+    {
+        var result = new Dictionary<EntityType, string>();
+        if (!Directory.Exists(directory)) return result;
+
+        foreach (var type in Enum.GetValues<EntityType>())
+        {
+            var path = Path.Combine(directory, type + ".json");
+            if (File.Exists(path))
+                result[type] = File.ReadAllText(path).Trim();
+        }
+        return result;
+    }
 }
