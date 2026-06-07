@@ -143,6 +143,9 @@ internal static class ServiceCollectionExtensions
         });
         services.AddSingleton<IEntityExtractionLlmClient, OllamaEntityExtractionClient>();
         services.AddSingleton<ExtractionPromptBuilder>();
+        services.AddSingleton<PartialJsonRecoverer>();
+        services.AddSingleton<SemanticChunker>();
+        services.AddSingleton<EntityFieldMerger>();
         services.AddSingleton<EntityCandidateScanner>();
         services.AddSingleton<CanonicalJsonWriter>();
         services.AddSingleton<ExtractionErrorsFile>();

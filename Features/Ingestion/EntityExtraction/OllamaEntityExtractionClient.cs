@@ -5,6 +5,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
 public sealed class OllamaEntityExtractionClient(
     IChatClient chat,
+    PartialJsonRecoverer recoverer,
     ILogger<OllamaEntityExtractionClient> logger) : IEntityExtractionLlmClient
 {
     public async Task<ExtractionResponse> ExtractAsync(ExtractionRequest req, CancellationToken ct)
@@ -49,6 +50,18 @@ public sealed class OllamaEntityExtractionClient(
             }
             catch (JsonException ex)
             {
+                if (recoverer.TryRecover(rawText, out var recovered))
+                {
+                    logger.LogWarning(
+                        "Recovered partial JSON for model {Model}: {Recovered}/{Total} chars",
+                        req.ModelId, recovered.Length, rawText.Length);
+                    using var recoveredDoc = JsonDocument.Parse(recovered);
+                    return new ExtractionResponse(
+                        Success: true, ToolInput: recoveredDoc.RootElement.Clone(), StopReason: stopReason,
+                        InputTokens: inputTokens, OutputTokens: outputTokens,
+                        ErrorMessage: null, RawJson: recovered);
+                }
+
                 logger.LogWarning(
                     "Ollama returned non-JSON for model {Model}: {Err} — raw: {Raw}",
                     req.ModelId, ex.Message, rawText[..Math.Min(300, rawText.Length)]);
