@@ -66,7 +66,18 @@ public sealed class SemanticChunkerTests
         var text = string.Join("\n", lines);
         var chunks = _chunker.Split(text, maxTokensPerChunk: 150);
         chunks.Should().HaveCountGreaterThan(1);
+        chunks.Should().OnlyContain(c => c.Length / 4 <= 150);
         string.Concat(chunks.Select(c => c.Replace("\n", "")))
             .Should().Be(text.Replace("\n", ""));
+    }
+
+    [Fact]
+    public void Split_SingleOversizedLine_IsHardSplitToBudget()
+    {
+        var line = new string('x', 2000);
+        var chunks = _chunker.Split(line, maxTokensPerChunk: 150);
+        chunks.Should().HaveCountGreaterThan(1);
+        chunks.Should().OnlyContain(c => c.Length / 4 <= 150);
+        string.Concat(chunks).Should().Be(line);
     }
 }

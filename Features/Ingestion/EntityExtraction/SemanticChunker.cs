@@ -12,7 +12,7 @@ public sealed partial class SemanticChunker
     [GeneratedRegex(@"^\|[-| ]+\|\s*$")]
     private static partial Regex TableSeparator();
 
-    public IList<string> Split(string text, int maxTokensPerChunk)
+    public IReadOnlyList<string> Split(string text, int maxTokensPerChunk)
     {
         if (EstimateTokens(text) <= maxTokensPerChunk)
             return [text];
@@ -61,12 +61,16 @@ public sealed partial class SemanticChunker
                 current = [];
             }
 
-            current.Add(line);
-
-            if (isBlank && current.Count > 0)
+            if (isBlank)
             {
-                blocks.Add(string.Join('\n', current));
+                // Close the current block without emitting a whitespace-only block.
+                if (current.Count > 0)
+                    blocks.Add(string.Join('\n', current));
                 current = [];
+            }
+            else
+            {
+                current.Add(line);
             }
         }
 
@@ -75,13 +79,32 @@ public sealed partial class SemanticChunker
 
         // A block with no internal boundaries can still exceed the budget;
         // fall back to line granularity so the greedy accumulator can work.
+        // Additionally, any individual line that exceeds the budget is hard-split
+        // into fixed-length character windows of maxTokensPerChunk*4 chars.
+        int windowChars = maxTokensPerChunk * 4;
         var sized = new List<string>();
         foreach (var b in blocks)
         {
             if (EstimateTokens(b) > maxTokensPerChunk)
-                sized.AddRange(b.Split('\n'));
+            {
+                foreach (var rawLine in b.Split('\n'))
+                {
+                    if (rawLine.Length > windowChars)
+                    {
+                        // Hard-split the oversized line into character windows.
+                        for (int offset = 0; offset < rawLine.Length; offset += windowChars)
+                            sized.Add(rawLine.Substring(offset, Math.Min(windowChars, rawLine.Length - offset)));
+                    }
+                    else
+                    {
+                        sized.Add(rawLine);
+                    }
+                }
+            }
             else
+            {
                 sized.Add(b);
+            }
         }
         return sized;
     }
