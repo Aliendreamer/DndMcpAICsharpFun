@@ -1,0 +1,70 @@
+@page "/login"
+@layout AuthLayout
+@using DndMcpAICsharpFun.Features.Auth
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using System.Security.Claims
+@inject UserRepository UserRepo
+@inject NavigationManager Nav
+
+<PageTitle>Sign In</PageTitle>
+
+<div class="auth-container">
+    <h2>Sign In</h2>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <p class="error">@_error</p>
+    }
+
+    <EditForm Model="_model!" OnValidSubmit="OnSubmit" FormName="login" method="post">
+        <div class="form-group">
+            <label>Username</label>
+            <InputText @bind-Value="_model!.Username" />
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <InputText type="password" @bind-Value="_model!.Password" />
+        </div>
+        <button type="submit">Sign In</button>
+    </EditForm>
+
+    <p><a href="/register">Create an account</a></p>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginModel? _model { get; set; }
+
+    protected override void OnInitialized() => _model ??= new();
+
+    private string _error = "";
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private async Task OnSubmit()
+    {
+        var user = await UserRepo.FindByUsernameAsync(_model!.Username);
+        if (user == null || !PasswordHasher.Verify(_model!.Password, user.PasswordHash))
+        {
+            _error = "Invalid username or password";
+            return;
+        }
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.Name, user.Username),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString())
+        };
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+        Nav.NavigateTo("/", true);
+    }
+
+    private sealed class LoginModel
+    {
+        public string Username { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}

@@ -1,0 +1,48 @@
+@page "/heroes"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@using DndMcpAICsharpFun.Features.Campaign
+@attribute [Authorize]
+@inject HeroRepository HeroRepo
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>Heroes</PageTitle>
+
+<div class="heroes-page">
+    <h1>All Heroes</h1>
+
+    @if (_heroes is null)
+    {
+        <p>Loading...</p>
+    }
+    else if (_heroes.Count == 0)
+    {
+        <p>No heroes yet. Create heroes inside a campaign.</p>
+    }
+    else
+    {
+        <div class="hero-list">
+            @foreach (var h in _heroes)
+            {
+                var level = h.Hero.LatestSnapshot?.Level ?? 0;
+                <a class="hero-list-item" href="/campaigns/@h.Hero.CampaignId/heroes/@h.Hero.Id">
+                    <span class="hero-name">@h.Hero.Name</span>
+                    <span class="hero-campaign">@h.CampaignName</span>
+                    <span class="hero-level">Lv @level</span>
+                </a>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<HeroWithCampaign>? _heroes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        var userId = long.Parse(state.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        _heroes = await HeroRepo.GetAllByUserAsync(userId);
+    }
+}
