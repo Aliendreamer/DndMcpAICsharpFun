@@ -29,7 +29,9 @@ Each layer is its own design pass via the openspec workflow.
 │                        Docker Compose Stack                      │
 │                                                                  │
 │   ┌──────────────────────────────────────────────────────────┐   │
-│   │                ASP.NET Core app  :5101                   │   │
+│   │           ASP.NET Core app  :5101  (single host)         │   │
+│   │   API + MCP server (/mcp) + Blazor UI (auth/campaigns/    │   │
+│   │   heroes/chat) — all in one process                      │   │
 │   │                                                          │   │
 │   │   Admin API          Ingestion Pipeline    Retrieval     │   │
 │   │   /admin/books   →   IngestionQueueWorker → /retrieval   │   │

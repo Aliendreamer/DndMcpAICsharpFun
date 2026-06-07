@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A D&D-themed ASP.NET Core Web API on .NET 10.0 intended to expose MCP (Model Context Protocol) tools for AI integration. The project is in early development — `Infrastructure/` is a placeholder for the infrastructure layer and `Program.cs` contains only the minimal host setup.
+A D&D-themed ASP.NET Core app on .NET 10.0. A **single host** (port 5101) serves three things at once: the ingestion/RAG **API**, the **MCP server** (`/mcp`, Model Context Protocol tools for AI integration), and the **Blazor Server UI** (auth, campaigns, heroes, chat). The companion UI was merged into this project — there is no separate `DndMcpAICompanion` project.
 
 ## Commands
 
@@ -12,7 +12,7 @@ A D&D-themed ASP.NET Core Web API on .NET 10.0 intended to expose MCP (Model Con
 # Build
 dotnet build
 
-# Run (default port: http://localhost:5101)
+# Run (serves API + MCP + Blazor UI on http://localhost:5101)
 dotnet run
 
 # Run with hot reload
@@ -20,15 +20,25 @@ dotnet watch run
 
 # Restore packages
 dotnet restore
-```
 
-There are no tests yet. When added, run them with `dotnet test`.
+# Tests
+dotnet test
+```
 
 ## Architecture
 
-- **Program.cs** — entry point; ASP.NET Core minimal hosting setup
+- **Program.cs** — composition root; wires the API, MCP server, and the Blazor UI (auth, rate limiting, chat) in one host
+- **Domain/** — all domain model types (`User`, `Campaign`, `Hero`, `HeroSnapshot`, `CharacterSheet`, `ChatTurn`, `IngestionRecord`, entity/book types)
+- **Components/**, **wwwroot/** — Blazor Server UI
+- **Features/** — `Auth`, `Campaigns`, `Chat`, plus ingestion/retrieval/admin/MCP
+- **Infrastructure/Persistence/** — `AppDbContext` (EF Core, SQLite), the single context for all tables
 - **Config/** — `appsettings.json` and `appsettings.Development.json` (loaded automatically by the host)
-- **Infrastructure/** — intended for infrastructure-layer code (data access, external clients, etc.); currently empty
+
+### Persistence
+
+All relational data lives in one EF Core `AppDbContext` (SQLite). Repositories (`UserRepository`, `CampaignRepository`, `HeroRepository`, `ChatRepository`) use `IDbContextFactory<AppDbContext>` for short-lived, Blazor-safe contexts. Schema is created by EF migrations applied at startup (`MigrateDatabaseAsync`); a `test` dev user is seeded. `HeroSnapshot.CharacterSheet` persists as a JSON column. Chat conversation turns are persisted as `ChatTurn` rows keyed by the signed-in user.
+
+> The chat feature is an MCP **client** that calls this same host's MCP server over a loopback endpoint (`McpClient:Url`), initialised lazily on first use to avoid a single-process startup deadlock. The server's `Mcp:ApiKey` and the client's `McpClient:ApiKey` must match.
 
 ### Key project settings
 

@@ -187,3 +187,12 @@ X-Mcp-Api-Key: {{mcpKey}}
 
 ### Metrics — Prometheus scraping endpoint
 GET {{baseUrl}}/metrics
+
+###
+
+# ── Web UI (Blazor) ───────────────────────────────────────────────────────────
+# The same host serves the Blazor Server UI: /login, /register, /campaigns,
+# /heroes, /chat (interactive, cookie-authenticated — open in a browser).
+
+### Web UI — Logout (clears the auth cookie, redirects to /login)
+GET {{baseUrl}}/logout
