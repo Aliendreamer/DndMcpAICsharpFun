@@ -490,3 +490,5 @@ $RECYCLE.BIN/
 *.swp
 .worktrees/
 models/
+data/spike/*.json
+.claude/scheduled_tasks.lock
