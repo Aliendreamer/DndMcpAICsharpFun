@@ -2,8 +2,6 @@ using DndMcpAICsharpFun.Features.Auth;
 using Microsoft.AspNetCore.Authentication;
 using DndMcpAICsharpFun.Features.Campaigns;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using ModelContextProtocol.Client;
-using AppMcpClientOptions = DndMcpAICsharpFun.Features.Chat.McpClientOptions;
 
 namespace DndMcpAICsharpFun.Extensions;
 
@@ -27,29 +25,8 @@ internal static class AppExtensions
         return app;
     }
 
-    internal static WebApplication MapDndEndpoints(this WebApplication app, AppMcpClientOptions mcpOpts, McpClient mcpClient)
+    internal static WebApplication MapDndEndpoints(this WebApplication app)
     {
-        if (string.IsNullOrWhiteSpace(mcpOpts.ApiKey))
-            app.Logger.LogWarning("Mcp:ApiKey is not configured — MCP requests will be sent without authentication and will likely be rejected by the server.");
-
-        app.Lifetime.ApplicationStopping.Register(() =>
-        {
-            try
-            {
-                mcpClient.DisposeAsync().AsTask()
-                    .WaitAsync(TimeSpan.FromSeconds(5))
-                    .GetAwaiter().GetResult();
-            }
-            catch (TimeoutException)
-            {
-                // MCP client did not dispose within 5 s — proceeding with shutdown.
-            }
-            catch
-            {
-                // Dispose errors are non-fatal during shutdown.
-            }
-        });
-
         app.MapGet("/logout", async (HttpContext ctx) =>
         {
             await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

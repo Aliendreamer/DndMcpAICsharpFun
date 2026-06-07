@@ -73,6 +73,17 @@ builder.Services.AddWebSearch(builder.Configuration);
 builder.Services.AddEntityExtraction(builder.Configuration);
 builder.Services.AddObservability(builder.Configuration);
 
+// Companion UI: persistence, chat, auth, rate limiting, Blazor, and the loopback MCP client.
+builder.Services.AddOptions<DndMcpAICsharpFun.Features.Chat.McpClientOptions>()
+    .BindConfiguration("McpClient")
+    .ValidateOnStart();
+builder.Services.AddAntiforgery();
+builder.Services.AddDatabase(builder.Configuration);
+builder.Services.AddDndChat(builder.Configuration);
+builder.Services.AddDndAuthentication();
+builder.Services.AddDndRateLimiting(builder.Configuration);
+builder.Services.AddDndBlazor();
+
 builder.Services.AddMcpServer()
     .WithHttpTransport()
     .WithToolsFromAssembly();
@@ -88,13 +99,16 @@ var app = builder.Build();
 await app.Services.GetRequiredService<CrossEncoderReranker>().InitializeAsync();
 
 await app.MigrateDatabaseAsync();
+await app.InitializeDatabaseAsync();
 app.ValidateStartupConfiguration();
-// app.UseAntiforgery();
 app.UseSerilogRequestLogging(o =>
     o.GetLevel = (ctx, _, ex) =>
         ex is not null ? LogEventLevel.Error :
         ctx.Request.Path.StartsWithSegments("/metrics") ? LogEventLevel.Verbose :
         LogEventLevel.Information);
+
+// Companion UI middleware: static files, rate limiter, cookie auth, antiforgery.
+app.UseDndMiddleware();
 // MCP — guard /mcp with key check, then map the MCP endpoint
 app.UseWhen(
     ctx => ctx.Request.Path.StartsWithSegments("/mcp"),
@@ -120,5 +134,8 @@ app.MapCanonicalValidationEndpoints();
 app.MapCanonicalTypeFixerEndpoints();
 app.MapCanonicalNameNormalizerEndpoints();
 app.MapMcp("/mcp");
+
+// Blazor UI endpoints (Razor components + logout).
+app.MapDndEndpoints();
 
 app.Run();
