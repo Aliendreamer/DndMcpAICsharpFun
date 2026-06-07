@@ -1,5 +1,5 @@
 using DndMcpAICsharpFun.Features.Auth;
-using DndMcpAICsharpFun.Features.Campaign;
+using DndMcpAICsharpFun.Features.Campaigns;
 using DndMcpAICsharpFun.Features.Chat;
 
 namespace DndMcpAICsharpFun.Extensions;

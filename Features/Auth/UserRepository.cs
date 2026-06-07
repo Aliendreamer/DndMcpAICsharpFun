@@ -1,5 +1,7 @@
 using Microsoft.Data.Sqlite;
 
+using DndMcpAICsharpFun.Domain;
+
 namespace DndMcpAICsharpFun.Features.Auth;
 
 public sealed class UserRepository(string connectionString)
@@ -53,4 +55,4 @@ public sealed class UserRepository(string connectionString)
     }
 }
 
-public sealed record User(long Id, string Username, string PasswordHash);
+

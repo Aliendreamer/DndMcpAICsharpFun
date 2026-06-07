@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
+using DndMcpAICsharpFun.Domain;
+
 namespace DndMcpAICsharpFun.Infrastructure.Sqlite;
 
 public sealed class IngestionDbContext(DbContextOptions<IngestionDbContext> options) : DbContext(options)

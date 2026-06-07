@@ -1,4 +1,4 @@
-namespace DndMcpAICsharpFun.Features.Campaign;
+namespace DndMcpAICsharpFun.Domain;
 
 public sealed class CharacterSheet
 {

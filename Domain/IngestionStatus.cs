@@ -1,4 +1,4 @@
-namespace DndMcpAICsharpFun.Infrastructure.Sqlite;
+namespace DndMcpAICsharpFun.Domain;
 
 public enum IngestionStatus
 {

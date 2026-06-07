@@ -1,9 +1,11 @@
 using Microsoft.Data.Sqlite;
 
-namespace DndMcpAICsharpFun.Features.Campaign;
+using DndMcpAICsharpFun.Domain;
 
-public sealed record Campaign(long Id, long UserId, string Name, string Description, DateTime CreatedAt);
-public sealed record CampaignSummary(long Id, long UserId, string Name, string Description, DateTime CreatedAt, int HeroCount);
+namespace DndMcpAICsharpFun.Features.Campaigns;
+
+
+
 
 public sealed class CampaignRepository(string connectionString)
 {

@@ -4,6 +4,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
 namespace DndMcpAICsharpFun.Features.Ingestion;

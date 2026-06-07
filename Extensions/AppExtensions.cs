@@ -1,6 +1,6 @@
 using DndMcpAICsharpFun.Features.Auth;
 using Microsoft.AspNetCore.Authentication;
-using DndMcpAICsharpFun.Features.Campaign;
+using DndMcpAICsharpFun.Features.Campaigns;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using ModelContextProtocol.Client;
 using AppMcpClientOptions = DndMcpAICsharpFun.Features.Chat.McpClientOptions;

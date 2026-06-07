@@ -1,6 +1,8 @@
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
+using DndMcpAICsharpFun.Domain;
+
 namespace DndMcpAICsharpFun.Features.Ingestion.Tracking;
 
 public sealed class SqliteIngestionTracker(IngestionDbContext db) : IIngestionTracker

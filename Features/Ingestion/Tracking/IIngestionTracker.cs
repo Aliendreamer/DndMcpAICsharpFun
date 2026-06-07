@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
 
+using DndMcpAICsharpFun.Domain;
+
 namespace DndMcpAICsharpFun.Features.Ingestion.Tracking;
 
 public interface IIngestionTracker

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using DndMcpAICsharpFun.Domain;
 
-namespace DndMcpAICsharpFun.Infrastructure.Sqlite;
+namespace DndMcpAICsharpFun.Domain;
 
 public sealed class IngestionRecord
 {

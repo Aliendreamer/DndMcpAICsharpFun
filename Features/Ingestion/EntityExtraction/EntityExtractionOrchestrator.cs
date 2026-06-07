@@ -115,7 +115,7 @@ public sealed class EntityExtractionOrchestrator(
 
     private async Task RunFullExtractionAsync(
         int bookId,
-        DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord record,
+        DndMcpAICsharpFun.Domain.IngestionRecord record,
         string bookSlug,
         List<EntityCandidate> candidates,
         Dictionary<EntityType, JsonElement> schemas,
@@ -294,7 +294,7 @@ public sealed class EntityExtractionOrchestrator(
 
     private async Task RunErrorsOnlyAsync(
         int bookId,
-        DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord record,
+        DndMcpAICsharpFun.Domain.IngestionRecord record,
         string bookSlug,
         List<EntityCandidate> candidates,
         Dictionary<EntityType, JsonElement> schemas,
@@ -463,7 +463,7 @@ public sealed class EntityExtractionOrchestrator(
         await tracker.MarkEntitiesExtractedAsync(bookId, mergedEntities.Count, ct);
     }
 
-    private (string SourceBook, string Edition) DeriveSourceAndEdition(DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord record)
+    private (string SourceBook, string Edition) DeriveSourceAndEdition(DndMcpAICsharpFun.Domain.IngestionRecord record)
     {
         var sourceBook = record.FivetoolsSourceKey ?? record.DisplayName;
         var edition    = record.FivetoolsSourceKey is { } key && registry.TryGetBook(key) is { } info
@@ -617,7 +617,7 @@ public sealed class EntityExtractionOrchestrator(
     /// carries the last failure. Single chunk → single call, no merge (existing path).
     /// </summary>
     private async Task<(JsonElement? Fields, string? ErrorMessage)> ExtractCandidateFieldsAsync(
-        DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord record,
+        DndMcpAICsharpFun.Domain.IngestionRecord record,
         EntityCandidate candidate,
         JsonElement schema,
         CancellationToken ct)
