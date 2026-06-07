@@ -1,9 +1,36 @@
 <Project>
+  <!--
+    Incremental canonical schema generation.
+
+    Inputs:  SchemaGenerator source files + the domain entity Fields types it
+             reflects over.  Because the generator loads the main assembly at
+             runtime, Domain/Entities/Fields/*.cs captures all reflected types.
+    Outputs: A stamp file written after a successful run.  Delete
+             obj/canonical-schemas.stamp to force regeneration without a
+             full clean (e.g. after adding a SCHEMA-OVERRIDE comment).
+
+    Set SkipCanonicalSchemaGen=true to bypass entirely (used by the generator
+    itself when it calls dotnet build internally to avoid infinite recursion).
+  -->
+
+  <!-- Collect inputs before the target runs so MSBuild can compare timestamps. -->
+  <ItemGroup Condition="'$(SkipCanonicalSchemaGen)' != 'true'">
+    <SchemaGenInputs Include="$(MSBuildThisFileDirectory)..\Tools\SchemaGenerator\**\*.cs" />
+    <SchemaGenInputs Include="$(MSBuildThisFileDirectory)..\Tools\SchemaGenerator\*.csproj" />
+    <SchemaGenInputs Include="$(MSBuildThisFileDirectory)..\Domain\Entities\Fields\*.cs" />
+  </ItemGroup>
+
   <Target Name="GenerateCanonicalSchemas"
           BeforeTargets="BeforeBuild"
-          Condition="'$(SkipCanonicalSchemaGen)' != 'true'">
+          Condition="'$(SkipCanonicalSchemaGen)' != 'true'"
+          Inputs="@(SchemaGenInputs)"
+          Outputs="$(MSBuildProjectDirectory)/obj/canonical-schemas.stamp">
+
     <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)..\Tools\SchemaGenerator\SchemaGenerator.csproj&quot; /p:SkipCanonicalSchemaGen=true -- &quot;$(MSBuildThisFileDirectory)..\Schemas\canonical&quot;"
           IgnoreExitCode="false"
           WorkingDirectory="$(MSBuildThisFileDirectory).." />
+
+    <Touch Files="$(MSBuildProjectDirectory)/obj/canonical-schemas.stamp"
+           AlwaysCreate="true" />
   </Target>
 </Project>
