@@ -56,11 +56,11 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/ingest-blocks
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Ingest entities (reads data/canonical/<book>.json and persists structured entities)
+### Admin Books — Ingest entities (reads books/canonical/<book>.json and persists structured entities)
 POST {{baseUrl}}/admin/books/1/ingest-entities
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Extract entities (LLM-driven; writes data/canonical/<book>.json). Initial run only.
+### Admin Books — Extract entities (LLM-driven; writes books/canonical/<book>.json). Initial run only.
 POST {{baseUrl}}/admin/books/1/extract-entities
 X-Admin-Api-Key: {{adminKey}}
 

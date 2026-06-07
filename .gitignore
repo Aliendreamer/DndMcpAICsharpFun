@@ -7,6 +7,10 @@
 *.db
 /books/*
 !/books/.gitkeep
+!/books/canonical/
+/books/canonical/*
+!/books/canonical/.gitkeep
+!/books/canonical/*.json
 .worktrees/
 
 # dotenv files
