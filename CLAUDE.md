@@ -79,6 +79,7 @@ When the full stack is running (`docker compose up`), these UIs are available:
 | Prometheus | <http://localhost:9090> | Metrics scraping and querying |
 | sqlite-web | <http://localhost:8080> | Browse `IngestionRecords` table |
 | Qdrant UI | <http://localhost:6333/dashboard> | Vector collection browser |
+| Marker | <http://localhost:5002/docs> | PDF conversion service Swagger (debugging) |
 
 > **Note:** The `/metrics` endpoint is unauthenticated — rely on Docker network isolation to limit access. It can be disabled by setting `OpenTelemetry:Enabled: false` in configuration.
 
