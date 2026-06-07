@@ -4,6 +4,7 @@ using DndMcpAICsharpFun.Features.Mcp;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Infrastructure.Docling;
+using DndMcpAICsharpFun.Infrastructure.Marker;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
@@ -47,6 +48,10 @@ builder.Services.AddOptions<DoclingOptions>()
     .BindConfiguration("Docling")
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<MarkerOptions>()
+    .BindConfiguration("Marker")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddOptions<DndMcpAICsharpFun.Features.Ingestion.Entities.EntityIngestionOptions>()
     .BindConfiguration("EntityIngestion")
     .ValidateDataAnnotations()
@@ -80,7 +85,7 @@ builder.Services.AddMcpServer()
 builder.Services.AddHealthChecks()
     .AddCheck<QdrantHealthCheck>("qdrant")
     .AddCheck<OllamaHealthCheck>("ollama")
-    .AddCheck<DoclingHealthCheck>("docling");
+    .AddCheck<MarkerHealthCheck>("marker");
 
 var app = builder.Build();
 

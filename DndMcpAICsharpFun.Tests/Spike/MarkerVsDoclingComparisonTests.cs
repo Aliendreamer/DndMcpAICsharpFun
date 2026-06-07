@@ -43,8 +43,21 @@ public sealed class MarkerVsDoclingComparisonTests
         var doclingDoc = (await JsonSerializer.DeserializeAsync<PdfStructureDocument>(cacheStream, CacheJsonOptions))!;
 
         // --- Marker side: full conversion via the spike service (slow, one-time).
-        var marker = new MarkerPdfConverter(MarkerUrl, PdfContainerPath);
-        var markerDoc = await marker.ConvertAsync(PdfHostPath);
+        // Spike harness: use pre-saved result JSON when available; otherwise run live.
+        var markerResultPath = RepoRoot + "/data/spike/marker-result.json";
+        PdfStructureDocument markerDoc;
+        if (File.Exists(markerResultPath))
+        {
+            using var markerJson = JsonDocument.Parse(File.ReadAllText(markerResultPath));
+            markerDoc = MarkerPdfConverter.FromMarkerJson(markerJson.RootElement);
+        }
+        else
+        {
+            // NOTE: live HTTP path removed in Phase 3. Re-run spike by providing marker-result.json.
+            throw new InvalidOperationException(
+                $"Marker result JSON not found at {markerResultPath}. " +
+                "Run the marker service and save the result to that path first.");
+        }
 
         // --- Shared, converter-independent TOC map from PDF bookmarks.
         var bookmarkReader = new PdfPigBookmarkReader(NullLogger<PdfPigBookmarkReader>.Instance);

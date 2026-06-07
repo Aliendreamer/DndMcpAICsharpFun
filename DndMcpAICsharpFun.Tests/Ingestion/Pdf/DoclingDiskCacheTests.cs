@@ -36,7 +36,7 @@ public sealed class PdfConversionDiskCacheTests
             Assert.Single(result.Items);
             await inner.Received(1).ConvertAsync(pdfPath, Arg.Any<CancellationToken>());
 
-            var cacheFile = Path.Combine(dir, HexHash(pdfBytes) + ".json");
+            var cacheFile = Path.Combine(dir, HexHash(pdfBytes) + ".marker.json");
             Assert.True(File.Exists(cacheFile));
         }
         finally { Directory.Delete(dir, true); }
@@ -81,7 +81,7 @@ public sealed class PdfConversionDiskCacheTests
             await File.WriteAllBytesAsync(pdfPath, pdfBytes);
 
             // Pre-create a corrupt cache file with the correct hash name
-            var corruptPath = Path.Combine(dir, HexHash(pdfBytes) + ".json");
+            var corruptPath = Path.Combine(dir, HexHash(pdfBytes) + ".marker.json");
             await File.WriteAllTextAsync(corruptPath, "NOT VALID JSON {{{{");
 
             var expected = new PdfStructureDocument("# Hello", []);
@@ -134,5 +134,71 @@ public sealed class PdfConversionDiskCacheTests
             Assert.True(Directory.Exists(nonExistentDir));
         }
         finally { Directory.Delete(pdfDir, true); }
+    }
+
+    [Fact]
+    public async Task MarkerSuffix_CacheFileWrittenWithMarkerJson()
+    {
+        // Verifies that the cache is written as <hash>.marker.json, not <hash>.json.
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+            var pdfPath = Path.Combine(dir, "test.pdf");
+            await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+
+            var expected = new PdfStructureDocument("# Marker", [new PdfStructureItem("text", "Marker", 1, null)]);
+            var inner = Substitute.For<IPdfStructureConverter>();
+            inner.ConvertAsync(pdfPath, Arg.Any<CancellationToken>()).Returns(expected);
+
+            var opts = Options.Create(new EntityExtractionOptions { ConversionCacheDirectory = dir });
+            var cache = new PdfConversionDiskCache(inner, opts, NullLogger<PdfConversionDiskCache>.Instance);
+
+            await cache.ConvertAsync(pdfPath);
+
+            var markerCacheFile = Path.Combine(dir, HexHash(pdfBytes) + ".marker.json");
+            var legacyCacheFile = Path.Combine(dir, HexHash(pdfBytes) + ".json");
+
+            Assert.True(File.Exists(markerCacheFile), ".marker.json cache file must exist");
+            Assert.False(File.Exists(legacyCacheFile), "Legacy .json cache file must NOT be written");
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public async Task LegacyCacheFile_IsIgnored_InnerConverterCalled()
+    {
+        // If only <hash>.json (legacy Docling cache) exists, the cache must treat it as a miss
+        // and call the inner converter.
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+            var pdfPath = Path.Combine(dir, "test.pdf");
+            await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+
+            // Write a syntactically valid JSON at the legacy path.
+            var legacyDoc = new PdfStructureDocument("# Legacy", [new PdfStructureItem("text", "Legacy", 1, null)]);
+            var legacyJson = System.Text.Json.JsonSerializer.Serialize(legacyDoc,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+            var legacyCachePath = Path.Combine(dir, HexHash(pdfBytes) + ".json");
+            await File.WriteAllTextAsync(legacyCachePath, legacyJson);
+
+            var fresh = new PdfStructureDocument("# Fresh", []);
+            var inner = Substitute.For<IPdfStructureConverter>();
+            inner.ConvertAsync(pdfPath, Arg.Any<CancellationToken>()).Returns(fresh);
+
+            var opts = Options.Create(new EntityExtractionOptions { ConversionCacheDirectory = dir });
+            var cache = new PdfConversionDiskCache(inner, opts, NullLogger<PdfConversionDiskCache>.Instance);
+
+            var result = await cache.ConvertAsync(pdfPath);
+
+            // Must return fresh result (from inner), not the legacy cached value.
+            Assert.Equal("# Fresh", result.Markdown);
+            await inner.Received(1).ConvertAsync(pdfPath, Arg.Any<CancellationToken>());
+        }
+        finally { Directory.Delete(dir, true); }
     }
 }

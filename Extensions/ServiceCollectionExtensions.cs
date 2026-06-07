@@ -14,6 +14,7 @@ using DndMcpAICsharpFun.Features.Search;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure;
+using DndMcpAICsharpFun.Infrastructure.Marker;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Sqlite;
@@ -94,9 +95,13 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<BookSourceRegistry>();
         services.AddSingleton<IPdfBookmarkReader, PdfPigBookmarkReader>();
 
+        // Phase 3: IPdfStructureConverter is now backed by MarkerPdfConverter.
+        // DoclingPdfConverter is kept registered (compiles, not used for conversion) until Phase 4.
         services.AddSingleton<DoclingPdfConverter>();
+        services.AddHttpClient(nameof(MarkerPdfConverter));
+        services.AddSingleton<MarkerPdfConverter>();
         services.AddSingleton<IPdfStructureConverter>(sp => new PdfConversionDiskCache(
-            sp.GetRequiredService<DoclingPdfConverter>(),
+            sp.GetRequiredService<MarkerPdfConverter>(),
             sp.GetRequiredService<IOptions<EntityExtractionOptions>>(),
             sp.GetRequiredService<ILogger<PdfConversionDiskCache>>()));
         services.AddSingleton<IPdfBlockExtractor, DoclingBlockExtractor>();

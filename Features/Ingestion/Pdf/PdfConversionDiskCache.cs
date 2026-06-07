@@ -11,6 +11,13 @@ public sealed class PdfConversionDiskCache(
     IOptions<EntityExtractionOptions> options,
     ILogger<PdfConversionDiskCache> logger) : IPdfStructureConverter
 {
+    /// <summary>
+    /// Suffix appended after the SHA-256 hash for cache files written by this version.
+    /// Legacy files (<c>&lt;hash&gt;.json</c>) are intentionally ignored — they were
+    /// written by the Docling converter and may have a different schema.
+    /// </summary>
+    private const string CacheSuffix = ".marker.json";
+
     private static readonly JsonSerializerOptions CacheJsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = false,
@@ -20,7 +27,7 @@ public sealed class PdfConversionDiskCache(
     public async Task<PdfStructureDocument> ConvertAsync(string filePath, CancellationToken ct = default)
     {
         var hash = ComputeFileHash(filePath);
-        var cachePath = Path.Combine(options.Value.ConversionCacheDirectory, hash + ".json");
+        var cachePath = Path.Combine(options.Value.ConversionCacheDirectory, hash + CacheSuffix);
 
         try
         {
@@ -29,7 +36,7 @@ public sealed class PdfConversionDiskCache(
             if (cached is not null)
             {
                 logger.LogInformation(
-                    "Docling cache hit for {FileName} (hash {Hash})",
+                    "Marker cache hit for {FileName} (hash {Hash})",
                     Path.GetFileName(filePath), hash[..8]);
                 return cached;
             }
@@ -39,7 +46,7 @@ public sealed class PdfConversionDiskCache(
         catch (JsonException ex)
         {
             logger.LogWarning(
-                "Corrupt Docling cache file {CachePath}; deleting and re-converting: {Error}",
+                "Corrupt Marker cache file {CachePath}; deleting and re-converting: {Error}",
                 cachePath, ex.Message);
             File.Delete(cachePath);
         }
@@ -63,7 +70,7 @@ public sealed class PdfConversionDiskCache(
         catch (Exception ex)
         {
             logger.LogWarning(
-                ex, "Failed to write Docling cache to {CachePath}; result returned uncached", cachePath);
+                ex, "Failed to write Marker cache to {CachePath}; result returned uncached", cachePath);
             try { File.Delete(tmp); } catch { /* swallow cleanup */ }
         }
     }
