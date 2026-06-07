@@ -1,7 +1,7 @@
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
 public sealed partial class DoclingBlockExtractor(
-    IDoclingPdfConverter converter,
+    IPdfStructureConverter converter,
     ILogger<DoclingBlockExtractor> logger) : IPdfBlockExtractor
 {
     public IEnumerable<PdfBlock> ExtractBlocks(string filePath, CancellationToken ct = default)

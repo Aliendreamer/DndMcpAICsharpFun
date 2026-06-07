@@ -15,7 +15,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 public sealed class EntityExtractionOrchestrator(
     IIngestionTracker tracker,
     BookSourceRegistry registry,
-    IDoclingPdfConverter docling,
+    IPdfStructureConverter docling,
     IPdfBookmarkReader bookmarks,
     IEntityExtractionLlmClient llm,
     ExtractionPromptBuilder promptBuilder,
@@ -533,7 +533,7 @@ public sealed class EntityExtractionOrchestrator(
         }
     }
 
-    private static IList<ScannerInput> BuildScannerInputs(IReadOnlyList<DoclingItem> items)
+    private static IList<ScannerInput> BuildScannerInputs(IReadOnlyList<PdfStructureItem> items)
     {
         var inputs = new List<ScannerInput>(items.Count);
         var currentSection = "(unknown)";

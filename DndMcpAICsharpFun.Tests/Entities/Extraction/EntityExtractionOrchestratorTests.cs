@@ -44,10 +44,10 @@ public class EntityExtractionOrchestratorTests
             tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
 
             // Fake docling: returns one text item at page 1.
-            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IDoclingPdfConverter>();
-            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingDocument(
+            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
                 "# Aboleth\nA monster.",
-                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingItem>
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
                 {
                     new("text", "Aboleth — a slimy aberration.", 1, null),
                 });
@@ -131,7 +131,7 @@ public class EntityExtractionOrchestratorTests
         string schemasDir,
         DndMcpAICsharpFun.Infrastructure.Sqlite.IngestionRecord record,
         DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker tracker,
-        DndMcpAICsharpFun.Features.Ingestion.Pdf.IDoclingPdfConverter docling,
+        DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter docling,
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader bookmarkReader,
         DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm)
         BuildTwoMonsterHarness(int bookId, string displayName)
@@ -160,10 +160,10 @@ public class EntityExtractionOrchestratorTests
         tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
 
         // Two heading/text pairs → two candidates: "Aboleth" and "Beholder".
-        var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IDoclingPdfConverter>();
-        var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingDocument(
+        var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+        var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
             "doc",
-            new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingItem>
+            new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
             {
                 new("heading", "Aboleth", 1, null),
                 new("text",    "Aboleth — a slimy aberration.", 1, null),
@@ -189,7 +189,7 @@ public class EntityExtractionOrchestratorTests
         string canonicalDir,
         string schemasDir,
         DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker tracker,
-        DndMcpAICsharpFun.Features.Ingestion.Pdf.IDoclingPdfConverter docling,
+        DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter docling,
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader bookmarkReader,
         DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm,
         DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry? registry = null)
@@ -629,10 +629,10 @@ public class EntityExtractionOrchestratorTests
             var part1 = new string('a', 400);
             var part2 = new string('b', 400);
 
-            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IDoclingPdfConverter>();
-            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingDocument(
+            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
                 "doc",
-                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingItem>
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
                 {
                     new("heading", "Pit Trap", 1, null),
                     new("text",    part1,       1, null),
@@ -791,10 +791,10 @@ public class EntityExtractionOrchestratorTests
             tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
 
             // One monster candidate so LLM is called once.
-            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IDoclingPdfConverter>();
-            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingDocument(
+            var docling = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var doclingDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
                 "doc",
-                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.DoclingItem>
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
                 {
                     new("heading", "Aboleth", 1, null),
                     new("text",    "Aboleth — a slimy aberration.", 1, null),

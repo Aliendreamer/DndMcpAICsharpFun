@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
-public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposable
+public sealed partial class DoclingPdfConverter : IPdfStructureConverter, IDisposable
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
 
@@ -29,7 +29,7 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
         _logger = logger;
     }
 
-    public async Task<DoclingDocument> ConvertAsync(string filePath, CancellationToken ct = default)
+    public async Task<PdfStructureDocument> ConvertAsync(string filePath, CancellationToken ct = default)
     {
         var fileName = Path.GetFileName(filePath);
         LogConvertStart(_logger, fileName);
@@ -170,7 +170,7 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
         }
     }
 
-    private async Task<DoclingDocument> FetchResultAsync(string taskId, CancellationToken ct)
+    private async Task<PdfStructureDocument> FetchResultAsync(string taskId, CancellationToken ct)
     {
         using var response = await _http.GetAsync(
             $"/v1/result/{taskId}",
@@ -199,7 +199,7 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
 
     /// <summary>
     /// Parses docling-serve's <c>ConvertDocumentResponse</c> into our internal
-    /// <see cref="DoclingDocument"/>. Expected shape:
+    /// <see cref="PdfStructureDocument"/>. Expected shape:
     /// <code>
     /// { "document": {
     ///     "md_content": "...",
@@ -209,7 +209,7 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
     ///   } }
     /// </code>
     /// </summary>
-    public static DoclingDocument ParseResponse(string json)
+    public static PdfStructureDocument ParseResponse(string json)
     {
         var root = JsonNode.Parse(json) as JsonObject
             ?? throw new InvalidOperationException("docling-serve response was not a JSON object");
@@ -221,7 +221,7 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
             ?? string.Empty;
 
         var jsonContent = docNode["json_content"] as JsonObject;
-        var items = new List<DoclingItem>();
+        var items = new List<PdfStructureItem>();
 
         if (jsonContent?["texts"] is JsonArray texts)
         {
@@ -242,7 +242,7 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
             }
         }
 
-        return new DoclingDocument(markdown, items);
+        return new PdfStructureDocument(markdown, items);
     }
 
 
@@ -251,7 +251,7 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
     /// large documents. Same semantics; never materialises the full JSON
     /// payload as a single string.
     /// </summary>
-    private static async Task<DoclingDocument> ParseResponseStreamAsync(Stream stream, CancellationToken ct)
+    private static async Task<PdfStructureDocument> ParseResponseStreamAsync(Stream stream, CancellationToken ct)
     {
         using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
         var root = doc.RootElement;
@@ -264,7 +264,7 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
                     ? mk.GetString() ?? string.Empty
                     : string.Empty;
 
-        var items = new List<DoclingItem>();
+        var items = new List<PdfStructureItem>();
 
         if (docElement.TryGetProperty("json_content", out var jc) && jc.ValueKind == JsonValueKind.Object)
         {
@@ -278,10 +278,10 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
                 AppendTextItems(its, items);
         }
 
-        return new DoclingDocument(markdown, items);
+        return new PdfStructureDocument(markdown, items);
     }
 
-    private static void AppendTextItems(JsonElement array, List<DoclingItem> sink)
+    private static void AppendTextItems(JsonElement array, List<PdfStructureItem> sink)
     {
         foreach (var node in array.EnumerateArray())
         {
@@ -315,11 +315,11 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
             if (node.TryGetProperty("level", out var lv) && lv.ValueKind == JsonValueKind.Number)
                 level = lv.GetInt32();
 
-            sink.Add(new DoclingItem(type, text, page, level));
+            sink.Add(new PdfStructureItem(type, text, page, level));
         }
     }
 
-    private static DoclingItem? MapTextItem(JsonObject obj)
+    private static PdfStructureItem? MapTextItem(JsonObject obj)
     {
         var text = obj["text"]?.GetValue<string>() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(text)) return null;
@@ -340,7 +340,7 @@ public sealed partial class DoclingPdfConverter : IDoclingPdfConverter, IDisposa
         int? level = null;
         if (obj["level"] is JsonValue lv && lv.TryGetValue<int>(out var lvi)) level = lvi;
 
-        return new DoclingItem(type, text, page, level);
+        return new PdfStructureItem(type, text, page, level);
     }
 
     public void Dispose() => _http.Dispose();

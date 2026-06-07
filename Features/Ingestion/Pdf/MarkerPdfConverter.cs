@@ -5,12 +5,12 @@ using System.Text.RegularExpressions;
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
 /// <summary>
-/// SPIKE — Marker-based implementation of <see cref="IDoclingPdfConverter"/> for the
+/// SPIKE — Marker-based implementation of <see cref="IPdfStructureConverter"/> for the
 /// marker-vs-docling conversion comparison (openspec/changes/marker-converter-spike).
 /// Not registered in DI; constructed directly by the comparison harness.
-/// Maps the Marker JSON block tree onto <see cref="DoclingDocument"/> items.
+/// Maps the Marker JSON block tree onto <see cref="PdfStructureDocument"/> items.
 /// </summary>
-public sealed partial class MarkerPdfConverter(string baseUrl, string containerFilePath) : IDoclingPdfConverter
+public sealed partial class MarkerPdfConverter(string baseUrl, string containerFilePath) : IPdfStructureConverter
 {
     private static readonly HttpClient Http = new() { Timeout = Timeout.InfiniteTimeSpan };
 
@@ -23,7 +23,7 @@ public sealed partial class MarkerPdfConverter(string baseUrl, string containerF
     [GeneratedRegex(@"<[^>]+>")]
     private static partial Regex HtmlTagPattern();
 
-    public async Task<DoclingDocument> ConvertAsync(string filePath, CancellationToken ct = default)
+    public async Task<PdfStructureDocument> ConvertAsync(string filePath, CancellationToken ct = default)
     {
         // filePath is the host path; the marker container sees the book under /books.
         var resp = await Http.PostAsJsonAsync(
@@ -47,10 +47,10 @@ public sealed partial class MarkerPdfConverter(string baseUrl, string containerF
         return FromMarkerJson(result);
     }
 
-    /// <summary>Maps a Marker JSON document (output_format=json) onto DoclingDocument.</summary>
-    public static DoclingDocument FromMarkerJson(JsonElement result)
+    /// <summary>Maps a Marker JSON document (output_format=json) onto PdfStructureDocument.</summary>
+    public static PdfStructureDocument FromMarkerJson(JsonElement result)
     {
-        var items = new List<DoclingItem>();
+        var items = new List<PdfStructureItem>();
         if (result.TryGetProperty("children", out var pages) && pages.ValueKind == JsonValueKind.Array)
         {
             foreach (var page in pages.EnumerateArray())
@@ -58,7 +58,7 @@ public sealed partial class MarkerPdfConverter(string baseUrl, string containerF
         }
 
         var markdown = string.Join("\n\n", items.Select(i => i.Text));
-        return new DoclingDocument(markdown, items);
+        return new PdfStructureDocument(markdown, items);
     }
 
     private static int PageNumberOf(JsonElement block)
@@ -71,7 +71,7 @@ public sealed partial class MarkerPdfConverter(string baseUrl, string containerF
         return 0;
     }
 
-    private static void WalkBlock(JsonElement block, int page, List<DoclingItem> items)
+    private static void WalkBlock(JsonElement block, int page, List<PdfStructureItem> items)
     {
         var blockType = block.TryGetProperty("block_type", out var bt) ? bt.GetString() ?? "" : "";
         var html = block.TryGetProperty("html", out var h) && h.ValueKind == JsonValueKind.String
@@ -88,7 +88,7 @@ public sealed partial class MarkerPdfConverter(string baseUrl, string containerF
                 {
                     var levelMatch = HeadingTagPattern().Match(html);
                     int? level = levelMatch.Success ? int.Parse(levelMatch.Groups[1].Value) : null;
-                    items.Add(new DoclingItem("section_header", text, page, level));
+                    items.Add(new PdfStructureItem("section_header", text, page, level));
                 }
                 return;
 
@@ -108,7 +108,7 @@ public sealed partial class MarkerPdfConverter(string baseUrl, string containerF
                 // Tables keep cell text separated by spaces after tag stripping.
                 var body = StripHtml(html);
                 if (!string.IsNullOrWhiteSpace(body))
-                    items.Add(new DoclingItem("text", body, page, null));
+                    items.Add(new PdfStructureItem("text", body, page, null));
                 else if (hasChildren)
                 {
                     foreach (var child in children.EnumerateArray())

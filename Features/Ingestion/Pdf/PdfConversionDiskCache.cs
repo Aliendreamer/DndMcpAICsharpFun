@@ -6,10 +6,10 @@ using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
-public sealed class DoclingDiskCache(
-    IDoclingPdfConverter inner,
+public sealed class PdfConversionDiskCache(
+    IPdfStructureConverter inner,
     IOptions<EntityExtractionOptions> options,
-    ILogger<DoclingDiskCache> logger) : IDoclingPdfConverter
+    ILogger<PdfConversionDiskCache> logger) : IPdfStructureConverter
 {
     private static readonly JsonSerializerOptions CacheJsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -17,15 +17,15 @@ public sealed class DoclingDiskCache(
         Converters = { new JsonStringEnumConverter() },
     };
 
-    public async Task<DoclingDocument> ConvertAsync(string filePath, CancellationToken ct = default)
+    public async Task<PdfStructureDocument> ConvertAsync(string filePath, CancellationToken ct = default)
     {
         var hash = ComputeFileHash(filePath);
-        var cachePath = Path.Combine(options.Value.DoclingCacheDirectory, hash + ".json");
+        var cachePath = Path.Combine(options.Value.ConversionCacheDirectory, hash + ".json");
 
         try
         {
             await using var s = File.OpenRead(cachePath);
-            var cached = await JsonSerializer.DeserializeAsync<DoclingDocument>(s, CacheJsonOptions, ct);
+            var cached = await JsonSerializer.DeserializeAsync<PdfStructureDocument>(s, CacheJsonOptions, ct);
             if (cached is not null)
             {
                 logger.LogInformation(
@@ -49,7 +49,7 @@ public sealed class DoclingDiskCache(
         return doc;
     }
 
-    private async Task TryCacheAsync(string cachePath, DoclingDocument doc, CancellationToken ct)
+    private async Task TryCacheAsync(string cachePath, PdfStructureDocument doc, CancellationToken ct)
     {
         var dir = Path.GetDirectoryName(cachePath) ?? ".";
         Directory.CreateDirectory(dir);

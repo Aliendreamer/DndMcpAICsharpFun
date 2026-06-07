@@ -40,7 +40,7 @@ public sealed class MarkerVsDoclingComparisonTests
 
         // --- Docling side: read the disk cache directly.
         await using var cacheStream = File.OpenRead(DoclingCachePath);
-        var doclingDoc = (await JsonSerializer.DeserializeAsync<DoclingDocument>(cacheStream, CacheJsonOptions))!;
+        var doclingDoc = (await JsonSerializer.DeserializeAsync<PdfStructureDocument>(cacheStream, CacheJsonOptions))!;
 
         // --- Marker side: full conversion via the spike service (slow, one-time).
         var marker = new MarkerPdfConverter(MarkerUrl, PdfContainerPath);
@@ -71,7 +71,7 @@ public sealed class MarkerVsDoclingComparisonTests
             return;
 
         await using var cacheStream = File.OpenRead(DoclingCachePath);
-        var doclingDoc = (await JsonSerializer.DeserializeAsync<DoclingDocument>(cacheStream, CacheJsonOptions))!;
+        var doclingDoc = (await JsonSerializer.DeserializeAsync<PdfStructureDocument>(cacheStream, CacheJsonOptions))!;
 
         using var markerJson = JsonDocument.Parse(File.ReadAllText(RepoRoot + "/data/spike/marker-result.json"));
         var markerDoc = MarkerPdfConverter.FromMarkerJson(markerJson.RootElement);
@@ -135,7 +135,7 @@ public sealed class MarkerVsDoclingComparisonTests
         Assert.True(true);
     }
 
-    private static bool IsHeading(DoclingItem i) =>
+    private static bool IsHeading(PdfStructureItem i) =>
         (i.Type ?? "").StartsWith("section", StringComparison.OrdinalIgnoreCase) ||
         (i.Type ?? "").StartsWith("heading", StringComparison.OrdinalIgnoreCase) ||
         (i.Type ?? "").Equals("title", StringComparison.OrdinalIgnoreCase);
@@ -150,7 +150,7 @@ public sealed class MarkerVsDoclingComparisonTests
         IReadOnlyList<EntityCandidate> Flagged);
 
     private static ConverterResult Analyze(
-        EntityCandidateScanner scanner, TocCategoryMap tocMap, DoclingDocument doc, string name)
+        EntityCandidateScanner scanner, TocCategoryMap tocMap, PdfStructureDocument doc, string name)
     {
         var inputs = BuildScannerInputs(doc.Items);
         var candidates = scanner.Scan(inputs, tocMap).ToList();
@@ -165,7 +165,7 @@ public sealed class MarkerVsDoclingComparisonTests
     }
 
     // Replicates EntityExtractionOrchestrator.BuildScannerInputs (private) — spike duplication.
-    private static IList<ScannerInput> BuildScannerInputs(IReadOnlyList<DoclingItem> items)
+    private static IList<ScannerInput> BuildScannerInputs(IReadOnlyList<PdfStructureItem> items)
     {
         var inputs = new List<ScannerInput>(items.Count);
         var currentSection = "(unknown)";

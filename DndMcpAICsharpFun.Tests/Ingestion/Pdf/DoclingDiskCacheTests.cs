@@ -4,7 +4,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
 namespace DndMcpAICsharpFun.Tests.Ingestion.Pdf;
 
-public sealed class DoclingDiskCacheTests
+public sealed class PdfConversionDiskCacheTests
 {
     private static string HexHash(byte[] bytes)
     {
@@ -23,12 +23,12 @@ public sealed class DoclingDiskCacheTests
             var pdfPath = Path.Combine(dir, "test.pdf");
             await File.WriteAllBytesAsync(pdfPath, pdfBytes);
 
-            var expected = new DoclingDocument("# Hello", [new DoclingItem("text", "Hello", 1, null)]);
-            var inner = Substitute.For<IDoclingPdfConverter>();
+            var expected = new PdfStructureDocument("# Hello", [new PdfStructureItem("text", "Hello", 1, null)]);
+            var inner = Substitute.For<IPdfStructureConverter>();
             inner.ConvertAsync(pdfPath, Arg.Any<CancellationToken>()).Returns(expected);
 
-            var opts = Options.Create(new EntityExtractionOptions { DoclingCacheDirectory = dir });
-            var cache = new DoclingDiskCache(inner, opts, NullLogger<DoclingDiskCache>.Instance);
+            var opts = Options.Create(new EntityExtractionOptions { ConversionCacheDirectory = dir });
+            var cache = new PdfConversionDiskCache(inner, opts, NullLogger<PdfConversionDiskCache>.Instance);
 
             var result = await cache.ConvertAsync(pdfPath);
 
@@ -53,12 +53,12 @@ public sealed class DoclingDiskCacheTests
             var pdfPath = Path.Combine(dir, "test.pdf");
             await File.WriteAllBytesAsync(pdfPath, pdfBytes);
 
-            var expected = new DoclingDocument("# Hello", [new DoclingItem("text", "Hello", 1, null)]);
-            var inner = Substitute.For<IDoclingPdfConverter>();
+            var expected = new PdfStructureDocument("# Hello", [new PdfStructureItem("text", "Hello", 1, null)]);
+            var inner = Substitute.For<IPdfStructureConverter>();
             inner.ConvertAsync(pdfPath, Arg.Any<CancellationToken>()).Returns(expected);
 
-            var opts = Options.Create(new EntityExtractionOptions { DoclingCacheDirectory = dir });
-            var cache = new DoclingDiskCache(inner, opts, NullLogger<DoclingDiskCache>.Instance);
+            var opts = Options.Create(new EntityExtractionOptions { ConversionCacheDirectory = dir });
+            var cache = new PdfConversionDiskCache(inner, opts, NullLogger<PdfConversionDiskCache>.Instance);
 
             await cache.ConvertAsync(pdfPath);       // miss — writes cache
             var result = await cache.ConvertAsync(pdfPath); // hit — reads cache
@@ -84,18 +84,18 @@ public sealed class DoclingDiskCacheTests
             var corruptPath = Path.Combine(dir, HexHash(pdfBytes) + ".json");
             await File.WriteAllTextAsync(corruptPath, "NOT VALID JSON {{{{");
 
-            var expected = new DoclingDocument("# Hello", []);
-            var inner = Substitute.For<IDoclingPdfConverter>();
+            var expected = new PdfStructureDocument("# Hello", []);
+            var inner = Substitute.For<IPdfStructureConverter>();
             inner.ConvertAsync(pdfPath, Arg.Any<CancellationToken>()).Returns(expected);
 
-            var opts = Options.Create(new EntityExtractionOptions { DoclingCacheDirectory = dir });
-            var cache = new DoclingDiskCache(inner, opts, NullLogger<DoclingDiskCache>.Instance);
+            var opts = Options.Create(new EntityExtractionOptions { ConversionCacheDirectory = dir });
+            var cache = new PdfConversionDiskCache(inner, opts, NullLogger<PdfConversionDiskCache>.Instance);
 
             var result = await cache.ConvertAsync(pdfPath);
 
             // Verify the corrupt file was replaced with a valid cache entry
             var json = await File.ReadAllTextAsync(corruptPath);
-            var rehydrated = System.Text.Json.JsonSerializer.Deserialize<DoclingDocument>(json, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+            var rehydrated = System.Text.Json.JsonSerializer.Deserialize<PdfStructureDocument>(json, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
             Assert.NotNull(rehydrated);
             Assert.Equal(expected.Markdown, rehydrated!.Markdown);
 
@@ -119,12 +119,12 @@ public sealed class DoclingDiskCacheTests
             // Non-existent directory — the directory does not exist at all.
             var nonExistentDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 
-            var expected = new DoclingDocument("# Hello", []);
-            var inner = Substitute.For<IDoclingPdfConverter>();
+            var expected = new PdfStructureDocument("# Hello", []);
+            var inner = Substitute.For<IPdfStructureConverter>();
             inner.ConvertAsync(pdfPath, Arg.Any<CancellationToken>()).Returns(expected);
 
-            var opts = Options.Create(new EntityExtractionOptions { DoclingCacheDirectory = nonExistentDir });
-            var cache = new DoclingDiskCache(inner, opts, NullLogger<DoclingDiskCache>.Instance);
+            var opts = Options.Create(new EntityExtractionOptions { ConversionCacheDirectory = nonExistentDir });
+            var cache = new PdfConversionDiskCache(inner, opts, NullLogger<PdfConversionDiskCache>.Instance);
 
             var result = await cache.ConvertAsync(pdfPath);
 

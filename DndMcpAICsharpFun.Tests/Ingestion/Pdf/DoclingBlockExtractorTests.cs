@@ -4,9 +4,9 @@ namespace DndMcpAICsharpFun.Tests.Ingestion.Pdf;
 
 public sealed class DoclingBlockExtractorTests
 {
-    private static readonly DoclingDocument SampleDoc = new(
+    private static readonly PdfStructureDocument SampleDoc = new(
         Markdown: "irrelevant",
-        Items: new List<DoclingItem>
+        Items: new List<PdfStructureItem>
         {
             new("section_header", "Wizard",       112, 1),
             new("paragraph",      "Scholarly magic-user.", 112, null),
@@ -17,7 +17,7 @@ public sealed class DoclingBlockExtractorTests
     [Fact]
     public void ExtractBlocks_MapsItemsToBlocks_PreservingPageAndOrder()
     {
-        var converter = Substitute.For<IDoclingPdfConverter>();
+        var converter = Substitute.For<IPdfStructureConverter>();
         converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(SampleDoc));
         var sut = new DoclingBlockExtractor(converter, NullLogger<DoclingBlockExtractor>.Instance);
@@ -39,13 +39,13 @@ public sealed class DoclingBlockExtractorTests
     [Fact]
     public void ExtractBlocks_WhitespaceItem_Skipped()
     {
-        var doc = new DoclingDocument("", new List<DoclingItem>
+        var doc = new PdfStructureDocument("", new List<PdfStructureItem>
         {
             new("paragraph", "real",   1, null),
             new("paragraph", "   ",    1, null),
             new("paragraph", "real 2", 1, null),
         });
-        var converter = Substitute.For<IDoclingPdfConverter>();
+        var converter = Substitute.For<IPdfStructureConverter>();
         converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(doc));
         var sut = new DoclingBlockExtractor(converter, NullLogger<DoclingBlockExtractor>.Instance);
