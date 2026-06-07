@@ -7,6 +7,11 @@
 *.db
 /books/*
 !/books/.gitkeep
+!/books/extracted/
+/books/extracted/**
+!/books/extracted/**/
+!/books/extracted/**/*.json
+!/books/extracted/**/*.md
 .worktrees/
 
 # dotenv files
