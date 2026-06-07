@@ -45,7 +45,7 @@ The host listens on `http://localhost:5101` (set in `DndMcpAICsharpFun.http`). O
 
 The retrieval pipeline uses a dual-collection setup in Qdrant: `dnd_blocks` holds prose chunks for narrative retrieval, while `dnd_entities` holds typed entity records (Class, Monster, Spell, etc.) for structured lookups. Each entity's `canonicalText` is embedded into `dnd_entities` so structured queries return rule-accurate snippets alongside the parsed fields.
 
-Canonical JSON files at `data/canonical/<book-slug>.json` are the hand-correctable source of truth for structured entities. Ingestion reads these files via `CanonicalJsonLoader`, validates schema/IDs, and projects each entity into `dnd_entities`. Plan 2 of the structured-entity-extraction effort has shipped: an Ollama-driven extraction pipeline (local qwen3:8b) produces `data/canonical/<book>.json` from Docling output (plus optional sibling `<book>.errors.json` and `<book>.warnings.json`). Hand-authoring is still allowed and remains the source of truth — extraction outputs are reviewed in PRs before they land.
+Canonical JSON files at `data/canonical/<book-slug>.json` are the hand-correctable source of truth for structured entities. Ingestion reads these files via `CanonicalJsonLoader`, validates schema/IDs, and projects each entity into `dnd_entities`. Plan 2 of the structured-entity-extraction effort has shipped: an Ollama-driven extraction pipeline (local qwen3:8b) produces `data/canonical/<book>.json` from Marker conversion output (plus optional sibling `<book>.errors.json` and `<book>.warnings.json`). Hand-authoring is still allowed and remains the source of truth — extraction outputs are reviewed in PRs before they land.
 
 New endpoints:
 
