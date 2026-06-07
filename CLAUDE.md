@@ -32,9 +32,12 @@ There are no tests yet. When added, run them with `dotnet test`.
 
 ### Key project settings
 
-- Target framework: `net10.0`
-- Nullable reference types: enabled
-- Implicit usings: enabled
+Build configuration is centralized at the repo root — edit there, not in csproj files:
+
+- `Directory.Build.props` — `net10.0`, nullable, implicit usings, **warnings-as-errors** for every project
+- `Directory.Packages.props` — ALL NuGet package versions (Central Package Management); csproj `PackageReference`s are version-less
+- `Directory.Build.targets` — shared test stack (xunit, FluentAssertions, Test.Sdk, coverlet) for projects with `<IsTestProject>true</IsTestProject>`
+- `Build/GenerateCanonicalSchemas.targets` — regenerates `Schemas/canonical/*.schema.json` from domain types via `Tools/SchemaGenerator`; incremental (stamp file `obj/canonical-schemas.stamp`; delete it to force regen, `SkipCanonicalSchemaGen=true` to bypass)
 - `Microsoft.AspNetCore.OpenApi` is included for OpenAPI/Swagger support
 
 ### Configuration
