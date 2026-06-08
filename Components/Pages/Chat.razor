@@ -52,8 +52,9 @@
         _cts.Dispose();
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await ChatService.LoadHistoryAsync();
         if (ChatService.History.Count == 0)
             ChatService.History.Add(new ChatMessage(
                 ChatRole.Assistant,

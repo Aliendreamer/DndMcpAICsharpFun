@@ -13,6 +13,24 @@ public sealed class DndChatService(
 {
     public List<ChatMessage> History { get; } = [];
 
+    /// <summary>
+    /// Populate <see cref="History"/> from the signed-in user's persisted chat turns,
+    /// so the conversation is replayed when the page is (re)opened. No-op if already loaded
+    /// or if there is no authenticated user. Caps replay to the most recent turns to bound
+    /// the LLM context window.
+    /// </summary>
+    public async Task LoadHistoryAsync(int maxTurns = 40)
+    {
+        if (History.Count > 0) return;
+        var idClaim = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!long.TryParse(idClaim, out var userId)) return;
+
+        var turns = await chatRepository.GetHistoryAsync(userId);
+        foreach (var t in turns.TakeLast(maxTurns))
+            History.Add(new ChatMessage(
+                t.Role == "user" ? ChatRole.User : ChatRole.Assistant, t.Content));
+    }
+
     public async Task<string> SendAsync(string userMessage, bool allowWebSearch, CancellationToken ct)
     {
         var ip = httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
