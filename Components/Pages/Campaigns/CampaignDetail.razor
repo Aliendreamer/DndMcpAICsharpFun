@@ -64,12 +64,29 @@ else
             @foreach (var note in _notes)
             {
                 <div class="note-card">
-                    <div class="note-head">
-                        <strong>@note.Title</strong>
-                        <button class="note-del" title="Delete" @onclick="() => DeleteNoteAsync(note.Id)">✕</button>
-                    </div>
-                    <p class="note-body">@note.Content</p>
-                    <span class="note-time">@note.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                    @if (_editingNoteId == note.Id)
+                    {
+                        <input @bind="_editTitle" placeholder="Title" />
+                        <textarea @bind="_editContent" placeholder="Write a note..." rows="3"></textarea>
+                        @if (!string.IsNullOrEmpty(_editNoteError))
+                        {
+                            <p class="error">@_editNoteError</p>
+                        }
+                        <button @onclick="() => SaveNoteEditAsync(note.Id)">Save</button>
+                        <button @onclick="CancelEditNote">Cancel</button>
+                    }
+                    else
+                    {
+                        <div class="note-head">
+                            <strong>@note.Title</strong>
+                            <span class="note-actions">
+                                <button class="note-edit" title="Edit" @onclick="() => BeginEditNote(note)">✎</button>
+                                <button class="note-del" title="Delete" @onclick="() => DeleteNoteAsync(note.Id)">✕</button>
+                            </span>
+                        </div>
+                        <p class="note-body">@note.Content</p>
+                        <span class="note-time">@note.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                    }
                 </div>
             }
             @if (_notes.Count == 0)
@@ -113,6 +130,11 @@ else
     private string _noteTitle = "";
     private string _noteContent = "";
     private string _addNoteError = "";
+
+    private long? _editingNoteId;
+    private string _editTitle = "";
+    private string _editContent = "";
+    private string _editNoteError = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -161,5 +183,33 @@ else
     {
         await NoteRepo.DeleteAsync(noteId, Id);
         _notes = await NoteRepo.GetByCampaignAsync(Id);
+    }
+
+    private void BeginEditNote(Note note)
+    {
+        _editingNoteId = note.Id;
+        _editTitle = note.Title;
+        _editContent = note.Content;
+        _editNoteError = "";
+    }
+
+    private void CancelEditNote()
+    {
+        _editingNoteId = null;
+        _editTitle = "";
+        _editContent = "";
+        _editNoteError = "";
+    }
+
+    private async Task SaveNoteEditAsync(long noteId)
+    {
+        if (string.IsNullOrWhiteSpace(_editTitle))
+        {
+            _editNoteError = "Title is required.";
+            return;
+        }
+        await NoteRepo.UpdateAsync(noteId, Id, _editTitle.Trim(), _editContent.Trim());
+        _notes = await NoteRepo.GetByCampaignAsync(Id);
+        CancelEditNote();
     }
 }
