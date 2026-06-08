@@ -65,9 +65,9 @@ public sealed class DndChatServiceTests
         var client = new FakeChatClient { Reply = "Fireball deals 8d6 fire damage." };
         var svc = CreateService(client);
 
-        var reply = await svc.SendAsync("What does fireball do?", false, CancellationToken.None);
+        var ok = await svc.SendAsync("What does fireball do?", false, CancellationToken.None);
 
-        reply.Should().Be("Fireball deals 8d6 fire damage.");
+        ok.Should().BeTrue();
         svc.History.Should().HaveCount(2);
         svc.History[0].Role.Should().Be(ChatRole.User);
         svc.History[0].Text.Should().Be("What does fireball do?");
@@ -76,16 +76,16 @@ public sealed class DndChatServiceTests
     }
 
     [Fact]
-    public async Task SendAsync_returns_error_message_when_ollama_is_unreachable()
+    public async Task SendAsync_returns_false_and_adds_no_assistant_message_when_unreachable()
     {
         var client = new FakeChatClient { ShouldThrow = true };
         var svc = CreateService(client);
 
-        var reply = await svc.SendAsync("Hello", false, CancellationToken.None);
+        var ok = await svc.SendAsync("Hello", false, CancellationToken.None);
 
-        reply.Should().Be("The AI is unavailable right now. Please try again.");
-        svc.History.Should().HaveCount(2);
-        svc.History[1].Role.Should().Be(ChatRole.Assistant);
+        ok.Should().BeFalse();
+        svc.History.Should().ContainSingle();          // user message only
+        svc.History[0].Role.Should().Be(ChatRole.User);
     }
 
     [Fact]

@@ -22,4 +22,13 @@ public sealed class ChatRepository(IDbContextFactory<AppDbContext> dbf)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync();
     }
+
+    /// <summary>Permanently deletes a user's chat turns for the given conversation scope.</summary>
+    public async Task DeleteConversationAsync(long userId, long? campaignId = null, long? heroId = null)
+    {
+        await using var db = await dbf.CreateDbContextAsync();
+        await db.ChatTurns
+            .Where(m => m.UserId == userId && m.CampaignId == campaignId && m.HeroId == heroId)
+            .ExecuteDeleteAsync();
+    }
 }

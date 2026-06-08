@@ -9,6 +9,13 @@
 @inject IJSRuntime JS
 
 <div class="chat-container">
+    @if (_sendError is not null)
+    {
+        <div class="chat-error-banner" role="alert">
+            <span>⚠ @_sendError</span>
+            <button class="banner-dismiss" @onclick="() => _sendError = null">✕</button>
+        </div>
+    }
     <div class="messages" id="messages-container">
         @foreach (var msg in ChatService.History)
         {
@@ -36,11 +43,13 @@
             Search web
         </label>
         <button @onclick="Send" disabled="@_loading">Send</button>
+        <button class="clear-conversation" @onclick="ClearConversation" disabled="@_loading" title="Clear conversation">Clear</button>
     </div>
 </div>
 
 @code {
     private string _input = "";
+    private string? _sendError;
     private bool _loading;
     private bool _webSearchEnabled;
     private bool _scrollRequired;
@@ -75,6 +84,7 @@
         var msg = _input.Trim();
         if (string.IsNullOrEmpty(msg) || _loading) return;
 
+        _sendError = null;
         _input = "";
         _loading = true;
         _scrollRequired = true;
@@ -82,12 +92,27 @@
 
         try
         {
-            await ChatService.SendAsync(msg, _webSearchEnabled, _cts.Token);
+            var ok = await ChatService.SendAsync(msg, _webSearchEnabled, _cts.Token);
+            if (!ok) _sendError = "Couldn't send message. Please try again.";
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    private async Task ClearConversation()
+    {
+        var confirmed = await JS.InvokeAsync<bool>(
+            "confirm", "Clear conversation? This permanently deletes all messages.");
+        if (!confirmed) return;
+
+        await ChatService.ClearAsync();
+        _sendError = null;
+        ChatService.History.Add(new ChatMessage(
+            ChatRole.Assistant,
+            "Hello, adventurer! Ask me anything about D&D rules, spells, monsters, and lore."));
+        _scrollRequired = true;
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)

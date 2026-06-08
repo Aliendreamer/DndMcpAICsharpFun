@@ -31,7 +31,7 @@ public sealed class DndChatService(
                 t.Role == "user" ? ChatRole.User : ChatRole.Assistant, t.Content));
     }
 
-    public async Task<string> SendAsync(string userMessage, bool allowWebSearch, CancellationToken ct)
+    public async Task<bool> SendAsync(string userMessage, bool allowWebSearch, CancellationToken ct)
     {
         var ip = httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         if (!rateLimiter.TryAcquire(ip))
@@ -39,7 +39,7 @@ public sealed class DndChatService(
             const string limited = "You're sending messages too quickly. Please wait a moment.";
             History.Add(new ChatMessage(ChatRole.User, userMessage));
             History.Add(new ChatMessage(ChatRole.Assistant, limited));
-            return limited;
+            return true;
         }
 
         var tools = await toolsProvider.GetToolsAsync(ct);
@@ -58,7 +58,7 @@ public sealed class DndChatService(
             var reply = response.Text ?? string.Empty;
             History.Add(new ChatMessage(ChatRole.Assistant, reply));
             await PersistAsync("assistant", reply);
-            return reply;
+            return true;
         }
         catch (OperationCanceledException)
         {
@@ -66,10 +66,21 @@ public sealed class DndChatService(
         }
         catch (Exception)
         {
-            const string error = "The AI is unavailable right now. Please try again.";
-            History.Add(new ChatMessage(ChatRole.Assistant, error));
-            return error;
+            // Failure is surfaced to the caller (UI banner); no assistant bubble is injected.
+            return false;
         }
+    }
+
+    /// <summary>
+    /// Clears the in-memory conversation and permanently deletes the signed-in user's
+    /// persisted chat turns so the conversation does not replay on reload.
+    /// </summary>
+    public async Task ClearAsync()
+    {
+        History.Clear();
+        var idClaim = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (long.TryParse(idClaim, out var userId))
+            await chatRepository.DeleteConversationAsync(userId);
     }
 
     private async Task PersistAsync(string role, string content)

@@ -35,4 +35,19 @@ public sealed class ChatRepositoryTests(PostgresFixture pg) : IAsyncLifetime
 
         (await _repo.GetHistoryAsync(2)).Should().ContainSingle(t => t.Content == "theirs");
     }
+
+    [Fact]
+    public async Task DeleteConversation_removes_only_the_users_scoped_turns()
+    {
+        await _repo.AddAsync(new ChatTurn { UserId = 1, Role = "user", Content = "a", CreatedAt = DateTime.UtcNow });
+        await _repo.AddAsync(new ChatTurn { UserId = 1, Role = "assistant", Content = "b", CreatedAt = DateTime.UtcNow.AddSeconds(1) });
+        await _repo.AddAsync(new ChatTurn { UserId = 2, Role = "user", Content = "theirs", CreatedAt = DateTime.UtcNow });
+        await _repo.AddAsync(new ChatTurn { UserId = 1, CampaignId = 5, Role = "user", Content = "scoped", CreatedAt = DateTime.UtcNow });
+
+        await _repo.DeleteConversationAsync(1);
+
+        (await _repo.GetHistoryAsync(1)).Should().BeEmpty();
+        (await _repo.GetHistoryAsync(2)).Should().ContainSingle(t => t.Content == "theirs");
+        (await _repo.GetHistoryAsync(1, campaignId: 5)).Should().ContainSingle(t => t.Content == "scoped");
+    }
 }
