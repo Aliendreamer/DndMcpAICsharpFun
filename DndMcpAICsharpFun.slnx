@@ -4,6 +4,4 @@
   </Folder>
   <Project Path="DndMcpAICsharpFun.csproj" />
   <Project Path="DndMcpAICsharpFun.Tests/DndMcpAICsharpFun.Tests.csproj" />
-  <Project Path="DndMcpAICompanion/DndMcpAICompanion.csproj" />
-  <Project Path="DndMcpAICompanion.Tests/DndMcpAICompanion.Tests.csproj" />
 </Solution>
