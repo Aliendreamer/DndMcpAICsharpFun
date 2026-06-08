@@ -60,12 +60,22 @@ The system SHALL define `prometheus` (prom/prometheus:latest) and `grafana` (gra
 - **THEN** `http://localhost:3000` serves the Grafana UI
 
 ### Requirement: sqlite-web service is defined in Docker Compose
-The system SHALL define a `sqlite-web` service using `coleifer/sqlite-web` mounted to the `app_data` volume at `/data/ingestion.db`, exposed on host port `8080`.
+The system SHALL define a `postgres` service (`postgres:18-alpine`, with `POSTGRES_DB`/`POSTGRES_USER`/`POSTGRES_PASSWORD`, a named `postgres_data` volume, and a `pg_isready` healthcheck) and a `pgadmin` service (`dpage/pgadmin4`) exposed on host port `8080`. The `app` service SHALL depend on `postgres` being healthy. The former `sqlite-web` service and the `./data` database mount SHALL be removed.
 
-#### Scenario: sqlite-web is reachable on host port 8080
+#### Scenario: Postgres is healthy and the app connects
 
-- **WHEN** `docker compose up` is run and the app has created the SQLite database
-- **THEN** `http://localhost:8080` serves the sqlite-web UI with `IngestionRecords` visible
+- **WHEN** `docker compose up` is run
+- **THEN** the `postgres` service reports healthy (`pg_isready`) and the `app` starts, applies migrations, and serves requests
+
+#### Scenario: pgAdmin is reachable on host port 8080
+
+- **WHEN** the stack is up
+- **THEN** `http://localhost:8080` serves the pgAdmin UI, from which the Postgres tables (including `IngestionRecords`) can be browsed
+
+#### Scenario: sqlite-web is gone
+
+- **WHEN** the compose files are inspected
+- **THEN** there is no `sqlite-web` service and no `./data` SQLite database mount
 
 ### Requirement: Named volumes include prometheus and grafana storage
 The system SHALL define named volumes `prometheus_data` and `grafana_data` in `docker-compose.yml` in addition to the existing `books_data`, `qdrant_data`, `app_data`, and `ollama_data` volumes.

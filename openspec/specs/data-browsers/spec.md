@@ -4,16 +4,16 @@
 TBD - created by archiving change observability-stack. Update Purpose after archive.
 ## Requirements
 ### Requirement: SQLite Web UI is accessible via browser
-The system SHALL run a `coleifer/sqlite-web` container mounted to the same `app_data` volume at `/data/ingestion.db`, accessible at `http://localhost:8080`, allowing developers to browse and query ingestion records.
+The system SHALL run a `dpage/pgadmin4` (pgAdmin) container, accessible at `http://localhost:8080`, connected to the Postgres database, allowing developers to browse and query the application's tables. (Replaces the former `coleifer/sqlite-web` container, which cannot read PostgreSQL.)
 
-#### Scenario: Ingestion records table is visible
+#### Scenario: Tables are visible
 
-- **WHEN** a browser navigates to `http://localhost:8080`
-- **THEN** the `IngestionRecords` table is listed and rows are browsable
+- **WHEN** a browser navigates to `http://localhost:8080` and connects to the Postgres server
+- **THEN** the application's tables (including `IngestionRecords`) are listed and rows are browsable
 
 #### Scenario: SQL queries can be executed
 
-- **WHEN** a developer enters a SQL SELECT statement in the sqlite-web query console
+- **WHEN** a developer enters a SQL SELECT statement in the pgAdmin query tool
 - **THEN** the results are returned and displayed in the browser
 
 ### Requirement: Qdrant Web UI is documented and accessible
