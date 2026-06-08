@@ -6,6 +6,7 @@
 @attribute [Authorize]
 @inject CampaignRepository CampaignRepo
 @inject HeroRepository HeroRepo
+@inject NoteRepository NoteRepo
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider Auth
 
@@ -57,6 +58,43 @@ else
         {
             <button @onclick="ShowAddHero">+ Add Hero</button>
         }
+
+        <h2>Notes</h2>
+        <div class="notes-list">
+            @foreach (var note in _notes)
+            {
+                <div class="note-card">
+                    <div class="note-head">
+                        <strong>@note.Title</strong>
+                        <button class="note-del" title="Delete" @onclick="() => DeleteNoteAsync(note.Id)">✕</button>
+                    </div>
+                    <p class="note-body">@note.Content</p>
+                    <span class="note-time">@note.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                </div>
+            }
+            @if (_notes.Count == 0)
+            {
+                <p class="muted">No notes yet.</p>
+            }
+        </div>
+
+        @if (_showAddNote)
+        {
+            <div class="add-note-form">
+                <input @bind="_noteTitle" placeholder="Title" />
+                <textarea @bind="_noteContent" placeholder="Write a note..." rows="3"></textarea>
+                @if (!string.IsNullOrEmpty(_addNoteError))
+                {
+                    <p class="error">@_addNoteError</p>
+                }
+                <button @onclick="AddNoteAsync">Save</button>
+                <button @onclick="CancelAddNote">Cancel</button>
+            </div>
+        }
+        else
+        {
+            <button @onclick="() => _showAddNote = true">+ Add Note</button>
+        }
     </div>
 }
 
@@ -70,6 +108,12 @@ else
     private string _newHeroName = "";
     private string _addHeroError = "";
 
+    private List<Note> _notes = [];
+    private bool _showAddNote;
+    private string _noteTitle = "";
+    private string _noteContent = "";
+    private string _addNoteError = "";
+
     protected override async Task OnInitializedAsync()
     {
         var state = await Auth.GetAuthenticationStateAsync();
@@ -81,6 +125,7 @@ else
             return;
         }
         _heroes = await HeroRepo.GetByCampaignAsync(Id);
+        _notes = await NoteRepo.GetByCampaignAsync(Id);
     }
 
     private void GoToHero(long heroId) => Nav.NavigateTo($"/campaigns/{Id}/heroes/{heroId}");
@@ -96,5 +141,25 @@ else
         }
         var heroId = await HeroRepo.CreateAsync(Id, _newHeroName.Trim());
         Nav.NavigateTo($"/campaigns/{Id}/heroes/{heroId}");
+    }
+
+    private void CancelAddNote() { _showAddNote = false; _noteTitle = ""; _noteContent = ""; _addNoteError = ""; }
+
+    private async Task AddNoteAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_noteTitle))
+        {
+            _addNoteError = "Title is required.";
+            return;
+        }
+        await NoteRepo.CreateAsync(_userId, Id, _noteTitle.Trim(), _noteContent.Trim());
+        _notes = await NoteRepo.GetByCampaignAsync(Id);
+        CancelAddNote();
+    }
+
+    private async Task DeleteNoteAsync(long noteId)
+    {
+        await NoteRepo.DeleteAsync(noteId, Id);
+        _notes = await NoteRepo.GetByCampaignAsync(Id);
     }
 }

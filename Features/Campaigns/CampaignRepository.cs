@@ -46,6 +46,7 @@ public sealed class CampaignRepository(IDbContextFactory<AppDbContext> dbf)
         var heroIds = await db.Heroes.Where(h => h.CampaignId == id).Select(h => h.Id).ToListAsync();
         await db.HeroSnapshots.Where(s => heroIds.Contains(s.HeroId)).ExecuteDeleteAsync();
         await db.Heroes.Where(h => h.CampaignId == id).ExecuteDeleteAsync();
+        await db.Notes.Where(n => n.CampaignId == id).ExecuteDeleteAsync();
         await db.Campaigns.Where(c => c.Id == id && c.UserId == userId).ExecuteDeleteAsync();
     }
 }

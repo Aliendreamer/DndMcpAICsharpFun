@@ -16,6 +16,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Hero> Heroes => Set<Hero>();
     public DbSet<HeroSnapshot> HeroSnapshots => Set<HeroSnapshot>();
     public DbSet<ChatTurn> ChatTurns => Set<ChatTurn>();
+    public DbSet<Note> Notes => Set<Note>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,6 +51,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             e.HasIndex(m => new { m.UserId, m.CampaignId, m.HeroId });
             e.HasIndex(m => m.CreatedAt);
+        });
+
+        modelBuilder.Entity<Note>(e =>
+        {
+            e.HasIndex(n => n.CampaignId);
         });
     }
 }

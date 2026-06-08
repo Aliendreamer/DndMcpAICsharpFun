@@ -303,3 +303,15 @@ body {
 }
 
 .hero-level { font-size: 13px; color: #a78bfa; font-weight: 600; min-width: 40px; text-align: right; }
+
+/* Campaign notes */
+.notes-list { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 16px; }
+.note-card { background: #1f2230; border: 1px solid #343a4d; border-radius: 8px; padding: 10px 12px; }
+.note-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.note-body { margin: 6px 0 4px; white-space: pre-wrap; color: #cbd5e1; }
+.note-time { font-size: 12px; color: #7c8499; }
+.note-del { background: transparent; border: none; color: #8a8f9c; cursor: pointer; font-size: 14px; }
+.note-del:hover { color: #f87171; }
+.add-note-form { display: flex; flex-direction: column; gap: 6px; max-width: 480px; margin-bottom: 16px; }
+.add-note-form textarea { resize: vertical; }
+.muted { color: #7c8499; font-style: italic; }
