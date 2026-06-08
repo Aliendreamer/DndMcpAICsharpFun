@@ -1,18 +1,16 @@
 using DndMcpAICsharpFun.Features.Auth;
 using DndMcpAICsharpFun.Tests.Persistence;
 using FluentAssertions;
-using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Auth;
 
-public sealed class UserRepositoryTests : IDisposable
+[Collection("postgres")]
+public sealed class UserRepositoryTests(PostgresFixture pg) : IAsyncLifetime
 {
-    private readonly TestDb _db = new();
-    private readonly UserRepository _repo;
+    private readonly UserRepository _repo = new(new TestDb(pg));
 
-    public UserRepositoryTests() => _repo = new UserRepository(_db);
-
-    public void Dispose() => _db.Dispose();
+    public Task InitializeAsync() => pg.ResetAsync();
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task CreateAsync_ReturnsNewUserId_MatchingStoredRecord()

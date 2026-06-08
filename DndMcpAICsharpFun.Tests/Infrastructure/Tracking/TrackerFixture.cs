@@ -1,34 +1,13 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
-using DndMcpAICsharpFun.Infrastructure.Persistence;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
+using DndMcpAICsharpFun.Tests.Persistence;
 
 namespace DndMcpAICsharpFun.Tests.Infrastructure.Tracking;
 
-public sealed class TrackerFixture : IDisposable
+/// <summary>Builds ingestion trackers over the shared Postgres test container.</summary>
+public sealed class TrackerFixture(PostgresFixture pg)
 {
-    private readonly SqliteConnection _connection;
-    private readonly DbContextOptions<AppDbContext> _options;
-
-    public TrackerFixture()
-    {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-
-        _options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
-            .Options;
-
-        using var db = new AppDbContext(_options);
-        db.Database.Migrate();
-    }
-
-    public SqliteIngestionTracker CreateTracker()
-    {
-        var db = new AppDbContext(_options);
-        return new SqliteIngestionTracker(db);
-    }
+    public SqliteIngestionTracker CreateTracker() => new(pg.NewContext());
 
     public static IngestionRecord SampleRecord() => new()
     {
@@ -39,6 +18,4 @@ public sealed class TrackerFixture : IDisposable
         DisplayName = "Player's Handbook",
         Status = IngestionStatus.Pending,
     };
-
-    public void Dispose() => _connection.Dispose();
 }

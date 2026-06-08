@@ -2,24 +2,23 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Campaigns;
 using DndMcpAICsharpFun.Tests.Persistence;
 using FluentAssertions;
-using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Campaign;
 
-public sealed class HeroRepositoryTests : IDisposable
+[Collection("postgres")]
+public sealed class HeroRepositoryTests(PostgresFixture pg) : IAsyncLifetime
 {
-    private readonly TestDb _db = new();
-    private readonly HeroRepository _repo;
-    private readonly long _campaignId;
+    private readonly HeroRepository _repo = new(new TestDb(pg));
+    private long _campaignId;
 
-    public HeroRepositoryTests()
+    public async Task InitializeAsync()
     {
-        var campRepo = new CampaignRepository(_db);
-        _repo = new HeroRepository(_db);
-        _campaignId = campRepo.CreateAsync(1, "Test Campaign", "").GetAwaiter().GetResult();
+        await pg.ResetAsync();
+        var campRepo = new CampaignRepository(new TestDb(pg));
+        _campaignId = await campRepo.CreateAsync(1, "Test Campaign", "");
     }
 
-    public void Dispose() => _db.Dispose();
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task CreateAsync_InsertsHeroWithBlankSnapshot()

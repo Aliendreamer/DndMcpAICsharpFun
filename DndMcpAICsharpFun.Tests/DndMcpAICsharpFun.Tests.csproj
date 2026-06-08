@@ -19,6 +19,8 @@
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
     <PackageReference Include="NJsonSchema" />
     <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Respawn" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
   </ItemGroup>
 
   <ItemGroup>

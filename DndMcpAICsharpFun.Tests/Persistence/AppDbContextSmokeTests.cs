@@ -1,20 +1,19 @@
 using DndMcpAICsharpFun.Domain;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Persistence;
 
-public sealed class AppDbContextSmokeTests : IDisposable
+[Collection("postgres")]
+public sealed class AppDbContextSmokeTests(PostgresFixture pg) : IAsyncLifetime
 {
-    private readonly TestDb _db = new();
-
-    public void Dispose() => _db.Dispose();
+    public Task InitializeAsync() => pg.ResetAsync();
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task All_DbSets_are_queryable_on_a_fresh_migrated_database()
     {
-        await using var db = _db.CreateDbContext();
+        await using var db = pg.NewContext();
         (await db.Users.CountAsync()).Should().Be(0);
         (await db.Campaigns.CountAsync()).Should().Be(0);
         (await db.Heroes.CountAsync()).Should().Be(0);
@@ -26,14 +25,14 @@ public sealed class AppDbContextSmokeTests : IDisposable
     [Fact]
     public async Task HeroSnapshot_CharacterSheet_round_trips_through_the_json_column()
     {
-        await using (var db = _db.CreateDbContext())
+        await using (var db = pg.NewContext())
         {
             db.HeroSnapshots.Add(new HeroSnapshot(0, 1, 1, "S1", 5,
                 DateTime.UtcNow, new CharacterSheet { Level = 5, Race = "Dwarf", Class = "Cleric" }));
             await db.SaveChangesAsync();
         }
 
-        await using (var db = _db.CreateDbContext())
+        await using (var db = pg.NewContext())
         {
             var snap = await db.HeroSnapshots.SingleAsync();
             snap.Sheet.Level.Should().Be(5);

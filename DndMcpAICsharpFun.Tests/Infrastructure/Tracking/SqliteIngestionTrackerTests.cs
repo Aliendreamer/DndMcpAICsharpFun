@@ -1,12 +1,15 @@
 using DndMcpAICsharpFun.Domain;
-using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using DndMcpAICsharpFun.Tests.Persistence;
 
 namespace DndMcpAICsharpFun.Tests.Infrastructure.Tracking;
 
-public sealed class SqliteIngestionTrackerTests : IDisposable
+[Collection("postgres")]
+public sealed class SqliteIngestionTrackerTests(PostgresFixture pg) : IAsyncLifetime
 {
-    private readonly TrackerFixture _fixture = new();
-    public void Dispose() => _fixture.Dispose();
+    private readonly TrackerFixture _fixture = new(pg);
+
+    public Task InitializeAsync() => pg.ResetAsync();
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task CreateAsync_AssignsId_AndReturnsRecord()

@@ -1,9 +1,9 @@
 using DndMcpAICsharpFun.Features.Chat;
-using DndMcpAICsharpFun.Tests.Persistence;
+using DndMcpAICsharpFun.Infrastructure.Persistence;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
-using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Chat;
 
@@ -43,16 +43,19 @@ internal sealed class FakeMcpToolsProvider(IReadOnlyList<AITool> tools) : IMcpTo
         Task.FromResult(tools);
 }
 
-public sealed class DndChatServiceTests : IDisposable
+// Chat persistence only runs for an authenticated user; these tests use a null
+// HttpContext, so the repository is never touched — a throwing factory is fine.
+internal sealed class NoOpDbFactory : IDbContextFactory<AppDbContext>
 {
-    private readonly TestDb _db = new();
+    public AppDbContext CreateDbContext() => throw new NotSupportedException();
+}
 
-    public void Dispose() => _db.Dispose();
-
-    private DndChatService CreateService(FakeChatClient client, IReadOnlyList<AITool>? tools = null) =>
+public sealed class DndChatServiceTests
+{
+    private static DndChatService CreateService(FakeChatClient client, IReadOnlyList<AITool>? tools = null) =>
         new(client,
             new FakeMcpToolsProvider(tools ?? []),
-            new ChatRepository(_db),
+            new ChatRepository(new NoOpDbFactory()),
             new NullHttpContextAccessor(),
             new ChatRateLimiter(1000));
 
