@@ -83,11 +83,3 @@ The system SHALL provide an extension method `MapDndEndpoints` on `WebApplicatio
 - **WHEN** `app.MapDndEndpoints(mcpOpts)` is called
 - **THEN** the `/logout` route and Razor components (`App`) with `RequireRateLimiting("global")` are registered
 
-### Requirement: Companion Program.cs is reduced to a thin composition root
-The system SHALL ensure `DndMcpAICompanion/Program.cs` contains only configuration loading (`AddDndConfiguration`), option binding for `OllamaOptions` and `McpClientOptions`, async MCP client initialisation, calls to the extension methods above, and `app.Run()` — with no inline DI registration logic, no inline middleware calls, and no inline endpoint lambdas beyond the retained async MCP setup.
-
-#### Scenario: Program.cs has no inline service registration logic
-
-- **WHEN** `Program.cs` is read
-- **THEN** all service registrations are delegated to named extension methods and no `builder.Services.Add*` calls appear inline except through extension methods
-
