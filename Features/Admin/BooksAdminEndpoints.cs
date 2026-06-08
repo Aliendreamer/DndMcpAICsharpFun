@@ -82,13 +82,15 @@ public static partial class BooksAdminEndpoints
         if (record is null)
             return Results.NotFound($"Book with id {id} not found");
 
-        if (record.Status == IngestionStatus.Processing
-            || record.Status == IngestionStatus.EntitiesExtracting
-            || record.Status == IngestionStatus.EntitiesIngesting)
-            return Results.Conflict("Book is currently processing.");
-
         var forceFlag = force ?? false;
         var errorsOnlyFlag = errorsOnly ?? false;
+
+        // A stuck EntitiesExtracting/EntitiesIngesting status left by an interrupted run can be
+        // overridden with ?force=true; an in-flight block ingestion (Processing) is never overridden.
+        var stuckEntityStatus = record.Status is IngestionStatus.EntitiesExtracting
+            or IngestionStatus.EntitiesIngesting;
+        if (record.Status == IngestionStatus.Processing || (stuckEntityStatus && !forceFlag))
+            return Results.Conflict("Book is currently processing.");
 
         if (forceFlag && errorsOnlyFlag)
             return Results.Problem(

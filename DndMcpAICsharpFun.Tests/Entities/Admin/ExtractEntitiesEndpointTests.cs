@@ -68,6 +68,36 @@ public sealed class ExtractEntitiesEndpointTests
     }
 
     [Fact]
+    public async Task ExtractEntities_StuckExtracting_WithoutForce_Returns409()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var (client, tracker, queue) = await BuildClientAsync(tempDir);
+        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
+            .Returns(MakeRecord(1, IngestionStatus.EntitiesExtracting));
+
+        var response = await client.PostAsync("/admin/books/1/extract-entities", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        queue.DidNotReceiveWithAnyArgs().TryEnqueue(default!);
+    }
+
+    [Fact]
+    public async Task ExtractEntities_StuckExtracting_WithForce_Returns202_AndEnqueues()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var (client, tracker, queue) = await BuildClientAsync(tempDir);
+        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
+            .Returns(MakeRecord(1, IngestionStatus.EntitiesExtracting));
+        queue.TryEnqueue(Arg.Any<IngestionWorkItem>()).Returns(true);
+
+        var response = await client.PostAsync("/admin/books/1/extract-entities?force=true", null);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        queue.Received(1).TryEnqueue(Arg.Is<IngestionWorkItem>(i =>
+            i.Type == IngestionWorkType.ExtractEntities && i.BookId == 1 && i.Force));
+    }
+
+    [Fact]
     public async Task ExtractEntities_CanonicalExistsWithoutForce_Returns409()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
