@@ -10,15 +10,17 @@ services:
       - Qdrant__Host=qdrant
       - Ollama__BaseUrl=http://ollama:11434
       - Ingestion__BooksPath=/books
-      - Ingestion__DatabasePath=/data/ingestion.db
       - SearXNG__Url=http://searxng:8080
       - Mcp__ApiKey=${MCP_API_KEY}
       - McpClient__Url=http://localhost:5101/mcp
       - McpClient__ApiKey=${MCP_API_KEY}
+      - Postgres__Host=postgres
+      - Postgres__Password=${POSTGRES_PASSWORD}
     volumes:
       - books_data:/books
-      - app_data:/data
     depends_on:
+      postgres:
+        condition: service_healthy
       qdrant:
         condition: service_healthy
       ollama:
@@ -154,16 +156,32 @@ services:
       - dnd_net
     restart: unless-stopped
 
-  sqlite-web:
-    image: coleifer/sqlite-web:latest
-    ports:
-      - "8080:8080"
+  postgres:
+    image: postgres:18-alpine
     environment:
-      - SQLITE_DATABASE=/data/ingestion.db
+      - POSTGRES_DB=dnd
+      - POSTGRES_USER=dnd
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
-      - app_data:/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dnd -d dnd"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dnd_net
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@dnd.local}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
+    ports:
+      - "8080:80"
     depends_on:
-      - app
+      - postgres
     networks:
       - dnd_net
     restart: unless-stopped
@@ -182,7 +200,7 @@ volumes:
   books_data:
   marker_models:
   qdrant_data:
-  app_data:
+  postgres_data:
   ollama_data:
   prometheus_data:
   grafana_data:

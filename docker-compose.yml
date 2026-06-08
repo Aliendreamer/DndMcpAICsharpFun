@@ -16,11 +16,14 @@ services:
       - Mcp__ApiKey=${MCP_API_KEY:-devMcpKey}
       - McpClient__Url=http://localhost:5101/mcp
       - McpClient__ApiKey=${MCP_API_KEY:-devMcpKey}
+      - Postgres__Host=postgres
+      - Postgres__Password=${POSTGRES_PASSWORD:-dnd}
     volumes:
       - ./books:/books
-      - ./data:/app/data
       - models_data:/app/models
     depends_on:
+      postgres:
+        condition: service_healthy
       qdrant:
         condition: service_healthy
       ollama:
@@ -151,23 +154,33 @@ services:
       - dnd_net
     restart: unless-stopped
 
-  sqlite-web:
-    image: coleifer/sqlite-web:latest
-    ports:
-      - "8080:8080"
-    entrypoint:
-      [
-        "sqlite_web",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8080",
-        "/app/data/ingestion.db",
-      ]
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      - POSTGRES_DB=dnd
+      - POSTGRES_USER=dnd
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dnd}
     volumes:
-      - ./data:/app/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dnd -d dnd"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dnd_net
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@dnd.local
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "8080:80"
     depends_on:
-      - app
+      - postgres
     networks:
       - dnd_net
     restart: unless-stopped
@@ -216,6 +229,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  postgres_data:
   qdrant_data:
   ollama_data:
   marker_models:
