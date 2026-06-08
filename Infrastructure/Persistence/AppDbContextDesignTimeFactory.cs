@@ -9,7 +9,7 @@ public sealed class AppDbContextDesignTimeFactory : IDesignTimeDbContextFactory<
     public AppDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite("Data Source=design-time.db")
+            .UseNpgsql("Host=localhost;Port=5432;Database=dnd;Username=dnd;Password=dnd")
             .Options;
         return new AppDbContext(options);
     }

@@ -32,6 +32,7 @@ using OpenTelemetry.Resources;
 using Qdrant.Client;
 
 using DndMcpAICsharpFun.Infrastructure.Persistence;
+using DndMcpAICsharpFun.Infrastructure.Postgres;
 
 namespace DndMcpAICsharpFun.Extensions;
 
@@ -64,8 +65,8 @@ internal static class ServiceCollectionExtensions
 
         services.AddDbContextFactory<AppDbContext>(static (sp, options) =>
         {
-            var ingestionOpts = sp.GetRequiredService<IOptions<IngestionOptions>>().Value;
-            options.UseSqlite($"Data Source={ingestionOpts.DatabasePath}");
+            var pg = sp.GetRequiredService<IOptions<PostgresOptions>>().Value;
+            options.UseNpgsql(pg.ConnectionString(), o => o.EnableRetryOnFailure());
         });
         // Scoped AppDbContext (for the ingestion tracker + startup migration) delegates to the factory.
         services.AddScoped<AppDbContext>(sp =>

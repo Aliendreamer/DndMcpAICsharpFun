@@ -77,6 +77,9 @@ builder.Services.AddObservability(builder.Configuration);
 builder.Services.AddOptions<DndMcpAICsharpFun.Features.Chat.McpClientOptions>()
     .BindConfiguration("McpClient")
     .ValidateOnStart();
+builder.Services.AddOptions<DndMcpAICsharpFun.Infrastructure.Postgres.PostgresOptions>()
+    .BindConfiguration("Postgres")
+    .ValidateOnStart();
 builder.Services.AddAntiforgery();
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddDndChat(builder.Configuration);
