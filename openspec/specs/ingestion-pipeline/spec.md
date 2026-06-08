@@ -180,17 +180,13 @@ The `IngestionOptions` configuration class SHALL expose a `BlockSegmenter` prope
 - **THEN** ingestion proceeds exactly as it did before this change, using `DocstrumBoundingBoxes`
 
 ### Requirement: Docling is reachable when block ingestion uses it
-When `Ingestion:BlockSegmenter` is `"docling"`, the system SHALL require docling-serve to be reachable at `Docling:BaseUrl`. If docling-serve is unhealthy or unreachable at the time `IngestBlocksAsync` runs, the orchestrator SHALL mark the record `Failed` with an error message identifying docling-serve as the failing dependency, and SHALL NOT write any points to Qdrant.
+Block ingestion SHALL require the marker service to be reachable at `Marker:Url`. If the marker service is unhealthy or unreachable at the time `IngestBlocksAsync` runs, the orchestrator SHALL mark the record `Failed` with an error message identifying the marker service as the failing dependency, and SHALL NOT write any points to Qdrant.
 
-#### Scenario: Docling unreachable during ingestion fails the record cleanly
+#### Scenario: Marker unreachable during ingestion fails the record cleanly
 
-- **WHEN** block ingestion runs with `BlockSegmenter=docling` and docling-serve is down
-- **THEN** the orchestrator marks the record `Failed` with an error message that names docling-serve, the configured `Docling:BaseUrl`, and the underlying HTTP error
-
-#### Scenario: Health check surfaces docling outages
-
-- **WHEN** the application's `/ready` endpoint is hit while docling-serve is down
-- **THEN** the response includes a failed `docling` health-check entry, regardless of whether the running ingestion mode actually uses docling
+- **WHEN** block ingestion runs while the marker service is down
+- **THEN** the orchestrator marks the record `Failed` with an error message that names the marker service, the configured `Marker:Url`, and the underlying HTTP error
+- **AND** no points are written to Qdrant
 
 ### Requirement: Book registration accepts optional 5etools source key
 The registration form SHALL accept an optional `fivetoolsSourceKey` multipart field. When provided, it SHALL be validated against `BookSourceRegistry` and stored on `IngestionRecord`. When absent, the response SHALL include `suggestedSources` as defined in the `fivetools-source-key` spec.

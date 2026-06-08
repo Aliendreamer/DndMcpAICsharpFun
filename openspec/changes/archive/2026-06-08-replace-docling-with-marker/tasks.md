@@ -44,5 +44,5 @@
 
 ## 6. Operational (post-merge runbook, executed on request)
 
-- [ ] 6.1 Re-convert + re-ingest blocks for the 3–4 registered books (`POST /admin/books/{id}/ingest-blocks`); expect ~2h/book marker conversion on first run, cached afterwards
-- [ ] 6.2 Spot-check `dnd_blocks` section titles for despaced headings
+- [x] 6.1 Re-convert + re-ingest blocks for the 3–4 registered books (`POST /admin/books/{id}/ingest-blocks`); expect ~2h/book marker conversion on first run, cached afterwards
+- [x] 6.2 Spot-check `dnd_blocks` section titles for despaced headings
