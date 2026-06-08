@@ -160,8 +160,10 @@ services:
       - POSTGRES_DB=dnd
       - POSTGRES_USER=dnd
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dnd}
+    ports:
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dnd -d dnd"]
       interval: 10s
