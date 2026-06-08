@@ -41,14 +41,14 @@ Each layer is its own design pass via the openspec workflow.
 │   └──────┬───────────────┬───────────────┬───────────────────┘   │
 │          │               │               │                       │
 │   ┌──────▼─────┐  ┌──────▼─────┐  ┌──────▼─────┐  ┌─────────┐    │
-│   │   marker   │  │   Ollama   │  │   Qdrant   │  │ SQLite  │    │
-│   │  :5002     │  │   :11434   │  │   :6333    │  │  /data  │    │
+│   │   marker   │  │   Ollama   │  │   Qdrant   │  │Postgres │    │
+│   │  :5002     │  │   :11434   │  │   :6333    │  │  :5432  │    │
 │   │ (layout)   │  │ (embed)    │  │ (vectors)  │  │ (state) │    │
 │   └────────────┘  └────────────┘  └────────────┘  └─────────┘    │
 │                                                                  │
 │   Observability                                                  │
 │   Prometheus :9090   →   Grafana :3000                           │
-│   sqlite-web :8080       Qdrant UI :6333/dashboard               │
+│   pgAdmin :8080          Qdrant UI :6333/dashboard               │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -227,7 +227,7 @@ Requires header `X-Admin-Api-Key: <admin key>`.
 | `POST` | `/admin/books/register` | Upload a PDF and save it as `Pending`. Streams multipart body straight to disk; returns 202. Form fields: `file` (PDF), `version` (`Edition2014` or `Edition2024`), `displayName`, optional `bookType` (`Core` / `Supplement` / `Adventure` / `Setting` / `Unknown`, default `Unknown`), optional `fivetoolsSourceKey` (e.g. `MPMM` — see source key guidance below). Does **not** start ingestion — call `/ingest-blocks` next. Response always includes `suggestedSources` with fuzzy-matched 5etools candidates. |
 | `GET` | `/admin/books` | List all registered books with status, displayName, version, bookType, and chunk count. |
 | `POST` | `/admin/books/{id}/ingest-blocks` | Enqueue Marker layout extraction + embedding + Qdrant upsert. Returns 202; work runs in the background queue. The same call re-runs the pipeline cleanly (deletes prior points by hash). |
-| `DELETE` | `/admin/books/{id}` | Remove the book: deletes Qdrant points by hash, deletes the PDF from disk, deletes the SQLite record. Returns 409 if the book is currently `Processing`. |
+| `DELETE` | `/admin/books/{id}` | Remove the book: deletes Qdrant points by hash, deletes the PDF from disk, deletes the database record. Returns 409 if the book is currently `Processing`. |
 
 ### Retrieval
 
@@ -303,7 +303,7 @@ When the stack is running, these UIs are available:
 | --- | --- | --- |
 | Grafana | <http://localhost:3000> | Pre-provisioned dashboards: .NET runtime, Qdrant, Ollama |
 | Prometheus | <http://localhost:9090> | Raw metrics and query UI |
-| sqlite-web | <http://localhost:8080> | Browse and query the `IngestionRecords` SQLite table |
+| pgAdmin | <http://localhost:8080> | Browse and query the Postgres tables (incl. `IngestionRecords`) |
 | Qdrant UI | <http://localhost:6333/dashboard> | Browse vector collections and run test queries |
 | marker | <http://localhost:5002/docs> | Swagger UI for the Marker layout service (mostly for debugging) |
 

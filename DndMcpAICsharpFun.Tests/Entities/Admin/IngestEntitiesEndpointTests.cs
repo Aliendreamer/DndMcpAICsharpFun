@@ -3,7 +3,7 @@ using System.Net;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
-using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using DndMcpAICsharpFun.Infrastructure.Ingestion;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;

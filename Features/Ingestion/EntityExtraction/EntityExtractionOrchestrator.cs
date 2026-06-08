@@ -277,7 +277,7 @@ public sealed class EntityExtractionOrchestrator(
         await errorsFile.WriteAsync(errorsPath, extractionErrors, ct);
         await warningsFile.WriteAsync(warningsPath, interWarnings, ct);
 
-        // Update SQLite FIRST so that if checkpoint deletion fails, the record is already consistent.
+        // Update the database FIRST so that if checkpoint deletion fails, the record is already consistent.
         await tracker.MarkEntitiesExtractedAsync(bookId, extracted.Count, ct);
 
         // Remove checkpoint files now that the final output is written.

@@ -6,7 +6,7 @@ using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
-using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using DndMcpAICsharpFun.Infrastructure.Ingestion;
 
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;

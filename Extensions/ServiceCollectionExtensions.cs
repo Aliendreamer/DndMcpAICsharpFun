@@ -17,7 +17,7 @@ using DndMcpAICsharpFun.Infrastructure;
 using DndMcpAICsharpFun.Infrastructure.Marker;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
-using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using DndMcpAICsharpFun.Infrastructure.Ingestion;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -77,7 +77,7 @@ internal static class ServiceCollectionExtensions
 
     internal static IServiceCollection AddIngestionPipeline(this IServiceCollection services)
     {
-        services.AddScoped<IIngestionTracker, SqliteIngestionTracker>();
+        services.AddScoped<IIngestionTracker, IngestionTracker>();
         services.AddScoped<IEmbeddingService, OllamaEmbeddingService>();
         services.AddScoped<IVectorStoreService, QdrantVectorStoreService>();
         services.AddScoped<IEntityVectorStore, QdrantEntityVectorStore>();

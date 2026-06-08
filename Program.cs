@@ -7,7 +7,7 @@ using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Infrastructure.Marker;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
-using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using DndMcpAICsharpFun.Infrastructure.Ingestion;
 using Serilog;
 using Serilog.Events;
 

@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Mcp;
 using DndMcpAICsharpFun.Infrastructure;
-using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using DndMcpAICsharpFun.Infrastructure.Ingestion;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 

@@ -5,7 +5,7 @@ using DndMcpAICsharpFun.Domain;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Tracking;
 
-public sealed class SqliteIngestionTracker(AppDbContext db) : IIngestionTracker
+public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
 {
     public Task<IngestionRecord?> GetByHashAsync(string hash, CancellationToken ct = default) =>
         db.IngestionRecords.FirstOrDefaultAsync(r => r.FileHash == hash, ct);

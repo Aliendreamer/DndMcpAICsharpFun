@@ -31,12 +31,14 @@ dotnet test
 - **Domain/** — all domain model types (`User`, `Campaign`, `Hero`, `HeroSnapshot`, `CharacterSheet`, `ChatTurn`, `IngestionRecord`, entity/book types)
 - **Components/**, **wwwroot/** — Blazor Server UI
 - **Features/** — `Auth`, `Campaigns`, `Chat`, plus ingestion/retrieval/admin/MCP
-- **Infrastructure/Persistence/** — `AppDbContext` (EF Core, SQLite), the single context for all tables
+- **Infrastructure/Persistence/** — `AppDbContext` (EF Core, **PostgreSQL** via Npgsql), the single context for all tables
 - **Config/** — `appsettings.json` and `appsettings.Development.json` (loaded automatically by the host)
 
 ### Persistence
 
-All relational data lives in one EF Core `AppDbContext` (SQLite). Repositories (`UserRepository`, `CampaignRepository`, `HeroRepository`, `ChatRepository`) use `IDbContextFactory<AppDbContext>` for short-lived, Blazor-safe contexts. Schema is created by EF migrations applied at startup (`MigrateDatabaseAsync`); a `test` dev user is seeded. `HeroSnapshot.CharacterSheet` persists as a JSON column. Chat conversation turns are persisted as `ChatTurn` rows keyed by the signed-in user.
+All relational data lives in one EF Core `AppDbContext` on **PostgreSQL** (Npgsql), configured by a connection string from the `Postgres` config section (`Postgres__*` env overrides; dev/test default to `localhost`, the container to the `postgres` service). Repositories (`UserRepository`, `CampaignRepository`, `HeroRepository`, `ChatRepository`) use `IDbContextFactory<AppDbContext>` for short-lived, Blazor-safe contexts. Schema is created by EF migrations applied at startup (`MigrateDatabaseAsync`); a `test` dev user is seeded. `HeroSnapshot.CharacterSheet` persists as a JSON column. Chat conversation turns are persisted as `ChatTurn` rows keyed by the signed-in user.
+
+Persistence tests run against a **real Postgres** via Testcontainers (`postgres:18-alpine`), isolated per test with Respawn — so **Docker must be running** to run the persistence tests. The non-persistence tests need no database. (There is no SQLite anywhere in the project; the one-time SQLite→Postgres migration was performed by a now-retired `Tools/SqliteToPostgres` console.)
 
 > The chat feature is an MCP **client** that calls this same host's MCP server over a loopback endpoint (`McpClient:Url`), initialised lazily on first use to avoid a single-process startup deadlock. The server's `Mcp:ApiKey` and the client's `McpClient:ApiKey` must match.
 
@@ -90,7 +92,7 @@ When the full stack is running (`docker compose up`), these UIs are available:
 | --- | --- | --- |
 | Grafana | <http://localhost:3000> | Pre-provisioned dashboards for .NET, Qdrant, Ollama |
 | Prometheus | <http://localhost:9090> | Metrics scraping and querying |
-| sqlite-web | <http://localhost:8080> | Browse `IngestionRecords` table |
+| pgAdmin | <http://localhost:8080> | Browse/query the Postgres tables (incl. `IngestionRecords`) |
 | Qdrant UI | <http://localhost:6333/dashboard> | Vector collection browser |
 | Marker | <http://localhost:5002/docs> | PDF conversion service Swagger (debugging) |
 

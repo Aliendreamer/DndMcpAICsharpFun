@@ -7,7 +7,7 @@ namespace DndMcpAICsharpFun.Tests.Infrastructure.Tracking;
 /// <summary>Builds ingestion trackers over the shared Postgres test container.</summary>
 public sealed class TrackerFixture(PostgresFixture pg)
 {
-    public SqliteIngestionTracker CreateTracker() => new(pg.NewContext());
+    public IngestionTracker CreateTracker() => new(pg.NewContext());
 
     public static IngestionRecord SampleRecord() => new()
     {

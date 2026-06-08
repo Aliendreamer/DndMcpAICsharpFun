@@ -5,7 +5,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Infrastructure.Marker;
-using DndMcpAICsharpFun.Infrastructure.Sqlite;
+using DndMcpAICsharpFun.Infrastructure.Ingestion;
 
 namespace DndMcpAICsharpFun.Tests.Ingestion;
 

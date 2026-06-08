@@ -4,7 +4,7 @@ using DndMcpAICsharpFun.Tests.Persistence;
 namespace DndMcpAICsharpFun.Tests.Infrastructure.Tracking;
 
 [Collection("postgres")]
-public sealed class SqliteIngestionTrackerTests(PostgresFixture pg) : IAsyncLifetime
+public sealed class IngestionTrackerTests(PostgresFixture pg) : IAsyncLifetime
 {
     private readonly TrackerFixture _fixture = new(pg);
 
