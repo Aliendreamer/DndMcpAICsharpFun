@@ -8,7 +8,7 @@
  },
  "entities": [
   {
-   "id": "dmg14.god.gons-of-your-world",
+   "id": "dmg14.god.gods-of-your-world",
    "type": "God",
    "name": "Gods of Your World",
    "sourceBook": "DMG",
@@ -849,8 +849,7 @@
       "references": [
        {
         "type": "table",
-        "name": "Astral Color Pools",
-        "slug": "dungeon-masters-guide.plane.astral-color-pools-table"
+        "name": "Astral Color Pools"
        }
       ]
      }
@@ -953,7 +952,7 @@
      }
     ],
     "relatedPlanes": [
-     "dmg.plane.astral-plane"
+     "dmg14.plane.astral-plane"
     ]
    },
    "dataSource": "",
@@ -2525,9 +2524,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.plane.0-al-rule-psychic-dissonance",
+   "id": "dmg14.plane.optional-rule-psychic-dissonance",
    "type": "Plane",
-   "name": "• 0. \"AL RULE: PSYCHIC DISSONANCE",
+   "name": "Optional Rule: Psychic Dissonance",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 59,
@@ -2973,9 +2972,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.plane.tional-rule-immortal-wrath",
+   "id": "dmg14.plane.optional-rule-immortal-wrath",
    "type": "Plane",
-   "name": "?TIONAL RULE: IMMORTAL WRATH",
+   "name": "Optional Rule: Immortal Wrath",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 61,
@@ -3405,9 +3404,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.plane.lades",
+   "id": "dmg14.plane.hades",
    "type": "Plane",
-   "name": ":-lADES",
+   "name": "Hades",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 63,
@@ -3663,16 +3662,12 @@
      {
       "type": "cross_reference",
       "name": "Plane",
-      "entries": [
-       "dnd-5e-dungeon-masters-guide.plane.nine-hells"
-      ]
+      "entries": []
      },
      {
       "type": "cross_reference",
       "name": "Spell",
-      "entries": [
-       "dnd-5e-dungeon-masters-guide.spell.dispel-every-and-good"
-      ]
+      "entries": []
      }
     ]
    },
@@ -5665,9 +5660,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.monster.using-a-monster-s-tat-block",
+   "id": "dmg14.monster.using-a-monster-stat-block",
    "type": "Monster",
-   "name": "/ USING A MONSTER S-TAT BLOCK",
+   "name": "Using a Monster Stat Block",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 92,
@@ -5897,9 +5892,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.monster.a-dventurer-npcs",
+   "id": "dmg14.monster.adventurer-npcs",
    "type": "Monster",
-   "name": "A   DVENTURER NPCs",
+   "name": "Adventurer NPCs",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 93,
@@ -6018,7 +6013,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.monster.oyalty-score",
+   "id": "dmg14.monster.loyalty-score",
    "type": "Monster",
    "name": "Loyalty Score",
    "sourceBook": "DMG",
@@ -6572,7 +6567,7 @@
   {
    "id": "dmg14.class.cleric-death-domain",
    "type": "Class",
-   "name": "CLERIC : DEATH DOMAIN",
+   "name": "Cleric: Death Domain",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 96,
@@ -6814,9 +6809,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.class.esc-apable-destruction",
+   "id": "dmg14.class.inescapable-destruction",
    "type": "Class",
-   "name": "~_; ESC APABLE DESTRUCTION",
+   "name": "Inescapable Destruction",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 97,
@@ -6839,7 +6834,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.class.rvine-strike",
+   "id": "dmg14.class.divine-strike",
    "type": "Class",
    "name": "Divine Strike",
    "sourceBook": "DMG",
@@ -6877,9 +6872,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.class.proved-reaper",
+   "id": "dmg14.class.improved-reaper",
    "type": "Class",
-   "name": "= PROVED REAPER",
+   "name": "Improved Reaper",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 97,
@@ -6910,9 +6905,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.class.ladin-0athbreaker",
+   "id": "dmg14.class.paladin-oathbreaker",
    "type": "Class",
-   "name": "? _-\\.LADIN: 0ATHBREAKER",
+   "name": "Paladin: Oathbreaker",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 97,
@@ -6953,7 +6948,7 @@
   {
    "id": "dmg14.class.0-athbreaker-spells",
    "type": "Class",
-   "name": "0 ATHBREAKER SPELLS",
+   "name": "Oathbreaker Spells",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 97,
@@ -6982,7 +6977,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.class.0athbreaker-spells",
+   "id": "dmg14.class.oathbreaker-spells",
    "type": "Class",
    "name": "Oathbreaker Spells",
    "sourceBook": "DMG",
@@ -7001,7 +6996,6 @@
      {
       "type": "Class",
       "name": "Paladin",
-      "slug": "dungeon-masters-guide.class.paladin",
       "entries": [
        {
         "type": "entries",
@@ -7180,9 +7174,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.class.0athbreaker-atonement",
+   "id": "dmg14.class.oathbreaker-atonement",
    "type": "Class",
-   "name": "0ATHBREAKER ATONEMENT",
+   "name": "Oathbreaker Atonement",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 97,
@@ -7583,9 +7577,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.trap.falling-t",
+   "id": "dmg14.trap.falling-net",
    "type": "Trap",
-   "name": "FALLING ~~T",
+   "name": "Falling Net",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 122,
@@ -7615,9 +7609,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.trap.fire-breathl-g",
+   "id": "dmg14.trap.fire-breathing",
    "type": "Trap",
-   "name": "fiRE- BREATHL\"G ..,_~ ~",
+   "name": "Fire-Breathing",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 122,
@@ -8037,9 +8031,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.magicitem.dl2-stone-description",
+   "id": "dmg14.magicitem.d12-stone-description",
    "type": "MagicItem",
-   "name": "dl2 Stone Description",
+   "name": "d12 Stone Description",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 134,
@@ -8094,9 +8088,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.magicitem.dl-0-stone-description",
+   "id": "dmg14.magicitem.d10-stone-description",
    "type": "MagicItem",
-   "name": "dl 0 Stone Description",
+   "name": "d10 Stone Description",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 134,
@@ -8426,9 +8420,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.75-0-gp-art-objects",
+   "id": "dmg14.item.750-gp-art-objects",
    "type": "Item",
-   "name": "75 0 GP ART OBJECTS",
+   "name": "750 GP Art Objects",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 135,
@@ -8591,7 +8585,7 @@
   {
    "id": "dmg14.item.500-gp-art-objects",
    "type": "Item",
-   "name": ",500 GP ART OBJECTS",
+   "name": "2,500 GP Art Objects",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 135,
@@ -10144,9 +10138,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.dl2-quirk",
+   "id": "dmg14.item.d12-quirk",
    "type": "Item",
-   "name": "dl2    Quirk",
+   "name": "d12 Quirk",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 143,
@@ -11732,7 +11726,7 @@
   {
    "id": "dmg14.item.ammunition-1-2-or-3",
    "type": "Item",
-   "name": "AMMUNITION, +1 , +2, OR +3",
+   "name": "Ammunition, +1, +2, or +3",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 150,
@@ -11969,7 +11963,7 @@
   {
    "id": "dmg14.item.armor-1-2-or-3",
    "type": "Item",
-   "name": "ARMOR, +1 , +2 , OR +3",
+   "name": "Armor, +1, +2, or +3",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 152,
@@ -13920,9 +13914,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.deck-of-many-things-wondrous-item-legendary",
+   "id": "dmg14.item.deck-of-many-things",
    "type": "Item",
-   "name": "DECK OF MANY THINGS   Wondrous item, legendary",
+   "name": "Deck of Many Things",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 162,
@@ -14216,9 +14210,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.jemon-armor",
+   "id": "dmg14.item.demon-armor",
    "type": "Item",
-   "name": ":JEMON ARMOR",
+   "name": "Demon Armor",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 165,
@@ -14250,9 +14244,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.im-ensional-shackles",
+   "id": "dmg14.item.dimensional-shackles",
    "type": "Item",
-   "name": "~IM ENSIONAL SHACKLES",
+   "name": "Dimensional Shackles",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 165,
@@ -14285,9 +14279,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.jragon-scale-mail",
+   "id": "dmg14.item.dragon-scale-mail",
    "type": "Item",
-   "name": ":JRAGON SCALE MAIL",
+   "name": "Dragon Scale Mail",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 165,
@@ -14963,9 +14957,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.figurine-of-wondrous-power-wondrous-item-rarity-by-figurine",
+   "id": "dmg14.item.figurine-of-wondrous-power",
    "type": "Item",
-   "name": "FIGURINE OF WONDROUS POWER   Wondrous item, rarity by figurine",
+   "name": "Figurine of Wondrous Power",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 169,
@@ -15071,9 +15065,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.rost-brand",
+   "id": "dmg14.item.frost-brand",
    "type": "Item",
-   "name": ":?ROST BRAND",
+   "name": "Frost Brand",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 171,
@@ -15948,9 +15942,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.immovable-ron",
+   "id": "dmg14.item.immovable-rod",
    "type": "Item",
-   "name": "IMMOVABLE Ron",
+   "name": "Immovable Rod",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 175,
@@ -16021,7 +16015,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.loun-s-t-one",
+   "id": "dmg14.item.ioun-stone",
    "type": "Item",
    "name": "Ioun Stone",
    "sourceBook": "DMG",
@@ -16056,9 +16050,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.iron-bands-of-bilarro-wondrous-item-rare",
+   "id": "dmg14.item.iron-bands-of-bilarro",
    "type": "Item",
-   "name": "IRON BANDS OF BILARRO   Wondrous item, rare",
+   "name": "Iron Bands of Bilarro",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 177,
@@ -16133,9 +16127,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.javelin-of-lightning-weapon-javelin-uncommon",
+   "id": "dmg14.item.javelin-of-lightning",
    "type": "Item",
-   "name": "jAVELIN OF LIGHTNING   Weapon (javelin), uncommon",
+   "name": "Javelin of Lightning",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 178,
@@ -16550,7 +16544,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.m-ariner-s-armor",
+   "id": "dmg14.item.mariner-s-armor",
    "type": "Item",
    "name": "Mariner's Armor",
    "sourceBook": "DMG",
@@ -16886,9 +16880,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.0athbow",
+   "id": "dmg14.item.oathbow",
    "type": "Item",
-   "name": "0ATHBOW",
+   "name": "Oathbow",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 183,
@@ -19097,7 +19091,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.r-od-of-absorption",
+   "id": "dmg14.item.rod-of-absorption",
    "type": "Item",
    "name": "Rod of Absorption",
    "sourceBook": "DMG",
@@ -19140,9 +19134,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.ron-of-alertness",
+   "id": "dmg14.item.rod-of-alertness",
    "type": "Item",
-   "name": "Ron OF ALERTNESS",
+   "name": "Rod of Alertness",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 196,
@@ -19176,7 +19170,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.ron-of-lordly-might",
+   "id": "dmg14.item.rod-of-lordly-might",
    "type": "Item",
    "name": "Rod of Lordly Might",
    "sourceBook": "DMG",
@@ -19210,9 +19204,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.r-on-of-the-pact-keeper",
+   "id": "dmg14.item.rod-of-the-pact-keeper",
    "type": "Item",
-   "name": "R  on OF THE PACT KEEPER",
+   "name": "Rod of the Pact Keeper",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 197,
@@ -19278,7 +19272,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.o-n-of-rulership",
+   "id": "dmg14.item.rod-of-rulership",
    "type": "Item",
    "name": "Rod of Rulership",
    "sourceBook": "DMG",
@@ -19312,7 +19306,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.r-o-n-of-security",
+   "id": "dmg14.item.rod-of-security",
    "type": "Item",
    "name": "Rod of Security",
    "sourceBook": "DMG",
@@ -20067,9 +20061,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.distance-from-origin-damage",
+   "id": "dmg14.item.distance-from-origin-and-damage",
    "type": "Item",
-   "name": "Distance from Origin  Damage",
+   "name": "Distance from Origin and Damage",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 203,
@@ -20502,9 +20496,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.stone-of-controlling-earth-elementals-wondrous-item-rare",
+   "id": "dmg14.item.stone-of-controlling-earth-elementals",
    "type": "Item",
-   "name": "STONE OF CONTROLLING EARTH ELEMENTALS   Wondrous item, rare",
+   "name": "Stone of Controlling Earth Elementals",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 205,
@@ -20804,7 +20798,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.talisman-of-pure-goon",
+   "id": "dmg14.item.talisman-of-pure-good",
    "type": "Item",
    "name": "Talisman of Pure Good",
    "sourceBook": "DMG",
@@ -20933,9 +20927,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.tentacle-ron",
+   "id": "dmg14.item.tentacle-rod",
    "type": "Item",
-   "name": "TENTACLE Ron",
+   "name": "Tentacle Rod",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 208,
@@ -21401,9 +21395,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.and-of-magic-detection",
+   "id": "dmg14.item.wand-of-magic-detection",
    "type": "Item",
-   "name": "· AND OF MAGIC DETECTION",
+   "name": "Wand of Magic Detection",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 211,
@@ -21438,9 +21432,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.item.and-of-magic-missiles",
+   "id": "dmg14.item.wand-of-magic-missiles",
    "type": "Item",
-   "name": "· AND OF MAGIC MISSILES",
+   "name": "Wand of Magic Missiles",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 211,
@@ -22776,7 +22770,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.magicitem.axe-of-t-h-e-d-warvish-lords",
+   "id": "dmg14.magicitem.axe-of-the-dwarvish-lords",
    "type": "MagicItem",
    "name": "Axe of the Dwarvish Lords",
    "sourceBook": "DMG",
@@ -23027,9 +23021,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.magicitem.wand-of-0rcus",
+   "id": "dmg14.magicitem.wand-of-orcus",
    "type": "MagicItem",
-   "name": "WAND OF 0RCUS",
+   "name": "Wand of Orcus",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 227,
@@ -24227,7 +24221,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.magicitem.boon-of-tile-night-spirit",
+   "id": "dmg14.magicitem.boon-of-the-night-spirit",
    "type": "MagicItem",
    "name": "Boon of the Night Spirit",
    "sourceBook": "DMG",
@@ -25722,7 +25716,7 @@
   {
    "id": "dmg14.monster.step-4-alignment",
    "type": "Monster",
-   "name": "STEP 4 . ALIGNMENT",
+   "name": "Step 4. Alignment",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 275,
@@ -26160,7 +26154,7 @@
    "keywords": []
   },
   {
-   "id": "dmg14.monster.step-9-damage-vul-er-bilities-resistances-and-hnn-itie",
+   "id": "dmg14.monster.step-9-damage-vulnerabilities-resistances-and-immunities",
    "type": "Monster",
    "name": "Step 9. Damage Vulnerabilities, Resistances, and Immunities",
    "sourceBook": "DMG",
@@ -26560,7 +26554,7 @@
   {
    "id": "dmg14.monster.step-13-special-traits-actions-and-reactions",
    "type": "Monster",
-   "name": "STEP 13. SPECIAL TRAITS , ACTIONS, AND REACTIONS",
+   "name": "Step 13. Special Traits, Actions, and Reactions",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 278,
@@ -29616,9 +29610,9 @@
    "keywords": []
   },
   {
-   "id": "dmg14.monster.challenge-1f8-25-xp",
+   "id": "dmg14.monster.challenge-1-8-25-xp",
    "type": "Monster",
-   "name": "CHALLENGE   1f8   (25 XP)",
+   "name": "Challenge 1/8 (25 XP)",
    "sourceBook": "DMG",
    "edition": "Edition2014",
    "page": 306,

@@ -2020,9 +2020,9 @@
    "keywords": []
   },
   {
-   "id": "tce.class.channel-divinity-order-s-demand-2nd-level-order-domain-feature",
+   "id": "tce.class.channel-divinity-order-s-demand",
    "type": "Class",
-   "name": "CHANNEL DIVINITY: ORDER'S DEMAND  2nd-level Order Domain feature",
+   "name": "Channel Divinity: Order's Demand",
    "sourceBook": "TCE",
    "edition": "Edition2014",
    "page": 33,
@@ -2358,9 +2358,9 @@
    "keywords": []
   },
   {
-   "id": "tce.class.channel-divinity-balm-of-peace-2nd-level-peace-domain-feature",
+   "id": "tce.class.channel-divinity-balm-of-peace",
    "type": "Class",
-   "name": "CHANNEL DIVINITY: BALM OF PEACE  2nd-level Peace Domain feature",
+   "name": "Channel Divinity: Balm of Peace",
    "sourceBook": "TCE",
    "edition": "Edition2014",
    "page": 34,
@@ -2704,7 +2704,7 @@
    "keywords": []
   },
   {
-   "id": "tce.class.channel-d-ivinity-twilight-sanctuary-2nd-level-twilight-domain-feature",
+   "id": "tce.class.channel-divinity-twilight-sanctuary",
    "type": "Class",
    "name": "Channel Divinity: Twilight Sanctuary",
    "sourceBook": "TCE",
@@ -3296,9 +3296,9 @@
    "keywords": []
   },
   {
-   "id": "tce.class.fungal-body-14th-level-circle-of-spores-feature",
+   "id": "tce.class.fungal-body",
    "type": "Class",
-   "name": "FUNGAL BODY  14th-level Circle of Spores feature",
+   "name": "Fungal Body",
    "sourceBook": "TCE",
    "edition": "Edition2014",
    "page": 39,
@@ -4451,7 +4451,7 @@
    "keywords": []
   },
   {
-   "id": "tce.class.qu1ck-toss",
+   "id": "tce.class.quick-toss",
    "type": "Class",
    "name": "Quick Toss",
    "sourceBook": "TCE",
@@ -4757,7 +4757,7 @@
    "keywords": []
   },
   {
-   "id": "tce.class.telekinetic-master-j8th-level-psi-warrior-feature",
+   "id": "tce.class.telekinetic-master",
    "type": "Class",
    "name": "Telekinetic Master",
    "sourceBook": "TCE",
@@ -4918,7 +4918,7 @@
    "keywords": []
   },
   {
-   "id": "tce.class.giant-s-m-ight-3rd-level-rune-knight-feature",
+   "id": "tce.class.giant-s-might",
    "type": "Class",
    "name": "Giant's Might",
    "sourceBook": "TCE",
@@ -5713,8 +5713,7 @@
     ],
     "multiclassing": {
      "type": {
-      "name": "Class",
-      "slug": "tasha-s-cauldron-of-everything.class.pugilist"
+      "name": "Class"
      }
     }
    },
@@ -6164,8 +6163,7 @@
      },
      {
       "type": "item",
-      "name": "Herbalism Kit",
-      "slug": "tc-e2014.item.herbalism-kit"
+      "name": "Herbalism Kit"
      },
      {
       "type": "rule",
@@ -6299,7 +6297,6 @@
      {
       "type": "Rule",
       "name": "Hand of Harm",
-      "source": "tasha-s-cauldron-of-everything.rule.hand-of-harm",
       "entries": [
        "You use your ki to inflict wounds. When you hit a creature with an unarmed strike, you can spend 1 ki point to deal extra necrotic damage equal to one roll of your Martial Arts die + your Wisdom modifier. You can use this feature only once per turn."
       ]
@@ -6517,9 +6514,9 @@
    "keywords": []
   },
   {
-   "id": "tce.class.visage-of-the-astral-self-6th-level-way-of-the-astral-self-feature",
+   "id": "tce.class.visage-of-the-astral-self",
    "type": "Class",
-   "name": "VISAGE OF THE ASTRAL SELF 6th-level Way of the Astral Self feature",
+   "name": "Visage of the Astral Self",
    "sourceBook": "TCE",
    "edition": "Edition2014",
    "page": 51,
@@ -6625,9 +6622,9 @@
    "keywords": []
   },
   {
-   "id": "tce.class.awakened-astral-self-17th-level-way-of-the-astral-self-feature",
+   "id": "tce.class.awakened-astral-self",
    "type": "Class",
-   "name": "AWAKENED ASTRAL SELF  17th-level Way of the Astral Self  feature",
+   "name": "Awakened Astral Self",
    "sourceBook": "TCE",
    "edition": "Edition2014",
    "page": 52,
@@ -6758,7 +6755,6 @@
      {
       "type": "Rule",
       "name": "Additional Paladin Spells",
-      "source": "tasha-s-cauldron-of-everything.class.additional-paladin-spells",
       "entries": [
        "The spells in the following list expand the paladin spell list in the Player's Handbook. The list is organized by spell level, not character level. Each spell is in the Player's Handbook, unless it has an asterisk (a spell in chapter 3). Xanathar's Guide to Everything also offers more spells."
       ]
@@ -7511,7 +7507,7 @@
    "keywords": []
   },
   {
-   "id": "tce.class.canny-lst-level",
+   "id": "tce.class.canny-1st-level",
    "type": "Class",
    "name": "Canny (1st Level)",
    "sourceBook": "TCE",
@@ -7540,8 +7536,7 @@
     ],
     "multiclassing": {
      "type": {
-      "name": "Class",
-      "slug": "tasha-s-cauldron-of-everything.class.canny-1st-level"
+      "name": "Class"
      },
      "entries": {
       "type": "entries",
@@ -7569,9 +7564,9 @@
    "keywords": []
   },
   {
-   "id": "tce.class.rovi-ng-6th-level",
+   "id": "tce.class.roving-6th-level",
    "type": "Class",
-   "name": "ROVI NG(6TH LEVEL)",
+   "name": "Roving (6th Level)",
    "sourceBook": "TCE",
    "edition": "Edition2014",
    "page": 57,
@@ -8455,8 +8450,7 @@
     ],
     "multiclassing": {
      "type": {
-      "name": "Subclass",
-      "slug": "tasha-s-cauldron-of-everything.class.swarmkeeper-magic"
+      "name": "Subclass"
      }
     }
    },
@@ -9194,7 +9188,7 @@
    "keywords": []
   },
   {
-   "id": "tce.class.d-eath-s-friend-17th-level-phantom-feature",
+   "id": "tce.class.death-s-friend",
    "type": "Class",
    "name": "Death's Friend",
    "sourceBook": "TCE",
@@ -9223,8 +9217,7 @@
     ],
     "multiclassing": {
      "type": {
-      "name": "Subclass",
-      "slug": "tasha-caldron-of-everything.subclass.death-s-friend"
+      "name": "Subclass"
      }
     }
    },
@@ -9289,7 +9282,6 @@
      {
       "type": "Rule",
       "name": "Psychic Blades",
-      "source": "tasha-s-cauldron-of-everything.rule.psychic-blades",
       "entries": [
        "When you take the Attack action, you can manifest a psychic blade from your free hand and make the attack with that blade. This magic blade is a simple melee weapon with the finesse and thrown properties. It has a normal range of 60 feet and no long range. On a hit, it deals psychic damage equal to 1d6 plus your ability modifier used for the attack roll. The blade vanishes immediately after it hits or misses its target and leaves no mark on its target if it deals damage.",
        {
@@ -9315,7 +9307,7 @@
   {
    "id": "tce.class.soul-blades",
    "type": "Class",
-   "name": "SOUL BLADES ·",
+   "name": "Soul Blades",
    "sourceBook": "TCE",
    "edition": "Edition2014",
    "page": 66,
@@ -9644,7 +9636,6 @@
      {
       "type": "Rule",
       "name": "Transmuted Spell",
-      "source": "tasha-s-cauldron-of-everything.rule.transmuted-spell",
       "entries": [
        "When you cast a spell that deals a type of damage from the following list, you can spend 1 sorcery point to change that damage type to one of the other listed types: acid, cold, fire, lightning, poison, thunder."
       ]
@@ -11877,7 +11868,7 @@
       "description": "You have scribed a set of arcane formulas in your spellbook that you can use to formulate a cantrip in your mind. Whenever you finish a long rest and consult those formulas in your spellbook, you can replace one wizard cantrip you know with another cantrip from the wizard spell list.",
       "level": "3rd-level",
       "class": "Wizard",
-      "slug": "tasha-s-cauldron-of-everything.class.wizard"
+      "slug": "tce.class.wizard"
      }
     ]
    },
@@ -16153,9 +16144,9 @@
    "keywords": []
   },
   {
-   "id": "tce.item.planecaller1s-codex",
+   "id": "tce.item.planecaller-s-codex",
    "type": "Item",
-   "name": "PLANECALLER1S CODEX",
+   "name": "Planecaller's Codex",
    "sourceBook": "TCE",
    "edition": "Edition2014",
    "page": 135,
