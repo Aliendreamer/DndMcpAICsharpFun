@@ -200,12 +200,13 @@ public sealed class EntityExtractionOrchestrator(
             var rawInput = fieldsResult.Value;
             string? confidence = rawInput.TryGetProperty("confidence", out var cp) ? cp.GetString() : null;
             var fields = StripConfidence(rawInput);
-            var needsReview = ExtractionNeedsReview.Derive(candidate.DisplayName, confidence);
+            var displayName = NormalizeDisplayName(candidate.DisplayName);
+            var needsReview = ExtractionNeedsReview.Derive(displayName, confidence);
 
             var envelope = new EntityEnvelope(
                 Id:              id,
                 Type:            candidate.Type,
-                Name:            candidate.DisplayName,
+                Name:            displayName,
                 SourceBook:      sourceBook,
                 Edition:         edition,
                 Page:            candidate.Page,
@@ -388,12 +389,13 @@ public sealed class EntityExtractionOrchestrator(
             var rawInput2 = fieldsResult2.Value;
             string? confidence2 = rawInput2.TryGetProperty("confidence", out var cp2) ? cp2.GetString() : null;
             var fields2 = StripConfidence(rawInput2);
-            var needsReview2 = ExtractionNeedsReview.Derive(candidate.DisplayName, confidence2);
+            var displayName2 = NormalizeDisplayName(candidate.DisplayName);
+            var needsReview2 = ExtractionNeedsReview.Derive(displayName2, confidence2);
 
             newlyExtracted.Add(new EntityEnvelope(
                 Id:              id,
                 Type:            candidate.Type,
-                Name:            candidate.DisplayName,
+                Name:            displayName2,
                 SourceBook:      sourceBook,
                 Edition:         edition,
                 Page:            candidate.Page,
@@ -681,4 +683,8 @@ public sealed class EntityExtractionOrchestrator(
         using var doc = JsonDocument.Parse(ms.ToArray());
         return doc.RootElement.Clone();
     }
+
+    // Title-case clean all-caps display names before they become entity names + feed the heuristic.
+    private static string NormalizeDisplayName(string displayName)
+        => EntityNameNormalizer.TryNormalizeHeading(displayName, out var n) ? n : displayName;
 }
