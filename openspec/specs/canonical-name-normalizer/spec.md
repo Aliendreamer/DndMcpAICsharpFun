@@ -7,16 +7,16 @@ TBD - created by archiving change canonical-name-normalizer-csharp. Update Purpo
 
 `CanonicalNameNormalizerService` SHALL process canonical JSON files and for each entity:
 
-- If the name is entirely uppercase (`name.isupper()` equivalent: all letters are uppercase and at least one letter exists and length > 1) AND has no other OCR artifacts: convert to D&D title case and leave `needsReview` unchanged (defaults to `false`).
+- If the name is entirely uppercase (`name.isupper()` equivalent: all letters are uppercase and at least one letter exists and length > 1) AND has no other OCR artifacts (`ExtractionNeedsReview.HasOcrArtifacts` on the lowercased name is false): convert to D&D title case via `EntityNameNormalizer` and set `needsReview = false`.
 - If the name has any OCR artifact (as detected by `ExtractionNeedsReview.HasOcrArtifacts`): set `needsReview = true`, leave the name unchanged.
-- Otherwise: leave name and `needsReview` unchanged (set `needsReview = false` if absent).
+- Otherwise: leave the name unchanged and set `needsReview = false`.
 
 The service SHALL be idempotent: running it twice on the same file produces identical output.
 
-#### Scenario: ALL-CAPS name is title-cased
+#### Scenario: ALL-CAPS name is title-cased and flag cleared
 
-- **WHEN** an entity has `"name": "CIRCLE OF SPORES"` and no OCR artifacts beyond the all-caps
-- **THEN** the entity name SHALL become `"Circle of Spores"` and `needsReview` SHALL remain `false`
+- **WHEN** an entity has `"name": "CIRCLE OF SPORES"`, no OCR artifacts beyond the all-caps, and `needsReview: true`
+- **THEN** the entity name SHALL become `"Circle of Spores"` and `needsReview` SHALL be `false`
 
 #### Scenario: OCR-garbled name is flagged
 
@@ -35,11 +35,12 @@ The service SHALL be idempotent: running it twice on the same file produces iden
 
 ### Requirement: D&D title-case algorithm
 
-The title-case conversion SHALL:
+The title-case conversion (`EntityNameNormalizer`) SHALL:
 
 - Capitalize the first letter of every word except articles and prepositions (`of, the, a, an, in, on, at, to, and, or, but, for, nor`) unless the word starts the name.
 - Capitalize the first letter after a hyphen.
 - Correct apostrophe-S: `'S` → `'s` (e.g., `TASHA'S` → `Tasha's`).
+- Preserve a curated allowlist of D&D acronyms in their canonical casing (`NPC, NPCs, PC, PCs, DM, GP, SP, CP, PP, EP, XP, HP, AC, DC, CR, AoE, D&D`): a word matching the allowlist case-insensitively SHALL be emitted in its allowlist casing rather than lowercased.
 
 #### Scenario: Small word lowercased
 
@@ -56,10 +57,10 @@ The title-case conversion SHALL:
 - **WHEN** converting `"TASHA'S CAULDRON"`
 - **THEN** the result SHALL be `"Tasha's Cauldron"` (not `"Tasha'S Cauldron"`)
 
-#### Scenario: Hyphenated word
+#### Scenario: Acronym preserved
 
-- **WHEN** converting `"SPIDER-CLIMB"`
-- **THEN** the result SHALL be `"Spider-Climb"`
+- **WHEN** converting `"750 GP ART OBJECTS"`
+- **THEN** the result SHALL be `"750 GP Art Objects"` (not `"750 Gp Art Objects"`)
 
 ### Requirement: POST /admin/canonical/normalize endpoint
 
