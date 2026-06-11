@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using Microsoft.Extensions.Options;
@@ -16,46 +15,10 @@ public sealed class CanonicalNameNormalizerService(
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
     };
 
-    private static readonly HashSet<string> SmallWords = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "a", "an", "the", "and", "but", "or", "for", "nor",
-        "on", "at", "to", "in", "of",
-    };
-
-    private static readonly Regex ApostropheUpperS = new(@"'[A-Z]", RegexOptions.Compiled);
-
     private readonly EntityExtractionOptions _opts = options.Value;
 
-    public static string DndTitleCase(string name)
-    {
-        var parts = name.Split(' ');
-        var result = new string[parts.Length];
-        for (int i = 0; i < parts.Length; i++)
-        {
-            var part = parts[i];
-            if (part.Contains('-'))
-            {
-                var sub = part.Split('-');
-                for (int j = 0; j < sub.Length; j++)
-                    sub[j] = ConvertWord(sub[j], i == 0 && j == 0);
-                result[i] = string.Join('-', sub);
-            }
-            else
-            {
-                result[i] = ConvertWord(part, i == 0);
-            }
-        }
-        return string.Join(' ', result);
-    }
+    public static string DndTitleCase(string name) => EntityNameNormalizer.TitleCase(name);
 
-    private static string ConvertWord(string word, bool isFirst)
-    {
-        if (string.IsNullOrEmpty(word)) return word;
-        var low = word.ToLowerInvariant();
-        if (!isFirst && SmallWords.Contains(low)) return low;
-        var cap = char.ToUpperInvariant(low[0]) + low[1..];
-        return ApostropheUpperS.Replace(cap, m => m.Value.ToLowerInvariant());
-    }
 
     public async Task<CanonicalNameNormalizerReport> NormalizeAsync(bool dryRun, CancellationToken ct)
     {
@@ -94,7 +57,7 @@ public sealed class CanonicalNameNormalizerService(
                 if (isAllCaps && !hasOtherArtifacts)
                 {
                     titleCased++;
-                    return entity with { Name = DndTitleCase(name) };
+                    return entity with { Name = EntityNameNormalizer.TitleCase(name), NeedsReview = false };
                 }
 
                 if (ExtractionNeedsReview.HasOcrArtifacts(name))

@@ -78,6 +78,60 @@ public class CanonicalNameNormalizerServiceTests
     }
 
     [Fact]
+    public async Task AllCaps_with_needsReview_true_gets_title_cased_and_flag_cleared()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var filePath = Path.Combine(dir, "test.json");
+            await File.WriteAllTextAsync(filePath, OneEntityJson("CIRCLE OF SPORES", needsReview: true));
+
+            var svc = new CanonicalNameNormalizerService(
+                new CanonicalJsonLoader(),
+                Options.Create(new EntityExtractionOptions { CanonicalDirectory = dir }));
+
+            await svc.NormalizeAsync(dryRun: false, CancellationToken.None);
+
+            var reloaded = await new CanonicalJsonLoader().LoadAsync(filePath, CancellationToken.None);
+            var entity = reloaded.Entities.Single();
+            entity.Name.Should().Be("Circle of Spores");
+            entity.NeedsReview.Should().BeFalse();
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task OcrGarbled_entity_needsReview_is_set_true_in_file()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var filePath = Path.Combine(dir, "test.json");
+            await File.WriteAllTextAsync(filePath, OneEntityJson("Path of the Beast f eature", needsReview: false));
+
+            var svc = new CanonicalNameNormalizerService(
+                new CanonicalJsonLoader(),
+                Options.Create(new EntityExtractionOptions { CanonicalDirectory = dir }));
+
+            await svc.NormalizeAsync(dryRun: false, CancellationToken.None);
+
+            var reloaded = await new CanonicalJsonLoader().LoadAsync(filePath, CancellationToken.None);
+            var entity = reloaded.Entities.Single();
+            entity.Name.Should().Be("Path of the Beast f eature");
+            entity.NeedsReview.Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Clean_entity_is_unchanged()
     {
         var report = await RunNormalizer(OneEntityJson("Fighter"));
