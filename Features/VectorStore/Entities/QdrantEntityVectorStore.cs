@@ -30,6 +30,20 @@ public sealed class QdrantEntityVectorStore(
         await client.DeleteAsync(_collection, filter, cancellationToken: ct);
     }
 
+    public async Task DeleteByFileHashExceptAsync(
+        string fileHash, IReadOnlyCollection<string> keepEntityIds, CancellationToken ct = default)
+    {
+        var filter = new Filter();
+        filter.Must.Add(KW(EntityPayloadFields.FileHash, fileHash));
+        if (keepEntityIds.Count > 0)
+        {
+            var keep = new Match { Keywords = new RepeatedStrings() };
+            keep.Keywords.Strings.AddRange(keepEntityIds);
+            filter.MustNot.Add(new Condition { Field = new FieldCondition { Key = EntityPayloadFields.Id, Match = keep } });
+        }
+        await client.DeleteAsync(_collection, filter, cancellationToken: ct);
+    }
+
     public async Task<EntityEnvelope?> GetByIdAsync(string id, CancellationToken ct = default)
     {
         var filter = MatchKeyword(EntityPayloadFields.Id, id);

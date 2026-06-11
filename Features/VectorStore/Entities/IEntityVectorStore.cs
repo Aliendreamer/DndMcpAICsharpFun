@@ -21,6 +21,9 @@ public interface IEntityVectorStore
 {
     Task UpsertAsync(IList<EntityPoint> points, CancellationToken ct = default);
     Task DeleteByFileHashAsync(string fileHash, CancellationToken ct = default);
+
+    Task DeleteByFileHashExceptAsync(
+        string fileHash, IReadOnlyCollection<string> keepEntityIds, CancellationToken ct = default);
     Task<EntityEnvelope?> GetByIdAsync(string id, CancellationToken ct = default);
     Task<IList<EntitySearchHit>> SearchAsync(float[] queryVector, EntityFilters filters, int topK, CancellationToken ct = default);
     Task<IReadOnlyDictionary<string, string>> GetDataSourcesAsync(

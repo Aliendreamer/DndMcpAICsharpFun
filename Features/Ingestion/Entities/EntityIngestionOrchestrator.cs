@@ -10,7 +10,10 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Entities;
 
 public sealed class EntityIngestionOptions
 {
-    public string CanonicalDirectory { get; set; } = "data/canonical";
+    // Must match EntityExtractionOptions.CanonicalDirectory — extraction writes and ingestion reads
+    // the same canonical files. Overridden to "/books/canonical" in the container via the
+    // EntityIngestion config section.
+    public string CanonicalDirectory { get; set; } = "books/canonical";
 }
 
 public sealed class EntityIngestionOrchestrator(
@@ -86,10 +89,13 @@ public sealed class EntityIngestionOrchestrator(
         // Upsert first — if this fails, the old vectors are still intact.
         await store.UpsertAsync(points, ct);
 
-        // Delete old vectors only after upsert succeeds.
+        // Remove only STALE vectors from a prior extraction of this book — points sharing this
+        // book's FileHash whose entity is no longer produced. The just-upserted entities are kept
+        // (their ids are passed), so the batch we just wrote is never deleted.
         // Guard: skip if FileHash is empty (book registered but never block-ingested).
         if (!string.IsNullOrEmpty(record.FileHash))
-            await store.DeleteByFileHashAsync(record.FileHash, ct);
+            await store.DeleteByFileHashExceptAsync(
+                record.FileHash, renderedEnvelopes.Select(e => e.Id).ToList(), ct);
 
         await tracker.MarkEntitiesIngestedAsync(bookId, points.Count, ct);
         logger.LogInformation("Entity ingestion complete: book {BookId}, {Count} entities", bookId, points.Count);

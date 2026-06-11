@@ -49,7 +49,8 @@ public class EntityIngestionOrchestratorTests
 
         await orchestrator.IngestEntitiesAsync(1, CancellationToken.None);
 
-        await store.Received(1).DeleteByFileHashAsync("deadbeef", Arg.Any<CancellationToken>());
+        await store.Received(1).DeleteByFileHashExceptAsync(
+            "deadbeef", Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>());
         await store.Received(1).UpsertAsync(
             Arg.Is<IList<EntityPoint>>(p => p.Count == 22),
             Arg.Any<CancellationToken>());
