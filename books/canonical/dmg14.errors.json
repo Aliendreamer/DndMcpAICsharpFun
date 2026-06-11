@@ -1,0 +1,9 @@
+[
+  {
+    "sourceEntityId": "dmg14.item.magic-item-tabled",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Response was not valid JSON: Expected end of string, but instead reached end of data. LineNumber: 0 | BytePositionInLine: 78561."
+  }
+]

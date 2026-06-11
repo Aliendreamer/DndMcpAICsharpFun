@@ -1,0 +1,62 @@
+[
+  {
+    "sourceEntityId": "tce.class.pugilist",
+    "fieldPath": "fields.multiclassing.type.slug",
+    "missingTargetId": "tasha-s-cauldron-of-everything.class.pugilist",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "tce.class.implements-of-mercy",
+    "fieldPath": "fields.entries[2].slug",
+    "missingTargetId": "tc-e2014.item.herbalism-kit",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "tce.class.hand-of-harm",
+    "fieldPath": "fields.entries[0].source",
+    "missingTargetId": "tasha-s-cauldron-of-everything.rule.hand-of-harm",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "tce.class.additional-paladin-spells",
+    "fieldPath": "fields.entries[0].source",
+    "missingTargetId": "tasha-s-cauldron-of-everything.class.additional-paladin-spells",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "tce.class.canny-lst-level",
+    "fieldPath": "fields.multiclassing.type.slug",
+    "missingTargetId": "tasha-s-cauldron-of-everything.class.canny-1st-level",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "tce.class.swarmkeeper-magic",
+    "fieldPath": "fields.multiclassing.type.slug",
+    "missingTargetId": "tasha-s-cauldron-of-everything.class.swarmkeeper-magic",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "tce.class.d-eath-s-friend-17th-level-phantom-feature",
+    "fieldPath": "fields.multiclassing.type.slug",
+    "missingTargetId": "tasha-caldron-of-everything.subclass.death-s-friend",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "tce.class.psychic-blades",
+    "fieldPath": "fields.entries[0].source",
+    "missingTargetId": "tasha-s-cauldron-of-everything.rule.psychic-blades",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "tce.class.transmuted-spell",
+    "fieldPath": "fields.entries[0].source",
+    "missingTargetId": "tasha-s-cauldron-of-everything.rule.transmuted-spell",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "tce.class.cantrip-formulas",
+    "fieldPath": "fields.entries[0].slug",
+    "missingTargetId": "tasha-s-cauldron-of-everything.class.wizard",
+    "warningKind": "inter_book_dangling_ref"
+  }
+]
