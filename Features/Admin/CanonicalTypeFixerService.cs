@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
+using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Admin;
@@ -65,15 +66,14 @@ public sealed class CanonicalTypeFixerService(IOptions<EntityIngestionOptions> o
             fixed_++;
         }
 
-        var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
         if (renames.Count == 0)
         {
-            await File.WriteAllTextAsync(path, doc.ToJsonString(jsonOptions), ct);
+            await File.WriteAllTextAsync(path, doc.ToJsonString(CanonicalJson.WriteOptions), ct);
             return new FixResult(fixed_, unmatched, 0);
         }
 
         // Rewrite cross-references: string-replace all old IDs in the serialized JSON
-        var updated = doc.ToJsonString(jsonOptions);
+        var updated = doc.ToJsonString(CanonicalJson.WriteOptions);
         foreach (var (oldId, newId) in renames)
         {
             var before = updated.Length;

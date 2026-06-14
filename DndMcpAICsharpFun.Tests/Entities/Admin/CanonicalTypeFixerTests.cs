@@ -130,4 +130,34 @@ public class CanonicalTypeFixerTests
         updated.Should().Contain("tce.subclass.circle-of-spores");
         updated.Should().NotContain("tce.class.circle-of-spores");
     }
+
+    // Bug-guard: shared WriteOptions must serialize EntityType as a string, not an integer.
+    // This test verifies the CanonicalJson.WriteOptions enum serialization behaviour.
+    [Fact]
+    public void CanonicalJson_WriteOptions_SerializesEntityTypeAsString()
+    {
+        // CanonicalJson.WriteOptions must include JsonStringEnumConverter so that
+        // EntityType is written as e.g. "Subclass" rather than the int 1.
+        var opts = DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJson.WriteOptions;
+
+        var envelope = new EntityEnvelope(
+            Id:              "tce.subclass.circle-of-spores",
+            Type:            EntityType.Subclass,
+            Name:            "Circle of Spores",
+            SourceBook:      "TCE",
+            Edition:         "Edition2014",
+            Page:            36,
+            FirstAppearedIn: new FirstAppearance("TCE", "Edition2014", 36),
+            RevisedIn:       [],
+            SettingTags:     [],
+            CanonicalText:   "",
+            Fields:          System.Text.Json.JsonDocument.Parse("{}").RootElement,
+            NeedsReview:     false);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(envelope, opts);
+
+        // WriteIndented=true → "type": "Subclass" (with space after colon)
+        json.Should().MatchRegex("\"type\"\\s*:\\s*\"Subclass\"");
+        json.Should().NotMatchRegex("\"type\"\\s*:\\s*\\d");
+    }
 }

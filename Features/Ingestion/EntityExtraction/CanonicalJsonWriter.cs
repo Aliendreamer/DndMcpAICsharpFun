@@ -5,12 +5,6 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
 public sealed class CanonicalJsonWriter
 {
-    private static readonly JsonSerializerOptions WriteOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = true,
-        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
-    };
-
     // Per-book-path write lock — serialises concurrent resolves on the same file.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim>
         _fileLocks = new(StringComparer.OrdinalIgnoreCase);
@@ -28,7 +22,7 @@ public sealed class CanonicalJsonWriter
         {
             await using (var stream = File.Create(tmp))
             {
-                await JsonSerializer.SerializeAsync(stream, file, WriteOptions, ct);
+                await JsonSerializer.SerializeAsync(stream, file, CanonicalJson.WriteOptions, ct);
             }
             File.Move(tmp, path, overwrite: true);
         }

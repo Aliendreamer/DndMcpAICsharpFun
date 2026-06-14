@@ -9,12 +9,6 @@ public sealed class CanonicalNameNormalizerService(
     CanonicalJsonLoader loader,
     IOptions<EntityExtractionOptions> options)
 {
-    private static readonly JsonSerializerOptions WriteOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = true,
-        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
-    };
-
     private readonly EntityExtractionOptions _opts = options.Value;
 
     public static string DndTitleCase(string name) => EntityNameNormalizer.TitleCase(name);
@@ -81,7 +75,7 @@ public sealed class CanonicalNameNormalizerService(
             {
                 var updated = loaded with { Entities = normalized };
                 await using var stream = File.Create(path);
-                await JsonSerializer.SerializeAsync(stream, updated, WriteOptions, ct);
+                await JsonSerializer.SerializeAsync(stream, updated, CanonicalJson.WriteOptions, ct);
                 await stream.WriteAsync("\n"u8.ToArray(), ct);
             }
         }
