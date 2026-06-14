@@ -741,6 +741,134 @@
       "description": "Blazor Server UI on the same host: /login, /register, /campaigns, /heroes, /chat (open in a browser)."
     },
     {
+      "_id": "fld_needs_review",
+      "_type": "request_group",
+      "parentId": "wrk_dnd_mcp",
+      "name": "Admin — NeedsReview Triage"
+    },
+    {
+      "_id": "req_nr_list",
+      "_type": "request",
+      "parentId": "fld_needs_review",
+      "name": "List flagged entities (all books)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/admin/entities/needs-review",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": { "mimeType": "" },
+      "parameters": [
+        { "name": "offset", "value": "0" },
+        { "name": "limit", "value": "50" }
+      ],
+      "authentication": {}
+    },
+    {
+      "_id": "req_nr_list_filtered",
+      "_type": "request",
+      "parentId": "fld_needs_review",
+      "name": "List flagged entities (filtered by book + reason)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/admin/entities/needs-review",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": { "mimeType": "" },
+      "parameters": [
+        { "name": "book", "value": "phb14" },
+        { "name": "reason", "value": "low-confidence" },
+        { "name": "offset", "value": "0" },
+        { "name": "limit", "value": "50" }
+      ],
+      "authentication": {}
+    },
+    {
+      "_id": "req_nr_get_entity",
+      "_type": "request",
+      "parentId": "fld_needs_review",
+      "name": "Get entity by id",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/admin/entities/phb14.spell.fireball",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
+      "body": { "mimeType": "" },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
+      "_id": "req_nr_resolve_accept",
+      "_type": "request",
+      "parentId": "fld_needs_review",
+      "name": "Resolve — accept (clear flag only)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/entities/phb14.spell.fireball/resolve",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{ \"action\": \"accept\" }"
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
+      "_id": "req_nr_resolve_edit",
+      "_type": "request",
+      "parentId": "fld_needs_review",
+      "name": "Resolve — edit (apply name correction)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/entities/phb14.monster.b-ullywug/resolve",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{ \"action\": \"edit\", \"name\": \"Bullywug\" }"
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
+      "_id": "req_nr_bulk_accept_filtered",
+      "_type": "request",
+      "parentId": "fld_needs_review",
+      "name": "Bulk-accept — low-confidence entities for a book",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/entities/needs-review/accept",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{ \"book\": \"phb14\", \"reason\": \"low-confidence\" }"
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
+      "_id": "req_nr_bulk_accept_all",
+      "_type": "request",
+      "parentId": "fld_needs_review",
+      "name": "Bulk-accept — ALL flagged entities (no filter)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/entities/needs-review/accept",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{}"
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_logout",
       "_type": "request",
       "parentId": "fld_webui",

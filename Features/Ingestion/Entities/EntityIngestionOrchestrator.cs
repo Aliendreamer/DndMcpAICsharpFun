@@ -166,4 +166,77 @@ public sealed class EntityIngestionOrchestrator(
             MatchedFivetools: matchedFivetools,
             Unmatched: unmatched);
     }
+
+    /// <inheritdoc/>
+    public async Task ReindexEntityAsync(int bookId, string entityId, CancellationToken ct = default)
+    {
+        var record = await tracker.GetByIdAsync(bookId, ct)
+                     ?? throw new InvalidOperationException($"No ingestion record {bookId}");
+
+        var bookSlug = record.FivetoolsSourceKey is { } key
+            ? EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0]
+            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+        var path = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".json");
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"Canonical JSON not found for book {bookId} at {path}", path);
+
+        var file = await loader.LoadAsync(path, ct);
+        var envelope = file.Entities.FirstOrDefault(e =>
+            string.Equals(e.Id, entityId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException($"Entity '{entityId}' not found in {path}");
+
+        // ── Enrichment (same path as IngestEntitiesAsync but for a single entity) ──
+        IReadOnlyCollection<string>? sourceFilter = record.FivetoolsSourceKey is { } fk
+            ? [fk] : null;
+
+        IReadOnlyDictionary<string, EntityEnvelope> fivetoolsIndex;
+        try
+        {
+            fivetoolsIndex = await FivetoolsRecordIndex.BuildAsync(
+                _opts.FivetoolsDirectory, sourceFilter, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not build 5etools enrichment index for single-entity reindex — proceeding unenriched");
+            fivetoolsIndex = new Dictionary<string, EntityEnvelope>();
+        }
+
+        EntityEnvelope merged;
+        if (fivetoolsIndex.TryGetValue(envelope.Id, out var fivetoolsEnvelope))
+        {
+            merged = EntityMerger.Merge(envelope, fivetoolsEnvelope);
+        }
+        else
+        {
+            var existingQdrant = await store.GetByIdsAsync([envelope.Id], ct);
+            merged = existingQdrant.TryGetValue(envelope.Id, out var qdrantEnvelope)
+                ? EntityMerger.Merge(envelope, qdrantEnvelope)
+                : envelope;
+        }
+
+        string text;
+        try
+        {
+            text = textDispatcher.Render(merged);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Single-entity reindex: render failed for {Id}", merged.Id);
+            throw;
+        }
+
+        var ds = string.IsNullOrEmpty(merged.DataSource) ? "llm" : merged.DataSource;
+        var sourceBook = record.FivetoolsSourceKey ?? merged.SourceBook;
+        var finalEnvelope = merged with { CanonicalText = text, DataSource = ds, SourceBook = sourceBook };
+
+        var vectors = await embeddings.EmbedAsync([text], ct);
+        var point = new EntityPoint(finalEnvelope, vectors[0], record.FileHash);
+
+        // Upsert only this one point — DO NOT call DeleteByFileHashExceptAsync.
+        await store.UpsertAsync([point], ct);
+
+        logger.LogInformation(
+            "Single-entity reindex complete: book {BookId}, entity {EntityId}",
+            bookId, entityId);
+    }
 }

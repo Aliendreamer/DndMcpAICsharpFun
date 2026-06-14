@@ -131,6 +131,7 @@ app.MapHealthChecks("/health/ready");
 var admin = app.MapGroup("/admin");
 admin.MapBooksAdmin();
 admin.MapFivetoolsAdmin();
+admin.MapNeedsReview();
 
 // Retrieval endpoints
 app.MapRetrievalEndpoints();

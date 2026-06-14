@@ -72,6 +72,46 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/extract-entities?errorsOnly=true
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin — needsReview triage — List flagged entities (all books, all reasons, first 50)
+GET {{baseUrl}}/admin/entities/needs-review
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin — needsReview triage — List flagged entities filtered by book and reason
+GET {{baseUrl}}/admin/entities/needs-review?book=phb14&reason=low-confidence&offset=0&limit=50
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin — needsReview triage — Get a single entity by id (returns full EntityEnvelope)
+GET {{baseUrl}}/admin/entities/phb14.spell.fireball
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin — needsReview triage — Resolve: accept (clear the NeedsReview flag only)
+POST {{baseUrl}}/admin/entities/phb14.spell.fireball/resolve
+X-Admin-Api-Key: {{adminKey}}
+Content-Type: application/json
+
+{ "action": "accept" }
+
+### Admin — needsReview triage — Resolve: edit (apply name correction + clear flag)
+POST {{baseUrl}}/admin/entities/phb14.monster.b-ullywug/resolve
+X-Admin-Api-Key: {{adminKey}}
+Content-Type: application/json
+
+{ "action": "edit", "name": "Bullywug" }
+
+### Admin — needsReview triage — Bulk-accept all low-confidence entities for a book
+POST {{baseUrl}}/admin/entities/needs-review/accept
+X-Admin-Api-Key: {{adminKey}}
+Content-Type: application/json
+
+{ "book": "phb14", "reason": "low-confidence" }
+
+### Admin — needsReview triage — Bulk-accept ALL flagged entities (no filter)
+POST {{baseUrl}}/admin/entities/needs-review/accept
+X-Admin-Api-Key: {{adminKey}}
+Content-Type: application/json
+
+{}
+
 ### Admin — Validate the entire canonical corpus
 # Response shape:
 # { "filesScanned": N, "totalEntities": N, "failures": [], "warnings": [],
