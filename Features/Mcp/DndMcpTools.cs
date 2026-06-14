@@ -11,7 +11,10 @@ using ModelContextProtocol.Server;
 namespace DndMcpAICsharpFun.Features.Mcp;
 
 [McpServerToolType]
-public sealed class DndMcpTools(IRagRetrievalService ragService, IEntityRetrievalService entityService)
+public sealed class DndMcpTools(
+    IRagRetrievalService ragService,
+    IEntityRetrievalService entityService,
+    IFusedRetrievalService fusedService)
 {
     private static readonly JsonSerializerOptions _json =
         new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -132,5 +135,34 @@ public sealed class DndMcpTools(IRagRetrievalService ragService, IEntityRetrieva
             srd52 = e.Srd52,
             fields = e.Fields.ValueKind == JsonValueKind.Undefined ? (object?)null : e.Fields
         }, _json);
+    }
+
+    [McpServerTool, Description(
+        "Fused cross-channel D&D search: embeds the query once, fetches candidate pools from both " +
+        "prose passages (dnd_blocks) and structured entities (dnd_entities), reranks the combined " +
+        "set with a cross-encoder, and returns the single best-ranked list across both sources. " +
+        "Each result includes a 'source' field ('prose' or 'entity') so the caller knows its origin. " +
+        "Prefer this tool when you need the most relevant context regardless of whether it is " +
+        "rules-text or a structured entity.")]
+    public async Task<string> search_dnd(
+        [Description("Natural language question or keyword")] string query,
+        [Description("Maximum number of results (default 5)")] int topK = 5,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return "Error: query must not be empty.";
+
+        var results = await fusedService.SearchAsync(query, topK, ct);
+
+        return results.Count == 0
+            ? "No results found."
+            : JsonSerializer.Serialize(results.Select(r => new
+            {
+                source = r.Source,
+                id = r.Id,
+                title = r.Title,
+                text = r.Text,
+                score = r.Score
+            }), _json);
     }
 }

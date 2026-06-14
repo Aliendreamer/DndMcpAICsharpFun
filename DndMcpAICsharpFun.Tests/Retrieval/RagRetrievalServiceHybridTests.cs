@@ -11,15 +11,19 @@ public sealed class RagRetrievalServiceHybridTests
     private readonly IQdrantSearchClient _qdrant = Substitute.For<IQdrantSearchClient>();
     private readonly IEmbeddingService _embedding = Substitute.For<IEmbeddingService>();
 
-    private static CrossEncoderReranker DisabledReranker() =>
-        new(new RerankerOptions { Enabled = false }, NullLogger<CrossEncoderReranker>.Instance);
-
-    private RagRetrievalService BuildSut(bool sparseSupported) =>
-        new(_qdrant, _embedding,
+    private RagRetrievalService BuildSut(bool sparseSupported)
+    {
+        var opts = new RerankerOptions { Enabled = false };
+        var reranker = Substitute.For<IReranker>();
+        reranker.Enabled.Returns(false);
+        var rerankSvc = new RerankingService(reranker, Options.Create(opts));
+        return new(_qdrant, _embedding,
             Options.Create(new QdrantOptions { BlocksCollectionName = "test-col" }),
             Options.Create(new RetrievalOptions { MaxTopK = 20, ScoreThreshold = 0.5f }),
             new QdrantSparseState { SparseSupported = sparseSupported },
-            DisabledReranker());
+            rerankSvc,
+            Options.Create(opts));
+    }
 
     private void SetupEmbed() =>
         _embedding.EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>())

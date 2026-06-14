@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Features.Embedding;
+using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using Microsoft.Extensions.Options;
 
@@ -7,9 +8,12 @@ namespace DndMcpAICsharpFun.Features.Retrieval.Entities;
 public sealed class EntityRetrievalService(
     IEmbeddingService embeddings,
     IEntityVectorStore store,
-    IOptions<RetrievalOptions> retrievalOptions) : IEntityRetrievalService
+    IOptions<RetrievalOptions> retrievalOptions,
+    RerankingService rerankingService,
+    IOptions<RerankerOptions> rerankerOptions) : IEntityRetrievalService
 {
     private readonly RetrievalOptions _retrieval = retrievalOptions.Value;
+    private readonly RerankerOptions _rerankerOpts = rerankerOptions.Value;
 
     public async Task<EntityFullResult?> GetByIdAsync(string id, CancellationToken ct)
     {
@@ -42,13 +46,25 @@ public sealed class EntityRetrievalService(
         var topK = Math.Min(q.TopK <= 0 ? 10 : q.TopK, _retrieval.MaxTopK);
         var vectors = await embeddings.EmbedAsync(new[] { q.QueryText }, ct);
         var vector = vectors[0];
-        return await store.SearchAsync(vector, new EntityFilters(
+        var filters = new EntityFilters(
             Type: q.Type, SourceBook: q.SourceBook, Edition: q.Edition,
             BookType: q.BookType, SettingTag: q.SettingTag, Keyword: q.Keyword,
             CrNumericLte: q.CrNumericLte, CrNumericGte: q.CrNumericGte,
             SpellLevel: q.SpellLevel, DamageType: q.DamageType,
-            Srd: q.Srd, Srd52: q.Srd52, BasicRules2024: q.BasicRules2024
-        ), topK, ct);
+            Srd: q.Srd, Srd52: q.Srd52, BasicRules2024: q.BasicRules2024);
+
+        bool shouldRerank = _rerankerOpts.Enabled && _rerankerOpts.RerankEntities;
+        if (shouldRerank)
+        {
+            var poolSize = Math.Min(_rerankerOpts.CandidatePoolSize, _retrieval.MaxTopK);
+            var pool = (IReadOnlyList<EntitySearchHit>)await store.SearchAsync(vector, filters, poolSize, ct);
+            var reranked = await rerankingService.RerankAsync<EntitySearchHit>(
+                q.QueryText, pool, h => h.Envelope.CanonicalText, topK, ct);
+            return reranked.ToList();
+        }
+
+        var vectorResults = await store.SearchAsync(vector, filters, topK, ct);
+        return vectorResults.Take(topK).ToList();
     }
 
     private static string Truncate(string s, int max) =>

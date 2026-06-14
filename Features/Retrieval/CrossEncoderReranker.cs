@@ -6,7 +6,7 @@ namespace DndMcpAICsharpFun.Features.Retrieval;
 
 public sealed class CrossEncoderReranker(
     RerankerOptions opts,
-    ILogger<CrossEncoderReranker> logger) : IDisposable
+    ILogger<CrossEncoderReranker> logger) : IReranker, IDisposable
 {
     private const int MaxTokens = 512;
 

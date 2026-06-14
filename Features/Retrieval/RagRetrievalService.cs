@@ -12,10 +12,12 @@ public sealed class RagRetrievalService(
     IOptions<QdrantOptions> qdrantOptions,
     IOptions<RetrievalOptions> retrievalOptions,
     QdrantSparseState sparseState,
-    CrossEncoderReranker reranker) : IRagRetrievalService
+    RerankingService rerankingService,
+    IOptions<RerankerOptions> rerankerOptions) : IRagRetrievalService
 {
     private readonly string _collectionName = qdrantOptions.Value.BlocksCollectionName;
     private readonly RetrievalOptions _options = retrievalOptions.Value;
+    private readonly RerankerOptions _rerankerOpts = rerankerOptions.Value;
 
     public async Task<IList<RetrievalResult>> SearchAsync(RetrievalQuery query, CancellationToken ct = default)
     {
@@ -37,8 +39,9 @@ public sealed class RagRetrievalService(
 
     private async Task<IList<RetrievalResult>> FetchCandidatesAsync(RetrievalQuery query, CancellationToken ct)
     {
-        var topK = reranker.Enabled
-            ? (ulong)Math.Min(_options.MaxTopK, 20)
+        bool shouldRerank = _rerankerOpts.Enabled && _rerankerOpts.RerankBlocks;
+        var topK = shouldRerank
+            ? (ulong)Math.Min(_options.MaxTopK, _rerankerOpts.CandidatePoolSize)
             : (ulong)Math.Min(query.TopK, _options.MaxTopK);
 
         var points = await ExecuteSearchAsync(query, ct, topK);
@@ -53,12 +56,13 @@ public sealed class RagRetrievalService(
     private async Task<IList<RetrievalResult>> ApplyRerankerAsync(
         RetrievalQuery query, IList<RetrievalResult> candidates, CancellationToken ct)
     {
-        if (!reranker.Enabled || candidates.Count == 0)
+        if (!_rerankerOpts.Enabled || !_rerankerOpts.RerankBlocks)
             return candidates.Take(query.TopK).ToList();
 
-        var passages = candidates.Select(static r => r.Text).ToList();
-        var scores = await reranker.RerankAsync(query.QueryText, passages, ct);
-        return reranker.SelectTopN(candidates, scores, query.TopK);
+        var reranked = await rerankingService.RerankAsync(
+            query.QueryText, (IReadOnlyList<RetrievalResult>)candidates,
+            static r => r.Text, query.TopK, ct);
+        return reranked.ToList();
     }
 
     private async Task<IReadOnlyList<ScoredPoint>> ExecuteSearchAsync(

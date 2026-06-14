@@ -64,6 +64,8 @@ builder.Services.AddSingleton<CrossEncoderReranker>(sp =>
     new CrossEncoderReranker(
         sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RerankerOptions>>().Value,
         sp.GetRequiredService<ILogger<CrossEncoderReranker>>()));
+builder.Services.AddSingleton<DndMcpAICsharpFun.Features.Retrieval.IReranker>(
+    sp => sp.GetRequiredService<CrossEncoderReranker>());
 
 // builder.Services.AddAntiforgery();
 builder.Services.AddInfrastructureClients(builder.Configuration);
