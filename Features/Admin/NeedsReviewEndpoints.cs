@@ -8,14 +8,14 @@ public static class NeedsReviewEndpoints
         group.MapGet("/entities/needs-review", async (
             string? book,
             string? reason,
-            int offset,
-            int limit,
+            int? offset,
+            int? limit,
             NeedsReviewService svc,
             CancellationToken ct) =>
         {
-            if (offset < 0) offset = 0;
-            if (limit  <= 0) limit = 50;
-            var result = await svc.ListAsync(book, reason, offset, limit, ct);
+            var off = offset is > 0 ? offset.Value : 0;
+            var lim = limit is > 0 ? limit.Value : 50;
+            var result = await svc.ListAsync(book, reason, off, lim, ct);
             return Results.Ok(result);
         });
 
