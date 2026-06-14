@@ -5,7 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-
+    <Content Include="Config/personas/**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

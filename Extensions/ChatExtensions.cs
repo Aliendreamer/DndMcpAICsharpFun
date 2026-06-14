@@ -9,6 +9,9 @@ internal static class ChatExtensions
     {
         var baseUrl = config["Ollama:BaseUrl"] ?? "http://ollama:11434";
         var chatModel = config["Ollama:ChatModel"] ?? "qwen3:8b";
+        services.AddOptions<ChatPersonaOptions>()
+            .BindConfiguration("Chat");
+        services.AddSingleton<PersonaProvider>();
         services.AddHttpContextAccessor();
         services.AddSingleton<McpToolsProvider>();
         services.AddSingleton<IMcpToolsProvider>(sp => sp.GetRequiredService<McpToolsProvider>());

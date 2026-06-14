@@ -9,7 +9,8 @@ public sealed class DndChatService(
     IMcpToolsProvider toolsProvider,
     ChatRepository chatRepository,
     IHttpContextAccessor httpContextAccessor,
-    ChatRateLimiter rateLimiter)
+    ChatRateLimiter rateLimiter,
+    PersonaProvider personaProvider)
 {
     public List<ChatMessage> History { get; } = [];
 
@@ -51,8 +52,16 @@ public sealed class DndChatService(
         await PersistAsync("user", userMessage);
         try
         {
+            // Build a per-request message list: [System(persona), ...History]
+            // The system message is NOT added to History and is NOT persisted.
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, personaProvider.GetPersonaText()),
+            };
+            messages.AddRange(History);
+
             var response = await chatClient.GetResponseAsync(
-                History,
+                messages,
                 new ChatOptions { Tools = [.. activeTools] },
                 ct);
             var reply = response.Text ?? string.Empty;

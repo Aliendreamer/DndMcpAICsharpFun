@@ -12,12 +12,14 @@ internal sealed class FakeChatClient : IChatClient
     public string Reply { get; set; } = "Test reply";
     public bool ShouldThrow { get; set; }
     public ChatOptions? LastOptions { get; private set; }
+    public IReadOnlyList<ChatMessage>? LastMessages { get; private set; }
 
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> chatMessages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        LastMessages = chatMessages.ToList();
         LastOptions = options;
         if (ShouldThrow) throw new HttpRequestException("Ollama unreachable");
         return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, Reply)));
@@ -52,12 +54,25 @@ internal sealed class NoOpDbFactory : IDbContextFactory<AppDbContext>
 
 public sealed class DndChatServiceTests
 {
-    private static DndChatService CreateService(FakeChatClient client, IReadOnlyList<AITool>? tools = null) =>
+    private static PersonaProvider CreatePersonaProvider(string personaText = "Test persona.")
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDir);
+        File.WriteAllText(Path.Combine(tempDir, "companion.md"), personaText);
+        var opts = Options.Create(new ChatPersonaOptions { PersonasDirectory = tempDir });
+        return new PersonaProvider(opts);
+    }
+
+    private static DndChatService CreateService(
+        FakeChatClient client,
+        IReadOnlyList<AITool>? tools = null,
+        PersonaProvider? personaProvider = null) =>
         new(client,
             new FakeMcpToolsProvider(tools ?? []),
             new ChatRepository(new NoOpDbFactory()),
             new NullHttpContextAccessor(),
-            new ChatRateLimiter(1000));
+            new ChatRateLimiter(1000),
+            personaProvider ?? CreatePersonaProvider());
 
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()
@@ -122,5 +137,63 @@ public sealed class DndChatServiceTests
         activeTools.Should().HaveCount(2);
         activeTools.OfType<AIFunction>()
             .Should().Contain(t => t.Name == "search_web");
+    }
+
+    [Fact]
+    public async Task SendAsync_prepends_system_message_equal_to_active_persona()
+    {
+        const string personaText = "You are a D&D companion.";
+        var client = new FakeChatClient();
+        var provider = CreatePersonaProvider(personaText);
+        var svc = CreateService(client, personaProvider: provider);
+
+        await svc.SendAsync("Tell me about fighters.", false, CancellationToken.None);
+
+        client.LastMessages.Should().NotBeNull();
+        client.LastMessages![0].Role.Should().Be(ChatRole.System);
+        client.LastMessages![0].Text.Should().Be(personaText);
+    }
+
+    [Fact]
+    public async Task SendAsync_sends_system_then_history_messages_to_chat_client()
+    {
+        const string personaText = "You are a D&D companion.";
+        var client = new FakeChatClient();
+        var provider = CreatePersonaProvider(personaText);
+        var svc = CreateService(client, personaProvider: provider);
+
+        await svc.SendAsync("What is a paladin?", false, CancellationToken.None);
+
+        // First message is system; second is the user message
+        client.LastMessages.Should().HaveCount(2);
+        client.LastMessages![0].Role.Should().Be(ChatRole.System);
+        client.LastMessages![1].Role.Should().Be(ChatRole.User);
+        client.LastMessages![1].Text.Should().Be("What is a paladin?");
+    }
+
+    [Fact]
+    public async Task SendAsync_does_not_add_system_message_to_History()
+    {
+        const string personaText = "You are a D&D companion.";
+        var client = new FakeChatClient();
+        var provider = CreatePersonaProvider(personaText);
+        var svc = CreateService(client, personaProvider: provider);
+
+        await svc.SendAsync("Hello", false, CancellationToken.None);
+
+        svc.History.Should().NotContain(m => m.Role == ChatRole.System);
+        svc.History.Should().HaveCount(2); // user + assistant only
+    }
+
+    [Fact]
+    public async Task SendAsync_history_contains_only_user_and_assistant_roles()
+    {
+        var client = new FakeChatClient { Reply = "Here is your answer." };
+        var svc = CreateService(client);
+
+        await svc.SendAsync("A question", false, CancellationToken.None);
+
+        svc.History.Should().OnlyContain(m =>
+            m.Role == ChatRole.User || m.Role == ChatRole.Assistant);
     }
 }
