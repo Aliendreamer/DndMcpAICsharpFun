@@ -8,6 +8,7 @@
     <Content Include="Config/personas/**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <InternalsVisibleTo Include="DndMcpAICsharpFun.Tests" />
   </ItemGroup>
 
   <ItemGroup>
