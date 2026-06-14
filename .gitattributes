@@ -117,4 +117,3 @@ Config/** filter=git-crypt diff=git-crypt -text
 books/** filter=git-crypt diff=git-crypt -text
 .claude/** filter=git-crypt diff=git-crypt -text
 5etools/** filter=git-crypt diff=git-crypt -text
-data/** filter=git-crypt diff=git-crypt -text
