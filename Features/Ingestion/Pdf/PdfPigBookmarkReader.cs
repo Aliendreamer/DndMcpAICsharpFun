@@ -46,6 +46,6 @@ public sealed partial class PdfPigBookmarkReader(
         return true;
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "No embedded bookmarks found in {FileName} — falling back to all-categories extraction")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "No embedded bookmarks found in {FileName}")]
     private static partial void LogNoBookmarks(ILogger logger, string fileName);
 }

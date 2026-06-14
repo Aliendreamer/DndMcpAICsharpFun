@@ -61,6 +61,20 @@ public sealed class EntityExtractionOrchestrator(
             var tocEntries   = BookmarkTocMapper.Map(pdfBookmarks);
             var tocMap       = new TocCategoryMap(tocEntries);
 
+            // 2b. No embedded bookmarks → derive the TOC from Marker's heading structure items,
+            // reusing the same deterministic keyword classifier (no LLM). Bookmarked books skip this.
+            if (tocMap.IsEmpty)
+            {
+                var headingItems = doc.Items
+                    .Where(i => string.Equals(i.Type, "section_header", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                var headingEntries = HeadingTocMapper.Map(headingItems);
+                tocMap = new TocCategoryMap(headingEntries);
+                logger.LogInformation(
+                    "No bookmarks for book {BookId}; derived TOC from {HeadingCount} headings → {EntryCount} confident category entries (heading-derived fallback)",
+                    bookId, headingItems.Count, headingEntries.Count);
+            }
+
             // 3. Project structure items into ScannerInputs.
             var scannerInputs = BuildScannerInputs(doc.Items);
             var candidates    = scanner.Scan(scannerInputs, tocMap).ToList();
