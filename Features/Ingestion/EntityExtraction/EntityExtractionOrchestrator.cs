@@ -1,13 +1,11 @@
 using System.Diagnostics;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
-using DndMcpAICsharpFun.Infrastructure.Ollama;
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -17,28 +15,18 @@ public sealed class EntityExtractionOrchestrator(
     BookSourceRegistry registry,
     IPdfStructureConverter converter,
     IPdfBookmarkReader bookmarks,
-    IEntityExtractionLlmClient llm,
-    ExtractionPromptBuilder promptBuilder,
     EntityCandidateScanner scanner,
     CanonicalJsonWriter writer,
     ExtractionErrorsFile errorsFile,
     ExtractionWarningsFile warningsFile,
     EntityReferenceResolver refResolver,
-    ExtractionRetryPolicy retry,
-    SemanticChunker chunker,
-    EntityFieldMerger merger,
+    EntitySchemaProvider schemaProvider,
+    ExtractionCheckpointStore checkpointStore,
+    CandidateExtractor candidateExtractor,
     IOptions<EntityExtractionOptions> options,
-    IOptions<OllamaOptions> ollamaOpts,
     ILogger<EntityExtractionOrchestrator> logger) : IEntityExtractionOrchestrator
 {
     private readonly EntityExtractionOptions _opts = options.Value;
-    private readonly OllamaOptions _ollama = ollamaOpts.Value;
-
-    private static readonly JsonSerializerOptions CheckpointOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = false,
-        Converters = { new JsonStringEnumConverter() },
-    };
 
     public async Task ExtractAsync(int bookId, bool force, bool errorsOnly, CancellationToken ct)
     {
@@ -82,7 +70,7 @@ public sealed class EntityExtractionOrchestrator(
                 candidates.Count, doc.Items.Count);
 
             // 4. Load schemas keyed by EntityType.
-            var schemas = LoadSchemas();
+            var schemas = schemaProvider.LoadSchemas();
 
             // 5. Dispatch to either errors-only or full extraction path.
             if (errorsOnly)
@@ -128,7 +116,7 @@ public sealed class EntityExtractionOrchestrator(
         var checkpointErrorsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".progress.errors.json");
 
         var (extracted, extractionErrors, doneIds) =
-            await LoadCheckpointAsync(checkpointPath, checkpointErrorsPath);
+            await checkpointStore.LoadCheckpointAsync(checkpointPath, checkpointErrorsPath);
 
         if (doneIds.Count > 0)
             logger.LogInformation(
@@ -169,7 +157,7 @@ public sealed class EntityExtractionOrchestrator(
             doneIds.Add(id);
 
             if (processed % _opts.CheckpointIntervalCandidates == 0)
-                await WriteCheckpointAsync(checkpointPath, checkpointErrorsPath, extracted, extractionErrors);
+                await checkpointStore.WriteCheckpointAsync(checkpointPath, checkpointErrorsPath, extracted, extractionErrors);
 
             if (sw.Elapsed - lastLog >= TimeSpan.FromSeconds(_opts.ProgressLogIntervalSeconds))
             {
@@ -255,7 +243,7 @@ public sealed class EntityExtractionOrchestrator(
         try
         {
             await using var cs = File.OpenRead(canonicalPath);
-            existingFile = await JsonSerializer.DeserializeAsync<CanonicalJsonFile>(cs, CheckpointOptions, ct)
+            existingFile = await JsonSerializer.DeserializeAsync<CanonicalJsonFile>(cs, ExtractionCheckpointStore.Options, ct)
                 ?? throw new InvalidOperationException($"Canonical JSON at {canonicalPath} deserialised to null");
         }
         catch (FileNotFoundException)
@@ -269,7 +257,7 @@ public sealed class EntityExtractionOrchestrator(
         try
         {
             await using var es = File.OpenRead(errorsPath);
-            previousErrors = await JsonSerializer.DeserializeAsync<List<ExtractionErrorEntry>>(es, CheckpointOptions, ct) ?? [];
+            previousErrors = await JsonSerializer.DeserializeAsync<List<ExtractionErrorEntry>>(es, ExtractionCheckpointStore.Options, ct) ?? [];
         }
         catch (FileNotFoundException)
         {
@@ -341,7 +329,7 @@ public sealed class EntityExtractionOrchestrator(
         try
         {
             await using var ws = File.OpenRead(warningsPath);
-            previousWarnings = await JsonSerializer.DeserializeAsync<List<ExtractionWarningEntry>>(ws, CheckpointOptions, ct) ?? [];
+            previousWarnings = await JsonSerializer.DeserializeAsync<List<ExtractionWarningEntry>>(ws, ExtractionCheckpointStore.Options, ct) ?? [];
         }
         catch (FileNotFoundException)
         {
@@ -404,7 +392,7 @@ public sealed class EntityExtractionOrchestrator(
                 Detail: $"No JSON schema found for entity type {candidate.Type}"));
         }
 
-        var (fieldsResult, extractError) = await ExtractCandidateFieldsAsync(record, candidate, schema, ct);
+        var (fieldsResult, extractError) = await candidateExtractor.ExtractFieldsAsync(record, candidate, schema, ct);
 
         if (fieldsResult is null)
         {
@@ -421,7 +409,7 @@ public sealed class EntityExtractionOrchestrator(
 
         var rawInput    = fieldsResult.Value;
         string? confidence = rawInput.TryGetProperty("confidence", out var cp) ? cp.GetString() : null;
-        var fields      = StripConfidence(rawInput);
+        var fields      = CandidateExtractor.StripConfidence(rawInput);
         var displayName = NormalizeDisplayName(candidate.DisplayName);
         var needsReview = ExtractionNeedsReview.Derive(displayName, confidence);
 
@@ -440,67 +428,6 @@ public sealed class EntityExtractionOrchestrator(
             NeedsReview:     needsReview);
 
         return (envelope, null);
-    }
-
-    private static async Task<(List<EntityEnvelope> Extracted, List<ExtractionErrorEntry> Errors, HashSet<string> DoneIds)>
-        LoadCheckpointAsync(string progressPath, string errorsPath)
-    {
-        var extracted = new List<EntityEnvelope>();
-        var errors = new List<ExtractionErrorEntry>();
-
-        try
-        {
-            await using var s = File.OpenRead(progressPath);
-            extracted = await JsonSerializer.DeserializeAsync<List<EntityEnvelope>>(s, CheckpointOptions) ?? [];
-        }
-        catch (FileNotFoundException) { }
-
-        try
-        {
-            await using var s = File.OpenRead(errorsPath);
-            errors = await JsonSerializer.DeserializeAsync<List<ExtractionErrorEntry>>(s, CheckpointOptions) ?? [];
-        }
-        catch (FileNotFoundException) { }
-
-        var doneIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var e in extracted) doneIds.Add(e.Id);
-        foreach (var e in errors) doneIds.Add(e.SourceEntityId);
-
-        return (extracted, errors, doneIds);
-    }
-
-    private static async Task WriteCheckpointAsync(
-        string progressPath, string errorsPath,
-        List<EntityEnvelope> extracted, List<ExtractionErrorEntry> errors)
-    {
-        var dir = Path.GetDirectoryName(progressPath) ?? ".";
-        Directory.CreateDirectory(dir);
-
-        var tmp1 = progressPath + ".tmp";
-        await using (var s = File.Create(tmp1))
-            await JsonSerializer.SerializeAsync(s, extracted, CheckpointOptions);
-        try
-        {
-            File.Move(tmp1, progressPath, overwrite: true);
-        }
-        catch
-        {
-            try { File.Delete(tmp1); } catch { /* best effort */ }
-            throw;
-        }
-
-        var tmp2 = errorsPath + ".tmp";
-        await using (var s = File.Create(tmp2))
-            await JsonSerializer.SerializeAsync(s, errors, CheckpointOptions);
-        try
-        {
-            File.Move(tmp2, errorsPath, overwrite: true);
-        }
-        catch
-        {
-            try { File.Delete(tmp2); } catch { /* best effort */ }
-            throw;
-        }
     }
 
     private static IList<ScannerInput> BuildScannerInputs(IReadOnlyList<PdfStructureItem> items)
@@ -523,133 +450,6 @@ public sealed class EntityExtractionOrchestrator(
             inputs.Add(new ScannerInput(currentSection, item.PageNumber, item.Text));
         }
         return inputs;
-    }
-
-    private Dictionary<EntityType, JsonElement> LoadSchemas()
-    {
-        var dict = new Dictionary<EntityType, JsonElement>();
-        foreach (var type in Enum.GetValues<EntityType>())
-        {
-            var path = Path.Combine(_opts.SchemasDirectory, $"{type}Fields.schema.json");
-            try
-            {
-                using var stream = File.OpenRead(path);
-                using var doc = JsonDocument.Parse(stream);
-                dict[type] = InjectConfidenceField(doc.RootElement.Clone());
-            }
-            catch (FileNotFoundException)
-            {
-                logger.LogDebug("Schema file not found for {Type} at {Path}; type will be skipped", type, path);
-            }
-            catch (JsonException ex)
-            {
-                logger.LogWarning(ex, "Schema file for {Type} at {Path} is malformed; type will be skipped", type, path);
-            }
-            catch (IOException ex)
-            {
-                logger.LogWarning(ex, "Could not read schema file for {Type} at {Path}; type will be skipped", type, path);
-            }
-        }
-        return dict;
-    }
-
-    private static JsonElement InjectConfidenceField(JsonElement schema)
-    {
-        using var ms = new System.IO.MemoryStream();
-        using var writer = new Utf8JsonWriter(ms);
-        writer.WriteStartObject();
-        foreach (var prop in schema.EnumerateObject())
-        {
-            if (prop.Name == "properties")
-            {
-                writer.WritePropertyName("properties");
-                writer.WriteStartObject();
-                foreach (var p in prop.Value.EnumerateObject())
-                    p.WriteTo(writer);
-                writer.WritePropertyName("confidence");
-                writer.WriteRawValue("{\"type\":\"string\",\"enum\":[\"low\",\"medium\",\"high\"]}");
-                writer.WriteEndObject();
-            }
-            else
-            {
-                prop.WriteTo(writer);
-            }
-        }
-        writer.WriteEndObject();
-        writer.Flush();
-        using var doc = JsonDocument.Parse(ms.ToArray());
-        return doc.RootElement.Clone();
-    }
-
-    /// <summary>
-    /// Runs the LLM over the candidate, chunking oversized text and merging
-    /// partial results. Returns null Fields when every chunk failed; ErrorMessage
-    /// carries the last failure. Single chunk → single call, no merge (existing path).
-    /// </summary>
-    private async Task<(JsonElement? Fields, string? ErrorMessage)> ExtractCandidateFieldsAsync(
-        DndMcpAICsharpFun.Domain.IngestionRecord record,
-        EntityCandidate candidate,
-        JsonElement schema,
-        CancellationToken ct)
-    {
-        var chunks = chunker.Split(candidate.Text, _opts.MaxTokensPerChunk);
-        var partials = new List<JsonElement>();
-        var chunkFailures = new List<int>();
-        string? lastError = null;
-
-        for (int c = 0; c < chunks.Count; c++)
-        {
-            var chunkCandidate = chunks.Count == 1 ? candidate : candidate with { Text = chunks[c] };
-            var request = new ExtractionRequest(
-                SystemPrompt:    promptBuilder.BuildSystemPrompt(record.DisplayName, record.Version, candidate.Type),
-                UserPrompt:      promptBuilder.BuildUserPrompt(chunkCandidate),
-                ToolName:        promptBuilder.ToolName(candidate.Type),
-                ToolDescription: promptBuilder.ToolDescription(candidate.Type),
-                ToolInputSchema: schema,
-                ModelId:         _ollama.ChatModel,
-                MaxOutputTokens: _opts.MaxOutputTokensPerEntity);
-
-            var response = await retry.ExecuteAsync(
-                operation: (_, c2) => llm.ExtractAsync(request, c2),
-                isSuccess: r => r.Success,
-                ct);
-
-            if (response.Success && response.ToolInput is not null)
-            {
-                partials.Add(response.ToolInput.Value);
-            }
-            else
-            {
-                chunkFailures.Add(c);
-                lastError = response.ErrorMessage;
-            }
-        }
-
-        if (partials.Count == 0)
-            return (null, lastError ?? "all chunks failed");
-
-        if (chunkFailures.Count > 0)
-            logger.LogWarning(
-                "Partial extraction for {Type} '{Name}': chunks [{Failed}] failed, {Ok}/{Total} ok",
-                candidate.Type, candidate.DisplayName,
-                string.Join(',', chunkFailures), partials.Count, chunks.Count);
-
-        var merged = partials.Count == 1 ? partials[0] : merger.Merge(partials);
-        return (merged, null);
-    }
-
-    private static JsonElement StripConfidence(JsonElement toolInput)
-    {
-        using var ms = new System.IO.MemoryStream();
-        using var writer = new Utf8JsonWriter(ms);
-        writer.WriteStartObject();
-        foreach (var prop in toolInput.EnumerateObject())
-            if (!string.Equals(prop.Name, "confidence", StringComparison.Ordinal))
-                prop.WriteTo(writer);
-        writer.WriteEndObject();
-        writer.Flush();
-        using var doc = JsonDocument.Parse(ms.ToArray());
-        return doc.RootElement.Clone();
     }
 
     // Title-case clean all-caps display names before they become entity names + feed the heuristic.

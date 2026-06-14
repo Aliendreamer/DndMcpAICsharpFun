@@ -69,7 +69,6 @@ public class EntityExtractionOrchestratorTests
                 CanonicalDirectory = canonicalDir,
                 SchemasDirectory = schemasDir,   // empty → LoadSchemas returns {}
             });
-            var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
 
             var orchestrator = new EntityExtractionOrchestrator(
                 tracker: tracker,
@@ -77,18 +76,16 @@ public class EntityExtractionOrchestratorTests
                     Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json")),
                 converter: converter,
                 bookmarks: bookmarkReader,
-                llm: llm,
-                promptBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
                 scanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(),
                 writer: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
                 errorsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
                 warningsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
                 refResolver: new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
-                retry: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRetryPolicy { MaxAttempts = 1 },
-                chunker: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.SemanticChunker(),
-                merger: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityFieldMerger(),
+                schemaProvider: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
+                    opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
+                checkpointStore: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
+                candidateExtractor: BuildCandidateExtractor(llm, opts),
                 options: opts,
-                ollamaOpts: ollamaOpts,
                 logger: NullLogger<EntityExtractionOrchestrator>.Instance);
 
             // Act
@@ -199,30 +196,43 @@ public class EntityExtractionOrchestratorTests
             CanonicalDirectory = canonicalDir,
             SchemasDirectory   = schemasDir,
         });
-        var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
         // Use an empty registry (no books.json) when caller does not supply one.
         var effectiveRegistry = registry
             ?? new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
                    Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json"));
 
         return new EntityExtractionOrchestrator(
-            tracker:       tracker,
-            registry:      effectiveRegistry,
-            converter:       converter,
-            bookmarks:     bookmarkReader,
+            tracker:            tracker,
+            registry:           effectiveRegistry,
+            converter:          converter,
+            bookmarks:          bookmarkReader,
+            scanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(),
+            writer:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+            errorsFile:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
+            warningsFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
+            refResolver:        new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
+            schemaProvider:     new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
+                opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
+            checkpointStore:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
+            candidateExtractor: BuildCandidateExtractor(llm, opts),
+            options:            opts,
+            logger:             NullLogger<EntityExtractionOrchestrator>.Instance);
+    }
+
+    private static DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CandidateExtractor BuildCandidateExtractor(
+        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm,
+        Microsoft.Extensions.Options.IOptions<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions> opts)
+    {
+        var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
+        return new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CandidateExtractor(
             llm:           llm,
             promptBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
-            scanner:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(),
-            writer:        new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
-            errorsFile:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
-            warningsFile:  new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
-            refResolver:   new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
-            retry:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRetryPolicy { MaxAttempts = 1 },
             chunker:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.SemanticChunker(),
             merger:        new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityFieldMerger(),
+            retry:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRetryPolicy { MaxAttempts = 1 },
             options:       opts,
             ollamaOpts:    ollamaOpts,
-            logger:        NullLogger<EntityExtractionOrchestrator>.Instance);
+            logger:        NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CandidateExtractor>.Instance);
     }
 
     [Fact]
@@ -684,28 +694,25 @@ public class EntityExtractionOrchestratorTests
                 SchemasDirectory   = schemasDir,
                 MaxTokensPerChunk  = 150,
             });
-            var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
             var registry   = new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
                 Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json"));
 
             var orchestrator = new EntityExtractionOrchestrator(
-                tracker:       tracker,
-                registry:      registry,
-                converter:       converter,
-                bookmarks:     bookmarkReader,
-                llm:           llm,
-                promptBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
-                scanner:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(),
-                writer:        new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
-                errorsFile:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
-                warningsFile:  new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
-                refResolver:   new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
-                retry:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRetryPolicy { MaxAttempts = 1 },
-                chunker:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.SemanticChunker(),
-                merger:        new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityFieldMerger(),
-                options:       opts,
-                ollamaOpts:    ollamaOpts,
-                logger:        NullLogger<EntityExtractionOrchestrator>.Instance);
+                tracker:            tracker,
+                registry:           registry,
+                converter:          converter,
+                bookmarks:          bookmarkReader,
+                scanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(),
+                writer:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+                errorsFile:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
+                warningsFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
+                refResolver:        new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
+                schemaProvider:     new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
+                    opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
+                checkpointStore:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
+                candidateExtractor: BuildCandidateExtractor(llm, opts),
+                options:            opts,
+                logger:             NullLogger<EntityExtractionOrchestrator>.Instance);
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
