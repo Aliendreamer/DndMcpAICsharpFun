@@ -17,6 +17,9 @@
 
 # Content below from: https://github.com/gitattributes/gitattributes/blob/master/Common.gitattributes
 
+# ONNX model files (downloaded at runtime, but if ever committed)
+*.onnx      binary
+
 # Documents
 *.bibtex   text diff=bibtex
 *.doc      diff=astextplain
@@ -99,15 +102,19 @@
 *.zst      binary
 
 # Text files where line endings should be preserved
-*.patch    -text
+*.patch -text
 
 # Exclude files from exporting
 .gitattributes export-ignore
 .gitignore     export-ignore
 .gitkeep       export-ignore
 
-Config/** filter=git-crypt diff=git-crypt
-books/** filter=git-crypt diff=git-crypt
-.claude/** filter=git-crypt diff=git-crypt
-5etools/** filter=git-crypt diff=git-crypt
-data/** filter=git-crypt diff=git-crypt
+# git-crypt encrypted directories.
+# -text is REQUIRED: it disables EOL (CRLF<->LF) normalization. git-crypt output
+# is binary ciphertext; without -text the global `* text=auto eol=lf` rule mangles
+# CR bytes in the encrypted stream on commit and corrupts the files irrecoverably.
+Config/** filter=git-crypt diff=git-crypt -text
+books/** filter=git-crypt diff=git-crypt -text
+.claude/** filter=git-crypt diff=git-crypt -text
+5etools/** filter=git-crypt diff=git-crypt -text
+data/** filter=git-crypt diff=git-crypt -text
