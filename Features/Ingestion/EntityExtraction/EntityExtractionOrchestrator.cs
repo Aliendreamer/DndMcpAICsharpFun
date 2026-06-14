@@ -135,14 +135,13 @@ public sealed class EntityExtractionOrchestrator(
                 "Resuming from checkpoint: {Done} candidates already processed ({Extracted} ok, {Errors} failed)",
                 doneIds.Count, extracted.Count, extractionErrors.Count);
 
+        var (sourceBook, edition) = DeriveSourceAndEdition(record);
+
         int success   = extracted.Count;
         int failed    = extractionErrors.Count;
         int processed = 0;
-
-        var sw      = Stopwatch.StartNew();
-        var lastLog = TimeSpan.Zero;
-
-        var (sourceBook, edition) = DeriveSourceAndEdition(record);
+        var sw        = Stopwatch.StartNew();
+        var lastLog   = TimeSpan.Zero;
 
         for (int i = 0; i < candidates.Count; i++)
         {
@@ -153,72 +152,19 @@ public sealed class EntityExtractionOrchestrator(
             if (doneIds.Contains(id))
                 continue;
 
-            if (!schemas.TryGetValue(candidate.Type, out var schema))
+            var (envelope, error) = await ExtractOneAsync(record, candidate, id, sourceBook, edition, schemas, ct);
+
+            if (error is not null)
             {
-                logger.LogWarning(
-                    "No schema for entity type {Type}; skipping candidate {Name}",
-                    candidate.Type, candidate.DisplayName);
-                extractionErrors.Add(new ExtractionErrorEntry(
-                    SourceEntityId: id,
-                    FieldPath: "(type)",
-                    MissingTargetId: string.Empty,
-                    ErrorKind: "no_schema",
-                    Detail: $"No JSON schema found for entity type {candidate.Type}"));
+                extractionErrors.Add(error);
                 failed++;
-                processed++;
-                doneIds.Add(id);
-
-                if (processed % _opts.CheckpointIntervalCandidates == 0)
-                    await WriteCheckpointAsync(checkpointPath, checkpointErrorsPath, extracted, extractionErrors);
-
-                continue;
+            }
+            else
+            {
+                extracted.Add(envelope!);
+                success++;
             }
 
-            var (fieldsResult, extractError) = await ExtractCandidateFieldsAsync(record, candidate, schema, ct);
-
-            if (fieldsResult is null)
-            {
-                logger.LogWarning(
-                    "Extraction failed for {Type} '{Name}' (page {Page}): {Error}",
-                    candidate.Type, candidate.DisplayName, candidate.Page, extractError);
-                extractionErrors.Add(new ExtractionErrorEntry(
-                    SourceEntityId: id,
-                    FieldPath: "(extraction)",
-                    MissingTargetId: string.Empty,
-                    ErrorKind: "extraction_failure",
-                    Detail: extractError));
-                failed++;
-                processed++;
-                doneIds.Add(id);
-
-                if (processed % _opts.CheckpointIntervalCandidates == 0)
-                    await WriteCheckpointAsync(checkpointPath, checkpointErrorsPath, extracted, extractionErrors);
-
-                continue;
-            }
-
-            var rawInput = fieldsResult.Value;
-            string? confidence = rawInput.TryGetProperty("confidence", out var cp) ? cp.GetString() : null;
-            var fields = StripConfidence(rawInput);
-            var displayName = NormalizeDisplayName(candidate.DisplayName);
-            var needsReview = ExtractionNeedsReview.Derive(displayName, confidence);
-
-            var envelope = new EntityEnvelope(
-                Id:              id,
-                Type:            candidate.Type,
-                Name:            displayName,
-                SourceBook:      sourceBook,
-                Edition:         edition,
-                Page:            candidate.Page,
-                FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
-                RevisedIn:       Array.Empty<Revision>(),
-                SettingTags:     Array.Empty<string>(),
-                CanonicalText:   string.Empty,
-                Fields:          fields,
-                NeedsReview:     needsReview);
-
-            extracted.Add(envelope);
-            success++;
             processed++;
             doneIds.Add(id);
 
@@ -346,6 +292,8 @@ public sealed class EntityExtractionOrchestrator(
         var newlyExtracted = new List<EntityEnvelope>();
         var newErrors      = new List<ExtractionErrorEntry>();
 
+        var (sourceBook, edition) = DeriveSourceAndEdition(record);
+
         for (int i = 0; i < candidates.Count; i++)
         {
             ct.ThrowIfCancellationRequested();
@@ -354,57 +302,12 @@ public sealed class EntityExtractionOrchestrator(
 
             if (!retrySet.Contains(id)) continue;
 
-            if (!schemas.TryGetValue(candidate.Type, out var schema))
-            {
-                logger.LogWarning(
-                    "No schema for entity type {Type}; skipping candidate {Name}",
-                    candidate.Type, candidate.DisplayName);
-                newErrors.Add(new ExtractionErrorEntry(
-                    SourceEntityId:  id,
-                    FieldPath:       "(type)",
-                    MissingTargetId: string.Empty,
-                    ErrorKind:       "no_schema",
-                    Detail:          $"No JSON schema found for entity type {candidate.Type}"));
-                continue;
-            }
+            var (envelope, error) = await ExtractOneAsync(record, candidate, id, sourceBook, edition, schemas, ct);
 
-            var (fieldsResult2, extractError2) = await ExtractCandidateFieldsAsync(record, candidate, schema, ct);
-
-            if (fieldsResult2 is null)
-            {
-                logger.LogWarning(
-                    "Re-extraction failed for {Type} '{Name}': {Error}",
-                    candidate.Type, candidate.DisplayName, extractError2);
-                newErrors.Add(new ExtractionErrorEntry(
-                    SourceEntityId:  id,
-                    FieldPath:       "(extraction)",
-                    MissingTargetId: string.Empty,
-                    ErrorKind:       "extraction_failure",
-                    Detail:          extractError2));
-                continue;
-            }
-
-            var (sourceBook, edition) = DeriveSourceAndEdition(record);
-
-            var rawInput2 = fieldsResult2.Value;
-            string? confidence2 = rawInput2.TryGetProperty("confidence", out var cp2) ? cp2.GetString() : null;
-            var fields2 = StripConfidence(rawInput2);
-            var displayName2 = NormalizeDisplayName(candidate.DisplayName);
-            var needsReview2 = ExtractionNeedsReview.Derive(displayName2, confidence2);
-
-            newlyExtracted.Add(new EntityEnvelope(
-                Id:              id,
-                Type:            candidate.Type,
-                Name:            displayName2,
-                SourceBook:      sourceBook,
-                Edition:         edition,
-                Page:            candidate.Page,
-                FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
-                RevisedIn:       Array.Empty<Revision>(),
-                SettingTags:     Array.Empty<string>(),
-                CanonicalText:   string.Empty,
-                Fields:          fields2,
-                NeedsReview:     needsReview2));
+            if (error is not null)
+                newErrors.Add(error);
+            else
+                newlyExtracted.Add(envelope!);
         }
 
         // Reference resolution on newly extracted only.
@@ -472,6 +375,71 @@ public sealed class EntityExtractionOrchestrator(
             ? (info.PublishedYear >= 2024 ? "Edition2024" : "Edition2014")
             : record.Version;
         return (sourceBook, edition);
+    }
+
+    /// <summary>
+    /// Shared per-candidate extraction pipeline used by both full and errors-only run modes.
+    /// Returns either a successfully built <see cref="EntityEnvelope"/> or an <see cref="ExtractionErrorEntry"/>;
+    /// exactly one of the two tuple members is non-null.
+    /// </summary>
+    private async Task<(EntityEnvelope? Envelope, ExtractionErrorEntry? Error)> ExtractOneAsync(
+        DndMcpAICsharpFun.Domain.IngestionRecord record,
+        EntityCandidate candidate,
+        string id,
+        string sourceBook,
+        string edition,
+        Dictionary<EntityType, JsonElement> schemas,
+        CancellationToken ct)
+    {
+        if (!schemas.TryGetValue(candidate.Type, out var schema))
+        {
+            logger.LogWarning(
+                "No schema for entity type {Type}; skipping candidate {Name}",
+                candidate.Type, candidate.DisplayName);
+            return (null, new ExtractionErrorEntry(
+                SourceEntityId: id,
+                FieldPath: "(type)",
+                MissingTargetId: string.Empty,
+                ErrorKind: "no_schema",
+                Detail: $"No JSON schema found for entity type {candidate.Type}"));
+        }
+
+        var (fieldsResult, extractError) = await ExtractCandidateFieldsAsync(record, candidate, schema, ct);
+
+        if (fieldsResult is null)
+        {
+            logger.LogWarning(
+                "Extraction failed for {Type} '{Name}' (page {Page}): {Error}",
+                candidate.Type, candidate.DisplayName, candidate.Page, extractError);
+            return (null, new ExtractionErrorEntry(
+                SourceEntityId: id,
+                FieldPath: "(extraction)",
+                MissingTargetId: string.Empty,
+                ErrorKind: "extraction_failure",
+                Detail: extractError));
+        }
+
+        var rawInput    = fieldsResult.Value;
+        string? confidence = rawInput.TryGetProperty("confidence", out var cp) ? cp.GetString() : null;
+        var fields      = StripConfidence(rawInput);
+        var displayName = NormalizeDisplayName(candidate.DisplayName);
+        var needsReview = ExtractionNeedsReview.Derive(displayName, confidence);
+
+        var envelope = new EntityEnvelope(
+            Id:              id,
+            Type:            candidate.Type,
+            Name:            displayName,
+            SourceBook:      sourceBook,
+            Edition:         edition,
+            Page:            candidate.Page,
+            FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
+            RevisedIn:       Array.Empty<Revision>(),
+            SettingTags:     Array.Empty<string>(),
+            CanonicalText:   string.Empty,
+            Fields:          fields,
+            NeedsReview:     needsReview);
+
+        return (envelope, null);
     }
 
     private static async Task<(List<EntityEnvelope> Extracted, List<ExtractionErrorEntry> Errors, HashSet<string> DoneIds)>
