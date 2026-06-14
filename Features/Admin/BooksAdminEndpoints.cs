@@ -31,8 +31,27 @@ public static partial class BooksAdminEndpoints
         return group;
     }
 
-    private static async Task<IResult> IngestBlocks(
+    private static Task<IResult> IngestBlocks(
         int id,
+        IIngestionTracker tracker,
+        IIngestionQueue queue,
+        CancellationToken ct)
+        => EnqueueOrFailAsync(id, IngestionWorkType.IngestBlocks, tracker, queue, ct);
+
+    private static Task<IResult> IngestEntities(
+        int id,
+        IIngestionTracker tracker,
+        IIngestionQueue queue,
+        CancellationToken ct)
+        => EnqueueOrFailAsync(id, IngestionWorkType.IngestEntities, tracker, queue, ct);
+
+    /// <summary>
+    /// Shared handler for book-level enqueue endpoints (IngestBlocks, IngestEntities).
+    /// Returns NotFound, Conflict, or Accepted after looking up the book and checking its status.
+    /// </summary>
+    private static async Task<IResult> EnqueueOrFailAsync(
+        int id,
+        IngestionWorkType workType,
         IIngestionTracker tracker,
         IIngestionQueue queue,
         CancellationToken ct)
@@ -46,26 +65,7 @@ public static partial class BooksAdminEndpoints
             or IngestionStatus.EntitiesIngesting)
             return Results.Conflict("Book is currently processing.");
 
-        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestBlocks, id));
-        return Results.Accepted($"/admin/books/{id}");
-    }
-
-    private static async Task<IResult> IngestEntities(
-        int id,
-        IIngestionTracker tracker,
-        IIngestionQueue queue,
-        CancellationToken ct)
-    {
-        var record = await tracker.GetByIdAsync(id, ct);
-        if (record is null)
-            return Results.NotFound($"Book with id {id} not found");
-
-        if (record.Status is IngestionStatus.Processing
-            or IngestionStatus.EntitiesExtracting
-            or IngestionStatus.EntitiesIngesting)
-            return Results.Conflict("Book is currently processing.");
-
-        queue.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestEntities, id));
+        queue.TryEnqueue(new IngestionWorkItem(workType, id));
         return Results.Accepted($"/admin/books/{id}");
     }
 

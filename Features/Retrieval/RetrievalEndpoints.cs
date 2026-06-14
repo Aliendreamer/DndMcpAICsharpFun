@@ -11,7 +11,7 @@ public static class RetrievalEndpoints
         return app;
     }
 
-    private static async Task<IResult> SearchPublic(
+    private static Task<IResult> SearchPublic(
         string? q,
         string? version,
         string? category,
@@ -21,16 +21,9 @@ public static class RetrievalEndpoints
         int topK = 5,
         IRagRetrievalService retrieval = default!,
         CancellationToken ct = default)
-    {
-        if (string.IsNullOrWhiteSpace(q))
-            return Results.BadRequest("Query parameter 'q' is required.");
+        => SearchCore(q, version, category, sourceBook, entityName, bookType, topK, retrieval, diagnostic: false, ct);
 
-        var query = BuildQuery(q, version, category, sourceBook, entityName, bookType, topK);
-        var results = await retrieval.SearchAsync(query, ct);
-        return Results.Ok(results);
-    }
-
-    private static async Task<IResult> SearchDiagnostic(
+    private static Task<IResult> SearchDiagnostic(
         string? q,
         string? version,
         string? category,
@@ -40,12 +33,27 @@ public static class RetrievalEndpoints
         int topK = 5,
         IRagRetrievalService retrieval = default!,
         CancellationToken ct = default)
+        => SearchCore(q, version, category, sourceBook, entityName, bookType, topK, retrieval, diagnostic: true, ct);
+
+    private static async Task<IResult> SearchCore(
+        string? q,
+        string? version,
+        string? category,
+        string? sourceBook,
+        string? entityName,
+        string? bookType,
+        int topK,
+        IRagRetrievalService retrieval,
+        bool diagnostic,
+        CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(q))
             return Results.BadRequest("Query parameter 'q' is required.");
 
         var query = BuildQuery(q, version, category, sourceBook, entityName, bookType, topK);
-        var results = await retrieval.SearchDiagnosticAsync(query, ct);
+        var results = diagnostic
+            ? await retrieval.SearchDiagnosticAsync(query, ct)
+            : (object)await retrieval.SearchAsync(query, ct);
         return Results.Ok(results);
     }
 
