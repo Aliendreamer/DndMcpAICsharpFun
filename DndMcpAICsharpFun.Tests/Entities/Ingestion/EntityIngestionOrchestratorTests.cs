@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Embedding;
+using FluentAssertions;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
@@ -236,5 +237,327 @@ public class EntityIngestionOrchestratorTests
         var fighter = captured!.FirstOrDefault(p => p.Envelope.Id == "test-book.class.fighter");
         Assert.NotNull(fighter);
         Assert.True(fighter!.Envelope.Srd, "Srd flag should be merged from the existing 5etools entity");
+    }
+}
+
+public class EntityIngestionOrchestratorEnrichmentTests
+{
+    // ── helpers ──────────────────────────────────────────────────────────────
+
+    private static string WriteCanonicalJson(string dir, string slug, string entityJson)
+    {
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, slug + ".json");
+        var wrapper = $$"""
+            {
+              "schemaVersion": "1",
+              "book": { "sourceBook": "Test", "edition": "Edition2014",
+                        "fileHash": "abc", "displayName": "Test" },
+              "entities": [{{entityJson}}]
+            }
+            """;
+        File.WriteAllText(path, wrapper);
+        return path;
+    }
+
+    private static string WriteFivetoolsSpellsJson(string dir, string spellJson)
+    {
+        var spellsDir = Path.Combine(dir, "spells");
+        Directory.CreateDirectory(spellsDir);
+        var json = $$"""{ "spell": [{{spellJson}}] }""";
+        File.WriteAllText(Path.Combine(spellsDir, "spells-phb.json"), json);
+        return dir;
+    }
+
+    private static EntityIngestionOrchestrator BuildOrchestrator(
+        IIngestionTracker tracker,
+        IEmbeddingService embeddings,
+        IEntityVectorStore store,
+        string canonicalDir,
+        string? fivetoolsDir = null)
+    {
+        return new EntityIngestionOrchestrator(
+            tracker,
+            new CanonicalJsonLoader(),
+            new EntityCanonicalTextDispatcher(),
+            new EntityReferenceResolver(),
+            embeddings,
+            store,
+            Options.Create(new EntityIngestionOptions
+            {
+                CanonicalDirectory = canonicalDir,
+                FivetoolsDirectory = fivetoolsDir ?? Path.Combine(Path.GetTempPath(), "absent-" + Guid.NewGuid()),
+            }),
+            NullLogger<EntityIngestionOrchestrator>.Instance);
+    }
+
+    private static IEmbeddingService MakeEmbeddings() =>
+        Substitute.For<IEmbeddingService>().WithAny1024Vectors();
+
+    // ── tests ─────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Enrichment_MatchingFivetoolsRecord_AppliesStructuredField()
+    {
+        // Arrange: canonical spell has noisy "cr" equivalent — we use "level" scalar —
+        // and no "school"; 5etools has clean "school" = "V".
+        var tmp = Path.Combine(Path.GetTempPath(), "enrich-test-" + Guid.NewGuid());
+        try
+        {
+            // canonical: phb14.spell.fireball, no school field
+            var canonical = """
+                {
+                  "id": "phb14.spell.fireball",
+                  "type": "Spell", "name": "Fireball Noisy",
+                  "sourceBook": "PHB", "edition": "Edition2014", "page": 241,
+                  "firstAppearedIn": { "book": "PHB", "edition": "Edition2014" },
+                  "revisedIn": [], "settingTags": [], "canonicalText": "",
+                  "fields": { "level": 3, "entries": ["Our prose."] }
+                }
+                """;
+            var canonicalDir = Path.Combine(tmp, "canonical");
+            WriteCanonicalJson(canonicalDir, "phb14", canonical);
+
+            // 5etools: matching id, has school, and has srd:true
+            var ftSpell = """{ "name":"Fireball","source":"PHB","page":241,"level":3,"school":"V","srd":true }""";
+            var ftDir = Path.Combine(tmp, "5etools");
+            WriteFivetoolsSpellsJson(ftDir, ftSpell);
+
+            var tracker = Substitute.For<IIngestionTracker>();
+            tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
+            {
+                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+            });
+
+            IList<EntityPoint>? captured = null;
+            var store = Substitute.For<IEntityVectorStore>();
+            store.UpsertAsync(Arg.Any<IList<EntityPoint>>(), Arg.Any<CancellationToken>())
+                .Returns(ci => { captured = ci.Arg<IList<EntityPoint>>(); return Task.CompletedTask; });
+
+            var orchestrator = BuildOrchestrator(tracker, MakeEmbeddings(), store, canonicalDir, ftDir);
+
+            // Act
+            await orchestrator.IngestEntitiesAsync(1, CancellationToken.None);
+
+            // Assert: 5etools "school" filled in and "entries" (narrative) preserved from canonical
+            Assert.NotNull(captured);
+            var fireball = captured!.Single(p => p.Envelope.Id == "phb14.spell.fireball");
+            fireball.Envelope.Fields.TryGetProperty("school", out var school).Should().BeTrue(
+                "5etools school should be merged in");
+            school.GetString().Should().Be("V");
+
+            fireball.Envelope.Fields.GetProperty("entries")[0].GetString()
+                .Should().Be("Our prose.", "narrative entries must stay from canonical");
+
+            fireball.Envelope.Srd.Should().BeTrue("SRD flag comes from 5etools");
+        }
+        finally { Directory.Delete(tmp, recursive: true); }
+    }
+
+    [Fact]
+    public async Task Enrichment_NoMatch_EntityUnchanged()
+    {
+        var tmp = Path.Combine(Path.GetTempPath(), "enrich-test-nomatch-" + Guid.NewGuid());
+        try
+        {
+            var canonical = """
+                {
+                  "id": "phb14.spell.fireball",
+                  "type": "Spell", "name": "Fireball",
+                  "sourceBook": "PHB", "edition": "Edition2014", "page": 241,
+                  "firstAppearedIn": { "book": "PHB", "edition": "Edition2014" },
+                  "revisedIn": [], "settingTags": [], "canonicalText": "",
+                  "fields": { "level": 3, "entries": ["Original prose."] }
+                }
+                """;
+            var canonicalDir = Path.Combine(tmp, "canonical");
+            WriteCanonicalJson(canonicalDir, "phb14", canonical);
+
+            // 5etools dir exists but has a completely different spell → no match for fireball
+            var ftSpell = """{ "name":"Magic Missile","source":"PHB","page":257,"level":1 }""";
+            var ftDir = Path.Combine(tmp, "5etools");
+            WriteFivetoolsSpellsJson(ftDir, ftSpell);
+
+            var tracker = Substitute.For<IIngestionTracker>();
+            tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
+            {
+                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+            });
+
+            IList<EntityPoint>? captured = null;
+            var store = Substitute.For<IEntityVectorStore>();
+            store.UpsertAsync(Arg.Any<IList<EntityPoint>>(), Arg.Any<CancellationToken>())
+                .Returns(ci => { captured = ci.Arg<IList<EntityPoint>>(); return Task.CompletedTask; });
+
+            var orchestrator = BuildOrchestrator(tracker, MakeEmbeddings(), store, canonicalDir, ftDir);
+
+            await orchestrator.IngestEntitiesAsync(1, CancellationToken.None);
+
+            Assert.NotNull(captured);
+            var fireball = captured!.Single(p => p.Envelope.Id == "phb14.spell.fireball");
+            // No "school" field because there was no match
+            fireball.Envelope.Fields.TryGetProperty("school", out _).Should().BeFalse();
+            fireball.Envelope.Fields.GetProperty("entries")[0].GetString()
+                .Should().Be("Original prose.");
+        }
+        finally { Directory.Delete(tmp, recursive: true); }
+    }
+
+    [Fact]
+    public async Task Enrichment_FivetoolsOnlyRecord_NotAddedToUpsert()
+    {
+        // 5etools has TWO spells; canonical has ONE → only 1 entity upserted.
+        var tmp = Path.Combine(Path.GetTempPath(), "enrich-test-noadd-" + Guid.NewGuid());
+        try
+        {
+            var canonical = """
+                {
+                  "id": "phb14.spell.fireball",
+                  "type": "Spell", "name": "Fireball",
+                  "sourceBook": "PHB", "edition": "Edition2014", "page": 241,
+                  "firstAppearedIn": { "book": "PHB", "edition": "Edition2014" },
+                  "revisedIn": [], "settingTags": [], "canonicalText": "",
+                  "fields": { "level": 3 }
+                }
+                """;
+            var canonicalDir = Path.Combine(tmp, "canonical");
+            WriteCanonicalJson(canonicalDir, "phb14", canonical);
+
+            // 5etools has fireball + magic-missile; only fireball is in canonical
+            var ftSpells = """
+                { "name":"Fireball","source":"PHB","page":241,"level":3,"school":"V","srd":true },
+                { "name":"Magic Missile","source":"PHB","page":257,"level":1 }
+                """;
+            var ftDir = Path.Combine(tmp, "5etools");
+            WriteFivetoolsSpellsJson(ftDir, ftSpells);
+
+            var tracker = Substitute.For<IIngestionTracker>();
+            tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
+            {
+                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+            });
+
+            IList<EntityPoint>? captured = null;
+            var store = Substitute.For<IEntityVectorStore>();
+            store.UpsertAsync(Arg.Any<IList<EntityPoint>>(), Arg.Any<CancellationToken>())
+                .Returns(ci => { captured = ci.Arg<IList<EntityPoint>>(); return Task.CompletedTask; });
+
+            var orchestrator = BuildOrchestrator(tracker, MakeEmbeddings(), store, canonicalDir, ftDir);
+
+            await orchestrator.IngestEntitiesAsync(1, CancellationToken.None);
+
+            Assert.NotNull(captured);
+            // Must be exactly 1 point (fireball) — magic missile must NOT be added.
+            captured!.Count.Should().Be(1);
+            captured[0].Envelope.Id.Should().Be("phb14.spell.fireball");
+        }
+        finally { Directory.Delete(tmp, recursive: true); }
+    }
+
+    [Fact]
+    public async Task Enrichment_AbsentFivetoolsDir_IngestsUnenriched()
+    {
+        var tmp = Path.Combine(Path.GetTempPath(), "enrich-test-absent-" + Guid.NewGuid());
+        try
+        {
+            var canonical = """
+                {
+                  "id": "phb14.spell.fireball",
+                  "type": "Spell", "name": "Fireball",
+                  "sourceBook": "PHB", "edition": "Edition2014", "page": 241,
+                  "firstAppearedIn": { "book": "PHB", "edition": "Edition2014" },
+                  "revisedIn": [], "settingTags": [], "canonicalText": "",
+                  "fields": { "level": 3 }
+                }
+                """;
+            var canonicalDir = Path.Combine(tmp, "canonical");
+            WriteCanonicalJson(canonicalDir, "phb14", canonical);
+
+            var tracker = Substitute.For<IIngestionTracker>();
+            tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
+            {
+                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+            });
+
+            IList<EntityPoint>? captured = null;
+            var store = Substitute.For<IEntityVectorStore>();
+            store.UpsertAsync(Arg.Any<IList<EntityPoint>>(), Arg.Any<CancellationToken>())
+                .Returns(ci => { captured = ci.Arg<IList<EntityPoint>>(); return Task.CompletedTask; });
+
+            // No fivetoolsDir passed → defaults to an absent path → graceful degradation
+            var orchestrator = BuildOrchestrator(tracker, MakeEmbeddings(), store, canonicalDir);
+
+            await orchestrator.IngestEntitiesAsync(1, CancellationToken.None);
+
+            Assert.NotNull(captured);
+            captured!.Count.Should().Be(1, "entity ingested without enrichment");
+        }
+        finally { Directory.Delete(tmp, recursive: true); }
+    }
+
+    [Fact]
+    public async Task CoverageResult_CorrectCounts_Reported()
+    {
+        // canonical: 2 spells; 5etools matches 1 → enriched=1, unmatched=1
+        var tmp = Path.Combine(Path.GetTempPath(), "enrich-test-counts-" + Guid.NewGuid());
+        try
+        {
+            var entities = """
+                {
+                  "id": "phb14.spell.fireball",
+                  "type": "Spell", "name": "Fireball",
+                  "sourceBook": "PHB", "edition": "Edition2014", "page": 241,
+                  "firstAppearedIn": { "book": "PHB", "edition": "Edition2014" },
+                  "revisedIn": [], "settingTags": [], "canonicalText": "",
+                  "fields": { "level": 3 }
+                },
+                {
+                  "id": "phb14.spell.light",
+                  "type": "Spell", "name": "Light",
+                  "sourceBook": "PHB", "edition": "Edition2014", "page": 255,
+                  "firstAppearedIn": { "book": "PHB", "edition": "Edition2014" },
+                  "revisedIn": [], "settingTags": [], "canonicalText": "",
+                  "fields": { "level": 0 }
+                }
+                """;
+            var canonicalDir = Path.Combine(tmp, "canonical");
+            WriteCanonicalJson(canonicalDir, "phb14", entities);
+
+            // 5etools only has fireball → Light is unmatched
+            var ftSpell = """{ "name":"Fireball","source":"PHB","page":241,"level":3,"school":"V" }""";
+            var ftDir = Path.Combine(tmp, "5etools");
+            WriteFivetoolsSpellsJson(ftDir, ftSpell);
+
+            var tracker = Substitute.For<IIngestionTracker>();
+            tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
+            {
+                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+            });
+
+            var store = Substitute.For<IEntityVectorStore>();
+
+            var orchestrator = BuildOrchestrator(tracker, MakeEmbeddings(), store, canonicalDir, ftDir);
+
+            var result = await orchestrator.IngestEntitiesAsync(1, CancellationToken.None);
+
+            result.TotalEntities.Should().Be(2);
+            result.MatchedFivetools.Should().Be(1);
+            result.Unmatched.Should().Be(1);
+            result.Enriched.Should().Be(1);
+        }
+        finally { Directory.Delete(tmp, recursive: true); }
+    }
+}
+
+/// <summary>Test helper extension to avoid boilerplate in substitute setup.</summary>
+file static class EmbeddingsSubstituteExtensions
+{
+    internal static IEmbeddingService WithAny1024Vectors(this IEmbeddingService svc)
+    {
+        svc.EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Task.FromResult<IList<float[]>>(
+                Enumerable.Range(0, ci.Arg<IList<string>>().Count)
+                          .Select(_ => new float[1024]).ToList()));
+        return svc;
     }
 }

@@ -2,6 +2,7 @@ using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
+using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using Microsoft.Extensions.Options;
@@ -14,6 +15,15 @@ public sealed class EntityIngestionOptions
     // the same canonical files. Overridden to "/books/canonical" in the container via the
     // EntityIngestion config section.
     public string CanonicalDirectory { get; set; } = "books/canonical";
+
+    /// <summary>
+    /// Root directory of the local 5etools data checkout.
+    /// Used to build the enrichment index at ingest time.
+    /// Defaults to "5etools" (relative to working dir). Override in container via
+    /// <c>EntityIngestion__FivetoolsDirectory</c> env var.
+    /// If the directory is absent, enrichment is silently skipped.
+    /// </summary>
+    public string FivetoolsDirectory { get; set; } = "5etools";
 }
 
 public sealed class EntityIngestionOrchestrator(
@@ -28,7 +38,7 @@ public sealed class EntityIngestionOrchestrator(
 {
     private readonly EntityIngestionOptions _opts = options.Value;
 
-    public async Task IngestEntitiesAsync(int bookId, CancellationToken ct = default)
+    public async Task<EntityIngestionResult> IngestEntitiesAsync(int bookId, CancellationToken ct = default)
     {
         var record = await tracker.GetByIdAsync(bookId, ct)
                      ?? throw new InvalidOperationException($"No ingestion record {bookId}");
@@ -46,21 +56,68 @@ public sealed class EntityIngestionOrchestrator(
             logger.LogWarning("Dangling entity reference: {Source} -> {Target} ({Path})",
                 w.SourceEntityId, w.MissingTargetId, w.FieldPath);
 
-        // Pre-fetch existing Qdrant data for all entities to enable per-field merge.
-        // (5etools points use a different file hash and are NOT deleted below.)
-        var entityIds = file.Entities.Select(e => e.Id).ToList();
-        var existing = await store.GetByIdsAsync(entityIds, ct);
+        // ── 5etools enrichment index ──────────────────────────────────────────
+        // Build an in-memory id → envelope map from the local 5etools files, filtered to
+        // the source key(s) of the book being ingested (fast, no Qdrant).
+        // If the 5etools directory is absent the index is empty and we proceed unenriched.
+        IReadOnlyCollection<string>? sourceFilter = record.FivetoolsSourceKey is { } fk
+            ? [fk] : null;
 
+        IReadOnlyDictionary<string, EntityEnvelope> fivetoolsIndex;
+        try
+        {
+            fivetoolsIndex = await FivetoolsRecordIndex.BuildAsync(
+                _opts.FivetoolsDirectory, sourceFilter, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not build 5etools enrichment index — proceeding unenriched");
+            fivetoolsIndex = new Dictionary<string, EntityEnvelope>();
+        }
+
+        if (fivetoolsIndex.Count == 0)
+            logger.LogInformation(
+                "5etools enrichment skipped for book {BookId}: index is empty (files absent or unmatched source key)",
+                bookId);
+
+        // ── Pre-fetch existing Qdrant data ────────────────────────────────────
+        // Used for the existing "don't clobber manual / preserve prior" behaviour.
+        // The 5etools file record takes priority over the Qdrant store record when BOTH
+        // exist for the same id (file record is more authoritative for enrichment).
+        var entityIds = file.Entities.Select(e => e.Id).ToList();
+        var existingQdrant = await store.GetByIdsAsync(entityIds, ct);
+
+        // ── Merge + render ────────────────────────────────────────────────────
         var renderedEnvelopes = new List<EntityEnvelope>(file.Entities.Count);
         var texts = new List<string>(file.Entities.Count);
+        int matchedFivetools = 0;
+        int unmatched = 0;
+
         foreach (var envelope in file.Entities)
         {
             ct.ThrowIfCancellationRequested();
 
-            // Merge with existing 5etools data if present.
-            var merged = existing.TryGetValue(envelope.Id, out var existingEnvelope)
-                ? EntityMerger.Merge(envelope, existingEnvelope)
-                : envelope;
+            EntityEnvelope merged;
+            if (fivetoolsIndex.TryGetValue(envelope.Id, out var fivetoolsEnvelope))
+            {
+                // 5etools file record exists → use it as the enrichment "existing".
+                // This gives us clean structured values, SRD flags, keywords, clean name.
+                merged = EntityMerger.Merge(envelope, fivetoolsEnvelope);
+                matchedFivetools++;
+            }
+            else if (existingQdrant.TryGetValue(envelope.Id, out var qdrantEnvelope))
+            {
+                // No 5etools match but there is a prior Qdrant point — use it
+                // (preserves manual corrections from prior ingests, etc.).
+                merged = EntityMerger.Merge(envelope, qdrantEnvelope);
+                unmatched++;
+            }
+            else
+            {
+                // No enrichment source at all — ingest canonical as-is.
+                merged = envelope;
+                unmatched++;
+            }
 
             string text;
             try
@@ -78,6 +135,7 @@ public sealed class EntityIngestionOrchestrator(
             texts.Add(text);
         }
 
+        // ── Embed + upsert ────────────────────────────────────────────────────
         IList<float[]> vectors = texts.Count == 0
             ? Array.Empty<float[]>()
             : await embeddings.EmbedAsync(texts, ct);
@@ -98,6 +156,14 @@ public sealed class EntityIngestionOrchestrator(
                 record.FileHash, renderedEnvelopes.Select(e => e.Id).ToList(), ct);
 
         await tracker.MarkEntitiesIngestedAsync(bookId, points.Count, ct);
-        logger.LogInformation("Entity ingestion complete: book {BookId}, {Count} entities", bookId, points.Count);
+        logger.LogInformation(
+            "Entity ingestion complete: book {BookId}, {Count} entities " +
+            "(matched5etools={Matched}, unmatched={Unmatched})",
+            bookId, points.Count, matchedFivetools, unmatched);
+
+        return new EntityIngestionResult(
+            TotalEntities: points.Count,
+            MatchedFivetools: matchedFivetools,
+            Unmatched: unmatched);
     }
 }
