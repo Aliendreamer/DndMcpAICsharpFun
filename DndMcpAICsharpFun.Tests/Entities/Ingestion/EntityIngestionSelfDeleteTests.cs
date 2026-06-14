@@ -6,6 +6,7 @@ using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
+using DndMcpAICsharpFun.Tests.TestDoubles;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Ingestion;
 
@@ -18,7 +19,7 @@ public class EntityIngestionSelfDeleteTests
     [Fact]
     public async Task First_ingest_keeps_entities_in_store()
     {
-        var store = new FakeEntityVectorStore();
+        var store = new RecordingEntityVectorStore();
         var orchestrator = BuildOrchestrator(store, FixtureCanonicalDir());
 
         await orchestrator.IngestEntitiesAsync(1, CancellationToken.None);
@@ -30,7 +31,7 @@ public class EntityIngestionSelfDeleteTests
     [Fact]
     public async Task Reingest_removes_stale_orphans_but_keeps_current_entities()
     {
-        var store = new FakeEntityVectorStore();
+        var store = new RecordingEntityVectorStore();
         // Seed a point from a prior extraction of the same book (same FileHash) whose entity is no
         // longer produced. It must be removed; current entities must remain.
         await store.UpsertAsync(
@@ -85,54 +86,3 @@ public class EntityIngestionSelfDeleteTests
     }
 }
 
-// Fake store with real upsert + delete-by-filehash semantics, mirroring Qdrant: points are keyed by
-// entity id (upsert overwrites), and a delete removes every stored point whose FileHash matches.
-file sealed class FakeEntityVectorStore : IEntityVectorStore
-{
-    private readonly Dictionary<string, (EntityEnvelope Env, string FileHash)> _store = new(StringComparer.Ordinal);
-
-    public IReadOnlyCollection<string> Ids => _store.Keys;
-
-    public Task UpsertAsync(IList<EntityPoint> points, CancellationToken ct = default)
-    {
-        foreach (var p in points)
-            _store[p.Envelope.Id] = (p.Envelope, p.FileHash);
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteByFileHashAsync(string fileHash, CancellationToken ct = default)
-    {
-        foreach (var id in _store.Where(kv => kv.Value.FileHash == fileHash).Select(kv => kv.Key).ToList())
-            _store.Remove(id);
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteByFileHashExceptAsync(
-        string fileHash, IReadOnlyCollection<string> keepIds, CancellationToken ct = default)
-    {
-        var keep = keepIds.ToHashSet(StringComparer.Ordinal);
-        foreach (var id in _store
-                     .Where(kv => kv.Value.FileHash == fileHash && !keep.Contains(kv.Key))
-                     .Select(kv => kv.Key).ToList())
-            _store.Remove(id);
-        return Task.CompletedTask;
-    }
-
-    public Task<EntityEnvelope?> GetByIdAsync(string id, CancellationToken ct = default)
-        => Task.FromResult(_store.TryGetValue(id, out var v) ? v.Env : null);
-
-    public Task<IReadOnlyDictionary<string, EntityEnvelope>> GetByIdsAsync(
-        IReadOnlyList<string> entityIds, CancellationToken ct = default)
-        => Task.FromResult<IReadOnlyDictionary<string, EntityEnvelope>>(
-            _store.Where(kv => entityIds.Contains(kv.Key))
-                  .ToDictionary(kv => kv.Key, kv => kv.Value.Env, StringComparer.Ordinal));
-
-    public Task<IList<EntitySearchHit>> SearchAsync(
-        float[] queryVector, EntityFilters filters, int topK, CancellationToken ct = default)
-        => throw new NotSupportedException();
-
-    public Task<IReadOnlyDictionary<string, string>> GetDataSourcesAsync(
-        IReadOnlyList<string> entityIds, CancellationToken ct = default)
-        => Task.FromResult<IReadOnlyDictionary<string, string>>(
-            new Dictionary<string, string>(StringComparer.Ordinal));
-}

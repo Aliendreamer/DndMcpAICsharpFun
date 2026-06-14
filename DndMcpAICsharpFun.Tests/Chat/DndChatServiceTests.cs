@@ -1,38 +1,12 @@
 using DndMcpAICsharpFun.Features.Chat;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
+using DndMcpAICsharpFun.Tests.TestDoubles;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 
 namespace DndMcpAICsharpFun.Tests.Chat;
-
-internal sealed class FakeChatClient : IChatClient
-{
-    public string Reply { get; set; } = "Test reply";
-    public bool ShouldThrow { get; set; }
-    public ChatOptions? LastOptions { get; private set; }
-    public IReadOnlyList<ChatMessage>? LastMessages { get; private set; }
-
-    public Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> chatMessages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default)
-    {
-        LastMessages = chatMessages.ToList();
-        LastOptions = options;
-        if (ShouldThrow) throw new HttpRequestException("Ollama unreachable");
-        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, Reply)));
-    }
-
-    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> chatMessages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default) => throw new NotImplementedException();
-
-    public object? GetService(Type serviceType, object? key = null) => null;
-    public void Dispose() { }
-}
 
 internal sealed class NullHttpContextAccessor : IHttpContextAccessor
 {

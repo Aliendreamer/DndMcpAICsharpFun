@@ -1,4 +1,3 @@
-using System.Text.Json;
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
@@ -6,7 +5,7 @@ using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
-using DndMcpAICsharpFun.Features.VectorStore.Entities;
+using DndMcpAICsharpFun.Tests.TestDoubles;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 
@@ -14,47 +13,6 @@ namespace DndMcpAICsharpFun.Tests.Entities.Ingestion;
 
 public sealed class ReindexEntityTests : IDisposable
 {
-    // ── Fake store that records calls ─────────────────────────────────────────
-
-    private sealed class RecordingStore : IEntityVectorStore
-    {
-        public List<IList<EntityPoint>> UpsertCalls { get; } = [];
-        public int DeleteByFileHashExceptCallCount { get; private set; }
-
-        public Task UpsertAsync(IList<EntityPoint> points, CancellationToken ct = default)
-        {
-            UpsertCalls.Add(points);
-            return Task.CompletedTask;
-        }
-
-        public Task DeleteByFileHashExceptAsync(string fileHash,
-            IReadOnlyCollection<string> keepEntityIds, CancellationToken ct = default)
-        {
-            DeleteByFileHashExceptCallCount++;
-            return Task.CompletedTask;
-        }
-
-        public Task DeleteByFileHashAsync(string fileHash, CancellationToken ct = default)
-            => Task.CompletedTask;
-
-        public Task<EntityEnvelope?> GetByIdAsync(string id, CancellationToken ct = default)
-            => Task.FromResult<EntityEnvelope?>(null);
-
-        public Task<IList<EntitySearchHit>> SearchAsync(float[] queryVector,
-            EntityFilters filters, int topK, CancellationToken ct = default)
-            => Task.FromResult<IList<EntitySearchHit>>(Array.Empty<EntitySearchHit>());
-
-        public Task<IReadOnlyDictionary<string, string>> GetDataSourcesAsync(
-            IReadOnlyList<string> entityIds, CancellationToken ct = default)
-            => Task.FromResult<IReadOnlyDictionary<string, string>>(
-                new Dictionary<string, string>());
-
-        public Task<IReadOnlyDictionary<string, EntityEnvelope>> GetByIdsAsync(
-            IReadOnlyList<string> entityIds, CancellationToken ct = default)
-            => Task.FromResult<IReadOnlyDictionary<string, EntityEnvelope>>(
-                new Dictionary<string, EntityEnvelope>());
-    }
-
     // ── Fake tracker ──────────────────────────────────────────────────────────
 
     private static IIngestionTracker MakeTracker(IngestionRecord record)
@@ -82,7 +40,7 @@ public sealed class ReindexEntityTests : IDisposable
 
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 
-    private EntityIngestionOrchestrator BuildOrchestrator(RecordingStore store, IngestionRecord record)
+    private EntityIngestionOrchestrator BuildOrchestrator(RecordingEntityVectorStore store, IngestionRecord record)
     {
         var tracker     = MakeTracker(record);
         var loader      = new CanonicalJsonLoader();
@@ -113,7 +71,7 @@ public sealed class ReindexEntityTests : IDisposable
     [Fact]
     public async Task ReindexEntityAsync_UpsertsExactlyOnePoint()
     {
-        var store  = new RecordingStore();
+        var store  = new RecordingEntityVectorStore();
         var record = new IngestionRecord
         {
             Id = 42, DisplayName = "needs-review-book", FileHash = "cafebabe",
@@ -134,7 +92,7 @@ public sealed class ReindexEntityTests : IDisposable
     [Fact]
     public async Task ReindexEntityAsync_DoesNotCallDeleteByFileHashExcept()
     {
-        var store  = new RecordingStore();
+        var store  = new RecordingEntityVectorStore();
         var record = new IngestionRecord
         {
             Id = 42, DisplayName = "needs-review-book", FileHash = "cafebabe",
@@ -154,7 +112,7 @@ public sealed class ReindexEntityTests : IDisposable
     [Fact]
     public async Task ReindexEntityAsync_PointCarriesCorrectFileHash()
     {
-        var store  = new RecordingStore();
+        var store  = new RecordingEntityVectorStore();
         var record = new IngestionRecord
         {
             Id = 42, DisplayName = "needs-review-book", FileHash = "deadbeef",
@@ -171,7 +129,7 @@ public sealed class ReindexEntityTests : IDisposable
     [Fact]
     public async Task ReindexEntityAsync_UnknownEntity_Throws()
     {
-        var store  = new RecordingStore();
+        var store  = new RecordingEntityVectorStore();
         var record = new IngestionRecord
         {
             Id = 42, DisplayName = "needs-review-book", FileHash = "cafebabe",
