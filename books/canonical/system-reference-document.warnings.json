@@ -1,0 +1,62 @@
+[
+  {
+    "sourceEntityId": "system-reference-document.item.frenzy",
+    "fieldPath": "fields.entries[1].value",
+    "missingTargetId": "srd.condition.exhaustion",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "system-reference-document.class.bonus-proficiencies",
+    "fieldPath": "fields.entries[0].entries[0].source",
+    "missingTargetId": "srd2014.class.bard",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "system-reference-document.class.cunning-action",
+    "fieldPath": "fields.multiclassing.type.slug",
+    "missingTargetId": "srd.class.multiclassing",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "system-reference-document.spell.rituals",
+    "fieldPath": "fields.classes[0]",
+    "missingTargetId": "prc.class.Cleric",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "system-reference-document.spell.rituals",
+    "fieldPath": "fields.classes[1]",
+    "missingTargetId": "prc.class.Druid",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "system-reference-document.spell.rituals",
+    "fieldPath": "fields.classes[2]",
+    "missingTargetId": "prc.class.Wizard",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "system-reference-document.condition.frightened",
+    "fieldPath": "fields.entries[0].source",
+    "missingTargetId": "system-reference-document-edition2014.condition.frightened",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "system-reference-document.condition.grappled",
+    "fieldPath": "fields.entries[0].related_conditions[0]",
+    "missingTargetId": "srd2014.condition.incapacitated",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "system-reference-document.plane.inner-planes",
+    "fieldPath": "fields.relatedPlanes[0]",
+    "missingTargetId": "srd.plane.material-plane",
+    "warningKind": "inter_book_dangling_ref"
+  },
+  {
+    "sourceEntityId": "system-reference-document.plane.inner-planes",
+    "fieldPath": "fields.relatedPlanes[1]",
+    "missingTargetId": "srd.plane.elemental-chaos",
+    "warningKind": "inter_book_dangling_ref"
+  }
+]

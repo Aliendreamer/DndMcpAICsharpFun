@@ -1,0 +1,9 @@
+[
+  {
+    "sourceEntityId": "system-reference-document.class.use-magic-device",
+    "fieldPath": "fields.entries[0].related[0].slug",
+    "missingTargetId": "system-reference-document.item.magic-item",
+    "errorKind": "intra_book_dangling_ref",
+    "detail": null
+  }
+]
