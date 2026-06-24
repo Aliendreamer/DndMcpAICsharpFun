@@ -1,0 +1,46 @@
+{
+  "type": "object",
+  "oneOf": [
+    {
+      "additionalProperties": false,
+      "properties": {
+        "entityType": { "const": "Spell" },
+        "name": { "type": "string" },
+        "level": { "type": "integer" },
+        "school": { "type": "string" },
+        "castingTime": { "type": "string" }
+      },
+      "required": ["entityType", "name"]
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "entityType": { "const": "Race" },
+        "name": { "type": "string" },
+        "size": { "type": "string" },
+        "speed": { "type": "integer" },
+        "traits": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["entityType", "name"]
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "entityType": { "const": "Monster" },
+        "name": { "type": "string" },
+        "cr": { "type": "string" },
+        "ac": { "type": "integer" },
+        "hp": { "type": "integer" }
+      },
+      "required": ["entityType", "name"]
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "entityType": { "const": "none" },
+        "reason": { "type": "string" }
+      },
+      "required": ["entityType", "reason"]
+    }
+  ]
+}

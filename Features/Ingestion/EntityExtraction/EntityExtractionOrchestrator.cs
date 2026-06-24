@@ -393,41 +393,70 @@ public sealed class EntityExtractionOrchestrator(
         Dictionary<EntityType, JsonElement> schemas,
         CancellationToken ct)
     {
-        if (!schemas.TryGetValue(candidate.Type, out var schema))
+        // Offer only prior types that actually have a schema. If none do, it is a configuration
+        // problem (no_schema), recorded without an LLM call.
+        var availablePrior = candidate.TypePrior.Where(schemas.ContainsKey).ToList();
+        if (availablePrior.Count == 0)
         {
             logger.LogWarning(
-                "No schema for entity type {Type}; skipping candidate {Name}",
-                candidate.Type, candidate.DisplayName);
+                "No schema for any prior type of candidate {Name}; recording no_schema",
+                candidate.DisplayName);
             return (null, new ExtractionErrorEntry(
                 SourceEntityId: id,
                 FieldPath: "(type)",
                 MissingTargetId: string.Empty,
                 ErrorKind: "no_schema",
-                Detail: $"No JSON schema found for entity type {candidate.Type}"));
+                Detail: $"No JSON schema for any prior type of {candidate.DisplayName}"));
         }
 
-        var (fieldsResult, extractError) = await candidateExtractor.ExtractFieldsAsync(record, candidate, schema, ct);
-
-        if (fieldsResult is null)
-        {
-            logger.LogWarning(
-                "Extraction failed for {Type} '{Name}' (page {Page}): {Error}",
-                candidate.Type, candidate.DisplayName, candidate.Page, extractError);
-            return (null, new ExtractionErrorEntry(
-                SourceEntityId: id,
-                FieldPath: "(extraction)",
-                MissingTargetId: string.Empty,
-                ErrorKind: "extraction_failure",
-                Detail: extractError));
-        }
-
-        var rawInput    = fieldsResult.Value;
-        string? confidence = rawInput.TryGetProperty("confidence", out var cp) ? cp.GetString() : null;
-        var fields      = CandidateExtractor.StripConfidence(rawInput);
+        var result = await candidateExtractor.ExtractUnionAsync(record, candidate, availablePrior, schemas, ct);
         var displayName = NormalizeDisplayName(candidate.DisplayName);
-        var needsReview = ExtractionNeedsReview.Derive(displayName, confidence);
 
-        var envelope = new EntityEnvelope(
+        switch (result.Outcome)
+        {
+            case UnionOutcome.Failed:
+                logger.LogWarning(
+                    "Union extraction failed for '{Name}' (page {Page}): {Error}",
+                    candidate.DisplayName, candidate.Page, result.ErrorMessage);
+                return (null, new ExtractionErrorEntry(
+                    SourceEntityId: id,
+                    FieldPath: "(extraction)",
+                    MissingTargetId: string.Empty,
+                    ErrorKind: "extraction_failure",
+                    Detail: result.ErrorMessage));
+
+            case UnionOutcome.Declined:
+                return (DeclinedEnvelope(id, candidate, displayName, sourceBook, edition, result.DeclineReason), null);
+
+            default:
+                var grounded = HasGroundedContent(result.Fields, candidate.Text);
+                var disposition = ExtractionDispositionPolicy.Derive(grounded, displayName, result.Confidence);
+                // Id keeps the keyword-primary type for stable checkpoint/resume identity (design.md §F);
+                // the authoritative type is this Type field (the model's selection).
+                var envelope = new EntityEnvelope(
+                    Id:              id,
+                    Type:            result.Type,
+                    Name:            displayName,
+                    SourceBook:      sourceBook,
+                    Edition:         edition,
+                    Page:            candidate.Page,
+                    FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
+                    RevisedIn:       Array.Empty<Revision>(),
+                    SettingTags:     Array.Empty<string>(),
+                    CanonicalText:   string.Empty,
+                    Fields:          result.Fields,
+                    NeedsReview:     disposition != EntityDisposition.Accepted,
+                    Disposition:     disposition);
+                return (envelope, null);
+        }
+    }
+
+    private static EntityEnvelope DeclinedEnvelope(
+        string id, EntityCandidate candidate, string displayName,
+        string sourceBook, string edition, string? reason)
+    {
+        using var empty = JsonDocument.Parse("{}");
+        return new EntityEnvelope(
             Id:              id,
             Type:            candidate.Type,
             Name:            displayName,
@@ -437,11 +466,42 @@ public sealed class EntityExtractionOrchestrator(
             FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
             RevisedIn:       Array.Empty<Revision>(),
             SettingTags:     Array.Empty<string>(),
-            CanonicalText:   string.Empty,
-            Fields:          fields,
-            NeedsReview:     needsReview);
+            CanonicalText:   reason ?? string.Empty,
+            Fields:          empty.RootElement.Clone(),
+            NeedsReview:     true,
+            Disposition:     EntityDisposition.Declined);
+    }
 
-        return (envelope, null);
+    // Tier-0 grounding over the emitted fields: true when at least one significant string value
+    // grounds against the source prose. Pure fabrication / empty output (e.g. zeroed stat blocks)
+    // grounds nothing -> NeedsReview.
+    private static bool HasGroundedContent(JsonElement fields, string sourceText)
+    {
+        foreach (var value in EnumerateStringValues(fields))
+            if (Tier0FieldGrounding.IsTextGrounded(value, sourceText))
+                return true;
+        return false;
+    }
+
+    private static IEnumerable<string> EnumerateStringValues(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.String:
+                var s = element.GetString();
+                if (!string.IsNullOrWhiteSpace(s)) yield return s;
+                break;
+            case JsonValueKind.Object:
+                foreach (var p in element.EnumerateObject())
+                    foreach (var v in EnumerateStringValues(p.Value))
+                        yield return v;
+                break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                    foreach (var v in EnumerateStringValues(item))
+                        yield return v;
+                break;
+        }
     }
 
     private static IList<ScannerInput> BuildScannerInputs(IReadOnlyList<PdfStructureItem> items)

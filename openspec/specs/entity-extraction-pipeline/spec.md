@@ -53,16 +53,21 @@ The extraction worker SHALL reuse the same Docling output that block ingestion u
 
 ### Requirement: LLM extraction SHALL be schema-constrained per entity type
 
-The extraction worker SHALL invoke the LLM separately for each candidate entity (or chunk of related text), passing the per-type JSON schema as a constraint. The LLM output SHALL be validated against the schema before being added to the canonical JSON. Records that fail validation after a bounded retry budget SHALL be written to a `data/canonical/<book-slug>.errors.json` file for human review and SHALL NOT appear in the canonical JSON.
+The extraction worker SHALL invoke the LLM separately for each candidate entity (or chunk of related text), passing a **discriminated-union (`oneOf`) JSON schema** as the constraint: a small set of plausible entity-type branches (each with a `const` `entityType` discriminator and that type's fields) plus a `{"entityType":"none","reason":string}` decline branch. The union SHALL be passed through the existing grammar-constrained decoding path (`ChatResponseFormat.ForJsonSchema`); the model selects exactly one branch. The LLM output SHALL be validated against the selected branch before being added to the canonical JSON. Records that fail validation after a bounded retry budget SHALL be written to a `data/canonical/<book-slug>.errors.json` file for human review and SHALL NOT appear in the canonical JSON.
 
-#### Scenario: Schema-conforming LLM output is added to canonical JSON
+#### Scenario: Branch-conforming LLM output is added to canonical JSON
 
-- **WHEN** the LLM returns JSON that validates against the per-type schema
-- **THEN** the record is added to the canonical JSON's `entities[]` array
+- **WHEN** the LLM returns JSON that validates against the selected union branch (a typed entity)
+- **THEN** the record is added to the canonical JSON's `entities[]` array with the model-selected `entityType`
+
+#### Scenario: Decline branch produces no typed entity
+
+- **WHEN** the LLM selects the `{"entityType":"none"}` branch for a candidate
+- **THEN** no typed entity is added to `entities[]`; the candidate is recorded as `Declined` (per the `extraction-disposition` capability)
 
 #### Scenario: Schema-violating LLM output is recorded in errors file
 
-- **WHEN** the LLM returns JSON that does not validate against the schema after retries
+- **WHEN** the LLM returns JSON that does not validate against any union branch after retries
 - **THEN** the offending output and validation errors are appended to `data/canonical/<book-slug>.errors.json` and the canonical JSON is unaffected
 
 ### Requirement: Extraction SHALL emit progress and a final summary
@@ -174,13 +179,8 @@ When the LLM extraction pipeline processes a Monster entity, the resulting canon
 - **THEN** the resulting canonical JSON entity does not include a `keywords` field under `fields`
 
 ### Requirement: LLM extraction produces correct entity type
-The extraction system prompt SHALL instruct the LLM to classify each extracted entity with the correct `EntityType` based on the content it reads — `Class`, `Subclass`, `Spell`, `Monster`, `Feat`, `Item`, `MagicItem`, `Race`, `Subrace`, `Background`, `Rule`, `God`, `Condition`, `DiseasePoison`, `Weapon`, `Armor`, `Trap`, `VehicleMount` — rather than defaulting all entities to `Class`.
 
-The prompt SHALL include:
-
-- The full list of valid `EntityType` values
-- Examples of how to classify common D&D content (subclass features → `Subclass`, spell entries → `Spell`, etc.)
-- The rule: if uncertain, prefer the most specific applicable type over `Class`
+The model SHALL determine each entity's `EntityType` by selecting the matching branch of the discriminated-union schema — `Class`, `Subclass`, `Spell`, `Monster`, `Feat`, `Item`, `MagicItem`, `Race`, `Subrace`, `Background`, `Rule`, `God`, `Condition`, `DiseasePoison`, `Weapon`, `Armor`, `Trap`, `VehicleMount` — based on the content it reads. The keyword classifier (`HeadingCategoryClassifier`) SHALL NOT determine the final type; it serves only as a prior that prunes the offered branches. When no offered branch fits, the model SHALL select the `none` (decline) branch rather than defaulting to `Class` or fabricating a type.
 
 #### Scenario: Subclass correctly typed
 
@@ -192,10 +192,10 @@ The prompt SHALL include:
 - **WHEN** the LLM extracts an entity for "Transmuted Spell" (a metamagic option)
 - **THEN** the extracted entity SHALL have `type: "Rule"` not `type: "Class"`
 
-#### Scenario: Unknown content falls back gracefully
+#### Scenario: Unknown content declines instead of defaulting to Class
 
-- **WHEN** the LLM cannot determine a specific type for an entity
-- **THEN** the LLM SHALL use `Class` as the fallback and include a note in `canonicalText`
+- **WHEN** the LLM cannot fit a candidate to any offered branch
+- **THEN** the LLM SHALL select the `none` (decline) branch, and the candidate SHALL be recorded as `Declined` rather than fabricated as a `Class`
 
 ### Requirement: Extraction prompt produces title-case entity names
 The extraction system prompt SHALL include the rule: entity names MUST be output in title case following D&D conventions — capitalize all words except articles and prepositions (`of, the, a, an, in, on, at, to, and, or, but, for, nor`) unless they appear at the start of the name. ALL-CAPS names as they appear in PDF headings MUST be converted.

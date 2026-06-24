@@ -33,6 +33,49 @@ public static class HeadingCategoryClassifier
         return ContentCategory.Rule;
     }
 
+    /// <summary>
+    /// Returns a small ranked set of plausible categories for the heading: the primary keyword
+    /// guess first, then its empirical confusion set, then a frequency floor of the most common
+    /// types. Used as a PRIOR to prune the discriminated-union extraction schema — it does not
+    /// decide the final type. The decline ("none") branch is always added by the union builder,
+    /// never here, so a mis-prune degrades to a decline rather than a fabrication.
+    /// </summary>
+    public static IReadOnlyList<ContentCategory> GuessRanked(string title) => ExpandPrior(Guess(title));
+
+    /// <summary>
+    /// Expands a primary category into the same ranked prior set used by <see cref="GuessRanked"/>,
+    /// for callers (e.g. the scanner) that already hold a category from the TOC rather than a title.
+    /// </summary>
+    public static IReadOnlyList<ContentCategory> ExpandPrior(ContentCategory primary)
+    {
+        var ranked = new List<ContentCategory> { primary };
+        foreach (var c in ConfusionSet(primary)) AddDistinct(ranked, c);
+        foreach (var c in FrequencyFloor) AddDistinct(ranked, c);
+        return ranked;
+    }
+
+    // The ~90%-of-corpus common types, always offered so the model can pick them.
+    private static readonly ContentCategory[] FrequencyFloor =
+    {
+        ContentCategory.Monster, ContentCategory.Spell, ContentCategory.Item, ContentCategory.Class,
+    };
+
+    // Empirical confusions from the SRD analysis (parent prose-grounded-knowledge-model design.md §A):
+    // race/cantrip/magic-item content force-typed as Monster; class sections as Rule.
+    private static ContentCategory[] ConfusionSet(ContentCategory primary) => primary switch
+    {
+        ContentCategory.Monster => new[] { ContentCategory.Race, ContentCategory.Spell, ContentCategory.Item },
+        ContentCategory.Race => new[] { ContentCategory.Monster },
+        ContentCategory.Class => new[] { ContentCategory.Rule },
+        ContentCategory.Item => new[] { ContentCategory.Treasure },
+        _ => Array.Empty<ContentCategory>(),
+    };
+
+    private static void AddDistinct(List<ContentCategory> list, ContentCategory category)
+    {
+        if (!list.Contains(category)) list.Add(category);
+    }
+
     private static bool Contains(string text, string keyword) =>
         text.Contains(keyword, StringComparison.Ordinal);
 

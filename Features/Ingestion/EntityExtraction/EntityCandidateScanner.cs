@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
+using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
@@ -31,7 +32,17 @@ public sealed class EntityCandidateScanner
             var type = MapCategoryToEntityType(category);
             if (type is null) continue;
 
-            yield return new EntityCandidate(type.Value, s.Section, s.Text, s.Page);
+            // Content-first prior: the primary keyword type plus its confusion set and the
+            // frequency floor, mapped to entity types. Offered to the model as union branches so
+            // it can re-type away from a wrong keyword guess (e.g. Dragonborn -> Race, not Monster).
+            var prior = HeadingCategoryClassifier.ExpandPrior(category)
+                .Select(MapCategoryToEntityType)
+                .Where(t => t is not null)
+                .Select(t => t!.Value)
+                .Distinct()
+                .ToList();
+
+            yield return new EntityCandidate(type.Value, s.Section, s.Text, s.Page, prior);
         }
     }
 

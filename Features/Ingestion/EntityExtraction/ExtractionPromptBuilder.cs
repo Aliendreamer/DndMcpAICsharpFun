@@ -139,6 +139,26 @@ public sealed class ExtractionPromptBuilder(
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Builds the content-first system prompt for the discriminated-union extraction path: the model
+    /// reads the source text and either picks ONE entity-type branch or declines via "entityType":"none".
+    /// </summary>
+    public string BuildUnionSystemPrompt(string sourceBook, string edition)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("You are extracting structured D&D rules data from official rulebook text.");
+        sb.AppendLine($"Source book: {sourceBook} ({edition}).");
+        sb.AppendLine();
+        sb.AppendLine("Read the SOURCE TEXT and choose exactly ONE branch of the provided schema:");
+        sb.AppendLine("- If it is a discrete game entity, set \"entityType\" to the matching type and fill ONLY that branch's fields.");
+        sb.AppendLine("- If it is NOT a discrete game entity (a heading, table of contents, index, or pure narrative), set \"entityType\":\"none\" with a short \"reason\".");
+        sb.AppendLine("Do NOT force a type that does not fit — prefer \"none\" over guessing, and never invent stat-block values that are not in the text.");
+        sb.AppendLine("The source text may contain OCR artifacts (e.g. 'lhe'->'the', 'Brealh'->'Breath'); use surrounding context to read through them.");
+        sb.AppendLine("Entity names MUST be title case; convert ALL-CAPS PDF headings (e.g. \"FIREBALL\" -> \"Fireball\").");
+        sb.AppendLine("Output ONLY the JSON object.");
+        return sb.ToString();
+    }
+
     public string BuildUserPrompt(EntityCandidate candidate)
     {
         var pageNote = candidate.Page is { } p ? $" (page {p})" : "";
