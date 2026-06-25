@@ -420,8 +420,32 @@ public sealed class EntityExtractionOrchestrator(
                 Detail: $"No JSON schema for any prior type of {candidate.DisplayName}"));
         }
 
-        var result = await candidateExtractor.ExtractUnionAsync(record, candidate, availablePrior, schemas, ct);
         var displayName = NormalizeDisplayName(candidate.DisplayName);
+
+        // Deterministic override: a complete creature stat block IS a Monster. Extract it directly
+        // with the Monster schema instead of offering the content-first decline branch — the model
+        // otherwise sometimes declines a clear stat block (the Aboleth case).
+        if (schemas.TryGetValue(EntityType.Monster, out var monsterSchema) &&
+            StatBlockSignature.IsCompleteStatBlock(candidate.Text))
+        {
+            var (statFields, statError) = await candidateExtractor.ExtractFieldsAsync(
+                record, candidate with { Type = EntityType.Monster }, monsterSchema, ct);
+            if (statFields is null)
+            {
+                logger.LogWarning(
+                    "Stat-block Monster extraction failed for '{Name}' (page {Page}): {Error}",
+                    candidate.DisplayName, candidate.Page, statError);
+                return (null, new ExtractionErrorEntry(
+                    SourceEntityId: id, FieldPath: "(extraction)", MissingTargetId: string.Empty,
+                    ErrorKind: "extraction_failure", Detail: statError));
+            }
+
+            var statConfidence = statFields.Value.TryGetProperty("confidence", out var scp) ? scp.GetString() : null;
+            var statClean = CandidateExtractor.StripConfidence(statFields.Value);
+            return (BuildTypedEnvelope(id, EntityType.Monster, displayName, sourceBook, edition, candidate, statClean, statConfidence), null);
+        }
+
+        var result = await candidateExtractor.ExtractUnionAsync(record, candidate, availablePrior, schemas, ct);
 
         switch (result.Outcome)
         {
@@ -440,26 +464,33 @@ public sealed class EntityExtractionOrchestrator(
                 return (DeclinedEnvelope(id, candidate, displayName, sourceBook, edition, result.DeclineReason), null);
 
             default:
-                var grounded = HasGroundedContent(result.Fields, candidate.Text);
-                var disposition = ExtractionDispositionPolicy.Derive(grounded, displayName, result.Confidence);
-                // Id keeps the keyword-primary type for stable checkpoint/resume identity (design.md §F);
-                // the authoritative type is this Type field (the model's selection).
-                var envelope = new EntityEnvelope(
-                    Id:              id,
-                    Type:            result.Type,
-                    Name:            displayName,
-                    SourceBook:      sourceBook,
-                    Edition:         edition,
-                    Page:            candidate.Page,
-                    FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
-                    RevisedIn:       Array.Empty<Revision>(),
-                    SettingTags:     Array.Empty<string>(),
-                    CanonicalText:   string.Empty,
-                    Fields:          result.Fields,
-                    NeedsReview:     disposition != EntityDisposition.Accepted,
-                    Disposition:     disposition);
-                return (envelope, null);
+                return (BuildTypedEnvelope(id, result.Type, displayName, sourceBook, edition, candidate, result.Fields, result.Confidence), null);
         }
+    }
+
+    // Builds a typed entity envelope, deriving the disposition from grounding + name/confidence.
+    // The Id keeps the keyword-primary type for stable checkpoint/resume identity (design.md §F);
+    // the authoritative type is the Type field.
+    private EntityEnvelope BuildTypedEnvelope(
+        string id, EntityType type, string displayName, string sourceBook, string edition,
+        EntityCandidate candidate, JsonElement fields, string? confidence)
+    {
+        var grounded = HasGroundedContent(fields, candidate.Text);
+        var disposition = ExtractionDispositionPolicy.Derive(grounded, displayName, confidence);
+        return new EntityEnvelope(
+            Id:              id,
+            Type:            type,
+            Name:            displayName,
+            SourceBook:      sourceBook,
+            Edition:         edition,
+            Page:            candidate.Page,
+            FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
+            RevisedIn:       Array.Empty<Revision>(),
+            SettingTags:     Array.Empty<string>(),
+            CanonicalText:   string.Empty,
+            Fields:          fields,
+            NeedsReview:     disposition != EntityDisposition.Accepted,
+            Disposition:     disposition);
     }
 
     private static EntityEnvelope DeclinedEnvelope(

@@ -568,66 +568,14 @@
       },
       "revisedIn": [],
       "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "Medium"
-        ],
-        "type": "plant",
-        "cr": "1/4 (50 XP)",
-        "alignment": [
-          "neutral evil"
-        ],
-        "ac": [
-          {
-            "ac": 12,
-            "condition": "natural armor"
-          }
-        ],
-        "hp": {
-          "average": 11,
-          "formula": "2d8 \u002B 2"
-        },
-        "speed": {
-          "movement": "30 ft."
-        },
-        "str": 12,
-        "dex": 12,
-        "con": 13,
-        "int": 4,
-        "wis": 8,
-        "cha": 3,
-        "conditionImmune": [
-          "blinded",
-          "deafened"
-        ],
-        "senses": [
-          "blindsight 60ft. (blind beyond this radius), passive Perception 9"
-        ],
-        "languages": [
-          "understands Common but can\u0027t speak"
-        ],
-        "action": [
-          {
-            "name": "Claws",
-            "entries": [
-              "Melee Weapon Attack: \u002B3 to hit, reach 5 ft., one target. Hit: 6 (2d4 \u002B 1) piercing damage."
-            ]
-          },
-          {
-            "name": "Needles",
-            "entries": [
-              "Ranged Weapon Attack: \u002B3 to  hit, range 30/60 ft., one target. Hit: 8 (2d6 \u002B 1) piercing damage."
-            ]
-          }
-        ]
-      },
+      "canonicalText": "The text appears to be a stat block for a monster, but the entity name \u0027NEEDLE BLIGJlT\u0027 contains OCR artifacts and does not match the actual monster\u0027s name. The correct name is \u0027Needle Blight\u0027 (page 33), which is a discrete game entity, but the provided text lacks a clear, unambiguous entity name without OCR errors.",
+      "fields": {},
       "dataSource": "",
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
       "needsReview": true,
-      "disposition": "NeedsReview",
+      "disposition": "Declined",
       "keywords": []
     },
     {
@@ -727,14 +675,92 @@
       },
       "revisedIn": [],
       "settingTags": [],
-      "canonicalText": "The provided text is a stat block for a creature, but the schema requires explicit entity types. Since the text represents a discrete game entity (a monster), the correct entityType would be \u0027creature\u0027. However, the instruction specifies to choose exactly ONE branch of the provided schema, and the \u0027creature\u0027 type is not listed. Therefore, this entry is a game entity but does not fit the specified schema branches, so entityType is set to \u0027none\u0027 as per the instruction to prefer \u0027none\u0027 over guessing.",
-      "fields": {},
+      "canonicalText": "",
+      "fields": {
+        "size": [
+          "Medium"
+        ],
+        "type": "humanoid (goblinoid)",
+        "cr": "3 (700 XP)",
+        "alignment": [
+          "chaotic evil"
+        ],
+        "ac": [
+          {
+            "ac": 17,
+            "condition": "chain shirt, shield"
+          }
+        ],
+        "hp": {
+          "average": 65,
+          "formula": "10d8 \u002B 20"
+        },
+        "speed": {
+          "movement": "30ft."
+        },
+        "bonus": [
+          {
+            "name": "STR",
+            "entries": [
+              "17 (\u002B3)"
+            ]
+          },
+          {
+            "name": "DEX",
+            "entries": [
+              "14 (\u002B2)"
+            ]
+          },
+          {
+            "name": "CON",
+            "entries": [
+              "14 (\u002B2)"
+            ]
+          },
+          {
+            "name": "INT",
+            "entries": [
+              "11 (\u002B0)"
+            ]
+          },
+          {
+            "name": "WIS",
+            "entries": [
+              "12 (\u002B1)"
+            ]
+          },
+          {
+            "name": "CHA",
+            "entries": [
+              "11 (\u002B0)"
+            ]
+          }
+        ],
+        "senseTags": [
+          "darkvision 60ft.",
+          "passive Perception 11"
+        ],
+        "languageTags": [
+          "Common",
+          "Goblin"
+        ],
+        "actionTags": [
+          "Multiattack",
+          "Morningstar",
+          "Javelin"
+        ],
+        "keywords": [
+          "Brute",
+          "Heart of Hruggek",
+          "Surprise Attack"
+        ]
+      },
       "dataSource": "",
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": true,
-      "disposition": "Declined",
+      "needsReview": false,
+      "disposition": "Accepted",
       "keywords": []
     },
     {
@@ -984,56 +1010,62 @@
       "name": "Cyclops",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 46,
+      "page": 47,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 46
+        "page": 47
       },
       "revisedIn": [],
       "settingTags": [],
       "canonicalText": "",
       "fields": {
         "size": [
-          "Huge"
+          "Small"
         ],
-        "type": "Giant",
-        "cr": "6 (2,300 XP)",
+        "type": "Monstrosity",
+        "cr": "1/2 (100 XP)",
         "alignment": [
-          "Chaotic Neutral"
+          "Unaligned"
         ],
         "ac": [
           {
-            "ac": 14,
-            "condition": "natural armor"
+            "ac": 11,
+            "from": [
+              "Natural Armor"
+            ]
           }
         ],
         "hp": {
-          "average": 138,
-          "formula": "12d12 \u002B 60"
+          "average": 22,
+          "formula": "1d6 \u002B 5"
         },
         "speed": {
-          "30ft": true
+          "walk": 10,
+          "fly": 30
         },
-        "str": 22,
-        "dex": 11,
-        "con": 20,
-        "int": 8,
-        "wis": 6,
-        "cha": 10,
+        "str": 16,
+        "dex": 12,
+        "con": 13,
+        "int": 2,
+        "wis": 10,
+        "cha": 5,
+        "skill": {
+          "stealth": 3
+        },
         "senses": [
-          "passive Perception 8"
+          "Blindsight 60ft. (Passive Perception 10)"
         ],
-        "languages": [
-          "Giant"
-        ],
-        "spellcasting": [],
+        "languages": [],
         "damageTags": [
           "Bludgeoning"
         ],
-        "actionTags": [],
+        "actionTags": [
+          "Melee Weapon Attack"
+        ],
         "keywords": [
-          "Poor Depth Perception"
+          "Monstrosity",
+          "Small"
         ]
       },
       "dataSource": "",
@@ -1255,11 +1287,11 @@
       "name": "Barlgura",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 57,
+      "page": 58,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 57
+        "page": 58
       },
       "revisedIn": [],
       "settingTags": [],
@@ -1269,7 +1301,7 @@
           "Large"
         ],
         "type": "Fiend (Demon)",
-        "cr": "5 (1,800 XP)",
+        "cr": "6 (2,300 XP)",
         "alignment": [
           "Chaotic Evil"
         ],
@@ -1280,64 +1312,30 @@
           }
         ],
         "hp": {
-          "average": 68,
-          "formula": "8d10 \u002B 24"
+          "average": 84,
+          "formula": "13d10 \u002B 13"
         },
         "speed": {
-          "movement": "30 ft.",
-          "climb": "30 ft."
+          "walk": "20 ft.",
+          "fly": "60 ft."
         },
-        "bonus": [
-          {
-            "name": "STR",
-            "entries": [
-              "18 (\u002B4)"
-            ]
-          },
-          {
-            "name": "DEX",
-            "entries": [
-              "15 (\u002B2)"
-            ]
-          },
-          {
-            "name": "CON",
-            "entries": [
-              "16 (\u002B3)"
-            ]
-          },
-          {
-            "name": "INT",
-            "entries": [
-              "7 (-2)"
-            ]
-          },
-          {
-            "name": "WIS",
-            "entries": [
-              "14 (\u002B2)"
-            ]
-          },
-          {
-            "name": "CHA",
-            "entries": [
-              "9 (-1)"
-            ]
-          }
-        ],
-        "senseTags": [
-          "blindsight 30 ft.",
-          "darkvision 120 ft.",
-          "passive Perception 15"
-        ],
-        "languageTags": [
-          "Abyssal",
-          "telepathy 120 ft."
-        ],
-        "actionTags": [
-          "Multiattack",
-          "Bite",
-          "Fist"
+        "str": 15,
+        "dex": 15,
+        "con": 12,
+        "int": 11,
+        "wis": 14,
+        "cha": 10,
+        "save": {
+          "dex": 5,
+          "wis": 5
+        },
+        "skill": {
+          "perception": 5
+        },
+        "damageTags": [
+          "cold",
+          "fire",
+          "lightning"
         ]
       },
       "dataSource": "",
@@ -1566,77 +1564,61 @@
       "name": "Bone Devil",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 72,
+      "page": 73,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 72
+        "page": 73
       },
       "revisedIn": [],
       "settingTags": [],
       "canonicalText": "",
       "fields": {
         "size": [
-          "Large"
+          "Medium"
         ],
-        "type": "Fiend (Devil)",
-        "cr": "9 (5,000 XP)",
+        "type": "fiend (devil)",
+        "cr": "8 (3,900 XP)",
         "alignment": [
-          "Lawful Evil"
+          "lawful evil"
         ],
         "ac": [
           {
-            "ac": 19,
+            "ac": 16,
             "condition": "natural armor"
           }
         ],
         "hp": {
-          "average": 142,
-          "formula": "15d10 \u002B 60"
+          "average": 85,
+          "formula": "10d8 \u002B 40"
         },
         "speed": {
-          "walk": 40,
-          "fly": 40
+          "movement": "30ft."
         },
         "str": 18,
-        "dex": 16,
+        "dex": 15,
         "con": 18,
-        "int": 13,
-        "wis": 14,
-        "cha": 16,
-        "senses": [
-          "darkvision 120 ft.",
-          "passive Perception 12"
-        ],
-        "languages": [
-          "Infernal",
-          "telepathy 120 ft."
-        ],
+        "int": 11,
+        "wis": 12,
+        "cha": 14,
+        "save": {
+          "con": 7,
+          "wis": 4,
+          "cha": 5
+        },
         "damageTags": [
           "cold",
           "bludgeoning",
           "piercing",
           "slashing"
-        ],
-        "senseTags": [
-          "darkvision"
-        ],
-        "actionTags": [
-          "Multiattack",
-          "Claw",
-          "Sting"
-        ],
-        "keywords": [
-          "Devil\u0027s Sight",
-          "Magic Resistance"
         ]
       },
       "dataSource": "",
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
+      "needsReview": true,
+      "disposition": "NeedsReview",
       "keywords": []
     },
     {
@@ -1858,21 +1840,21 @@
       "name": "Tyrannosaurus Rex",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 80,
+      "page": 81,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 80
+        "page": 81
       },
       "revisedIn": [],
       "settingTags": [],
       "canonicalText": "",
       "fields": {
         "size": [
-          "Large"
+          "Huge"
         ],
         "type": "Beast",
-        "cr": "2 (450 XP)",
+        "cr": "8 (3,900 XP)",
         "alignment": [
           "Unaligned"
         ],
@@ -1883,27 +1865,44 @@
           }
         ],
         "hp": {
-          "average": 51,
-          "formula": "6d10 \u002B 18"
+          "average": 136,
+          "formula": "13d12 \u002B 52"
         },
         "speed": {
-          "walk": 60
+          "walk": 50
+        },
+        "str": 25,
+        "dex": 10,
+        "con": 19,
+        "int": 2,
+        "wis": 12,
+        "cha": 9,
+        "skill": {
+          "perception": 4
         },
         "senses": [
-          "Passive Perception 15"
+          "passive Perception 14"
         ],
         "languages": [],
-        "damageTags": [
-          "Piercing",
-          "Slashing"
-        ],
-        "actionTags": [
-          "Melee Weapon Attack"
-        ],
-        "keywords": [
-          "Large",
-          "Beast",
-          "Unaligned"
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The tyrannosaurus makes two attacks: one with its bite and one with its tail. It can\u0027t make both attacks against the same target."
+            ]
+          },
+          {
+            "name": "Bite",
+            "entries": [
+              "Melee Weapon Attack: \u002B10 to hit, reach 10 ft., one target. Hit: 33 (4d12 \u002B 7) piercing damage. If the target is a Medium or smaller creature, it is grappled (escape DC 17). Until this grapple ends, the target is restrained, and the tyrannosaurus can\u0027t bite another target."
+            ]
+          },
+          {
+            "name": "Tail",
+            "entries": [
+              "Melee Weapon Attack: \u002B10 to hit, reach 10 ft., one target. Hit: 20 (3d8 \u002B 7) bludgeoning damage."
+            ]
+          }
         ]
       },
       "dataSource": "",
@@ -1920,63 +1919,22 @@
       "name": "Ankylosaurus",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 80,
+      "page": 81,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 80
+        "page": 81
       },
       "revisedIn": [],
       "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "Huge"
-        ],
-        "type": "beast",
-        "cr": "3 (700 XP)",
-        "alignment": [
-          "unaligned"
-        ],
-        "ac": [
-          {
-            "ac": 15,
-            "condition": "natural armor"
-          }
-        ],
-        "hp": {
-          "average": 68,
-          "formula": "8d12 \u002B 16"
-        },
-        "speed": {
-          "value": 30,
-          "unit": "ft."
-        },
-        "str": 19,
-        "dex": 11,
-        "con": 15,
-        "int": 2,
-        "wis": 12,
-        "cha": 5,
-        "senses": [
-          "passive Perception 11"
-        ],
-        "languages": [],
-        "action": [
-          {
-            "name": "Tail",
-            "entries": [
-              "Melee Weapon Attack: \u002B7 to hit, reach 10 ft., one target. Hit: 18 (4d6 \u002B 4) bludgeoning damage. If the target is a creature, it must succeed on a DC 14 Strength saving throw or be knocked prone."
-            ]
-          }
-        ]
-      },
+      "canonicalText": "Source text describes a Triceratops with abilities like Trampling Charge, Gore, and Stomp, not Ankylosaurus.",
+      "fields": {},
       "dataSource": "",
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
+      "needsReview": true,
+      "disposition": "Declined",
       "keywords": []
     },
     {
@@ -3057,15 +3015,15 @@
       "name": "Leg Endary Act Ions",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 102,
+      "page": 106,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 102
+        "page": 106
       },
       "revisedIn": [],
       "settingTags": [],
-      "canonicalText": "The text is part of a monster\u0027s stat block and represents a section of a larger discrete entity (the monster\u0027s full entry), not a standalone rule or entity.",
+      "canonicalText": "The text describes a creature\u0027s abilities and actions, which are part of a stat block rather than a standalone entity.",
       "fields": {},
       "dataSource": "",
       "srd": false,
@@ -3454,9 +3412,8 @@
           "Sleep Breath. The dragon exhales sleep gas in a 15-foot cone. Each creature in that area must succeed on a DC 11 Constitution saving throw or fall unconscious for 1 minute. This effect ends for a creature if the creature takes damage or someone uses an action to wake it."
         ],
         "keywords": [
-          "dragon",
-          "wyrm",
-          "wyrmling"
+          "chaotic good",
+          "dragon"
         ]
       },
       "dataSource": "",
@@ -3869,7 +3826,7 @@
           "Draconic"
         ],
         "actionTags": [
-          "Legendary Resistance (3jDay)"
+          "Legendary Resistance (3/day). If the dragon fails a saving throw, it can choose to succeed instead."
         ],
         "keywords": [
           "dragon",
@@ -3975,11 +3932,8 @@
         "size": [
           "Medium"
         ],
-        "type": "dragon",
+        "type": "dragon, chaotic good",
         "cr": "1 (200 XP)",
-        "alignment": [
-          "chaotic good"
-        ],
         "ac": [
           {
             "ac": 16,
@@ -3991,9 +3945,9 @@
           "formula": "4d8 \u002B 4"
         },
         "speed": {
-          "walk": "30 ft.",
-          "climb": "30 ft.",
-          "fly": "60 ft."
+          "walk": 30,
+          "climb": 30,
+          "fly": 60
         },
         "str": 15,
         "dex": 12,
@@ -4002,8 +3956,8 @@
         "wis": 11,
         "cha": 13,
         "senses": [
-          "blindsight 10 ft.",
-          "darkvision 60 ft.",
+          "blindsight 10ft.",
+          "darkvision 60ft.",
           "passive Perception 14"
         ],
         "languages": [
@@ -4012,11 +3966,17 @@
         "damageTags": [
           "acid"
         ],
+        "senseTags": [
+          "blindsight",
+          "darkvision"
+        ],
         "actionTags": [
+          "melee weapon attack",
           "recharge 5-6"
         ],
         "keywords": [
-          "dragon"
+          "dragon",
+          "chaotic good"
         ]
       },
       "dataSource": "",
@@ -5125,8 +5085,8 @@
           "formula": "4d4 \u002B 4"
         },
         "speed": {
-          "walk": "10 ft.",
-          "fly": "60 ft."
+          "walk": 10,
+          "fly": 60
         },
         "str": 3,
         "dex": 20,
@@ -5140,8 +5100,8 @@
           "stealth": 7
         },
         "senses": [
-          "Darkvision 60 ft.",
-          "Passive Perception 13"
+          "darkvision 60ft.",
+          "passive Perception 13"
         ],
         "languages": [
           "Draconic",
@@ -5149,33 +5109,37 @@
         ],
         "spellcasting": [
           {
-            "level": "Innate",
-            "ability": "Chaarama",
-            "dc": 13,
-            "spells": [
-              "Dancing Lights",
-              "Mage Hand",
-              "Minor Illusion",
-              "Color Spray",
-              "Mirror Image",
-              "Suggestion",
-              "Major Image",
-              "Hallucinatory Terrain",
-              "Polymorph"
-            ]
+            "name": "Innate Spellcasting",
+            "description": "Charisma (spell save DC 13). Spells are gained as the dragon ages, with specific spells for each color phase."
+          },
+          {
+            "name": "Superior Invisibility",
+            "description": "As a bonus action, turn invisible until concentration ends."
+          },
+          {
+            "name": "Limited Telepathy",
+            "description": "Communicate with other faerie dragons within 60ft."
+          },
+          {
+            "name": "Magic Resistance",
+            "description": "Advantage on saving throws against spells/magical effects."
           }
         ],
+        "damageTags": [
+          "Arcane"
+        ],
         "actionTags": [
-          "Bonus Action",
-          "Recharge 5-6"
+          "Innate Spellcasting",
+          "Magic Resistance",
+          "Superior Invisibility"
         ]
       },
       "dataSource": "",
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": true,
-      "disposition": "NeedsReview",
+      "needsReview": false,
+      "disposition": "Accepted",
       "keywords": []
     },
     {
@@ -6251,48 +6215,64 @@
         "size": [
           "Medium"
         ],
-        "type": "humanoid",
-        "cr": "1/2 (100 XP)",
+        "type": "Fiend (gno/1)",
+        "cr": "4 (1,100 XP)",
         "alignment": [
-          "chaotic evil"
+          "Chaotic Evil"
         ],
         "ac": [
           {
-            "ac": 15,
-            "condition": "hide armor, shield"
+            "ac": 14,
+            "condition": "hide armor"
           }
         ],
         "hp": {
-          "average": 22,
-          "formula": "5d8"
+          "average": 65,
+          "formula": "10d8 \u002B 20"
         },
         "speed": {
           "movement": "30 ft."
         },
         "save": {
-          "str": 14,
-          "dex": 12,
-          "con": 11,
-          "int": 6,
-          "wis": 10,
-          "cha": 7
+          "con": "\u002B4",
+          "wis": "\u002B2",
+          "cha": "\u002B3"
         },
         "senses": [
-          "darkvision 60ft.",
+          "darkvision 60 ft.",
           "passive Perception 10"
         ],
         "languages": [
+          "Abyssal",
           "Gnoll"
         ],
-        "damageTags": [
-          "piercing"
+        "trait": [
+          {
+            "name": "Rampage",
+            "entries": [
+              "When the gnoll reduces a creature to 0 hit points with a melee attack on its turn, the gnoll can take a bonus action to move up to half its speed and make a bite attack."
+            ]
+          }
         ],
-        "actionTags": [
-          "Melee Weapon Attack",
-          "Ranged Weapon Attack"
-        ],
-        "keywords": [
-          "Rampage"
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The gnoll makes three attacks: one with its bite and two with its claws."
+            ]
+          },
+          {
+            "name": "Bite",
+            "entries": [
+              "Melee Weapon Attack: \u002B5 to hit, reach 5 ft., one creature. Hit: 6 (1d6 \u002B 3) piercing damage, and the target must succeed on a DC 12 Constitution saving throw or take 7 (2d6) poison damage."
+            ]
+          },
+          {
+            "name": "Claw",
+            "entries": [
+              "Melee Weapon Attack: \u002B5 to hit, reach 5 ft., one target. Hit: 7 (1d8 \u002B 3) slashing damage."
+            ]
+          }
         ]
       },
       "dataSource": "",
@@ -6797,54 +6777,22 @@
       "name": "Stone Golem",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 171,
+      "page": 172,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 171
+        "page": 172
       },
       "revisedIn": [],
       "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "Large"
-        ],
-        "type": "Construct",
-        "cr": "10 (5,900 XP)",
-        "alignment": [
-          "Unaligned"
-        ],
-        "ac": [
-          {
-            "ac": 17,
-            "condition": "natural armor"
-          }
-        ],
-        "hp": {
-          "average": 178,
-          "formula": "17d10 \u002B 85"
-        },
-        "speed": {
-          "movement": "30 ft."
-        },
-        "str": 22,
-        "dex": 9,
-        "con": 20,
-        "int": 3,
-        "wis": 11,
-        "cha": 1,
-        "damageTags": [
-          "poison",
-          "psychic"
-        ]
-      },
+      "canonicalText": "The source text describes a \u0027Gorgon\u0027 and \u0027Grell\u0027 entry, but does not mention \u0027Stone Golem\u0027. The provided text appears to be a mix of entries with OCR artifacts and formatting issues, making it impossible to confirm a distinct \u0027Stone Golem\u0027 entity.",
+      "fields": {},
       "dataSource": "",
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
       "needsReview": true,
-      "disposition": "NeedsReview",
+      "disposition": "Declined",
       "keywords": []
     },
     {
@@ -6989,68 +6937,22 @@
       "name": "Grickalpha",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 174,
+      "page": 175,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 174
+        "page": 175
       },
       "revisedIn": [],
       "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "Large"
-        ],
-        "type": "Monstrosity",
-        "cr": "7 (2,900 XP)",
-        "alignment": [
-          "Neutral"
-        ],
-        "ac": [
-          {
-            "ac": 18,
-            "condition": "natural armor"
-          }
-        ],
-        "hp": {
-          "average": 75,
-          "formula": "10d10 \u002B 20"
-        },
-        "speed": {
-          "movement": "30 ft.",
-          "climb": "30 ft."
-        },
-        "str": 18,
-        "dex": 16,
-        "con": 15,
-        "int": 4,
-        "wis": 14,
-        "cha": 9,
-        "damageTags": [
-          "bludgeoning",
-          "piercing",
-          "slashing"
-        ],
-        "senseTags": [
-          "darkvision 60 ft."
-        ],
-        "languageTags": [
-          "none"
-        ],
-        "actionTags": [
-          "Stone Camouflage"
-        ],
-        "keywords": [
-          "Monstrosity"
-        ]
-      },
+      "canonicalText": "Entity name does not match source text",
+      "fields": {},
       "dataSource": "",
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
+      "needsReview": true,
+      "disposition": "Declined",
       "keywords": []
     },
     {
@@ -7537,88 +7439,105 @@
       "name": "Hobgoblin Captain",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 187,
+      "page": 188,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 187
+        "page": 188
       },
       "revisedIn": [],
       "settingTags": [],
       "canonicalText": "",
       "fields": {
         "size": [
-          "Medium"
+          "Medium",
+          "humanoid",
+          "goblinoid"
         ],
-        "type": "humanoid (goblinoid)",
-        "cr": "3 (700 XP)",
+        "type": "humanoid",
+        "cr": "6 (2,300 XP)",
         "alignment": [
-          "lawful evil"
+          "lawful",
+          "evil"
         ],
         "ac": [
           {
-            "ac": 17,
-            "condition": "half plate"
+            "ac": 20,
+            "from": [
+              "plate",
+              "shield"
+            ]
           }
         ],
         "hp": {
-          "average": 39,
-          "formula": "6d8 \u002B 12"
+          "average": 97,
+          "formula": "13d8 \u002B 39"
         },
         "speed": {
-          "movement": "30 ft."
+          "land": 30
         },
-        "bonus": [
-          {
-            "name": "STR",
-            "entries": [
-              "15 (\u002B2)"
-            ]
-          },
-          {
-            "name": "DEX",
-            "entries": [
-              "14 (\u002B2)"
-            ]
-          },
-          {
-            "name": "CON",
-            "entries": [
-              "14 (\u002B2)"
-            ]
-          },
-          {
-            "name": "INT",
-            "entries": [
-              "12 (\u002B1)"
-            ]
-          },
-          {
-            "name": "WIS",
-            "entries": [
-              "10 (\u002B0)"
-            ]
-          },
-          {
-            "name": "CHA",
-            "entries": [
-              "13 (\u002B1)"
-            ]
-          }
-        ],
-        "senseTags": [
+        "str": 16,
+        "dex": 14,
+        "con": 16,
+        "int": 14,
+        "wis": 11,
+        "cha": 15,
+        "senses": [
           "darkvision 60ft.",
           "passive Perception 10"
         ],
-        "languageTags": [
+        "languages": [
           "Common",
           "Goblin"
         ],
-        "actionTags": [
-          "Multiattack: two greatsword attacks",
-          "Greatsword: \u002B4 to hit, 5 ft. reach, 9 (2d6 \u002B 2) piercing damage",
-          "Javelin: \u002B4 to hit, 5 ft. reach / 30/120 ft. range, 5 (1d6 \u002B 2) piercing damage",
-          "Leadership (Recharges after a Short or Long Rest): 1 minute duration, add d4 to rolls for allies within 30 ft."
+        "trait": [
+          {
+            "name": "Martial Advantage",
+            "entries": [
+              "Once per turn, the hobgoblin can deal an extra 14 (4d6) damage to a creature it hits with a weapon attack if that creature is within 5 feet of an ally of the hobgoblin that isn\u0027t incapacitated."
+            ]
+          },
+          {
+            "name": "Leadership",
+            "entries": [
+              "For 1 minute, the hobgoblin can utter a special command or warning whenever a non-hostile creature that it can see within 30 feet of it makes an attack roll or a saving throw. The creature can add a d4 to its roll provided it can hear and understand the hobgoblin. A creature can benefit from only one Leadership die at a time. This effect ends if the hobgoblin is incapacitated.",
+              "Recharges after a Short or Long Rest"
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The hobgoblin makes three melee attacks. Alternatively, it can make two ranged attacks with its javelins."
+            ]
+          },
+          {
+            "name": "Longsword",
+            "entries": [
+              "Melee Weapon Attack: \u002B9 to hit, reach 5 ft., one target. Hit: 7 (1d8 \u002B 3) slashing damage, or 8 (1d10 \u002B 3) slashing damage if used with two hands."
+            ]
+          },
+          {
+            "name": "Shield Bash",
+            "entries": [
+              "Melee Weapon Attack: \u002B9 to hit, reach 5 ft., one creature. Hit: 5 (1d4 \u002B 3) bludgeoning damage. If the target is Large or smaller, it must succeed on a DC 14 Strength saving throw or be knocked prone."
+            ]
+          },
+          {
+            "name": "Javelin",
+            "entries": [
+              "Melee or Ranged Weapon Attack: \u002B9 to hit, reach 5 ft. or range 30/120 ft., one target. Hit: 6 (1d6 \u002B 3) piercing damage."
+            ]
+          }
+        ],
+        "reaction": [
+          {
+            "name": "Parry",
+            "entries": [
+              "The hobgoblin adds 3 to its AC against one melee attack that would hit it. To do so, the hobgoblin must see the attacker and be wielding a melee weapon."
+            ]
+          }
         ]
       },
       "dataSource": "",
@@ -8913,11 +8832,11 @@
       "name": "Monodrone",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 225,
+      "page": 226,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 225
+        "page": 226
       },
       "revisedIn": [],
       "settingTags": [],
@@ -8927,7 +8846,7 @@
           "Medium"
         ],
         "type": "Construct",
-        "cr": "1/8 (25 XP)",
+        "cr": "1/4 (50 XP)",
         "alignment": [
           "Lawful Neutral"
         ],
@@ -8938,19 +8857,18 @@
           }
         ],
         "hp": {
-          "average": 5,
-          "formula": "1d8 \u002B 1"
+          "average": 11,
+          "formula": "2d8 \u002B 2"
         },
         "speed": {
-          "walk": 30,
-          "fly": 3
+          "value": "30 ft."
         },
-        "str": 10,
+        "str": 11,
         "dex": 13,
         "con": 12,
-        "int": 4,
+        "int": 6,
         "wis": 10,
-        "cha": 5,
+        "cha": 7,
         "senses": [
           "truesight 120ft.",
           "passive Perception 10"
@@ -8958,37 +8876,17 @@
         "languages": [
           "Modron"
         ],
-        "trait": [
-          {
-            "name": "Axiomatic Mind",
-            "entries": [
-              "The monodrone can\u0027t be compelled to act in a manner contrary to its nature or its instructions."
-            ]
-          },
-          {
-            "name": "Disintegration",
-            "entries": [
-              "If the monodrone dies, its body disintegrates into dust, leaving behind its weapons and anything else it was carrying."
-            ]
-          }
+        "damageTags": [
+          "Bludgeoning",
+          "Piercing"
         ],
-        "action": [
-          {
-            "name": "Dagger",
-            "entries": [
-              "Melee Weapon Attack: \u002B3 to hit, reach 5 ft., one target. Hit: 3 (1d4 \u002B 1) piercing damage."
-            ]
-          },
-          {
-            "name": "Javelin",
-            "entries": [
-              "Melee or Ranged Weapon Attack: \u002B3 to hit, reach 5 ft. or range 30/120 ft., one target. Hit: 4 (1d6 \u002B 1) piercing damage."
-            ]
-          }
+        "actionTags": [
+          "Construct"
         ],
-        "spellcasting": [],
-        "damageTags": [],
-        "keywords": []
+        "keywords": [
+          "Axiomatic Mind",
+          "Disintegration"
+        ]
       },
       "dataSource": "",
       "srd": false,
@@ -9226,11 +9124,11 @@
       "name": "Spirit Naga",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 234,
+      "page": 235,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 234
+        "page": 235
       },
       "revisedIn": [],
       "settingTags": [],
@@ -9239,10 +9137,10 @@
         "size": [
           "Large"
         ],
-        "type": "Undead",
-        "cr": "4 (1,100 XP)",
+        "type": "Monstrosity",
+        "cr": "8 (3,900 XP)",
         "alignment": [
-          "Lawful Evil"
+          "Chaotic Evil"
         ],
         "ac": [
           {
@@ -9251,51 +9149,24 @@
           }
         ],
         "hp": {
-          "average": 58,
-          "formula": "9d10 \u002B 9"
+          "average": 75,
+          "formula": "10d10 \u002B 20"
         },
         "speed": {
-          "value": 30,
-          "unit": "ft."
+          "movement": "40 ft."
         },
-        "bonus": [
-          {
-            "name": "STR",
-            "entries": [
-              "\u002B2"
-            ]
-          },
-          {
-            "name": "DEX",
-            "entries": [
-              "\u002B3"
-            ]
-          },
-          {
-            "name": "CON",
-            "entries": [
-              "\u002B1"
-            ]
-          },
-          {
-            "name": "INT",
-            "entries": [
-              "\u002B2"
-            ]
-          },
-          {
-            "name": "WIS",
-            "entries": [
-              "\u002B2"
-            ]
-          },
-          {
-            "name": "CHA",
-            "entries": [
-              "\u002B3"
-            ]
-          }
-        ],
+        "str": 18,
+        "dex": 17,
+        "con": 14,
+        "int": 16,
+        "wis": 15,
+        "cha": 16,
+        "save": {
+          "dex": 6,
+          "con": 5,
+          "wis": 5,
+          "cha": 6
+        },
         "damageTags": [
           "poison"
         ]
@@ -9475,59 +9346,22 @@
       "name": "Black Pudding",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 242,
+      "page": 243,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 242
+        "page": 243
       },
       "revisedIn": [],
       "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "Large"
-        ],
-        "type": "Ooze",
-        "cr": "4 (1,100 XP)",
-        "alignment": [
-          "Unaligned"
-        ],
-        "ac": [
-          {
-            "ac": 7,
-            "from": [
-              "Natural Armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 85,
-          "formula": "10d10 \u002B 30"
-        },
-        "speed": {
-          "movement": "20 ft.",
-          "climb": "20 ft."
-        },
-        "str": 16,
-        "dex": 5,
-        "con": 16,
-        "int": 1,
-        "wis": 6,
-        "cha": 1,
-        "damageTags": [
-          "Acid",
-          "Cold",
-          "Lightning",
-          "Slashing"
-        ]
-      },
+      "canonicalText": "The text contains multiple monster entries (Black Pudding, smaller variant, Jelly) and non-entity sections like abilities and reactions. The query specifies \u0027BLACK PUDDING\u0027 but the source text includes overlapping/variant entries that aren\u0027t cleanly separable into distinct entities without additional context.",
+      "fields": {},
       "dataSource": "",
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
       "needsReview": true,
-      "disposition": "NeedsReview",
+      "disposition": "Declined",
       "keywords": []
     },
     {
@@ -12245,70 +12079,22 @@
       "name": "Xorn",
       "sourceBook": "MM",
       "edition": "Edition2014",
-      "page": 305,
+      "page": 306,
       "firstAppearedIn": {
         "book": "MM",
         "edition": "Edition2014",
-        "page": 305
+        "page": 306
       },
       "revisedIn": [],
       "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "Medium"
-        ],
-        "type": "elemental, neutral",
-        "cr": "5 (1,800 XP)",
-        "alignment": null,
-        "ac": [
-          {
-            "ac": 19,
-            "condition": "natural armor"
-          }
-        ],
-        "hp": {
-          "average": 73,
-          "formula": "7d8 \u002B 42"
-        },
-        "speed": {
-          "movement": "20 ft.",
-          "burrow": "20 ft."
-        },
-        "str": 17,
-        "dex": 10,
-        "con": 22,
-        "int": 11,
-        "wis": 10,
-        "cha": 11,
-        "skill": {
-          "perception": 6,
-          "stealth": 3
-        },
-        "damageTags": [
-          "piercing",
-          "slashing"
-        ],
-        "senseTags": [
-          "darkvision 60ft.",
-          "tremorsense 60ft.",
-          "passive Perception 16"
-        ],
-        "languageTags": [
-          "Terran"
-        ],
-        "actionTags": [
-          "Earth Glide",
-          "Stone Camouflage",
-          "Treasure Sense"
-        ]
-      },
+      "canonicalText": "The source text describes a Yeti stat block, not an Xorn. The entity name \u0027XORN\u0027 does not match the content, which refers to a yeti with abilities like Cold Breath and Chilling Gaze. The text contains two yeti variants but no mention of Xorn.",
+      "fields": {},
       "dataSource": "",
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
       "needsReview": true,
-      "disposition": "NeedsReview",
+      "disposition": "Declined",
       "keywords": []
     },
     {
@@ -12973,10 +12759,18 @@
         "senses": [
           "Blindsight 60 ft., passive Perception 11"
         ],
-        "languages": [],
-        "damageTags": [],
-        "actionTags": [],
-        "keywords": []
+        "languages": [
+          "none"
+        ],
+        "damageTags": [
+          "Piercing"
+        ],
+        "actionTags": [
+          "Melee Weapon Attack"
+        ],
+        "keywords": [
+          "Bat"
+        ]
       },
       "dataSource": "",
       "srd": false,
@@ -14171,12 +13965,14 @@
         "int": 1,
         "wis": 8,
         "cha": 3,
+        "save": null,
         "skill": {
           "perception": 1,
           "stealth": 3
         },
         "senses": [
-          "Darkvision 30 ft., passive Perception 11"
+          "Darkvision 30 ft.",
+          "Passive Perception 11"
         ],
         "languages": [],
         "trait": [
@@ -14193,7 +13989,18 @@
             ]
           }
         ],
+        "action": [],
+        "legendary": [],
         "spellcasting": [],
+        "environment": [
+          "Near water",
+          "In trees",
+          "Underground"
+        ],
+        "miscTags": [
+          "Feeds on small insects"
+        ],
+        "damageTags": [],
         "actionTags": [],
         "keywords": []
       },
@@ -15195,14 +15002,52 @@
       },
       "revisedIn": [],
       "settingTags": [],
-      "canonicalText": "The text contains a mix of formatted stat-block elements and narrative description, but lacks a clear, discrete entity definition. The \u0027Languages-Challenge\u0027 line appears to be a formatting error, and the entry includes non-stat-block narrative about usage by lizardfolk and drow.",
-      "fields": {},
+      "canonicalText": "",
+      "fields": {
+        "size": [
+          "Large"
+        ],
+        "type": "Beast",
+        "cr": "1/4",
+        "alignment": [
+          "unaligned"
+        ],
+        "ac": null,
+        "hp": {
+          "formula": "19 (3d10 \u002B 3)",
+          "special": "19"
+        },
+        "speed": {
+          "movement": "30 ft.",
+          "climb": "30 ft."
+        },
+        "str": 15,
+        "dex": 12,
+        "con": 13,
+        "int": 2,
+        "wis": 10,
+        "cha": 5,
+        "senses": [
+          "darkvision 30 ft.",
+          "passive Perception 10"
+        ],
+        "languages": [],
+        "damageTags": [
+          "piercing"
+        ],
+        "actionTags": [
+          "Melee Weapon Attack"
+        ],
+        "keywords": [
+          "natural armor"
+        ]
+      },
       "dataSource": "",
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": true,
-      "disposition": "Declined",
+      "needsReview": false,
+      "disposition": "Accepted",
       "keywords": []
     },
     {
@@ -17677,7 +17522,7 @@
       },
       "revisedIn": [],
       "settingTags": [],
-      "canonicalText": "The provided text is a stat block for a creature, but the entity name \u0027SEA HORSE\u0027 is not explicitly listed in the source text. The text describes a creature\u0027s attributes but does not confirm it is named \u0027Sea Horse\u0027 in the Monster Manual.",
+      "canonicalText": "The text describes a monster entry but lacks a discrete game entity structure. It contains stat blocks and abilities but is presented as a raw data entry without explicit entity boundaries.",
       "fields": {},
       "dataSource": "",
       "srd": false,
