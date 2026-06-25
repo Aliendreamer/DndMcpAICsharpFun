@@ -161,6 +161,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<SemanticChunker>();
         services.AddSingleton<EntityFieldMerger>();
         services.AddSingleton<EntityCandidateScanner>();
+        services.AddSingleton<StatBlockScanner>();
         services.AddSingleton<CanonicalJsonWriter>();
         services.AddSingleton<ExtractionErrorsFile>();
         services.AddSingleton<ExtractionWarningsFile>();

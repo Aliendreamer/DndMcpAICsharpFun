@@ -16,6 +16,7 @@ public sealed class EntityExtractionOrchestrator(
     IPdfStructureConverter converter,
     IPdfBookmarkReader bookmarks,
     EntityCandidateScanner scanner,
+    StatBlockScanner statBlockScanner,
     CanonicalJsonWriter writer,
     ExtractionErrorsFile errorsFile,
     ExtractionWarningsFile warningsFile,
@@ -77,7 +78,12 @@ public sealed class EntityExtractionOrchestrator(
 
             // 3. Project structure items into ScannerInputs.
             var scannerInputs = BuildScannerInputs(doc.Items);
-            var candidates    = scanner.Scan(scannerInputs, tocMap).ToList();
+            var sectionCandidates = scanner.Scan(scannerInputs, tocMap).ToList();
+            // Recover stat blocks Marker failed to tag with a heading (headerless / fragmented under
+            // mis-detected ACTIONS headers). Prepend so they win the id-keyed dedup with clean stat-block
+            // text and supersede a headerless monster's lore-only section candidate.
+            var statBlockCandidates = statBlockScanner.Scan(doc.Items).ToList();
+            var candidates    = statBlockCandidates.Concat(sectionCandidates).ToList();
 
             logger.LogInformation(
                 "Entity extraction: {CandidateCount} candidates from {ItemCount} structure items",
