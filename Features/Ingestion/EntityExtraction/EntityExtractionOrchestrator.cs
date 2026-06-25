@@ -83,7 +83,12 @@ public sealed class EntityExtractionOrchestrator(
             // mis-detected ACTIONS headers). Prepend so they win the id-keyed dedup with clean stat-block
             // text and supersede a headerless monster's lore-only section candidate.
             var statBlockCandidates = statBlockScanner.Scan(doc.Items).ToList();
-            var candidates    = statBlockCandidates.Concat(sectionCandidates).ToList();
+            // Collapse same-id candidates (a header-clean monster yields both a section and a
+            // stat-block candidate) to the best input: prefer the one carrying a stat block, then
+            // the richer text — so header-clean monsters extract from full-context section text
+            // (reliable) and headerless ones keep their stat-block candidate.
+            var candidates    = ExtractionCandidateDeduplicator.Dedupe(
+                statBlockCandidates.Concat(sectionCandidates), record.DisplayName);
 
             logger.LogInformation(
                 "Entity extraction: {CandidateCount} candidates from {ItemCount} structure items",
