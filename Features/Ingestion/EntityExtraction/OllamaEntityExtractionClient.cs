@@ -20,6 +20,9 @@ public sealed class OllamaEntityExtractionClient(
         {
             ModelId = req.ModelId,
             MaxOutputTokens = req.MaxOutputTokens,
+            // Greedy/deterministic decoding: the model reliably picks the most-likely union branch
+            // (a stat block -> Monster) instead of sampling the decline branch ~half the time.
+            Temperature = 0f,
             ResponseFormat = ChatResponseFormat.ForJsonSchema(req.ToolInputSchema),
         };
 

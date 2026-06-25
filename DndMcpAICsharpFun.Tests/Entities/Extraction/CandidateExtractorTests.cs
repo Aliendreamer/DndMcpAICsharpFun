@@ -137,4 +137,62 @@ public sealed class CandidateExtractorTests
         fields.Should().BeNull();
         error.Should().Be("timeout");
     }
+
+    // ── ExtractUnionAsync ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ExtractUnionAsync_union_call_sees_whole_candidate_not_just_first_chunk()
+    {
+        // Regression from re-extracting the Monster Manual: MM monster entries open with a lore
+        // intro that fills the first chunk, so a union/type call limited to chunk[0] sees only
+        // narrative and wrongly DECLINES. The type-decision call must see the stat block too.
+        var capturedPrompts = new List<string>();
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        using var resp = JsonDocument.Parse("""{"entityType":"Monster","name":"Gelatinous Cube"}""");
+        llm.ExtractAsync(Arg.Any<ExtractionRequest>(), Arg.Any<CancellationToken>())
+           .Returns(ci =>
+           {
+               capturedPrompts.Add(ci.Arg<ExtractionRequest>().UserPrompt);
+               return new ExtractionResponse(
+                   Success: true, ToolInput: resp.RootElement.Clone(), StopReason: "tool_use",
+                   InputTokens: 0, OutputTokens: 0, ErrorMessage: null, RawJson: null);
+           });
+
+        var opts = Options.Create(new EntityExtractionOptions
+        {
+            MaxOutputTokensPerEntity = 4096,
+            MaxTokensPerChunk = 20, // small, so the lore intro alone fills the first chunk
+        });
+        var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
+        var extractor = new CandidateExtractor(
+            llm: llm, promptBuilder: new ExtractionPromptBuilder(), chunker: new SemanticChunker(),
+            merger: new EntityFieldMerger(), retry: new ExtractionRetryPolicy { MaxAttempts = 1 },
+            options: opts, ollamaOpts: ollamaOpts, logger: NullLogger<CandidateExtractor>.Instance);
+
+        var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+        {
+            Id = 1, FilePath = "/dev/null", FileName = "mm.pdf",
+            FileHash = "h", Version = "5e", DisplayName = "Monster Manual",
+        };
+        var schemas = new Dictionary<DndMcpAICsharpFun.Domain.Entities.EntityType, JsonElement>
+        {
+            [DndMcpAICsharpFun.Domain.Entities.EntityType.Monster] =
+                JsonDocument.Parse("""{"type":"object","properties":{"name":{"type":"string"}}}""").RootElement.Clone(),
+        };
+        var lore = string.Join(" ", Enumerable.Repeat("lore", 80)); // long narrative intro
+        var candidate = new EntityCandidate(
+            Type: DndMcpAICsharpFun.Domain.Entities.EntityType.Monster,
+            DisplayName: "Gelatinous Cube",
+            Text: lore + " STATBLOCK_MARKER Armor Class 6 Hit Points 84 Challenge 2",
+            Page: 1,
+            TypePrior: new[] { DndMcpAICsharpFun.Domain.Entities.EntityType.Monster });
+
+        var result = await extractor.ExtractUnionAsync(
+            record, candidate, candidate.TypePrior, schemas, CancellationToken.None);
+
+        result.Outcome.Should().Be(UnionOutcome.Typed);
+        capturedPrompts.Should().NotBeEmpty();
+        capturedPrompts[0].Should().Contain("STATBLOCK_MARKER",
+            "the union/type-decision call must see the stat block, not just the lore-filled first chunk");
+    }
 }
