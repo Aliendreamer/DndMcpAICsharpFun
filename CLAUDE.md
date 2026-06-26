@@ -82,7 +82,7 @@ New endpoints:
 7. Merge.
 8. `POST /admin/books/{id}/ingest-entities` — populate `dnd_entities`.
 
-**5etools source key rule:** Always supply `fivetoolsSourceKey` for any official WotC book. This aligns entity IDs with the 5etools slug (e.g. `mpmm.monster.yuan-ti-anathema`), derives the correct edition from the registry's `publishedYear`, and ensures `POST /admin/5etools/import` can later supplement the same entities with 5etools-sourced data (traitTags → keywords, SRD flags, etc.). For homebrew or third-party books not covered by 5etools, omit the key — the system creates opaque IDs from the display name and that's fine.
+**5etools source key rule:** Always supply `fivetoolsSourceKey` for any official WotC book. This aligns entity IDs with the 5etools slug (e.g. `mpmm.monster.yuan-ti-anathema`), derives the correct edition from the registry's `publishedYear`, and ensures `POST /admin/5etools/import` can later supplement the same entities with 5etools-sourced data (traitTags → keywords, SRD flags, etc.). **The canonical file slug derives from `fivetoolsSourceKey` too** — `PHB` → `books/canonical/phb14.json` (and entity ids `phb14.spell.fireball`), via the `EntityIdSlug` override table. So **always pass the key for official books**, or the run writes a mis-named file: displayName `"PlayerHandbook 2014"` (no apostrophe, not in the override table) produced `playerhandbook-2014.json` instead of `phb14.json`. For non-5etools books, the displayName slugifies directly (and must match an override-table entry to get a short slug). For homebrew or third-party books not covered by 5etools, omit the key — the system creates opaque IDs from the display name and that's fine.
 
 ## Observability
 
