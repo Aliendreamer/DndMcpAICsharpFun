@@ -92,13 +92,16 @@ public sealed class CandidateExtractor(
         var chunks = chunker.Split(candidate.Text, _opts.MaxTokensPerChunk);
         if (chunks.Count == 0) chunks = new List<string> { candidate.Text };
 
-        // Type decision: the union call sees the WHOLE candidate (not just chunks[0]) so it can
-        // recognise a stat block even when the entry opens with a lore intro. Ollama truncates the
-        // input to the model context (keeping the top, where the stat block sits) for long entries;
-        // remaining chunks are still completed per-type below.
+        // Type decision: the union call sees the top of the candidate (capped to
+        // MaxTypeDecisionChars) — enough to recognise the type and a near-the-top stat block even
+        // after a lore intro, without sending a whole multi-chunk section (which makes the call
+        // multi-minute and can fail). Field extraction still chunks the FULL text below.
+        var typeDecisionText = candidate.Text.Length > _opts.MaxTypeDecisionChars
+            ? candidate.Text[.._opts.MaxTypeDecisionChars]
+            : candidate.Text;
         var firstResp = await CallAsync(
             promptBuilder.BuildUnionSystemPrompt(record.DisplayName, record.Version),
-            candidate,
+            candidate with { Text = typeDecisionText },
             "emit_entity", "Emit one entity branch or decline via entityType:none.",
             union, ct);
 

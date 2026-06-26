@@ -15,4 +15,12 @@ public sealed class EntityExtractionOptions
     public string ConversionCacheDirectory { get; set; } = "books/conversion-cache";
     public string ExamplesDirectory { get; set; } = "Schemas/examples";
     public int MaxTokensPerChunk { get; set; } = 2000;
+
+    /// <summary>
+    /// Max characters of a candidate sent to the content-first union/type-decision call. The model
+    /// only needs the top of a candidate to identify its type (and a stat block sits near the top);
+    /// without this cap, a huge section (e.g. a full PHB class) makes the union call multi-minute and
+    /// can fail. Field extraction still chunks the FULL text, so nothing is lost.
+    /// </summary>
+    public int MaxTypeDecisionChars { get; set; } = 8000;
 }

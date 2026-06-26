@@ -195,4 +195,56 @@ public sealed class CandidateExtractorTests
         capturedPrompts[0].Should().Contain("STATBLOCK_MARKER",
             "the union/type-decision call must see the stat block, not just the lore-filled first chunk");
     }
+
+    [Fact]
+    public async Task ExtractUnionAsync_caps_type_decision_text_for_oversized_candidates()
+    {
+        // A huge candidate (e.g. a full PHB class section) must not be sent whole to the type call,
+        // which would take minutes / fail. Only the top (cap) is sent; field extraction still chunks
+        // the full text.
+        var capturedPrompts = new List<string>();
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        using var resp = JsonDocument.Parse("""{"entityType":"Class","name":"Wizard"}""");
+        llm.ExtractAsync(Arg.Any<ExtractionRequest>(), Arg.Any<CancellationToken>())
+           .Returns(ci =>
+           {
+               capturedPrompts.Add(ci.Arg<ExtractionRequest>().UserPrompt);
+               return new ExtractionResponse(
+                   Success: true, ToolInput: resp.RootElement.Clone(), StopReason: "tool_use",
+                   InputTokens: 0, OutputTokens: 0, ErrorMessage: null, RawJson: null);
+           });
+
+        var opts = Options.Create(new EntityExtractionOptions
+        {
+            MaxOutputTokensPerEntity = 4096, MaxTokensPerChunk = 2000, MaxTypeDecisionChars = 200,
+        });
+        var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
+        var extractor = new CandidateExtractor(
+            llm: llm, promptBuilder: new ExtractionPromptBuilder(), chunker: new SemanticChunker(),
+            merger: new EntityFieldMerger(), retry: new ExtractionRetryPolicy { MaxAttempts = 1 },
+            options: opts, ollamaOpts: ollamaOpts, logger: NullLogger<CandidateExtractor>.Instance);
+
+        var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+        {
+            Id = 1, FilePath = "/dev/null", FileName = "phb.pdf",
+            FileHash = "h", Version = "5e", DisplayName = "Player's Handbook",
+        };
+        var schemas = new Dictionary<DndMcpAICsharpFun.Domain.Entities.EntityType, JsonElement>
+        {
+            [DndMcpAICsharpFun.Domain.Entities.EntityType.Class] =
+                JsonDocument.Parse("""{"type":"object","properties":{"name":{"type":"string"}}}""").RootElement.Clone(),
+        };
+        var candidate = new EntityCandidate(
+            Type: DndMcpAICsharpFun.Domain.Entities.EntityType.Class,
+            DisplayName: "Wizard",
+            Text: "Wizard class features at the top. " + new string('x', 500) + " UNIQUE_TAIL_MARKER",
+            Page: 1,
+            TypePrior: new[] { DndMcpAICsharpFun.Domain.Entities.EntityType.Class });
+
+        await extractor.ExtractUnionAsync(record, candidate, candidate.TypePrior, schemas, CancellationToken.None);
+
+        capturedPrompts[0].Should().Contain("Wizard class features", "the top of the candidate is sent");
+        capturedPrompts[0].Should().NotContain("UNIQUE_TAIL_MARKER",
+            "text beyond MaxTypeDecisionChars must be excluded from the type-decision call");
+    }
 }

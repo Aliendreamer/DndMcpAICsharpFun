@@ -1,0 +1,23 @@
+[
+  {
+    "sourceEntityId": "playerhandbook-2014.class.minor-conjuration",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "playerhandbook-2014.item.coinage",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "playerhandbook-2014.spell.purify-food-and-drink",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  }
+]

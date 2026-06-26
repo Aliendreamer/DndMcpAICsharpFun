@@ -839,8 +839,9 @@ public class EntityExtractionOrchestratorTests
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
 
             // Assert: canonical JSON must exist and carry source="PHB", edition="Edition2014".
+            // The slug derives from the source key (PHB -> phb14), not the display name.
             var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
-                .For(displayName, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .For(record.FivetoolsSourceKey!, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
                 .Split('.')[0];
             var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
 

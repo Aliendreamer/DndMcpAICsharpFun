@@ -34,8 +34,10 @@ public sealed class EntityExtractionOrchestrator(
         var record = await tracker.GetByIdAsync(bookId, ct)
                      ?? throw new InvalidOperationException($"No ingestion record {bookId}");
 
+        // Honour the 5etools source key for the slug/ids (PHB -> phb14), falling back to the
+        // display name. Aligns the canonical file name and entity ids with the 5etools pipeline.
         var bookSlug = EntityIdSlug
-            .For(record.DisplayName, EntityType.Class, "x")
+            .For(BookKey(record), EntityType.Class, "x")
             .Split('.')[0];
 
         var canonicalPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".json");
@@ -88,7 +90,7 @@ public sealed class EntityExtractionOrchestrator(
             // the richer text — so header-clean monsters extract from full-context section text
             // (reliable) and headerless ones keep their stat-block candidate.
             var candidates    = ExtractionCandidateDeduplicator.Dedupe(
-                statBlockCandidates.Concat(sectionCandidates), record.DisplayName);
+                statBlockCandidates.Concat(sectionCandidates), BookKey(record));
 
             logger.LogInformation(
                 "Entity extraction: {CandidateCount} candidates from {ItemCount} structure items",
@@ -160,7 +162,7 @@ public sealed class EntityExtractionOrchestrator(
         {
             ct.ThrowIfCancellationRequested();
             var candidate = candidates[i];
-            var id = EntityIdSlug.For(record.DisplayName, candidate.Type, candidate.DisplayName);
+            var id = EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
 
             if (doneIds.Contains(id))
                 continue;
@@ -311,7 +313,7 @@ public sealed class EntityExtractionOrchestrator(
         {
             ct.ThrowIfCancellationRequested();
             var candidate = candidates[i];
-            var id = EntityIdSlug.For(record.DisplayName, candidate.Type, candidate.DisplayName);
+            var id = EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
 
             if (!retrySet.Contains(id)) continue;
 
@@ -380,6 +382,11 @@ public sealed class EntityExtractionOrchestrator(
 
         await tracker.MarkEntitiesExtractedAsync(bookId, mergedEntities.Count, ct);
     }
+
+    // The book identifier used for slug/id derivation: the 5etools source key when present
+    // (mapped to a canonical slug like phb14 by EntityIdSlug), else the display name.
+    private static string BookKey(DndMcpAICsharpFun.Domain.IngestionRecord record) =>
+        record.FivetoolsSourceKey ?? record.DisplayName;
 
     private (string SourceBook, string Edition) DeriveSourceAndEdition(DndMcpAICsharpFun.Domain.IngestionRecord record)
     {
