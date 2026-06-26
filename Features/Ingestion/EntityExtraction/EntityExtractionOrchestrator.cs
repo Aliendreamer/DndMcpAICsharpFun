@@ -433,7 +433,7 @@ public sealed class EntityExtractionOrchestrator(
         // with the Monster schema instead of offering the content-first decline branch — the model
         // otherwise sometimes declines a clear stat block (the Aboleth case).
         if (schemas.TryGetValue(EntityType.Monster, out var monsterSchema) &&
-            StatBlockSignature.IsCompleteStatBlock(candidate.Text))
+            ExtractionSignatures.IsCompleteStatBlock(candidate.Text))
         {
             var (statFields, statError) = await candidateExtractor.ExtractFieldsAsync(
                 record, candidate with { Type = EntityType.Monster }, monsterSchema, ct);

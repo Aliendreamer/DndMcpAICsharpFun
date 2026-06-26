@@ -21,13 +21,9 @@ public static class ExtractionCandidateDeduplicator
         return candidates
             .GroupBy(c => EntityIdSlug.For(bookDisplayName, c.Type, c.DisplayName), StringComparer.Ordinal)
             .Select(g => g
-                .OrderByDescending(HasStatBlock)
+                .OrderByDescending(c => ExtractionSignatures.HasArmorClass(c.Text) && ExtractionSignatures.HasHitPoints(c.Text))
                 .ThenByDescending(c => c.Text.Length)
                 .First())
             .ToList();
     }
-
-    private static bool HasStatBlock(EntityCandidate c) =>
-        c.Text.Contains("Armor Class", StringComparison.OrdinalIgnoreCase) &&
-        c.Text.Contains("Hit Points", StringComparison.OrdinalIgnoreCase);
 }
