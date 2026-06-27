@@ -6,9 +6,11 @@ public enum DeterministicOutcome { Drop, ForceType, Defer }
 
 public readonly record struct TypeResolution(DeterministicOutcome Outcome, EntityType ForcedType)
 {
+    public string? CanonicalName { get; init; }
     public static readonly TypeResolution Drop = new(DeterministicOutcome.Drop, default);
     public static readonly TypeResolution Defer = new(DeterministicOutcome.Defer, default);
-    public static TypeResolution Force(EntityType type) => new(DeterministicOutcome.ForceType, type);
+    public static TypeResolution Force(EntityType type, string? canonicalName = null) =>
+        new(DeterministicOutcome.ForceType, type) { CanonicalName = canonicalName };
 }
 
 /// <summary>
@@ -19,8 +21,13 @@ public readonly record struct TypeResolution(DeterministicOutcome Outcome, Entit
 /// </summary>
 public static class DeterministicTypeResolver
 {
-    public static TypeResolution Resolve(EntityCandidate candidate)
+    public static TypeResolution Resolve(EntityCandidate candidate, EntityNameMatcher? matcher = null)
     {
+        // Step 1 (highest priority): 5etools name match — force type and carry canonical name.
+        // Runs BEFORE the drop filter so known entities are never silently discarded.
+        if (matcher?.Match(candidate.DisplayName) is { } m)
+            return TypeResolution.Force(m.Type, m.Canonical);
+
         if (!ExtractionSignatures.IsEntityLikeName(candidate.DisplayName))
             return TypeResolution.Drop;
         if (ExtractionSignatures.IsCompleteStatBlock(candidate.Text))
