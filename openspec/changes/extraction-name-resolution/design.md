@@ -33,7 +33,8 @@ catalogued by 5etools under MM. The index is keyed by name+type across all sourc
 SourceBook stays the book we're extracting.
 
 **3. Index TOP-LEVEL types only.** spell / monster / item (rarity → MagicItem else Item) / class /
-background / race / feat / condition / deity→God / plane→Plane. Deliberately exclude
+background / race / feat / condition / deity→God (planes have no standalone source array in the
+local mirror, so they fall to content-first). Deliberately exclude
 `optionalfeatures` and subclass-features — indexing them would resurrect the feature-noise
 (`Spellcasting`, `Archery`, `Metamagic`) the resolver correctly stopped extracting.
 

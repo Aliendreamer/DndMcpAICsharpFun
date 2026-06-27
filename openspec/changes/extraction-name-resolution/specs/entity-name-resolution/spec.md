@@ -4,9 +4,10 @@
 
 The system SHALL build an in-memory index from the local 5etools data (`5etools/*.json`) mapping a
 normalized entity name to its canonical name and `EntityType`. The index SHALL cover TOP-LEVEL entity
-types only — spell, monster, item, class, background, race, feat, condition, deity (→ God), plane
-(→ Plane) — and SHALL NOT index optionalfeatures or subclass-features (which are sub-features, not
-standalone entities). The index SHALL be built once (singleton) at startup.
+types only — spell, monster, item, class, background, race, feat, condition, deity (→ God) — and SHALL
+NOT index optionalfeatures or subclass-features (which are sub-features, not standalone entities).
+(Planes have no standalone source array in the local 5etools mirror, so they are not indexed and are
+covered by the content-first fallback.) The index SHALL be built once (singleton) at startup.
 
 #### Scenario: Top-level entities are indexed
 - **WHEN** the index is built

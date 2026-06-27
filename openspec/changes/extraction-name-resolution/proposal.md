@@ -20,7 +20,8 @@ the ground truth that fixes both recall *and* name-quality at once.
   name** and the **deterministic entity type** (`Fireball`→Spell, `Lion`→Monster, `Bag of Holding`→
   MagicItem). Cross-source monsters are matched against the WHOLE corpus (PHB animals are catalogued
   under MM). Index TOP-LEVEL types only (spell/monster/item/class/background/race/feat/condition/
-  deity→God/plane→Plane); **NOT** optionalfeatures/subclass-features (those are the feature-noise).
+  deity→God); **NOT** optionalfeatures/subclass-features (those are the feature-noise). (Planes have
+  no standalone source array in the local 5etools mirror, so they fall to content-first.)
 - **Extend `DeterministicTypeResolver`** — a 5etools match becomes ladder step 1 (highest priority):
   force the matched type, use the canonical name as the entity Name/id, skip the LLM type-decision.
 - **Fix `ExtractionSignatures.IsEntityLikeName`** — replace the broad all-caps rule with a
