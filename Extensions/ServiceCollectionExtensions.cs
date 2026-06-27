@@ -87,6 +87,7 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<CanonicalJsonLoader>();
         services.AddSingleton<DndMcpAICsharpFun.Features.Resolution.StructuredFactProjector>();
+        services.AddSingleton<DndMcpAICsharpFun.Features.Resolution.CharacterResolutionService>();
         services.AddSingleton<EntityCanonicalTextDispatcher>();
         services.AddSingleton<EntityReferenceResolver>();
         services.AddScoped<IEntityIngestionOrchestrator, EntityIngestionOrchestrator>();
