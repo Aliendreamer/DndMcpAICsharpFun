@@ -87,7 +87,10 @@ public class EntityExtractionOrchestratorTests
                 checkpointStore: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
                 candidateExtractor: BuildCandidateExtractor(llm, opts),
                 options: opts,
-                logger: NullLogger<EntityExtractionOrchestrator>.Instance);
+                logger: NullLogger<EntityExtractionOrchestrator>.Instance,
+                matcher: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                        Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__"))));
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
@@ -190,7 +193,8 @@ public class EntityExtractionOrchestratorTests
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter converter,
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader bookmarkReader,
         DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm,
-        DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry? registry = null)
+        DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry? registry = null,
+        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher? matcher = null)
     {
         var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
         {
@@ -201,6 +205,11 @@ public class EntityExtractionOrchestratorTests
         var effectiveRegistry = registry
             ?? new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
                    Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json"));
+        // Use an empty-index matcher (no 5etools data) when caller does not supply one.
+        var effectiveMatcher = matcher
+            ?? new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                   new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                       Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__")));
 
         return new EntityExtractionOrchestrator(
             tracker:            tracker,
@@ -218,7 +227,8 @@ public class EntityExtractionOrchestratorTests
             checkpointStore:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
             candidateExtractor: BuildCandidateExtractor(llm, opts),
             options:            opts,
-            logger:             NullLogger<EntityExtractionOrchestrator>.Instance);
+            logger:             NullLogger<EntityExtractionOrchestrator>.Instance,
+            matcher:            effectiveMatcher);
     }
 
     private static DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CandidateExtractor BuildCandidateExtractor(
@@ -715,7 +725,10 @@ public class EntityExtractionOrchestratorTests
                 checkpointStore:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
                 candidateExtractor: BuildCandidateExtractor(llm, opts),
                 options:            opts,
-                logger:             NullLogger<EntityExtractionOrchestrator>.Instance);
+                logger:             NullLogger<EntityExtractionOrchestrator>.Instance,
+                matcher:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                        Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__"))));
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
@@ -1064,6 +1077,408 @@ public class EntityExtractionOrchestratorTests
             var entity = canonical.Entities[0];
             entity.Type.Should().Be(DndMcpAICsharpFun.Domain.Entities.EntityType.MagicItem,
                 "DeterministicTypeResolver.Resolve should force MagicItem for 'requires attunement' text");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir,   true); } catch { }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Task 6 — 5etools matcher integration
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task FivetoolsMatcher_forces_spell_type_and_canonical_name_for_fireball()
+    {
+        // Arrange — two candidates:
+        //   "FIREBALL" (page 1, under Spells bookmark) → 5etools match → ForceType(Spell, "Fireball")
+        //   "ACTIONS"  (page 2, under Monsters bookmark) → not in index → IsEntityLikeName=false → Drop
+        // The orchestrator is wired with the real 5etools index, so FIREBALL resolves to the
+        // canonical name "Fireball" with type Spell and ACTIONS is dropped before the LLM is called.
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+
+        // Spell schema must be present so the ForceType(Spell) branch finds it.
+        File.WriteAllText(
+            Path.Combine(schemasDir, "SpellFields.schema.json"),
+            "{ \"type\": \"object\" }");
+
+        try
+        {
+            const int bookId = 400;
+            const string displayName = "Spell Test Book";
+
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+            {
+                Id          = bookId,
+                FilePath    = "/dev/null",
+                FileName    = "spell-test.pdf",
+                FileHash    = "spell123",
+                Version     = "5e",
+                DisplayName = displayName,
+            };
+
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            // Page 1: "FIREBALL" heading under Spells; page 2: "ACTIONS" heading under Monsters.
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+                "doc",
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+                {
+                    new("heading", "FIREBALL", 1, null),
+                    new("text",    "A bright streak of fire.", 1, null),
+                    new("heading", "ACTIONS", 2, null),
+                    new("text",    "Armor Class 14 Hit Points 30 Challenge 1 (200 XP)", 2, null),
+                });
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
+
+            // Bookmark page 1 under "Spells", page 2 under "Monsters".
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
+                {
+                    new("Spells",   1),
+                    new("Monsters", 2),
+                });
+
+            // LLM returns success with empty spell fields (the ForceType path calls ExtractFieldsAsync).
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+            using var fields = System.Text.Json.JsonDocument.Parse("{}");
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                   Success: true,
+                   ToolInput: fields.RootElement.Clone(),
+                   StopReason: "tool_use",
+                   InputTokens: 0,
+                   OutputTokens: 0,
+                   ErrorMessage: null,
+                   RawJson: null));
+
+            // Real 5etools index — loads "Fireball" as a Spell from the repo's 5etools/spells/ directory.
+            var realMatcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                    TestPaths.RepoFile("5etools")));
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                matcher: realMatcher);
+
+            // Act
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Assert: LLM was called exactly once (for FIREBALL; ACTIONS was dropped before extraction).
+            await llm.Received(1).ExtractAsync(
+                Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                Arg.Any<CancellationToken>());
+
+            // Assert: canonical JSON must contain exactly one entity — a Spell named "Fireball".
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(displayName, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+
+            File.Exists(canonicalPath).Should().BeTrue("canonical JSON must be written");
+
+            var json = await File.ReadAllTextAsync(canonicalPath);
+            var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(
+                json,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                });
+
+            canonical.Should().NotBeNull();
+            canonical!.Entities.Should().HaveCount(1,
+                "FIREBALL should be extracted as Spell; ACTIONS should be dropped before extraction");
+
+            var spellEntity = canonical.Entities[0];
+            spellEntity.Type.Should().Be(DndMcpAICsharpFun.Domain.Entities.EntityType.Spell,
+                "5etools matcher should force FIREBALL to type Spell");
+            spellEntity.Name.Should().Be("Fireball",
+                "canonical name from 5etools index should replace the raw all-caps heading");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir,   true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task ErrorsOnly_retry_finds_5etools_matched_failed_candidate()
+    {
+        // Arrange: FIREBALL under "Monsters" bookmark → raw type = Monster, raw id = bookSlug.monster.fireball
+        // 5etools forces it to Spell → canonical id = bookSlug.spell.fireball.
+        // The errors file records the CANONICAL id. Pre-fix, the loop uses raw id → membership miss
+        // → FIREBALL silently skipped. Post-fix, RecordedEntityId returns canonical id → retry happens.
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+
+        // Both Monster and Spell schemas: TypePrior=[Monster,...] for the candidate,
+        // Spell schema needed for the forced extraction path.
+        File.WriteAllText(Path.Combine(schemasDir, "MonsterFields.schema.json"), "{ \"type\": \"object\" }");
+        File.WriteAllText(Path.Combine(schemasDir, "SpellFields.schema.json"),   "{ \"type\": \"object\" }");
+
+        try
+        {
+            const int bookId = 500;
+            const string displayName = "Fireball Test Book";
+
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+            {
+                Id          = bookId,
+                FilePath    = "/dev/null",
+                FileName    = "fireball-test.pdf",
+                FileHash    = "fbhash1",
+                Version     = "5e",
+                DisplayName = displayName,
+            };
+
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            // FIREBALL under "Monsters" bookmark → scanner assigns primary Type=Monster.
+            // 5etools matcher will force it to Spell.
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+                "doc",
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+                {
+                    new("heading", "FIREBALL", 1, null),
+                    new("text",    "A bright streak of fire.", 1, null),
+                });
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
+
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
+                {
+                    new("Monsters", 1),
+                });
+
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+            using var fields = System.Text.Json.JsonDocument.Parse("{}");
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                   Success: true,
+                   ToolInput: fields.RootElement.Clone(),
+                   StopReason: "tool_use",
+                   InputTokens: 0,
+                   OutputTokens: 0,
+                   ErrorMessage: null,
+                   RawJson: null));
+
+            // Real 5etools index so "FIREBALL" → ForceType(Spell, "Fireball").
+            var realMatcher = new EntityNameMatcher(
+                new EntityNameIndex(TestPaths.RepoFile("5etools")));
+
+            // Compute the canonical Fireball id dynamically (what RecordedEntityId yields post-fix).
+            var firebailMatch = realMatcher.Match("FIREBALL")!.Value;
+            var canonicalFireballId = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug.For(
+                displayName, firebailMatch.Type, firebailMatch.Canonical);
+
+            // Derive bookSlug the same way the orchestrator does.
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(displayName, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+            var errorsPath    = Path.Combine(canonicalDir, bookSlug + ".errors.json");
+
+            var jsonOpts = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+            {
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            };
+
+            // Pre-seed canonical JSON (empty entities) — errorsOnly requires it to exist.
+            var emptyCanonical = new DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile(
+                SchemaVersion: DndMcpAICsharpFun.Domain.Entities.CanonicalJsonSchema.CurrentVersion,
+                Book: new DndMcpAICsharpFun.Domain.Entities.CanonicalBookMetadata(
+                    SourceBook: displayName, Edition: "5e", FileHash: "fbhash1", DisplayName: displayName),
+                Entities: new List<DndMcpAICsharpFun.Domain.Entities.EntityEnvelope>());
+            await File.WriteAllTextAsync(canonicalPath,
+                System.Text.Json.JsonSerializer.Serialize(emptyCanonical, jsonOpts));
+
+            // Pre-seed errors file with the CANONICAL Fireball id (what RunErrorsOnlyAsync records).
+            var prevErrors = new List<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorEntry>
+            {
+                new(SourceEntityId: canonicalFireballId,
+                    FieldPath: "(extraction)",
+                    MissingTargetId: string.Empty,
+                    ErrorKind: "extraction_failure",
+                    Detail: "previous failure"),
+            };
+            await File.WriteAllTextAsync(errorsPath,
+                System.Text.Json.JsonSerializer.Serialize(prevErrors,
+                    new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                matcher: realMatcher);
+
+            // Act — errors-only retry.
+            await orchestrator.ExtractAsync(bookId, force: false, errorsOnly: true, ct: CancellationToken.None);
+
+            // Assert: LLM called once (FIREBALL was retried, not skipped).
+            await llm.Received(1).ExtractAsync(
+                Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                Arg.Any<CancellationToken>());
+
+            // Assert: merged canonical contains Fireball as a Spell.
+            var mergedJson = await File.ReadAllTextAsync(canonicalPath);
+            var merged = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(mergedJson, jsonOpts);
+            merged.Should().NotBeNull();
+            merged!.Entities.Should().HaveCount(1);
+            merged.Entities[0].Type.Should().Be(DndMcpAICsharpFun.Domain.Entities.EntityType.Spell);
+            merged.Entities[0].Name.Should().Be("Fireball");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir,   true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task CheckpointResume_does_not_duplicate_5etools_matched_entity()
+    {
+        // Arrange: checkpoint holds FIREBALL with its CANONICAL id (spell-type). Pre-fix, the loop
+        // computes the raw id (monster-type) → miss in doneIds → re-extracts → duplicate in canonical.
+        // Post-fix, RecordedEntityId returns canonical id → hit → skipped → exactly one entity.
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+
+        File.WriteAllText(Path.Combine(schemasDir, "MonsterFields.schema.json"), "{ \"type\": \"object\" }");
+        File.WriteAllText(Path.Combine(schemasDir, "SpellFields.schema.json"),   "{ \"type\": \"object\" }");
+
+        try
+        {
+            const int bookId = 501;
+            const string displayName = "Fireball Test Book";
+
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+            {
+                Id          = bookId,
+                FilePath    = "/dev/null",
+                FileName    = "fireball-ckpt.pdf",
+                FileHash    = "fbhash2",
+                Version     = "5e",
+                DisplayName = displayName,
+            };
+
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+                "doc",
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+                {
+                    new("heading", "FIREBALL", 1, null),
+                    new("text",    "A bright streak of fire.", 1, null),
+                });
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
+
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
+                {
+                    new("Monsters", 1),
+                });
+
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+            using var fields = System.Text.Json.JsonDocument.Parse("{}");
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                   Success: true,
+                   ToolInput: fields.RootElement.Clone(),
+                   StopReason: "tool_use",
+                   InputTokens: 0,
+                   OutputTokens: 0,
+                   ErrorMessage: null,
+                   RawJson: null));
+
+            var realMatcher = new EntityNameMatcher(
+                new EntityNameIndex(TestPaths.RepoFile("5etools")));
+
+            // Canonical Fireball id (what ExtractOneAsync records in the checkpoint on first pass).
+            var firebailMatch = realMatcher.Match("FIREBALL")!.Value;
+            var canonicalFireballId = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug.For(
+                displayName, firebailMatch.Type, firebailMatch.Canonical);
+
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(displayName, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+
+            // Pre-seed checkpoint: already-extracted entity with CANONICAL Fireball id.
+            using var emptyDoc = System.Text.Json.JsonDocument.Parse("{}");
+            var checkpointEntity = new DndMcpAICsharpFun.Domain.Entities.EntityEnvelope(
+                Id:              canonicalFireballId,
+                Type:            DndMcpAICsharpFun.Domain.Entities.EntityType.Spell,
+                Name:            "Fireball",
+                SourceBook:      displayName,
+                Edition:         "5e",
+                Page:            1,
+                FirstAppearedIn: new DndMcpAICsharpFun.Domain.Entities.FirstAppearance(displayName, "5e", 1),
+                RevisedIn:       Array.Empty<DndMcpAICsharpFun.Domain.Entities.Revision>(),
+                SettingTags:     Array.Empty<string>(),
+                CanonicalText:   string.Empty,
+                Fields:          emptyDoc.RootElement.Clone());
+
+            var checkpointOpts = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+            {
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            };
+            var checkpointPath       = Path.Combine(canonicalDir, bookSlug + ".progress.json");
+            var checkpointErrorsPath = Path.Combine(canonicalDir, bookSlug + ".progress.errors.json");
+
+            await File.WriteAllTextAsync(checkpointPath,
+                System.Text.Json.JsonSerializer.Serialize(
+                    new List<DndMcpAICsharpFun.Domain.Entities.EntityEnvelope> { checkpointEntity },
+                    checkpointOpts));
+            await File.WriteAllTextAsync(checkpointErrorsPath,
+                System.Text.Json.JsonSerializer.Serialize(
+                    new List<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorEntry>(),
+                    checkpointOpts));
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                matcher: realMatcher);
+
+            // Act — full extraction; force=true avoids the "already exists" guard.
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Assert: LLM was NOT called — FIREBALL already in checkpoint → doneIds hit → skipped.
+            await llm.DidNotReceive().ExtractAsync(
+                Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                Arg.Any<CancellationToken>());
+
+            // Assert: canonical has exactly one Fireball entity — no duplicate.
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+            var canonicalJson = await File.ReadAllTextAsync(canonicalPath);
+            var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(canonicalJson, checkpointOpts);
+            canonical.Should().NotBeNull();
+            canonical!.Entities.Should().HaveCount(1,
+                "FIREBALL was already in checkpoint; must not be re-extracted and duplicated");
+            canonical.Entities[0].Id.Should().Be(canonicalFireballId);
         }
         finally
         {

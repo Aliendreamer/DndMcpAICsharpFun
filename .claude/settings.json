@@ -2,20 +2,23 @@
   "permissions": {
     "allow": [
       "Bash(*)",
-      "mcp__plugin_serena_serena__read_file",
-      "mcp__plugin_serena_serena__search_for_pattern",
-      "mcp__plugin_serena_serena__activate_project",
-      "mcp__plugin_serena_serena__find_symbol",
-      "mcp__plugin_serena_serena__initial_instructions",
-      "mcp__plugin_serena_serena__find_file",
-      "mcp__plugin_serena_serena__get_symbols_overview",
-      "mcp__plugin_serena_serena__list_dir",
-      "mcp__plugin_serena_serena__get_current_config",
-      "mcp__plugin_serena_serena__find_referencing_symbols",
-      "mcp__plugin_serena_serena__find_implementations",
-      "mcp__plugin_serena_serena__find_declaration",
-      "mcp__plugin_serena_serena__list_memories",
-      "mcp__plugin_serena_serena__read_memory"
+      "Bash(dotnet *)",
+      "Bash(pnpm *)",
+      "Bash(openspec *)",
+      "Bash(git worktree *)",
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git merge *)",
+      "Bash(git add *)",
+      "Bash(git stash *)",
+      "Bash(git rebase *)",
+      "Bash(git commit *)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(docker *)",
+      "Bash(docker compose *)",
+      "mcp__serena__*",
+      "mcp__plugin_serena_serena__*"
     ],
     "deny": [
       "Bash(rm -rf*)",
@@ -24,7 +27,9 @@
       "Bash(git reset --hard*)",
       "Bash(git branch -D*)",
       "Bash(git branch --delete --force*)",
-      "Read(./Config/**)"
+      "Read(./Config/**)",
+      "Read(./.env)",
+      "Read(./.env.*)"
     ]
   },
   "enableAllProjectMcpServers": true,
@@ -67,7 +72,7 @@
     }
   },
   "sandbox": {
-    "enabled": true,
+    "enabled": false,
     "failIfUnavailable": true,
     "allowUnsandboxedCommands": true,
     "network": {

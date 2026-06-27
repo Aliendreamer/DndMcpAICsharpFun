@@ -11,7 +11,11 @@ using DndMcpAICsharpFun.Infrastructure.Ingestion;
 using Serilog;
 using Serilog.Events;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = "CompanionUI/wwwroot",
+});
 
 builder.Host.UseSerilog((ctx, cfg) =>
     cfg.ReadFrom.Configuration(ctx.Configuration));

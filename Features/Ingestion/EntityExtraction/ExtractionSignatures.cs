@@ -37,7 +37,8 @@ public static class ExtractionSignatures
         if (ChallengeFragment.IsMatch(n)) return false;
         if (SectionHeading.IsMatch(n)) return false;
         if (n.StartsWith("Appendix", StringComparison.OrdinalIgnoreCase)) return false;
-        if (n.Length >= 4 && n == n.ToUpperInvariant() && !n.Contains(' ')) return false;
+        if (StructuralHeaders.Contains(n)) return false;
+        if (LairHeading.IsMatch(n) && n.StartsWith("A ", StringComparison.OrdinalIgnoreCase)) return false;
         return true;
     }
 
@@ -49,6 +50,9 @@ public static class ExtractionSignatures
     // Tutorial / section headings: "Creating a Monster" (incl. all-caps "CREATING A …"), "Monster
     // Features", "Class Features". All such corpus names are headings, never real entities.
     private static readonly Regex SectionHeading = new(@"^creating\b|\bfeatures$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly HashSet<string> StructuralHeaders = new(StringComparer.OrdinalIgnoreCase)
+        { "ACTIONS", "REACTIONS", "TRAITS", "BONUS ACTIONS", "LEGENDARY ACTIONS", "LAIR ACTIONS", "REGIONAL EFFECTS" };
+    private static readonly Regex LairHeading = new(@"\blair\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static bool Has(string text, string token) =>
         !string.IsNullOrEmpty(text) && text.Contains(token, StringComparison.OrdinalIgnoreCase);

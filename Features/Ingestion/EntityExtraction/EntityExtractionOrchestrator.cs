@@ -25,9 +25,11 @@ public sealed class EntityExtractionOrchestrator(
     ExtractionCheckpointStore checkpointStore,
     CandidateExtractor candidateExtractor,
     IOptions<EntityExtractionOptions> options,
-    ILogger<EntityExtractionOrchestrator> logger) : IEntityExtractionOrchestrator
+    ILogger<EntityExtractionOrchestrator> logger,
+    EntityNameMatcher? matcher = null) : IEntityExtractionOrchestrator
 {
     private readonly EntityExtractionOptions _opts = options.Value;
+    private readonly EntityNameMatcher? _matcher = matcher;
 
     public async Task ExtractAsync(int bookId, bool force, bool errorsOnly, CancellationToken ct)
     {
@@ -95,7 +97,7 @@ public sealed class EntityExtractionOrchestrator(
             // Deterministic resolution drops non-entity-named candidates (headings/fragments) before
             // extraction — no wasted LLM call, no garbage entity.
             var keptCandidates = candidates
-                .Where(c => DeterministicTypeResolver.Resolve(c).Outcome != DeterministicOutcome.Drop)
+                .Where(c => DeterministicTypeResolver.Resolve(c, _matcher).Outcome != DeterministicOutcome.Drop)
                 .ToList();
             var droppedCount = candidates.Count - keptCandidates.Count;
             if (droppedCount > 0)
@@ -172,7 +174,7 @@ public sealed class EntityExtractionOrchestrator(
         {
             ct.ThrowIfCancellationRequested();
             var candidate = candidates[i];
-            var id = EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
+            var id = RecordedEntityId(record, candidate);
 
             if (doneIds.Contains(id))
                 continue;
@@ -323,7 +325,7 @@ public sealed class EntityExtractionOrchestrator(
         {
             ct.ThrowIfCancellationRequested();
             var candidate = candidates[i];
-            var id = EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
+            var id = RecordedEntityId(record, candidate);
 
             if (!retrySet.Contains(id)) continue;
 
@@ -412,6 +414,18 @@ public sealed class EntityExtractionOrchestrator(
     /// Returns either a successfully built <see cref="EntityEnvelope"/> or an <see cref="ExtractionErrorEntry"/>;
     /// exactly one of the two tuple members is non-null.
     /// </summary>
+    // The id under which an entity (or its error) is recorded: the canonical 5etools id when the
+    // name matches the index, else the raw heading id. Every membership test (checkpoint doneIds,
+    // errors-only retrySet) and ExtractOneAsync must agree on this id, or matched candidates are
+    // silently re-extracted (resume) or skipped (retry).
+    private string RecordedEntityId(DndMcpAICsharpFun.Domain.IngestionRecord record, EntityCandidate candidate)
+    {
+        var resolution = DeterministicTypeResolver.Resolve(candidate, _matcher);
+        return resolution.Outcome == DeterministicOutcome.ForceType && resolution.CanonicalName is { } cn
+            ? EntityIdSlug.For(BookKey(record), resolution.ForcedType, cn)
+            : EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
+    }
+
     private async Task<(EntityEnvelope? Envelope, ExtractionErrorEntry? Error)> ExtractOneAsync(
         DndMcpAICsharpFun.Domain.IngestionRecord record,
         EntityCandidate candidate,
@@ -442,7 +456,17 @@ public sealed class EntityExtractionOrchestrator(
         // Deterministic type resolution before the content-first union. Drop candidates are filtered
         // out at candidate build, so only ForceType/Defer reach here. A forced type extracts with that
         // type's schema directly (no decline branch); Defer uses the union below.
-        var resolution = DeterministicTypeResolver.Resolve(candidate);
+        var resolution = DeterministicTypeResolver.Resolve(candidate, _matcher);
+
+        // When the 5etools matcher supplies a canonical name, use it for both the entity's
+        // display name and ID so the canonical JSON reflects the authoritative 5etools spelling
+        // rather than the raw (often all-caps) heading text.
+        if (resolution.Outcome == DeterministicOutcome.ForceType && resolution.CanonicalName is { } cn)
+        {
+            displayName = NormalizeDisplayName(cn);
+            id = EntityIdSlug.For(BookKey(record), resolution.ForcedType, cn);
+        }
+
         if (resolution.Outcome == DeterministicOutcome.ForceType &&
             schemas.TryGetValue(resolution.ForcedType, out var forcedSchema))
         {
