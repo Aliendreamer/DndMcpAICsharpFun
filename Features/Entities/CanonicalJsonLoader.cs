@@ -31,6 +31,30 @@ public sealed class CanonicalJsonLoader
                 throw new CanonicalJsonSchemaException($"duplicate id '{e.Id}' in {path}");
         }
 
+        var seenTables = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var t in file.Tables)
+        {
+            if (string.IsNullOrEmpty(t.Id))
+                throw new CanonicalJsonSchemaException($"Table with empty id in {path}");
+            if (!seenTables.Add(t.Id))
+                throw new CanonicalJsonSchemaException($"duplicate table id '{t.Id}' in {path}");
+        }
+
+        var seenChoiceSets = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var cs in file.ChoiceSets)
+        {
+            if (string.IsNullOrEmpty(cs.Id))
+                throw new CanonicalJsonSchemaException($"ChoiceSet with empty id in {path}");
+            if (!seenChoiceSets.Add(cs.Id))
+                throw new CanonicalJsonSchemaException($"duplicate choiceSet id '{cs.Id}' in {path}");
+            foreach (var opt in cs.Options)
+            {
+                if (!seenTables.Contains(opt.TableId))
+                    throw new CanonicalJsonSchemaException(
+                        $"ChoiceOption key '{opt.Key}' in choiceSet '{cs.Id}' references unknown tableId '{opt.TableId}' in {path}");
+            }
+        }
+
         var promoted = file.Entities.Select(PromoteKeywords).ToList();
         return file with { Entities = promoted };
     }

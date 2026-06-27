@@ -9,7 +9,13 @@ public sealed record CanonicalBookMetadata(
 public sealed record CanonicalJsonFile(
     string SchemaVersion,
     CanonicalBookMetadata Book,
-    IReadOnlyList<EntityEnvelope> Entities);
+    IReadOnlyList<EntityEnvelope> Entities,
+    IReadOnlyList<CanonicalTable> Tables = null!,
+    IReadOnlyList<CanonicalChoiceSet> ChoiceSets = null!)
+{
+    public IReadOnlyList<CanonicalTable> Tables { get; init; } = Tables ?? [];
+    public IReadOnlyList<CanonicalChoiceSet> ChoiceSets { get; init; } = ChoiceSets ?? [];
+}
 
 public static class CanonicalJsonSchema
 {
