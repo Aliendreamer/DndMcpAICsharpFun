@@ -1,0 +1,148 @@
+{
+  "schemaVersion": "1",
+  "book": {
+    "sourceBook": "PHB",
+    "edition": "Edition2014",
+    "fileHash": "dragonborn-slice",
+    "displayName": "PlayerHandbook 2014"
+  },
+  "entities": [],
+  "tables": [
+    {
+      "id": "phb14.table.draconic-ancestry",
+      "name": "Draconic Ancestry",
+      "columns": ["ancestry", "damageType", "breathArea", "saveAbility"],
+      "rows": [
+        {
+          "cells": [
+            { "value": "Black",  "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "acid",   "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "5 by 30 ft. line", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "Dexterity", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "Blue",      "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "lightning", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "5 by 30 ft. line", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "Dexterity", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "Brass", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "fire",  "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "5 by 30 ft. line", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "Dexterity", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "Bronze",    "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "lightning", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "5 by 30 ft. line", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "Dexterity", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "Copper", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "acid",   "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "5 by 30 ft. line", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "Dexterity", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "Gold", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "fire", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "15 ft. cone", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "Dexterity", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "Green",  "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "poison", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "15 ft. cone", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "Constitution", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "Red",  "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "fire", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "15 ft. cone", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "Dexterity", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "Silver", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "cold",   "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "15 ft. cone", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "Constitution", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "White", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "cold",  "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "15 ft. cone", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "Constitution", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phb14.table.breath-damage-by-tier",
+      "name": "Breath Weapon Damage by Tier",
+      "columns": ["tier", "dice"],
+      "rows": [
+        {
+          "cells": [
+            { "value": "1",    "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "1d10", "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "2",    "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "2d6",  "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "3",    "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "3d6",  "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "4",    "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+            { "value": "4d6",  "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+          ]
+        }
+      ]
+    }
+  ],
+  "choiceSets": [
+    {
+      "id": "phb14.choiceset.draconic-ancestry",
+      "name": "Draconic Ancestry",
+      "options": [
+        { "key": "Black",  "tableId": "phb14.table.draconic-ancestry", "rowIndex": 0, "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+        { "key": "Blue",   "tableId": "phb14.table.draconic-ancestry", "rowIndex": 1, "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+        { "key": "Brass",  "tableId": "phb14.table.draconic-ancestry", "rowIndex": 2, "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+        { "key": "Bronze", "tableId": "phb14.table.draconic-ancestry", "rowIndex": 3, "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+        { "key": "Copper", "tableId": "phb14.table.draconic-ancestry", "rowIndex": 4, "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+        { "key": "Gold",   "tableId": "phb14.table.draconic-ancestry", "rowIndex": 5, "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+        { "key": "Green",  "tableId": "phb14.table.draconic-ancestry", "rowIndex": 6, "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+        { "key": "Red",    "tableId": "phb14.table.draconic-ancestry", "rowIndex": 7, "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+        { "key": "Silver", "tableId": "phb14.table.draconic-ancestry", "rowIndex": 8, "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } },
+        { "key": "White",  "tableId": "phb14.table.draconic-ancestry", "rowIndex": 9, "provenance": { "blockId": "phb14.block.dragonborn", "sourceBook": "PHB", "page": 34 } }
+      ]
+    }
+  ]
+}
