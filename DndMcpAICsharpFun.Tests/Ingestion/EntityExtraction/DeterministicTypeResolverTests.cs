@@ -77,4 +77,17 @@ public sealed class DeterministicTypeResolverTests
         r.ForcedType.Should().Be(EntityType.Spell);
         r.CanonicalName.Should().Be("Fireball");
     }
+
+    // ── Stat-block heuristic direct coverage ─────────────────────────────────────────
+
+    [Fact]
+    public void Non_5etools_creature_with_complete_stat_block_forces_Monster()
+    {
+        // "Xyzgoblin Elder" is purely fictional — the 5etools matcher returns null (step 1 is skipped).
+        // The stat-block heuristic (IsCompleteStatBlock → Force(Monster)) then fires directly.
+        var r = DeterministicTypeResolver.Resolve(
+            C("Xyzgoblin Elder", "Armor Class 14 Hit Points 30 Challenge 1 (200 XP)"), Matcher);
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Monster);
+    }
 }
