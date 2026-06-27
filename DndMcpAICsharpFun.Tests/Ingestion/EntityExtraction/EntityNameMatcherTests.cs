@@ -38,4 +38,12 @@ public sealed class EntityNameMatcherTests
     [Fact]
     public void Match_single_char_ocr_typo_fuzzy_hit() =>
         Matcher.Match("Thunderwve").Should().Be(("Thunderwave", EntityType.Spell));
+
+    [Fact]
+    public void Match_empty_string_returns_null() =>
+        Matcher.Match("").Should().BeNull();
+
+    [Fact]
+    public void Match_whitespace_only_returns_null() =>
+        Matcher.Match("   ").Should().BeNull();
 }

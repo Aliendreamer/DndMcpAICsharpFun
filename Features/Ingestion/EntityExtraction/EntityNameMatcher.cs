@@ -26,6 +26,7 @@ public sealed class EntityNameMatcher(EntityNameIndex index)
         var queryLen = normalized.Length;
         (string Canonical, EntityType Type)? best = null;
         var bestRatio = 0.0;
+        string? bestCanonical = null;
 
         foreach (var (key, value) in index.Entries)
         {
@@ -35,9 +36,10 @@ public sealed class EntityNameMatcher(EntityNameIndex index)
             var maxLen = Math.Max(queryLen, key.Length);
             var ratio = maxLen == 0 ? 1.0 : 1.0 - (double)dist / maxLen;
 
-            if (ratio > bestRatio)
+            if (ratio > bestRatio || (ratio == bestRatio && string.CompareOrdinal(value.Canonical, bestCanonical) < 0))
             {
                 bestRatio = ratio;
+                bestCanonical = value.Canonical;
                 best = value;
             }
         }
