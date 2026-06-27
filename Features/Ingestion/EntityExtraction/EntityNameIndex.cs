@@ -40,10 +40,10 @@ public sealed class EntityNameIndex
         // remaining top-level entity files (single-file each)
         LoadGlob(entries, fivetoolsDir, "backgrounds.json",        "background", _ => EntityType.Background);
         LoadGlob(entries, fivetoolsDir, "races.json",              "race",       _ => EntityType.Race);
-        // feats: exclude Fighting-Style sub-features (category starts with "FS")
+        // feats: exclude Fighting-Style sub-features (category exactly "FS")
         LoadGlob(entries, fivetoolsDir, "feats.json", "feat", _ => EntityType.Feat,
             include: e => !e.TryGetProperty("category", out var cat) ||
-                          !(cat.GetString() ?? string.Empty).StartsWith("FS", StringComparison.Ordinal));
+                          (cat.GetString() ?? string.Empty) != "FS");
         LoadGlob(entries, fivetoolsDir, "conditionsdiseases.json", "condition",  _ => EntityType.Condition);
         LoadGlob(entries, fivetoolsDir, "deities.json",            "deity",      _ => EntityType.God);
 
@@ -68,20 +68,25 @@ public sealed class EntityNameIndex
     {
         if (!Directory.Exists(directory)) return;
 
-        foreach (var file in Directory.GetFiles(directory, pattern))
+        foreach (var file in Directory.GetFiles(directory, pattern).Order(StringComparer.Ordinal))
         {
-            using var doc = JsonDocument.Parse(File.ReadAllBytes(file));
-            if (!doc.RootElement.TryGetProperty(arrayKey, out var arr)) continue;
-
-            foreach (var elem in arr.EnumerateArray())
+            JsonDocument doc;
+            try { doc = JsonDocument.Parse(File.ReadAllBytes(file)); }
+            catch (JsonException) { continue; }
+            using (doc)
             {
-                if (include is not null && !include(elem)) continue;
-                if (!elem.TryGetProperty("name", out var nameProp)) continue;
-                var name = nameProp.GetString();
-                if (string.IsNullOrEmpty(name)) continue;
+                if (!doc.RootElement.TryGetProperty(arrayKey, out var arr)) continue;
 
-                // first-wins: keep the entry already in the dictionary if present
-                entries.TryAdd(Normalize(name), (name, typeSelector(elem)));
+                foreach (var elem in arr.EnumerateArray())
+                {
+                    if (include is not null && !include(elem)) continue;
+                    if (!elem.TryGetProperty("name", out var nameProp)) continue;
+                    var name = nameProp.GetString();
+                    if (string.IsNullOrEmpty(name)) continue;
+
+                    // first-wins: keep the entry already in the dictionary if present
+                    entries.TryAdd(Normalize(name), (name, typeSelector(elem)));
+                }
             }
         }
     }
