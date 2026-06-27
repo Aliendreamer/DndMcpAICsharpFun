@@ -17,6 +17,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<HeroSnapshot> HeroSnapshots => Set<HeroSnapshot>();
     public DbSet<ChatTurn> ChatTurns => Set<ChatTurn>();
     public DbSet<Note> Notes => Set<Note>();
+    public DbSet<StructuredTable> StructuredTables => Set<StructuredTable>();
+    public DbSet<StructuredTableRow> StructuredTableRows => Set<StructuredTableRow>();
+    public DbSet<ChoiceSetRow> ChoiceSetRows => Set<ChoiceSetRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,6 +59,24 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<Note>(e =>
         {
             e.HasIndex(n => n.CampaignId);
+        });
+
+        modelBuilder.Entity<StructuredTable>(e =>
+        {
+            e.HasIndex(t => t.CanonicalId).IsUnique();
+            e.Property(t => t.ColumnsJson).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<StructuredTableRow>(e =>
+        {
+            e.HasIndex(r => new { r.TableId, r.RowIndex }).IsUnique();
+            e.Property(r => r.CellsJson).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<ChoiceSetRow>(e =>
+        {
+            e.HasIndex(c => c.CanonicalId).IsUnique();
+            e.Property(c => c.OptionsJson).HasColumnType("text");
         });
     }
 }
