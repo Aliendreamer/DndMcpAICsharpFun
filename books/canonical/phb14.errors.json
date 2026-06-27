@@ -1,0 +1,16 @@
+[
+  {
+    "sourceEntityId": "phb14.class.effect-dl00",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "phb14.spell.tasha-s-hideous-laughter",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  }
+]
