@@ -32,6 +32,11 @@ public sealed class ExtractionSignaturesTests
     [InlineData("Appendix D: Creature Statistics", false)]
     [InlineData("Step 2. Basic Statistics", false)]
     [InlineData("Challenge 7 (2,900 XP)", false)]
+    [InlineData("Monster Features", false)]
+    [InlineData("Class Features", false)]
+    [InlineData("Creating a Monster", false)]
+    [InlineData("CREATING A MONSTER", false)]
+    [InlineData("Special Features", false)]
     [InlineData("", false)]
     [InlineData(null, false)]
     public void IsEntityLikeName_rejects_headings_and_fragments(string? name, bool expected) =>
