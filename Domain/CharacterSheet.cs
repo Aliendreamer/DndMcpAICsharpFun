@@ -39,6 +39,7 @@ public sealed class CharacterSheet
 
     public List<CharacterFeature> Features { get; set; } = [];
     public List<string> Equipment { get; set; } = [];
+    public Dictionary<string, string> ResolvedChoices { get; set; } = new();
 
     public static int Modifier(int score) => (int)Math.Floor((score - 10) / 2.0);
     public static string ModifierStr(int score)

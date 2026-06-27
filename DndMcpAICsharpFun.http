@@ -60,6 +60,10 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/ingest-entities
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Project structured facts (canonical JSON tables/choice-sets → Postgres)
+POST {{baseUrl}}/admin/books/1/project-structured
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Extract entities (LLM-driven; writes books/canonical/<book>.json). Initial run only.
 POST {{baseUrl}}/admin/books/1/extract-entities
 X-Admin-Api-Key: {{adminKey}}

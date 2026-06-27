@@ -1,0 +1,67 @@
+using DndMcpAICsharpFun.Features.Entities;
+using DndMcpAICsharpFun.Tests;
+using DndMcpAICsharpFun.Features.Resolution;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace DndMcpAICsharpFun.Tests.Persistence;
+
+[Collection("postgres")]
+public sealed class StructuredFactProjectorTests(PostgresFixture pg) : IAsyncLifetime
+{
+    private static readonly string DragonbornSlicePath =
+        TestPaths.RepoFile("books/canonical/dragonborn-slice.json");
+
+    private const string AncestryTableId = "phb14.table.draconic-ancestry";
+
+    public Task InitializeAsync() => pg.ResetAsync();
+    public Task DisposeAsync() => Task.CompletedTask;
+
+    private StructuredFactProjector CreateProjector()
+    {
+        var services = new ServiceCollection();
+        services.AddDbContextFactory<DndMcpAICsharpFun.Infrastructure.Persistence.AppDbContext>(options =>
+            options.UseNpgsql(pg.Container.GetConnectionString()));
+        var sp = services.BuildServiceProvider();
+        return new StructuredFactProjector(
+            sp.GetRequiredService<Microsoft.EntityFrameworkCore.IDbContextFactory<DndMcpAICsharpFun.Infrastructure.Persistence.AppDbContext>>());
+    }
+
+    [Fact]
+    public async Task ProjectAsync_is_idempotent_and_row_count_matches_source()
+    {
+        // Arrange
+        var loader = new CanonicalJsonLoader();
+        var projector = CreateProjector();
+        var file = await loader.LoadAsync(DragonbornSlicePath, CancellationToken.None);
+
+        // Act — project twice
+        var (t1, r1, c1) = await projector.ProjectAsync(file, CancellationToken.None);
+        var (t2, r2, c2) = await projector.ProjectAsync(file, CancellationToken.None);
+
+        // Assert — second run returns same counts as first
+        t2.Should().Be(t1, "tables count must be identical on second run (idempotent)");
+        r2.Should().Be(r1, "rows count must be identical on second run (idempotent)");
+        c2.Should().Be(c1, "choice-sets count must be identical on second run (idempotent)");
+
+        // Assert the ancestry table has exactly 10 rows in DB (not 20)
+        await using var db = pg.NewContext();
+
+        var ancestryTable = await db.StructuredTables
+            .FirstAsync(t => t.CanonicalId == AncestryTableId);
+
+        var allRows = await db.StructuredTableRows
+            .Where(r => r.TableId == ancestryTable.Id)
+            .ToListAsync();
+
+        allRows.Should().HaveCount(10, "ancestry table has 10 rows; second run must not double-insert");
+
+        // Assert row at index 7 contains "fire" and "15 ft. cone"
+        var row7 = await db.StructuredTableRows
+            .SingleAsync(r => r.TableId == ancestryTable.Id && r.RowIndex == 7);
+
+        row7.CellsJson.Should().Contain("fire", "row 7 is Red dragon with fire damage");
+        row7.CellsJson.Should().Contain("15 ft. cone", "row 7 breathes in a 15 ft. cone");
+    }
+}

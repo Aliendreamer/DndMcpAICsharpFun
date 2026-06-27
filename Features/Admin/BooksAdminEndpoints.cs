@@ -1,8 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Mvc;
 
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
+using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion;
+using DndMcpAICsharpFun.Features.Resolution;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
@@ -28,6 +31,7 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/{id:int}/ingest-blocks", IngestBlocks).DisableAntiforgery();
         group.MapPost("/books/{id:int}/ingest-entities", IngestEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/extract-entities", ExtractEntities).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/project-structured", ProjectStructured).DisableAntiforgery();
         return group;
     }
 
@@ -49,6 +53,29 @@ public static partial class BooksAdminEndpoints
     /// Shared handler for book-level enqueue endpoints (IngestBlocks, IngestEntities).
     /// Returns NotFound, Conflict, or Accepted after looking up the book and checking its status.
     /// </summary>
+    private static async Task<IResult> ProjectStructured(
+        int id,
+        [FromServices] IIngestionTracker tracker,
+        [FromServices] CanonicalJsonLoader loader,
+        [FromServices] StructuredFactProjector projector,
+        [FromServices] IOptions<EntityExtractionOptions> opts,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        var slug = EntityIdSlug.For(record.FivetoolsSourceKey ?? record.DisplayName, EntityType.Class, "x").Split('.')[0];
+        var path = Path.Combine(opts.Value.CanonicalDirectory, slug + ".json");
+
+        if (!File.Exists(path))
+            return Results.NotFound($"No canonical file found at {path}");
+
+        var file = await loader.LoadAsync(path, ct);
+        var (t, r, c) = await projector.ProjectAsync(file, ct);
+        return Results.Ok(new { tables = t, rows = r, choiceSets = c });
+    }
+
     private static async Task<IResult> EnqueueOrFailAsync(
         int id,
         IngestionWorkType workType,
