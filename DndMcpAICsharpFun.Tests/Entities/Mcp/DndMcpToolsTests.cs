@@ -43,7 +43,7 @@ public class DndMcpToolsTests
         IRagRetrievalService? rag = null,
         IEntityRetrievalService? entity = null,
         IFusedRetrievalService? fused = null) =>
-        new(rag ?? new FakeRagService(), entity ?? new FakeEntityService(), fused ?? new FakeFusedService());
+        new(rag ?? new FakeRagService(), entity ?? new FakeEntityService(), fused ?? new FakeFusedService(), null!);
 
     [Fact]
     public async Task search_lore_returns_json_with_results()
