@@ -29,7 +29,7 @@ dotnet test
 
 - **Program.cs** — composition root; wires the API, MCP server, and the Blazor UI (auth, rate limiting, chat) in one host
 - **Domain/** — all domain model types (`User`, `Campaign`, `Hero`, `HeroSnapshot`, `CharacterSheet`, `ChatTurn`, `IngestionRecord`, entity/book types)
-- **Components/**, **wwwroot/** — Blazor Server UI
+- **CompanionUI/Components/**, **CompanionUI/wwwroot/** — Blazor Server UI
 - **Features/** — `Auth`, `Campaigns`, `Chat`, plus ingestion/retrieval/admin/MCP
 - **Infrastructure/Persistence/** — `AppDbContext` (EF Core, **PostgreSQL** via Npgsql), the single context for all tables
 - **Config/** — `appsettings.json` and `appsettings.Development.json` (loaded automatically by the host)
