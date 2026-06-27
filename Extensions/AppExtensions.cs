@@ -1,6 +1,5 @@
 using DndMcpAICsharpFun.Features.Auth;
 using Microsoft.AspNetCore.Authentication;
-using DndMcpAICsharpFun.Features.Campaigns;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace DndMcpAICsharpFun.Extensions;
