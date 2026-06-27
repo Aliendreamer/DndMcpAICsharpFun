@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Features.Entities;
+using DndMcpAICsharpFun.Tests;
 using DndMcpAICsharpFun.Features.Resolution;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -9,8 +10,8 @@ namespace DndMcpAICsharpFun.Tests.Persistence;
 [Collection("postgres")]
 public sealed class StructuredFactProjectorTests(PostgresFixture pg) : IAsyncLifetime
 {
-    private const string DragonbornSlicePath =
-        "/home/aliendreamer/projects/DndMcpAICsharpFun/books/canonical/dragonborn-slice.json";
+    private static readonly string DragonbornSlicePath =
+        TestPaths.RepoFile("books/canonical/dragonborn-slice.json");
 
     private const string AncestryTableId = "phb14.table.draconic-ancestry";
 

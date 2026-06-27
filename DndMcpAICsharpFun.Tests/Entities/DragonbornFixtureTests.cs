@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Features.Entities;
+using DndMcpAICsharpFun.Tests;
 using FluentAssertions;
 using Xunit;
 
@@ -7,7 +8,7 @@ namespace DndMcpAICsharpFun.Tests.Entities;
 public class DragonbornFixtureTests
 {
     private static readonly string FixturePath =
-        "/home/aliendreamer/projects/DndMcpAICsharpFun/books/canonical/dragonborn-slice.json";
+        TestPaths.RepoFile("books/canonical/dragonborn-slice.json");
 
     [Fact]
     public async Task Dragonborn_fixture_loads_and_ancestry_table_red_row_is_correct()

@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Campaigns;
 using DndMcpAICsharpFun.Features.Entities;
+using DndMcpAICsharpFun.Tests;
 using DndMcpAICsharpFun.Features.Resolution;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
 using FluentAssertions;
@@ -12,8 +13,8 @@ namespace DndMcpAICsharpFun.Tests.Persistence;
 [Collection("postgres")]
 public sealed class CharacterResolutionIntegrationTests(PostgresFixture pg) : IAsyncLifetime
 {
-    private const string DragonbornSlicePath =
-        "/home/aliendreamer/projects/DndMcpAICsharpFun/books/canonical/dragonborn-slice.json";
+    private static readonly string DragonbornSlicePath =
+        TestPaths.RepoFile("books/canonical/dragonborn-slice.json");
 
     public Task InitializeAsync() => pg.ResetAsync();
     public Task DisposeAsync() => Task.CompletedTask;
