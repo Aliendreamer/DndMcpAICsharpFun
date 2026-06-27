@@ -1,0 +1,11 @@
+# markdown-it: patch the smartquotes DoS (GHSA-6v5v-wf23-fmfq).
+# NOTE: js-yaml is intentionally NOT overridden — js-yaml >=4.2.0 drops the default
+# ESM export that markdownlint-cli2 imports, so patching it breaks the linter. The
+# remaining js-yaml advisory is a YAML-parse DoS in this local dev-only linter (fed only
+# our own trusted markdown), so the risk is negligible.
+overrides:
+  markdown-it@<=14.1.1: '>=14.2.0'
+
+# Supply-chain: refuse any package version published less than 7 days ago
+# (10080 minutes) — blunts freshly-published compromised releases.
+minimumReleaseAge: 10080

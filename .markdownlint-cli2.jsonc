@@ -1,0 +1,27 @@
+{
+  // Markdown lint config for THIS repo's authored docs. Run: npx markdownlint-cli2 "**/*.md"
+  // (add --fix to auto-correct). Vendored caches, archived specs, and scratch dirs are ignored.
+  "globs": ["**/*.md"],
+  "ignores": [
+    "node_modules",
+    "**/bin/**",
+    "**/obj/**",
+    ".git",
+    ".claude/**",
+    ".superpowers/**",
+    ".serena/**",
+    "5etools/**",
+    "openspec/**"
+  ],
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD033": false,
+    "MD041": false,
+    "MD024": { "siblings_only": true },
+    "MD029": false,
+    "MD036": false,
+    "MD040": false,
+    "MD026": false
+  }
+}

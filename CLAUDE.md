@@ -105,3 +105,9 @@ When the full stack is running (`docker compose up`), these UIs are available:
 **Rule:** When adding, changing, or removing any HTTP endpoint (`MapGet`, `MapPost`, `MapPut`, `MapDelete`), update `DndMcpAICsharpFun.http` in the same commit. Every registered route must have a corresponding example request in the file.
 
 **Rule:** `dnd-mcp-api.insomnia.json` at the project root is the Yaak-importable collection (Insomnia v4 format). Keep it in sync with `DndMcpAICsharpFun.http` — any change to the `.http` file must be reflected in the `.insomnia.json` file in the same commit. Import into Yaak via **File → Import**.
+
+## Markdown docs
+
+Hand-authored markdown (`README.md`, `CLAUDE.md`, `docs/`) must pass markdownlint with **zero errors**.
+
+**Rule:** Whenever you write or edit one of those markdown files, lint it before committing — run the `/lint-md` skill, or directly `pnpm lint:md:fix` (auto-fix) then `pnpm lint:md` (must report `0 error(s)`). This is part of the dev flow: a markdown change is not done until it lints clean. Config is `.markdownlint-cli2.jsonc` (openspec specs are excluded — `opsx` manages their format). The toolchain is **pnpm** (`packageManager` pins the version); `markdownlint-cli2` is a pinned dev dependency installed to the git-ignored `node_modules/` — run `pnpm install` once if it's absent.
