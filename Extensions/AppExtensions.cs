@@ -33,7 +33,7 @@ internal static class AppExtensions
             return Results.Redirect("/login");
         }).RequireRateLimiting("global");
 
-        app.MapRazorComponents<DndMcpAICsharpFun.Components.App>()
+        app.MapRazorComponents<DndMcpAICsharpFun.CompanionUI.Components.App>()
             .AddInteractiveServerRenderMode()
             .RequireRateLimiting("global");
 

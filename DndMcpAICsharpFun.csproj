@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
+    <WebRoot>CompanionUI\wwwroot</WebRoot>
     <DefaultItemExcludes>$(DefaultItemExcludes);DndMcpAICsharpFun.Tests/**;DndMcpAICompanion/**;DndMcpAICompanion.Tests/**;.worktrees/**;Tools/**</DefaultItemExcludes>
   </PropertyGroup>
 
