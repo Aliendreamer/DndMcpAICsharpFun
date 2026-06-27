@@ -23,7 +23,8 @@
       "Bash(git push -f*)",
       "Bash(git reset --hard*)",
       "Bash(git branch -D*)",
-      "Bash(git branch --delete --force*)"
+      "Bash(git branch --delete --force*)",
+      "Read(./Config/**)"
     ]
   },
   "enableAllProjectMcpServers": true,
@@ -63,6 +64,44 @@
         "source": "github",
         "repo": "dotnet/skills"
       }
+    }
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": true,
+    "network": {
+      "allowedDomains": [
+        "registry.yarnpkg.com",
+        "registry.npmjs.org",
+        "*.npmjs.org",
+        "github.com",
+        "codeload.github.com",
+        "*.githubusercontent.com",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "api.nuget.org",
+        "*.nuget.org",
+        "nuget.org",
+        "dist.nuget.org",
+        "localhost",
+        "127.0.0.1"
+      ]
+    },
+    "filesystem": {
+      "denyRead": [
+        ".env",
+        ".env.*",
+        "Config/appsettings.json",
+        "Config/appsettings.*.json"
+      ],
+      "allowWrite": [
+        "/usr/local/share/.yarn-global",
+        "~/.npm",
+        "~/.cache",
+        "~/.local/share/pnpm",
+        "/var/run/docker.sock"
+      ]
     }
   }
 }

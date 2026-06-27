@@ -1,0 +1,44 @@
+[
+  {
+    "sourceEntityId": "mm14.monster.black-pudding",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Response was not valid JSON: Expected end of string, but instead reached end of data. LineNumber: 0 | BytePositionInLine: 72805."
+  },
+  {
+    "sourceEntityId": "mm14.monster.warhorse-skeleton",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Response was not valid JSON: Expected end of string, but instead reached end of data. LineNumber: 0 | BytePositionInLine: 28670."
+  },
+  {
+    "sourceEntityId": "mm14.monster.flying-snake",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "mm14.monster.giant-vulture",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Response was not valid JSON: Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. LineNumber: 0 | BytePositionInLine: 36431."
+  },
+  {
+    "sourceEntityId": "mm14.monster.thug",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "mm14.monster.young-silver-dr-a-gon",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  }
+]
