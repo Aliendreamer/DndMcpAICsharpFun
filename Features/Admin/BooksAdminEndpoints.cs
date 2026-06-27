@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Mvc;
 
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
@@ -52,12 +53,12 @@ public static partial class BooksAdminEndpoints
     /// Shared handler for book-level enqueue endpoints (IngestBlocks, IngestEntities).
     /// Returns NotFound, Conflict, or Accepted after looking up the book and checking its status.
     /// </summary>
-private static async Task<IResult> ProjectStructured(
+    private static async Task<IResult> ProjectStructured(
         int id,
-        IIngestionTracker tracker,
-        CanonicalJsonLoader loader,
-        StructuredFactProjector projector,
-        IOptions<EntityExtractionOptions> opts,
+        [FromServices] IIngestionTracker tracker,
+        [FromServices] CanonicalJsonLoader loader,
+        [FromServices] StructuredFactProjector projector,
+        [FromServices] IOptions<EntityExtractionOptions> opts,
         CancellationToken ct)
     {
         var record = await tracker.GetByIdAsync(id, ct);
