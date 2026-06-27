@@ -227,6 +227,25 @@
       "authentication": {}
     },
     {
+      "_id": "req_books_project_structured",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Project structured facts (canonical JSON tables/choice-sets → Postgres)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/project-structured",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_books_extract_entities",
       "_type": "request",
       "parentId": "fld_admin_books",
