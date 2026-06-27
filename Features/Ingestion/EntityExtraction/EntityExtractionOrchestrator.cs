@@ -174,7 +174,7 @@ public sealed class EntityExtractionOrchestrator(
         {
             ct.ThrowIfCancellationRequested();
             var candidate = candidates[i];
-            var id = EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
+            var id = RecordedEntityId(record, candidate);
 
             if (doneIds.Contains(id))
                 continue;
@@ -325,7 +325,7 @@ public sealed class EntityExtractionOrchestrator(
         {
             ct.ThrowIfCancellationRequested();
             var candidate = candidates[i];
-            var id = EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
+            var id = RecordedEntityId(record, candidate);
 
             if (!retrySet.Contains(id)) continue;
 
@@ -414,6 +414,18 @@ public sealed class EntityExtractionOrchestrator(
     /// Returns either a successfully built <see cref="EntityEnvelope"/> or an <see cref="ExtractionErrorEntry"/>;
     /// exactly one of the two tuple members is non-null.
     /// </summary>
+    // The id under which an entity (or its error) is recorded: the canonical 5etools id when the
+    // name matches the index, else the raw heading id. Every membership test (checkpoint doneIds,
+    // errors-only retrySet) and ExtractOneAsync must agree on this id, or matched candidates are
+    // silently re-extracted (resume) or skipped (retry).
+    private string RecordedEntityId(DndMcpAICsharpFun.Domain.IngestionRecord record, EntityCandidate candidate)
+    {
+        var resolution = DeterministicTypeResolver.Resolve(candidate, _matcher);
+        return resolution.Outcome == DeterministicOutcome.ForceType && resolution.CanonicalName is { } cn
+            ? EntityIdSlug.For(BookKey(record), resolution.ForcedType, cn)
+            : EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
+    }
+
     private async Task<(EntityEnvelope? Envelope, ExtractionErrorEntry? Error)> ExtractOneAsync(
         DndMcpAICsharpFun.Domain.IngestionRecord record,
         EntityCandidate candidate,
@@ -449,7 +461,7 @@ public sealed class EntityExtractionOrchestrator(
         // When the 5etools matcher supplies a canonical name, use it for both the entity's
         // display name and ID so the canonical JSON reflects the authoritative 5etools spelling
         // rather than the raw (often all-caps) heading text.
-        if (resolution.CanonicalName is { } cn)
+        if (resolution.Outcome == DeterministicOutcome.ForceType && resolution.CanonicalName is { } cn)
         {
             displayName = NormalizeDisplayName(cn);
             id = EntityIdSlug.For(BookKey(record), resolution.ForcedType, cn);
