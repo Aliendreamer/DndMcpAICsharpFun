@@ -873,4 +873,202 @@ public class EntityExtractionOrchestratorTests
             try { Directory.Delete(schemasDir,   true); } catch { }
         }
     }
+
+    [Fact]
+    public async Task Non_entity_named_candidate_is_dropped_without_llm_call()
+    {
+        // Arrange — single candidate whose name "ACTIONS" is all-caps with no space,
+        // so IsEntityLikeName returns false → DeterministicTypeResolver.Resolve → Drop.
+        // The LLM must never be called because the candidate is filtered before extraction.
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+
+        // Write a Monster schema so the LLM *would* be called if the candidate weren't dropped.
+        File.WriteAllText(
+            Path.Combine(schemasDir, "MonsterFields.schema.json"),
+            "{ \"type\": \"object\" }");
+
+        try
+        {
+            const int bookId = 301;
+            const string displayName = "Drop Test Book";
+
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+            {
+                Id          = bookId,
+                FilePath    = "/dev/null",
+                FileName    = "drop-test.pdf",
+                FileHash    = "drop123",
+                Version     = "5e",
+                DisplayName = displayName,
+            };
+
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            // Single heading "ACTIONS" (all-caps, no space, ≥4 chars → IsEntityLikeName=false → Drop)
+            // with stat-block-like text so it *would* have been a Monster candidate if not dropped.
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+                "doc",
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+                {
+                    new("heading", "ACTIONS", 1, null),
+                    new("text",    "Armor Class 14 Hit Points 30 Challenge 1 (200 XP)", 1, null),
+                });
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
+
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
+                {
+                    new("Monsters", 1),
+                });
+
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm);
+
+            // Act
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Assert: the LLM was never called because "ACTIONS" was dropped before extraction.
+            await llm.DidNotReceive().ExtractAsync(
+                Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                Arg.Any<CancellationToken>());
+
+            // Also assert no entity named "ACTIONS" was written to canonical JSON.
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(displayName, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+
+            if (File.Exists(canonicalPath))
+            {
+                var json = await File.ReadAllTextAsync(canonicalPath);
+                var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                    DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(
+                    json,
+                    new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                    {
+                        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                    });
+                canonical?.Entities.Should().NotContain(
+                    e => e.Name == "ACTIONS",
+                    "the ACTIONS heading must be dropped before extraction");
+            }
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir,   true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task Magic_item_candidate_is_typed_MagicItem()
+    {
+        // Arrange — single candidate "Vorpal Sword" whose text contains "requires attunement"
+        // → IsMagicItem=true → DeterministicTypeResolver.Resolve → ForceType(MagicItem).
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+
+        // Write a MagicItem schema so the forced extraction path finds it.
+        File.WriteAllText(
+            Path.Combine(schemasDir, "MagicItemFields.schema.json"),
+            "{ \"type\": \"object\" }");
+
+        try
+        {
+            const int bookId = 302;
+            const string displayName = "Magic Item Test Book";
+
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+            {
+                Id          = bookId,
+                FilePath    = "/dev/null",
+                FileName    = "magic-items.pdf",
+                FileHash    = "mi123",
+                Version     = "5e",
+                DisplayName = displayName,
+            };
+
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            // "Vorpal Sword" with "requires attunement" text → IsMagicItem=true → ForceType(MagicItem).
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+                "doc",
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+                {
+                    new("heading", "Vorpal Sword", 1, null),
+                    new("text",    "Weapon (any sword that deals slashing damage), legendary (requires attunement)", 1, null),
+                });
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
+
+            // Bookmark the page under "Magic Items" so the scanner emits a MagicItem prior.
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
+                {
+                    new("Magic Items", 1),
+                });
+
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+            // LLM returns success with empty fields (the forced-type path calls ExtractFieldsAsync).
+            using var fields = System.Text.Json.JsonDocument.Parse("{}");
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                   Success: true,
+                   ToolInput: fields.RootElement.Clone(),
+                   StopReason: "tool_use",
+                   InputTokens: 0,
+                   OutputTokens: 0,
+                   ErrorMessage: null,
+                   RawJson: null));
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm);
+
+            // Act
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Assert: canonical JSON must exist and contain exactly one entity of type MagicItem.
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(displayName, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+
+            File.Exists(canonicalPath).Should().BeTrue("canonical JSON must be written");
+
+            var json = await File.ReadAllTextAsync(canonicalPath);
+            var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(
+                json,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                });
+
+            canonical.Should().NotBeNull();
+            canonical!.Entities.Should().HaveCount(1, "one magic item candidate was extracted");
+
+            var entity = canonical.Entities[0];
+            entity.Type.Should().Be(DndMcpAICsharpFun.Domain.Entities.EntityType.MagicItem,
+                "DeterministicTypeResolver.Resolve should force MagicItem for 'requires attunement' text");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir,   true); } catch { }
+        }
+    }
 }

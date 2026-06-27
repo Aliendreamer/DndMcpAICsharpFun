@@ -64,7 +64,7 @@ public sealed class StatBlockScanner
     private static bool HasArmorClassWithin(IReadOnlyList<PdfStructureItem> items, int i, int window)
     {
         for (var j = i + 1; j <= i + window && j < items.Count; j++)
-            if (items[j].Text.Contains("Armor Class", StringComparison.OrdinalIgnoreCase))
+            if (ExtractionSignatures.HasArmorClass(items[j].Text))
                 return true;
         return false;
     }

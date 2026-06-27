@@ -92,6 +92,16 @@ public sealed class EntityExtractionOrchestrator(
             var candidates    = ExtractionCandidateDeduplicator.Dedupe(
                 statBlockCandidates.Concat(sectionCandidates), BookKey(record));
 
+            // Deterministic resolution drops non-entity-named candidates (headings/fragments) before
+            // extraction — no wasted LLM call, no garbage entity.
+            var keptCandidates = candidates
+                .Where(c => DeterministicTypeResolver.Resolve(c).Outcome != DeterministicOutcome.Drop)
+                .ToList();
+            var droppedCount = candidates.Count - keptCandidates.Count;
+            if (droppedCount > 0)
+                logger.LogInformation("Dropped {Count} non-entity-named candidates before extraction", droppedCount);
+            candidates = keptCandidates;
+
             logger.LogInformation(
                 "Entity extraction: {CandidateCount} candidates from {ItemCount} structure items",
                 candidates.Count, doc.Items.Count);
@@ -429,27 +439,28 @@ public sealed class EntityExtractionOrchestrator(
 
         var displayName = NormalizeDisplayName(candidate.DisplayName);
 
-        // Deterministic override: a complete creature stat block IS a Monster. Extract it directly
-        // with the Monster schema instead of offering the content-first decline branch — the model
-        // otherwise sometimes declines a clear stat block (the Aboleth case).
-        if (schemas.TryGetValue(EntityType.Monster, out var monsterSchema) &&
-            StatBlockSignature.IsCompleteStatBlock(candidate.Text))
+        // Deterministic type resolution before the content-first union. Drop candidates are filtered
+        // out at candidate build, so only ForceType/Defer reach here. A forced type extracts with that
+        // type's schema directly (no decline branch); Defer uses the union below.
+        var resolution = DeterministicTypeResolver.Resolve(candidate);
+        if (resolution.Outcome == DeterministicOutcome.ForceType &&
+            schemas.TryGetValue(resolution.ForcedType, out var forcedSchema))
         {
-            var (statFields, statError) = await candidateExtractor.ExtractFieldsAsync(
-                record, candidate with { Type = EntityType.Monster }, monsterSchema, ct);
-            if (statFields is null)
+            var (forcedFields, forcedError) = await candidateExtractor.ExtractFieldsAsync(
+                record, candidate with { Type = resolution.ForcedType }, forcedSchema, ct);
+            if (forcedFields is null)
             {
                 logger.LogWarning(
-                    "Stat-block Monster extraction failed for '{Name}' (page {Page}): {Error}",
-                    candidate.DisplayName, candidate.Page, statError);
+                    "Forced {Type} extraction failed for '{Name}' (page {Page}): {Error}",
+                    resolution.ForcedType, candidate.DisplayName, candidate.Page, forcedError);
                 return (null, new ExtractionErrorEntry(
                     SourceEntityId: id, FieldPath: "(extraction)", MissingTargetId: string.Empty,
-                    ErrorKind: "extraction_failure", Detail: statError));
+                    ErrorKind: "extraction_failure", Detail: forcedError));
             }
 
-            var statConfidence = statFields.Value.TryGetProperty("confidence", out var scp) ? scp.GetString() : null;
-            var statClean = CandidateExtractor.StripConfidence(statFields.Value);
-            return (BuildTypedEnvelope(id, EntityType.Monster, displayName, sourceBook, edition, candidate, statClean, statConfidence), null);
+            var forcedConfidence = forcedFields.Value.TryGetProperty("confidence", out var fcp) ? fcp.GetString() : null;
+            var forcedClean = CandidateExtractor.StripConfidence(forcedFields.Value);
+            return (BuildTypedEnvelope(id, resolution.ForcedType, displayName, sourceBook, edition, candidate, forcedClean, forcedConfidence), null);
         }
 
         var result = await candidateExtractor.ExtractUnionAsync(record, candidate, availablePrior, schemas, ct);
