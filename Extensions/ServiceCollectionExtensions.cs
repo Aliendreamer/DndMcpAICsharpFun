@@ -171,6 +171,10 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<EntitySchemaProvider>();
         services.AddSingleton<ExtractionCheckpointStore>();
         services.AddSingleton<CandidateExtractor>();
+        services.AddSingleton<EntityNameIndex>(_ =>
+            new EntityNameIndex(
+                configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools"));
+        services.AddSingleton<EntityNameMatcher>();
         services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
         services.AddSingleton<DndMcpAICsharpFun.Features.Admin.CanonicalValidationService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalTypeFixerService>();
