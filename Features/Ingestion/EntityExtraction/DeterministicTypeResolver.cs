@@ -46,7 +46,7 @@ public static class DeterministicTypeResolver
 
         if (isOfficial
             && candidate.TypePrior.Count > 0
-            && candidate.TypePrior.All(GatedTypes.Contains))
+            && GatedTypes.Contains(candidate.TypePrior[0]))   // PRIMARY prior only (floor always adds Item)
             return TypeResolution.Decline("no_5etools_match");
 
         return TypeResolution.Defer;

@@ -141,12 +141,22 @@ public sealed class DeterministicTypeResolverTests
             .Outcome.Should().Be(DeterministicOutcome.Defer);
     }
 
-    [Fact] // official + mixed prior (one ungated) -> Defer
-    public void Official_mixed_prior_defers()
+    [Fact] // official + ungated primary (Item first) -> Defer (gate only checks TypePrior[0])
+    public void Official_ungated_primary_defers()
+    {
+        var c = Candidate("Some Thing", text: "", prior: new[] { EntityType.Item, EntityType.Class });
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // official + gated primary (Class) + ungated Item in floor -> Decline (regression guard)
+    // This proves the gate keys off TypePrior[0] only, not .All(). The scanner floor always
+    // appends {Monster, Spell, Item, Class} so a pure .All() check would never fire for Item.
+    public void Official_gated_primary_with_floor_declines()
     {
         var c = Candidate("Some Thing", text: "", prior: new[] { EntityType.Class, EntityType.Item });
         DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
-            .Outcome.Should().Be(DeterministicOutcome.Defer);
+            .Outcome.Should().Be(DeterministicOutcome.Decline);
     }
 
     [Fact] // official + empty prior -> Defer
