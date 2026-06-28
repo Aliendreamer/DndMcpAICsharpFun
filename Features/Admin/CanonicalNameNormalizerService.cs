@@ -21,10 +21,7 @@ public sealed class CanonicalNameNormalizerService(
             return new CanonicalNameNormalizerReport(0, 0, dryRun, []);
 
         var files = Directory.GetFiles(dir, "*.json", SearchOption.TopDirectoryOnly)
-            .Where(f => !f.EndsWith(".errors.json", StringComparison.Ordinal)
-                     && !f.EndsWith(".warnings.json", StringComparison.Ordinal)
-                     && !f.EndsWith(".progress.json", StringComparison.Ordinal)
-                     && !f.EndsWith(".progress.errors.json", StringComparison.Ordinal))
+            .Where(f => !CanonicalSidecarFiles.IsSidecar(f))
             .OrderBy(f => f)
             .ToList();
 

@@ -25,8 +25,7 @@ public sealed class CanonicalValidationService(
             return new CanonicalValidationReport(0, 0, failures, warnings);
 
         var files = Directory.GetFiles(_opts.CanonicalDirectory, "*.json", SearchOption.TopDirectoryOnly)
-            .Where(f => !f.EndsWith(".errors.json", StringComparison.Ordinal)
-                     && !f.EndsWith(".warnings.json", StringComparison.Ordinal))
+            .Where(f => !CanonicalSidecarFiles.IsSidecar(f))
             .OrderBy(f => f)
             .ToList();
 
