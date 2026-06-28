@@ -9,11 +9,11 @@ otherwise, drop a candidate whose name is not entity-like (this precedes the sta
 tutorial/fragment heading is never forced `Monster`); (3) otherwise, force `Monster` when the candidate
 has a complete stat block (the stat-block rescue guard, which fires even for official books so a real
 monster is never dropped); (4) otherwise, force `MagicItem` when the candidate has a magic-item
-signature; (5) otherwise, for an official book (the book has a `FivetoolsSourceKey`) when every one of
-the candidate's prior types is in the gated set (Spell, Monster, Class, Race, Background, Feat,
-Condition, God), the candidate's PRIMARY prior type (the first, bookmark-derived entry of its prior
-list) is in the gated set, **decline** the candidate with reason `no_5etools_match` and make no
-extraction LLM call; (6) otherwise defer to the content-first union (pick-or-decline), unchanged.
+signature; (5) otherwise, for an official book (the book has a `FivetoolsSourceKey`) when the
+candidate's PRIMARY prior type (the first, bookmark-derived entry of its prior list) is in the gated
+set (Spell, Monster, Class, Race, Background, Feat, Condition, God), **decline** the candidate with
+reason `no_5etools_match` and make no extraction LLM call; (6) otherwise defer to the content-first
+union (pick-or-decline), unchanged.
 (The gate keys off the PRIMARY prior because the scanner always appends a frequency floor — including
 the ungated Item — to every candidate's prior list, so an "all priors gated" test would never fire.)
 

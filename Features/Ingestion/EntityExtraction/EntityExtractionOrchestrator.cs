@@ -96,7 +96,10 @@ public sealed class EntityExtractionOrchestrator(
                 statBlockCandidates.Concat(sectionCandidates), BookKey(record));
 
             // Deterministic resolution drops non-entity-named candidates (headings/fragments) before
-            // extraction — no wasted LLM call, no garbage entity.
+            // extraction — no wasted LLM call, no garbage entity. INVARIANT: this prefilter omits
+            // isOfficial on purpose — it removes ONLY Drop. Declines must survive to the recording loop
+            // below (which passes isOfficial) so they reach declined.json; passing isOfficial here would
+            // silently filter them out. Do not "fix" it to pass isOfficial.
             var keptCandidates = candidates
                 .Where(c => DeterministicTypeResolver.Resolve(c, _matcher).Outcome != DeterministicOutcome.Drop)
                 .ToList();

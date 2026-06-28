@@ -1501,10 +1501,6 @@ public class EntityExtractionOrchestratorTests
     //  Task 4 integration — official-gated allowlist gate fires in orchestrator
     // ─────────────────────────────────────────────────────────────────────────
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  Task 4 integration — official-gated allowlist gate fires in orchestrator
-    // ─────────────────────────────────────────────────────────────────────────
-
     [Fact]
     public async Task Official_gated_noise_is_declined_not_extracted_and_recorded()
     {
