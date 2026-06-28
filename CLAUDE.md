@@ -62,6 +62,8 @@ The retrieval pipeline uses a dual-collection setup in Qdrant: `dnd_blocks` hold
 
 Canonical JSON files at `books/canonical/<book-slug>.json` are the hand-correctable source of truth for structured entities. Ingestion reads these files via `CanonicalJsonLoader`, validates schema/IDs, and projects each entity into `dnd_entities`. Plan 2 of the structured-entity-extraction effort has shipped: an Ollama-driven extraction pipeline (local qwen3:8b) produces `books/canonical/<book>.json` from Marker conversion output (plus optional sibling `<book>.errors.json` and `<book>.warnings.json`). Hand-authoring is still allowed and remains the source of truth — extraction outputs are reviewed in PRs before they land.
 
+For official books (those with a `fivetoolsSourceKey`), a sibling `<book-slug>.declined.json` is also produced — candidates whose PRIMARY prior type is one of the gated types (Spell/Monster/Class/Race/Background/Feat/Condition/God) but that have no match in the 5etools authoritative index are declined without an LLM call and recorded here as `{id,name,type,reason}`. This file is auditable, separate from `errors.json`, and is ignored by ingestion and the `errorsOnly` retry.
+
 New endpoints:
 
 - `POST /admin/books/{id}/ingest-entities` — ingest a book's canonical JSON into `dnd_entities`.

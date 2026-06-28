@@ -81,6 +81,7 @@ public class EntityExtractionOrchestratorTests
                 writer: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
                 errorsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
                 warningsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
+                declinedFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionDeclinedFile(),
                 refResolver: new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
                 schemaProvider: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
                     opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
@@ -221,6 +222,7 @@ public class EntityExtractionOrchestratorTests
             writer:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
             errorsFile:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
             warningsFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
+            declinedFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionDeclinedFile(),
             refResolver:        new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
             schemaProvider:     new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
                 opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
@@ -719,6 +721,7 @@ public class EntityExtractionOrchestratorTests
                 writer:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
                 errorsFile:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
                 warningsFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
+                declinedFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionDeclinedFile(),
                 refResolver:        new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
                 schemaProvider:     new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
                     opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
@@ -845,8 +848,15 @@ public class EntityExtractionOrchestratorTests
                    ErrorMessage: null,
                    RawJson: null));
 
+            // Real 5etools index — loads "Aboleth" as a Monster from the repo's 5etools/ directory.
+            // Without this, the allowlist gate declines the candidate (official + no 5etools match + no stat block).
+            var realMatcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                    TestPaths.RepoFile("5etools")));
+
             var orchestrator = BuildOrchestrator(
-                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm, registry);
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm, registry,
+                matcher: realMatcher);
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
@@ -1479,6 +1489,182 @@ public class EntityExtractionOrchestratorTests
             canonical!.Entities.Should().HaveCount(1,
                 "FIREBALL was already in checkpoint; must not be re-extracted and duplicated");
             canonical.Entities[0].Id.Should().Be(canonicalFireballId);
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir,   true); } catch { }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Task 4 integration — official-gated allowlist gate fires in orchestrator
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Official_gated_noise_is_declined_not_extracted_and_recorded()
+    {
+        // Arrange — official record (FivetoolsSourceKey "PHB").
+        //
+        // The gate is exercised via the REAL section/heading path (EntityCandidateScanner),
+        // representative of actual chapter-body noise in the Classes chapter:
+        //
+        // Page 1: "Rage" heading under a "Barbarian" bookmark (no stat-block cues in body text).
+        //   BookmarkTocMapper.Map calls HeadingCategoryClassifier.Guess("Barbarian") → Class.
+        //   TocCategoryMap maps page 1 to ContentCategory.Class.
+        //   EntityCandidateScanner.Scan assigns ContentCategory.Class for page 1, then
+        //   ExpandPrior(Class) → TypePrior = [Class, Monster, Spell, Item] (Class is PRIMARY).
+        //   StatBlockScanner finds no size-type + AC line → yields nothing for page 1.
+        //   DeterministicTypeResolver.Resolve (isOfficial=true):
+        //     1. 5etools has no "Rage" top-level entity ("Rage" lives in classFeature[],
+        //        NOT in the indexed class[] array) → no 5etools match.
+        //     2. IsEntityLikeName("Rage") = true.
+        //     3. IsCompleteStatBlock = false (no AC/HP/Challenge in body text).
+        //     4. IsMagicItem = false.
+        //     5. isOfficial=true, TypePrior[0]=Class ∈ GatedTypes → Decline("no_5etools_match").
+        //
+        // Page 2: "FIREBALL" under a "Spells" bookmark → real 5etools match →
+        //   ForceType(Spell, "Fireball") → extracted via LLM.
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+
+        // Spell schema must be present so FIREBALL can be extracted via the ForceType(Spell) path.
+        File.WriteAllText(
+            Path.Combine(schemasDir, "SpellFields.schema.json"),
+            "{ \"type\": \"object\" }");
+
+        try
+        {
+            const int bookId = 600;
+            const string displayName = "Player's Handbook";
+
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+            {
+                Id                = bookId,
+                FilePath          = "/dev/null",
+                FileName          = "phb.pdf",
+                FileHash          = "phb-hash-1",
+                Version           = "5e",
+                DisplayName       = displayName,
+                FivetoolsSourceKey = "PHB",
+            };
+
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            // Page 1 — "Rage" heading with plain class-feature body text.
+            //   No size-type line, no "Armor Class" → StatBlockScanner yields nothing for page 1.
+            //   EntityCandidateScanner maps page 1 to Class via the "Barbarian" bookmark below,
+            //   producing TypePrior=[Class, Monster, Spell, Item] (Class is the PRIMARY gated type).
+            // Page 2 — "FIREBALL" heading with brief text.
+            //   Spells bookmark → EntityCandidateScanner produces a Spell candidate.
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+                "doc",
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+                {
+                    // Page 1 — class feature "Rage" (chapter-body noise; no stat-block cues)
+                    new("section_header", "Rage",                                                          1, null),
+                    new("text",           "When you enter a rage, you gain advantage on Strength checks.", 1, null),
+                    // Page 2 — real spell
+                    new("section_header", "FIREBALL",                2, null),
+                    new("text",           "A bright streak of fire.", 2, null),
+                });
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
+
+            // "Barbarian" bookmark on page 1:
+            //   HeadingCategoryClassifier.Guess("Barbarian") = ContentCategory.Class
+            //   → TocCategoryMap maps page 1 to ContentCategory.Class → EntityType.Class (gated).
+            // "Spells" bookmark on page 2 → ContentCategory.Spell.
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
+                {
+                    new("Barbarian", 1),
+                    new("Spells",    2),
+                });
+
+            // LLM returns success with empty fields — we only care about call count.
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+            using var emptyFields = System.Text.Json.JsonDocument.Parse("{}");
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                   Success: true,
+                   ToolInput: emptyFields.RootElement.Clone(),
+                   StopReason: "tool_use",
+                   InputTokens: 0,
+                   OutputTokens: 0,
+                   ErrorMessage: null,
+                   RawJson: null));
+
+            // Real 5etools index — "Fireball" is a Spell; "Rage" is a classFeature (NOT indexed
+            // in the "class" array), so it genuinely does not match.
+            var realMatcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                    TestPaths.RepoFile("5etools")));
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                matcher: realMatcher);
+
+            // Act
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // ── Assert 1: LLM was called exactly once — for FIREBALL only; NOT for "Rage".
+            await llm.Received(1).ExtractAsync(
+                Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                Arg.Any<CancellationToken>());
+
+            // ── Assert 2: "Rage" is absent from the canonical entities.
+            var bookSlug     = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(record.FivetoolsSourceKey!, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+
+            File.Exists(canonicalPath).Should().BeTrue("canonical JSON must be written");
+
+            var canonicalJson = await File.ReadAllTextAsync(canonicalPath);
+            var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(
+                canonicalJson,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                });
+
+            canonical.Should().NotBeNull();
+            canonical!.Entities.Should().NotContain(
+                e => e.Name == "Rage",
+                "declined noise candidates must not appear in the canonical output");
+
+            // ── Assert 3: <slug>.declined.json exists and records "Rage" with no_5etools_match
+            //   and primary type Class — confirming the gate fired via the section/heading path.
+            //   A stat-block path would produce primary type Monster; Class here proves it is the
+            //   real chapter-body noise path from EntityCandidateScanner.
+            var declinedPath = Path.Combine(canonicalDir, bookSlug + ".declined.json");
+            File.Exists(declinedPath).Should().BeTrue(
+                "declined.json must be written when at least one official candidate is declined");
+
+            var declinedJson = await File.ReadAllTextAsync(declinedPath);
+            var declined = System.Text.Json.JsonSerializer.Deserialize<
+                List<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.DeclinedEntry>>(
+                declinedJson,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                });
+
+            declined.Should().NotBeNullOrEmpty("at least 'Rage' must be in the declined list");
+            declined!.Should().Contain(
+                d => d.Name == "Rage"
+                  && d.Reason == "no_5etools_match"
+                  && d.Type == DndMcpAICsharpFun.Domain.Entities.EntityType.Class,
+                "gated noise candidate 'Rage' must be declined with reason no_5etools_match " +
+                "and primary type Class (section/heading path), not Monster (stat-block path)");
         }
         finally
         {

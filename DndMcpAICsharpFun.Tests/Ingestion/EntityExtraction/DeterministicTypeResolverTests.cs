@@ -90,4 +90,97 @@ public sealed class DeterministicTypeResolverTests
         r.Outcome.Should().Be(DeterministicOutcome.ForceType);
         r.ForcedType.Should().Be(EntityType.Monster);
     }
+
+    // ── Task 1: Decline outcome + gated-type set ──────────────────────────────────────
+
+    [Fact]
+    public void GatedTypes_contains_the_eight_and_excludes_item_magicitem_plane()
+    {
+        DeterministicTypeResolver.GatedTypes.Should().BeEquivalentTo(new[]
+        {
+            EntityType.Spell, EntityType.Monster, EntityType.Class, EntityType.Race,
+            EntityType.Background, EntityType.Feat, EntityType.Condition, EntityType.God
+        });
+        DeterministicTypeResolver.GatedTypes.Should().NotContain(EntityType.Item);
+        DeterministicTypeResolver.GatedTypes.Should().NotContain(EntityType.MagicItem);
+        DeterministicTypeResolver.GatedTypes.Should().NotContain(EntityType.Plane);
+    }
+
+    [Fact]
+    public void Decline_carries_outcome_and_reason()
+    {
+        var r = TypeResolution.Decline("no_5etools_match");
+        r.Outcome.Should().Be(DeterministicOutcome.Decline);
+        r.DeclineReason.Should().Be("no_5etools_match");
+    }
+
+    // ── Task 2: isOfficial gate ───────────────────────────────────────────────────────
+
+    // Candidate factory for gate tests: accepts a single prior type.
+    private static EntityCandidate Candidate(string name, string text, EntityType prior) =>
+        new(prior, name, text, null, new[] { prior });
+
+    // Candidate factory for gate tests: accepts an array of prior types.
+    private static EntityCandidate Candidate(string name, string text, IReadOnlyList<EntityType> prior) =>
+        new(prior.Count > 0 ? prior[0] : EntityType.Monster, name, text, null, prior);
+
+    [Fact] // official + all-gated prior + no match + no stat block -> Decline
+    public void Official_gated_nonmatch_declines()
+    {
+        var c = Candidate("Rage", text: "", prior: EntityType.Class);
+        var r = DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true);
+        r.Outcome.Should().Be(DeterministicOutcome.Decline);
+        r.DeclineReason.Should().Be("no_5etools_match");
+    }
+
+    [Fact] // homebrew -> Defer (gate never fires)
+    public void Homebrew_gated_nonmatch_defers()
+    {
+        var c = Candidate("Rage", text: "", prior: EntityType.Class);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: false)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // official + ungated primary (Item first) -> Defer (gate only checks TypePrior[0])
+    public void Official_ungated_primary_defers()
+    {
+        var c = Candidate("Some Thing", text: "", prior: new[] { EntityType.Item, EntityType.Class });
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // official + gated primary (Class) + ungated Item in floor -> Decline (regression guard)
+    // This proves the gate keys off TypePrior[0] only, not .All(). The scanner floor always
+    // appends {Monster, Spell, Item, Class} so a pure .All() check would never fire for Item.
+    public void Official_gated_primary_with_floor_declines()
+    {
+        var c = Candidate("Some Thing", text: "", prior: new[] { EntityType.Class, EntityType.Item });
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Decline);
+    }
+
+    [Fact] // official + empty prior -> Defer
+    public void Official_empty_prior_defers()
+    {
+        var c = Candidate("Some Thing", text: "", prior: Array.Empty<EntityType>());
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // official + stat block + no match -> Force Monster (guard wins, NOT Decline)
+    public void Official_statblock_nonmatch_forces_monster_not_decline()
+    {
+        var c = Candidate("Xyzgoblin Elder", text: "Armor Class 15\nHit Points 40\nChallenge 3", prior: EntityType.Monster);
+        var r = DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true);
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Monster);
+    }
+
+    [Fact] // non-entity-like name -> Drop (before decline), even official+gated
+    public void Official_nonentitylike_drops_not_declines()
+    {
+        var c = Candidate("ACTIONS", text: "", prior: EntityType.Monster);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Drop);
+    }
 }

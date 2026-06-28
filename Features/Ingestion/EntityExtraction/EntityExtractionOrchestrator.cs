@@ -20,6 +20,7 @@ public sealed class EntityExtractionOrchestrator(
     CanonicalJsonWriter writer,
     ExtractionErrorsFile errorsFile,
     ExtractionWarningsFile warningsFile,
+    ExtractionDeclinedFile declinedFile,
     EntityReferenceResolver refResolver,
     EntitySchemaProvider schemaProvider,
     ExtractionCheckpointStore checkpointStore,
@@ -95,7 +96,10 @@ public sealed class EntityExtractionOrchestrator(
                 statBlockCandidates.Concat(sectionCandidates), BookKey(record));
 
             // Deterministic resolution drops non-entity-named candidates (headings/fragments) before
-            // extraction — no wasted LLM call, no garbage entity.
+            // extraction — no wasted LLM call, no garbage entity. INVARIANT: this prefilter omits
+            // isOfficial on purpose — it removes ONLY Drop. Declines must survive to the recording loop
+            // below (which passes isOfficial) so they reach declined.json; passing isOfficial here would
+            // silently filter them out. Do not "fix" it to pass isOfficial.
             var keptCandidates = candidates
                 .Where(c => DeterministicTypeResolver.Resolve(c, _matcher).Outcome != DeterministicOutcome.Drop)
                 .ToList();
@@ -163,6 +167,9 @@ public sealed class EntityExtractionOrchestrator(
                 doneIds.Count, extracted.Count, extractionErrors.Count);
 
         var (sourceBook, edition) = DeriveSourceAndEdition(record);
+        bool isOfficial  = !string.IsNullOrWhiteSpace(record.FivetoolsSourceKey);
+        var declined     = new List<DeclinedEntry>();
+        var declinedPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".declined.json");
 
         int success   = extracted.Count;
         int failed    = extractionErrors.Count;
@@ -174,12 +181,23 @@ public sealed class EntityExtractionOrchestrator(
         {
             ct.ThrowIfCancellationRequested();
             var candidate = candidates[i];
-            var id = RecordedEntityId(record, candidate);
+
+            // Decline an official-book candidate whose PRIMARY prior type (TypePrior[0]) is gated and that did not match the 5etools index.
+            // No LLM call; not counted as success or failure.
+            var declineRes = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
+            if (declineRes.Outcome == DeterministicOutcome.Decline)
+            {
+                var rawId = EntityIdSlug.For(BookKey(record), candidate.TypePrior.FirstOrDefault(), candidate.DisplayName);
+                declined.Add(new DeclinedEntry(rawId, candidate.DisplayName, candidate.TypePrior.FirstOrDefault(), declineRes.DeclineReason ?? "no_5etools_match"));
+                continue;
+            }
+
+            var id = RecordedEntityId(record, candidate, isOfficial);
 
             if (doneIds.Contains(id))
                 continue;
 
-            var (envelope, error) = await ExtractOneAsync(record, candidate, id, sourceBook, edition, schemas, ct);
+            var (envelope, error) = await ExtractOneAsync(record, candidate, id, sourceBook, edition, schemas, ct, isOfficial);
 
             if (error is not null)
             {
@@ -250,6 +268,7 @@ public sealed class EntityExtractionOrchestrator(
         await writer.WriteAsync(canonicalPath, canonicalFile, ct);
         await errorsFile.WriteAsync(errorsPath, extractionErrors, ct);
         await warningsFile.WriteAsync(warningsPath, interWarnings, ct);
+        await declinedFile.WriteAsync(declinedPath, declined, ct);
 
         // Update the database FIRST so that if checkpoint deletion fails, the record is already consistent.
         await tracker.MarkEntitiesExtractedAsync(bookId, extracted.Count, ct);
@@ -320,16 +339,22 @@ public sealed class EntityExtractionOrchestrator(
         var newErrors      = new List<ExtractionErrorEntry>();
 
         var (sourceBook, edition) = DeriveSourceAndEdition(record);
+        bool isOfficial = !string.IsNullOrWhiteSpace(record.FivetoolsSourceKey);
 
         for (int i = 0; i < candidates.Count; i++)
         {
             ct.ThrowIfCancellationRequested();
             var candidate = candidates[i];
-            var id = RecordedEntityId(record, candidate);
+
+            // If the candidate is now declined (e.g. allowlist updated since full run), skip silently.
+            if (DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial).Outcome == DeterministicOutcome.Decline)
+                continue;
+
+            var id = RecordedEntityId(record, candidate, isOfficial);
 
             if (!retrySet.Contains(id)) continue;
 
-            var (envelope, error) = await ExtractOneAsync(record, candidate, id, sourceBook, edition, schemas, ct);
+            var (envelope, error) = await ExtractOneAsync(record, candidate, id, sourceBook, edition, schemas, ct, isOfficial);
 
             if (error is not null)
                 newErrors.Add(error);
@@ -418,9 +443,9 @@ public sealed class EntityExtractionOrchestrator(
     // name matches the index, else the raw heading id. Every membership test (checkpoint doneIds,
     // errors-only retrySet) and ExtractOneAsync must agree on this id, or matched candidates are
     // silently re-extracted (resume) or skipped (retry).
-    private string RecordedEntityId(DndMcpAICsharpFun.Domain.IngestionRecord record, EntityCandidate candidate)
+    private string RecordedEntityId(DndMcpAICsharpFun.Domain.IngestionRecord record, EntityCandidate candidate, bool isOfficial = false)
     {
-        var resolution = DeterministicTypeResolver.Resolve(candidate, _matcher);
+        var resolution = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
         return resolution.Outcome == DeterministicOutcome.ForceType && resolution.CanonicalName is { } cn
             ? EntityIdSlug.For(BookKey(record), resolution.ForcedType, cn)
             : EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
@@ -433,7 +458,8 @@ public sealed class EntityExtractionOrchestrator(
         string sourceBook,
         string edition,
         Dictionary<EntityType, JsonElement> schemas,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool isOfficial = false)
     {
         // Offer only prior types that actually have a schema. If none do, it is a configuration
         // problem (no_schema), recorded without an LLM call.
@@ -453,10 +479,10 @@ public sealed class EntityExtractionOrchestrator(
 
         var displayName = NormalizeDisplayName(candidate.DisplayName);
 
-        // Deterministic type resolution before the content-first union. Drop candidates are filtered
-        // out at candidate build, so only ForceType/Defer reach here. A forced type extracts with that
-        // type's schema directly (no decline branch); Defer uses the union below.
-        var resolution = DeterministicTypeResolver.Resolve(candidate, _matcher);
+        // Deterministic type resolution before the content-first union. Drop/Decline candidates are
+        // handled upstream; only ForceType/Defer reach here. A forced type extracts with that
+        // type's schema directly; Defer uses the union below.
+        var resolution = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
 
         // When the 5etools matcher supplies a canonical name, use it for both the entity's
         // display name and ID so the canonical JSON reflects the authoritative 5etools spelling

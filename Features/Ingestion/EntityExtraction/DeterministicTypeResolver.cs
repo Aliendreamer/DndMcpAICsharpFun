@@ -2,26 +2,36 @@ using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
-public enum DeterministicOutcome { Drop, ForceType, Defer }
+public enum DeterministicOutcome { Drop, ForceType, Defer, Decline }
 
 public readonly record struct TypeResolution(DeterministicOutcome Outcome, EntityType ForcedType)
 {
     public string? CanonicalName { get; init; }
+    public string? DeclineReason { get; init; }
     public static readonly TypeResolution Drop = new(DeterministicOutcome.Drop, default);
     public static readonly TypeResolution Defer = new(DeterministicOutcome.Defer, default);
     public static TypeResolution Force(EntityType type, string? canonicalName = null) =>
         new(DeterministicOutcome.ForceType, type) { CanonicalName = canonicalName };
+    public static TypeResolution Decline(string reason) =>
+        new(DeterministicOutcome.Decline, default) { DeclineReason = reason };
 }
 
 /// <summary>
 /// One deterministic per-candidate type decision, applied before the content-first union:
 /// drop non-entity-named candidates → force Monster on a complete stat block (the name is already
 /// entity-like, so the drop step is the override misfire guard) → force MagicItem on a magic-item
-/// signature → otherwise defer to the union pick-or-decline.
+/// signature → for an official book, decline when the primary prior type is gated and unmatched;
+/// otherwise defer to the content-first union.
 /// </summary>
 public static class DeterministicTypeResolver
 {
-    public static TypeResolution Resolve(EntityCandidate candidate, EntityNameMatcher? matcher = null)
+    public static readonly IReadOnlySet<EntityType> GatedTypes = new HashSet<EntityType>
+    {
+        EntityType.Spell, EntityType.Monster, EntityType.Class, EntityType.Race,
+        EntityType.Background, EntityType.Feat, EntityType.Condition, EntityType.God,
+    };
+
+    public static TypeResolution Resolve(EntityCandidate candidate, EntityNameMatcher? matcher = null, bool isOfficial = false)
     {
         // Step 1 (highest priority): 5etools name match — force type and carry canonical name.
         // Runs BEFORE the drop filter so known entities are never silently discarded.
@@ -34,6 +44,12 @@ public static class DeterministicTypeResolver
             return TypeResolution.Force(EntityType.Monster);
         if (ExtractionSignatures.IsMagicItem(candidate.Text))
             return TypeResolution.Force(EntityType.MagicItem);
+
+        if (isOfficial
+            && candidate.TypePrior.Count > 0
+            && GatedTypes.Contains(candidate.TypePrior[0]))   // PRIMARY prior only (floor always adds Item)
+            return TypeResolution.Decline("no_5etools_match");
+
         return TypeResolution.Defer;
     }
 }
