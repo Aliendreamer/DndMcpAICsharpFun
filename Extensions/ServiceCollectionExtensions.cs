@@ -167,6 +167,7 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<CanonicalJsonWriter>();
         services.AddSingleton<ExtractionErrorsFile>();
         services.AddSingleton<ExtractionWarningsFile>();
+        services.AddSingleton<ExtractionDeclinedFile>();
         services.AddSingleton<ExtractionRetryPolicy>();
         services.AddSingleton<EntitySchemaProvider>();
         services.AddSingleton<ExtractionCheckpointStore>();
