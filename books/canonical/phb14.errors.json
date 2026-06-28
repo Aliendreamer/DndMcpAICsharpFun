@@ -1,6 +1,55 @@
 [
   {
-    "sourceEntityId": "phb14.class.effect-dl00",
+    "sourceEntityId": "phb14.monster.war-priest",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "phb14.spell.augury",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "phb14.spell.bigby-s-hand",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Response was not valid JSON: The maximum configured depth of 64 has been exceeded. Cannot read next JSON object. LineNumber: 0 | BytePositionInLine: 24935."
+  },
+  {
+    "sourceEntityId": "phb14.spell.contagion",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "phb14.spell.glibness",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "phb14.spell.message",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "phb14.spell.prestidigitation",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "phb14.spell.silence",
     "fieldPath": "(extraction)",
     "missingTargetId": "",
     "errorKind": "extraction_failure",
