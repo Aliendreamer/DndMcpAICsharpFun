@@ -848,8 +848,15 @@ public class EntityExtractionOrchestratorTests
                    ErrorMessage: null,
                    RawJson: null));
 
+            // Real 5etools index — loads "Aboleth" as a Monster from the repo's 5etools/ directory.
+            // Without this, the allowlist gate declines the candidate (official + no 5etools match + no stat block).
+            var realMatcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                    TestPaths.RepoFile("5etools")));
+
             var orchestrator = BuildOrchestrator(
-                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm, registry);
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm, registry,
+                matcher: realMatcher);
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
