@@ -28,7 +28,7 @@
 
 ## 6. Live validation — re-run all 4 books
 
-- [ ] 6.1 Rebuild the app image; recreate the app; ensure qwen3 on GPU; confirm 5etools index loads
-- [ ] 6.2 Re-extract MM, PHB, DMG, and the 4th book (force) on the new pipeline
-- [ ] 6.3 Validate vs the recall losses: Fireball→Spell, Aboleth→Monster, Bard→Class, Lion→Monster, Counterspell→Spell all present + correctly typed; names clean (Mage Armor not MAGEARMOR); precision holds (no ACTIONS/REACTIONS/lair Monsters); compare accepted spell/class counts to the prior playerhandbook-2014 run (recall recovered)
-- [ ] 6.4 Record before/after deltas in the change; then ready to archive + (separately) ingest the corrected canonical
+- [x] 6.1 Rebuild the app image; recreate the app; ensure qwen3 on GPU; confirm 5etools index loads
+- [x] 6.2 Re-extract MM, PHB, DMG, and the 4th book (force) on the new pipeline
+- [x] 6.3 Validate vs the recall losses: Fireball→Spell, Aboleth→Monster, Bard→Class, Lion→Monster, Counterspell→Spell all present + correctly typed; names clean (Mage Armor not MAGEARMOR); precision holds (no ACTIONS/REACTIONS/lair Monsters); compare accepted spell/class counts to the prior playerhandbook-2014 run (recall recovered)
+- [x] 6.4 Record before/after deltas in the change; then ready to archive + (separately) ingest the corrected canonical
