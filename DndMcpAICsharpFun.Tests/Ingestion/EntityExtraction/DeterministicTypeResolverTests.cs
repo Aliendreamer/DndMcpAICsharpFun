@@ -90,4 +90,27 @@ public sealed class DeterministicTypeResolverTests
         r.Outcome.Should().Be(DeterministicOutcome.ForceType);
         r.ForcedType.Should().Be(EntityType.Monster);
     }
+
+    // ── Task 1: Decline outcome + gated-type set ──────────────────────────────────────
+
+    [Fact]
+    public void GatedTypes_contains_the_eight_and_excludes_item_magicitem_plane()
+    {
+        DeterministicTypeResolver.GatedTypes.Should().BeEquivalentTo(new[]
+        {
+            EntityType.Spell, EntityType.Monster, EntityType.Class, EntityType.Race,
+            EntityType.Background, EntityType.Feat, EntityType.Condition, EntityType.God
+        });
+        DeterministicTypeResolver.GatedTypes.Should().NotContain(EntityType.Item);
+        DeterministicTypeResolver.GatedTypes.Should().NotContain(EntityType.MagicItem);
+        DeterministicTypeResolver.GatedTypes.Should().NotContain(EntityType.Plane);
+    }
+
+    [Fact]
+    public void Decline_carries_outcome_and_reason()
+    {
+        var r = TypeResolution.Decline("no_5etools_match");
+        r.Outcome.Should().Be(DeterministicOutcome.Decline);
+        r.DeclineReason.Should().Be("no_5etools_match");
+    }
 }

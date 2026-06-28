@@ -2,15 +2,18 @@ using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
-public enum DeterministicOutcome { Drop, ForceType, Defer }
+public enum DeterministicOutcome { Drop, ForceType, Defer, Decline }
 
 public readonly record struct TypeResolution(DeterministicOutcome Outcome, EntityType ForcedType)
 {
     public string? CanonicalName { get; init; }
+    public string? DeclineReason { get; init; }
     public static readonly TypeResolution Drop = new(DeterministicOutcome.Drop, default);
     public static readonly TypeResolution Defer = new(DeterministicOutcome.Defer, default);
     public static TypeResolution Force(EntityType type, string? canonicalName = null) =>
         new(DeterministicOutcome.ForceType, type) { CanonicalName = canonicalName };
+    public static TypeResolution Decline(string reason) =>
+        new(DeterministicOutcome.Decline, default) { DeclineReason = reason };
 }
 
 /// <summary>
@@ -21,6 +24,12 @@ public readonly record struct TypeResolution(DeterministicOutcome Outcome, Entit
 /// </summary>
 public static class DeterministicTypeResolver
 {
+    public static readonly IReadOnlySet<EntityType> GatedTypes = new HashSet<EntityType>
+    {
+        EntityType.Spell, EntityType.Monster, EntityType.Class, EntityType.Race,
+        EntityType.Background, EntityType.Feat, EntityType.Condition, EntityType.God,
+    };
+
     public static TypeResolution Resolve(EntityCandidate candidate, EntityNameMatcher? matcher = null)
     {
         // Step 1 (highest priority): 5etools name match — force type and carry canonical name.
