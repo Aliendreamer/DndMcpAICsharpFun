@@ -11,8 +11,11 @@ has a complete stat block (the stat-block rescue guard, which fires even for off
 monster is never dropped); (4) otherwise, force `MagicItem` when the candidate has a magic-item
 signature; (5) otherwise, for an official book (the book has a `FivetoolsSourceKey`) when every one of
 the candidate's prior types is in the gated set (Spell, Monster, Class, Race, Background, Feat,
-Condition, God), **decline** the candidate with reason `no_5etools_match` and make no extraction LLM
-call; (6) otherwise defer to the content-first union (pick-or-decline), unchanged.
+Condition, God), the candidate's PRIMARY prior type (the first, bookmark-derived entry of its prior
+list) is in the gated set, **decline** the candidate with reason `no_5etools_match` and make no
+extraction LLM call; (6) otherwise defer to the content-first union (pick-or-decline), unchanged.
+(The gate keys off the PRIMARY prior because the scanner always appends a frequency floor — including
+the ungated Item — to every candidate's prior list, so an "all priors gated" test would never fire.)
 
 #### Scenario: 5etools match forces the matched type and canonical name
 - **WHEN** a candidate name matches the 5etools index (e.g. "FIREBALL" → Spell, canonical "Fireball")
@@ -27,7 +30,7 @@ call; (6) otherwise defer to the content-first union (pick-or-decline), unchange
 - **THEN** it is extracted as `MagicItem`, not `Item` or a declined branch
 
 #### Scenario: Official gated-type non-match is declined before extraction
-- **WHEN** an official book yields a candidate whose prior types are all gated (e.g. "Rage" with prior {Class}), with no 5etools match and no complete stat block
+- **WHEN** an official book yields a candidate whose primary prior type is gated (e.g. "Rage" with primary prior {Class}, even though the scanner also appended the {Monster, Spell, Item, Class} floor), with no 5etools match and no complete stat block
 - **THEN** the candidate is declined with reason `no_5etools_match` and no extraction LLM call is made for it
 
 #### Scenario: Non-entity-named candidate is dropped before extraction
@@ -39,5 +42,5 @@ call; (6) otherwise defer to the content-first union (pick-or-decline), unchange
 - **THEN** the Monster override does NOT fire (the candidate is dropped at the entity-like step before the stat-block check)
 
 #### Scenario: Ordinary candidate still uses content-first union
-- **WHEN** a candidate is entity-like, has neither a complete stat block nor a magic-item signature, does not match the index, and is not an official gated-type non-match (e.g. a homebrew candidate, or an official candidate with a mixed/ungated prior)
+- **WHEN** a candidate is entity-like, has neither a complete stat block nor a magic-item signature, does not match the index, and is not an official gated-primary non-match (e.g. a homebrew candidate, or an official candidate whose primary prior type is ungated such as {Item})
 - **THEN** it is extracted via the content-first union pick-or-decline exactly as before

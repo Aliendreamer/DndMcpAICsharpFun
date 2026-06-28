@@ -47,9 +47,15 @@ from the mirror is never dropped. The (small) cost is that stat-block-shaped off
 acceptable, since chapter-body noise rarely carries a full stat block. *(Alternative: gate overrides
 the guard for official books — rejected by design review to never risk dropping a real monster.)*
 
-**4. Decline only when ALL of the candidate's prior types are gated.** A mixed prior that includes an
-ungated type (e.g. `[Class, Item]`) falls through to content-first, so an ungated possibility is never
-foreclosed. Empty prior → content-first (cannot determine). This keeps the gate conservative.
+**4. Decline when the candidate's PRIMARY prior type is gated.** The scanner builds `TypePrior` as
+`[primary, ...confusion-set, ...frequency-floor]`, and the frequency floor ALWAYS appends
+`{Monster, Spell, Item, Class}` — so `Item` (ungated) is in every candidate's `TypePrior` and an
+"all prior types gated" test would never be true (the gate would be dead). The PRIMARY (first) prior is
+the bookmark/heading-derived signal of the candidate's real type; gate on it: `isOfficial &&
+TypePrior.Count > 0 && GatedTypes.Contains(TypePrior[0])`. Empty prior → content-first (cannot
+determine). Real magic items are still protected by the earlier magic-item force (ladder step 4)
+regardless of bookmark, and real monsters by the stat-block guard (step 3) — so gating on the primary
+does not foreclose those ungated/rescued possibilities.
 
 **5. Non-match → decline with no LLM call, recorded to `<book-slug>.declined.json`.** A separate
 sibling file (`{id, name, type, reason: "no_5etools_match"}`), NOT the main `entities` and NOT

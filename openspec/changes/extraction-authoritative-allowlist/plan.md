@@ -15,7 +15,7 @@
 - Gated set is EXACTLY: `Spell, Monster, Class, Race, Background, Feat, Condition, God`. Ungated: `Item, MagicItem, Plane` (and any other type).
 - "Official" = `IngestionRecord.FivetoolsSourceKey` is non-empty.
 - Ladder order MUST stay: `match → drop-non-entity-like → stat-block(ForceMonster) → magic-item(ForceMagicItem) → official-gated-decline → defer`. The entity-like DROP stays BEFORE the stat-block check (preserves the tutorial-fragment override guard). The stat-block guard fires even for official books (never drop a real monster).
-- Decline fires only when ALL of the candidate's `TypePrior` are gated. Empty prior or any ungated prior → fall through to `Defer`.
+- Decline fires only when the candidate's PRIMARY prior type (`TypePrior[0]`, the bookmark-derived first entry) is gated. Empty prior → fall through to `Defer`. NOTE: the scanner (`HeadingCategoryClassifier.ExpandPrior`) always appends a frequency floor `{Monster, Spell, Item, Class}` to every `TypePrior`, so the ungated `Item` is always present and an "all priors gated" test would NEVER fire — the gate MUST key off the primary (`TypePrior[0]`) only.
 - A declined candidate makes NO extraction LLM call, is NOT emitted as an entity, and is NOT added to the checkpoint as extracted.
 - `<book-slug>.declined.json` is separate from `errors.json`; the `errorsOnly` retry set is built from `errors.json` only and MUST NOT retry declines.
 
@@ -124,12 +124,20 @@ public void Homebrew_gated_nonmatch_defers()
         .Outcome.Should().Be(DeterministicOutcome.Defer);
 }
 
-[Fact] // official + mixed prior (one ungated) -> Defer
-public void Official_mixed_prior_defers()
+[Fact] // official + ungated PRIMARY prior -> Defer
+public void Official_ungated_primary_defers()
 {
-    var c = Candidate("Some Thing", text: "", prior: new[]{ EntityType.Class, EntityType.Item });
+    var c = Candidate("Some Thing", text: "", prior: new[]{ EntityType.Item, EntityType.Class });
     DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
         .Outcome.Should().Be(DeterministicOutcome.Defer);
+}
+
+[Fact] // official + gated PRIMARY + ungated floor (Item) present -> Decline (gate keys off primary)
+public void Official_gated_primary_with_floor_declines()
+{
+    var c = Candidate("Rage", text: "", prior: new[]{ EntityType.Class, EntityType.Item });
+    DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+        .Outcome.Should().Be(DeterministicOutcome.Decline);
 }
 
 [Fact] // official + empty prior -> Defer
@@ -174,13 +182,13 @@ public static TypeResolution Resolve(EntityCandidate candidate, EntityNameMatche
 
     if (isOfficial
         && candidate.TypePrior.Count > 0
-        && candidate.TypePrior.All(GatedTypes.Contains))
+        && GatedTypes.Contains(candidate.TypePrior[0]))   // PRIMARY prior only (floor always adds Item)
         return TypeResolution.Decline("no_5etools_match");
 
     return TypeResolution.Defer;
 }
 ```
-*(Confirm `EntityCandidate.TypePrior` is non-null `IReadOnlyList<EntityType>`; if nullable, guard with `?.Count > 0 == true`.)*
+*(`EntityCandidate.TypePrior` is non-null `IReadOnlyList<EntityType>` (default `[Type]`). Gate on the PRIMARY `TypePrior[0]`: the scanner appends a frequency floor `{Monster, Spell, Item, Class}`, so `Item` is always present and `.All(GatedTypes.Contains)` would never be true.)*
 - [ ] **Step 4:** Run all `DeterministicTypeResolverTests`; reconcile any pre-existing test that called `Resolve` with the 2-arg signature (the new param is optional, so they compile unchanged). Verify green.
 - [ ] **Step 5:** Commit (`feat(extraction): official-book allowlist gate in resolver`).
 
