@@ -20,7 +20,8 @@ public readonly record struct TypeResolution(DeterministicOutcome Outcome, Entit
 /// One deterministic per-candidate type decision, applied before the content-first union:
 /// drop non-entity-named candidates → force Monster on a complete stat block (the name is already
 /// entity-like, so the drop step is the override misfire guard) → force MagicItem on a magic-item
-/// signature → otherwise defer to the union pick-or-decline.
+/// signature → for an official book, decline when the primary prior type is gated and unmatched;
+/// otherwise defer to the content-first union.
 /// </summary>
 public static class DeterministicTypeResolver
 {

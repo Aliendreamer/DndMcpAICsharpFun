@@ -14,7 +14,9 @@ public sealed class ExtractionDeclinedFileTests
         var sut = new ExtractionDeclinedFile();
         await sut.WriteAsync(path, new List<DeclinedEntry>{ new("phb14.class.rage","Rage",EntityType.Class,"no_5etools_match") }, default);
         File.Exists(path).Should().BeTrue();
-        (await File.ReadAllTextAsync(path)).Should().Contain("no_5etools_match");
+        var json = await File.ReadAllTextAsync(path);
+        json.Should().Contain("no_5etools_match");
+        json.Should().Contain("\"Class\"", because: "EntityType enum must serialize as string, not integer");
         await sut.WriteAsync(path, new List<DeclinedEntry>(), default);
         File.Exists(path).Should().BeFalse();
     }

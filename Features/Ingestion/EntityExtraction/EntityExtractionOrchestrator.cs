@@ -179,8 +179,8 @@ public sealed class EntityExtractionOrchestrator(
             ct.ThrowIfCancellationRequested();
             var candidate = candidates[i];
 
-            // Official-gated allowlist gate: decline candidates with ALL gated priors that do not
-            // appear in the 5etools index. No LLM call; not counted as success or failure.
+            // Decline an official-book candidate whose PRIMARY prior type (TypePrior[0]) is gated and that did not match the 5etools index.
+            // No LLM call; not counted as success or failure.
             var declineRes = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
             if (declineRes.Outcome == DeterministicOutcome.Decline)
             {
