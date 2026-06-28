@@ -113,4 +113,64 @@ public sealed class DeterministicTypeResolverTests
         r.Outcome.Should().Be(DeterministicOutcome.Decline);
         r.DeclineReason.Should().Be("no_5etools_match");
     }
+
+    // ── Task 2: isOfficial gate ───────────────────────────────────────────────────────
+
+    // Candidate factory for gate tests: accepts a single prior type.
+    private static EntityCandidate Candidate(string name, string text, EntityType prior) =>
+        new(prior, name, text, null, new[] { prior });
+
+    // Candidate factory for gate tests: accepts an array of prior types.
+    private static EntityCandidate Candidate(string name, string text, IReadOnlyList<EntityType> prior) =>
+        new(prior.Count > 0 ? prior[0] : EntityType.Monster, name, text, null, prior);
+
+    [Fact] // official + all-gated prior + no match + no stat block -> Decline
+    public void Official_gated_nonmatch_declines()
+    {
+        var c = Candidate("Rage", text: "", prior: EntityType.Class);
+        var r = DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true);
+        r.Outcome.Should().Be(DeterministicOutcome.Decline);
+        r.DeclineReason.Should().Be("no_5etools_match");
+    }
+
+    [Fact] // homebrew -> Defer (gate never fires)
+    public void Homebrew_gated_nonmatch_defers()
+    {
+        var c = Candidate("Rage", text: "", prior: EntityType.Class);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: false)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // official + mixed prior (one ungated) -> Defer
+    public void Official_mixed_prior_defers()
+    {
+        var c = Candidate("Some Thing", text: "", prior: new[] { EntityType.Class, EntityType.Item });
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // official + empty prior -> Defer
+    public void Official_empty_prior_defers()
+    {
+        var c = Candidate("Some Thing", text: "", prior: Array.Empty<EntityType>());
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // official + stat block + no match -> Force Monster (guard wins, NOT Decline)
+    public void Official_statblock_nonmatch_forces_monster_not_decline()
+    {
+        var c = Candidate("Xyzgoblin Elder", text: "Armor Class 15\nHit Points 40\nChallenge 3", prior: EntityType.Monster);
+        var r = DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true);
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Monster);
+    }
+
+    [Fact] // non-entity-like name -> Drop (before decline), even official+gated
+    public void Official_nonentitylike_drops_not_declines()
+    {
+        var c = Candidate("ACTIONS", text: "", prior: EntityType.Monster);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Drop);
+    }
 }

@@ -30,7 +30,7 @@ public static class DeterministicTypeResolver
         EntityType.Background, EntityType.Feat, EntityType.Condition, EntityType.God,
     };
 
-    public static TypeResolution Resolve(EntityCandidate candidate, EntityNameMatcher? matcher = null)
+    public static TypeResolution Resolve(EntityCandidate candidate, EntityNameMatcher? matcher = null, bool isOfficial = false)
     {
         // Step 1 (highest priority): 5etools name match — force type and carry canonical name.
         // Runs BEFORE the drop filter so known entities are never silently discarded.
@@ -43,6 +43,12 @@ public static class DeterministicTypeResolver
             return TypeResolution.Force(EntityType.Monster);
         if (ExtractionSignatures.IsMagicItem(candidate.Text))
             return TypeResolution.Force(EntityType.MagicItem);
+
+        if (isOfficial
+            && candidate.TypePrior.Count > 0
+            && candidate.TypePrior.All(GatedTypes.Contains))
+            return TypeResolution.Decline("no_5etools_match");
+
         return TypeResolution.Defer;
     }
 }
