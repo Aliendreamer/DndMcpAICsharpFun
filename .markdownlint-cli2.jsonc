@@ -8,6 +8,7 @@
     "**/obj/**",
     ".git",
     ".claude/**",
+    ".agents/**",
     ".superpowers/**",
     ".serena/**",
     "5etools/**",
