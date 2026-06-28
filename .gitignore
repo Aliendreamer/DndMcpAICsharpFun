@@ -504,3 +504,5 @@ books/canonical/*.progress.errors.json
 
 # subagent-driven-development scratch (ledger, task reports, review diffs)
 .superpowers/
+.mineru-spike/
+docker-compose.override.yml

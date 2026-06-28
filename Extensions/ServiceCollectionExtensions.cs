@@ -105,10 +105,18 @@ internal static class ServiceCollectionExtensions
 
         services.AddHttpClient(nameof(MarkerPdfConverter));
         services.AddSingleton<MarkerPdfConverter>();
-        services.AddSingleton<IPdfStructureConverter>(sp => new PdfConversionDiskCache(
-            sp.GetRequiredService<MarkerPdfConverter>(),
-            sp.GetRequiredService<IOptions<EntityExtractionOptions>>(),
-            sp.GetRequiredService<ILogger<PdfConversionDiskCache>>()));
+
+        // Spike: when MinerU:Enabled, MinerU replaces Marker as the structure converter
+        // (reads pre-produced `mineru` CLI output); otherwise the Marker disk-cache pipeline.
+        services.AddOptions<MinerUOptions>().BindConfiguration("MinerU");
+        services.AddSingleton<MinerUPdfConverter>();
+        services.AddSingleton<IPdfStructureConverter>(sp =>
+            sp.GetRequiredService<IOptions<MinerUOptions>>().Value.Enabled
+                ? sp.GetRequiredService<MinerUPdfConverter>()
+                : new PdfConversionDiskCache(
+                    sp.GetRequiredService<MarkerPdfConverter>(),
+                    sp.GetRequiredService<IOptions<EntityExtractionOptions>>(),
+                    sp.GetRequiredService<ILogger<PdfConversionDiskCache>>()));
         services.AddSingleton<IPdfBlockExtractor, StructureBlockExtractor>();
 
         return services;
