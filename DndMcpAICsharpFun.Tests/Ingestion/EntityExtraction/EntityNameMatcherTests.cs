@@ -46,4 +46,39 @@ public sealed class EntityNameMatcherTests
     [Fact]
     public void Match_whitespace_only_returns_null() =>
         Matcher.Match("   ").Should().BeNull();
+
+    // ── MatchOfType: per-type lookup for cross-type collisions ───────────────────────
+
+    // "Dwarf" exists as BOTH a Monster (bestiary) and a Race (races.json). The first-wins
+    // Entries map keeps the Monster; MatchOfType can still recover the Race entry by type.
+    [Fact]
+    public void MatchOfType_dwarf_race_returns_the_race_entry() =>
+        Matcher.MatchOfType("Dwarf", EntityType.Race).Should().Be(("Dwarf", EntityType.Race));
+
+    [Fact]
+    public void MatchOfType_dwarf_monster_returns_the_monster_entry() =>
+        Matcher.MatchOfType("Dwarf", EntityType.Monster).Should().Be(("Dwarf", EntityType.Monster));
+
+    // "Dwarf" is not a spell in the corpus → no entry of that type → null.
+    [Fact]
+    public void MatchOfType_dwarf_spell_returns_null() =>
+        Matcher.MatchOfType("Dwarf", EntityType.Spell).Should().BeNull();
+
+    // Default Match (first-wins) still returns the Monster for the colliding name.
+    [Fact]
+    public void Match_dwarf_first_wins_returns_monster() =>
+        Matcher.Match("Dwarf").Should().Be(("Dwarf", EntityType.Monster));
+
+    // Fuzzy, restricted to type: "Thunderwve" → Thunderwave Spell; no monster of that name.
+    [Fact]
+    public void MatchOfType_fuzzy_hit_of_type() =>
+        Matcher.MatchOfType("Thunderwve", EntityType.Spell).Should().Be(("Thunderwave", EntityType.Spell));
+
+    [Fact]
+    public void MatchOfType_fuzzy_wrong_type_returns_null() =>
+        Matcher.MatchOfType("Thunderwve", EntityType.Monster).Should().BeNull();
+
+    [Fact]
+    public void MatchOfType_empty_string_returns_null() =>
+        Matcher.MatchOfType("", EntityType.Spell).Should().BeNull();
 }

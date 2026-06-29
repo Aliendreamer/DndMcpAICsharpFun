@@ -1226,10 +1226,12 @@ public class EntityExtractionOrchestratorTests
     [Fact]
     public async Task ErrorsOnly_retry_finds_5etools_matched_failed_candidate()
     {
-        // Arrange: FIREBALL under "Monsters" bookmark → raw type = Monster, raw id = bookSlug.monster.fireball
-        // 5etools forces it to Spell → canonical id = bookSlug.spell.fireball.
-        // The errors file records the CANONICAL id. Pre-fix, the loop uses raw id → membership miss
-        // → FIREBALL silently skipped. Post-fix, RecordedEntityId returns canonical id → retry happens.
+        // Arrange: FIREBALL under "Spells" bookmark → primary prior = Spell → same-prior 5etools
+        // match forces it to Spell with canonical name "Fireball" → canonical id = bookSlug.spell.fireball.
+        // The errors file records the CANONICAL id (from RecordedEntityId, computed off the RESOLVED
+        // type + canonical name). errorsOnly membership must use that canonical id so FIREBALL is retried.
+        // (Note: the primary prior is now trusted, so a Monster-bookmarked Fireball would Defer rather
+        // than be force-typed to Spell; the realistic Spells-bookmark fixture exercises the force path.)
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
@@ -1258,8 +1260,8 @@ public class EntityExtractionOrchestratorTests
             var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
             tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
 
-            // FIREBALL under "Monsters" bookmark → scanner assigns primary Type=Monster.
-            // 5etools matcher will force it to Spell.
+            // FIREBALL under "Spells" bookmark → scanner assigns primary Type=Spell.
+            // The same-prior 5etools match forces it to Spell with canonical name "Fireball".
             var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
             var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
                 "doc",
@@ -1274,7 +1276,7 @@ public class EntityExtractionOrchestratorTests
             bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
                 new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
                 {
-                    new("Monsters", 1),
+                    new("Spells", 1),
                 });
 
             var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
@@ -1365,9 +1367,9 @@ public class EntityExtractionOrchestratorTests
     [Fact]
     public async Task CheckpointResume_does_not_duplicate_5etools_matched_entity()
     {
-        // Arrange: checkpoint holds FIREBALL with its CANONICAL id (spell-type). Pre-fix, the loop
-        // computes the raw id (monster-type) → miss in doneIds → re-extracts → duplicate in canonical.
-        // Post-fix, RecordedEntityId returns canonical id → hit → skipped → exactly one entity.
+        // Arrange: checkpoint holds FIREBALL (Spells bookmark → Spell prior) with its CANONICAL id.
+        // RecordedEntityId returns that canonical id, so the doneIds membership check hits → the
+        // already-checkpointed entity is skipped → exactly one entity, no duplicate.
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
@@ -1408,7 +1410,7 @@ public class EntityExtractionOrchestratorTests
             bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
                 new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
                 {
-                    new("Monsters", 1),
+                    new("Spells", 1),
                 });
 
             var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();

@@ -1,17 +1,32 @@
-# Parser upgrade: Marker → MinerU (+ local OCR models)
+# Parser: MinerU is the main parser — SHIPPED + VALIDATED (2026-06-29)
 
-User found (2026-06-28) **MinerU** + "unlimited" local OCR models and wants to move the PDF parsing layer to it. This supersedes several papered-over parser-quality issues.
+MinerU + `-m ocr` + the spell-chapter splitter replaced Marker as the sole production PDF parser. Live prod run validated.
 
-## Why
-Current parser = **Marker** (`MarkerPdfConverter` → `IPdfStructureConverter`, `marker:5002`, cache `books/conversion-cache/*.marker.json`, keys `markdown`+`items`). Marker's heading/layout/OCR on dense RPG layouts causes:
-- **Candidate-gen gap** — `project/class_name_candidate_gap`: 8/12 class-name headings not emitted as `items` → never become candidates. Better layout/heading detection fixes this.
-- **OCR garble** typed as entities (`HIT POlNTS`, `EQUlPMENT`, `Small Ano Practical`, `••• Draconians`).
-- **De-spacing residuals** (`MAGEARMOR`, merged words) — relates to the `heading-despacing` / `canonical-name-normalizer` specs (file roadmap Item 4b).
+## VALIDATION (2026-06-29): mineru-main-parser PASSED ✅
+Live prod run via the `mineru:8000` service (no CLI, no Marker) = **byte-identical to the spike**: 443 total, **12/12 classes, 7/9 races, 323/361 PHB spells, 0 noise, 583 declined**. Run ~4.4h (1032 candidates × ~30s qwen3). The production HTTP path (POST mineru:8000/file_parse → splitter → extraction → 5etools gate) reproduces the recipe exactly — acceptance gate met.
+Code on main: implementer `86d55a0` + Development ServiceUrl fix `2b2c724` + prod-compose `0bc3aad`. MinerU service container in the PCC stack (`fc555d2` there). Spec `mineru-main-parser` (review-clean) — ready to archive.
 
-MinerU = layout analysis + pluggable OCR (PaddleOCR etc.) → markdown/JSON; stronger on multi-column/stat-block layouts; runs fully LOCAL with unlimited OCR (fits the single-user all-local stance, `mem:companion_roadmap`).
+## The recipe (why each piece)
+- MinerU `pipeline` backend (`-b pipeline`) — layout model gets class/race section headings Marker misses.
+- `-m ocr` (NOT txt/auto) — REQUIRED: PHB PDF has a corrupt embedded text layer (`1st-level`→`/st-/evel`, `You`→`Vou`); txt extracts garbage, ocr re-reads rendered pixels → clean text, keeps headings. ~30-90min/book on 8GB GPU; conversion disk-cached (`.mineru.json` suffix).
+- Spell-chapter splitter (`MinerUPdfConverter`): spell NAMES are run-in labels, never headings; anchor on "Casting Time:" blocks + preceding level/school line, cut name at first digit/school → synthetic heading.
+- VLM/`hybrid-engine` backend — RULED OUT (didn't fix spell headings, heavier).
 
-## Clean swap point
-Pipeline is parser-agnostic behind `IPdfStructureConverter`. Add a `MinerUPdfConverter` implementing it (map MinerU output → `PdfStructureDocument` items: heading/text + page). Keep the disk-cache pattern (`PdfConversionDiskCache`, new `*.mineru.json`). Downstream (`EntityCandidateScanner` → `DeterministicTypeResolver` → allowlist gate) is unchanged. Then re-convert + re-extract the books.
+## Architecture (production)
+`MinerUPdfConverter` POSTs the PDF to `mineru:8000/file_parse` (`backend=pipeline`, `parse_method=ocr`, `return_content_list=true`); response `results.<firstKey>.content_list` is a JSON STRING → blocks → map+splitter. HttpClient timeout = `ConversionTimeoutMinutes` (120). Sole `IPdfStructureConverter` (+ `PdfConversionDiskCache`). MinerU service = `mineru-api` (FastAPI) in a vLLM/CUDA-13 image, GPU, in BOTH the PCC dev stack and `docker-compose.prod.yml` (replaced the marker service).
 
-## Status / next
-⬜ Not started. Own brainstorm→spec→plan when picked up. Likely SUPERSEDES: `project/class_name_candidate_gap` (candidate-gen gap), the standalone OCR de-spacing follow-up (file roadmap Item 4b). Sequence: land it before the next big extraction re-run so all books get the better parse.
+## Long-tail follow-ups (roadmap — root-caused 2026-06-29 on the LIVE run)
+- **38 missing PHB spells** (323/361) — NOT garble (OCR fixed that); column-break / spell-detection edges in the splitter (entries split across the 2-column boundary, or "Casting Time:" predecessor not recognized). Chase via better entry-boundary detection. Long tail; diminishing returns. (Not yet deep-dived.)
+- **"2 missing races" = TWO DIFFERENT causes (root-caused):**
+  - **Dwarf — NOT missing, MIS-TYPED.** It's in phb14.json as **Monster**, not Race. The `DWARF` heading IS detected (p18); the candidate resolved to a 5etools **"Dwarf" creature** collision instead of the Race. → fix in TYPE RESOLUTION: on a Race-vs-Monster name collision, prefer Race when the candidate sits in the races chapter / has a Race prior. (Our logic, not the parser.)
+  - **Gnome — parser heading-miss.** MinerU tagged `GNOME NAMES`/`GNOME TRAITS`/`Rock Gnome` but NOT the bare `GNOME` title (p36), unlike Dwarf/Elf/Halfling. → no clean Gnome race candidate. Fix: race-section fallback (anchor "X TRAITS" → promote "X"), analogous to the spell splitter.
+
+## Deferred polish (Minor, from the review — apply at next rebuild)
+- Converter: clearer exception on empty MinerU `results` (currently raw InvalidOperationException; fails loudly — acceptable).
+- prod compose: add explicit `MinerU__ServiceUrl=http://mineru:8000` env for parity (works via code default).
+- `cspell.json` still lists "Marker" (harmless dictionary word).
+
+## Next steps
+1. Re-convert + re-extract MM and DMG through the live service (then ingest corpus-wide).
+2. Finish sequence when user says: archive `mineru-main-parser` + skill-optimizer.
+Relates to `mem:project_class_name_candidate_gap` (resolved), `mem:companion_roadmap`.

@@ -47,6 +47,53 @@ public sealed class EntityNameMatcher(EntityNameIndex index)
         return bestRatio >= 0.90 ? best : null;
     }
 
+    /// <summary>
+    /// Like <see cref="Match"/>, but restricted to entries of the given <paramref name="type"/>.
+    /// Lets a caller resolve a cross-type name collision in favour of a preferred type
+    /// (e.g. "Dwarf" → the Dwarf <em>Race</em> entry rather than the Dwarf Monster entry).
+    /// Returns null when no entry of that type matches (exact or fuzzy).
+    /// </summary>
+    public (string Canonical, EntityType Type)? MatchOfType(string rawName, EntityType type)
+    {
+        var normalized = EntityNameIndex.Normalize(rawName);
+        if (normalized.Length == 0) return null;
+
+        // 1. Exact normalized hit of the requested type.
+        if (index.EntriesByName.TryGetValue(normalized, out var exactList))
+        {
+            foreach (var e in exactList)
+                if (e.Type == type) return e;
+        }
+
+        // 2. Bounded fuzzy, restricted to entries of the requested type.
+        var queryLen = normalized.Length;
+        (string Canonical, EntityType Type)? best = null;
+        var bestRatio = 0.0;
+        string? bestCanonical = null;
+
+        foreach (var (key, values) in index.EntriesByName)
+        {
+            if (Math.Abs(key.Length - queryLen) > 2) continue;
+
+            var dist = Levenshtein(normalized, key);
+            var maxLen = Math.Max(queryLen, key.Length);
+            var ratio = maxLen == 0 ? 1.0 : 1.0 - (double)dist / maxLen;
+
+            foreach (var value in values)
+            {
+                if (value.Type != type) continue;
+                if (ratio > bestRatio || (ratio == bestRatio && string.CompareOrdinal(value.Canonical, bestCanonical) < 0))
+                {
+                    bestRatio = ratio;
+                    bestCanonical = value.Canonical;
+                    best = value;
+                }
+            }
+        }
+
+        return bestRatio >= 0.90 ? best : null;
+    }
+
     // Standard two-row dynamic-programming Levenshtein.
     private static int Levenshtein(string s, string t)
     {

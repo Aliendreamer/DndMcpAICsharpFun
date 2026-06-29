@@ -58,9 +58,10 @@ public sealed class DeterministicTypeResolverTests
     [Fact]
     public void Fivetools_match_forces_type_and_canonical_name()
     {
-        // FIREBALL → normalized "fireball" → exact 5etools hit → ForceType(Spell) + CanonicalName.
+        // FIREBALL with a Spell prior → same-prior 5etools hit → ForceType(Spell) + CanonicalName.
         var r = DeterministicTypeResolver.Resolve(
-            C("FIREBALL", "A bright streak flashes to a point you choose, then blossoms into flame."), Matcher);
+            Candidate("FIREBALL", "A bright streak flashes to a point you choose, then blossoms into flame.", EntityType.Spell),
+            Matcher);
         r.Outcome.Should().Be(DeterministicOutcome.ForceType);
         r.ForcedType.Should().Be(EntityType.Spell);
         r.CanonicalName.Should().Be("Fireball");
@@ -69,10 +70,11 @@ public sealed class DeterministicTypeResolverTests
     [Fact]
     public void Fivetools_match_precedes_drop_filter_and_stat_block_detection()
     {
-        // "FIREBALL" paired with stat-block text: without step 1 it would ForceType(Monster);
-        // with step 1 the 5etools Spell match wins before either the drop filter or stat-block check.
+        // "FIREBALL" (Spell prior) paired with stat-block text: the same-prior 5etools Spell match
+        // wins before either the drop filter or the stat-block check.
         var r = DeterministicTypeResolver.Resolve(
-            C("FIREBALL", "Armor Class 14 Hit Points 30 Challenge 1 (200 XP)"), Matcher);
+            Candidate("FIREBALL", "Armor Class 14 Hit Points 30 Challenge 1 (200 XP)", EntityType.Spell),
+            Matcher);
         r.Outcome.Should().Be(DeterministicOutcome.ForceType);
         r.ForcedType.Should().Be(EntityType.Spell);
         r.CanonicalName.Should().Be("Fireball");
@@ -182,5 +184,58 @@ public sealed class DeterministicTypeResolverTests
         var c = Candidate("ACTIONS", text: "", prior: EntityType.Monster);
         DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
             .Outcome.Should().Be(DeterministicOutcome.Drop);
+    }
+
+    // ── Cross-type name collision prefers the candidate's PRIMARY prior type ───────────
+
+    [Fact] // "Dwarf" matches both a Monster and a Race in 5etools; a Race prior wins the Race entry.
+    public void Cross_type_collision_prefers_prior_Race_for_Dwarf()
+    {
+        var r = DeterministicTypeResolver.Resolve(
+            Candidate("Dwarf", "A short and stout folk.", EntityType.Race), Matcher);
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Race);
+        r.CanonicalName.Should().Be("Dwarf");
+    }
+
+    [Fact] // Spell prior, only a cross-type (non-Spell) match exists → Defer, not Force cross-type.
+    public void Cross_type_collision_gated_prior_only_cross_match_defers()
+    {
+        // "Dwarf" has no Spell entry — only Monster/Race. A Spell prior is gated, so the resolver
+        // must NOT force the cross-type Monster match; it defers so the model extracts it as a Spell.
+        var r = DeterministicTypeResolver.Resolve(
+            Candidate("Dwarf", "A spell about earth.", EntityType.Spell), Matcher);
+        r.Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // Cross-type match, prior NOT gated (Item) → unchanged behaviour: force the single match.
+    public void Cross_type_match_nongated_prior_forces_match()
+    {
+        var r = DeterministicTypeResolver.Resolve(
+            Candidate("Dwarf", "Some thing.", EntityType.Item), Matcher);
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Monster);   // first-wins best match for "Dwarf"
+    }
+
+    [Fact] // Stat-block rescue MUST win over a cross-type name match.
+    public void Stat_block_rescue_wins_over_cross_type_name_match()
+    {
+        // "Fireball" matches a (non-Monster) Spell; with a complete stat block and a Class prior,
+        // the monster rescue still wins — Monster, not the cross-type Spell match.
+        var r = DeterministicTypeResolver.Resolve(
+            Candidate("Fireball", "Armor Class 14 Hit Points 30 Challenge 1 (200 XP)", EntityType.Class),
+            Matcher);
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Monster);
+    }
+
+    [Fact] // Common case: a real Spell named "Fireball" with a Spell prior → Force Spell (unchanged).
+    public void Same_type_match_forces_unchanged()
+    {
+        var r = DeterministicTypeResolver.Resolve(
+            Candidate("Fireball", "A bright streak flashes into flame.", EntityType.Spell), Matcher);
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Spell);
+        r.CanonicalName.Should().Be("Fireball");
     }
 }

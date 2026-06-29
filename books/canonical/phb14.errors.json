@@ -1,62 +1,27 @@
 [
   {
-    "sourceEntityId": "phb14.monster.war-priest",
+    "sourceEntityId": "phb14.spell.command",
     "fieldPath": "(extraction)",
     "missingTargetId": "",
     "errorKind": "extraction_failure",
     "detail": "Empty response from Ollama"
   },
   {
-    "sourceEntityId": "phb14.spell.augury",
+    "sourceEntityId": "phb14.spell.gust-of-wind",
     "fieldPath": "(extraction)",
     "missingTargetId": "",
     "errorKind": "extraction_failure",
     "detail": "Empty response from Ollama"
   },
   {
-    "sourceEntityId": "phb14.spell.bigby-s-hand",
+    "sourceEntityId": "phb14.spell.vicious-mockery",
     "fieldPath": "(extraction)",
     "missingTargetId": "",
     "errorKind": "extraction_failure",
-    "detail": "Response was not valid JSON: The maximum configured depth of 64 has been exceeded. Cannot read next JSON object. LineNumber: 0 | BytePositionInLine: 24935."
+    "detail": "Response was not valid JSON: Expected end of string, but instead reached end of data. LineNumber: 0 | BytePositionInLine: 49528."
   },
   {
-    "sourceEntityId": "phb14.spell.contagion",
-    "fieldPath": "(extraction)",
-    "missingTargetId": "",
-    "errorKind": "extraction_failure",
-    "detail": "Empty response from Ollama"
-  },
-  {
-    "sourceEntityId": "phb14.spell.glibness",
-    "fieldPath": "(extraction)",
-    "missingTargetId": "",
-    "errorKind": "extraction_failure",
-    "detail": "Empty response from Ollama"
-  },
-  {
-    "sourceEntityId": "phb14.spell.message",
-    "fieldPath": "(extraction)",
-    "missingTargetId": "",
-    "errorKind": "extraction_failure",
-    "detail": "Empty response from Ollama"
-  },
-  {
-    "sourceEntityId": "phb14.spell.prestidigitation",
-    "fieldPath": "(extraction)",
-    "missingTargetId": "",
-    "errorKind": "extraction_failure",
-    "detail": "Empty response from Ollama"
-  },
-  {
-    "sourceEntityId": "phb14.spell.silence",
-    "fieldPath": "(extraction)",
-    "missingTargetId": "",
-    "errorKind": "extraction_failure",
-    "detail": "Empty response from Ollama"
-  },
-  {
-    "sourceEntityId": "phb14.spell.tasha-s-hideous-laughter",
+    "sourceEntityId": "phb14.monster.pseudodragon",
     "fieldPath": "(extraction)",
     "missingTargetId": "",
     "errorKind": "extraction_failure",

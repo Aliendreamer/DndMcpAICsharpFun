@@ -1,8 +1,8 @@
 [
   {
-    "sourceEntityId": "phb14.condition.invisible",
+    "sourceEntityId": "phb14.background.hermit",
     "fieldPath": "fields.entries[0].slug",
-    "missingTargetId": "player-handbook-2014.condition.invisible",
+    "missingTargetId": "playerhandbook2014.background.hermit",
     "warningKind": "inter_book_dangling_ref"
   }
 ]

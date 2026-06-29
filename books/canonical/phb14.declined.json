@@ -1,5 +1,11 @@
 [
   {
+    "id": "phb14.monster.light-armor",
+    "name": "LIGHT ARMOR",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.race.chapter-2-races",
     "name": "CHAPTER 2: RACES",
     "type": "Race",
@@ -7,7 +13,7 @@
   },
   {
     "id": "phb14.race.choosing-a-race",
-    "name": "CHOOSING A RACE",
+    "name": "CHOOsING A RaCE",
     "type": "Race",
     "reason": "no_5etools_match"
   },
@@ -60,6 +66,18 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.race.short-and-stout",
+    "name": "SHORT AND STOUT",
+    "type": "Race",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.race.long-memory-long-grudges",
+    "name": "LONG MEMORY, LONG GRUDGES",
+    "type": "Race",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.race.clans-and-kingdoms",
     "name": "CLANS AND KINGDOMS",
     "type": "Race",
@@ -68,6 +86,12 @@
   {
     "id": "phb14.race.gods-gold-and-clan",
     "name": "GODS, GOLD, AND CLAN",
+    "type": "Race",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.race.slow-to-trust",
+    "name": "SLOW TO TRUST",
     "type": "Race",
     "reason": "no_5etools_match"
   },
@@ -102,14 +126,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.race.small-ano-practical",
-    "name": "SMALL ANO PRACTICAL",
+    "id": "phb14.race.small-and-practical",
+    "name": "SMALL AND PRACTICAL",
     "type": "Race",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.race.kino-ano-curious",
-    "name": "KINO ANO CURIOUS",
+    "id": "phb14.race.kind-and-curious",
+    "name": "KIND AND CURIOUS",
     "type": "Race",
     "reason": "no_5etools_match"
   },
@@ -180,6 +204,18 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.monster.proud-dragon-kin",
+    "name": "PROUD DRAGON KIN",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.monster.self-sufficient-clans",
+    "name": "SELF-SUFFICIENT CLANS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.monster.dragonborn-names",
     "name": "DRAGONBORN NAMES",
     "type": "Monster",
@@ -192,14 +228,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.monster.draconic-ancestry",
-    "name": "DRACONIC ANCESTRY",
-    "type": "Monster",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.monster.draconians",
-    "name": "\u2022\u2022\u2022 DRACONIANS",
+    "name": "DRACONIANS",
     "type": "Monster",
     "reason": "no_5etools_match"
   },
@@ -216,6 +246,12 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.race.of-two-worlds",
+    "name": "OF TWO WORLDS",
+    "type": "Race",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.race.scarred-and-strong",
     "name": "SCARRED AND STRONG",
     "type": "Race",
@@ -223,13 +259,19 @@
   },
   {
     "id": "phb14.race.the-mark-of-gruumsh",
-    "name": "THE MARK OF GRUUMSH",
+    "name": "THE MaRK OF GrUUMSH",
+    "type": "Race",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.race.infernal-bloodline",
+    "name": "INFERNAL BLOODLINE",
     "type": "Race",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.race.self-reliant-and-suspicious",
-    "name": "SELF- RELIANT AND SUSPICIOUS",
+    "name": "SELF-RELIANT AND SUSPICIOUS",
     "type": "Race",
     "reason": "no_5etools_match"
   },
@@ -240,8 +282,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.quick-build",
-    "name": "QUICK BUILD",
+    "id": "phb14.class.primal-instinct",
+    "name": "PRIMAL INSTINCT",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.a-life-of-danger",
+    "name": "A LIFE OF DANGER",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -289,7 +337,7 @@
   },
   {
     "id": "phb14.class.primal-path",
-    "name": "PRIMAL PATH",
+    "name": "PRIMAl PATH",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -337,7 +385,7 @@
   },
   {
     "id": "phb14.class.primal-champion",
-    "name": "PRIMAL CHAMPION",
+    "name": "PRIMAl CHAMPION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -426,18 +474,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.hit-polnts",
-    "name": "HIT POlNTS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.equlpment",
-    "name": "EQUlPMENT",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.spellcasting",
     "name": "SPELLCASTING",
     "type": "Class",
@@ -456,12 +492,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.spells-known-of-1st-level-and-higher",
-    "name": "SPELLS KNOWN OF 1ST LEVEL AND HIGHER",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.spellcasting-ability",
     "name": "SPELLCASTING ABILITY",
     "type": "Class",
@@ -475,7 +505,7 @@
   },
   {
     "id": "phb14.class.spellcasting-focus",
-    "name": "SPELLCASTING Focus",
+    "name": "SPELLCASTING FOCUS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -487,7 +517,7 @@
   },
   {
     "id": "phb14.class.jack-of-all-trades",
-    "name": "jACK  OF ALL TRADES",
+    "name": "JACK OF ALL TRADES",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -558,8 +588,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.additional-magical-secrets",
-    "name": "ADDITIONAL MAGICAL SECRETS",
+    "id": "phb14.class.additional-magigal-secrets",
+    "name": "ADDITIONAL MAGIGAL SECRETS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -594,8 +624,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.eq-uipment",
-    "name": "EQ.UIPMENT",
+    "id": "phb14.class.divine-agents",
+    "name": "DIVINE AGENTS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -654,8 +684,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.knowledce-domain-spells",
-    "name": "KNOWLEDCE DOMAIN SPELLS",
+    "id": "phb14.class.cleric-level-spells",
+    "name": "Cleric Level Spells",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -666,8 +696,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.channel-divinity-knowledge-of-the-ages",
-    "name": "CHANNEL DIVINITY: KNOWLEDGE OF THE AGES",
+    "id": "phb14.class.knowledge-of-the-ages",
+    "name": "KNOWLEDGE OF THE AGES",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -696,12 +726,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.life-domain-spells",
-    "name": "LIFE DOMAIN SPELLS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.bonus-proficiency",
     "name": "BONUS PROFICIENCY",
     "type": "Class",
@@ -710,12 +734,6 @@
   {
     "id": "phb14.class.disciple-of-life",
     "name": "DISCIPLE OF LIFE",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.channel-divinity-preserve-life",
-    "name": "CHANNEL DIVINITY: PRESERVE LIFE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -732,20 +750,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.suprem-ehealing",
-    "name": "SUPREM EHEALING",
+    "id": "phb14.class.supreme-healing",
+    "name": "SUPREME HEALING",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.class.light-domain",
     "name": "LIGHT DOMAIN",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.licht-domain-spells",
-    "name": "LICHT DOMAIN SPELLS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -762,12 +774,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.channel-divinity-radiance-of-the-dawn",
-    "name": "CHANNEL DIVINITY: RADIANCE OF THE DAWN",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.improved-flare",
     "name": "IMPROVED FLARE",
     "type": "Class",
@@ -775,7 +781,7 @@
   },
   {
     "id": "phb14.class.corona-of-light",
-    "name": "CORONA OF LIGHT",
+    "name": "COrONA OF LIGHT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -786,8 +792,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.potent-spellcasting-nature-domain-spells",
-    "name": "POTENT SPELLCASTING NATURE DOMAIN SPELLS",
+    "id": "phb14.class.nature-domain-spells",
+    "name": "NATURE DOMAIN SPELLS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -798,8 +804,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.channel-divinity-charm-animals-and-plants",
-    "name": "CHANNEL DIVINITY: CHARM ANIMALS AND PLANTS",
+    "id": "phb14.class.channel-divinity-charm-animals",
+    "name": "CHANNEL DIVINITY: CHARM ANIMALS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -822,20 +828,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.tempest-domain-spells",
-    "name": "TEMPEST DOMAIN SPELLS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.wrath-of-the-storm",
     "name": "WRATH OF THE STORM",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.channel-divinity-destructive-wrath",
-    "name": "CHANNEL DIVINITY: DESTRUCTIVE WRATH",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -858,26 +852,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.trickery-domain-spells",
-    "name": "TRICKERY DOMAIN SPELLS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.blessing-of-the-trickster",
     "name": "BLESSING OF THE TRICKSTER",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.channel-divinity-invoke-duplicity",
-    "name": "CHANNEL DIVINITY: INvOKE DUPLICITY",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.channel-divinity-cloak-of-shadows",
-    "name": "CHANNEL DIVINITY: CLOAK OF SHADOWS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -888,14 +864,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.wardomain",
-    "name": "WARDoMAIN",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.war-domain-spells",
-    "name": "WAR DOMAIN SPELLS",
+    "id": "phb14.class.war-domain",
+    "name": "WAr DOMAIN",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -907,7 +877,7 @@
   },
   {
     "id": "phb14.class.channel-divinity-war-god-s-blessing",
-    "name": "CHANNEL DIVINITY: WAR GOD\u0027S BLESSING",
+    "name": "CHANNEL DIVINITY: WAR GOD\u0027s BLESSING",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -918,14 +888,32 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.class.power-of-nature",
+    "name": "POWER OF NATURE",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.preserve-the-balance",
+    "name": "PRESERVE THE BALANCE",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.class.druidic",
     "name": "DRUIDIC",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.sacreo-plants-ano-wooo",
-    "name": "SACREO PLANTS ANO WOOO",
+    "id": "phb14.class.sacred-plants-and-wood",
+    "name": "SACRED PLANTS AND WOOD",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.ritual-gasting",
+    "name": "RITUAL GASTING",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -979,61 +967,13 @@
   },
   {
     "id": "phb14.class.circle-spells",
-    "name": "CIRCLE SPELLS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.arctic",
-    "name": "ARCTIC",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.coast",
-    "name": "COAST",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.desert",
-    "name": "DESERT",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.forest",
-    "name": "FOREST",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.grassland",
-    "name": "GRASSLAND",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.mountain",
-    "name": "MOUNTAIN",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.swamp",
-    "name": "SWAMP",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.underdark",
-    "name": "UNDERDARK",
+    "name": "CIRClE SPELLS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.class.land-s-stride",
-    "name": "LAND\u0027S STRIDE",
+    "name": "LAND\u0027s STRIDE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1086,8 +1026,26 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.druios-ano-the-coos",
-    "name": "DRUIOS ANO THE COOS \u2022\u2022 \u2022\u2022\u2022",
+    "id": "phb14.class.druids-and-the-gods",
+    "name": "DRUIDS AND THE GODS",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.well-rounded-specialists",
+    "name": "WELL-ROUNDED SPECIALISTS",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.trained-for-danger",
+    "name": "TRAINED FOR DANGER",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.the-fighter",
+    "name": "THE FIGHTER",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1146,8 +1104,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.martial-archetype",
-    "name": "MARTIAL ARCHETYPE",
+    "id": "phb14.class.martialarchetype",
+    "name": "MARTIALARCHETYPE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1213,13 +1171,7 @@
   },
   {
     "id": "phb14.class.know-your-enemy",
-    "name": "KNOW YOUR ENEMY",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.improved-combat-superiority",
-    "name": "IMPROVED COMBAT SUPERIORITY",
+    "name": "Know Your Enemy",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1248,14 +1200,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.eldritch-knight-spellcastlng",
-    "name": "ELDRITCH KNIGHT SPELLCASTlNG",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.war-magic",
-    "name": "WAR MAGIC",
+    "name": "WAr MAGIC",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1273,13 +1219,31 @@
   },
   {
     "id": "phb14.class.improved-war-magic",
-    "name": "IMPROVED WAR MAGIC",
+    "name": "IMPrOVEd WAr MaGIC",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.martial-arts",
-    "name": "MARTIAL ARTS",
+    "id": "phb14.class.the-magic-of-ki",
+    "name": "THE MaGIC OF Ki",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.training-and-asceticism",
+    "name": "TRAINING AND ASCETICISM",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.saving-throws-strength-dexterity",
+    "name": "Saving Throws: Strength, Dexterity",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.martialarts",
+    "name": "MARTIALARTS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1399,7 +1363,7 @@
   },
   {
     "id": "phb14.class.open-hand-technique",
-    "name": "OPEN HAND TECHNIQUE",
+    "name": "OpEn HaND TECHNIQUE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1441,7 +1405,7 @@
   },
   {
     "id": "phb14.class.cloak-of-shadows",
-    "name": "CLOAK OF SHADOWS",
+    "name": "ClOaK OF SHaDows",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1464,12 +1428,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.spells-and-kipoints",
-    "name": "SPELLS AND KIPOINTS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.elemental-disciplines",
     "name": "ELEMENTAL DISCIPLINES",
     "type": "Class",
@@ -1482,6 +1440,18 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.class.the-cause-of-righteousness",
+    "name": "THE CAUSE OF RIGHTEOUSNESS",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.beyond-the-mundane-life",
+    "name": "BEYOND THE MUNDANE LIFE",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.class.divine-sense",
     "name": "DIVINE SENSE",
     "type": "Class",
@@ -1489,7 +1459,7 @@
   },
   {
     "id": "phb14.class.lay-on-hands",
-    "name": "LAY ON HANDS",
+    "name": "LAY On HANDs",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1554,8 +1524,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.oath-of-devotion-spells",
-    "name": "OATH OF DEVOTION SPELLS",
+    "id": "phb14.class.paladin-level-spells",
+    "name": "Paladin Level Spells",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.breaking-your-oath",
+    "name": "BREAKING YOUR OATH",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1590,12 +1566,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.oath-of-the-ancients-spells",
-    "name": "OATH OF THE ANCIENTS SPELLS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.aura-of-warding",
     "name": "AURA OF WARDING",
     "type": "Class",
@@ -1609,7 +1579,7 @@
   },
   {
     "id": "phb14.class.elder-champion",
-    "name": "ELDER CHAMPION",
+    "name": "ELDEr CHAMPION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1626,20 +1596,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.oath-of-vengeance-spells",
-    "name": "OATH OF VENGEANCE SPELLS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.relentless-avenger",
     "name": "RELENTLESS AVENGER",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.sou-l-of-vengeance",
-    "name": "Sou L OF VENGEANCE",
+    "id": "phb14.class.soul-of-vengeance",
+    "name": "SOUL OF VENGEANCE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1662,6 +1626,12 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.class.the-ranger",
+    "name": "THE RANGER",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.class.favored-enemy",
     "name": "FAVORED ENEMY",
     "type": "Class",
@@ -1670,12 +1640,6 @@
   {
     "id": "phb14.class.natural-explorer",
     "name": "NATURAL EXPLORER",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.spells-known-of-1st-leve-land-higher",
-    "name": "SPELLS KNOWN OF 1ST LEVE LAND HIGHER",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1729,7 +1693,7 @@
   },
   {
     "id": "phb14.class.hunter-s-prey",
-    "name": "HUNTER\u0027S PREY",
+    "name": "HUNTER\u0027s PREY",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1747,7 +1711,7 @@
   },
   {
     "id": "phb14.class.superior-hunter-s-defense",
-    "name": "SUPERIOR HUNTER\u0027S DEFENSE",
+    "name": "SUPERIOR HUNTER\u0027s DEFENSE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1759,7 +1723,7 @@
   },
   {
     "id": "phb14.class.ranger-s-companion",
-    "name": "RANGER\u0027S COMPANION",
+    "name": "RANGEr\u0027S COMPANION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1794,8 +1758,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.proficlencies",
-    "name": "PROFIClENCIES",
+    "id": "phb14.class.the-rogue",
+    "name": "THE ROGUE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1932,20 +1896,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.mace-hand-legerdemain",
-    "name": "MACE HAND LEGERDEMAIN",
+    "id": "phb14.class.mage-hand-legerdemain",
+    "name": "MAGE HAND LEGERDEMAIN",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.arcane-trickster-spellcastinc",
-    "name": "ARCANE TRICKSTER SPELLCASTINC",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.magical-ambush",
-    "name": "MAGICAL AMBUSH",
+    "id": "phb14.class.magicalambush",
+    "name": "MAGICALAMBUSH",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1962,8 +1920,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.raw-magie",
-    "name": "RAW MAGIe",
+    "id": "phb14.class.raw-magic",
+    "name": "RAW MAGIC",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -1974,8 +1932,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.spells-known-of-1st-level-and-hwher",
-    "name": "SPELLS KNOWN OF 1ST LEVEL AND HWHER",
+    "id": "phb14.class.sorcerers-often",
+    "name": "Sorcerers often",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.quick-build",
+    "name": "QUICk BUILD",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2000,12 +1964,6 @@
   {
     "id": "phb14.class.flexible-casting",
     "name": "FLEXIBLE CASTING",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.creatlnc-spell-slots",
-    "name": "CREATlNC SPELL  SLOTS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2088,14 +2046,20 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.class.draconic-ancestry",
+    "name": "DRACONIC ANCESTRY",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.class.draconic-resilience",
     "name": "DRACONIC RESILIENCE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.elem-ental-affin-ity",
-    "name": "ELEM ENTAL AFFIN ITY",
+    "id": "phb14.class.elemental-affinity",
+    "name": "ELEMENTAL AFFINITY",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2142,18 +2106,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.dl00-effect",
-    "name": "dl00 Effect",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.effect-dl00",
-    "name": "Effect  dl00",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.sworn-and-beholden",
     "name": "SWORN AND BEHOLDEN",
     "type": "Class",
@@ -2162,6 +2114,12 @@
   {
     "id": "phb14.class.delvers-into-secrets",
     "name": "DELVERS INTO SECRETS",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.the-warlock",
+    "name": "THE WARLOCK",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2221,7 +2179,7 @@
   },
   {
     "id": "phb14.class.your-pact-boon",
-    "name": "\u2022\u2022\u2022 YOUR PACT BOON",
+    "name": "YOUr PACT BOON",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2232,20 +2190,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.thearchfey",
-    "name": "THEARCHFEY",
+    "id": "phb14.class.the-archfey",
+    "name": "THE ARCHFEY",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.class.expanded-spell-list",
     "name": "EXPANDED SPELL LIST",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.archfey-expanded-spells",
-    "name": "ARCHFEY EXPANDED SPELLS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2280,20 +2232,20 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.fiend-expanded-spells",
-    "name": "FIEND EXPANDED SPELlS",
+    "id": "phb14.class.spell-level-spells",
+    "name": "Spell Level Spells",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.class.dark-one-s-blessing",
-    "name": "DARK ONE\u0027S BLESSING",
+    "name": "Dark One\u0027s BlessInG",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.class.dark-one-s-own-luck",
-    "name": "DARK ONE\u0027S OWN LUCK",
+    "name": "Dark One\u0027s Own Luck",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2305,19 +2257,13 @@
   },
   {
     "id": "phb14.class.hurl-through-hell",
-    "name": "HURL THROUGH HELL",
+    "name": "HURL THrOUGH HELL",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.class.the-great-old-one",
-    "name": "THE GREAT OLD ONE",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.great-olo-one-expanoeo-spells",
-    "name": "GREAT OlO ONE EXPANOEO SPEllS",
+    "name": "THE GREAT OLD OnE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2370,12 +2316,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.beguiling-influence",
-    "name": "BEGUILING INFLUENCE",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.bewitching-whispers",
     "name": "BEWITCHING WHISPERS",
     "type": "Class",
@@ -2389,7 +2329,7 @@
   },
   {
     "id": "phb14.class.chains-of-carceri",
-    "name": "CHAINS OF CARCERI",
+    "name": "CHaIns OF CarCerI",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2412,18 +2352,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.eldritch-spear",
-    "name": "ELDRITCH SPEAR",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.eyes-of-the-rune-keeper",
-    "name": "EYES OF THE RUNE KEEPER",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.fiendish-vigor",
     "name": "FIENDISH VIGOR",
     "type": "Class",
@@ -2431,13 +2359,13 @@
   },
   {
     "id": "phb14.class.gaze-of-two-minds",
-    "name": "GAZE OF Two MINDS",
+    "name": "GAZE OF TWO MINDS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.lifedrin-ker",
-    "name": "LIFEDRIN KER",
+    "id": "phb14.class.lifedrinker",
+    "name": "LIFEDRINKER",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2448,20 +2376,20 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.master-of-myriad-forms",
-    "name": "MASTER OF MYRIAD FORMS",
+    "id": "phb14.class.master-of-myriad-forms-prerequisite-15th-level",
+    "name": "MASTER OF MYRIAD FORMS Prerequisite: 15th level",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.minions-of-chaos",
-    "name": "MINIONS OF CHAOS",
+    "id": "phb14.class.minions-of-chaos-prerequisite-9th-level",
+    "name": "MINIONS OF CHAOS Prerequisite: 9th level",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.mire-the-mind",
-    "name": "MIRE THE MIND",
+    "id": "phb14.class.mire-the-mind-prerequisite-5th-level",
+    "name": "MIRE THE MIND Prerequisite: 5th level",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2472,8 +2400,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.one-with-shadows",
-    "name": "ONE WITH SHADOWS",
+    "id": "phb14.class.one-with-shadows-prerequisite-5th-level",
+    "name": "ONE WITH SHADOWS Prerequisite: 5th level",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2490,14 +2418,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.sculptor-of-flesh",
-    "name": "SCULPTOR OF FLESH",
+    "id": "phb14.class.sculptor-of-flesh-prerequisite-7th-level",
+    "name": "SCULPTOR OF FLESH Prerequisite: 7th level",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.sign-of-ill-omen",
-    "name": "SIGN OF ILL OMEN",
+    "id": "phb14.class.sign-of-ill-omen-prerequisite-5th-level",
+    "name": "SIGN OF ILL OMEN Prerequisite: 5th level",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2514,20 +2442,20 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.visions-of-distant-realms",
-    "name": "VISIONS OF DISTANT REALMS",
+    "id": "phb14.class.visions-of-distant-realms-prerequisite-15th-level",
+    "name": "VISIONS OF DISTANT REALMS Prerequisite: 15th level",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.voice-of-the-chain-master",
-    "name": "VOICE OF THE CHAIN MASTER",
+    "id": "phb14.class.voice-of-the-chain-master-prerequisite-pact-of-the-chain-feature",
+    "name": "VOICE OF THE CHAIN MASTER Prerequisite: Pact of the Chain feature",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.whispers-of-the-grave",
-    "name": "WHISPERS OF THE GRAVE",
+    "id": "phb14.class.whispers-of-the-grave-prerequisite-9th-level",
+    "name": "WHISPERS OF THE GRAVE Prerequisite: 9th level",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2538,20 +2466,20 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.class.scholars-of-the-arcane",
+    "name": "SCHOLARS OF THE ARCANE",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.class.the-lure-of-knowledge",
     "name": "THE LURE OF KNOWLEDGE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.preparing-ano-casting-spells",
-    "name": "PREPARING ANO CASTING SPELLS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.learning-spells-of-1st-level-ano-higher",
-    "name": "LEARNING SPELLS OF 1sT LEVEL ANO HIGHER",
+    "id": "phb14.class.your-spellbook",
+    "name": "YOUR SPELLBOOK",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2612,6 +2540,12 @@
   {
     "id": "phb14.class.improved-abjuration",
     "name": "IMPROVED ABJURATION",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.spell-resistance",
+    "name": "SPELL RESISTANCE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2688,8 +2622,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.schoolofenchantment",
-    "name": "SCHOOLOFENCHANTMENT",
+    "id": "phb14.class.school-of-enchantment",
+    "name": "SCHOOL OF ENCHANTMENT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2701,7 +2635,7 @@
   },
   {
     "id": "phb14.class.hypnotic-gaze",
-    "name": "HYPNOTIC GAZE",
+    "name": "HYPNotIC GazE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2809,7 +2743,7 @@
   },
   {
     "id": "phb14.class.grim-harvest",
-    "name": "GRIM HARVEST",
+    "name": "GrIm HarvEsT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2844,8 +2778,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.minar-alchemy",
-    "name": "MINaR ALCHEMY",
+    "id": "phb14.class.minor-alchemy",
+    "name": "MINOR ALCHEMY",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2886,8 +2820,26 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.background.tika-and-artemis-backgrounds",
+    "name": "TIKA AND ARTEMIS: BACKGROUNDS",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.background.suggested-characteristics",
     "name": "SUGGESTED CHARACTERISTICS",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.customizing-a-background",
+    "name": "CUSTOMIZING A BACKGROUND",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.skill-proficiencies-insight-religion",
+    "name": "Skill Proficiencies: Insight, Religion",
     "type": "Background",
     "reason": "no_5etools_match"
   },
@@ -2898,14 +2850,50 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.background.d8-personality-trait",
+    "name": "d8 Personality Trait",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.d6-ideal",
+    "name": "d6 Ideal",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.d6-bond",
+    "name": "d6 Bond",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.d6-flaw",
+    "name": "d6 Flaw",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.background.favorite-schemes",
     "name": "FAVORITE SCHEMES",
     "type": "Background",
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.background.d6-scam",
+    "name": "d6 Scam",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.background.feature-false-identity",
     "name": "FEATURE: FALSE IDENTITY",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.skill-proficiencies-deception-stealth",
+    "name": "Skill Proficiencies: Deception, Stealth",
     "type": "Background",
     "reason": "no_5etools_match"
   },
@@ -2929,7 +2917,13 @@
   },
   {
     "id": "phb14.background.feature-by-popular-demand",
-    "name": "FEATURE: By POPULAR DEMAND",
+    "name": "FEATURE: BY POPULAR DEMAND",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.skill-proficiencies-animal-handling-survival",
+    "name": "Skill Proficiencies: Animal Handling, Survival",
     "type": "Background",
     "reason": "no_5etools_match"
   },
@@ -2940,8 +2934,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.background.dl0-defining-evenl",
-    "name": "dl0 Defining Evenl",
+    "id": "phb14.background.d10-defining-event",
+    "name": "d10 Defining Event",
     "type": "Background",
     "reason": "no_5etools_match"
   },
@@ -2958,6 +2952,12 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.background.d20-guild-business",
+    "name": "d20 Guild Business",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.background.feature-guild-membership",
     "name": "FEATURE: GUILD MEMBERSHIP",
     "type": "Background",
@@ -2970,6 +2970,12 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.background.d8-life-of-seclusion",
+    "name": "d8 Life of Seclusion",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.background.feature-discovery",
     "name": "FEATURE: DISCOVERY",
     "type": "Background",
@@ -2977,7 +2983,7 @@
   },
   {
     "id": "phb14.background.other-hermits",
-    "name": "OTHER HERMITS",
+    "name": "OtHer HERmIts",
     "type": "Background",
     "reason": "no_5etools_match"
   },
@@ -2988,14 +2994,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.background.ds-personalitytrait",
-    "name": "dS PersonalityTrait",
+    "id": "phb14.background.variant-feature-retainers",
+    "name": "VARIANT FEATURE: RETAINERS",
     "type": "Background",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.background.variant-feature-retainers",
-    "name": "VARIANT FEATURE: RETAINERS \u2022\u2022",
+    "id": "phb14.background.skill-proficiencies-athletics-survival",
+    "name": "Skill Proficiencies: Athletics, Survival",
     "type": "Background",
     "reason": "no_5etools_match"
   },
@@ -3006,8 +3012,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.background.feature-anderer",
-    "name": "FEATURE:\\\u00A5ANDERER",
+    "id": "phb14.background.feature-wanderer",
+    "name": "FEATURE: WANDERER",
     "type": "Background",
     "reason": "no_5etools_match"
   },
@@ -3024,6 +3030,12 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.background.skill-proficiencies-athletics-perception",
+    "name": "Skill Proficiencies: Athletics, Perception",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.background.feature-ship-s-passage",
     "name": "FEATURE: SHIP\u0027S PASSAGE",
     "type": "Background",
@@ -3031,19 +3043,19 @@
   },
   {
     "id": "phb14.background.variant-feature-bad-reputation",
-    "name": "VARIANT FEATURE: BAD REPUTATION \u2022\u2022\u2022 \u2022\u2022",
+    "name": "VARIANT FEATURE: BAD REPUTATION",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.skill-proficiencies-athletics-intimidation-tool-proficiencies-one-type-of-gaming-set-vehicles-land",
+    "name": "Skill Proficiencies: Athletics, Intimidation Tool Proficiencies: One type of gaming set, vehicles (land)",
     "type": "Background",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.background.feature-military-rank",
     "name": "FEATURE: MILITARY RANK",
-    "type": "Background",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.background.feature-city-secrets",
-    "name": "FEATURE: CITY SECRETS",
     "type": "Background",
     "reason": "no_5etools_match"
   },
@@ -3060,14 +3072,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.prereq-u-is-i-t-e-s",
-    "name": "PREREQ_U_IS_I_T_E_S _",
+    "id": "phb14.class.multiclassing-example",
+    "name": "MULTICLASSING EXAMPLE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.multlclassing-prerequisites",
-    "name": "MULTlCLASSING PREREQUISITES",
+    "id": "phb14.class.prerequisites",
+    "name": "PREREQUISITES",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -3078,20 +3090,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.multiclassing-proficiencies",
-    "name": "MUlTICLASSING PROFICIENCIES",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.spell.chapter-10-spellcasting",
     "name": "CHAPTER 10: SPELLCASTING",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.what-1s-a-spell",
-    "name": "WHAT   1s   A SPELL?",
+    "id": "phb14.spell.what-is-a-spell",
+    "name": "WHAT IS A SPELL?",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3108,8 +3114,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.castlng-a-spell-at-a-higher-level",
-    "name": "CASTlNG A SPELL AT A HIGHER LEVEL",
+    "id": "phb14.spell.casting-in-armor",
+    "name": "CASTING IN ARMOR",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.spell.casting-a-spell-at-a-higher-level",
+    "name": "CASTING A SPELL AT A HIGHER LEVEL",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3138,8 +3150,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.longe-rcasting-times",
-    "name": "LONGE RCASTING TIMES",
+    "id": "phb14.spell.longer-casting-times",
+    "name": "LONGER CASTING TIMES",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3186,8 +3198,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.the-schools-of-magic-4",
-    "name": "THE SCHOOLS OF MAGIC 4",
+    "id": "phb14.spell.the-schools-of-magic",
+    "name": "THE SCHOOLS OF MAGIC",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3246,14 +3258,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.combining-magical-effects",
-    "name": "COMBINING MAGICAL EFFECTS",
+    "id": "phb14.spell.the-weave-of-magic",
+    "name": "THE WEAVE OF MAGIC",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.chapter-11-spells",
-    "name": "CHAPTER 11. SPELLS",
+    "id": "phb14.spell.chapter-ll-spells",
+    "name": "CHAPTER ll: SPELLS",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3264,32 +3276,20 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.thunderwave-2nd-level",
-    "name": "Thunderwave 2ND LEVEL",
+    "id": "phb14.spell.wrion",
+    "name": "WRION",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.wall-of-stone-6th-level",
-    "name": "Wall of Stone\n\n6TH LEVEL",
+    "id": "phb14.spell.wizard-spells",
+    "name": "WIZARD SPELLS",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.destructive-smite",
-    "name": "Destructive Smite",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.witch-bolt-2nd-level",
-    "name": "Witch Bolt\n\n2ND LEVEL",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.oth-level",
-    "name": "OTH LEVEL",
+    "id": "phb14.spell.trap-the-soul",
+    "name": "Trap the Soul",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3300,20 +3300,26 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.animated-ob-ect-statistics",
-    "name": "ANIMATED OB/ECT STATISTICS",
+    "id": "phb14.spell.animated-object-statistics",
+    "name": "ANIMATED OBJECT STATISTICS",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.components-v",
-    "name": "Components: V",
+    "id": "phb14.spell.d10-behavior",
+    "name": "d10 Behavior",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.dl0-behavior",
-    "name": "dl0 Behavior",
+    "id": "phb14.spell.duration-concentration-up-to-1-hour",
+    "name": "Duration: Concentration, up to 1 hour",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.spell.casting-time-1-action",
+    "name": "Casting Time: 1 action",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3324,74 +3330,80 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.detect-evil-ano-gooo",
-    "name": "DETECT EVIL ANO Gooo",
+    "id": "phb14.spell.duration-instantaneous",
+    "name": "Duration: Instantaneous",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.finge-r-of-death-7th-levei-neeromaney",
-    "name": "FINGE R OF DEATH  7th-leveI neeromaney",
+    "id": "phb14.spell.duration-special",
+    "name": "Duration: Special",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.leomund-s-secret-chest-4th-levei-conjuration",
-    "name": "LEOMUND\u0027S SECRET CHEST  4th-leveI conjuration",
+    "id": "phb14.spell.duration-concentration-up-to-1-minute",
+    "name": "Duration: Concentration, up to 1 minute",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.lesser-restoration-2nd-levei-abjuration",
-    "name": "LESSER RESTORATION  2nd-leveI abjuration",
+    "id": "phb14.spell.guiding-bolt-ist-level-evocation",
+    "name": "GUIDING BOLT Ist-level evocation",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.mordenkainen-s-magnificent-mansion-7th-levei-eonjuration",
-    "name": "MORDENKAINEN\u0027S MAGNIFICENT MANSION  7th-leveI eonjuration",
+    "id": "phb14.spell.minor",
+    "name": "MINOR",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.mordenkainen-s-private-sanctum-4th-level-abjuration",
-    "name": "MORDENKAINEN\u0027S PRIVATE SANCTUM  4th.level abjuration",
+    "id": "phb14.spell.range-120-feet",
+    "name": "Range: 120 feet",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.prismatic-spray-7th-level-evocation",
-    "name": "PRISMATIC SPRAY  7th.level evocation",
+    "id": "phb14.spell.duration-24-hours",
+    "name": "Duration: 24 hours",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.prismatic-wall-9th-levei-abjuration",
-    "name": "PRISMATIC WALL  9th-leveI abjuration",
+    "id": "phb14.spell.prayer-of-healing-2nd-level-evocation",
+    "name": "PRAYER OF HEALING 2nd-level evocation",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.spider-cumb",
-    "name": "SPIDER CUMB",
+    "id": "phb14.spell.prestidigitationtransmutation-cantrip",
+    "name": "PRESTIDIGITATIONTransmutation cantrip",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.vicious-mockery-enchantmentcantrip",
-    "name": "VICIOUS MOCKERY  Enchantmentcantrip",
+    "id": "phb14.spell.programmed",
+    "name": "PROGRAMMED",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.condition.bunded",
-    "name": "BUNDED",
-    "type": "Condition",
+    "id": "phb14.spell.the-spell-s-damage-increases-by",
+    "name": "The spell\u0027s damage increases by",
+    "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.condition.levei-elfeel",
-    "name": "Levei Elfeel",
+    "id": "phb14.spell.components-v-s-duration-instantaneous",
+    "name": "Components: V, S Duration: Instantaneous",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.condition.level-effect",
+    "name": "Level Effect",
     "type": "Condition",
     "reason": "no_5etools_match"
   },
@@ -3408,8 +3420,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.god.the-life-ano-death-domains",
-    "name": "THE lIFE ANO DEATH DOMAINS",
+    "id": "phb14.god.the-life-and-death-domains",
+    "name": "THE LIFE AND DEATH DOMAINS",
     "type": "God",
     "reason": "no_5etools_match"
   },
@@ -3438,86 +3450,50 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.god.deities-of-the-forgotten-realms",
-    "name": "DEITIES OF THE FORGOTTEN REALMS",
+    "id": "phb14.god.fantasy-historical-pantheons",
+    "name": "FANTASY-HISTORICAL PANTHEONS",
     "type": "God",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.god.dellles-of-greyhawk",
-    "name": "DElllES OF GREYHAWK",
+    "id": "phb14.god.the-celtic-pantheon",
+    "name": "THE CELTIC PANTHEON",
     "type": "God",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.god.dellles-of-dragonlance",
-    "name": "DElllES OF DRAGONLANCE",
+    "id": "phb14.god.the-greek-pantheon",
+    "name": "THE GrEEk PanTHeOn",
     "type": "God",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.god.deities-of-eberron",
-    "name": "DEITIES OF EBERRON",
+    "id": "phb14.god.the-egyptian-pantheon",
+    "name": "THE EGYPTIAN PANTHEON",
     "type": "God",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.god.the-norse-pantheon",
-    "name": "THE NORSE PANTHEON",
+    "name": "THE NOrSE PANTHEOn",
     "type": "God",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.god.celtic-deities",
-    "name": "CELTIC DEITIES",
-    "type": "God",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.god.greek-deitles",
-    "name": "GREEK DEITlES",
-    "type": "God",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.god.ecyptlan-deities",
-    "name": "ECYPTlAN DEITIEs",
-    "type": "God",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.god.norse-deities",
-    "name": "NORSE DEITIES",
-    "type": "God",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.monster.actlons",
-    "name": "ACTlONS",
+    "id": "phb14.monster.hawk-falcon",
+    "name": "HAWK (FALCON)",
     "type": "Monster",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.monster.aciions",
-    "name": "ACIIONS",
-    "type": "Monster",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.monster.uasit",
-    "name": "~UASIT . .",
-    "type": "Monster",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.monster.acllons",
-    "name": "ACllONS",
+    "id": "phb14.monster.riding-horse-large-beast-unaligned",
+    "name": "RIDING HORSE Large beast, unaligned",
     "type": "Monster",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.monster.variant-warhorse-armor",
-    "name": "\u2022\u2022 \u2022\u2022 VARIANT: WARHORSE ARMOR",
+    "name": "VARIANT: WARHORSE ARMOR",
     "type": "Monster",
     "reason": "no_5etools_match"
   }
