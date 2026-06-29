@@ -51,8 +51,8 @@ PHB
 GET {{baseUrl}}/admin/books
 X-Admin-Api-Key: {{adminKey}}
 
-# Block extraction is performed by the Marker service (layout-aware, multi-column-correct).
-### Admin Books — Ingest blocks (layout-aware PDF extraction via Marker + bookmark metadata, embed direct to dnd_blocks)
+# Block extraction is performed by the MinerU service (layout-aware, multi-column-correct).
+### Admin Books — Ingest blocks (layout-aware PDF extraction via MinerU + bookmark metadata, embed direct to dnd_blocks)
 POST {{baseUrl}}/admin/books/1/ingest-blocks
 X-Admin-Api-Key: {{adminKey}}
 

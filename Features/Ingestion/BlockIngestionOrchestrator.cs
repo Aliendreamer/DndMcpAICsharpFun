@@ -5,9 +5,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore;
-using DndMcpAICsharpFun.Infrastructure.Marker;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
-using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion;
 
@@ -17,7 +15,6 @@ public sealed partial class BlockIngestionOrchestrator(
     IPdfBlockExtractor blockExtractor,
     IEmbeddingService embedding,
     IVectorStoreService vectorStore,
-    IOptions<MarkerOptions> markerOptions,
     ILogger<BlockIngestionOrchestrator> logger) : IBlockIngestionOrchestrator
 {
     private const string NoBookmarksError =
@@ -128,8 +125,7 @@ public sealed partial class BlockIngestionOrchestrator(
         catch (Exception ex)
         {
             LogFailed(logger, ex, record.DisplayName, recordId);
-            var markerUrl = markerOptions.Value.Url;
-            var failureMessage = $"Block ingestion failed (marker service at {markerUrl}): {ex.Message}";
+            var failureMessage = $"Block ingestion failed (PDF conversion via the MinerU service): {ex.Message}";
             await tracker.MarkFailedAsync(recordId, failureMessage, CancellationToken.None);
         }
     }

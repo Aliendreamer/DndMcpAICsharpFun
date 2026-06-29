@@ -7,8 +7,8 @@
 # Shared-infra prerequisites (one-time): the shared Ollama needs `mxbai-embed-large` + `qwen3:8b`
 # pulled, and the shared Postgres needs a `dnd` role + `dnd` database (owner dnd).
 #
-# There is no Marker service here; PDF conversions are served from books/conversion-cache/ and the
-# Marker__Url below is only contacted on a cache miss.
+# PDF conversions are served from books/conversion-cache/; on a cache miss the app POSTs the PDF
+# to the shared MinerU service (reachable as `mineru:8000` on the shared network).
 services:
   app:
     build:
@@ -21,7 +21,6 @@ services:
       - Admin__ApiKey=${ADMIN_API_KEY:-devXXXdev}
       - Qdrant__Host=qdrant
       - Ollama__BaseUrl=http://ollama:11434
-      - Marker__Url=http://marker:5002
       - Ingestion__BooksPath=/books
       - SearXNG__Url=http://searxng:8080
       - Mcp__ApiKey=${MCP_API_KEY:-devMcpKey}

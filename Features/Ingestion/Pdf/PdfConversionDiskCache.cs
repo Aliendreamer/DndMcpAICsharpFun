@@ -13,10 +13,12 @@ public sealed class PdfConversionDiskCache(
 {
     /// <summary>
     /// Suffix appended after the SHA-256 hash for cache files written by this version.
-    /// Legacy files (<c>&lt;hash&gt;.json</c>) are intentionally ignored — they were
-    /// written by an older converter version and may have a different schema.
+    /// The suffix doubles as a converter discriminator: MinerU writes/reads
+    /// <c>&lt;hash&gt;.mineru.json</c> and never reuses the old Marker-era
+    /// <c>&lt;hash&gt;.marker.json</c> (or legacy <c>&lt;hash&gt;.json</c>) files, which were
+    /// written by a different converter and may have a different schema.
     /// </summary>
-    private const string CacheSuffix = ".marker.json";
+    private const string CacheSuffix = ".mineru.json";
 
     private static readonly JsonSerializerOptions CacheJsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -36,7 +38,7 @@ public sealed class PdfConversionDiskCache(
             if (cached is not null)
             {
                 logger.LogInformation(
-                    "Marker cache hit for {FileName} (hash {Hash})",
+                    "PDF conversion cache hit for {FileName} (hash {Hash})",
                     Path.GetFileName(filePath), hash[..8]);
                 return cached;
             }
@@ -46,7 +48,7 @@ public sealed class PdfConversionDiskCache(
         catch (JsonException ex)
         {
             logger.LogWarning(
-                "Corrupt Marker cache file {CachePath}; deleting and re-converting: {Error}",
+                "Corrupt PDF conversion cache file {CachePath}; deleting and re-converting: {Error}",
                 cachePath, ex.Message);
             File.Delete(cachePath);
         }
@@ -70,7 +72,7 @@ public sealed class PdfConversionDiskCache(
         catch (Exception ex)
         {
             logger.LogWarning(
-                ex, "Failed to write Marker cache to {CachePath}; result returned uncached", cachePath);
+                ex, "Failed to write PDF conversion cache to {CachePath}; result returned uncached", cachePath);
             try { File.Delete(tmp); } catch { /* swallow cleanup */ }
         }
     }

@@ -56,7 +56,7 @@ public sealed class StatBlockScannerTests
         {
             H("OGRE"),
             T("Ogres are hulking brutes."),
-            H("ACTIONS"), // Marker mis-detects a stat-block sub-section as a header
+            H("ACTIONS"), // MinerU mis-detects a stat-block sub-section as a header
             T("Large giant, chaotic evil"),
             T("Armor Class 11 (hide armor)  Hit Points 59 (7d10 + 21)"),
         };

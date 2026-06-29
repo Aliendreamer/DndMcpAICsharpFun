@@ -14,7 +14,6 @@ using DndMcpAICsharpFun.Features.Search;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure;
-using DndMcpAICsharpFun.Infrastructure.Marker;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
@@ -103,20 +102,19 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<BookSourceRegistry>();
         services.AddSingleton<IPdfBookmarkReader, PdfPigBookmarkReader>();
 
-        services.AddHttpClient(nameof(MarkerPdfConverter));
-        services.AddSingleton<MarkerPdfConverter>();
-
-        // Spike: when MinerU:Enabled, MinerU replaces Marker as the structure converter
-        // (reads pre-produced `mineru` CLI output); otherwise the Marker disk-cache pipeline.
+        // MinerU is the sole PDF structure converter, called over HTTP against the mineru:8000
+        // service. The parser-agnostic PdfConversionDiskCache wraps it to memoise conversions.
         services.AddOptions<MinerUOptions>().BindConfiguration("MinerU");
+        services.AddHttpClient(nameof(MinerUPdfConverter))
+            .ConfigureHttpClient((sp, c) =>
+                c.Timeout = TimeSpan.FromMinutes(
+                    sp.GetRequiredService<IOptions<MinerUOptions>>().Value.ConversionTimeoutMinutes));
         services.AddSingleton<MinerUPdfConverter>();
         services.AddSingleton<IPdfStructureConverter>(sp =>
-            sp.GetRequiredService<IOptions<MinerUOptions>>().Value.Enabled
-                ? sp.GetRequiredService<MinerUPdfConverter>()
-                : new PdfConversionDiskCache(
-                    sp.GetRequiredService<MarkerPdfConverter>(),
-                    sp.GetRequiredService<IOptions<EntityExtractionOptions>>(),
-                    sp.GetRequiredService<ILogger<PdfConversionDiskCache>>()));
+            new PdfConversionDiskCache(
+                sp.GetRequiredService<MinerUPdfConverter>(),
+                sp.GetRequiredService<IOptions<EntityExtractionOptions>>(),
+                sp.GetRequiredService<ILogger<PdfConversionDiskCache>>()));
         services.AddSingleton<IPdfBlockExtractor, StructureBlockExtractor>();
 
         return services;

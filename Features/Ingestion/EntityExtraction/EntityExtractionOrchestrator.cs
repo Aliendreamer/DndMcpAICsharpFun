@@ -59,7 +59,7 @@ public sealed class EntityExtractionOrchestrator(
                 "Entity extraction starting: book {BookId} ({DisplayName}), file {FilePath}, errorsOnly={ErrorsOnly}",
                 bookId, record.DisplayName, record.FilePath, errorsOnly);
 
-            // 1. Convert PDF via Marker (markdown + structured items).
+            // 1. Convert PDF via MinerU (markdown + structured items).
             var doc = await converter.ConvertAsync(record.FilePath, ct);
 
             // 2. Read bookmarks → TocCategoryMap.
@@ -67,7 +67,7 @@ public sealed class EntityExtractionOrchestrator(
             var tocEntries   = BookmarkTocMapper.Map(pdfBookmarks);
             var tocMap       = new TocCategoryMap(tocEntries);
 
-            // 2b. No embedded bookmarks → derive the TOC from Marker's heading structure items,
+            // 2b. No embedded bookmarks → derive the TOC from MinerU's heading structure items,
             // reusing the same deterministic keyword classifier (no LLM). Bookmarked books skip this.
             if (tocMap.IsEmpty)
             {
@@ -84,7 +84,7 @@ public sealed class EntityExtractionOrchestrator(
             // 3. Project structure items into ScannerInputs.
             var scannerInputs = BuildScannerInputs(doc.Items);
             var sectionCandidates = scanner.Scan(scannerInputs, tocMap).ToList();
-            // Recover stat blocks Marker failed to tag with a heading (headerless / fragmented under
+            // Recover stat blocks MinerU failed to tag with a heading (headerless / fragmented under
             // mis-detected ACTIONS headers). Prepend so they win the id-keyed dedup with clean stat-block
             // text and supersede a headerless monster's lore-only section candidate.
             var statBlockCandidates = statBlockScanner.Scan(doc.Items).ToList();

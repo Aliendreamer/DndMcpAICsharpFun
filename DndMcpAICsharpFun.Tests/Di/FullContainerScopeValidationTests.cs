@@ -16,7 +16,7 @@ namespace DndMcpAICsharpFun.Tests.Di;
 /// will throw here rather than reaching runtime.
 ///
 /// External clients that would attempt real network connections (QdrantClient,
-/// OllamaApiClient, AppDbContext, MarkerHttpClient) are never instantiated because
+/// OllamaApiClient, AppDbContext, MinerU HttpClient) are never instantiated because
 /// ValidateOnBuild only validates the descriptor graph — it does not invoke factory
 /// lambdas for singletons.  Options [Required] validators fire on IHost.StartAsync,
 /// not on BuildServiceProvider, so they do not affect this test.
@@ -86,8 +86,6 @@ public sealed class FullContainerScopeValidationTests
                 ["Ollama:BaseUrl"] = "http://localhost:11434",
                 ["Ollama:EmbeddingModel"] = "test-embed",
                 ["Ollama:ChatModel"] = "test-chat",
-                // MarkerOptions — Url is [Required]
-                ["Marker:Url"] = "http://localhost:5002",
                 // EntityExtractionOptions — two [Required] fields
                 ["EntityExtraction:CanonicalDirectory"] = "books/canonical",
                 ["EntityExtraction:SchemasDirectory"] = "Schemas/canonical",
@@ -125,9 +123,6 @@ public sealed class FullContainerScopeValidationTests
             .ValidateDataAnnotations();
         services.AddOptions<RetrievalOptions>()
             .BindConfiguration("Retrieval")
-            .ValidateDataAnnotations();
-        services.AddOptions<DndMcpAICsharpFun.Infrastructure.Marker.MarkerOptions>()
-            .BindConfiguration("Marker")
             .ValidateDataAnnotations();
         services.AddOptions<DndMcpAICsharpFun.Features.Ingestion.Entities.EntityIngestionOptions>()
             .BindConfiguration("EntityIngestion")

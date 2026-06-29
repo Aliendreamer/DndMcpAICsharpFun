@@ -8,7 +8,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 /// Detects monster stat blocks directly from the structure stream by their signature
 /// (a <c>&lt;size&gt; &lt;type&gt;, &lt;alignment&gt;</c> line immediately followed by an
 /// "Armor Class … Hit Points …" line), independent of section-header detection. This recovers
-/// stat blocks that Marker failed to tag with a heading — or fragmented under mis-detected
+/// stat blocks that MinerU failed to tag with a heading — or fragmented under mis-detected
 /// "ACTIONS"/"REACTIONS" headers — which the header-based <see cref="EntityCandidateScanner"/>
 /// drops or misnames (validated against the Monster Manual: Hill/Fire/Frost/Stone/Cloud Giant,
 /// Gelatinous Cube, elementals). The monster name is taken from the nearest preceding
@@ -21,14 +21,14 @@ public sealed class StatBlockScanner
         @"^\s*(tiny|small|medium|large|huge|gargantuan)\s+[a-z]",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    // Stat-block-internal sub-headings Marker often mis-detects as section headers; never a name.
+    // Stat-block-internal sub-headings MinerU often mis-detects as section headers; never a name.
     private static readonly HashSet<string> InternalHeaders = new(StringComparer.OrdinalIgnoreCase)
     {
         "actions", "reactions", "legendary actions", "lair actions", "regional effects", "traits",
     };
 
     // A monster name sits in a header close to its stat block. A far-back header is a different
-    // monster (Marker sometimes strips a stat block's name entirely, e.g. the MM "true giants"
+    // monster (MinerU sometimes strips a stat block's name entirely, e.g. the MM "true giants"
     // stacked back-to-back) — naming from it would be wrong, so we skip rather than mislabel.
     private const int NameLookbackItems = 18;
 

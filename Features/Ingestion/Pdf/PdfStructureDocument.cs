@@ -2,7 +2,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
 /// <summary>
 /// Our internal representation of a PDF structure conversion result. The
-/// <see cref="MarkerPdfConverter"/> deserialises the converter's JSON
+/// <see cref="MinerUPdfConverter"/> maps the MinerU service's <c>content_list</c>
 /// response into this simplified shape.
 /// </summary>
 public sealed record PdfStructureDocument(string Markdown, IReadOnlyList<PdfStructureItem> Items);

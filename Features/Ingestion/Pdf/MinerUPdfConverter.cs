@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -6,10 +7,9 @@ using Microsoft.Extensions.Options;
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
 /// <summary>
-/// Spike MinerU-based <see cref="IPdfStructureConverter"/>. Reads a MinerU pipeline
-/// <c>&lt;stem&gt;_content_list.json</c> (produced offline by the <c>mineru</c> CLI) from
-/// <see cref="MinerUOptions.OutputDirectory"/> and maps its typed blocks onto
-/// <see cref="PdfStructureDocument"/>:
+/// Production MinerU-based <see cref="IPdfStructureConverter"/>. POSTs the PDF to the live
+/// MinerU service (<c>POST {ServiceUrl}/file_parse</c>) and maps the returned
+/// <c>content_list</c> typed blocks onto <see cref="PdfStructureDocument"/>:
 /// <list type="bullet">
 ///   <item>a block carrying a <c>text_level</c> becomes a <c>section_header</c> item (heading candidate);</item>
 ///   <item>a plain <c>text</c> block becomes a <c>text</c> item;</item>
@@ -18,27 +18,40 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 /// MinerU page indices are 0-based; they are shifted to 1-based to align with the bookmark TOC.
 /// </summary>
 public sealed class MinerUPdfConverter(
+    IHttpClientFactory httpClientFactory,
     IOptions<MinerUOptions> options,
     ILogger<MinerUPdfConverter> logger) : IPdfStructureConverter
 {
     public async Task<PdfStructureDocument> ConvertAsync(string filePath, CancellationToken ct = default)
     {
-        var stem = Path.GetFileNameWithoutExtension(filePath);
-        var root = options.Value.OutputDirectory;
-        var bookDir = Path.Combine(root, stem);
+        var opts = options.Value;
+        var fileName = Path.GetFileName(filePath);
 
-        var contentListPath = Directory.Exists(bookDir)
-            ? Directory.EnumerateFiles(bookDir, $"{stem}_content_list.json", SearchOption.AllDirectories)
-                .FirstOrDefault()
-            : null;
+        var http = httpClientFactory.CreateClient(nameof(MinerUPdfConverter));
 
-        if (contentListPath is null)
-            throw new FileNotFoundException(
-                $"MinerU content_list not found for '{stem}' under '{root}'. " +
-                "Run the mineru CLI for this PDF first.");
+        logger.LogInformation(
+            "MinerU conversion started for {FileName} via {ServiceUrl} (backend={Backend}, method={Method})",
+            fileName, opts.ServiceUrl, opts.Backend, opts.Method);
 
-        await using var fs = File.OpenRead(contentListPath);
-        var blocks = await JsonSerializer.DeserializeAsync<List<MinerUBlock>>(fs, cancellationToken: ct) ?? [];
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        using var form = new MultipartFormDataContent();
+        await using var pdfStream = File.OpenRead(filePath);
+        var pdfContent = new StreamContent(pdfStream);
+        pdfContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        form.Add(pdfContent, "files", fileName);
+        form.Add(new StringContent(opts.Backend), "backend");
+        form.Add(new StringContent(opts.Method), "parse_method");
+        form.Add(new StringContent("true"), "return_content_list");
+        form.Add(new StringContent("false"), "return_md");
+
+        using var resp = await http.PostAsync($"{opts.ServiceUrl.TrimEnd('/')}/file_parse", form, ct);
+        resp.EnsureSuccessStatusCode();
+
+        var payload = await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
+        var first = payload.GetProperty("results").EnumerateObject().First().Value;
+        var contentListJson = first.GetProperty("content_list").GetString() ?? "[]";
+        var blocks = JsonSerializer.Deserialize<List<MinerUBlock>>(contentListJson) ?? [];
 
         var items = new List<PdfStructureItem>(blocks.Count + 256);
         string? lastHeadingNorm = null;
@@ -85,14 +98,11 @@ public sealed class MinerUPdfConverter(
             // image / table / header / footer / page_number / equation are intentionally dropped
         }
 
-        var mdPath = Path.Combine(Path.GetDirectoryName(contentListPath)!, $"{stem}.md");
-        var markdown = File.Exists(mdPath) ? await File.ReadAllTextAsync(mdPath, ct) : string.Empty;
-
         logger.LogInformation(
-            "MinerU converted {Stem}: {Items} items ({Headings} headings) from {Path}",
-            stem, items.Count, items.Count(i => i.Type == "section_header"), contentListPath);
+            "MinerU converted {FileName} in {Elapsed:F1}s: {Items} items ({Headings} headings)",
+            fileName, sw.Elapsed.TotalSeconds, items.Count, items.Count(i => i.Type == "section_header"));
 
-        return new PdfStructureDocument(markdown, items);
+        return new PdfStructureDocument(string.Empty, items);
     }
 
     // --- spell-entry recovery (the spell-chapter post-processor) ---

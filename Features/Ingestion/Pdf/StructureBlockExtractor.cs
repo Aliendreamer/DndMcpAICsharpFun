@@ -27,6 +27,6 @@ public sealed partial class StructureBlockExtractor(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Marker produced {ItemCount} items for {FileName}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "MinerU produced {ItemCount} items for {FileName}")]
     private static partial void LogConverted(ILogger logger, string fileName, int itemCount);
 }
