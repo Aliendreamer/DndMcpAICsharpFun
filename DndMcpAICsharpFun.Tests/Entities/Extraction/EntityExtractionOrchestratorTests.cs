@@ -1226,12 +1226,11 @@ public class EntityExtractionOrchestratorTests
     [Fact]
     public async Task ErrorsOnly_retry_finds_5etools_matched_failed_candidate()
     {
-        // Arrange: FIREBALL under "Spells" bookmark → primary prior = Spell → same-prior 5etools
-        // match forces it to Spell with canonical name "Fireball" → canonical id = bookSlug.spell.fireball.
-        // The errors file records the CANONICAL id (from RecordedEntityId, computed off the RESOLVED
-        // type + canonical name). errorsOnly membership must use that canonical id so FIREBALL is retried.
-        // (Note: the primary prior is now trusted, so a Monster-bookmarked Fireball would Defer rather
-        // than be force-typed to Spell; the realistic Spells-bookmark fixture exercises the force path.)
+        // Arrange: FIREBALL under "Monsters" bookmark → primary prior = Monster.
+        // MatchOfType("FIREBALL", Monster) = null (no "Fireball" monster in 5etools) → Step 1 skipped.
+        // Match("FIREBALL") = Spell "Fireball" → cross-type Force → canonical id = bookSlug.spell.fireball.
+        // The errors file records the CANONICAL id. errorsOnly membership must use that canonical id
+        // so FIREBALL is retried. RecordedEntityId returns the canonical (forced) id → retry happens.
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
@@ -1260,8 +1259,8 @@ public class EntityExtractionOrchestratorTests
             var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
             tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
 
-            // FIREBALL under "Spells" bookmark → scanner assigns primary Type=Spell.
-            // The same-prior 5etools match forces it to Spell with canonical name "Fireball".
+            // FIREBALL under "Monsters" bookmark → scanner assigns primary Type=Monster.
+            // No "Fireball" monster in 5etools → cross-type Force → Spell "Fireball".
             var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
             var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
                 "doc",
@@ -1276,7 +1275,7 @@ public class EntityExtractionOrchestratorTests
             bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
                 new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
                 {
-                    new("Spells", 1),
+                    new("Monsters", 1),
                 });
 
             var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
@@ -1367,7 +1366,8 @@ public class EntityExtractionOrchestratorTests
     [Fact]
     public async Task CheckpointResume_does_not_duplicate_5etools_matched_entity()
     {
-        // Arrange: checkpoint holds FIREBALL (Spells bookmark → Spell prior) with its CANONICAL id.
+        // Arrange: checkpoint holds FIREBALL (Monsters bookmark → Monster prior) with its CANONICAL id.
+        // MatchOfType("FIREBALL", Monster) = null → cross-type Force to Spell → canonical id computed.
         // RecordedEntityId returns that canonical id, so the doneIds membership check hits → the
         // already-checkpointed entity is skipped → exactly one entity, no duplicate.
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -1410,7 +1410,7 @@ public class EntityExtractionOrchestratorTests
             bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
                 new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
                 {
-                    new("Spells", 1),
+                    new("Monsters", 1),
                 });
 
             var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();

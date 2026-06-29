@@ -56,17 +56,12 @@ public static class DeterministicTypeResolver
         if (ExtractionSignatures.IsMagicItem(candidate.Text))
             return TypeResolution.Force(EntityType.MagicItem);
 
-        // A 5etools match exists, but only of a type different from the primary prior (no same-prior
-        // match was found in Step 1).
+        // A 5etools match exists but of a different type than the primary prior (no same-prior
+        // match was found in Step 1) → force the best match regardless of prior type.
+        // This is the correct behaviour for Dragonborn: Monster prior, only a Race match in 5etools
+        // → Force(Race). The old gated-cross-type defer branch is intentionally absent here.
         if (match is { } m)
-        {
-            var priorIsGated = prior is { } pg && GatedTypes.Contains(pg);
-            if (!priorIsGated)
-                // Non-gated (or empty) prior: keep today's behaviour — force the single match.
-                return TypeResolution.Force(m.Type, m.Canonical);
-            // Gated prior + only a cross-type match → do NOT force the cross-type; fall through to
-            // the content-first union (Defer) so the model extracts it as the prior type.
-        }
+            return TypeResolution.Force(m.Type, m.Canonical);
 
         // Official-book gate: decline only when the primary prior is gated AND there was no
         // 5etools match at all (a cross-type match above is content, not grounds to decline).

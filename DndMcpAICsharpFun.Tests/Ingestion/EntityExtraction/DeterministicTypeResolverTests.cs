@@ -198,14 +198,20 @@ public sealed class DeterministicTypeResolverTests
         r.CanonicalName.Should().Be("Dwarf");
     }
 
-    [Fact] // Spell prior, only a cross-type (non-Spell) match exists → Defer, not Force cross-type.
-    public void Cross_type_collision_gated_prior_only_cross_match_defers()
+    [Fact] // Dragonborn: Monster prior, no Monster "Dragonborn" in index → only Race match → Force(Race).
+    public void Dragonborn_gated_monster_prior_only_race_match_forces_race()
     {
-        // "Dwarf" has no Spell entry — only Monster/Race. A Spell prior is gated, so the resolver
-        // must NOT force the cross-type Monster match; it defers so the model extracts it as a Spell.
+        // Real regression: "Dragonborn" was mis-typed as Monster when the gated-defer branch
+        // deferred to content-first for gated-prior + cross-type match. The fix forces
+        // the cross-type Race match instead of deferring. In the real 5etools index, the
+        // nearest Monster to "Dragonborn" is e.g. "Dragonborn (Red)" — >2 chars off — so
+        // MatchOfType("Dragonborn", Monster) = null, while Match("Dragonborn") = Race "Dragonborn"
+        // (exact hit in races.json). The resolver must Force(Race), not Defer.
         var r = DeterministicTypeResolver.Resolve(
-            Candidate("Dwarf", "A spell about earth.", EntityType.Spell), Matcher);
-        r.Outcome.Should().Be(DeterministicOutcome.Defer);
+            Candidate("Dragonborn", "A proud and draconic folk.", EntityType.Monster), Matcher);
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Race);
+        r.CanonicalName.Should().Be("Dragonborn");
     }
 
     [Fact] // Cross-type match, prior NOT gated (Item) → unchanged behaviour: force the single match.
