@@ -2,10 +2,9 @@
 
 ### Requirement: Spell-name headings are cleaned of level/school
 
-When MinerU tags a spell entry's name as a heading but with the level/school glued onto it, the converter
-SHALL emit the cleaned spell name (the text before the first level/school marker) as the heading, rather
-than the raw heading text. Ordinary section headings that carry no level/school token SHALL be emitted
-unchanged.
+The converter SHALL emit the cleaned spell name (the text before the first level/school marker) when
+MinerU tags a spell entry's name as a heading with the level/school glued onto it, rather than the raw
+heading text. Ordinary section headings that carry no level/school token MUST be emitted unchanged.
 
 #### Scenario: A spell heading with a glued school is cleaned
 - **WHEN** a heading-tagged block reads "PRESTIDIGITATIONTransmutation cantrip"
