@@ -1,17 +1,13 @@
 ## ADDED Requirements
 
-### Requirement: MinerU is the default PDF structure converter
+### Requirement: MinerU is the sole PDF structure converter
 
-The system SHALL use the MinerU-based converter as the default `IPdfStructureConverter` when
-`MinerU:Enabled` is true (the default), and SHALL fall back to the Marker converter when it is false.
+The system SHALL register the MinerU-based converter as the only `IPdfStructureConverter`. Marker
+SHALL be removed entirely — there is no fallback converter and no enable/disable flag.
 
-#### Scenario: MinerU selected by default
-- **WHEN** the host starts with `MinerU:Enabled` unset or true
-- **THEN** the registered `IPdfStructureConverter` is the MinerU converter
-
-#### Scenario: Marker fallback when disabled
-- **WHEN** the host starts with `MinerU:Enabled` false
-- **THEN** the registered `IPdfStructureConverter` is the Marker disk-cache converter (unchanged)
+#### Scenario: MinerU is the registered converter
+- **WHEN** the host starts
+- **THEN** the registered `IPdfStructureConverter` is the MinerU converter (no Marker type is registered)
 
 ### Requirement: Automatic MinerU conversion via a service
 

@@ -12,7 +12,7 @@ re-opening the parse decisions. The pipeline downstream of `IPdfStructureConvert
 - MinerU becomes the default, automatic structure converter; no manual CLI step.
 - Preserve the spike's results (12/12 classes, 7/9 races, ~323/361 spells, zero noise).
 - Keep conversions cached so the ~60–90 min/book OCR cost is paid once.
-- Keep Marker as a safe, config-selectable fallback.
+- Remove Marker entirely — MinerU is the only converter, nothing dangling.
 
 **Non-Goals:**
 - Chasing the long-tail (38 missing PHB spells, 2 missing races) — deferred to the roadmap.
@@ -38,9 +38,9 @@ emit a synthetic `section_header`. It is parser-output post-processing, independ
 **4. Conversion is disk-cached.** A MinerU cache keyed by the PDF content hash (like
 `PdfConversionDiskCache`) so `extract-entities --force` re-runs the LLM without re-paying the OCR.
 
-**5. MinerU is the default; Marker is the fallback.** `MinerU:Enabled` defaults true; when false (or
-the MinerU service is unreachable and a fallback is enabled) the existing Marker disk-cache converter
-is used. Marker code is retained, not deleted.
+**5. MinerU is the SOLE converter; Marker is removed.** No fallback and no `MinerU:Enabled` flag —
+`MarkerPdfConverter`, `MarkerOptions`, `MarkerHealthCheck`, the Marker HTTP client, `Marker__Url`, and
+the Marker tests are deleted so nothing dangles. *(Rollback is via git revert, not a config flag.)*
 
 ## Risks / Trade-offs
 
@@ -52,13 +52,14 @@ is used. Marker code is retained, not deleted.
   corpus is a deliberate one-time op.
 - **OCR's own small error rate** (e.g. `PRIMAl` for `PRIMAL`) → far below the corrupt-encoding garble;
   the 5etools fuzzy matcher absorbs minor name errors.
-- **Service unavailability** → Marker fallback keeps ingestion working.
+- **Service unavailability** → with Marker removed, conversions fail loudly until the MinerU service is
+  up (acceptable for a single-host setup; the service is part of the stack). No silent fallback.
 
 ## Migration Plan
 
 Deploy = add the MinerU service + rebuild the app. Re-convert + re-extract each official book through
-MinerU, then ingest the corrected canonical. Rollback = set `MinerU:Enabled=false` (instant revert to
-Marker). The spike's `docker-compose.override.yml` + `.mineru-spike/` are removed.
+MinerU, then ingest the corrected canonical. Rollback = git revert this change. The spike's
+`docker-compose.override.yml` is removed.
 
 ## Open Questions
 

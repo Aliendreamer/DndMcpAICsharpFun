@@ -13,10 +13,11 @@
 
 - [ ] 3.1 Add a MinerU conversion disk cache keyed by PDF content hash (mirror `PdfConversionDiskCache`), wrapping `MinerUPdfConverter` (TDD: second convert of the same PDF hits the cache, no service call).
 
-## 4. DI default + Marker fallback
+## 4. DI: MinerU sole converter; remove Marker
 
-- [ ] 4.1 In `ServiceCollectionExtensions`, register MinerU (service converter + cache) as the default `IPdfStructureConverter` when `MinerU:Enabled` (default true); Marker disk-cache when false (TDD via options).
-- [ ] 4.2 Retire the spike enablement: remove the gitignored `docker-compose.override.yml` reliance; MinerU config lives in `docker-compose.yml`.
+- [ ] 4.1 In `ServiceCollectionExtensions`, register MinerU (HTTP converter + `PdfConversionDiskCache`) as the SOLE `IPdfStructureConverter`; remove the `MinerU:Enabled` branch and the Marker registration + HttpClient.
+- [ ] 4.2 Remove Marker entirely: delete `MarkerPdfConverter`, `Infrastructure/Marker/` (`MarkerOptions`/`MarkerHealthCheck`), the Marker health-check registration, `Marker__Url` (docker-compose), and the Marker tests. Handle the block-ingestion Marker path (`BlockIngestionOrchestrator`).
+- [ ] 4.3 Delete the gitignored `docker-compose.override.yml`; the app reaches `mineru:8000` directly on the shared network.
 
 ## 5. Build, docs
 

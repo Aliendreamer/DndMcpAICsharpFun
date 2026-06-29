@@ -21,8 +21,9 @@ MinerU the **production main parser** by running it automatically.
   -m ocr`), reachable on the shared network like the Marker service.
 - **Rewire `MinerUPdfConverter`** to submit the PDF to that service and consume its `content_list`
   output, instead of reading a pre-produced file from a mounted directory.
-- **Make MinerU the default** `IPdfStructureConverter` (`MinerU:Enabled` defaults on); **Marker is
-  retained as a config-selectable fallback**, not removed.
+- **Make MinerU the SOLE** `IPdfStructureConverter`; **remove Marker entirely** (no dangling fallback —
+  `MarkerPdfConverter`, `MarkerOptions`, `MarkerHealthCheck`, the Marker HTTP client, `Marker__Url`, and
+  the Marker tests are deleted).
 - **Keep the committed spell-chapter splitter** (`Casting Time:`-anchored spell-name recovery) — it is
   parser-output post-processing and stays in `MinerUPdfConverter`.
 - **Cache conversions on disk** (a MinerU equivalent of `PdfConversionDiskCache`) — `-m ocr` is a
@@ -38,9 +39,8 @@ MinerU the **production main parser** by running it automatically.
   ocr backend), the HTTP converter, the spell-chapter splitter, conversion caching, and MinerU as the
   default `IPdfStructureConverter`.
 
-### Modified Capabilities
-- (none — `marker-pdf-conversion` is unchanged and retained as the fallback converter, selected when
-  `MinerU:Enabled` is false.)
+### Removed Capabilities
+- `marker-pdf-conversion`: Marker is removed entirely; MinerU is the sole structure converter.
 
 ## Impact
 
