@@ -189,15 +189,22 @@ public class MinerUPdfConverterTests
         }
     }
 
-    [Fact]
-    public async Task Race_traits_heading_promotes_synthetic_race_name_when_bare_name_not_already_emitted()
+        [Fact]
+    public async Task Race_traits_heading_renames_x_traits_to_x_when_bare_name_not_already_emitted()
     {
-        // "GNOME TRAITS" with no preceding bare "GNOME" heading → emits "GNOME" then "GNOME TRAITS".
-        // "DWARF TRAITS" immediately after a "DWARF" heading → no duplicate "DWARF" is emitted.
+        // RENAME strategy: "GNOME TRAITS" with no preceding bare "GNOME" heading
+        // → the converter emits a section_header "GNOME" in place of "GNOME TRAITS"
+        //   so the body that follows belongs to the "GNOME" section.
+        //   "GNOME TRAITS" must NOT appear as a separate heading.
+        //
+        // When a bare race title WAS already emitted ("DWARF"), "DWARF TRAITS" is kept
+        // unchanged (it becomes a subsection). "DWARF" must not be duplicated.
         const string contentList = """
         [
           {"type":"text","text":"GNOME TRAITS","text_level":2,"page_idx":0},
+          {"type":"text","text":"Gnomes are small, quick folk.",  "page_idx":0},
           {"type":"text","text":"DWARF","text_level":2,"page_idx":1},
+          {"type":"text","text":"Bold and hardy.",               "page_idx":1},
           {"type":"text","text":"DWARF TRAITS","text_level":2,"page_idx":1}
         ]
         """;
@@ -213,15 +220,13 @@ public class MinerUPdfConverterTests
                 .Select(i => i.Text)
                 .ToList();
 
-            // GNOME is promoted before GNOME TRAITS
-            var gnomeIdx = headings.IndexOf("GNOME");
-            var gnomeTraitsIdx = headings.IndexOf("GNOME TRAITS");
-            gnomeIdx.Should().BeGreaterThanOrEqualTo(0, "GNOME should be emitted as a synthetic race header");
-            gnomeTraitsIdx.Should().BeGreaterThan(gnomeIdx, "GNOME TRAITS should follow the synthetic GNOME header");
+            // "GNOME TRAITS" is renamed to "GNOME" — the race section now owns the body below it
+            headings.Should().Contain("GNOME", "the race name is emitted in place of 'GNOME TRAITS'");
+            headings.Should().NotContain("GNOME TRAITS", "rename replaces the TRAITS heading — no separate 'GNOME TRAITS'");
 
-            // DWARF must not be duplicated by the TRAITS fallback
-            headings.Count(h => h == "DWARF").Should().Be(1, "DWARF must not be duplicated when already the previous heading");
-            headings.Should().Contain("DWARF TRAITS");
+            // "DWARF" already exists → "DWARF TRAITS" is kept unchanged, no duplicate "DWARF"
+            headings.Count(h => h == "DWARF").Should().Be(1, "DWARF must not be duplicated by the TRAITS fallback");
+            headings.Should().Contain("DWARF TRAITS", "the TRAITS subsection is emitted when bare name was already seen");
         }
         finally
         {

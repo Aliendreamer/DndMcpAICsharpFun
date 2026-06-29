@@ -55,6 +55,12 @@ public sealed class MinerUPdfConverter(
 
         var items = new List<PdfStructureItem>(blocks.Count + 256);
         string? lastHeadingNorm = null;
+
+        // Global set of all section_header norms emitted so far — used for the race-section
+        // fallback dedup (bare race title and its " TRAITS" heading are not adjacent, so a
+        // consecutive-only check is insufficient).
+        var emittedHeadingNorms = new HashSet<string>(StringComparer.Ordinal);
+
         for (var i = 0; i < blocks.Count; i++)
         {
             var b = blocks[i];
@@ -83,39 +89,61 @@ public sealed class MinerUPdfConverter(
                 {
                     items.Add(new PdfStructureItem("section_header", name, page, 2));
                     lastHeadingNorm = nameNorm;
+                    emittedHeadingNorms.Add(nameNorm);
                 }
             }
 
             if (b.TextLevel is > 0)
             {
+                string emitText;
+
                 // FIX 2: Race-section fallback — a short heading ending with " TRAITS" often means
-                // the race name was never emitted as its own heading. Promote the name prefix
-                // as a synthetic section_header BEFORE emitting the TRAITS heading itself,
-                // but skip it when the race name was already the previous heading (no duplicates).
+                // the race name was never emitted as its own heading.
+                //
+                // RENAME strategy: when "GNOME TRAITS" is seen and "GNOME" has NOT yet been emitted,
+                // emit the heading as "GNOME" (in place of "GNOME TRAITS") so the section captures
+                // the traits body that follows. Do NOT also emit a "GNOME TRAITS" heading — that
+                // caused the old INSERT approach to leave the synthetic section empty.
+                //
+                // When the bare race name WAS already emitted earlier (e.g. "DWARF" heading at the
+                // top of its section), emit "DWARF TRAITS" unchanged so it becomes a subsection.
+                //
+                // Global dedup via emittedHeadingNorms is required because the bare race title and
+                // its " TRAITS" heading are typically separated by description paragraphs and a
+                // "X NAMES" heading — a consecutive lastHeadingNorm check would miss this.
                 if (text.Length <= 40 && text.EndsWith(" TRAITS", StringComparison.OrdinalIgnoreCase))
                 {
                     var raceName = text[..(text.Length - " TRAITS".Length)].Trim();
                     var raceNorm = Normalize(raceName);
-                    if (raceNorm.Length > 0 && raceNorm != lastHeadingNorm)
+                    if (raceNorm.Length > 0 && !emittedHeadingNorms.Contains(raceNorm))
                     {
-                        items.Add(new PdfStructureItem("section_header", raceName, page, b.TextLevel));
+                        // Rename: emit race name in place of "X TRAITS"
+                        emitText = raceName;
+                        items.Add(new PdfStructureItem("section_header", emitText, page, b.TextLevel));
                         lastHeadingNorm = raceNorm;
+                        emittedHeadingNorms.Add(raceNorm);
+                        continue; // skip the "GNOME TRAITS" heading — body follows the renamed section
                     }
+                    // Race name already emitted → emit "DWARF TRAITS" unchanged (subsection)
+                    emitText = text;
                 }
-
-                // FIX 1: Spell-name heading clean — some OCR/layout engines merge the spell name
-                // and its level/school suffix into a single heading block (e.g. "PRESTIDIGITATIONTransmutation cantrip").
-                // When that is the case, emit only the name prefix stripped of the level/school token.
-                var emitText = text;
-                if (IsLevelSchoolLine(text))
+                else
                 {
-                    var stripped = StripLevelSchool(text);
-                    if (stripped.Length > 0 && stripped.Length < text.Length)
-                        emitText = stripped;
+                    // FIX 1: Spell-name heading clean — some OCR/layout engines merge the spell name
+                    // and its level/school suffix into a single heading block (e.g. "PRESTIDIGITATIONTransmutation cantrip").
+                    // When that is the case, emit only the name prefix stripped of the level/school token.
+                    emitText = text;
+                    if (IsLevelSchoolLine(text))
+                    {
+                        var stripped = StripLevelSchool(text);
+                        if (stripped.Length > 0 && stripped.Length < text.Length)
+                            emitText = stripped;
+                    }
                 }
 
                 items.Add(new PdfStructureItem("section_header", emitText, page, b.TextLevel));
                 lastHeadingNorm = Normalize(emitText);
+                emittedHeadingNorms.Add(lastHeadingNorm);
             }
             else if (string.Equals(b.Type, "text", StringComparison.OrdinalIgnoreCase))
             {
