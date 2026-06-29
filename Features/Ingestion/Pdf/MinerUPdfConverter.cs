@@ -88,8 +88,34 @@ public sealed class MinerUPdfConverter(
 
             if (b.TextLevel is > 0)
             {
-                items.Add(new PdfStructureItem("section_header", text, page, b.TextLevel));
-                lastHeadingNorm = Normalize(text);
+                // FIX 2: Race-section fallback — a short heading ending with " TRAITS" often means
+                // the race name was never emitted as its own heading. Promote the name prefix
+                // as a synthetic section_header BEFORE emitting the TRAITS heading itself,
+                // but skip it when the race name was already the previous heading (no duplicates).
+                if (text.Length <= 40 && text.EndsWith(" TRAITS", StringComparison.OrdinalIgnoreCase))
+                {
+                    var raceName = text[..(text.Length - " TRAITS".Length)].Trim();
+                    var raceNorm = Normalize(raceName);
+                    if (raceNorm.Length > 0 && raceNorm != lastHeadingNorm)
+                    {
+                        items.Add(new PdfStructureItem("section_header", raceName, page, b.TextLevel));
+                        lastHeadingNorm = raceNorm;
+                    }
+                }
+
+                // FIX 1: Spell-name heading clean — some OCR/layout engines merge the spell name
+                // and its level/school suffix into a single heading block (e.g. "PRESTIDIGITATIONTransmutation cantrip").
+                // When that is the case, emit only the name prefix stripped of the level/school token.
+                var emitText = text;
+                if (IsLevelSchoolLine(text))
+                {
+                    var stripped = StripLevelSchool(text);
+                    if (stripped.Length > 0 && stripped.Length < text.Length)
+                        emitText = stripped;
+                }
+
+                items.Add(new PdfStructureItem("section_header", emitText, page, b.TextLevel));
+                lastHeadingNorm = Normalize(emitText);
             }
             else if (string.Equals(b.Type, "text", StringComparison.OrdinalIgnoreCase))
             {

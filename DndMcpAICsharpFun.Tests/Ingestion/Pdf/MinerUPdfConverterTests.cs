@@ -152,4 +152,80 @@ public class MinerUPdfConverterTests
             File.Delete(pdfPath);
         }
     }
+
+    [Fact]
+    public async Task Cleans_spell_name_from_heading_when_level_school_suffix_is_present()
+    {
+        // Headings that carry a merged level/school suffix are cleaned to just the spell name.
+        // A heading with no level/school token is emitted unchanged.
+        const string contentList = """
+        [
+          {"type":"text","text":"PRESTIDIGITATIONTransmutation cantrip","text_level":2,"page_idx":0},
+          {"type":"text","text":"GUIDING BOLT Ist-level evocation","text_level":2,"page_idx":0},
+          {"type":"text","text":"PART 3 | SPELLS","text_level":1,"page_idx":1}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+            var headings = doc.Items
+                .Where(i => i.Type == "section_header")
+                .Select(i => i.Text)
+                .ToList();
+
+            headings.Should().Contain("PRESTIDIGITATION");                     // stripped at "Transmutation"
+            headings.Should().Contain("GUIDING BOLT");                          // stripped at "Ist" OCR token
+            headings.Should().Contain("PART 3 | SPELLS");                       // no level/school — unchanged
+            headings.Should().NotContain("PRESTIDIGITATIONTransmutation cantrip");
+            headings.Should().NotContain("GUIDING BOLT Ist-level evocation");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
+
+    [Fact]
+    public async Task Race_traits_heading_promotes_synthetic_race_name_when_bare_name_not_already_emitted()
+    {
+        // "GNOME TRAITS" with no preceding bare "GNOME" heading → emits "GNOME" then "GNOME TRAITS".
+        // "DWARF TRAITS" immediately after a "DWARF" heading → no duplicate "DWARF" is emitted.
+        const string contentList = """
+        [
+          {"type":"text","text":"GNOME TRAITS","text_level":2,"page_idx":0},
+          {"type":"text","text":"DWARF","text_level":2,"page_idx":1},
+          {"type":"text","text":"DWARF TRAITS","text_level":2,"page_idx":1}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+            var headings = doc.Items
+                .Where(i => i.Type == "section_header")
+                .Select(i => i.Text)
+                .ToList();
+
+            // GNOME is promoted before GNOME TRAITS
+            var gnomeIdx = headings.IndexOf("GNOME");
+            var gnomeTraitsIdx = headings.IndexOf("GNOME TRAITS");
+            gnomeIdx.Should().BeGreaterThanOrEqualTo(0, "GNOME should be emitted as a synthetic race header");
+            gnomeTraitsIdx.Should().BeGreaterThan(gnomeIdx, "GNOME TRAITS should follow the synthetic GNOME header");
+
+            // DWARF must not be duplicated by the TRAITS fallback
+            headings.Count(h => h == "DWARF").Should().Be(1, "DWARF must not be duplicated when already the previous heading");
+            headings.Should().Contain("DWARF TRAITS");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
 }
