@@ -27,7 +27,7 @@ services:
         condition: service_healthy
       ollama-pull:
         condition: service_completed_successfully
-      marker:
+      mineru:
         condition: service_healthy
       searxng:
         condition: service_started
@@ -35,13 +35,11 @@ services:
       - dnd_net
     restart: unless-stopped
 
-  marker:
+  mineru:
     build:
-      context: ./docker/marker
+      context: ./docker/mineru
       dockerfile: Dockerfile
-    volumes:
-      - books_data:/books:ro
-      - marker_models:/root/.cache/datalab
+    # MinerU PDF structure parser (pipeline + OCR). The app POSTs PDFs to mineru:8000/file_parse.
     deploy:
       resources:
         reservations:
@@ -49,13 +47,17 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    ipc: host
+    shm_size: '8gb'
+    environment:
+      MINERU_MODEL_SOURCE: local
     healthcheck:
       test:
         [
           "CMD",
-          "python",
+          "python3",
           "-c",
-          "import urllib.request, json; r=urllib.request.urlopen('http://localhost:5002/health', timeout=5); d=json.loads(r.read()); exit(0 if d.get('models_loaded') else 1)",
+          "import urllib.request; exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=5).status == 200 else 1)",
         ]
       interval: 30s
       timeout: 10s
@@ -198,7 +200,6 @@ services:
 
 volumes:
   books_data:
-  marker_models:
   qdrant_data:
   postgres_data:
   ollama_data:
