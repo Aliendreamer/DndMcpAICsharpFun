@@ -12,12 +12,17 @@ several distinct, mostly-tractable causes:
 - **~6 spells — uncleaned spell *headings*.** When MinerU tags a spell name *with* the level/school
   glued on (`PRESTIDIGITATIONTransmutation cantrip`, `GUIDING BOLT Ist-level evocation`), the splitter's
   name-cleanup — which only runs on non-heading blocks — is skipped, so the dirty name fails to match.
-- **~8 spells — page→category misalignment.** The candidate is promoted, but `EntityCandidateScanner`
-  drops it because `TocCategoryMap.GetCategory(page)` returns the wrong/Unknown category for that page
-  (`continue`), so the candidate never reaches extraction (e.g. Gust of Wind).
+- **A few spells — transient LLM empty-responses.** A handful (Command, Gust of Wind; also the monster
+  Pseudodragon) hit "Empty response from Ollama" after the existing 3-attempt retry, so they are recorded
+  in `errors.json`. These are **not a code bug** — the existing `errorsOnly` retry recovers them; the fix
+  is operational (run an `errorsOnly` pass after the main extraction). *(Earlier this was mis-hypothesised
+  as a page→category misalignment; that was disproven — Fireball p242 and Wish p289 extracted fine on the
+  same page band where Gust of Wind p249 failed, so the TOC mapping is correct.)*
 
-This change fixes those four causes. The harder, lower-yield tail (~17 prose-merged / special-char spell
-names, and the ~5 missing-`Casting Time` anchors) is **explicitly deferred to the roadmap**.
+This change fixes the three structural causes (clean headings, prior-type collisions, race fallback) and
+relies on the existing `errorsOnly` retry for the transient empties. The harder, lower-yield tail (~17
+prose-merged / special-char spell names, and the ~5 missing-`Casting Time` anchors) is **explicitly
+deferred to the roadmap**.
 
 ## What Changes
 
@@ -29,8 +34,8 @@ names, and the ~5 missing-`Casting Time` anchors) is **explicitly deferred to th
   Darkvision/Divination (Spell not invocation/school).
 - **Race-section fallback.** Recover a race whose bare title was not tagged by anchoring on its
   `"<RACE> TRAITS"` heading → promote `"<RACE>"` (the race analog of the spell splitter). Recovers Gnome.
-- **Fix page→category misalignment.** Diagnose and correct why in-chapter spell pages resolve to a
-  non-Spell/Unknown category, so promoted spell candidates are not silently dropped by the scanner.
+- **Recover transient empties operationally.** Run an `errorsOnly` retry pass after the main extraction to
+  recover the few entities that hit transient empty Ollama responses (no code change).
 
 ## Capabilities
 
@@ -39,15 +44,13 @@ names, and the ~5 missing-`Casting Time` anchors) is **explicitly deferred to th
   fallback recovers races whose title was not tagged.
 - `deterministic-type-resolution`: a name match of a type different from the candidate's primary prior no
   longer forces that cross-type; the candidate's prior type is preferred (or it defers to content-first).
-- `heading-derived-toc-fallback`: in-chapter pages resolve to their chapter's category so promoted
-  candidates on those pages are not dropped by `EntityCandidateScanner`.
 
 ## Impact
 
 - Code: `MinerUPdfConverter` (heading cleanup + race fallback), `DeterministicTypeResolver` /
-  `EntityNameIndex` (prior-preferred matching), the TOC page-category mapping. Unit tests per fix.
-- Validation: re-extract PHB through the live `mineru:8000` service; expect **9/9 races** (Dwarf, Gnome
-  recovered) and **~340+/361 spells** (the #1 + #3 + #5 wins), with **zero new noise** and the same clean
-  declines. No DB/API-contract change.
-- Non-goals: prose-merged / special-char spell names (#4) and missing-`Casting Time` anchors (#2) —
-  deferred to the roadmap.
+  `EntityNameIndex` (prior-preferred matching). Unit tests per fix. No TOC change.
+- Validation: re-extract PHB through the live `mineru:8000` service, then an `errorsOnly` pass; expect
+  **9/9 races** (Dwarf, Gnome recovered) and a higher spell count (the cleaned-heading + collision wins +
+  recovered transient empties), with **zero new noise** and the same clean declines. No DB/API-contract change.
+- Non-goals: prose-merged / special-char spell names and missing-`Casting Time` anchors — deferred to the
+  roadmap.

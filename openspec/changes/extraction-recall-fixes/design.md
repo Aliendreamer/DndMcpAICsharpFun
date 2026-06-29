@@ -36,13 +36,12 @@ the bare title is not tagged (Gnome), anchor on a `"<X> TRAITS"` heading and pro
 synthetic race heading — dedup against an already-emitted `"<X>"`. Narrow: only the literal `" TRAITS"`
 suffix on a short heading, to avoid spurious promotions.
 
-**4. Page→category misalignment (`TocCategoryMap` / `heading-derived-toc-fallback`).** *Investigation-led:*
-`EntityCandidateScanner` skips a candidate when `toc.GetCategory(page)` yields a null/Unknown type. The
-vanished spells (Gust of Wind p~250, others to p283) are inside the alphabetical spell descriptions, so
-either the TOC's "Spells" page range stops short of the chapter's end or there is a front-matter page
-offset (OCR `page_idx+1` vs the TOC's printed-page references). Task 4 diagnoses which, then either
-extends the spell range to the chapter end or applies the offset. Acceptance: the previously-vanished
-spells resolve to `Spell` and survive scanning.
+**4. Transient empty Ollama responses — no code fix (operational).** *The page→category hypothesis was
+investigated and disproven:* Fireball (p242) and Wish (p289) extracted fine on the same page band where
+Gust of Wind (p249) failed, so `TocCategoryMap` is correct. The true cause is a transient "Empty response
+from Ollama" after the existing 3-attempt `ExtractionRetryPolicy`; these few entities (Command, Gust of
+Wind, Pseudodragon) are recorded in `errors.json` and recovered by the existing `errorsOnly` retry. So
+the fix is operational — run an `errorsOnly` pass after the main extraction (Task 5/6), no source change.
 
 ## Risks / Trade-offs
 
