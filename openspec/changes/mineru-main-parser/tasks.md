@@ -6,7 +6,7 @@
 ## 2. MinerUPdfConverter → service (replace the spike file-read)
 
 - [ ] 2.1 Extend `MinerUOptions` with `ServiceUrl`, `Backend` (default `pipeline`), `Method` (default `ocr`), `ConversionTimeoutMinutes`; keep `Enabled`. Remove the spike `OutputDirectory` file-read path.
-- [ ] 2.2 Rewrite `MinerUPdfConverter.ConvertAsync` to POST the PDF to the MinerU service and consume its `content_list` (mirror `MarkerPdfConverter`'s submit/poll), then map blocks → items (TDD with a stubbed service: text_level→section_header, text→text, others dropped).
+- [ ] 2.2 Rewrite `MinerUPdfConverter.ConvertAsync` to call the MinerU service and consume its `content_list`, then map blocks → items (TDD with a stubbed service: text_level→section_header, text→text, others dropped). **API contract (verified against the live `mineru:8000`):** `POST /file_parse` (multipart/form-data), fields: `files`=<pdf> (required), `backend=pipeline`, `parse_method=ocr`, `return_content_list=true` (default false — MUST set), `return_md=true` optional. Response JSON carries the `content_list` array (`{type,text,text_level,page_idx}` per block — same shape the spike reads). For a ~300-page book the sync call is long, so prefer the async flow: `POST /tasks` → poll `GET /tasks/{id}` → `GET /tasks/{id}/result` (mirror `MarkerPdfConverter`'s submit/poll). `GET /health` for the health check.
 - [ ] 2.3 Keep the spell-chapter splitter unchanged (the `Casting Time:` anchor + name extraction) — covered by existing tests.
 
 ## 3. Conversion caching
