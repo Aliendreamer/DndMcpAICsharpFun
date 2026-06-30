@@ -48,14 +48,19 @@ pnpm lint:md                                          # markdown: 0 error(s) (af
 Unit-green is necessary, NOT sufficient for pipeline changes. Before claiming an extraction/scanner/resolver/gate change works:
 
 - [ ] **Run a LIVE smoke on a real book** (`extract-entities` on PHB), then inspect the actual output — type counts, names, AND the reject/`declined.json` audit — before trusting or ingesting. (A green-tested gate was structurally DEAD in production this cycle; only the live run caught it.)
+- [ ] **Clear the conversion cache after a converter change** (`docker exec … rm -f /books/conversion-cache/*.mineru.json`) — else the smoke runs the OLD mapping. A "cache hit" log at run start when you changed the converter means your fix is NOT being tested.
+- [ ] **Early spot-check BEFORE the full ~8 h run.** The first progress checkpoint (`<slug>.progress.json`, ~first 100 candidates / ~15 min) covers front-of-book entities (races, classes). Spot-check the entities your change TARGETS there first — 790 green tests still shipped a Dragonborn→Monster regression that only the live early-check caught.
+- [ ] **A count change is NOT automatically a regression — diff WHICH entities changed type.** Monster 34→30 this cycle was a CORRECTION (Acolyte/Noble/Sage/Soldier were mis-typed backgrounds), not a loss. Compare before/after type-maps per entity; never assume a drop is bad or a rise is good.
 - [ ] **Read the real data shape before writing a predicate over it.** `EntityCandidate.TypePrior` always carries the scanner's frequency floor `{Monster,Spell,Item,Class}` — an "all priors gated" test could never fire. Check the producer (`HeadingCategoryClassifier.ExpandPrior`, the scanner) first.
 - [ ] **When recall looks low, separate OUR-logic bugs from UPSTREAM/parser gaps.** If a missing entity is NOT in `declined.json`, it was never a candidate → upstream (Marker/scanner) gap, not our gate. (8 missing classes / 8 missing races this cycle were a parser gap → `mem:project_parser_upgrade_mineru`, not a false-drop.)
 - [ ] **A reviewer "verified against the diff" ≠ behavioral truth.** Confirm against live code/producer and real output.
 
 ## Extraction pipeline facts
 
-- Canonical source of truth: `books/canonical/<slug>.json`; siblings `<slug>.errors.json` / `.warnings.json` / `.declined.json` (declined = official-book gated non-matches). Checkpoints `<slug>.progress*.json` (deleted on success). Files are root-owned (container writes them).
-- Parser today = **Marker** (`MarkerPdfConverter` → `IPdfStructureConverter`, cache `*.marker.json`). MinerU swap is a planned follow-up (`mem:project_parser_upgrade_mineru`).
+- Canonical source of truth: `books/canonical/<slug>.json`; siblings `<slug>.errors.json` / `.warnings.json` / `.declined.json` (declined = official-book gated non-matches). Checkpoints `<slug>.progress*.json` (deleted on success). Files are **root-owned** (container writes them) — edit via `docker cp` a host copy in. **Hand-authoring a single missing entity here is the designed escape hatch** — cheaper + safer than a 3rd parser/injector patch (`mem:project_extraction_recall_fixes`).
+- Parser = **MinerU as a service** at `mineru:8000` (`MinerUPdfConverter` POSTs `/file_parse`, `-b pipeline -m ocr`), the SOLE `IPdfStructureConverter`; Marker is removed. Conversion disk-cache `books/conversion-cache/*.mineru.json` (`mem:project_parser_upgrade_mineru`).
+- **CACHE GOTCHA (must-not-omit):** the conversion cache is keyed by **PDF hash only** — converter-LOGIC changes are NOT reflected. After ANY `MinerUPdfConverter` change, `docker exec … rm -f /books/conversion-cache/*.mineru.json` before re-extracting, or the OLD mapping is silently reused (cost a wasted full run this cycle).
+- **Extraction is slow** (~30s/candidate, ~8.5 h/book) — qwen3 runs with thinking ON; `think:false` is a ~4-5× lever, and there is no page-range extract yet (full-book only), so early-checkpoint spot-checks are the fast-feedback substitute.
 - Dev container lags `main` — **rebuild the app image** (`docker compose up -d --build app`) for code/config to take effect (`mem:project_dev_container_staleness`).
 
 ## Red Flags — STOP
@@ -63,6 +68,9 @@ Unit-green is necessary, NOT sufficient for pipeline changes. Before claiming an
 - "Tests pass, so the extraction change works." → Run the live smoke, read the output.
 - "The predicate looks right." → Read the real `TypePrior`/producer shape first.
 - "Recall dropped, the gate is broken." → Check `declined.json` — absent ⇒ parser gap, not the gate.
+- "I changed the converter; the smoke will test my fix." → A "cache hit" at run start means it tests the OLD mapping. Clear `*.mineru.json` first.
+- "The count dropped — that's a regression." → Diff WHICH entities changed type; it may be a correction (mis-typed entities moving to the right type).
+- "I'll patch the injector once more for this one entity." → 3rd patch on one entity = STOP. Hand-author it in the canonical.
 - "It builds, so it's done." → Done = all gates green, output seen.
 - "I'll edit the `.cs` directly." → Serena only.
 - "I'll branch for this." → No. Single-dev, work on `main`.
