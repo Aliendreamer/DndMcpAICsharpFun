@@ -12,20 +12,58 @@ public sealed class EntityCandidateScanner
         ArgumentNullException.ThrowIfNull(blocks);
         ArgumentNullException.ThrowIfNull(toc);
 
-        // Group consecutive (and any same-titled) blocks by section title; preserve first-occurrence order.
-        var bySection = blocks
-            .Select((b, i) => (Block: b, Order: i))
-            .GroupBy(x => x.Block.SectionTitle)
-            .Select(g => new
-            {
-                Section = g.Key,
-                FirstIndex = g.Min(x => x.Order),
-                Page = g.Min(x => x.Block.Page),
-                Text = string.Join("\n\n", g.OrderBy(x => x.Order).Select(x => x.Block.Text)),
-            })
-            .OrderBy(s => s.FirstIndex);
+        // Single ordered pass: consecutive same-titled blocks within MaxPageGap pages merge into
+        // one candidate; a different title OR a page jump > MaxPageGap starts a new group.
+        // Prevents cross-chapter name collisions (e.g. "Darkvision" invocation vs spell far apart).
+        const int MaxPageGap = 3;
 
-        foreach (var s in bySection)
+        var groups = new List<(string Section, int FirstIndex, int Page, string Text)>();
+
+        if (blocks.Count > 0)
+        {
+            var currentTitle = blocks[0].SectionTitle;
+            var groupFirstIndex = 0;
+            var groupMinPage = blocks[0].Page;
+            var groupMaxPage = blocks[0].Page;
+            var groupTexts = new List<(int Order, string Text)> { (0, blocks[0].Text) };
+
+            for (var i = 1; i < blocks.Count; i++)
+            {
+                var block = blocks[i];
+                var sameTitle = block.SectionTitle == currentTitle;
+                var withinGap = block.Page - groupMaxPage <= MaxPageGap;
+
+                if (sameTitle && withinGap)
+                {
+                    groupMinPage = Math.Min(groupMinPage, block.Page);
+                    groupMaxPage = Math.Max(groupMaxPage, block.Page);
+                    groupTexts.Add((i, block.Text));
+                }
+                else
+                {
+                    groups.Add((
+                        currentTitle,
+                        groupFirstIndex,
+                        groupMinPage,
+                        string.Join("\n\n", groupTexts.OrderBy(x => x.Order).Select(x => x.Text))
+                    ));
+                    currentTitle = block.SectionTitle;
+                    groupFirstIndex = i;
+                    groupMinPage = block.Page;
+                    groupMaxPage = block.Page;
+                    groupTexts = [(i, block.Text)];
+                }
+            }
+
+            groups.Add((
+                currentTitle,
+                groupFirstIndex,
+                groupMinPage,
+                string.Join("\n\n", groupTexts.OrderBy(x => x.Order).Select(x => x.Text))
+            ));
+        }
+
+        foreach (var s in groups.OrderBy(s => s.FirstIndex))
         {
             // TocCategoryMap is page-keyed: look up the category by the section's earliest page.
             var category = toc.GetCategory(s.Page) ?? ContentCategory.Unknown;

@@ -55,4 +55,99 @@ public class EntityCandidateScannerTests
 
         candidates.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Scanner_splits_same_title_when_different_title_intervenes_across_chapters()
+    {
+        // "DARKVISION" appears twice in the Spell section with an unrelated spell between them.
+        // The intervening title break must force two separate candidates, not one merged at p184.
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Spells", ContentCategory.Spell, StartPage: 1, EndPage: 400),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("DARKVISION", 184, "The invocation text"),
+            new("FIREBALL",   190, "Fireball spell text"),
+            new("DARKVISION", 230, "The spell text"),
+        };
+
+        var scanner = new EntityCandidateScanner();
+        var candidates = scanner.Scan(blocks, toc).ToList();
+
+        var darkvision = candidates.Where(c => c.DisplayName == "DARKVISION").ToList();
+        darkvision.Should().HaveCount(2, "each chapter occurrence is a distinct candidate");
+        darkvision.Should().ContainSingle(c => c.Page == 184);
+        darkvision.Should().ContainSingle(c => c.Page == 230);
+    }
+
+    [Fact]
+    public void Scanner_merges_same_title_on_adjacent_pages_within_gap()
+    {
+        // Two blocks for the same section on consecutive pages must merge into one candidate.
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Spells", ContentCategory.Spell, StartPage: 1, EndPage: 100),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("FIREBALL", 50, "Fireball part 1"),
+            new("FIREBALL", 51, "Fireball part 2"),
+        };
+
+        var scanner = new EntityCandidateScanner();
+        var candidates = scanner.Scan(blocks, toc).ToList();
+
+        candidates.Should().HaveCount(1);
+        candidates[0].DisplayName.Should().Be("FIREBALL");
+        candidates[0].Page.Should().Be(50);
+        candidates[0].Text.Should().Contain("Fireball part 1").And.Contain("Fireball part 2");
+    }
+
+    [Fact]
+    public void Scanner_splits_same_title_when_page_gap_exceeds_threshold()
+    {
+        // Same title, no intervening title, but page jump > MaxPageGap (3) → two candidates.
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Spells", ContentCategory.Spell, StartPage: 1, EndPage: 400),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("DARKVISION", 50, "First occurrence text"),
+            new("DARKVISION", 60, "Second occurrence text — gap of 10 pages"),
+        };
+
+        var scanner = new EntityCandidateScanner();
+        var candidates = scanner.Scan(blocks, toc).ToList();
+
+        candidates.Should().HaveCount(2, "gap > MaxPageGap(3) with no intervening title still splits");
+        candidates.Should().ContainSingle(c => c.Page == 50);
+        candidates.Should().ContainSingle(c => c.Page == 60);
+    }
+
+    [Fact]
+    public void Scanner_preserves_document_order_for_distinct_sections()
+    {
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Spells", ContentCategory.Spell, StartPage: 1, EndPage: 400),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("SPELL_A", 10, "Text A"),
+            new("SPELL_B", 20, "Text B"),
+            new("SPELL_C", 30, "Text C"),
+        };
+
+        var scanner = new EntityCandidateScanner();
+        var candidates = scanner.Scan(blocks, toc).ToList();
+
+        candidates.Should().HaveCount(3);
+        candidates.Select(c => c.DisplayName).Should().Equal("SPELL_A", "SPELL_B", "SPELL_C");
+    }
 }
