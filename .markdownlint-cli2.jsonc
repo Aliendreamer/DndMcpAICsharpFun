@@ -11,6 +11,8 @@
     ".agents/**",
     ".superpowers/**",
     ".serena/**",
+    ".mineru-spike/**",
+    "books/**",
     "5etools/**",
     "openspec/**"
   ],
