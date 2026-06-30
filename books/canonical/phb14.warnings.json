@@ -1,8 +1,0 @@
-[
-  {
-    "sourceEntityId": "phb14.background.hermit",
-    "fieldPath": "fields.entries[0].slug",
-    "missingTargetId": "playerhandbook2014.background.hermit",
-    "warningKind": "inter_book_dangling_ref"
-  }
-]

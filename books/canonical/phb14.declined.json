@@ -18,8 +18,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.race.racial-traits",
-    "name": "RACIAL TRAITS",
+    "id": "phb14.race.racial",
+    "name": "RACIAL",
     "type": "Race",
     "reason": "no_5etools_match"
   },
@@ -762,8 +762,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.bonus-cantrip",
-    "name": "BONUS CANTRIP",
+    "id": "phb14.class.bonus",
+    "name": "BONUS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2376,20 +2376,20 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.master-of-myriad-forms-prerequisite-15th-level",
-    "name": "MASTER OF MYRIAD FORMS Prerequisite: 15th level",
+    "id": "phb14.class.master-of-myriad-forms-prerequisite",
+    "name": "MASTER OF MYRIAD FORMS Prerequisite:",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.minions-of-chaos-prerequisite-9th-level",
-    "name": "MINIONS OF CHAOS Prerequisite: 9th level",
+    "id": "phb14.class.minions-of-chaos-prerequisite",
+    "name": "MINIONS OF CHAOS Prerequisite:",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.mire-the-mind-prerequisite-5th-level",
-    "name": "MIRE THE MIND Prerequisite: 5th level",
+    "id": "phb14.class.mire-the-mind-prerequisite",
+    "name": "MIRE THE MIND Prerequisite:",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2400,8 +2400,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.one-with-shadows-prerequisite-5th-level",
-    "name": "ONE WITH SHADOWS Prerequisite: 5th level",
+    "id": "phb14.class.one-with-shadows-prerequisite",
+    "name": "ONE WITH SHADOWS Prerequisite:",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2418,14 +2418,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.sculptor-of-flesh-prerequisite-7th-level",
-    "name": "SCULPTOR OF FLESH Prerequisite: 7th level",
+    "id": "phb14.class.sculptor-of-flesh-prerequisite",
+    "name": "SCULPTOR OF FLESH Prerequisite:",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.sign-of-ill-omen-prerequisite-5th-level",
-    "name": "SIGN OF ILL OMEN Prerequisite: 5th level",
+    "id": "phb14.class.sign-of-ill-omen-prerequisite",
+    "name": "SIGN OF ILL OMEN Prerequisite:",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2442,8 +2442,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.visions-of-distant-realms-prerequisite-15th-level",
-    "name": "VISIONS OF DISTANT REALMS Prerequisite: 15th level",
+    "id": "phb14.class.visions-of-distant-realms-prerequisite",
+    "name": "VISIONS OF DISTANT REALMS Prerequisite:",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2454,8 +2454,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.whispers-of-the-grave-prerequisite-9th-level",
-    "name": "WHISPERS OF THE GRAVE Prerequisite: 9th level",
+    "id": "phb14.class.whispers-of-the-grave-prerequisite",
+    "name": "WHISPERS OF THE GRAVE Prerequisite:",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2514,8 +2514,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.school-of-abjuration",
-    "name": "SCHOOL OF ABJURATION",
+    "id": "phb14.class.school-of",
+    "name": "SCHOOL OF",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2538,8 +2538,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.improved-abjuration",
-    "name": "IMPROVED ABJURATION",
+    "id": "phb14.class.improved",
+    "name": "IMPROVED",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2550,20 +2550,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.school-of-conjuration",
-    "name": "SCHOOL OF CONJURATION",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.conjuration-savant",
     "name": "CONJURATION SAVANT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.minor-conjuration",
-    "name": "MINOR CONJURATION",
+    "id": "phb14.class.minor",
+    "name": "MINOR",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2574,20 +2568,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.focused-conjuration",
-    "name": "FOCUSED CONJURATION",
+    "id": "phb14.class.focused",
+    "name": "FOCUSED",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.class.durable-summons",
     "name": "DURABLE SUMMONS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.school-of-divination",
-    "name": "SCHOOL OF DIVINATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2604,12 +2592,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.expert-divination",
-    "name": "EXPERT DIVINATION",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.the-third-eye",
     "name": "THE THIRD EYE",
     "type": "Class",
@@ -2618,12 +2600,6 @@
   {
     "id": "phb14.class.greater-portent",
     "name": "GREATER PORTENT",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.school-of-enchantment",
-    "name": "SCHOOL OF ENCHANTMENT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2646,20 +2622,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.split-enchantment",
-    "name": "SPLIT ENCHANTMENT",
+    "id": "phb14.class.split",
+    "name": "SPLIT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.class.alter-memories",
     "name": "ALTER MEMORIES",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.school-of-evocation",
-    "name": "SCHOOL OF EVOCATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2676,14 +2646,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.potent-cantrip",
-    "name": "POTENT CANTRIP",
+    "id": "phb14.class.potent",
+    "name": "POTENT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.empowered-evocation",
-    "name": "EMPOWERED EVOCATION",
+    "id": "phb14.class.empowered",
+    "name": "EMPOWERED",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2694,26 +2664,20 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.school-of-illusion",
-    "name": "SCHOOL OF ILLUSION",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.illusion-savant",
     "name": "ILLUSION SAVANT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.improved-minor-illusion",
-    "name": "IMPROVED MINOR ILLUSION",
+    "id": "phb14.class.improved-minor",
+    "name": "IMPROVED MINOR",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.malleable-illusions",
-    "name": "MALLEABLE ILLUSIONS",
+    "id": "phb14.class.malleable",
+    "name": "MALLEABLE",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2726,12 +2690,6 @@
   {
     "id": "phb14.class.illusory-reality",
     "name": "ILLUSORY REALITY",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.school-of-necromancy",
-    "name": "SCHOOL OF NECROMANCY",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2762,12 +2720,6 @@
   {
     "id": "phb14.class.command-undead",
     "name": "COMMAND UNDEAD",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.school-of-transmutation",
-    "name": "SCHOOL OF TRANSMUTATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -3348,18 +3300,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.guiding-bolt-ist-level-evocation",
-    "name": "GUIDING BOLT Ist-level evocation",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.minor",
-    "name": "MINOR",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.spell.range-120-feet",
     "name": "Range: 120 feet",
     "type": "Spell",
@@ -3368,18 +3308,6 @@
   {
     "id": "phb14.spell.duration-24-hours",
     "name": "Duration: 24 hours",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.prayer-of-healing-2nd-level-evocation",
-    "name": "PRAYER OF HEALING 2nd-level evocation",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.prestidigitationtransmutation-cantrip",
-    "name": "PRESTIDIGITATIONTransmutation cantrip",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
