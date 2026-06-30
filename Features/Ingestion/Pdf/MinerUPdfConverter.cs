@@ -186,14 +186,42 @@ public sealed class MinerUPdfConverter(
     /// </summary>
     private static string StripLevelSchool(string text)
     {
-        var cut = text.Length;
+        // Rule 1: if a digit is present the suffix is "<Nth>-level <school>" — cut at the first digit.
+        // Spell names never contain digits, so this is unambiguous.
         var d = DigitRx.Match(text);
-        if (d.Success) cut = Math.Min(cut, d.Index);
-        var s = SchoolRx.Match(text);
-        if (s.Success) cut = Math.Min(cut, s.Index);
-        var c = OcrLevelWordRx.Match(text);
-        if (c.Success) cut = Math.Min(cut, c.Index);
-        return text[..cut].Trim();
+        if (d.Success)
+        {
+            var cut = d.Index;
+            // OCR artefacts ("lst", "ist") can appear instead of a digit; keep taking the minimum.
+            var o = OcrLevelWordRx.Match(text);
+            if (o.Success) cut = Math.Min(cut, o.Index);
+            return text[..cut].Trim();
+        }
+
+        // Rule 2 (cantrip): the suffix is exactly "<school> cantrip" (possibly glued: no space).
+        // Find the school word that is IMMEDIATELY followed (optional whitespace) by the cantrip token
+        // rather than the first school word in the string (which may be part of the spell name).
+        var c = CantripRx.Match(text);
+        if (c.Success)
+        {
+            // Examine only the text before the cantrip token.
+            var prefix = text[..c.Index];
+            // Walk school matches in reverse; pick the last one whose end abuts the cantrip.
+                        foreach (Match sm in SchoolRx.Matches(prefix).Cast<Match>().Reverse())
+            {
+                var between = prefix[(sm.Index + sm.Length)..];
+                if (between.Trim().Length == 0)
+                    return text[..sm.Index].Trim();
+            }
+            // Cantrip found but no school directly before it — fall through to OCR artefact check.
+        }
+
+        // Rule 3: OCR-mangled level words ("lst", "ist") with no digit — cut there.
+        var ocr = OcrLevelWordRx.Match(text);
+        if (ocr.Success)
+            return text[..ocr.Index].Trim();
+
+        return text.Trim();
     }
 
     private static string Normalize(string s)

@@ -189,6 +189,54 @@ public class MinerUPdfConverterTests
         }
     }
 
+    [Fact]
+    public async Task School_word_in_spell_name_is_not_overcut_on_cantrip_suffix()
+    {
+        // Regression: spells whose NAME contains a school word (MINOR ILLUSION, PROGRAMMED ILLUSION)
+        // must NOT be trimmed at the first occurrence of that school word.
+        // Only the trailing "<school> cantrip" or "<Nth-level> <school>" suffix should be stripped.
+        const string contentList = """
+        [
+          {"type":"text","text":"MINOR ILLUSION Illusion cantrip",        "text_level":2,"page_idx":0},
+          {"type":"text","text":"PROGRAMMED ILLUSION Illusion cantrip",   "text_level":2,"page_idx":0},
+          {"type":"text","text":"PRESTIDIGITATION Transmutation cantrip", "text_level":2,"page_idx":0},
+          {"type":"text","text":"SHIELD OF FAITH 1st-level abjuration",  "text_level":2,"page_idx":1},
+          {"type":"text","text":"ALTER SELF 2nd-level transmutation",     "text_level":2,"page_idx":1}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+            var headings = doc.Items
+                .Where(i => i.Type == "section_header")
+                .Select(i => i.Text)
+                .ToList();
+
+            // Cantrips whose names contain a school word — must keep the full name
+            headings.Should().Contain("MINOR ILLUSION",      "school word in name must not be cut");
+            headings.Should().Contain("PROGRAMMED ILLUSION", "school word in name must not be cut");
+            headings.Should().Contain("PRESTIDIGITATION",    "no school word in name, cut at suffix school");
+
+            // Leveled spells — cut at first digit (unchanged behaviour)
+            headings.Should().Contain("SHIELD OF FAITH", "cut at '1' digit, not at 'abjuration'");
+            headings.Should().Contain("ALTER SELF",      "cut at '2' digit, not at 'transmutation'");
+
+            // Raw merged text must not survive
+            headings.Should().NotContain("MINOR ILLUSION Illusion cantrip");
+            headings.Should().NotContain("PROGRAMMED ILLUSION Illusion cantrip");
+            headings.Should().NotContain("MINOR",       "must not over-cut the name to only first word");
+            headings.Should().NotContain("PROGRAMMED",  "must not over-cut the name to only first word");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
+
         [Fact]
     public async Task Race_traits_heading_renames_x_traits_to_x_when_bare_name_not_already_emitted()
     {
