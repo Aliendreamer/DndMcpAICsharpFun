@@ -504,12 +504,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.ritual-casting",
-    "name": "RITUAL CASTING",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.spellcasting-focus",
     "name": "SPELLCASTING FOCUS",
     "type": "Class",
@@ -914,12 +908,6 @@
   {
     "id": "phb14.class.sacred-plants-and-wood",
     "name": "SACRED PLANTS AND WOOD",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.ritual-gasting",
-    "name": "RITUAL GASTING",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -3180,12 +3168,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.casting-time",
-    "name": "CASTING TIME",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.spell.bonus-action",
     "name": "BONUS ACTION",
     "type": "Spell",
@@ -3194,18 +3176,6 @@
   {
     "id": "phb14.spell.longer-casting-times",
     "name": "LONGER CASTING TIMES",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.range",
-    "name": "RANGE",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.components",
-    "name": "COMPONENTS",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3228,20 +3198,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.duration",
-    "name": "DURATION",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.spell.instantaneous",
     "name": "INSTANTANEOUS",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.concentration",
-    "name": "CONCENTRATION",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3372,62 +3330,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.duration-concentration-up-to-1-hour",
-    "name": "Duration: Concentration, up to 1 hour",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.casting-time-1-action",
-    "name": "Casting Time: 1 action",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.spell.precipitation",
     "name": "PRECIPITATION",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.spell.duration-instantaneous",
-    "name": "Duration: Instantaneous",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.duration-special",
-    "name": "Duration: Special",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.duration-concentration-up-to-1-minute",
-    "name": "Duration: Concentration, up to 1 minute",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.range-120-feet",
-    "name": "Range: 120 feet",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.duration-24-hours",
-    "name": "Duration: 24 hours",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.spell.the-spell-s-damage-increases-by",
     "name": "The spell\u0027s damage increases by",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.components-v-s-duration-instantaneous",
-    "name": "Components: V, S Duration: Instantaneous",
     "type": "Spell",
     "reason": "no_5etools_match"
   },

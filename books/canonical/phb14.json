@@ -6204,7 +6204,24 @@
      "v": true,
      "s": true,
      "m": "burning incense for air, soft clay for earth, sulfur and phosphorus for fire, or water and sand for water"
-    }
+    },
+    "duration": [
+     {
+      "type": "timed",
+      "duration": {
+       "type": "hour",
+       "amount": 1
+      },
+      "concentration": true
+     }
+    ],
+    "entries": [
+     "You call forth an elemental servant. Choose an area of air, earth, fire, or water that fills a 10-foot cube within range. An elemental of challenge rating 5 or lower appropriate to the area you chose appears in an unoccupied space within 10 feet of it. For example, a fire elemental emerges from a bonfire, and an earth elemental rises up from the ground. The elemental disappears when it drops to 0 hit points or when the spell ends.",
+     "The elemental is friendly to you and your companions for the duration. Roll initiative for the elemental, which has its own turns. It obeys any verbal commands that you issue to it (no action required by you). If you don't issue any commands to the elemental, it defends itself from hostile creatures but otherwise takes no actions.",
+     "If your concentration is broken, the elemental doesn't disappear. Instead, you lose control of the elemental, it becomes hostile toward you and your companions, and it might attack. An uncontrolled elemental can't be dismissed by you, and it disappears 1 hour after you summoned it.",
+     "The DM has the elemental's statistics.",
+     "At Higher Levels. When you cast this spell using a spell slot of 6th level or higher, the challenge rating increases by 1 for each slot level above 5th."
+    ]
    },
    "dataSource": "",
    "srd": false,
@@ -6407,33 +6424,37 @@
    "settingTags": [],
    "canonicalText": "",
    "fields": {
-    "level": 5,
-    "school": "C",
-    "range": {
-     "type": "point",
-     "distance": {
-      "type": "feet",
-      "amount": 60
-     }
-    },
-    "components": {
-     "v": true,
-     "s": true
-    },
-    "duration": [
-     {
-      "type": "instant"
-     }
-    ],
     "entries": [
-     "You conjure a volley of magical missiles that fly in a straight line for 60 feet. Each creature in the path must make a Dexterity saving throw, taking {@damage 3d6} piercing damage on a failed save, or half as much on a successful one."
-    ],
-    "entriesHigherLevel": [
      {
-      "type": "entries",
-      "name": "At Higher Levels",
+      "type": "spell",
+      "name": "Conjure Volley",
+      "level": 5,
+      "school": "C",
+      "time": [
+       {
+        "number": 1,
+        "unit": "action"
+       }
+      ],
+      "range": {
+       "type": "point",
+       "distance": {
+        "type": "feet",
+        "amount": 150
+       }
+      },
+      "components": {
+       "v": true,
+       "s": true,
+       "m": "one piece of ammunition or one thrown weapon"
+      },
+      "duration": [
+       {
+        "type": "instantaneous"
+       }
+      ],
       "entries": [
-       "When you cast this spell using a spell slot of 6th level or higher, the damage increases by 1d6 for each two levels above 5th."
+       "You fire a piece of nonmagical ammunition from a ranged weapon or throw a nonmagical weapon into the air and choose a point within range. Hundreds of duplicates of the ammunition or weapon fall in a volley from above and then disappear. Each creature in a 40-foot-radius, 20-foot-high cylinder centered on that point must make a Dexterity saving throw. A creature takes {@damage 8d8} damage on a failed save, or half as much damage on a successful one. The damage type is the same as that of the ammunition or weapon."
       ]
      }
     ]
@@ -6442,8 +6463,8 @@
    "srd": false,
    "srd52": false,
    "basicRules2024": false,
-   "needsReview": true,
-   "disposition": "NeedsReview",
+   "needsReview": false,
+   "disposition": "Accepted",
    "keywords": []
   },
   {
@@ -7005,30 +7026,31 @@
    "fields": {
     "entries": [
      {
-      "type": "spell",
-      "name": "Create Undead",
-      "level": 6,
-      "school": "N",
-      "time": [
-       {
-        "number": 1,
-        "unit": "minute"
-       }
-      ],
-      "range": {
-       "type": "point",
-       "distance": {
-        "type": "feet",
-        "amount": 10
-       }
-      },
-      "components": {
-       "v": true,
-       "s": true,
-       "m": "one clay pot filled with grave dirt, one clay pot filled with brackish water, and one 150 gp black onyx stone for each corpse"
-      }
+      "type": "entries",
+      "name": "Casting",
+      "entries": [
+       "You can cast this spell only at night. Choose up to three corpses of Medium or Small humanoids within range. Each corpse becomes a ghoul under your control. (The DM has game statistics for these creatures.)"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Control",
+      "entries": [
+       "As a bonus action on each of your turns, you can mentally command any creature you animated with this spell if the creature is within 120 feet of you (if you control multiple creatures, you can command any or all of them at the same time, issuing the same command to each one). You decide what action the creature will take and where it will move during its next turn, or you can issue a general command, such as to guard a particular chamber or corridor. If you issue no commands, the creature only defends itself against hostile creatures. Once given an order, the creature continues to follow it until its task is complete."
+      ]
      }
-    ]
+    ],
+    "entriesHigherLevel": [
+     {
+      "type": "entries",
+      "name": "At Higher Levels",
+      "entries": [
+       "At Higher Levels. When you cast this spell using a 7th-level spell slot, you can animate or reassert control over four ghouls. When you cast this spell using an 8th-level spell slot, you can animate or reassert control over five ghouls or two ghasts or wights. When you cast this spell using a 9th-level spell slot, you can animate or reassert control over six ghouls, three ghasts or wights, or two mummies."
+      ]
+     }
+    ],
+    "damageInflict": null,
+    "conditionInflict": null
    },
    "dataSource": "",
    "srd": false,
@@ -7054,26 +7076,30 @@
    "settingTags": [],
    "canonicalText": "",
    "fields": {
-    "level": 5,
-    "school": "I",
-    "time": [
+    "entries": [
      {
-      "number": 1,
-      "unit": "minute"
+      "type": "entries",
+      "name": "Spell Description",
+      "entries": [
+       "You pull wisps of shadow material from the Shadowfell to create a nonliving object of vegetable matter within range: soft goods, rope, wood, or something similar. You can also use this spell to create mineral objects such as stone, crystal, or metal. The object created must be no larger than a 5-foot cube, and the object must be of a form and material that you have seen before."
+      ]
      }
     ],
-    "range": {
-     "type": "point",
-     "distance": {
-      "type": "feet",
-      "amount": 30
+    "entriesHigherLevel": [
+     {
+      "type": "entries",
+      "name": "At Higher Levels",
+      "entries": [
+       "When you cast this spell using a spell slot of 6th level or higher, the cube increases by 5 feet for each slot level above 5th."
+      ]
      }
-    },
-    "components": {
-     "v": true,
-     "s": true,
-     "m": "a tiny piece of matter of the same type of the item you plan to create"
-    }
+    ],
+    "damageInflict": [
+     ""
+    ],
+    "conditionInflict": [
+     ""
+    ]
    },
    "dataSource": "",
    "srd": false,
@@ -7984,25 +8010,58 @@
    "settingTags": [],
    "canonicalText": "",
    "fields": {
-    "level": 5,
-    "school": "A",
-    "time": [
+    "entries": [
      {
-      "number": 1,
-      "unit": "action"
+      "type": "entries",
+      "name": "Dispel Evil and Good",
+      "entries": [
+       {
+        "type": "list",
+        "items": [
+         "5th-level abjuration",
+         "Casting Time: 1 action",
+         "Range: Self",
+         "Components: V, S, M (holy water or powdered silver and iron)",
+         "Duration: Concentration, up to 1 minute"
+        ]
+       },
+       {
+        "type": "paragraph",
+        "text": "Shimmering energy surrounds and protects you from fey, undead, and creatures originating from beyond the Material Plane. For the duration, celestials, elementals, fey, fiends, and undead have disadvantage on attack rolls against you."
+       },
+       {
+        "type": "entries",
+        "name": "Special Functions",
+        "entries": [
+         {
+          "type": "paragraph",
+          "text": "You can end the spell early by using either of the following special functions."
+         },
+         {
+          "type": "entries",
+          "name": "Break Enchantment",
+          "entries": [
+           {
+            "type": "paragraph",
+            "text": "As your action, you touch a creature you can reach that is charmed, frightened, or possessed by a celestial, an elemental, a fey, a fiend, or an undead. The creature you touch is no longer charmed, frightened, or possessed by such creatures."
+           },
+           {
+            "type": "entries",
+            "name": "Dismissal",
+            "entries": [
+             {
+              "type": "paragraph",
+              "text": "As your action, make a melee spell attack against a celestial, an elemental, a fey, a fiend, or an undead you can reach. On a hit, you attempt to drive the creature back to its home plane. The creature must succeed on a Charisma saving throw or be sent back to its home plane (if it isn't there already). If they aren't on their home plane, undead are sent to the Shadowfell, and fey are sent to the Feywild."
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
      }
-    ],
-    "range": {
-     "type": "point",
-     "distance": {
-      "type": "self"
-     }
-    },
-    "components": {
-     "v": true,
-     "s": true,
-     "m": "holy water or powdered silver and iron"
-    }
+    ]
    },
    "dataSource": "",
    "srd": false,
@@ -8117,46 +8176,46 @@
    "fields": {
     "entries": [
      {
-      "type": "list",
-      "items": [
-       "Casting Time: 1 action",
-       "Range: Self",
-       "Components: V, S, M (incense and a sacrificial offering appropriate to your religion, together worth at least 25 gp, which the spell consumes)"
-      ]
-     },
-     {
       "type": "entries",
-      "name": "Spell Details",
+      "name": "Divination",
       "entries": [
-       "name",
-       "level",
-       "school",
-       "time",
-       "range",
-       "components"
+       {
+        "type": "list",
+        "items": [
+         "Casting Time: 1 action",
+         "Range: Self",
+         "Components: V, S, M (incense and a sacrificial offering appropriate to your religion, together worth at least 25 gp, which the spell consumes)",
+         "Duration: Instantaneous"
+        ]
+       },
+       {
+        "type": "entries",
+        "name": "Description",
+        "entries": [
+         "Your magic and an offering put you in contact with a god or a god's servants. You ask a single question concerning a specific goal, event, or activity to occur within 7 days. The DM offers a truthful reply. The reply might be a short phrase, a cryptic rhyme, or an omen.",
+         "The spell doesn't take into account any possible circumstances that might change the outcome, such as the casting of additional spells or the loss or gain of a companion.",
+         "If you cast the spell two or more times before finishing your next long rest, there is a cumulative 25 percent chance for each casting after the first that you get a random reading. The DM makes this roll in secret."
+        ]
+       }
       ]
      },
+     "name",
+     "Divination",
+     "level",
      {
-      "type": "spell",
-      "name": "Divination",
-      "level": 4,
-      "school": "D",
-      "time": [
-       {
-        "number": 1,
-        "unit": "action"
-       }
-      ],
-      "range": {
-       "type": "self"
-      },
-      "components": {
-       "v": true,
-       "s": true,
-       "m": "incense and a sacrificial offering appropriate to your religion, together worth at least 25 gp, which the spell consumes"
-      }
-     }
-    ]
+      "number": 4,
+      "unit": "level"
+     },
+     "school",
+     "D",
+     "time",
+     "[{"
+    ],
+    "miscTags": [
+     "ritual"
+    ],
+    "scalingLevelDice": null,
+    "conditionInflict": null
    },
    "dataSource": "",
    "srd": false,
@@ -8184,30 +8243,8 @@
    "fields": {
     "entries": [
      {
+      "type": "entries",
       "name": "Divine Word",
-      "level": 7,
-      "school": "V",
-      "time": [
-       {
-        "number": 1,
-        "unit": "bonus action"
-       }
-      ],
-      "range": {
-       "type": "point",
-       "distance": {
-        "type": "feet",
-        "amount": 30
-       }
-      },
-      "components": {
-       "v": true
-      },
-      "duration": [
-       {
-        "type": "instantaneous"
-       }
-      ],
       "entries": [
        "You utter a divine word, imbued with the power that shaped the world at the dawn of creation. Choose any number of creatures you can see within range. Each creature that can hear you must make a Charisma saving throw. On a failed save, a creature suffers an effect based on its current hit points:",
        "• 50 hit points or fewer: deafened for 1 minute",
@@ -8217,7 +8254,9 @@
        "Regardless of its current hit points, a celestial, an elemental, a fey, or a fiend that fails its save is forced back to its plane of origin (if it isn't there already) and can't return to your current plane for 24 hours by any means short of a wish spell."
       ]
      }
-    ]
+    ],
+    "damageInflict": null,
+    "conditionInflict": null
    },
    "dataSource": "",
    "srd": false,
@@ -8703,52 +8742,6 @@
    "basicRules2024": false,
    "needsReview": true,
    "disposition": "NeedsReview",
-   "keywords": []
-  },
-  {
-   "id": "phb14.spell.ensnaring-strike",
-   "type": "Spell",
-   "name": "Ensnaring Strike",
-   "sourceBook": "PHB",
-   "edition": "Edition2014",
-   "page": 238,
-   "firstAppearedIn": {
-    "book": "PHB",
-    "edition": "Edition2014",
-    "page": 238
-   },
-   "revisedIn": [],
-   "settingTags": [],
-   "canonicalText": "",
-   "fields": {
-    "entries": [
-     {
-      "type": "list",
-      "name": "Spell Description",
-      "entries": [
-       "The next time you hit a creature with a weapon attack before this spell ends, a writhing mass of thorny vines appears at the point of impact, and the target must succeed on a Strength saving throw or be restrained by the magical vines until the spell ends. A Large or larger creature has advantage on this saving throw. If the target succeeds on the save, the vines shrivel away."
-      ],
-      "items": [
-       "At Higher Levels. If you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st."
-      ]
-     }
-    ],
-    "damageInflict": [
-     "1d6 piercing damage"
-    ],
-    "savingThrow": [
-     "Strength"
-    ],
-    "conditionInflict": [
-     "restrained"
-    ]
-   },
-   "dataSource": "",
-   "srd": false,
-   "srd52": false,
-   "basicRules2024": false,
-   "needsReview": false,
-   "disposition": "Accepted",
    "keywords": []
   },
   {
@@ -12414,16 +12407,34 @@
    "settingTags": [],
    "canonicalText": "",
    "fields": {
-    "entries": [],
-    "damageInflict": null,
-    "conditionInflict": null
+    "entries": [
+     {
+      "type": "entries",
+      "name": "Legend Lore",
+      "entries": [
+       "Casting Time: 10 minutes",
+       "Range: Self",
+       "Components: V, S, M (incense worth at least 250 gp, which the spell consumes, and four ivory strips worth at least 50 gp each)",
+       "Duration: Instantaneous",
+       "Name or describe a person, place, or object. The spell brings to your mind a brief summary of the significant lore about the thing you named. The lore might consist of current tales, forgotten stories, or even secret lore that has never been widely known. If the thing you named isn't of legendary importance, you gain no information. The more information you already have about the thing, the more precise and detailed the information you receive is.",
+       "The information you learn is accurate but might be couched in figurative language. For example, if you have a mysterious magic axe on hand, the spell might yield this information: \"Woe to the evildoer whose hand touches the axe, for even the haft slices the hand of the evil ones. Only a true Child of Stone, lover and beloved of Moradin, may awaken the true powers of the axe, and only with the sacred word Rudnogg on the lips.\""
+      ]
+     },
+     {
+      "type": "list",
+      "items": [
+       "Legend Lore",
+       "LEOMUND'S SECRET CHEST"
+      ]
+     }
+    ]
    },
    "dataSource": "",
    "srd": false,
    "srd52": false,
    "basicRules2024": false,
-   "needsReview": true,
-   "disposition": "NeedsReview",
+   "needsReview": false,
+   "disposition": "Accepted",
    "keywords": []
   },
   {
@@ -12444,29 +12455,26 @@
    "fields": {
     "entries": [
      {
-      "type": "spell",
-      "name": "Leomund's Secret Chest",
-      "level": 4,
-      "school": "C",
-      "time": [
-       {
-        "number": 1,
-        "unit": "action"
-       }
-      ],
-      "range": {
-       "type": "point",
-       "distance": {
-        "type": "touch"
-       }
-      },
-      "components": {
-       "v": true,
-       "s": true,
-       "m": "an exquisite chest, 3 feet by 2 feet by 2 feet, constructed from rare materials worth at least 5,000 gp, and a Tiny replica made from the same materials worth at least 50 gp"
-      }
+      "type": "entries",
+      "name": "Casting and Components",
+      "entries": [
+       "Casting Time: 1 action",
+       "Range: Touch",
+       "Components: V, S, M (an exquisite chest, 3 feet by 2 feet by 2 feet, constructed from rare materials worth at least 5,000 gp, and a Tiny replica made from the same materials worth at least 50 gp)"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Spell Effect",
+      "entries": [
+       "You hide a chest, and all its contents, on the Ethereal Plane. You must touch the chest and the miniature replica that serves as a material component for the spell. The chest can contain up to 12 cubic feet of nonliving material (3 feet by 2 feet by 2 feet).",
+       "While the chest remains on the Ethereal Plane, you can use an action and touch the replica to recall the chest. It appears in an unoccupied space on the ground within 5 feet of you. You can send the chest back to the Ethereal Plane by using an action and touching both the chest and the replica.",
+       "After 60 days, there is a cumulative 5 percent chance per day that the spell's effect ends. This effect ends if you cast this spell again, if the smaller replica chest is destroyed, or if you choose to end the spell as an action. If the spell ends and the larger chest is on the Ethereal Plane, it is irretrievably lost."
+      ]
      }
-    ]
+    ],
+    "damageInflict": null,
+    "conditionInflict": null
    },
    "dataSource": "",
    "srd": false,
@@ -12495,16 +12503,58 @@
     "entries": [
      {
       "type": "entries",
-      "name": "Spell Description",
+      "name": "Casting Time",
+      "entries": [
+       "1 minute"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Range",
+      "entries": [
+       {
+        "type": "point",
+        "distance": {
+         "type": "feet",
+         "amount": 10
+        }
+       }
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Components",
+      "entries": [
+       {
+        "v": true,
+        "s": true,
+        "m": "a small crystal bead"
+       }
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Duration",
+      "entries": [
+       {
+        "type": "timed",
+        "duration": {
+         "type": "hour",
+         "amount": 8
+        }
+       }
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Description",
       "entries": [
        "A 10-foot-radius immobile dome of force springs into existence around and above you and remains stationary for the duration. The spell ends if you leave its area.",
        "Nine creatures of Medium size or smaller can fit inside the dome with you. The spell fails if its area includes a larger creature or more than nine creatures. Creatures and objects within the dome when you cast this spell can move through it freely. All other creatures and objects are barred from passing through it. Spells and other magical effects can't extend through the dome or be cast through it. The atmosphere inside the space is comfortable and dry, regardless of the weather outside.",
        "Until the spell ends, you can command the interior to become dimly lit or dark. The dome is opaque from the outside, of any color you choose, but it is transparent from the inside."
       ]
      }
-    ],
-    "damageInflict": null,
-    "conditionInflict": null
+    ]
    },
    "dataSource": "",
    "srd": false,
@@ -14431,6 +14481,108 @@
    "keywords": []
   },
   {
+   "id": "phb14.spell.mordenkainen-s-private-sanctum",
+   "type": "Spell",
+   "name": "Mordenkainen's Private Sanctum",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 263,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 263
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "entries": [
+     {
+      "type": "list",
+      "items": [
+       "You make an area within range magically secure. The area is a cube that can be as small as 5 feet to as large as 100 feet on each side. The spell lasts for the duration or until you use an action to dismiss it.",
+       "When you cast the spell, you decide what sort of security the spell provides, choosing any or all of the following properties: • Sound can't pass through the barrier at the edge of the warded area. • The barrier of the warded area appears dark and foggy, preventing vision (including darkvision) through it. Sensors created by divination spells can't appear inside the protected area or pass through the barrier at its perimeter. • Creatures in the area can't be targeted by divination spells. • Nothing can teleport into or out of the warded area. • Planar travel is blocked within the warded area.",
+       "Casting this spell on the same spot every day for a year makes this effect permanent.",
+       "At Higher Levels. When you cast this spell using a spell slot of 5th level or higher, you can increase the size of the cube by 100 feet for each slot level beyond 4th. Thus you could protect a cube that can be up to 200 feet on one side by using a spell slot of 5th level."
+      ]
+     }
+    ],
+    "miscTags": [],
+    "conditionInflict": []
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": false,
+   "disposition": "Accepted",
+   "keywords": []
+  },
+  {
+   "id": "phb14.spell.mordenkainen-s-sword",
+   "type": "Spell",
+   "name": "Mordenkainen's Sword",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 263,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 263
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "entries": [
+     {
+      "type": "entries",
+      "name": "Casting",
+      "entries": [
+       "Casting Time: 1 action"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Range",
+      "entries": [
+       "Range: 60 feet"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Components",
+      "entries": [
+       "Components: V, S, M (a miniature platinum sword with a grip and pommel of copper and zinc, worth 250 gp)"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Duration",
+      "entries": [
+       "Duration: Concentration, up to 1 minute"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Description",
+      "entries": [
+       "You create a sword-shaped plane of force that hovers within range. It lasts for the duration.",
+       "When the sword appears, you make a melee spell attack against a target of your choice within 5 feet of the sword. On a hit, the target takes {@damage 3d10} force damage.",
+       "Until the spell ends, you can use a bonus action on each of your turns to move the sword up to 20 feet to a spot you can see and repeat this attack against the same target or a different one."
+      ]
+     }
+    ]
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": false,
+   "disposition": "Accepted",
+   "keywords": []
+  },
+  {
    "id": "phb14.spell.move-earth",
    "type": "Spell",
    "name": "Move Earth",
@@ -16008,22 +16160,36 @@
    "settingTags": [],
    "canonicalText": "",
    "fields": {
-    "level": 5,
-    "school": "T",
-    "time": [
+    "entries": [
      {
-      "number": 1,
-      "unit": "hour"
+      "type": "spell",
+      "name": "Reincarnate",
+      "level": 5,
+      "school": "T",
+      "time": [
+       {
+        "number": 1,
+        "unit": "hour"
+       }
+      ],
+      "range": {
+       "type": "touch"
+      },
+      "components": {
+       "v": true,
+       "s": true,
+       "m": "rare oils and unguents worth at least 1,000 gp, which the spell consumes"
+      },
+      "duration": [
+       {
+        "type": "instantaneous"
+       }
+      ],
+      "entries": [
+       "You touch a dead humanoid or a piece of a dead humanoid. Provided that the creature has been dead no longer than 10 days, the spell forms a new adult body for it and then calls the soul to enter that body. If the target's soul isn't free or willing to do so, the spell fails. The magic fashions a new body for the creature to inhabit, which likely causes the creature's race to change. The DM rolls a d100 and consults the following table to determine what form the creature takes when restored to life, or the DM chooses a form. The reincarnated creature recalls its former life and experiences. It retains the capabilities it had in its original form, except it exchanges its original race for the new one and changes its racial traits accordingly."
+      ]
      }
-    ],
-    "range": {
-     "type": "touch"
-    },
-    "components": {
-     "v": true,
-     "s": true,
-     "m": "rare oils and unguents worth at least 1,000 gp, which the spell consumes"
-    }
+    ]
    },
    "dataSource": "",
    "srd": false,
@@ -18727,15 +18893,38 @@
    "fields": {
     "entries": [
      {
-      "type": "list",
-      "items": [
-       "Casting Time: 1 action",
-       "Range: Self (15-foot cube)"
+      "name": "Thunderwave",
+      "level": 1,
+      "school": "V",
+      "time": [
+       {
+        "number": 1,
+        "unit": "action"
+       }
+      ],
+      "range": {
+       "type": "self",
+       "distance": {
+        "type": "feet",
+        "amount": 15
+       }
+      },
+      "components": {
+       "v": true,
+       "s": true
+      },
+      "duration": [
+       {
+        "type": "instantaneous"
+       }
+      ],
+      "entries": [
+       "A wave of thunderous force sweeps out from you. Each creature in a 15-foot cube originating from you must make a Constitution saving throw. On a failed save, a creature takes 2d8 thunder damage and is pushed 10 feet away from you. On a successful save, the creature takes half as much damage and isn't pushed.",
+       "Unsecured objects that are completely within the area of effect are automatically pushed 10 feet away from you by the spell's effect, and the spell emits a thunderous boom audible out to 300 feet.",
+       "At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d8 for each slot level above 1st."
       ]
      }
-    ],
-    "damageInflict": null,
-    "conditionInflict": null
+    ]
    },
    "dataSource": "",
    "srd": false,
@@ -22085,6 +22274,72 @@
    "keywords": []
   },
   {
+   "id": "phb14.spell.ensnaring-strike",
+   "type": "Spell",
+   "name": "Ensnaring Strike",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 238,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 238
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "entries": [
+     {
+      "name": "Ensnaring Strike",
+      "level": 1,
+      "school": "C",
+      "time": [
+       {
+        "number": 1,
+        "unit": "bonus action"
+       }
+      ],
+      "range": {
+       "type": "self"
+      },
+      "components": {
+       "v": true
+      },
+      "duration": [
+       {
+        "type": "timed",
+        "duration": {
+         "type": "minute",
+         "amount": 1
+        },
+        "concentration": true
+       },
+       "entries:["
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Spell Description",
+      "entries": [
+       "The next time you hit a creature with a weapon attack before this spell ends, a writhing mass of thorny vines appears at the point of impact, and the target must succeed on a Strength saving throw or be restrained by the magical vines until the spell ends. A Large or larger creature has advantage on this saving throw. If the target succeeds on the save, the vines shrivel away.",
+       "While restrained by this spell, the target takes {@damage 1d6} piercing damage at the start of each of its turns. A creature restrained by the vines or one that can touch the creature can use its action to make a Strength check against your spell save DC. On a success, the target is freed."
+      ]
+     }
+    ],
+    "entriesHigherLevel": [
+     "At Higher Levels. If you cast this spell using a spell slot of 2nd level or higher, the damage increases by {@damage 1d6} for each slot level above 1st."
+    ]
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": false,
+   "disposition": "Accepted",
+   "keywords": []
+  },
+  {
    "id": "phb14.spell.gust-of-wind",
    "type": "Spell",
    "name": "Gust of Wind",
@@ -22270,7 +22525,7 @@
       "type": "entries",
       "name": "Lore",
       "entries": [
-       "A gnome's energy and enthusiasm for living shines through every inch of their tiny body. Gnomes average slightly over 3 feet tall and weigh 40 to 45 pounds. They delight in life, enjoying every moment of invention, exploration, investigation, creation, and play."
+       "A gnome's energy and enthusiasm for living shines through every inch of their tiny body. They delight in invention, exploration, investigation, creation, and play."
       ]
      },
      {
@@ -22278,12 +22533,12 @@
       "name": "Traits",
       "entries": [
        "Ability Score Increase. Your Intelligence score increases by 2.",
-       "Age. Gnomes mature at the same rate humans do, and most settle into adult life around age 40. They can live 350 to almost 500 years.",
-       "Size. Gnomes are between 3 and 4 feet tall and average about 40 pounds. Your size is Small.",
-       "Speed. Your base walking speed is 25 feet.",
-       "Darkvision. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light.",
-       "Gnome Cunning. You have advantage on all Intelligence, Wisdom, and Charisma saving throws against magic.",
-       "Languages. You can speak, read, and write Common and Gnomish.",
+       "Age. Gnomes mature at the same rate humans do and can live 350 to almost 500 years.",
+       "Size. Small.",
+       "Speed. 25 feet.",
+       "Darkvision. 60 feet.",
+       "Gnome Cunning. Advantage on Int, Wis, and Cha saving throws against magic.",
+       "Languages. Common and Gnomish.",
        "Subraces. Forest Gnome and Rock Gnome."
       ]
      }
