@@ -2,10 +2,11 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
+using Microsoft.Extensions.Logging;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
-public sealed class EntityCandidateScanner
+public sealed class EntityCandidateScanner(ILogger<EntityCandidateScanner> logger)
 {
     public IEnumerable<EntityCandidate> Scan(IList<ScannerInput> blocks, TocCategoryMap toc)
     {
@@ -68,7 +69,14 @@ public sealed class EntityCandidateScanner
             // TocCategoryMap is page-keyed: look up the category by the section's earliest page.
             var category = toc.GetCategory(s.Page) ?? ContentCategory.Unknown;
             var type = MapCategoryToEntityType(category);
-            if (type is null) continue;
+            if (type is null)
+            {
+                // Traceability guard: log skipped sections so silent candidate losses are visible.
+                logger.LogWarning(
+                    "Skipping section '{Section}' on page {Page}: no entity category maps to this page (toc category: {Category})",
+                    s.Section, s.Page, category);
+                continue;
+            }
 
             // Content-first prior: the primary keyword type plus its confusion set and the
             // frequency floor, mapped to entity types. Offered to the model as union branches so

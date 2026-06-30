@@ -281,4 +281,106 @@ public class MinerUPdfConverterTests
             File.Delete(pdfPath);
         }
     }
+
+    // ── Stat-line demotion (Fix: recover Mordenkainen's and similar spells) ──────────
+
+    [Theory]
+    [InlineData("Casting Time: 1 action")]
+    [InlineData("Range: 60 feet")]
+    [InlineData("Components: V, S, M")]
+    [InlineData("Duration: Concentration, up to 1 minute")]
+    [InlineData("At Higher Levels: When you cast this spell...")]
+    [InlineData("Ritual")]
+    [InlineData("Concentration")]
+    public async Task Stat_line_heading_demotes_to_text(string statLineText)
+    {
+        // A heading whose text begins with a spell stat label is a MinerU mis-tag.
+        // The converter must emit it as a plain 'text' item, not a 'section_header'.
+        var contentList = $$"""
+        [
+          {"type":"text","text":"{{statLineText}}","text_level":2,"page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+
+            doc.Items.Should().ContainSingle("the one stat-line heading must produce exactly one item");
+            doc.Items[0].Type.Should().Be("text", "a mis-tagged stat line must be demoted to text");
+            doc.Items[0].Text.Should().Be(statLineText);
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
+
+    [Fact]
+    public async Task Mordenkainen_sword_sequence_attributes_body_to_spell_section()
+    {
+        // Regression: MinerU mis-tags "Casting Time:" and "Range:" as headings in Mordenkainen's spells.
+        // After stat-line demotion the spell-name heading keeps ownership of the body.
+        const string contentList = """
+        [
+          {"type":"text","text":"MORDENKAINEN'S SWORD","text_level":2,"page_idx":0},
+          {"type":"text","text":"Casting Time: 1 action","text_level":2,"page_idx":0},
+          {"type":"text","text":"Range: 60 feet","text_level":2,"page_idx":0},
+          {"type":"text","text":"You make an area of force that hovers near a creature within range.","page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+
+            var headings = doc.Items.Where(i => i.Type == "section_header").ToList();
+            headings.Should().ContainSingle("only the spell name must be a section_header");
+            headings[0].Text.Should().Be("MORDENKAINEN'S SWORD");
+
+            // Stat lines and body all end up as text items under the spell-name section.
+            var texts = doc.Items.Where(i => i.Type == "text").ToList();
+            texts.Should().HaveCount(3, "Casting Time, Range, and the body paragraph are all text");
+            texts.Should().Contain(t => t.Text == "Casting Time: 1 action");
+            texts.Should().Contain(t => t.Text == "Range: 60 feet");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
+
+    [Theory]
+    [InlineData("FIREBALL")]
+    [InlineData("DWARF TRAITS")]
+    [InlineData("MORDENKAINEN'S SWORD")]
+    public async Task Real_spell_and_race_headings_are_not_demoted(string headingText)
+    {
+        // Headings that do NOT begin with a spell stat label must remain section_headers.
+        var contentList = $$"""
+        [
+          {"type":"text","text":"{{headingText}}","text_level":2,"page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+
+            // All these headings may be renamed (GNOME TRAITS → GNOME) but must stay as section_header.
+            doc.Items.Should().ContainSingle();
+            doc.Items[0].Type.Should().Be("section_header",
+                $"'{headingText}' is a real heading and must not be demoted to text");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
 }

@@ -95,6 +95,16 @@ public sealed class MinerUPdfConverter(
 
             if (b.TextLevel is > 0)
             {
+                // Stat-line demotion: MinerU sometimes mis-tags spell stat lines
+                // (e.g. "Casting Time: 1 action", "Range: 60 feet") as headings.
+                // Demote them to plain text BEFORE any heading-clean or TRAITS logic
+                // so the preceding spell-name heading keeps ownership of the body.
+                if (StatLineRx.IsMatch(text))
+                {
+                    items.Add(new PdfStructureItem("text", text, page, null));
+                    continue;
+                }
+
                 string emitText;
 
                 // FIX 2: Race-section fallback — a short heading ending with " TRAITS" often means
@@ -174,6 +184,13 @@ public sealed class MinerUPdfConverter(
     private static readonly Regex DigitRx = new(@"\d", RegexOptions.Compiled);
 
     private static readonly Regex OcrLevelWordRx = new(@"\b(ca[l]*[nl]trip|lst|ist)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    // Spell stat-line labels that MinerU sometimes mis-tags as section_header blocks.
+    // When a heading matches this pattern it is demoted to plain text so the spell-name
+    // heading retains ownership of the body that follows.
+    private static readonly Regex StatLineRx = new(
+        @"^\s*(Casting Time|Range|Components|Duration|At Higher Levels|Ritual|Concentration)\b",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     /// <summary>True if the line looks like a spell's "level &amp; school" line (short; carries a level or school token).</summary>
     private static bool IsLevelSchoolLine(string text) =>

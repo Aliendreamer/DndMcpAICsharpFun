@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+using DndMcpAICsharpFun.Tests.TestDoubles;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;
 
@@ -76,7 +78,7 @@ public class EntityExtractionOrchestratorTests
                     Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json")),
                 converter: converter,
                 bookmarks: bookmarkReader,
-                scanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(),
+                scanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
                 statBlockScanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
                 writer: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
                 errorsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
@@ -195,7 +197,8 @@ public class EntityExtractionOrchestratorTests
         DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader bookmarkReader,
         DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm,
         DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry? registry = null,
-        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher? matcher = null)
+        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher? matcher = null,
+        ILogger<EntityExtractionOrchestrator>? orchestratorLogger = null)
     {
         var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
         {
@@ -217,7 +220,7 @@ public class EntityExtractionOrchestratorTests
             registry:           effectiveRegistry,
             converter:          converter,
             bookmarks:          bookmarkReader,
-            scanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(),
+            scanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
             statBlockScanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
             writer:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
             errorsFile:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
@@ -229,7 +232,7 @@ public class EntityExtractionOrchestratorTests
             checkpointStore:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
             candidateExtractor: BuildCandidateExtractor(llm, opts),
             options:            opts,
-            logger:             NullLogger<EntityExtractionOrchestrator>.Instance,
+            logger:             orchestratorLogger ?? NullLogger<EntityExtractionOrchestrator>.Instance,
             matcher:            effectiveMatcher);
     }
 
@@ -716,7 +719,7 @@ public class EntityExtractionOrchestratorTests
                 registry:           registry,
                 converter:          converter,
                 bookmarks:          bookmarkReader,
-                scanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(),
+                scanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
                 statBlockScanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
                 writer:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
                 errorsFile:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
@@ -1667,6 +1670,123 @@ public class EntityExtractionOrchestratorTests
                   && d.Type == DndMcpAICsharpFun.Domain.Entities.EntityType.Class,
                 "gated noise candidate 'Rage' must be declined with reason no_5etools_match " +
                 "and primary type Class (section/heading path), not Monster (stat-block path)");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir,   true); } catch { }
+        }
+    }
+
+    // ── BuildScannerInputs traceability guard (Fix #2a) ─────────────────────────
+
+    [Fact]
+    public async Task BuildScannerInputs_logs_warning_when_heading_overwrites_heading_with_no_body()
+    {
+        // Traceability guard: when a section_header immediately follows another section_header
+        // with no body text between them, the prior section will never become a candidate.
+        // BuildScannerInputs must emit a LogWarning naming both the dropped and the next title.
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+        try
+        {
+            const int bookId = 77;
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+            {
+                Id = bookId, FilePath = "/dev/null", FileName = "test.pdf",
+                FileHash = "abc", Version = "5e", DisplayName = "Warn Book",
+            };
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            // Two consecutive section_headers with NO body between them → the first is dropped.
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(
+                new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument("doc",
+                    new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+                    {
+                        new("section_header", "MORDENKAINEN'S SWORD",    1, null),
+                        new("section_header", "Casting Time: 1 action",  1, null), // no body between
+                        new("text",           "You create a blade.",      1, null),
+                    }));
+
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark> { new("Spells", 1) });
+
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+            var capturingLogger = new CapturingLogger<EntityExtractionOrchestrator>();
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                orchestratorLogger: capturingLogger);
+
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            capturingLogger.Logs.Should().Contain(
+                l => l.Level == LogLevel.Warning
+                  && l.Message.Contains("MORDENKAINEN'S SWORD")
+                  && l.Message.Contains("Casting Time: 1 action"),
+                "a warning must name the dropped section and the overwriting heading");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir,   true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task BuildScannerInputs_does_not_log_warning_when_heading_follows_body()
+    {
+        // Sanity guard: a normal heading→body→heading sequence must NOT trigger the warning.
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+        try
+        {
+            const int bookId = 78;
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+            {
+                Id = bookId, FilePath = "/dev/null", FileName = "test.pdf",
+                FileHash = "abc", Version = "5e", DisplayName = "Clean Book",
+            };
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            // Normal pattern: heading → body → heading → body.
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(
+                new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument("doc",
+                    new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+                    {
+                        new("section_header", "FIREBALL",           1, null),
+                        new("text",           "A bright streak...", 1, null),
+                        new("section_header", "SLEEP",              1, null),
+                        new("text",           "This spell sends...", 1, null),
+                    }));
+
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark> { new("Spells", 1) });
+
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+            var capturingLogger = new CapturingLogger<EntityExtractionOrchestrator>();
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                orchestratorLogger: capturingLogger);
+
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            capturingLogger.Logs.Should().NotContain(
+                l => l.Level == LogLevel.Warning
+                  && (l.Message.Contains("FIREBALL") || l.Message.Contains("SLEEP"))
+                  && l.Message.Contains("received no body"),
+                "no silent-drop warning should fire when each heading is followed by body text");
         }
         finally
         {

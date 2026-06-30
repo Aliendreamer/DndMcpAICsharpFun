@@ -18,7 +18,7 @@ public sealed class HeadingFallbackScannerTests
         // Content sits under the "Barbarian" section on page 1.
         var inputs = new[] { new ScannerInput("Barbarian", 1, "The barbarian can enter a rage as a bonus action.") };
 
-        var candidates = new EntityCandidateScanner().Scan(inputs, tocMap).ToList();
+        var candidates = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance).Scan(inputs, tocMap).ToList();
 
         candidates.Should().ContainSingle(c => c.Type == EntityType.Class);
     }

@@ -614,10 +614,12 @@ public sealed class EntityExtractionOrchestrator(
         }
     }
 
-    private static IList<ScannerInput> BuildScannerInputs(IReadOnlyList<PdfStructureItem> items)
+    private IList<ScannerInput> BuildScannerInputs(IReadOnlyList<PdfStructureItem> items)
     {
         var inputs = new List<ScannerInput>(items.Count);
         var currentSection = "(unknown)";
+        var hadBody = false; // tracks whether currentSection has received any body text
+
         foreach (var item in items)
         {
             var type = item.Type ?? string.Empty;
@@ -626,11 +628,24 @@ public sealed class EntityExtractionOrchestrator(
                 type.Equals("title", StringComparison.OrdinalIgnoreCase))
             {
                 if (!string.IsNullOrWhiteSpace(item.Text))
-                    currentSection = item.Text.Trim();
+                {
+                    var nextSection = item.Text.Trim();
+                    // Traceability guard: a heading immediately following another heading with no
+                    // body text between them silently drops the prior section as a candidate.
+                    // Log a warning so the loss is visible in the extraction run output.
+                    if (!hadBody && currentSection != "(unknown)")
+                        logger.LogWarning(
+                            "Section '{Prev}' received no body before heading '{Next}' — it will not become a candidate",
+                            currentSection, nextSection);
+
+                    currentSection = nextSection;
+                    hadBody = false;
+                }
                 continue;
             }
 
             if (string.IsNullOrWhiteSpace(item.Text)) continue;
+            hadBody = true;
             inputs.Add(new ScannerInput(currentSection, item.PageNumber, item.Text));
         }
         return inputs;

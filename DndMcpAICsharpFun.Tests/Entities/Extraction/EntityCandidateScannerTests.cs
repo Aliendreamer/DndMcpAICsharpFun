@@ -2,7 +2,9 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
+using DndMcpAICsharpFun.Tests.TestDoubles;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;
@@ -27,7 +29,7 @@ public class EntityCandidateScannerTests
             new("History of the realms", 12, "Long lore prose"),
         };
 
-        var scanner = new EntityCandidateScanner();
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
         var candidates = scanner.Scan(blocks, toc).ToList();
 
         candidates.Should().HaveCount(2);
@@ -50,7 +52,7 @@ public class EntityCandidateScannerTests
             new("History of the realms", 12, "Long lore prose"),
         };
 
-        var scanner = new EntityCandidateScanner();
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
         var candidates = scanner.Scan(blocks, toc).ToList();
 
         candidates.Should().BeEmpty();
@@ -73,7 +75,7 @@ public class EntityCandidateScannerTests
             new("DARKVISION", 230, "The spell text"),
         };
 
-        var scanner = new EntityCandidateScanner();
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
         var candidates = scanner.Scan(blocks, toc).ToList();
 
         var darkvision = candidates.Where(c => c.DisplayName == "DARKVISION").ToList();
@@ -97,7 +99,7 @@ public class EntityCandidateScannerTests
             new("FIREBALL", 51, "Fireball part 2"),
         };
 
-        var scanner = new EntityCandidateScanner();
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
         var candidates = scanner.Scan(blocks, toc).ToList();
 
         candidates.Should().HaveCount(1);
@@ -121,7 +123,7 @@ public class EntityCandidateScannerTests
             new("DARKVISION", 60, "Second occurrence text — gap of 10 pages"),
         };
 
-        var scanner = new EntityCandidateScanner();
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
         var candidates = scanner.Scan(blocks, toc).ToList();
 
         candidates.Should().HaveCount(2, "gap > MaxPageGap(3) with no intervening title still splits");
@@ -144,10 +146,57 @@ public class EntityCandidateScannerTests
             new("SPELL_C", 30, "Text C"),
         };
 
-        var scanner = new EntityCandidateScanner();
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
         var candidates = scanner.Scan(blocks, toc).ToList();
 
         candidates.Should().HaveCount(3);
         candidates.Select(c => c.DisplayName).Should().Equal("SPELL_A", "SPELL_B", "SPELL_C");
+    }
+
+    [Fact]
+    public void Scanner_logs_warning_when_section_page_has_no_entity_category()
+    {
+        // Traceability guard: a section on a page not covered by the TOC (null/Unknown category)
+        // is skipped. After Fix #2b the scanner must emit a LogWarning so the loss is visible.
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Spells", ContentCategory.Spell, StartPage: 1, EndPage: 100),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("ORPHAN_SECTION", 200, "some body text"), // page 200 has no TOC entry → Unknown
+        };
+
+        var capturingLogger = new CapturingLogger<EntityCandidateScanner>();
+        var scanner = new EntityCandidateScanner(capturingLogger);
+        var candidates = scanner.Scan(blocks, toc).ToList();
+
+        candidates.Should().BeEmpty("the section has no entity category and must be skipped");
+        capturingLogger.Logs.Should().ContainSingle(
+            l => l.Level == LogLevel.Warning && l.Message.Contains("ORPHAN_SECTION"),
+            "a warning must be logged naming the dropped section");
+    }
+
+    [Fact]
+    public void Scanner_does_not_log_warning_for_sections_with_valid_category()
+    {
+        // Sanity guard: a normal section with a known category must NOT trigger the warning.
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Spells", ContentCategory.Spell, StartPage: 1, EndPage: 100),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("FIREBALL", 50, "A bright streak flashes from your pointing finger..."),
+        };
+
+        var capturingLogger = new CapturingLogger<EntityCandidateScanner>();
+        var scanner = new EntityCandidateScanner(capturingLogger);
+        var candidates = scanner.Scan(blocks, toc).ToList();
+
+        candidates.Should().ContainSingle();
+        capturingLogger.Logs.Should().BeEmpty("no warning should be emitted for a correctly categorised section");
     }
 }
