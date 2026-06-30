@@ -575,11 +575,11 @@
    "name": "Ability Score Improvement",
    "sourceBook": "PHB",
    "edition": "Edition2014",
-   "page": 50,
+   "page": 73,
    "firstAppearedIn": {
     "book": "PHB",
     "edition": "Edition2014",
-    "page": 50
+    "page": 73
    },
    "revisedIn": [],
    "settingTags": [],
@@ -589,7 +589,18 @@
      {
       "type": "feat",
       "name": "Ability Score Improvement",
-      "description": "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+      "source": "player-handbook-2014.feats.ability-score-improvement",
+      "description": "When you reach 4th level, and again at 6th, 8th, 12th, 14th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature.",
+      "prerequisites": [
+       "Reach 4th level",
+       "Reach 6th level",
+       "Reach 8th level",
+       "Reach 12th level",
+       "Reach 14th level",
+       "Reach 16th level",
+       "Reach 19th level"
+      ],
+      "effect": "Increase one ability score by 2, or two ability scores by 1 (cannot exceed 20)."
      }
     ]
    },
@@ -1346,48 +1357,6 @@
    "basicRules2024": false,
    "needsReview": false,
    "disposition": "Accepted",
-   "keywords": []
-  },
-  {
-   "id": "phb14.monster.expert",
-   "type": "Monster",
-   "name": "Expert",
-   "sourceBook": "PHB",
-   "edition": "Edition2014",
-   "page": 117,
-   "firstAppearedIn": {
-    "book": "PHB",
-    "edition": "Edition2014",
-    "page": 117
-   },
-   "revisedIn": [],
-   "settingTags": [],
-   "canonicalText": "",
-   "fields": {
-    "size": [],
-    "type": {
-     "type": "Rule"
-    },
-    "cr": "",
-    "alignment": [],
-    "hp": {},
-    "speed": {},
-    "str": 0,
-    "dex": 0,
-    "con": 0,
-    "int": 0,
-    "wis": 0,
-    "cha": 0,
-    "skill": {},
-    "senses": [],
-    "keywords": []
-   },
-   "dataSource": "",
-   "srd": false,
-   "srd52": false,
-   "basicRules2024": false,
-   "needsReview": true,
-   "disposition": "NeedsReview",
    "keywords": []
   },
   {
@@ -2386,6 +2355,30 @@
    "keywords": []
   },
   {
+   "id": "phb14.item.weapons",
+   "type": "Item",
+   "name": "Weapons",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 147,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 147
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "The text is an introductory explanation of the Weapons table, not the table's actual data or a specific game entity.",
+   "fields": {},
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": true,
+   "disposition": "Declined",
+   "keywords": []
+  },
+  {
    "id": "phb14.item.weapon-proficiency",
    "type": "Item",
    "name": "Weapon Proficiency",
@@ -2818,7 +2811,7 @@
    },
    "revisedIn": [],
    "settingTags": [],
-   "canonicalText": "This is a narrative explanation of a game mechanic rather than a discrete entity. It describes rules and consequences but does not represent a specific game object, stat-block, or named entity.",
+   "canonicalText": "The text is a heading and narrative explanation of the Lifestyle Expenses rule system, not a discrete game entity.",
    "fields": {},
    "dataSource": "",
    "srd": false,
@@ -7348,6 +7341,59 @@
    "keywords": []
   },
   {
+   "id": "phb14.spell.darkvision",
+   "type": "Spell",
+   "name": "Darkvision",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 231,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 231
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "level": 2,
+    "school": "T",
+    "time": [
+     {
+      "number": 1,
+      "unit": "action"
+     }
+    ],
+    "range": {
+     "type": "touch"
+    },
+    "components": {
+     "v": true,
+     "s": true,
+     "m": "either a pinch of dried carrot or an agate"
+    },
+    "duration": [
+     {
+      "type": "timed",
+      "duration": {
+       "type": "hour",
+       "amount": 8
+      }
+     }
+    ],
+    "entries": [
+     "You touch a willing creature to grant it the ability to see in the dark. For the duration, that creature has darkvision out to a range of 60 feet."
+    ]
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": false,
+   "disposition": "Accepted",
+   "keywords": []
+  },
+  {
    "id": "phb14.spell.daylight",
    "type": "Spell",
    "name": "Daylight",
@@ -8021,20 +8067,94 @@
    "fields": {
     "entries": [
      {
-      "name": "Dissonant Whispers",
-      "type": "Spell",
-      "level": "1",
-      "school": "Enchantment",
-      "casting_time": "1 action",
-      "range": "30 feet",
-      "duration": "Instantaneous",
+      "type": "entries",
+      "name": "Casting",
+      "entries": [
+       "Casting Time: 1 action",
+       "Range: 60 feet",
+       "Components: V",
+       "Duration: Instantaneous"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Description",
+      "entries": [
+       "You whisper a discordant melody that only one creature of your choice within range can hear, wracking it with terrible pain. The target must make a Wisdom saving throw.",
+       "On a failed save, it takes {@damage 3d6} psychic damage and must immediately use its reaction, if available, to move as far as its speed allows away from you. The creature doesn't move into obviously dangerous ground, such as a fire or a pit.",
+       "On a successful save, the target takes half as much damage and doesn't have to move away.",
+       "A deafened creature automatically succeeds on the save."
+      ]
+     }
+    ],
+    "damageInflict": null,
+    "scalingLevelDice": null,
+    "conditionInflict": null
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": false,
+   "disposition": "Accepted",
+   "keywords": []
+  },
+  {
+   "id": "phb14.spell.divination",
+   "type": "Spell",
+   "name": "Divination",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 235,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 235
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "entries": [
+     {
+      "type": "list",
+      "items": [
+       "Casting Time: 1 action",
+       "Range: Self",
+       "Components: V, S, M (incense and a sacrificial offering appropriate to your religion, together worth at least 25 gp, which the spell consumes)"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Spell Details",
+      "entries": [
+       "name",
+       "level",
+       "school",
+       "time",
+       "range",
+       "components"
+      ]
+     },
+     {
+      "type": "spell",
+      "name": "Divination",
+      "level": 4,
+      "school": "D",
+      "time": [
+       {
+        "number": 1,
+        "unit": "action"
+       }
+      ],
+      "range": {
+       "type": "self"
+      },
       "components": {
        "v": true,
-       "s": false,
-       "m": null
-      },
-      "description": "You whisper a discordant melody that only one creature of your choice within range can hear, wracking it with terrible pain. The target must make a Wisdom saving throw. On a failed save, it takes 3d6 psychic damage and must immediately use its reaction, if available, to move as far as its speed allows away from you. The creature doesn't move into obviously dangerous ground, such as a fire or a pit. On a successful save, the target takes half as much damage and doesn't have to move away. A deafened creature automatically succeeds on the save.",
-      "higher_level": "When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st."
+       "s": true,
+       "m": "incense and a sacrificial offering appropriate to your religion, together worth at least 25 gp, which the spell consumes"
+      }
      }
     ]
    },
@@ -8064,7 +8184,6 @@
    "fields": {
     "entries": [
      {
-      "type": "spell",
       "name": "Divine Word",
       "level": 7,
       "school": "V",
@@ -8082,9 +8201,7 @@
        }
       },
       "components": {
-       "v": true,
-       "s": false,
-       "m": null
+       "v": true
       },
       "duration": [
        {
@@ -13859,6 +13976,74 @@
    "keywords": []
   },
   {
+   "id": "phb14.spell.minor-illusion",
+   "type": "Spell",
+   "name": "Minor Illusion",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 261,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 261
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "entries": [
+     {
+      "type": "entries",
+      "name": "Casting",
+      "entries": [
+       "Casting Time: 1 action"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Range",
+      "entries": [
+       "Range: 30 feet"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Components",
+      "entries": [
+       "Components: S, M (a bit of fleece)"
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Duration",
+      "entries": [
+       "Duration: 1 minute"
+      ]
+     },
+     {
+      "type": "list",
+      "name": "Spell Description",
+      "items": [
+       "You create a sound or an image of an object within range that lasts for the duration. The illusion also ends if you dismiss it as an action or cast this spell again.",
+       "If you create a sound, its volume can range from a whisper to a scream. It can be your voice, someone else's voice, a lion's roar, a beating of drums, or any other sound you choose. The sound continues unabated throughout the duration, or you can make discrete sounds at different times before the spell ends.",
+       "If you create an image of an object—such as a chair, muddy footprints, or a small chest—it must be no larger than a 5-foot cube. The image can't create sound, light, smell, or any other sensory effect. Physical interaction with the image reveals it to be an illusion, because things can pass through it.",
+       "If a creature uses its action to examine the sound or image, the creature can determine that it is an illusion with a successful Intelligence (Investigation) check against your spell save DC. If a creature discerns the illusion for what it is, the illusion becomes faint to the creature."
+      ]
+     }
+    ],
+    "damageInflict": null,
+    "savingThrow": null,
+    "conditionInflict": null
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": false,
+   "disposition": "Accepted",
+   "keywords": []
+  },
+  {
    "id": "phb14.spell.mirage-arcane",
    "type": "Spell",
    "name": "Mirage Arcane",
@@ -13876,39 +14061,18 @@
    "fields": {
     "entries": [
      {
-      "type": "spell",
-      "name": "Mirage Arcane",
-      "level": 7,
-      "school": "I",
-      "time": [
-       {
-        "number": 10,
-        "unit": "minute"
-       }
-      ],
-      "range": {
-       "type": "sight"
-      },
-      "components": {
-       "v": true,
-       "s": true
-      },
-      "duration": [
-       {
-        "type": "timed",
-        "duration": {
-         "type": "day",
-         "amount": 10
-        }
-       }
-      ],
+      "type": "entries",
+      "name": "Spell Description",
       "entries": [
        "You make terrain in an area up to 1 mile square look, sound, smell, and even feel like some other sort of terrain. The terrain's general shape remains the same, however. Open fields or a road could be made to resemble a swamp, hill, crevasse, or some other difficult or impassable terrain. A pond can be made to seem like a grassy meadow, a precipice like a gentle slope, or a rock-strewn gully like a wide and smooth road.",
        "Similarly, you can alter the appearance of structures, or add them where none are present. The spell doesn't disguise, conceal, or add creatures.",
-       "The illusion includes audible, visual, tactile, and olfactory elements, so it can turn clear ground into difficult terrain (or vice versa) or otherwise impede movement through the area. Any piece of the illusory terrain (such as a rock or stick) that is removed from the spell's area disappears immediately. Creatures with truesight can see through the illusion to the terrain's true form; however, all other elements of the illusion remain, so while the creature is aware of the illusion's presence, the creature can still physically interact with the illusion."
+       "The illusion includes audible, visual, tactile, and olfactory elements, so it can turn clear ground into difficult terrain (or vice versa) or otherwise impede movement through the area. Any piece of the illusory terrain (such as a rock or stick) that is removed from the spell's area disappears immediately.",
+       "Creatures with truesight can see through the illusion to the terrain's true form; however, all other elements of the illusion remain, so while the creature is aware of the illusion's presence, the creature can still physically interact with the illusion."
       ]
      }
-    ]
+    ],
+    "damageInflict": null,
+    "conditionInflict": null
    },
    "dataSource": "",
    "srd": false,
@@ -15354,6 +15518,33 @@
    "basicRules2024": false,
    "needsReview": false,
    "disposition": "Accepted",
+   "keywords": []
+  },
+  {
+   "id": "phb14.spell.programmed-illusion",
+   "type": "Spell",
+   "name": "Programmed Illusion",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 270,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 270
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "scalingLevelDice": null,
+    "conditionInflict": null
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": true,
+   "disposition": "NeedsReview",
    "keywords": []
   },
   {

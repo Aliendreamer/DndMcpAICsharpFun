@@ -294,6 +294,12 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.class.quick-build",
+    "name": "QUICK BUILD",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.class.hit-points",
     "name": "HIT POINTS",
     "type": "Class",
@@ -1938,12 +1944,6 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.quick-build",
-    "name": "QUICk BUILD",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.sorcerous-origin",
     "name": "SORCEROUS ORIGIN",
     "type": "Class",
@@ -2514,8 +2514,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.school-of",
-    "name": "SCHOOL OF",
+    "id": "phb14.class.school-of-abjuration",
+    "name": "SCHOOL OF ABJURATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2538,8 +2538,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.improved",
-    "name": "IMPROVED",
+    "id": "phb14.class.improved-abjuration",
+    "name": "IMPROVED ABJURATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2550,14 +2550,20 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.class.school-of-conjuration",
+    "name": "SCHOOL OF CONJURATION",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.class.conjuration-savant",
     "name": "CONJURATION SAVANT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.minor",
-    "name": "MINOR",
+    "id": "phb14.class.minor-conjuration",
+    "name": "MINOR CONJURATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2568,14 +2574,20 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.focused",
-    "name": "FOCUSED",
+    "id": "phb14.class.focused-conjuration",
+    "name": "FOCUSED CONJURATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.class.durable-summons",
     "name": "DURABLE SUMMONS",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.school-of-divination",
+    "name": "SCHOOL OF DIVINATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2592,6 +2604,12 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.class.expert-divination",
+    "name": "EXPERT DIVINATION",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.class.the-third-eye",
     "name": "THE THIRD EYE",
     "type": "Class",
@@ -2600,6 +2618,12 @@
   {
     "id": "phb14.class.greater-portent",
     "name": "GREATER PORTENT",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.school-of-enchantment",
+    "name": "SCHOOL OF ENCHANTMENT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2622,14 +2646,20 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.split",
-    "name": "SPLIT",
+    "id": "phb14.class.split-enchantment",
+    "name": "SPLIT ENCHANTMENT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
     "id": "phb14.class.alter-memories",
     "name": "ALTER MEMORIES",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.school-of-evocation",
+    "name": "SCHOOL OF EVOCATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2652,8 +2682,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.empowered",
-    "name": "EMPOWERED",
+    "id": "phb14.class.empowered-evocation",
+    "name": "EMPOWERED EVOCATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2664,20 +2694,26 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.class.school-of-illusion",
+    "name": "SCHOOL OF ILLUSION",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.class.illusion-savant",
     "name": "ILLUSION SAVANT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.improved-minor",
-    "name": "IMPROVED MINOR",
+    "id": "phb14.class.improved-minor-illusion",
+    "name": "IMPROVED MINOR ILLUSION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.malleable",
-    "name": "MALLEABLE",
+    "id": "phb14.class.malleable-illusions",
+    "name": "MALLEABLE ILLUSIONS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2690,6 +2726,12 @@
   {
     "id": "phb14.class.illusory-reality",
     "name": "ILLUSORY REALITY",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.school-of-necromancy",
+    "name": "SCHOOL OF NECROMANCY",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2720,6 +2762,12 @@
   {
     "id": "phb14.class.command-undead",
     "name": "COMMAND UNDEAD",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.school-of-transmutation",
+    "name": "SCHOOL OF TRANSMUTATION",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2774,6 +2822,24 @@
   {
     "id": "phb14.background.tika-and-artemis-backgrounds",
     "name": "TIKA AND ARTEMIS: BACKGROUNDS",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.proficiencies",
+    "name": "PROFICIENCIES",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.languages",
+    "name": "LANGUAGES",
+    "type": "Background",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.background.equipment",
+    "name": "EQUIPMENT",
     "type": "Background",
     "reason": "no_5etools_match"
   },
@@ -3042,6 +3108,18 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.class.hit-points-and-hit-dice",
+    "name": "HIT POINTS AND HIT DICE",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.class.proficiency-bonus",
+    "name": "PROFICIENCY BONUS",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.spell.chapter-10-spellcasting",
     "name": "CHAPTER 10: SPELLCASTING",
     "type": "Spell",
@@ -3072,8 +3150,20 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.spell.spell-slots",
+    "name": "SPELL SLOTS",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.spell.casting-a-spell-at-a-higher-level",
     "name": "CASTING A SPELL AT A HIGHER LEVEL",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.spell.cantrips",
+    "name": "CANTRIPS",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3104,6 +3194,12 @@
   {
     "id": "phb14.spell.longer-casting-times",
     "name": "LONGER CASTING TIMES",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.spell.range",
+    "name": "RANGE",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
@@ -3210,6 +3306,18 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.spell.saving-throws",
+    "name": "SAVING THROWS",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.spell.attack-rolls",
+    "name": "ATTACK ROLLS",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.spell.the-weave-of-magic",
     "name": "THE WEAVE OF MAGIC",
     "type": "Spell",
@@ -3308,12 +3416,6 @@
   {
     "id": "phb14.spell.duration-24-hours",
     "name": "Duration: 24 hours",
-    "type": "Spell",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.spell.programmed",
-    "name": "PROGRAMMED",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
