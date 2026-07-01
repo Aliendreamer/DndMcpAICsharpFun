@@ -58,7 +58,7 @@ Unit-green is necessary, NOT sufficient for pipeline changes. Before claiming an
 
 ## Extraction pipeline facts
 
-- Canonical source of truth: `books/canonical/<slug>.json`; siblings `<slug>.errors.json` / `.warnings.json` / `.declined.json` (declined = official-book gated non-matches). Checkpoints `<slug>.progress*.json` (deleted on success). Files are **root-owned** (container writes them) — edit via `docker cp` a host copy in. **Hand-authoring a single missing entity here is the designed escape hatch** — cheaper + safer than a 3rd parser/injector patch (`mem:project_extraction_recall_fixes`). **GOTCHA: `extract-entities?force=true` OVERWRITES the whole canonical → hand-authored entities are LOST. Re-apply them after every force re-extract** (e.g. re-add Gnome).
+- Canonical source of truth: `books/canonical/<slug>.json`; siblings `<slug>.errors.json` / `.warnings.json` / `.declined.json` (declined = official-book gated non-matches). Checkpoints `<slug>.progress*.json` (deleted on success). Files are **root-owned** (container writes them) — edit via `docker cp` a host copy in. **Escape hatches for parser gaps, in preference order:** (1) for official-book SPELLS, `POST /admin/books/{id}/backfill-spells` — deterministic 5etools backfill, idempotent, gap-only, entities marked `dataSource:"5etools-backfill"` (this closed PHB 355→361); (2) hand-author the entity in the canonical (`mem:project_extraction_recall_fixes`). Both beat a 3rd parser/injector patch. **GOTCHA: `extract-entities?force=true` OVERWRITES the whole canonical → hand-authored AND backfilled entities are LOST. After every force re-extract, re-run `backfill-spells` and re-apply hand-authored entities** (e.g. re-add Gnome).
 - Parser = **MinerU as a service** at `mineru:8000` (`MinerUPdfConverter` POSTs `/file_parse`, `-b pipeline -m ocr`), the SOLE `IPdfStructureConverter`; Marker is removed. Conversion disk-cache `books/conversion-cache/*.mineru.json` (`mem:project_parser_upgrade_mineru`).
 - **CACHE GOTCHA (must-not-omit):** the conversion cache is keyed by **PDF hash only** — converter-LOGIC changes are NOT reflected. After ANY `MinerUPdfConverter` change, `docker exec … rm -f /books/conversion-cache/*.mineru.json` before re-extracting, or the OLD mapping is silently reused (cost a wasted full run this cycle).
 - **Extraction is slow** (~30s/candidate, ~8.5 h/book) — qwen3 runs with thinking ON; `think:false` is a ~4-5× lever, and there is no page-range extract yet (full-book only), so early-checkpoint spot-checks are the fast-feedback substitute.
@@ -72,6 +72,7 @@ Unit-green is necessary, NOT sufficient for pipeline changes. Before claiming an
 - "I changed the converter; the smoke will test my fix." → A "cache hit" at run start means it tests the OLD mapping. Clear `*.mineru.json` first.
 - "The count dropped — that's a regression." → Diff WHICH entities changed type; it may be a correction (mis-typed entities moving to the right type).
 - "I'll patch the injector once more for this one entity." → 3rd patch on one entity = STOP. Hand-author it in the canonical.
+- "One more parser rule will reach the last N entities." → When parser iterations PLATEAU (PHB spells: +15, then +5, then the rest OCR-damaged beyond any clean rule), STOP grinding — switch to the authoritative backfill (official books) or hand-authoring. Measure the per-iteration yield; a falling curve is the signal.
 - "It builds, so it's done." → Done = all gates green, output seen.
 - "I'll edit the `.cs` directly." → Serena only.
 - "I'll branch for this." → No. Single-dev, work on `main`.
@@ -86,3 +87,4 @@ Unit-green is necessary, NOT sufficient for pipeline changes. Before claiming an
 | Endpoint change without `.http`/insomnia update | Update both in the same commit. |
 | Editing `.cs` by blind text replace | Serena `find_symbol`/`replace_symbol_body`. |
 | Creating a feature branch | Work on `main` (single-dev). |
+| Grinding parser rules past the yield plateau | Official-book spells: `backfill-spells`; otherwise hand-author. |
