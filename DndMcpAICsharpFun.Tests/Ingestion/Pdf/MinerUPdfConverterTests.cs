@@ -383,4 +383,116 @@ public class MinerUPdfConverterTests
             File.Delete(pdfPath);
         }
     }
+
+    // ── Single-block stat-header splitter ────────────────────────────────────────────
+
+    [Fact]
+    public async Task SingleBlock_multiline_glued_stat_header_emits_synthetic_section_header()
+    {
+        // Spell whose entire stat header is a single multi-line text block (no separate
+        // level/school block or Casting Time block). The separate-block splitter never fires;
+        // the new single-block path must promote the spell name to a section_header.
+        const string contentList = """
+        [
+          {"type":"text","text":"CLOUD OF DAGGERS\n2nd-level conjuration\nCasting Time: 1 action\nRange: 60 feet","page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+            var headings = doc.Items.Where(i => i.Type == "section_header").Select(i => i.Text).ToList();
+
+            headings.Should().Contain("CLOUD OF DAGGERS",
+                "the spell name must be promoted to a synthetic section_header");
+            doc.Items.Should().Contain(i => i.Type == "text" && i.Text.Contains("2nd-level conjuration"),
+                "the stat block itself must still be emitted as a text item");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
+
+    [Fact]
+    public async Task SingleBlock_space_glued_stat_header_emits_synthetic_section_header()
+    {
+        // Space-glued variant: name + level/school + Casting Time all on a single line with
+        // no newlines. StripLevelSchool cuts at the first digit ("1" in "1st-level").
+        const string contentList = """
+        [
+          {"type":"text","text":"DISGUISE SELF 1st-level illusion Casting Time: 1 action Range: Self","page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+            var headings = doc.Items.Where(i => i.Type == "section_header").Select(i => i.Text).ToList();
+
+            headings.Should().Contain("DISGUISE SELF",
+                "spell name must be extracted and promoted from the space-glued single-line block");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
+
+    [Fact]
+    public async Task SingleBlock_slash_name_stat_header_keeps_slash_in_promoted_name()
+    {
+        // Slash in spell name (BLINDNESS/DEAFNESS) must be preserved. StripLevelSchool cuts
+        // at the first digit ("2" in "2nd-level"), so the slash in the name is untouched.
+        const string contentList = """
+        [
+          {"type":"text","text":"BLINDNESS/DEAFNESS\n2nd-level necromancy\nCasting Time: 1 action","page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+            var headings = doc.Items.Where(i => i.Type == "section_header").Select(i => i.Text).ToList();
+
+            headings.Should().Contain("BLINDNESS/DEAFNESS",
+                "slash must be preserved — StripLevelSchool cuts at the digit, not at punctuation");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
+
+    [Fact]
+    public async Task SingleBlock_prose_mentioning_casting_time_is_not_promoted()
+    {
+        // A prose block that mentions "casting time" mid-sentence has no level/school token
+        // in its first ~60 chars, so the first-60-char guard must prevent false promotion.
+        const string contentList = """
+        [
+          {"type":"text","text":"you spend your action; the casting time is unaffected by this effect","page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+
+            doc.Items.Should().NotContain(i => i.Type == "section_header",
+                "a prose block with no leading spell-header structure must not emit a synthetic section_header");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
 }

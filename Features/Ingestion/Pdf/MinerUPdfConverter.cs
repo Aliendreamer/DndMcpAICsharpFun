@@ -157,6 +157,31 @@ public sealed class MinerUPdfConverter(
             }
             else if (string.Equals(b.Type, "text", StringComparison.OrdinalIgnoreCase))
             {
+                // Single-block stat-header case: when the entire spell stat header (name +
+                // level/school + Casting Time) is collapsed into one text block, the separate-block
+                // anchor above never fires because it looks for a SEPARATE "Casting Time" block.
+                // Guard: the level/school token must appear within the first ~60 chars so that
+                // a prose block that merely mentions "casting time" mid-sentence is not promoted.
+                if (text.Contains("Casting Time", StringComparison.OrdinalIgnoreCase))
+                {
+                    var probe = text.Length > 60 ? text[..60] : text;
+                    if (LevelRx.IsMatch(probe) || SchoolRx.IsMatch(probe) || CantripRx.IsMatch(probe))
+                    {
+                        // Name is on the first line; level/school suffix follows on line 2 (or is
+                        // space-glued on the same line). StripLevelSchool cuts at the first digit
+                        // (for levelled spells) or at the school+cantrip suffix (for cantrips).
+                        var firstLine = text.Contains('\n') ? text[..text.IndexOf('\n')] : text;
+                        var name = StripLevelSchool(firstLine);
+                        var nameNorm = Normalize(name);
+                        if (name.Length is >= 2 and <= 40 && nameNorm.Length > 0 && nameNorm != lastHeadingNorm)
+                        {
+                            items.Add(new PdfStructureItem("section_header", name, page, 2));
+                            lastHeadingNorm = nameNorm;
+                            emittedHeadingNorms.Add(nameNorm);
+                        }
+                    }
+                }
+
                 items.Add(new PdfStructureItem("text", text, page, null));
             }
             // image / table / header / footer / page_number / equation are intentionally dropped
@@ -191,6 +216,7 @@ public sealed class MinerUPdfConverter(
     private static readonly Regex StatLineRx = new(
         @"^\s*(Casting Time|Range|Components|Duration|At Higher Levels|Ritual|Concentration)\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
 
     /// <summary>True if the line looks like a spell's "level &amp; school" line (short; carries a level or school token).</summary>
     private static bool IsLevelSchoolLine(string text) =>
