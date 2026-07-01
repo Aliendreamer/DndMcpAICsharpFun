@@ -3330,8 +3330,20 @@
     "reason": "no_5etools_match"
   },
   {
+    "id": "phb14.spell.choose-a-spell-of",
+    "name": "Choose a spell of",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
     "id": "phb14.spell.precipitation",
     "name": "PRECIPITATION",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "phb14.spell.produce-flame-conjuration",
+    "name": "PRODUCE FLAME Conjuration",
     "type": "Spell",
     "reason": "no_5etools_match"
   },
