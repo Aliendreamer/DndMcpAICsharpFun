@@ -313,6 +313,25 @@
       "authentication": {}
     },
     {
+      "_id": "req_books_backfill_spells",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Backfill missing spells from 5etools (official books only)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/backfill-spells",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_canonical_validate",
       "_type": "request",
       "parentId": "fld_admin_books",

@@ -76,6 +76,10 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/extract-entities?errorsOnly=true
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Backfill missing spells from 5etools (official books only; fills parser gaps, appends dataSource:"5etools-backfill" entities)
+POST {{baseUrl}}/admin/books/1/backfill-spells
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin — needsReview triage — List flagged entities (all books, all reasons, first 50)
 GET {{baseUrl}}/admin/entities/needs-review
 X-Admin-Api-Key: {{adminKey}}

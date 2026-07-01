@@ -182,6 +182,12 @@ internal static class ServiceCollectionExtensions
             new EntityNameIndex(
                 configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools"));
         services.AddSingleton<EntityNameMatcher>();
+        services.AddSingleton<DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.SpellBackfillService>(sp =>
+            new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.SpellBackfillService(
+                sp.GetRequiredService<DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry>(),
+                sp.GetRequiredService<CanonicalJsonLoader>(),
+                sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value.CanonicalDirectory,
+                configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools"));
         services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
         services.AddSingleton<DndMcpAICsharpFun.Features.Admin.CanonicalValidationService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalTypeFixerService>();

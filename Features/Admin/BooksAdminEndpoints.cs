@@ -31,6 +31,7 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/{id:int}/ingest-blocks", IngestBlocks).DisableAntiforgery();
         group.MapPost("/books/{id:int}/ingest-entities", IngestEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/extract-entities", ExtractEntities).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/backfill-spells", BackfillSpells).DisableAntiforgery();
         group.MapPost("/books/{id:int}/project-structured", ProjectStructured).DisableAntiforgery();
         return group;
     }
@@ -144,6 +145,42 @@ public static partial class BooksAdminEndpoints
             IngestionWorkType.ExtractEntities, id,
             Force: forceFlag, ErrorsOnly: errorsOnlyFlag));
         return Results.Accepted($"/admin/books/{id}");
+    }
+
+    private static async Task<IResult> BackfillSpells(
+        int id,
+        [FromServices] IIngestionTracker tracker,
+        [FromServices] SpellBackfillService backfill,
+        [FromServices] CanonicalJsonLoader loader,
+        [FromServices] CanonicalJsonWriter writer,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        var result = await backfill.ComputeAsync(record, ct);
+
+        if (!result.HasSourceKey)
+            return Results.Problem(
+                "Book has no fivetoolsSourceKey; spell backfill requires an official 5etools source.",
+                statusCode: StatusCodes.Status400BadRequest);
+
+        if (result.CanonicalPath is null || !File.Exists(result.CanonicalPath))
+            return Results.Conflict($"No canonical file found for book {id}; run extraction first.");
+
+        if (result.ToAppend.Count > 0)
+        {
+            var file = await loader.LoadAsync(result.CanonicalPath, ct);
+            var merged = file.Entities.Concat(result.ToAppend).ToList();
+            await writer.WriteAsync(result.CanonicalPath, file with { Entities = merged }, ct);
+        }
+
+        return Results.Ok(new
+        {
+            backfilled = result.ToAppend.Select(e => e.Name).ToList(),
+            alreadyPresent = result.AlreadyPresent,
+        });
     }
 
     private static async Task<IResult> RegisterBook(
