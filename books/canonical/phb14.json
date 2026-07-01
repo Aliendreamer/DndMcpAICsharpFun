@@ -4178,22 +4178,41 @@
    "fields": {
     "entries": [
      {
-      "type": "entries",
-      "name": "Bane",
-      "entries": [
-       {
-        "type": "list",
-        "items": [
-         "Casting Time: 1 action",
-         "Range: 30 feet",
-         "Up to three creatures of your choice that you can see within range must make Charisma saving throws. Whenever a target that fails this saving throw makes an attack roll or a saving throw before the spell ends, the target must roll a d4 and subtract the number rolled from the attack roll or saving throw.",
-         "At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st."
-        ]
-       }
+      "type": "list",
+      "items": [
+       "Up to three creatures of your choice that you can see within range must make Charisma saving throws. Whenever a target that fails this saving throw makes an attack roll or a saving throw before the spell ends, the target must roll a d4 and subtract the number rolled from the attack roll or saving throw.",
+       "At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st."
       ]
      }
     ],
-    "entriesHigherLevel": [
+    "damageInflict": null,
+    "conditionInflict": null
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": false,
+   "disposition": "Accepted",
+   "keywords": []
+  },
+  {
+   "id": "phb14.spell.banishing-smite",
+   "type": "Spell",
+   "name": "Banishing Smite",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 217,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 217
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "entries": [
      {
       "type": "entries",
       "name": "Banishing Smite",
@@ -4201,15 +4220,14 @@
        {
         "type": "list",
         "items": [
-         "Range: Self",
-         "Components: V",
-         "Duration: Concentration, up to 1 minute",
-         "The next time you hit a creature with a weapon attack before this spell ends, your weapon crackles with force, and the attack deals an extra 5d10 force damage to the target. Additionally, if this attack reduces the target to 50 hit points or fewer, you banish it. If the target is native to a different plane of existence than the one you're on, the target disappears, returning to its home plane. If the target is native to the plane you're on, the creature vanishes into a harmless demiplane. While there, the target is incapacitated. It remains there until the spell ends, at which point the target reappears in the space it left or in the nearest unoccupied space if that space is occupied."
+         "The next time you hit a creature with a weapon attack before this spell ends, your weapon crackles with force, and the attack deals an extra {@damage 5d10} force damage to the target. Additionally, if this attack reduces the target to 50 hit points or fewer, you banish it. If the target is native to a different plane of existence than the one you're on, the target disappears, returning to its home plane. If the target is native to the plane you're on, the creature vanishes into a harmless demiplane. While there, the target is incapacitated. It remains there until the spell ends, at which point the target reappears in the space it left or in the nearest unoccupied space if that space is occupied."
         ]
        }
       ]
      }
-    ]
+    ],
+    "damageInflict": null,
+    "conditionInflict": null
    },
    "dataSource": "",
    "srd": false,
@@ -4271,8 +4289,11 @@
       ],
       "entries": [
        "You attempt to send one creature that you can see within range to another plane of existence. The target must succeed on a Charisma saving throw or be banished.",
+       "",
        "If the target is native to the plane of existence you're on, you banish the target to a harmless demiplane. While there, the target is incapacitated. The target remains there until the spell ends, at which point the target reappears in the space it left or in the nearest unoccupied space if that space is occupied.",
+       "",
        "If the target is native to a different plane of existence than the one you're on, the target is banished with a faint popping noise, returning to its home plane. If the spell ends before 1 minute has passed, the target reappears in the space it left or in the nearest unoccupied space if that space is occupied. Otherwise, the target doesn't return.",
+       "",
        "At Higher Levels. When you cast this spell using a spell slot of 5th level or higher, you can target one additional creature for each slot level above 4th."
       ]
      }
@@ -4302,17 +4323,34 @@
    "settingTags": [],
    "canonicalText": "",
    "fields": {
-    "entries": [
+    "level": 2,
+    "school": "T",
+    "time": [
      {
-      "type": "entries",
-      "name": "Spell Description",
-      "entries": [
-       "You touch a willing creature. Until the spell ends, the target's skin has a rough, bark-like appearance, and the target's AC can't be less than 16, regardless of what kind of armor it is wearing."
-      ]
+      "number": 1,
+      "unit": "action"
      }
     ],
-    "damageInflict": null,
-    "conditionInflict": null
+    "range": {
+     "type": "touch"
+    },
+    "components": {
+     "v": true,
+     "s": true,
+     "m": "a handful of oak bark"
+    },
+    "duration": [
+     {
+      "type": "concentration",
+      "duration": {
+       "type": "hour",
+       "amount": 1
+      }
+     }
+    ],
+    "entries": [
+     "You touch a willing creature. Until the spell ends, the target's skin has a rough, bark-like appearance, and the target's AC can't be less than 16, regardless of what kind of armor it is wearing."
+    ]
    },
    "dataSource": "",
    "srd": false,
@@ -5069,11 +5107,10 @@
      }
     ],
     "damageInflict": [
-     "{@damage 3d6}"
+     "3d6"
     ],
-    "conditionInflict": [
-     "{@condition ignited}"
-    ]
+    "scalingLevelDice": null,
+    "conditionInflict": null
    },
    "dataSource": "",
    "srd": false,
@@ -9607,23 +9644,40 @@
      {
       "type": "entries",
       "name": "Feather Fall",
-      "entries": [
+      "level": 1,
+      "school": "T",
+      "time": [
        {
-        "type": "list",
-        "items": [
-         "1st-level transmutation",
-         "Casting Time: 1 reaction, which you take when you or a creature within 60 feet of you falls",
-         "Components: V, M (a small feather or piece of down)",
-         "Duration: 1 minute",
-         "Choose up to five falling creatures within range. A falling creature's rate of descent slows to 60 feet per round until the spell ends. If the creature lands before the spell ends, it takes no falling damage and can land on its feet, and the spell ends for that creature."
-        ]
+        "number": 1,
+        "unit": "reaction"
        }
+      ],
+      "range": {
+       "type": "point",
+       "distance": {
+        "type": "feet",
+        "amount": 60
+       }
+      },
+      "components": {
+       "v": true,
+       "s": false,
+       "m": "a small feather or piece of down"
+      },
+      "duration": [
+       {
+        "type": "timed",
+        "duration": {
+         "type": "minute",
+         "amount": 1
+        }
+       }
+      ],
+      "entries": [
+       "Choose up to five falling creatures within range. A falling creature's rate of descent slows to 60 feet per round until the spell ends. If the creature lands before the spell ends, it takes no falling damage and can land on its feet, and the spell ends for that creature."
       ]
      }
-    ],
-    "entriesHigherLevel": null,
-    "classes": null,
-    "conditionInflict": null
+    ]
    },
    "dataSource": "",
    "srd": false,
@@ -9631,6 +9685,55 @@
    "basicRules2024": false,
    "needsReview": false,
    "disposition": "Accepted",
+   "keywords": []
+  },
+  {
+   "id": "phb14.spell.feeblemind",
+   "type": "Spell",
+   "name": "Feeblemind",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 240,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 240
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "duration": [
+     {
+      "type": "light-dependent",
+      "duration": {
+       "location": "thylakoid membranes",
+       "process": "Light energy is absorbed by chlorophyll and other pigments, splitting water into oxygen, protons, and electrons. Oxygen is released as a byproduct, while electrons and protons generate ATP and NADPH via the electron transport chain."
+      }
+     },
+     {
+      "type": "light-independent",
+      "duration": {
+       "location": "stroma",
+       "process": "ATP and NADPH from the light-dependent reactions fix CO2 into organic molecules. RuBisCO catalyzes CO2 fixation into RuBP, forming 3-PGA, which is converted into G3P. Some G3P regenerates RuBP, while others form glucose and carbohydrates."
+      }
+     }
+    ],
+    "classes": [
+     "chlorophyll",
+     "RuBisCO"
+    ],
+    "conditionInflict": [
+     "absorbs light energy (blue and red wavelengths)",
+     "catalyzes CO2 fixation"
+    ]
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": true,
+   "disposition": "NeedsReview",
    "keywords": []
   },
   {
@@ -9651,7 +9754,7 @@
    "fields": {
     "entries": [
      {
-      "type": "spell",
+      "type": "entries",
       "name": "Feign Death",
       "level": 3,
       "school": "N",
@@ -9675,15 +9778,12 @@
         "duration": {
          "type": "hour",
          "amount": 1
-        }
+        },
+        "concentration": true
        }
       ],
       "entries": [
-       "You touch a willing creature and put it into a cataleptic state that is indistinguishable from death.",
-       "For the spell's duration, or until you use an action to touch the target and dismiss the spell, the target appears dead to all outward inspection and to spells used to determine the target's status.",
-       "The target is blinded and incapacitated, and its speed drops to 0.",
-       "The target has resistance to all damage except psychic damage.",
-       "If the target is diseased or poisoned when you cast the spell, or becomes diseased or poisoned while under the spell's effect, the disease and poison have no effect until the spell ends."
+       "You touch a willing creature and put it into a cataleptic state that is indistinguishable from death. For the spell's duration, or until you use an action to touch the target and dismiss the spell, the target appears dead to all outward inspection and to spells used to determine the target's status. The target is blinded and incapacitated, and its speed drops to 0. The target has resistance to all damage except psychic damage. If the target is diseased or poisoned when you cast the spell, or becomes diseased or poisoned while under the spell's effect, the disease and poison have no effect until the spell ends."
       ]
      }
     ]
@@ -11292,39 +11392,57 @@
       "type": "entries",
       "name": "Greater Invisibility",
       "entries": [
+       "You or a creature you touch becomes invisible until the spell ends. Anything the target is wearing or carrying is invisible as long as it is on the target's person."
+      ]
+     }
+    ],
+    "damageInflict": null,
+    "conditionInflict": null
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": false,
+   "disposition": "Accepted",
+   "keywords": []
+  },
+  {
+   "id": "phb14.spell.greater-restoration",
+   "type": "Spell",
+   "name": "Greater Restoration",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 247,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 247
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "entries": [
+     {
+      "type": "entries",
+      "name": "Greater Restoration",
+      "entries": [
        {
-        "name": "Greater Invisibility",
-        "level": 4,
-        "school": "I",
-        "time": [
-         {
-          "number": 1,
-          "unit": "action"
-         }
-        ],
-        "range": {
-         "type": "touch"
-        },
-        "components": {
-         "v": true,
-         "s": true
-        },
-        "duration": [
-         {
-          "type": "concentration",
-          "duration": {
-           "type": "minute",
-           "amount": 1
-          }
-         }
-        ],
-        "entries": [
-         "You or a creature you touch becomes invisible until the spell ends. Anything the target is wearing or carrying is invisible as long as it is on the target's person."
+        "type": "list",
+        "items": [
+         "You imbue a creature you touch with positive energy to undo a debilitating effect. You can reduce the target's exhaustion level by one, or end one of the following effects on the target:",
+         "• One effect that charmed or petrified the target",
+         "• One curse, including the target's attunement to a cursed magic item",
+         "• Any reduction to one of the target's ability scores",
+         "• One effect reducing the target's hit point maximum"
         ]
        }
       ]
      }
-    ]
+    ],
+    "damageInflict": null,
+    "conditionInflict": null
    },
    "dataSource": "",
    "srd": false,
@@ -16237,15 +16355,67 @@
    "settingTags": [],
    "canonicalText": "",
    "fields": {
-    "scalingLevelDice": null,
-    "conditionInflict": null
+    "entries": [
+     {
+      "type": "entries",
+      "name": "Programmed Illusion",
+      "entries": [
+       {
+        "type": "list",
+        "items": [
+         "You create an illusion of an object, a creature, or some other visible phenomenon within range that activates when a specific condition occurs. The illusion is imperceptible until then. It must be no larger than a 30-foot cube, and you decide when you cast the spell how the illusion behaves and what sounds it makes. This scripted performance can last up to 5 minutes.",
+         "When the condition you specify occurs, the illusion springs into existence and performs in the manner you described. Once the illusion finishes performing, it disappears and remains dormant for 10 minutes. After this time, the illusion can be activated again.",
+         "The triggering condition can be as general or as detailed as you like, though it must be based on visual or audible conditions that occur within 30 feet of the area. For example, you could create an illusion of yourself to appear and warn off others who attempt to open a trapped door, or you could set the illusion to trigger only when a creature says the correct word or phrase.",
+         "Physical interaction with the image reveals it to be an illusion, because things can pass through it. A creature that uses its action to examine the image can determine that it is an illusion with a successful Intelligence (Investigation) check against your spell save DC. If a creature discerns the illusion for what it is, the creature can see through the image, and any noise it makes sounds hollow to the creature."
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Programmed Illusion",
+      "type": "spell",
+      "level": 6,
+      "school": "I",
+      "time": [
+       {
+        "number": 1,
+        "unit": "action"
+       }
+      ],
+      "range": {
+       "type": "point",
+       "distance": {
+        "type": "feet",
+        "amount": 120
+       }
+      },
+      "components": {
+       "v": true,
+       "s": true,
+       "m": "a bit of fleece and jade dust worth at least 25 gp"
+      },
+      "duration": [
+       {
+        "type": "timed",
+        "duration": {
+         "type": "minute",
+         "amount": 5
+        },
+        "concentration": true
+       }
+      ],
+      "entries": [
+       "A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw, taking {@damage 8d6} fire damage on a failed save, or half as much on a successful one."
+      ]
+     }
+    ]
    },
    "dataSource": "",
    "srd": false,
    "srd52": false,
    "basicRules2024": false,
-   "needsReview": true,
-   "disposition": "NeedsReview",
+   "needsReview": false,
+   "disposition": "Accepted",
    "keywords": []
   },
   {
@@ -17599,7 +17769,26 @@
    "fields": {
     "entries": [
      {
+      "type": "entries",
       "name": "Shield",
+      "entries": [
+       {
+        "type": "list",
+        "items": [
+         "An invisible barrier of magical force appears and protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from magic missile."
+        ]
+       }
+      ],
+      "components": {
+       "v": true,
+       "s": true
+      },
+      "duration": [
+       {
+        "type": "round",
+        "amount": 1
+       }
+      ],
       "level": 1,
       "school": "A",
       "time": [
@@ -17610,22 +17799,57 @@
       ],
       "range": {
        "type": "self"
-      },
+      }
+     }
+    ]
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": false,
+   "disposition": "Accepted",
+   "keywords": []
+  },
+  {
+   "id": "phb14.spell.shield-of-faith",
+   "type": "Spell",
+   "name": "Shield of Faith",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 276,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 276
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "entries": [
+     {
+      "type": "entries",
+      "name": "Shield of Faith",
+      "level": 1,
+      "school": "A",
       "components": {
        "v": true,
-       "s": true
+       "s": true,
+       "m": "a small parchment with a bit of holy text written on it"
       },
       "duration": [
        {
         "type": "timed",
         "duration": {
-         "type": "round",
-         "amount": 1
-        }
+         "type": "minute",
+         "amount": 10
+        },
+        "concentration": true
        }
       ],
       "entries": [
-       "An invisible barrier of magical force appears and protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from magic missile."
+       "A shimmering field appears and surrounds a creature of your choice within range, granting it a +2 bonus to AC for the duration."
       ]
      }
     ]
@@ -19711,41 +19935,75 @@
    "fields": {
     "entries": [
      {
-      "name": "Transport via Plants",
-      "level": 6,
-      "school": "C",
-      "time": [
-       {
-        "number": 1,
-        "unit": "action"
-       }
-      ],
-      "range": {
-       "type": "point",
-       "distance": {
-        "type": "feet",
-        "amount": 10
-       }
-      },
-      "components": {
-       "v": true,
-       "s": true
-      },
-      "duration": [
-       {
-        "type": "timed",
-        "duration": {
-         "type": "round",
-         "amount": 1
-        }
-       }
-      ],
+      "type": "entries",
+      "name": "Transport Via Plants",
       "entries": [
-       "This spell creates a magical link between a Large or larger inanimate plant within range and another plant, at any distance, on the same plane of existence. You must have seen or touched the destination plant at least once before. For the duration, any creature can step into the target plant and exit from the destination plant by using 5 feet of movement."
-      ],
-      "type": "Spell"
-     },
+       {
+        "type": "spell",
+        "name": "Transport Via Plants",
+        "level": 6,
+        "school": "C",
+        "time": [
+         {
+          "number": 1,
+          "unit": "action"
+         }
+        ],
+        "range": {
+         "type": "point",
+         "distance": {
+          "type": "feet",
+          "amount": 10
+         }
+        },
+        "components": {
+         "v": true,
+         "s": true
+        },
+        "duration": [
+         {
+          "type": "timed",
+          "duration": {
+           "type": "round",
+           "amount": 1
+          }
+         }
+        ],
+        "entries": [
+         "This spell creates a magical link between a Large or larger inanimate plant within range and another plant, at any distance, on the same plane of existence. You must have seen or touched the destination plant at least once before. For the duration, any creature can step into the target plant and exit from the destination plant by using 5 feet of movement."
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "dataSource": "",
+   "srd": false,
+   "srd52": false,
+   "basicRules2024": false,
+   "needsReview": false,
+   "disposition": "Accepted",
+   "keywords": []
+  },
+  {
+   "id": "phb14.spell.tree-stride",
+   "type": "Spell",
+   "name": "Tree Stride",
+   "sourceBook": "PHB",
+   "edition": "Edition2014",
+   "page": 284,
+   "firstAppearedIn": {
+    "book": "PHB",
+    "edition": "Edition2014",
+    "page": 284
+   },
+   "revisedIn": [],
+   "settingTags": [],
+   "canonicalText": "",
+   "fields": {
+    "entries": [
      {
+      "type": "spell",
       "name": "Tree Stride",
       "level": 5,
       "school": "C",
@@ -19764,9 +20022,9 @@
        }
       ],
       "entries": [
-       "You gain the ability to enter a tree and move from inside it to inside another tree of the same kind within 500 feet. Both trees must be living and at least the same size as you. You must use 5 feet of movement to enter a tree. You instantly know the location of all other trees of the same kind within 500 feet and, as part of the move used to enter the tree, can either pass into one of those trees or step out of the tree you're in. You appear in a spot of your choice within 5 feet of the destination tree, using another 5 feet of movement. If you have no movement left, you appear within 5 feet of the tree you entered. You can use this transportation ability once per round for the duration. You must end each turn outside a tree."
-      ],
-      "type": "Spell"
+       "You gain the ability to enter a tree and move from inside it to inside another tree of the same kind within 500 feet. Both trees must be living and at least the same size as you. You must use 5 feet of movement to enter a tree. You instantly know the location of all other trees of the same kind within 500 feet and, as part of the move used to enter the tree, can either pass into one of those trees or step out of the tree you're in. You appear in a spot of your choice within 5 feet of the destination tree, using another 5 feet of movement. If you have no movement left, you appear within 5 feet of the tree you entered.",
+       "You can use this transportation ability once per round for the duration. You must end each turn outside a tree."
+      ]
      }
     ]
    },

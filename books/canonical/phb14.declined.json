@@ -2292,8 +2292,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.ascendant-step",
-    "name": "ASCENDANT STEP",
+    "id": "phb14.class.prerequisite",
+    "name": "Prerequisite:",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2304,32 +2304,14 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.bewitching-whispers",
-    "name": "BEWITCHING WHISPERS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.book-of-ancient-secrets",
     "name": "BOOK OF ANCIENT SECRETS",
     "type": "Class",
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.chains-of-carceri",
-    "name": "CHaIns OF CarCerI",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "phb14.class.devil-s-sight",
     "name": "DEVIL\u0027S SIGHT",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.dreadful-word",
-    "name": "DREADFUL WORD",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2348,12 +2330,6 @@
   {
     "id": "phb14.class.gaze-of-two-minds",
     "name": "GAZE OF TWO MINDS",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.lifedrinker",
-    "name": "LIFEDRINKER",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2394,14 +2370,8 @@
     "reason": "no_5etools_match"
   },
   {
-    "id": "phb14.class.otherworldly-leap",
-    "name": "OTHERWORLDLY LEAP",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.repelling-blast",
-    "name": "REPELLING BLAST",
+    "id": "phb14.class.prerequisite-eldritch-blast",
+    "name": "Prerequisite: eldritch blast",
     "type": "Class",
     "reason": "no_5etools_match"
   },
@@ -2444,12 +2414,6 @@
   {
     "id": "phb14.class.whispers-of-the-grave-prerequisite",
     "name": "WHISPERS OF THE GRAVE Prerequisite:",
-    "type": "Class",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "phb14.class.witch-sight",
-    "name": "WITCH SIGHT",
     "type": "Class",
     "reason": "no_5etools_match"
   },
