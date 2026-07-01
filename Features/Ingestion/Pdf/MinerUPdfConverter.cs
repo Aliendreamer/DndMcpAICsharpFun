@@ -181,6 +181,27 @@ public sealed class MinerUPdfConverter(
                         }
                     }
                 }
+                // Bare-header promotion (no Casting-Time anchor): when the block's first line is a
+                // short bare spell header — "NAME <Nth-level> <school>" or "NAME <school> cantrip" —
+                // but the Casting Time line was OCR-dropped (so neither the separate-block nor the
+                // single-block Casting-Time-anchored path above fired), promote the name to a
+                // synthetic heading. Guards: first line ≤ 55 chars (header-shaped, not a prose
+                // sentence); non-empty name from StripLevelSchool; norm != lastHeadingNorm (dedup).
+                else
+                {
+                    var bareFirstLine = text.Contains('\n') ? text[..text.IndexOf('\n')] : text;
+                    if (bareFirstLine.Length <= 55 && IsLevelSchoolLine(bareFirstLine))
+                    {
+                        var bareName = StripLevelSchool(bareFirstLine);
+                        var bareNameNorm = Normalize(bareName);
+                        if (bareName.Length is >= 2 and <= 40 && bareNameNorm.Length > 0 && bareNameNorm != lastHeadingNorm)
+                        {
+                            items.Add(new PdfStructureItem("section_header", bareName, page, 2));
+                            lastHeadingNorm = bareNameNorm;
+                            emittedHeadingNorms.Add(bareNameNorm);
+                        }
+                    }
+                }
 
                 items.Add(new PdfStructureItem("text", text, page, null));
             }

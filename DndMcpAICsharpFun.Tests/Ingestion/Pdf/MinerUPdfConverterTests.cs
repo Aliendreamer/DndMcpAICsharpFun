@@ -495,4 +495,113 @@ public class MinerUPdfConverterTests
             File.Delete(pdfPath);
         }
     }
+
+    // ── Bare-header promotion (no Casting-Time anchor) ───────────────────────────────
+
+    [Fact]
+    public async Task BareHeader_GreaterRestoration_emits_synthetic_section_header()
+    {
+        // A text block whose entire content is a bare spell header (no Casting Time line)
+        // must produce a synthetic section_header for the spell name.
+        const string contentList = """
+        [
+          {"type":"text","text":"GREATER RESTORATION 5th-level abjuration","page_idx":0},
+          {"type":"text","text":"Components: V, S, M","page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+            var headings = doc.Items.Where(i => i.Type == "section_header").Select(i => i.Text).ToList();
+
+            headings.Should().Contain("GREATER RESTORATION",
+                "the bare spell-header block with OCR-dropped Casting Time must be promoted");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
+
+    [Fact]
+    public async Task BareHeader_ShieldOfFaith_emits_synthetic_section_header()
+    {
+        // Same pattern: 1st-level abjuration bare header with no Casting Time following.
+        const string contentList = """
+        [
+          {"type":"text","text":"SHIELD OF FAITH 1st-level abjuration","page_idx":0},
+          {"type":"text","text":"Components: V, S, M","page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+            var headings = doc.Items.Where(i => i.Type == "section_header").Select(i => i.Text).ToList();
+
+            headings.Should().Contain("SHIELD OF FAITH",
+                "the bare 1st-level abjuration header with OCR-dropped Casting Time must be promoted");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
+
+    [Fact]
+    public async Task BareHeader_LevelFirstSpellListRow_is_not_promoted()
+    {
+        // A spell-list row starting with the level token ("5TH LEVEL …") must NOT be
+        // promoted: StripLevelSchool returns "" (text starts with a digit → cut at index 0).
+        const string contentList = """
+        [
+          {"type":"text","text":"5TH LEVEL Banishing Smite Circle of Power Destructive Smite","page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+
+            doc.Items.Should().NotContain(i => i.Type == "section_header",
+                "a level-first spell-list row produces an empty name from StripLevelSchool and must not be promoted");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
+
+    [Fact]
+    public async Task BareHeader_LongProseLine_is_not_promoted()
+    {
+        // A prose block whose first line exceeds 55 chars must not be promoted even if it
+        // happens to contain a school word mid-sentence.
+        const string contentList = """
+        [
+          {"type":"text","text":"This spell draws on the conjuration school of magic and its effects are widely debated.","page_idx":0}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+
+            doc.Items.Should().NotContain(i => i.Type == "section_header",
+                "a long prose line (>55 chars) containing a school word must not be promoted to a section_header");
+        }
+        finally
+        {
+            File.Delete(pdfPath);
+        }
+    }
 }
