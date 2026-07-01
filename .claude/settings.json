@@ -82,7 +82,9 @@
     "filesystem": {
       "denyRead": [
         ".env",
-        ".env.*"
+        ".env.*",
+        "Config/appsettings.json",
+        "Config/appsettings.*.json"
       ],
       "allowWrite": [
         "/usr/local/share/.yarn-global",
