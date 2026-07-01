@@ -1,9 +1,9 @@
 ## 1. Automated tooling pass
 
-- [ ] 1.1 Generate the coverage manifest (file lists per audit surface) and record the audited commit SHA
-- [ ] 1.2 Run `dotnet list package --vulnerable --include-transitive` and capture output
-- [ ] 1.3 Run `dotnet build` (warnings-as-errors baseline) and `dotnet format --verify-no-changes`; capture output
-- [ ] 1.4 Scripted scans: secret-pattern grep (key/token/password literals outside masked config), anonymous-endpoint markers, endpoint inventory (`MapGet/Post/Put/Delete` + MCP tools) for the auth-posture table
+- [x] 1.1 Generate the coverage manifest (file lists per audit surface) and record the audited commit SHA
+- [x] 1.2 Run `dotnet list package --vulnerable --include-transitive` and capture output
+- [x] 1.3 Run `dotnet build` (warnings-as-errors baseline) and `dotnet format --verify-no-changes`; capture output
+- [x] 1.4 Scripted scans: secret-pattern grep (key/token/password literals outside masked config), anonymous-endpoint markers, endpoint inventory (`MapGet/Post/Put/Delete` + MCP tools) for the auth-posture table
 
 ## 2. Parallel dimension audits (agent fan-out, read-only)
 
