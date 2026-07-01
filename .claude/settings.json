@@ -6,7 +6,8 @@
       "Bash(pnpm *)",
       "Skill(*)",
       "Bash(openspec *)",
-      "Bash(git worktree *)",
+      "Bash(docker *)",
+      "Bash(docker compose *)",
       "Bash(git checkout *)",
       "Bash(git switch *)",
       "Bash(git merge *)",
@@ -81,9 +82,7 @@
     "filesystem": {
       "denyRead": [
         ".env",
-        ".env.*",
-        "Config/appsettings.json",
-        "Config/appsettings.*.json"
+        ".env.*"
       ],
       "allowWrite": [
         "/usr/local/share/.yarn-global",
