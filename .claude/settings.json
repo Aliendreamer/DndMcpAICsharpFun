@@ -4,6 +4,7 @@
       "Bash(*)",
       "Bash(dotnet *)",
       "Bash(pnpm *)",
+      "Skill(*)",
       "Bash(openspec *)",
       "Bash(git worktree *)",
       "Bash(git checkout *)",
@@ -47,22 +48,6 @@
     "dotnet-test@dotnet-agent-skills": true,
     "dotnet-upgrade@dotnet-agent-skills": true
   },
-  "mcpServers": {
-    "serena": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/oraios/serena",
-        "serena",
-        "start-mcp-server",
-        "--context",
-        "claude-code",
-        "--project-from-cwd",
-        "--open-web-dashboard",
-        "false"
-      ]
-    }
-  },
   "extraKnownMarketplaces": {
     "dotnet-agent-skills": {
       "source": {
@@ -72,7 +57,7 @@
     }
   },
   "sandbox": {
-    "enabled": false,
+    "enabled": true,
     "failIfUnavailable": true,
     "allowUnsandboxedCommands": true,
     "network": {
