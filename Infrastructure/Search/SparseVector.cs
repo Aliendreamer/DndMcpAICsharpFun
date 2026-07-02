@@ -1,3 +1,3 @@
-namespace DndMcpAICsharpFun.Features.Ingestion;
+namespace DndMcpAICsharpFun.Infrastructure.Search;
 
 public sealed record SparseVector(int[] Indices, float[] Values);

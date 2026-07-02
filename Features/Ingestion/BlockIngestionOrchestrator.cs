@@ -6,6 +6,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
+using DndMcpAICsharpFun.Infrastructure.Search;
 
 namespace DndMcpAICsharpFun.Features.Ingestion;
 

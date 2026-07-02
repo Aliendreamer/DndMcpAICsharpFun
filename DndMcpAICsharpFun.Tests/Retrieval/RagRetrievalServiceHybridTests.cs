@@ -2,7 +2,7 @@ using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using Qdrant.Client.Grpc;
-using DomainSparseVector = DndMcpAICsharpFun.Features.Ingestion.SparseVector;
+using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;
 

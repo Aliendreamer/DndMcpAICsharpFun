@@ -1,4 +1,4 @@
-using DndMcpAICsharpFun.Features.Ingestion;
+using DndMcpAICsharpFun.Infrastructure.Search;
 
 namespace DndMcpAICsharpFun.Tests.Ingestion;
 

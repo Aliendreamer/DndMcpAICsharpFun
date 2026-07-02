@@ -6,7 +6,7 @@ using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using Microsoft.Extensions.Options;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
-using DomainSparseVector = DndMcpAICsharpFun.Features.Ingestion.SparseVector;
+using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
 using QdrantVector = Qdrant.Client.Grpc.Vector;
 
 namespace DndMcpAICsharpFun.Features.VectorStore;

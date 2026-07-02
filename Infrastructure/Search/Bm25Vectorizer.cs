@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace DndMcpAICsharpFun.Features.Ingestion;
+namespace DndMcpAICsharpFun.Infrastructure.Search;
 
 public static class Bm25Vectorizer
 {

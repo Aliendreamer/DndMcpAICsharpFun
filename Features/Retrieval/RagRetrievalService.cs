@@ -1,5 +1,5 @@
 using DndMcpAICsharpFun.Features.Embedding;
-using DndMcpAICsharpFun.Features.Ingestion;
+using DndMcpAICsharpFun.Infrastructure.Search;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using Microsoft.Extensions.Options;
 using Qdrant.Client.Grpc;
