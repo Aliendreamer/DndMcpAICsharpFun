@@ -399,6 +399,25 @@
       "authentication": {}
     },
     {
+      "_id": "req_bm25_rebuild_stats",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Rebuild global BM25 corpus statistics (COR-15)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/retrieval/bm25/rebuild-stats",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_5etools_import",
       "_type": "request",
       "parentId": "fld_admin_books",

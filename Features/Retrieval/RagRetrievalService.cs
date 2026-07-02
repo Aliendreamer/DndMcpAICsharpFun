@@ -75,7 +75,7 @@ public sealed class RagRetrievalService(
 
         if (sparseState.SparseSupported)
         {
-            var sparse = Bm25Vectorizer.ComputeBatch([query.QueryText])[0];
+            var sparse = Bm25Vectorizer.ComputeQueryVector(query.QueryText);
             return await qdrant.QueryAsync(
                 _collectionName,
                 vector,

@@ -110,6 +110,7 @@ admin.MapBooksAdmin();
 admin.MapFivetoolsAdmin();
 admin.MapNeedsReview();
 admin.MapCanonicalValidation();
+admin.MapRetrievalAdmin();
 
 // Retrieval endpoints — anonymous but rate-limited per client (SEC-10).
 app.MapRetrievalEndpoints();

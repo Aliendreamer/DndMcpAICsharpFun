@@ -3,6 +3,7 @@ using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
 
@@ -51,6 +52,7 @@ public sealed class BlockIngestionOrchestratorTests
             blockExtractor: blockExtractor,
             embedding:      Substitute.For<IEmbeddingService>(),
             vectorStore:    Substitute.For<IVectorStoreService>(),
+            bm25Stats:      Substitute.For<IBm25CorpusStats>(),
             logger:         NullLogger<BlockIngestionOrchestrator>.Instance);
 
         await sut.IngestBlocksAsync(bookId);

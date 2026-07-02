@@ -141,6 +141,11 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/canonical/fix-types?book=tce
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin — Rebuild global BM25 corpus statistics from the current ingested corpus (COR-15)
+# Recomputes DocumentCount / AvgDocLength / DocFrequencies across all books. Returns 200 on success.
+POST {{baseUrl}}/admin/retrieval/bm25/rebuild-stats
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}

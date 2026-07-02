@@ -2,6 +2,7 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
@@ -39,6 +40,7 @@ public class EntityBookDeletionTests
             tracker,
             blockStore,
             entityStore,
+            Substitute.For<IBm25CorpusStats>(),
             Options.Create(new EntityIngestionOptions { CanonicalDirectory = canonicalDir }),
             NullLogger<BookDeletionService>.Instance);
 
@@ -74,7 +76,7 @@ public class EntityBookDeletionTests
         Directory.CreateDirectory(canonicalDir);
 
         var svc = new BookDeletionService(
-            tracker, blockStore, entityStore,
+            tracker, blockStore, entityStore, Substitute.For<IBm25CorpusStats>(),
             Options.Create(new EntityIngestionOptions { CanonicalDirectory = canonicalDir }),
             NullLogger<BookDeletionService>.Instance);
 

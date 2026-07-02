@@ -1,4 +1,5 @@
 using System.Text;
+using DndMcpAICsharpFun.Features.Retrieval;
 
 namespace DndMcpAICsharpFun.Infrastructure.Search;
 
@@ -45,55 +46,50 @@ public static class Bm25Vectorizer
         return tokens;
     }
 
-    public static SparseVector[] ComputeBatch(IReadOnlyList<string> texts)
+    // Doc vectors: BM25 tf-saturation × GLOBAL idf (idf lives here, applied ONCE).
+    public static SparseVector[] ComputeDocVectors(IReadOnlyList<string> texts, Bm25GlobalStats stats)
     {
-        var tokenizedDocs = new IReadOnlyList<string>[texts.Count];
-        for (var i = 0; i < texts.Count; i++)
-            tokenizedDocs[i] = Tokenize(texts[i]);
-
-        var docFrequencies = new Dictionary<string, int>();
-        foreach (var tokens in tokenizedDocs)
-        {
-            foreach (var term in new HashSet<string>(tokens))
-            {
-                docFrequencies[term] = docFrequencies.TryGetValue(term, out var df) ? df + 1 : 1;
-            }
-        }
-
-        var docLengths = new int[tokenizedDocs.Length];
-        for (var i = 0; i < tokenizedDocs.Length; i++)
-            docLengths[i] = tokenizedDocs[i].Count;
-
-        var avgDocLen = tokenizedDocs.Length == 0 ? 1f : (float)docLengths.Average();
-        var n = tokenizedDocs.Length;
-
+        var n = stats.DocumentCount;
+        var avgDocLen = stats.AvgDocLength <= 0 ? 1f : (float)stats.AvgDocLength;
         var result = new SparseVector[texts.Count];
-        for (var i = 0; i < tokenizedDocs.Length; i++)
+        for (var i = 0; i < texts.Count; i++)
         {
-            var tokens = tokenizedDocs[i];
-            var docLen = docLengths[i];
-
+            var tokens = Tokenize(texts[i]);
+            var docLen = tokens.Count;
             var termFreqs = new Dictionary<string, int>();
-            foreach (var term in tokens)
-                termFreqs[term] = termFreqs.TryGetValue(term, out var tf) ? tf + 1 : 1;
+            foreach (var t in tokens) termFreqs[t] = termFreqs.TryGetValue(t, out var c) ? c + 1 : 1;
 
             var indexScores = new Dictionary<int, float>();
             foreach (var (term, tf) in termFreqs)
             {
-                var df = docFrequencies[term];
-                var idf = MathF.Log((n + 1f) / (df + 1f)) + 1f;
+                var df = stats.DocFrequencies.TryGetValue(term, out var d) ? d : 0;
+                var idf = MathF.Log((n + 1f) / (df + 1f)) + 1f;            // global idf
                 var normTf = tf * (K1 + 1f) / (tf + K1 * (1f - B + B * docLen / avgDocLen));
-                var score = idf * normTf;
                 var idx = StableIndex(term);
-                indexScores[idx] = indexScores.TryGetValue(idx, out var existing) ? existing + score : score;
+                var score = idf * normTf;
+                indexScores[idx] = indexScores.TryGetValue(idx, out var e) ? e + score : score;
             }
-
             var sorted = indexScores.OrderBy(static kv => kv.Key).ToArray();
             result[i] = new SparseVector(
                 sorted.Select(static kv => kv.Key).ToArray(),
                 sorted.Select(static kv => kv.Value).ToArray());
         }
-
         return result;
+    }
+
+    // Query vector: raw term frequency only, NO idf (idf is on the doc side → avoids IDF²).
+    public static SparseVector ComputeQueryVector(string text)
+    {
+        var tokens = Tokenize(text);
+        var termFreqs = new Dictionary<int, float>();
+        foreach (var t in tokens)
+        {
+            var idx = StableIndex(t);
+            termFreqs[idx] = termFreqs.TryGetValue(idx, out var c) ? c + 1f : 1f;
+        }
+        var sorted = termFreqs.OrderBy(static kv => kv.Key).ToArray();
+        return new SparseVector(
+            sorted.Select(static kv => kv.Key).ToArray(),
+            sorted.Select(static kv => kv.Value).ToArray());
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Domain;
@@ -13,6 +14,7 @@ public sealed partial class BookDeletionService(
     IIngestionTracker tracker,
     IVectorStoreService vectorStore,
     IEntityVectorStore entityStore,
+    IBm25CorpusStats bm25Stats,
     IOptions<EntityIngestionOptions> entityIngestionOptions,
     ILogger<BookDeletionService> logger) : IBookDeletionService
 {
@@ -30,6 +32,9 @@ public sealed partial class BookDeletionService(
 
         if (!string.IsNullOrEmpty(record.FileHash))
             await entityStore.DeleteByFileHashAsync(record.FileHash, cancellationToken);
+
+        if (!string.IsNullOrEmpty(record.FileHash))
+            await bm25Stats.RemoveBookAsync(record.FileHash, cancellationToken);
 
         var canonicalSlug = CanonicalSlugOf(record);
         var canonicalPath = Path.Combine(entityIngestionOptions.Value.CanonicalDirectory, canonicalSlug + ".json");

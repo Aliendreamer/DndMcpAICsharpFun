@@ -74,7 +74,7 @@ public sealed class FusedRetrievalService(
 
         if (sparseState.SparseSupported)
         {
-            var sparse = Bm25Vectorizer.ComputeBatch([queryText])[0];
+            var sparse = Bm25Vectorizer.ComputeQueryVector(queryText);
             points = await qdrant.QueryAsync(
                 _qdrant.BlocksCollectionName, vector.AsMemory(), sparse,
                 limit: limit, cancellationToken: ct);

@@ -4,6 +4,7 @@ using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
 using DndMcpAICsharpFun.Infrastructure.Search;
@@ -16,6 +17,7 @@ public sealed partial class BlockIngestionOrchestrator(
     IPdfBlockExtractor blockExtractor,
     IEmbeddingService embedding,
     IVectorStoreService vectorStore,
+    IBm25CorpusStats bm25Stats,
     ILogger<BlockIngestionOrchestrator> logger) : IBlockIngestionOrchestrator
 {
     private const string NoBookmarksError =
@@ -101,13 +103,29 @@ public sealed partial class BlockIngestionOrchestrator(
                 return;
             }
 
+            // Contribute this book's corpus statistics to the global BM25 store so doc-side IDF
+            // is computed once from the whole corpus (not per-batch). df = number of this book's
+            // chunks containing the term; totalTokens = sum of every chunk's token count.
+            var termDf = new Dictionary<string, int>();
+            long totalTokens = 0;
+            foreach (var chunk in chunks)
+            {
+                var tokens = Bm25Vectorizer.Tokenize(chunk.Text);
+                totalTokens += tokens.Count;
+                foreach (var term in new HashSet<string>(tokens))
+                    termDf[term] = termDf.TryGetValue(term, out var c) ? c + 1 : 1;
+            }
+
+            await bm25Stats.ApplyBookAsync(hash, termDf, chunks.Count, totalTokens, cancellationToken);
+            var stats = await bm25Stats.ReadAsync(cancellationToken);
+
             for (var i = 0; i < chunks.Count; i += EmbedBatchSize)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var batch = chunks.Skip(i).Take(EmbedBatchSize).ToList();
                 var batchTexts = batch.Select(static c => c.Text).ToList();
                 var vectors = await embedding.EmbedAsync(batchTexts, cancellationToken);
-                var sparseVectors = Bm25Vectorizer.ComputeBatch(batchTexts);
+                var sparseVectors = Bm25Vectorizer.ComputeDocVectors(batchTexts, stats);
                 var points = batch
                     .Zip(vectors, static (chunk, vec) => (chunk, vec))
                     .Zip(sparseVectors, (t, sparse) => (t.chunk, t.vec, sparse, hash))
