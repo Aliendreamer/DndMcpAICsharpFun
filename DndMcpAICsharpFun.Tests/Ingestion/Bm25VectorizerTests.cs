@@ -42,8 +42,8 @@ public sealed class Bm25VectorizerTests
         var result = Bm25Vectorizer.ComputeBatch(texts);
 
         var doc0 = result[0];
-        var rareIdx = Math.Abs("rare".GetHashCode()) % 30000;
-        var commonIdx = Math.Abs("common".GetHashCode()) % 30000;
+        var rareIdx = Bm25Vectorizer.StableIndex("rare");
+        var commonIdx = Bm25Vectorizer.StableIndex("common");
 
         float rareScore = 0f, commonScore = 0f;
         for (var i = 0; i < doc0.Indices.Length; i++)
@@ -67,10 +67,30 @@ public sealed class Bm25VectorizerTests
     }
 
     [Fact]
-    public void Tokenize_SplitsOnNonLetters()
+    public void Tokenize_SplitsOnNonAlphanumerics_KeepsDigits()
     {
+        // COR-14: numeric/alphanumeric keyword terms (e.g. "123", "2d6") must survive tokenization.
         var tokens = Bm25Vectorizer.Tokenize("hello, world! 123 test");
-        Assert.Equal(["hello", "world", "test"], tokens);
+        Assert.Equal(["hello", "world", "123", "test"], tokens);
+    }
+
+    [Fact]
+    public void Tokenize_KeepsAlphanumericDiceTerms()
+    {
+        var tokens = Bm25Vectorizer.Tokenize("deals 2d6 fire damage");
+        Assert.Contains("2d6", tokens);
+    }
+
+    [Fact]
+    public void StableIndex_IsDeterministicAcrossProcesses()
+    {
+        // Golden values: FNV-1a over UTF-8 mod 30000. If these change, sparse vectors written to
+        // Qdrant at ingestion time will no longer align with query-time vectors (COR-16/COR-17).
+        Assert.Equal(Bm25Vectorizer.StableIndex("fireball"), Bm25Vectorizer.StableIndex("fireball"));
+        Assert.InRange(Bm25Vectorizer.StableIndex("fireball"), 0, 29999);
+        // int.MinValue-style overflow can never occur (unsigned FNV), unlike Math.Abs(GetHashCode()).
+        Assert.All(new[] { "a", "the", "2d6", "dragonborn", "" },
+            t => Assert.InRange(Bm25Vectorizer.StableIndex(t), 0, 29999));
     }
 
     [Fact]

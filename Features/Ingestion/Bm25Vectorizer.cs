@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace DndMcpAICsharpFun.Features.Ingestion;
 
 public static class Bm25Vectorizer
@@ -6,6 +8,22 @@ public static class Bm25Vectorizer
     private const float B = 0.75f;
     private const int VocabSize = 30000;
 
+    // Deterministic term -> sparse index. String.GetHashCode() is randomized per process in .NET, so
+    // sparse vectors written at ingestion time would not align with query-time vectors after a
+    // restart. FNV-1a over the UTF-8 bytes is stable across processes (and never overflows Math.Abs).
+    public static int StableIndex(string term)
+    {
+        const uint fnvOffsetBasis = 2166136261;
+        const uint fnvPrime = 16777619;
+        var hash = fnvOffsetBasis;
+        foreach (var b in Encoding.UTF8.GetBytes(term))
+        {
+            hash ^= b;
+            hash *= fnvPrime;
+        }
+        return (int)(hash % VocabSize);
+    }
+
     public static IReadOnlyList<string> Tokenize(string text)
     {
         var tokens = new List<string>();
@@ -13,12 +31,12 @@ public static class Bm25Vectorizer
         var start = -1;
         for (var i = 0; i <= lower.Length; i++)
         {
-            var isLetter = i < lower.Length && char.IsLetter(lower[i]);
-            if (isLetter && start == -1)
+            var isTokenChar = i < lower.Length && char.IsLetterOrDigit(lower[i]);
+            if (isTokenChar && start == -1)
             {
                 start = i;
             }
-            else if (!isLetter && start != -1)
+            else if (!isTokenChar && start != -1)
             {
                 tokens.Add(lower[start..i]);
                 start = -1;
@@ -66,7 +84,7 @@ public static class Bm25Vectorizer
                 var idf = MathF.Log((n + 1f) / (df + 1f)) + 1f;
                 var normTf = tf * (K1 + 1f) / (tf + K1 * (1f - B + B * docLen / avgDocLen));
                 var score = idf * normTf;
-                var idx = Math.Abs(term.GetHashCode()) % VocabSize;
+                var idx = StableIndex(term);
                 indexScores[idx] = indexScores.TryGetValue(idx, out var existing) ? existing + score : score;
             }
 
