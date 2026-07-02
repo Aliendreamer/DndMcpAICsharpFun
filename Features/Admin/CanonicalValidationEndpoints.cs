@@ -2,9 +2,9 @@ namespace DndMcpAICsharpFun.Features.Admin;
 
 public static class CanonicalValidationEndpoints
 {
-    public static WebApplication MapCanonicalValidationEndpoints(this WebApplication app)
+    public static RouteGroupBuilder MapCanonicalValidation(this RouteGroupBuilder group)
     {
-        app.MapPost("/admin/canonical/validate", async (
+        group.MapPost("/canonical/validate", async (
             CanonicalValidationService svc, CancellationToken ct) =>
         {
             var report = await svc.ValidateAsync(ct);
@@ -12,6 +12,6 @@ public static class CanonicalValidationEndpoints
                 ? Results.UnprocessableEntity(report)
                 : Results.Ok(report);
         });
-        return app;
+        return group;
     }
 }

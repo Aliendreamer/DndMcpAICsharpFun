@@ -135,11 +135,11 @@ var admin = app.MapGroup("/admin");
 admin.MapBooksAdmin();
 admin.MapFivetoolsAdmin();
 admin.MapNeedsReview();
+admin.MapCanonicalValidation();
 
 // Retrieval endpoints — anonymous but rate-limited per client (SEC-10).
 app.MapRetrievalEndpoints();
 app.MapEntityRetrievalEndpoints();
-app.MapCanonicalValidationEndpoints();
 app.MapCanonicalTypeFixerEndpoints();
 app.MapCanonicalNameNormalizerEndpoints();
 app.MapMcp("/mcp");
