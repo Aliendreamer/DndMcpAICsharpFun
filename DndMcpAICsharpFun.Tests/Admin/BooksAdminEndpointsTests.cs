@@ -13,9 +13,12 @@ using Microsoft.Extensions.Logging;
 
 namespace DndMcpAICsharpFun.Tests.Admin;
 
-public sealed class BooksAdminEndpointsTests
+public sealed class BooksAdminEndpointsTests : IDisposable
 {
-    private static async Task<(
+    private readonly string _booksDir =
+        Path.Combine(Path.GetTempPath(), "books-admin-tests-" + Path.GetRandomFileName());
+
+    private async Task<(
         HttpClient Client,
         IIngestionTracker Tracker,
         IIngestionQueue Queue,
@@ -35,13 +38,20 @@ public sealed class BooksAdminEndpointsTests
         builder.Services.AddSingleton(
             new BookSourceRegistry(TestPaths.RepoFile("5etools/books.json")));
         builder.Services.Configure<AdminOptions>(o => o.ApiKey = "test-key");
-        builder.Services.Configure<IngestionOptions>(o => o.BooksPath = Path.GetTempPath());
+        Directory.CreateDirectory(_booksDir);
+        builder.Services.Configure<IngestionOptions>(o => o.BooksPath = _booksDir);
 
         var app = builder.Build();
         app.MapGroup("/admin").MapBooksAdmin();
 
         await app.StartAsync();
         return (app.GetTestClient(), tracker, queue, deletionService);
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_booksDir))
+            Directory.Delete(_booksDir, recursive: true);
     }
 
     private static IngestionRecord MakeRecord(
@@ -76,8 +86,6 @@ public sealed class BooksAdminEndpointsTests
         await tracker.Received(1).CreateAsync(
             Arg.Is<IngestionRecord>(r => r.DisplayName == "Player's Handbook"),
             Arg.Any<CancellationToken>());
-        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
-            File.Delete(f);
     }
 
     [Fact]
@@ -129,8 +137,6 @@ public sealed class BooksAdminEndpointsTests
         await tracker.Received(1).CreateAsync(
             Arg.Is<IngestionRecord>(r => r.BookType == DndMcpAICsharpFun.Domain.BookType.Supplement),
             Arg.Any<CancellationToken>());
-        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
-            File.Delete(f);
     }
 
     [Fact]
@@ -151,8 +157,6 @@ public sealed class BooksAdminEndpointsTests
         await tracker.Received(1).CreateAsync(
             Arg.Is<IngestionRecord>(r => r.BookType == DndMcpAICsharpFun.Domain.BookType.Unknown),
             Arg.Any<CancellationToken>());
-        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
-            File.Delete(f);
     }
 
     [Fact]
@@ -174,8 +178,6 @@ public sealed class BooksAdminEndpointsTests
         await tracker.Received(1).CreateAsync(
             Arg.Is<IngestionRecord>(r => r.BookType == DndMcpAICsharpFun.Domain.BookType.Unknown),
             Arg.Any<CancellationToken>());
-        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
-            File.Delete(f);
     }
 
     // GET /admin/books
@@ -285,8 +287,6 @@ public sealed class BooksAdminEndpointsTests
         await tracker.Received(1).CreateAsync(
             Arg.Is<IngestionRecord>(r => r.FivetoolsSourceKey == "PHB"),
             Arg.Any<CancellationToken>());
-        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
-            File.Delete(f);
     }
 
     [Fact]
@@ -323,7 +323,5 @@ public sealed class BooksAdminEndpointsTests
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("suggestedSources", body, StringComparison.OrdinalIgnoreCase);
-        foreach (var f in Directory.GetFiles(Path.GetTempPath(), "*_test.pdf"))
-            File.Delete(f);
     }
 }
