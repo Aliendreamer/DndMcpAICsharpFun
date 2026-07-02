@@ -25,8 +25,8 @@
 
 - [x] 4.1 Remove dead `Build()` helper (COR-01, `.../Admin/AdminApiKeyMiddlewareTests.cs:10`)
 - [x] 4.2 Use shared `TestPaths` helper instead of `../../../../` (COR-03, `.../Admin/BooksAdminEndpointsTests.cs:33`)
-- [ ] 4.3 Isolate temp dirs with try/finally cleanup (COR-04, COR-07, `.../BooksAdminEndpointsTests.cs:80`, `.../Chat/DndChatServiceTests.cs:30`)
-- [ ] 4.4 Signal async completion instead of `Task.Delay(150)` (COR-08, `.../Ingestion/IngestionQueueWorkerTests.cs:25`)
+- [x] 4.3 Isolate temp dirs with try/finally cleanup (COR-04, COR-07, `.../BooksAdminEndpointsTests.cs:80`, `.../Chat/DndChatServiceTests.cs:30`)
+- [x] 4.4 Signal async completion instead of `Task.Delay(150)` (COR-08, `.../Ingestion/IngestionQueueWorkerTests.cs:25`)
 - [x] 4.5 Tighten weak `Contain("15")` assertion to `DC 15` (COR-09, `.../Mcp/ResolveCharacterFeatureToolTests.cs:117`)
 
 ## 5. Verify + close

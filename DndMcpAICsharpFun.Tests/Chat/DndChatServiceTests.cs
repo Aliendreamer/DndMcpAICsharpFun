@@ -26,18 +26,28 @@ internal sealed class NoOpDbFactory : IDbContextFactory<AppDbContext>
     public AppDbContext CreateDbContext() => throw new NotSupportedException();
 }
 
-public sealed class DndChatServiceTests
+public sealed class DndChatServiceTests : IDisposable
 {
-    private static PersonaProvider CreatePersonaProvider(string personaText = "Test persona.")
+    private readonly List<string> _tempDirs = [];
+
+    public void Dispose()
+    {
+        // Clean up the per-test persona temp dirs instead of leaking one per invocation (COR-07).
+        foreach (var dir in _tempDirs)
+            try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); } catch { /* best effort */ }
+    }
+
+    private PersonaProvider CreatePersonaProvider(string personaText = "Test persona.")
     {
         var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         Directory.CreateDirectory(tempDir);
+        _tempDirs.Add(tempDir);
         File.WriteAllText(Path.Combine(tempDir, "companion.md"), personaText);
         var opts = Options.Create(new ChatPersonaOptions { PersonasDirectory = tempDir });
         return new PersonaProvider(opts);
     }
 
-    private static DndChatService CreateService(
+    private DndChatService CreateService(
         FakeChatClient client,
         IReadOnlyList<AITool>? tools = null,
         PersonaProvider? personaProvider = null) =>

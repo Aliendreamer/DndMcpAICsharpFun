@@ -9,6 +9,10 @@ public sealed class IngestionQueueWorkerTests
     public async Task Enqueue_BlockIngest_DispatchesToBlockOrchestrator()
     {
         var orchestrator = Substitute.For<IBlockIngestionOrchestrator>();
+        // Signal the moment the worker dispatches, instead of racing a fixed Task.Delay (COR-08).
+        var dispatched = new TaskCompletionSource();
+        orchestrator.IngestBlocksAsync(42, Arg.Any<CancellationToken>())
+            .Returns(_ => { dispatched.TrySetResult(); return Task.CompletedTask; });
         var services = new ServiceCollection();
         services.AddSingleton(orchestrator);
         services.AddScoped<IBlockIngestionOrchestrator>(_ => orchestrator);
@@ -22,7 +26,7 @@ public sealed class IngestionQueueWorkerTests
         worker.TryEnqueue(new IngestionWorkItem(IngestionWorkType.IngestBlocks, 42));
         var run = worker.StartAsync(cts.Token);
 
-        await Task.Delay(150);
+        await dispatched.Task.WaitAsync(TimeSpan.FromSeconds(5));
         cts.Cancel();
         try { await run; } catch (OperationCanceledException) { }
         await worker.StopAsync(CancellationToken.None);
