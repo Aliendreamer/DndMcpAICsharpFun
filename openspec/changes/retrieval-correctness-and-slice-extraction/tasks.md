@@ -20,5 +20,5 @@
 ## 4. Verify + close
 
 - [x] 4.1 `dotnet build` + `dotnet test` green (845/845, 0 warnings/0 errors, sandbox-disabled per git-crypt)
-- [ ] 4.2 Re-ingest a book end-to-end and confirm hybrid keyword recall is non-degenerate after a restart (requires a running stack — deferred to integration verification)
+- [x] 4.2 Re-ingest a book end-to-end and confirm hybrid keyword recall is non-degenerate after a restart — LIVE: PHB re-ingested (5243 chunks) after an app rebuild/restart; `/retrieval/search?q=fireball` returns non-degenerate hybrid results (varied scores 0.75/0.583/0.2), confirming the deterministic-hash + global-IDF sparse path works end-to-end
 - [x] 4.3 Confirm each finding (COR-14/16/17, STR-14/15/17, SIM-17/18/19, NET-08/09/10, COR-10) is addressed — COR-15 split to `bm25-corpus-statistics`
