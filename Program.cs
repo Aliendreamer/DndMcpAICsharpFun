@@ -86,6 +86,19 @@ builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddDndChat(builder.Configuration);
 builder.Services.AddDndAuthentication();
 builder.Services.AddDndRateLimiting(builder.Configuration);
+// Behind a TLS-terminating reverse proxy: honour forwarded headers so the real client IP and the
+// HTTPS scheme are used by rate limiting, auth cookies, and logging. Trusted proxies come from
+// ForwardedHeaders:KnownProxies (empty by default → the platform's loopback proxy).
+builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+        | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    o.KnownIPNetworks.Clear();
+    o.KnownProxies.Clear();
+    foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [])
+        if (System.Net.IPAddress.TryParse(proxy, out var ip))
+            o.KnownProxies.Add(ip);
+});
 builder.Services.AddDndBlazor();
 
 builder.Services.AddMcpServer()
@@ -110,6 +123,8 @@ app.UseSerilogRequestLogging(o =>
         ctx.Request.Path.StartsWithSegments("/metrics") ? LogEventLevel.Verbose :
         LogEventLevel.Information);
 
+// Forwarded headers must run first so downstream middleware sees the real client IP/scheme.
+app.UseForwardedHeaders();
 // Companion UI middleware: static files, rate limiter, cookie auth, antiforgery.
 app.UseDndMiddleware();
 // MCP — guard /mcp with key check, then map the MCP endpoint
@@ -131,7 +146,7 @@ admin.MapBooksAdmin();
 admin.MapFivetoolsAdmin();
 admin.MapNeedsReview();
 
-// Retrieval endpoints
+// Retrieval endpoints — anonymous but rate-limited per client (SEC-10).
 app.MapRetrievalEndpoints();
 app.MapEntityRetrievalEndpoints();
 app.MapCanonicalValidationEndpoints();

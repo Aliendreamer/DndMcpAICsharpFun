@@ -1,0 +1,11 @@
+@inject NavigationManager Navigation
+
+@code {
+    // Rendered by AuthorizeRouteView's <NotAuthorized> block: send unauthenticated users to /login
+    // with a returnUrl, rather than showing an empty page.
+    protected override void OnInitialized()
+    {
+        var returnUrl = Uri.EscapeDataString(Navigation.ToBaseRelativePath(Navigation.Uri));
+        Navigation.NavigateTo($"login?returnUrl={returnUrl}", forceLoad: false);
+    }
+}

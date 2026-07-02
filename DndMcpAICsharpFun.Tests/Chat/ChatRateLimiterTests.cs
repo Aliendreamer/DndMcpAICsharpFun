@@ -50,4 +50,20 @@ public class ChatRateLimiterTests
 
         limiter.TryAcquire("127.0.0.1").Should().BeTrue();
     }
+
+
+    [Fact]
+    public async Task TryAcquire_concurrent_access_admits_exactly_the_limit()
+    {
+        const int limit = 50;
+        const int callers = 200;
+        var limiter = new ChatRateLimiter(limit);
+
+        var tasks = Enumerable.Range(0, callers)
+            .Select(_ => Task.Run(() => limiter.TryAcquire("10.0.0.99")))
+            .ToArray();
+        var results = await Task.WhenAll(tasks);
+
+        results.Count(admitted => admitted).Should().Be(limit);
+    }
 }

@@ -8,7 +8,12 @@ internal static class AppExtensions
 {
     internal static async Task InitializeDatabaseAsync(this WebApplication app)
     {
-        // Schema is created by EF migrations (MigrateDatabaseAsync). Seed a dev login for convenience.
+        // Schema is created by EF migrations (MigrateDatabaseAsync). Seed a convenience login for
+        // easy local testing. Controlled by Seed:TestUser (default true) so it can be disabled for a
+        // production deployment via Seed__TestUser=false.
+        if (!app.Configuration.GetValue("Seed:TestUser", true))
+            return;
+
         var userRepo = app.Services.GetRequiredService<UserRepository>();
         if (!await userRepo.ExistsAsync("test"))
             await userRepo.CreateAsync("test", PasswordHasher.Hash("test"));

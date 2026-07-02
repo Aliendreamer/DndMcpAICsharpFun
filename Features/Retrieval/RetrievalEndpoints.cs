@@ -4,9 +4,13 @@ namespace DndMcpAICsharpFun.Features.Retrieval;
 
 public static class RetrievalEndpoints
 {
+    // Upper bound on the anonymous public result count so a caller cannot request an unbounded
+    // number of embeddings + vector-search rows (SEC-10). The admin diagnostic path is unbounded.
+    private const int MaxPublicTopK = 50;
+
     public static WebApplication MapRetrievalEndpoints(this WebApplication app)
     {
-        app.MapGet("/retrieval/search", SearchPublic);
+        app.MapGet("/retrieval/search", SearchPublic).RequireRateLimiting("retrieval");
         app.MapGroup("/admin").MapGet("/retrieval/search", SearchDiagnostic);
         return app;
     }
@@ -49,6 +53,9 @@ public static class RetrievalEndpoints
     {
         if (string.IsNullOrWhiteSpace(q))
             return Results.BadRequest("Query parameter 'q' is required.");
+
+        if (!diagnostic)
+            topK = Math.Clamp(topK, 1, MaxPublicTopK);
 
         var query = BuildQuery(q, version, category, sourceBook, entityName, bookType, topK);
         var results = diagnostic

@@ -21,8 +21,17 @@ public static class PasswordHasher
     {
         var parts = hash.Split(':');
         if (parts.Length != 2) return false;
-        var salt = Convert.FromBase64String(parts[0]);
-        var expectedKey = Convert.FromBase64String(parts[1]);
+        byte[] salt, expectedKey;
+        try
+        {
+            salt = Convert.FromBase64String(parts[0]);
+            expectedKey = Convert.FromBase64String(parts[1]);
+        }
+        catch (FormatException)
+        {
+            // A stored hash that is not valid base64 is treated as a failed verification, never a throw.
+            return false;
+        }
         var actualKey = Rfc2898DeriveBytes.Pbkdf2(
             Encoding.UTF8.GetBytes(password), salt, Iterations, HashAlgorithmName.SHA256, KeySize);
         return CryptographicOperations.FixedTimeEquals(actualKey, expectedKey);

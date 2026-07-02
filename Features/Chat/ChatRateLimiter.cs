@@ -6,10 +6,12 @@ public sealed class ChatRateLimiter(int messagesPerMinute, Func<DateTimeOffset>?
 {
     private readonly Func<DateTimeOffset> _clock = clock ?? (() => DateTimeOffset.UtcNow);
     private readonly ConcurrentDictionary<string, WindowCounter> _counters = new();
+    private DateTimeOffset _lastSweep = DateTimeOffset.MinValue;
 
     public bool TryAcquire(string ip)
     {
         var now = _clock();
+        EvictStale(now);
         var counter = _counters.GetOrAdd(ip, _ => new WindowCounter(now));
 
         lock (counter)
@@ -25,6 +27,20 @@ public sealed class ChatRateLimiter(int messagesPerMinute, Func<DateTimeOffset>?
 
             counter.Count++;
             return true;
+        }
+    }
+
+    // Bound memory growth: at most once per minute, drop counters whose window has fully expired so
+    // per-client state does not accumulate indefinitely as distinct IPs come and go.
+    private void EvictStale(DateTimeOffset now)
+    {
+        if (now - _lastSweep < TimeSpan.FromMinutes(1))
+            return;
+        _lastSweep = now;
+        foreach (var kv in _counters)
+        {
+            if (now - kv.Value.WindowStart >= TimeSpan.FromMinutes(2))
+                _counters.TryRemove(kv.Key, out _);
         }
     }
 

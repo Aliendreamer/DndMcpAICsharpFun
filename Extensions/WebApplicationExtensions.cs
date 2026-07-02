@@ -33,8 +33,11 @@ internal static class WebApplicationExtensions
 
     internal static void MapAdminMiddleware(this WebApplication app)
     {
+        // Guard both the admin surface and the Prometheus /metrics endpoint with the admin key,
+        // so metrics are never reachable by anonymous internet clients (SEC-09).
         app.UseWhen(
-            static ctx => ctx.Request.Path.StartsWithSegments("/admin"),
+            static ctx => ctx.Request.Path.StartsWithSegments("/admin")
+                || ctx.Request.Path.StartsWithSegments("/metrics"),
             static adminApp => adminApp.UseMiddleware<AdminApiKeyMiddleware>()
         );
     }

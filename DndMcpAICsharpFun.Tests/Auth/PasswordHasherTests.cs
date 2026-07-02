@@ -27,4 +27,17 @@ public sealed class PasswordHasherTests
         var hash2 = PasswordHasher.Hash("password123");
         hash1.Should().NotBe(hash2);
     }
+
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not-a-valid-hash")]
+    [InlineData("garbage:with:colons")]
+    [InlineData("!!notbase64!!:@@alsonot@@")]
+    public void Verify_MalformedOrEmptyStoredHash_ReturnsFalseWithoutThrowing(string storedHash)
+    {
+        var act = () => PasswordHasher.Verify("anything", storedHash);
+        act.Should().NotThrow();
+        act().Should().BeFalse();
+    }
 }

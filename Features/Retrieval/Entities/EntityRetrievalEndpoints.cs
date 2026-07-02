@@ -4,10 +4,13 @@ namespace DndMcpAICsharpFun.Features.Retrieval.Entities;
 
 public static class EntityRetrievalEndpoints
 {
+    // Upper bound on the anonymous public result count (SEC-10). Admin diagnostic is unbounded.
+    private const int MaxPublicTopK = 50;
+
     public static WebApplication MapEntityRetrievalEndpoints(this WebApplication app)
     {
-        app.MapGet("/retrieval/entities/{id}", GetById);
-        app.MapGet("/retrieval/entities/search", SearchPublic);
+        app.MapGet("/retrieval/entities/{id}", GetById).RequireRateLimiting("retrieval");
+        app.MapGet("/retrieval/entities/search", SearchPublic).RequireRateLimiting("retrieval");
         app.MapGroup("/admin").MapGet("/retrieval/entities/search", SearchDiagnostic);
         return app;
     }
@@ -43,6 +46,7 @@ public static class EntityRetrievalEndpoints
         IEntityRetrievalService svc, CancellationToken ct, int topK, bool diagnostic)
     {
         if (string.IsNullOrWhiteSpace(q)) return Results.BadRequest("Query parameter 'q' is required.");
+        if (!diagnostic) topK = Math.Clamp(topK, 1, MaxPublicTopK);
         var query = BuildQuery(q, type, sourceBook, edition, bookType, settingTag, keyword,
             crLte, crGte, spellLevel, damageType, topK, srd, srd52, basicRules2024);
         var results = diagnostic

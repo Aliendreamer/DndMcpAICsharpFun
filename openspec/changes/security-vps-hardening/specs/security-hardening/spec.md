@@ -1,18 +1,18 @@
 ## ADDED Requirements
 
-### Requirement: No weak credentials seeded outside Development
+### Requirement: The seed test account is configurable
 
-The application SHALL NOT create any account with a fixed, publicly-known password when running
-outside the Development environment. Any development seed account SHALL be gated behind
-`IHostEnvironment.IsDevelopment()`. (SEC-02)
+The seeding of the `test` convenience account SHALL be controlled by a configuration flag so it can be
+disabled for a production deployment, while remaining available (default on) for easy local testing.
+The account is intentionally retained for local development. (SEC-02)
 
-#### Scenario: Production start does not create a test account
-- **WHEN** the app runs with `ASPNETCORE_ENVIRONMENT=Production` and an empty user table
-- **THEN** no `test` account exists and `/login` with `test`/`test` is rejected
+#### Scenario: Seeding can be disabled
+- **WHEN** the seed flag is set to false (e.g. in a production configuration)
+- **THEN** no `test` account is created and `/login` with `test`/`test` is rejected
 
-#### Scenario: Development still gets a convenience account
-- **WHEN** the app runs in Development
-- **THEN** the seeded development account is created as before
+#### Scenario: Local testing still gets the account
+- **WHEN** the seed flag is unset or true (local default)
+- **THEN** the `test` convenience account is seeded as before
 
 ### Requirement: Character-scoped MCP tools authorize by caller identity
 
