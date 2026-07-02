@@ -37,7 +37,7 @@ public static class ModelDownloader
         }
         catch (Exception ex)
         {
-            logger.LogWarning("Reranker model download failed: {Message}. Reranking disabled for this session.", ex.Message);
+            logger.LogWarning(ex, "Reranker model download failed. Reranking disabled for this session.");
             return false;
         }
     }

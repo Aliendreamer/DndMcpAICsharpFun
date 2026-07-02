@@ -60,17 +60,6 @@ public sealed class CrossEncoderReranker(
         return Task.FromResult(scores);
     }
 
-    public IList<RetrievalResult> SelectTopN(
-        IEnumerable<RetrievalResult> candidates, float[] scores, int topN)
-    {
-        return candidates
-            .Zip(scores, static (c, s) => (Candidate: c, Score: s))
-            .OrderByDescending(static t => t.Score)
-            .Take(topN)
-            .Select(static t => t.Candidate)
-            .ToList();
-    }
-
     public void Dispose() => _session?.Dispose();
 
     private float ScorePair(string query, string passage)
