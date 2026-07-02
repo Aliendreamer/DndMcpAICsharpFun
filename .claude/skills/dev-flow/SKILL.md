@@ -56,6 +56,15 @@ Unit-green is necessary, NOT sufficient for pipeline changes. Before claiming an
 - [ ] **When recall looks low, separate OUR-logic bugs from UPSTREAM/parser gaps.** If a missing entity is NOT in `declined.json`, it was never a candidate → upstream (Marker/scanner) gap, not our gate. (8 missing classes / 8 missing races this cycle were a parser gap → `mem:project_parser_upgrade_mineru`, not a false-drop.)
 - [ ] **A reviewer "verified against the diff" ≠ behavioral truth.** Confirm against live code/producer and real output.
 
+## Behavior-preserving refactor gates (dedup, moves, EF mapping, god-file splits — learned this cycle)
+
+Structural changes that must not alter behavior have their OWN gates beyond "tests pass":
+
+- [ ] **Before collapsing "duplicated" code, prove the copies are IDENTICAL.** If they diverge, PARAMETERIZE the difference or STOP and report — never silently pick one. This cycle: Monster `AlignMap` genuinely diverged (extra `NX`/`NY` keys) → kept local; `ExtractFeatureEntry` differed only by a `minParts` threshold → parameterized; and a "duplicate" `IsSidecar` check was missing `.declined.json` → collapsing to the canonical one FIXED a latent bug (declined files were mis-treated as canonical). Assume divergence until proven identical.
+- [ ] **Schema-neutral EF change? PROVE it with an empty migration.** When moving mapping attributes ↔ Fluent config (or any refactor that must not touch the schema), run `dotnet ef migrations add VerifyNeutral`, confirm BOTH `Up()` and `Down()` are empty, then DELETE the migration + restore the model snapshot (`git checkout Migrations/AppDbContextModelSnapshot.cs`). A non-empty migration means your Fluent config diverged from the attributes — fix it, don't ship the drift.
+- [ ] **Splitting a god file? A strong output-asserting test suite IS the "identical output before/after" guarantee.** Keep it 100% green and NEVER weaken an assertion to make the split pass; only ctor/DI wiring in the tests may change (every assertion stays byte-identical). If no such suite exists, add characterization tests FIRST. (STR-09 split a 657→381-line orchestrator behind its 17-test output suite with zero assertion changes.)
+- [ ] **A tool's caller-identity comes from the trusted session, not a spoofable argument.** A tool acting on a user's data must CLOSE OVER the authenticated session's user id (server-verified ownership chain), never accept the id as a tool argument crossing a shared-key/loopback boundary where any key holder could assert it. Ship a NEGATIVE test (caller A cannot touch caller B's data → throws). (SEC-08: `resolve_character_feature` moved off the shared-key MCP surface into a per-user in-process tool.)
+
 ## Extraction pipeline facts
 
 - Canonical source of truth: `books/canonical/<slug>.json`; siblings `<slug>.errors.json` / `.warnings.json` / `.declined.json` (declined = official-book gated non-matches). Checkpoints `<slug>.progress*.json` (deleted on success). Files are **root-owned** (container writes them) — edit via `docker cp` a host copy in. **Escape hatches for parser gaps, in preference order:** (1) for official-book SPELLS, `POST /admin/books/{id}/backfill-spells` — deterministic 5etools backfill, idempotent, gap-only, entities marked `dataSource:"5etools-backfill"` (this closed PHB 355→361); (2) hand-author the entity in the canonical (`mem:project_extraction_recall_fixes`). Both beat a 3rd parser/injector patch. **GOTCHA: `extract-entities?force=true` OVERWRITES the whole canonical → hand-authored AND backfilled entities are LOST. After every force re-extract, re-run `backfill-spells` and re-apply hand-authored entities** (e.g. re-add Gnome).
@@ -74,6 +83,10 @@ Unit-green is necessary, NOT sufficient for pipeline changes. Before claiming an
 - "I'll patch the injector once more for this one entity." → 3rd patch on one entity = STOP. Hand-author it in the canonical.
 - "One more parser rule will reach the last N entities." → When parser iterations PLATEAU (PHB spells: +15, then +5, then the rest OCR-damaged beyond any clean rule), STOP grinding — switch to the authoritative backfill (official books) or hand-authoring. Measure the per-iteration yield; a falling curve is the signal.
 - "It builds, so it's done." → Done = all gates green, output seen.
+- "It's a pure dedup." → Prove the copies are byte-identical FIRST; divergence hides bugs (or a fix). Diverging → parameterize or stop.
+- "Moving attributes to Fluent won't change the schema." → Prove it: an empty `dotnet ef migrations add` Up/Down, then discard the migration.
+- "The god-file split passes tests." → Only if the suite asserts real OUTPUT and no assertion was weakened; wiring-only test edits.
+- "The tool takes a userId argument." → Never trust a spoofable id across a shared-key boundary; close over the session identity + ship a negative-ownership test.
 - "I'll edit the `.cs` directly." → Serena only.
 - "I'll branch for this." → No. Single-dev, work on `main`.
 
