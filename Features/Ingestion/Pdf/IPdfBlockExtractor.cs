@@ -2,5 +2,5 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 
 public interface IPdfBlockExtractor
 {
-    IEnumerable<PdfBlock> ExtractBlocks(string filePath, CancellationToken ct = default);
+    Task<IReadOnlyList<PdfBlock>> ExtractBlocksAsync(string filePath, CancellationToken ct = default);
 }

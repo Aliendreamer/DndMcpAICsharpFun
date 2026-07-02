@@ -36,8 +36,9 @@ public sealed class BlockIngestionOrchestratorTests
         // Simulate the PDF conversion (MinerU) being unreachable.
         var blockExtractor = Substitute.For<IPdfBlockExtractor>();
         blockExtractor
-            .ExtractBlocks(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(_ => throw new HttpRequestException("Connection refused to http://mineru:8000"));
+            .ExtractBlocksAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<IReadOnlyList<PdfBlock>>(
+                new HttpRequestException("Connection refused to http://mineru:8000")));
 
         // Bookmarks must be non-empty so we get past the bookmark guard.
         var bookmarkReader = Substitute.For<IPdfBookmarkReader>();

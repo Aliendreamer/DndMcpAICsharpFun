@@ -15,14 +15,14 @@ public sealed class StructureBlockExtractorTests
         });
 
     [Fact]
-    public void ExtractBlocks_MapsItemsToBlocks_PreservingPageAndOrder()
+    public async Task ExtractBlocksAsync_MapsItemsToBlocks_PreservingPageAndOrder()
     {
         var converter = Substitute.For<IPdfStructureConverter>();
         converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(SampleDoc));
         var sut = new StructureBlockExtractor(converter, NullLogger<StructureBlockExtractor>.Instance);
 
-        var result = sut.ExtractBlocks("/tmp/fake.pdf").ToList();
+        var result = (await sut.ExtractBlocksAsync("/tmp/fake.pdf")).ToList();
 
         Assert.Equal(4, result.Count);
         Assert.Equal("Wizard", result[0].Text);
@@ -37,7 +37,7 @@ public sealed class StructureBlockExtractorTests
     }
 
     [Fact]
-    public void ExtractBlocks_WhitespaceItem_Skipped()
+    public async Task ExtractBlocksAsync_WhitespaceItem_Skipped()
     {
         var doc = new PdfStructureDocument("", new List<PdfStructureItem>
         {
@@ -50,7 +50,7 @@ public sealed class StructureBlockExtractorTests
             .Returns(Task.FromResult(doc));
         var sut = new StructureBlockExtractor(converter, NullLogger<StructureBlockExtractor>.Instance);
 
-        var result = sut.ExtractBlocks("/tmp/x.pdf").ToList();
+        var result = (await sut.ExtractBlocksAsync("/tmp/x.pdf")).ToList();
 
         Assert.Equal(2, result.Count);
         Assert.Equal("real",   result[0].Text);

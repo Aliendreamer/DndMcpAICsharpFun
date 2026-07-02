@@ -4,16 +4,13 @@ public sealed partial class StructureBlockExtractor(
     IPdfStructureConverter converter,
     ILogger<StructureBlockExtractor> logger) : IPdfBlockExtractor
 {
-    public IEnumerable<PdfBlock> ExtractBlocks(string filePath, CancellationToken ct = default)
+    public async Task<IReadOnlyList<PdfBlock>> ExtractBlocksAsync(string filePath, CancellationToken ct = default)
     {
-        // The structure converter exposes only an async API; ExtractBlocks is sync to match the
-        // existing interface. Running inside BackgroundService → no
-        // SynchronizationContext, so blocking on the task is safe.
-        var doc = converter.ConvertAsync(filePath, ct)
-            .GetAwaiter().GetResult();
+        var doc = await converter.ConvertAsync(filePath, ct);
 
         LogConverted(logger, Path.GetFileName(filePath), doc.Items.Count);
 
+        var blocks = new List<PdfBlock>();
         var perPageOrder = new Dictionary<int, int>();
         foreach (var item in doc.Items)
         {
@@ -23,8 +20,9 @@ public sealed partial class StructureBlockExtractor(
             var order = perPageOrder.TryGetValue(item.PageNumber, out var n) ? n : 0;
             perPageOrder[item.PageNumber] = order + 1;
 
-            yield return new PdfBlock(text, item.PageNumber, order);
+            blocks.Add(new PdfBlock(text, item.PageNumber, order));
         }
+        return blocks;
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "MinerU produced {ItemCount} items for {FileName}")]

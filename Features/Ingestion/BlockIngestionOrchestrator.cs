@@ -63,7 +63,7 @@ public sealed partial class BlockIngestionOrchestrator(
 
             var chunks = new List<BlockChunk>();
             var globalIndex = 0;
-            foreach (var block in blockExtractor.ExtractBlocks(record.FilePath, cancellationToken))
+            foreach (var block in await blockExtractor.ExtractBlocksAsync(record.FilePath, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
