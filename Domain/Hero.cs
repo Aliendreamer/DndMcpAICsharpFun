@@ -1,11 +1,8 @@
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace DndMcpAICsharpFun.Domain;
 
 public sealed record Hero(long Id, long CampaignId, string Name, DateTime CreatedAt)
 {
     /// <summary>Latest snapshot, populated by the repository as a projection (not a mapped column).</summary>
-    [NotMapped]
     public HeroSnapshot? LatestSnapshot { get; set; }
 }
 

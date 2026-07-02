@@ -29,6 +29,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.HasIndex(r => r.Status);
             e.Property(r => r.Status).HasConversion<string>();
             e.Property(r => r.BookType).HasConversion<string>();
+            e.Property(r => r.FilePath).IsRequired().HasMaxLength(1024);
+            e.Property(r => r.FileName).IsRequired().HasMaxLength(512);
+            e.Property(r => r.FileHash).HasMaxLength(64);
+            e.Property(r => r.Version).IsRequired().HasMaxLength(20);
+            e.Property(r => r.DisplayName).IsRequired().HasMaxLength(200);
+            e.Property(r => r.FivetoolsSourceKey).HasMaxLength(20);
         });
 
         modelBuilder.Entity<User>(e =>
@@ -38,7 +44,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
         modelBuilder.Entity<Campaign>();
 
-        modelBuilder.Entity<Hero>();
+        modelBuilder.Entity<Hero>(e => e.Ignore(h => h.LatestSnapshot));
 
         modelBuilder.Entity<HeroSnapshot>(e =>
         {

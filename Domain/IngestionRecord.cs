@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using DndMcpAICsharpFun.Domain;
 
 namespace DndMcpAICsharpFun.Domain;
@@ -7,19 +6,14 @@ public sealed class IngestionRecord
 {
     public int Id { get; set; }
 
-    [Required, MaxLength(1024)]
     public string FilePath { get; set; } = string.Empty;
 
-    [Required, MaxLength(512)]
     public string FileName { get; set; } = string.Empty;
 
-    [MaxLength(64)]
     public string FileHash { get; set; } = string.Empty;
 
-    [Required, MaxLength(20)]
     public string Version { get; set; } = string.Empty;
 
-    [Required, MaxLength(200)]
     public string DisplayName { get; set; } = string.Empty;
 
     public IngestionStatus Status { get; set; } = IngestionStatus.Pending;
@@ -36,6 +30,5 @@ public sealed class IngestionRecord
 
     public BookType BookType { get; set; } = BookType.Unknown;
 
-    [MaxLength(20)]
     public string? FivetoolsSourceKey { get; set; }
 }
