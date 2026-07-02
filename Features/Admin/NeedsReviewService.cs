@@ -226,9 +226,7 @@ public sealed class NeedsReviewService(
         var all = await tracker.GetAllAsync(1000, 0, ct);
         foreach (var rec in all)
         {
-            var recSlug = rec.FivetoolsSourceKey is { } k
-                ? EntityIdSlug.For(k, EntityType.Class, "x").Split('.')[0]
-                : EntityIdSlug.For(rec.DisplayName, EntityType.Class, "x").Split('.')[0];
+            var recSlug = EntityIdSlug.BookSlug(rec);
             if (string.Equals(recSlug, slug, StringComparison.OrdinalIgnoreCase))
                 return rec.Id;
         }

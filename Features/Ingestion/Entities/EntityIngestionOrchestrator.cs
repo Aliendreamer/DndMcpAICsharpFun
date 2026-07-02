@@ -1,3 +1,4 @@
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Entities;
@@ -43,9 +44,7 @@ public sealed class EntityIngestionOrchestrator(
         var record = await tracker.GetByIdAsync(bookId, ct)
                      ?? throw new InvalidOperationException($"No ingestion record {bookId}");
 
-        var bookSlug = record.FivetoolsSourceKey is { } key
-            ? EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0]
-            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+        var bookSlug = EntityIdSlug.BookSlug(record);
         var path = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".json");
         if (!File.Exists(path))
             throw new FileNotFoundException($"Canonical JSON not found for book {bookId} at {path}", path);
@@ -60,20 +59,8 @@ public sealed class EntityIngestionOrchestrator(
         // Build an in-memory id → envelope map from the local 5etools files, filtered to
         // the source key(s) of the book being ingested (fast, no Qdrant).
         // If the 5etools directory is absent the index is empty and we proceed unenriched.
-        IReadOnlyCollection<string>? sourceFilter = record.FivetoolsSourceKey is { } fk
-            ? [fk] : null;
-
-        IReadOnlyDictionary<string, EntityEnvelope> fivetoolsIndex;
-        try
-        {
-            fivetoolsIndex = await FivetoolsRecordIndex.BuildAsync(
-                _opts.FivetoolsDirectory, sourceFilter, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Could not build 5etools enrichment index — proceeding unenriched");
-            fivetoolsIndex = new Dictionary<string, EntityEnvelope>();
-        }
+        var fivetoolsIndex = await BuildFivetoolsIndexAsync(
+            record, "Could not build 5etools enrichment index — proceeding unenriched", ct);
 
         if (fivetoolsIndex.Count == 0)
             logger.LogInformation(
@@ -97,27 +84,8 @@ public sealed class EntityIngestionOrchestrator(
         {
             ct.ThrowIfCancellationRequested();
 
-            EntityEnvelope merged;
-            if (fivetoolsIndex.TryGetValue(envelope.Id, out var fivetoolsEnvelope))
-            {
-                // 5etools file record exists → use it as the enrichment "existing".
-                // This gives us clean structured values, SRD flags, keywords, clean name.
-                merged = EntityMerger.Merge(envelope, fivetoolsEnvelope);
-                matchedFivetools++;
-            }
-            else if (existingQdrant.TryGetValue(envelope.Id, out var qdrantEnvelope))
-            {
-                // No 5etools match but there is a prior Qdrant point — use it
-                // (preserves manual corrections from prior ingests, etc.).
-                merged = EntityMerger.Merge(envelope, qdrantEnvelope);
-                unmatched++;
-            }
-            else
-            {
-                // No enrichment source at all — ingest canonical as-is.
-                merged = envelope;
-                unmatched++;
-            }
+            var merged = MergeEnrichment(envelope, fivetoolsIndex, existingQdrant, out var matchedThis);
+            if (matchedThis) matchedFivetools++; else unmatched++;
 
             string text;
             try
@@ -129,9 +97,8 @@ public sealed class EntityIngestionOrchestrator(
                 logger.LogWarning(ex, "Skipping entity {Id} — render failed", merged.Id);
                 continue;
             }
-            var ds = string.IsNullOrEmpty(merged.DataSource) ? "llm" : merged.DataSource;
-            var sourceBook = record.FivetoolsSourceKey ?? merged.SourceBook;
-            renderedEnvelopes.Add(merged with { CanonicalText = text, DataSource = ds, SourceBook = sourceBook });
+
+            renderedEnvelopes.Add(WithRenderedText(merged, text, record));
             texts.Add(text);
         }
 
@@ -168,14 +135,13 @@ public sealed class EntityIngestionOrchestrator(
     }
 
     /// <inheritdoc/>
+    /// <inheritdoc/>
     public async Task ReindexEntityAsync(int bookId, string entityId, CancellationToken ct = default)
     {
         var record = await tracker.GetByIdAsync(bookId, ct)
                      ?? throw new InvalidOperationException($"No ingestion record {bookId}");
 
-        var bookSlug = record.FivetoolsSourceKey is { } key
-            ? EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0]
-            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+        var bookSlug = EntityIdSlug.BookSlug(record);
         var path = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".json");
         if (!File.Exists(path))
             throw new FileNotFoundException($"Canonical JSON not found for book {bookId} at {path}", path);
@@ -186,33 +152,16 @@ public sealed class EntityIngestionOrchestrator(
             ?? throw new InvalidOperationException($"Entity '{entityId}' not found in {path}");
 
         // ── Enrichment (same path as IngestEntitiesAsync but for a single entity) ──
-        IReadOnlyCollection<string>? sourceFilter = record.FivetoolsSourceKey is { } fk
-            ? [fk] : null;
+        var fivetoolsIndex = await BuildFivetoolsIndexAsync(
+            record, "Could not build 5etools enrichment index for single-entity reindex — proceeding unenriched", ct);
 
-        IReadOnlyDictionary<string, EntityEnvelope> fivetoolsIndex;
-        try
-        {
-            fivetoolsIndex = await FivetoolsRecordIndex.BuildAsync(
-                _opts.FivetoolsDirectory, sourceFilter, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Could not build 5etools enrichment index for single-entity reindex — proceeding unenriched");
-            fivetoolsIndex = new Dictionary<string, EntityEnvelope>();
-        }
+        // Only fetch the existing Qdrant point when there's no 5etools match — mirrors the
+        // original lazy fetch (the 5etools file record always takes priority when both exist).
+        IReadOnlyDictionary<string, EntityEnvelope> existingQdrant = fivetoolsIndex.ContainsKey(envelope.Id)
+            ? new Dictionary<string, EntityEnvelope>()
+            : await store.GetByIdsAsync([envelope.Id], ct);
 
-        EntityEnvelope merged;
-        if (fivetoolsIndex.TryGetValue(envelope.Id, out var fivetoolsEnvelope))
-        {
-            merged = EntityMerger.Merge(envelope, fivetoolsEnvelope);
-        }
-        else
-        {
-            var existingQdrant = await store.GetByIdsAsync([envelope.Id], ct);
-            merged = existingQdrant.TryGetValue(envelope.Id, out var qdrantEnvelope)
-                ? EntityMerger.Merge(envelope, qdrantEnvelope)
-                : envelope;
-        }
+        var merged = MergeEnrichment(envelope, fivetoolsIndex, existingQdrant, out _);
 
         string text;
         try
@@ -225,9 +174,7 @@ public sealed class EntityIngestionOrchestrator(
             throw;
         }
 
-        var ds = string.IsNullOrEmpty(merged.DataSource) ? "llm" : merged.DataSource;
-        var sourceBook = record.FivetoolsSourceKey ?? merged.SourceBook;
-        var finalEnvelope = merged with { CanonicalText = text, DataSource = ds, SourceBook = sourceBook };
+        var finalEnvelope = WithRenderedText(merged, text, record);
 
         var vectors = await embeddings.EmbedAsync([text], ct);
         var point = new EntityPoint(finalEnvelope, vectors[0], record.FileHash);
@@ -238,5 +185,62 @@ public sealed class EntityIngestionOrchestrator(
         logger.LogInformation(
             "Single-entity reindex complete: book {BookId}, entity {EntityId}",
             bookId, entityId);
+    }
+
+
+    // ── Shared enrich/merge/render helpers (SIM-08/STR-08) ─────────────────────
+    // Used by both IngestEntitiesAsync (batch, per-book) and ReindexEntityAsync
+    // (single entity). The batch caller pre-fetches `existingQdrant` for all entity ids in
+    // one round trip; the single-entity caller fetches it lazily only when there is no
+    // 5etools match — both preserved exactly as before factoring.
+
+    private async Task<IReadOnlyDictionary<string, EntityEnvelope>> BuildFivetoolsIndexAsync(
+        IngestionRecord record, string warningMessage, CancellationToken ct)
+    {
+        IReadOnlyCollection<string>? sourceFilter = record.FivetoolsSourceKey is { } fk
+            ? [fk] : null;
+
+        try
+        {
+            return await FivetoolsRecordIndex.BuildAsync(_opts.FivetoolsDirectory, sourceFilter, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, warningMessage);
+            return new Dictionary<string, EntityEnvelope>();
+        }
+    }
+
+    private static EntityEnvelope MergeEnrichment(
+        EntityEnvelope envelope,
+        IReadOnlyDictionary<string, EntityEnvelope> fivetoolsIndex,
+        IReadOnlyDictionary<string, EntityEnvelope> existingQdrant,
+        out bool matchedFivetools)
+    {
+        if (fivetoolsIndex.TryGetValue(envelope.Id, out var fivetoolsEnvelope))
+        {
+            // 5etools file record exists → use it as the enrichment "existing".
+            // This gives us clean structured values, SRD flags, keywords, clean name.
+            matchedFivetools = true;
+            return EntityMerger.Merge(envelope, fivetoolsEnvelope);
+        }
+
+        matchedFivetools = false;
+        if (existingQdrant.TryGetValue(envelope.Id, out var qdrantEnvelope))
+        {
+            // No 5etools match but there is a prior Qdrant point — use it
+            // (preserves manual corrections from prior ingests, etc.).
+            return EntityMerger.Merge(envelope, qdrantEnvelope);
+        }
+
+        // No enrichment source at all — ingest canonical as-is.
+        return envelope;
+    }
+
+    private static EntityEnvelope WithRenderedText(EntityEnvelope merged, string text, IngestionRecord record)
+    {
+        var ds = string.IsNullOrEmpty(merged.DataSource) ? "llm" : merged.DataSource;
+        var sourceBook = record.FivetoolsSourceKey ?? merged.SourceBook;
+        return merged with { CanonicalText = text, DataSource = ds, SourceBook = sourceBook };
     }
 }

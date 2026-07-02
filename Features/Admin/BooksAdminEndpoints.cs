@@ -62,7 +62,7 @@ public static partial class BooksAdminEndpoints
         if (record is null)
             return Results.NotFound($"Book with id {id} not found");
 
-        var slug = EntityIdSlug.For(record.FivetoolsSourceKey ?? record.DisplayName, EntityType.Class, "x").Split('.')[0];
+        var slug = EntityIdSlug.BookSlug(record);
         var path = Path.Combine(opts.Value.CanonicalDirectory, slug + ".json");
 
         if (!File.Exists(path))
@@ -342,9 +342,7 @@ public static partial class BooksAdminEndpoints
     }
 
     private static string CanonicalSlugFor(IngestionRecord record) =>
-        record.FivetoolsSourceKey is { } key
-            ? EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0]
-            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+        EntityIdSlug.BookSlug(record);
 }
 
 [ExcludeFromCodeCoverage]

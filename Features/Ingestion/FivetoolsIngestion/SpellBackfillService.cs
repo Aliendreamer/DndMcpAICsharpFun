@@ -54,7 +54,7 @@ public sealed class SpellBackfillService
             return new SpellBackfillResult(false, null, Array.Empty<EntityEnvelope>(), 0);
 
         // Canonical slug derives from the source key (e.g. PHB → phb14) via the id-slug override table.
-        var slug = EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0];
+        var slug = EntityIdSlug.BookSlug(key);
         var canonicalPath = Path.Combine(_canonicalDirectory, slug + ".json");
 
         // Collect existing Spell entity normalized names (the gap diff key).

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using DndMcpAICsharpFun.Domain;
 
 namespace DndMcpAICsharpFun.Domain.Entities;
 
@@ -41,6 +42,13 @@ public static class EntityIdSlug
         var nameSlug = SlugifyName(name);
         return $"{bookSlug}.{typeSlug}.{nameSlug}";
     }
+
+
+    /// <summary>The book-slug prefix (e.g. "phb14") for a raw book key (a 5etools source key or a display name).</summary>
+    public static string BookSlug(string bookKey) => For(bookKey, EntityType.Class, "x").Split('.')[0];
+
+    /// <summary>The book-slug prefix for an ingestion record: its 5etools source key when present, else its display name.</summary>
+    public static string BookSlug(IngestionRecord record) => BookSlug(record.FivetoolsSourceKey ?? record.DisplayName);
 
     private static string SlugifyBook(string book) => SlugifyName(book);
 

@@ -53,9 +53,7 @@ public sealed partial class BookDeletionService(
     }
 
     private static string CanonicalSlugOf(IngestionRecord record) =>
-        record.FivetoolsSourceKey is { } key
-            ? EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0]
-            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+        EntityIdSlug.BookSlug(record);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleted book {DisplayName} (id={Id})")]
     private static partial void LogBookDeleted(ILogger logger, string displayName, int id);
