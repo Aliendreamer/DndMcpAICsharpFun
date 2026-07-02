@@ -50,10 +50,6 @@ public static partial class BooksAdminEndpoints
         CancellationToken ct)
         => EnqueueOrFailAsync(id, IngestionWorkType.IngestEntities, tracker, queue, ct);
 
-    /// <summary>
-    /// Shared handler for book-level enqueue endpoints (IngestBlocks, IngestEntities).
-    /// Returns NotFound, Conflict, or Accepted after looking up the book and checking its status.
-    /// </summary>
     private static async Task<IResult> ProjectStructured(
         int id,
         [FromServices] IIngestionTracker tracker,
@@ -77,6 +73,10 @@ public static partial class BooksAdminEndpoints
         return Results.Ok(new { tables = t, rows = r, choiceSets = c });
     }
 
+    /// <summary>
+    /// Shared handler for book-level enqueue endpoints (IngestBlocks, IngestEntities).
+    /// Returns NotFound, Conflict, or Accepted after looking up the book and checking its status.
+    /// </summary>
     private static async Task<IResult> EnqueueOrFailAsync(
         int id,
         IngestionWorkType workType,

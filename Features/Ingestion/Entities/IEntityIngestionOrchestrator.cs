@@ -23,8 +23,4 @@ public interface IEntityIngestionOrchestrator
 public sealed record EntityIngestionResult(
     int TotalEntities,
     int MatchedFivetools,
-    int Unmatched)
-{
-    /// <summary>Alias for <see cref="MatchedFivetools"/> — all matched entities were enriched.</summary>
-    public int Enriched => MatchedFivetools;
-}
+    int Unmatched);

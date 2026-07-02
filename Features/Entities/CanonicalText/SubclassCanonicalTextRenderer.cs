@@ -4,7 +4,7 @@ using DndMcpAICsharpFun.Domain.Entities.Fields;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;
 
-public sealed class SubclassCanonicalTextRenderer : IEntityCanonicalTextRenderer<SubclassFields>
+public sealed class SubclassCanonicalTextRenderer
 {
     public string Render(string name, SubclassFields f)
     {

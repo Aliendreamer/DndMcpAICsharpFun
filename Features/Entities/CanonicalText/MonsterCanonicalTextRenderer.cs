@@ -5,7 +5,7 @@ using DndMcpAICsharpFun.Domain.Entities.Fields;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;
 
-public sealed class MonsterCanonicalTextRenderer : IEntityCanonicalTextRenderer<MonsterFields>
+public sealed class MonsterCanonicalTextRenderer
 {
     private static readonly Regex TagRx = new(@"\{@\w+\s([^|}]+)[^}]*\}", RegexOptions.Compiled);
 

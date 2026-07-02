@@ -5,7 +5,7 @@ using DndMcpAICsharpFun.Domain.Entities.Fields;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;
 
-public sealed class SpellCanonicalTextRenderer : IEntityCanonicalTextRenderer<SpellFields>
+public sealed class SpellCanonicalTextRenderer
 {
     private static readonly Regex TagRx = new(@"\{@\w+\s([^|}]+)[^}]*\}", RegexOptions.Compiled);
 

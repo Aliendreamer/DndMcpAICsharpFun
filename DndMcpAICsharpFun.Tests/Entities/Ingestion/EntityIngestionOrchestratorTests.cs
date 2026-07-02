@@ -543,7 +543,6 @@ public class EntityIngestionOrchestratorEnrichmentTests
             result.TotalEntities.Should().Be(2);
             result.MatchedFivetools.Should().Be(1);
             result.Unmatched.Should().Be(1);
-            result.Enriched.Should().Be(1);
         }
         finally { Directory.Delete(tmp, recursive: true); }
     }
