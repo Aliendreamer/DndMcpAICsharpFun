@@ -8,7 +8,7 @@
 ## 2. Async + resource hygiene
 
 - [x] 2.1 Propagate `CancellationToken` to block deletion (NET-04, `Features/Ingestion/BlockIngestionOrchestrator.cs:55`)
-- [ ] 2.2 Make `IPdfBlockExtractor` async; await conversion instead of blocking (NET-06, `Pdf/StructureBlockExtractor.cs:11`)
+- [x] 2.2 Make `IPdfBlockExtractor` async; await conversion instead of blocking (NET-06, `Pdf/StructureBlockExtractor.cs:11`) — `Task<IReadOnlyList<PdfBlock>> ExtractBlocksAsync`
 - [x] 2.3 Batch the projector's `SaveChangesAsync` (NET-07, `Features/Resolution/StructuredFactProjector.cs:24`)
 - [x] 2.4 Evict/dispose per-key semaphores (NET-05, `EntityExtraction/CanonicalJsonWriter.cs:9`)
 - [x] 2.5 Distinguish + log web-search failures with the exception (NET-11, `Features/Search/SearXNGClient.cs:34`)
@@ -31,5 +31,5 @@
 
 ## 5. Verify + close
 
-- [ ] 5.1 `dotnet build` + `dotnet test` green (Docker up for persistence tests)
-- [ ] 5.2 Confirm each finding (NET-01..07/11/12, COR-01/03/04/07/08/09/13/18/19/20/21) is addressed
+- [x] 5.1 `dotnet build` + `dotnet test` green (Docker up for persistence tests) — 846/846, 0 warnings/0 errors
+- [x] 5.2 Confirm each finding (NET-01..07/11/12, COR-01/03/04/07/08/09/13/18/19/20/21) is addressed
