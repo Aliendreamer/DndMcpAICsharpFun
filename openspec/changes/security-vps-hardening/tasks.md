@@ -1,7 +1,7 @@
 ## 1. Auth backdoor + MCP IDOR (Critical/Important)
 
 - [x] 1.1 Make the `test`/`test` seed configurable via a flag (default on for local; disable-able in production); keep the account for local testing (SEC-02, `Extensions/AppExtensions.cs:13`)
-- [ ] 1.2 DEFERRED — needs design decision. Scope `resolve_character_feature` to the calling user's identity; deny cross-tenant snapshot ids (SEC-08, `Features/Mcp/DndMcpTools.cs:158`). The MCP surface is reached over a loopback HTTP call (shared `Mcp:ApiKey`), so the user's cookie identity is lost at the MCP boundary — a small edit cannot fix it. Two options: (a) thread the authenticated user id through the loopback call and verify the snapshot→hero→campaign→user chain, or (b) move character-scoped resolution off the shared-key MCP surface into an in-process AI tool that closes over the signed-in user. Awaiting the user's choice.
+- [x] 1.2 SPLIT OUT — SEC-08 moved to its own change `mcp-user-scoped-authorization` (needs a design decision: thread identity through the loopback, or move resolution off the shared-key MCP surface). Tracked in the roadmap.
 
 ## 2. Rate limiting + public surface
 

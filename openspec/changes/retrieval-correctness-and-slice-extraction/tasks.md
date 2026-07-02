@@ -1,8 +1,8 @@
 ## 1. BM25 correctness
 
-- [ ] 1.1 Replace `GetHashCode` term indexing with a stable hash (FNV-1a/xxHash over UTF-8); add golden-value test (COR-16, COR-17, `Features/Ingestion/Bm25Vectorizer.cs:62,69`)
-- [ ] 1.2 Compute IDF/avgDocLen from persisted corpus-wide statistics, reused at query time (COR-15, `Bm25Vectorizer.cs:40`)
-- [ ] 1.3 Preserve alphanumeric tokens in the tokenizer (COR-14, `Bm25Vectorizer.cs:9`)
+- [x] 1.1 Replace `GetHashCode` term indexing with a stable hash (FNV-1a/xxHash over UTF-8); add golden-value test (COR-16, COR-17, `Features/Ingestion/Bm25Vectorizer.cs:62,69`)
+- [x] 1.2 SPLIT OUT — COR-15 (corpus-global IDF) moved to its own change `bm25-corpus-statistics` (needs a persisted corpus-statistics store). Tracked in the roadmap.
+- [x] 1.3 Preserve alphanumeric tokens in the tokenizer (COR-14, `Bm25Vectorizer.cs:9`)
 
 ## 2. Shared sparse-search kernel
 
@@ -11,7 +11,7 @@
 
 ## 3. Retrieval-slice cleanup
 
-- [ ] 3.1 Delete dead `IReranker.SelectTopN` + unused `RerankerOptions.TopN` (SIM-17, SIM-18)
+- [x] 3.1 Delete dead `IReranker.SelectTopN` + unused `RerankerOptions.TopN` (SIM-17, SIM-18)
 - [ ] 3.2 De-duplicate public/diagnostic endpoint scaffolding (SIM-19, `Features/Retrieval/RetrievalEndpoints.cs`)
 - [ ] 3.3 Move reranker DI into `AddRetrieval()` (STR-17, `Program.cs:62`)
 - [ ] 3.4 Use `IHttpClientFactory` in `ModelDownloader`; log failures with exception; remove `= default!` reliance (NET-08, NET-09, NET-10)
