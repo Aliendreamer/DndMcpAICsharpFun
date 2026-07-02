@@ -6,7 +6,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 public abstract class FivetoolsMapperBase : IFivetoolsEntityMapper
 {
     // Sources released under the 2024 D&D ruleset revision.
-    private static readonly HashSet<string> Edition2024Sources = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly HashSet<string> Edition2024Sources = new(StringComparer.OrdinalIgnoreCase)
         { "PHB24", "DMG24", "MM25", "XPHB", "XDMG" };
 
     protected abstract EntityType EntityType { get; }

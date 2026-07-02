@@ -13,28 +13,6 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 /// </summary>
 public static class FivetoolsRecordIndex
 {
-    private static readonly Dictionary<EntityType, IFivetoolsEntityMapper> Mappers = new()
-    {
-        [EntityType.Class]         = new Mappers.FivetoolsClassMapper(),
-        [EntityType.Subclass]      = new Mappers.FivetoolsSubclassMapper(),
-        [EntityType.Spell]         = new Mappers.FivetoolsSpellMapper(),
-        [EntityType.Monster]       = new Mappers.FivetoolsMonsterMapper(),
-        [EntityType.Race]          = new Mappers.FivetoolsRaceMapper(),
-        [EntityType.Subrace]       = new Mappers.FivetoolsSubraceMapper(),
-        [EntityType.Background]    = new Mappers.FivetoolsBackgroundMapper(),
-        [EntityType.Feat]          = new Mappers.FivetoolsFeatMapper(),
-        [EntityType.Item]          = new Mappers.FivetoolsItemMapper(),
-        [EntityType.MagicItem]     = new Mappers.FivetoolsMagicItemMapper(),
-        [EntityType.Weapon]        = new Mappers.FivetoolsWeaponMapper(),
-        [EntityType.Armor]         = new Mappers.FivetoolsArmorMapper(),
-        [EntityType.God]           = new Mappers.FivetoolsGodMapper(),
-        [EntityType.Trap]          = new Mappers.FivetoolsTrapMapper(),
-        [EntityType.Condition]     = new Mappers.FivetoolsConditionMapper(),
-        [EntityType.DiseasePoison] = new Mappers.FivetoolsDiseasePoisonMapper(),
-        [EntityType.VehicleMount]  = new Mappers.FivetoolsVehicleMapper(),
-        [EntityType.Rule]          = new Mappers.FivetoolsRuleMapper(),
-    };
-
     /// <summary>
     /// Builds the index from the given <paramref name="fivetoolsBaseDir"/> (defaults to "5etools").
     /// </summary>
@@ -93,7 +71,7 @@ public static class FivetoolsRecordIndex
             if (!File.Exists(filePath))
                 continue;
 
-            if (!Mappers.TryGetValue(entry.EntityType, out var mapper))
+            if (!FivetoolsMapperRegistry.Mappers.TryGetValue(entry.EntityType, out var mapper))
                 continue;
 
             await using var stream = File.OpenRead(filePath);

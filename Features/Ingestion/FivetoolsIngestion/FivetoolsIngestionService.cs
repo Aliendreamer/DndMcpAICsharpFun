@@ -2,7 +2,6 @@ using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
-using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Mappers;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using Microsoft.Extensions.Logging;
 
@@ -14,28 +13,6 @@ public sealed class FivetoolsIngestionService(
     EntityCanonicalTextDispatcher dispatcher,
     ILogger<FivetoolsIngestionService> logger)
 {
-    private static readonly Dictionary<EntityType, IFivetoolsEntityMapper> Mappers = new()
-    {
-        [EntityType.Class]         = new FivetoolsClassMapper(),
-        [EntityType.Subclass]      = new FivetoolsSubclassMapper(),
-        [EntityType.Spell]         = new FivetoolsSpellMapper(),
-        [EntityType.Monster]       = new FivetoolsMonsterMapper(),
-        [EntityType.Race]          = new FivetoolsRaceMapper(),
-        [EntityType.Subrace]       = new FivetoolsSubraceMapper(),
-        [EntityType.Background]    = new FivetoolsBackgroundMapper(),
-        [EntityType.Feat]          = new FivetoolsFeatMapper(),
-        [EntityType.Item]          = new FivetoolsItemMapper(),
-        [EntityType.MagicItem]     = new FivetoolsMagicItemMapper(),
-        [EntityType.Weapon]        = new FivetoolsWeaponMapper(),
-        [EntityType.Armor]         = new FivetoolsArmorMapper(),
-        [EntityType.God]           = new FivetoolsGodMapper(),
-        [EntityType.Trap]          = new FivetoolsTrapMapper(),
-        [EntityType.Condition]     = new FivetoolsConditionMapper(),
-        [EntityType.DiseasePoison] = new FivetoolsDiseasePoisonMapper(),
-        [EntityType.VehicleMount]  = new FivetoolsVehicleMapper(),
-        [EntityType.Rule]          = new FivetoolsRuleMapper(),
-    };
-
     public async Task ImportAllAsync(CancellationToken ct = default)
     {
         var allEnvelopes = new List<EntityEnvelope>();
@@ -48,7 +25,7 @@ public sealed class FivetoolsIngestionService(
                 logger.LogWarning("5etools file not found, skipping: {Path}", entry.RelativePath);
                 continue;
             }
-            if (!Mappers.TryGetValue(entry.EntityType, out var mapper))
+            if (!FivetoolsMapperRegistry.Mappers.TryGetValue(entry.EntityType, out var mapper))
             {
                 logger.LogWarning("No mapper for entity type {Type}, skipping {Path}", entry.EntityType, entry.RelativePath);
                 continue;
@@ -130,7 +107,7 @@ public sealed class FivetoolsIngestionService(
         {
             ct.ThrowIfCancellationRequested();
             if (!File.Exists(entry.RelativePath)) continue;
-            if (!Mappers.TryGetValue(entry.EntityType, out var mapper)) continue;
+            if (!FivetoolsMapperRegistry.Mappers.TryGetValue(entry.EntityType, out var mapper)) continue;
 
             await using var stream = File.OpenRead(entry.RelativePath);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);

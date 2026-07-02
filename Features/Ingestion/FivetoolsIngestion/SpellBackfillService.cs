@@ -25,10 +25,6 @@ public sealed record SpellBackfillResult(
 /// </summary>
 public sealed class SpellBackfillService
 {
-    // Sources released under the 2024 D&D ruleset revision (mirrors FivetoolsMapperBase).
-    private static readonly HashSet<string> Edition2024Sources = new(StringComparer.OrdinalIgnoreCase)
-        { "PHB24", "DMG24", "MM25", "XPHB", "XDMG" };
-
     private readonly BookSourceRegistry _books;
     private readonly CanonicalJsonLoader _loader;
     private readonly string _canonicalDirectory;
@@ -72,7 +68,7 @@ public sealed class SpellBackfillService
         }
 
         var info = _books.TryGetBook(key);
-        var edition = ((info is not null && info.PublishedYear >= 2024) || Edition2024Sources.Contains(key))
+        var edition = ((info is not null && info.PublishedYear >= 2024) || FivetoolsMapperBase.Edition2024Sources.Contains(key))
             ? "Edition2024"
             : "Edition2014";
 
