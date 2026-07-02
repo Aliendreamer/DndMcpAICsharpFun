@@ -49,8 +49,18 @@ public sealed class MinerUPdfConverter(
         resp.EnsureSuccessStatusCode();
 
         var payload = await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
-        var first = payload.GetProperty("results").EnumerateObject().First().Value;
-        var contentListJson = first.GetProperty("content_list").GetString() ?? "[]";
+        if (!payload.TryGetProperty("results", out var results) || results.ValueKind != JsonValueKind.Object)
+            throw new InvalidOperationException(
+                $"MinerU response for '{fileName}' has no 'results' object (got {payload.ValueKind}).");
+        var firstResult = results.EnumerateObject().FirstOrDefault();
+        if (firstResult.Value.ValueKind != JsonValueKind.Object)
+            throw new InvalidOperationException(
+                $"MinerU response for '{fileName}' contains an empty 'results' object.");
+        var first = firstResult.Value;
+        if (!first.TryGetProperty("content_list", out var contentListEl))
+            throw new InvalidOperationException(
+                $"MinerU response for '{fileName}' is missing 'content_list'.");
+        var contentListJson = contentListEl.GetString() ?? "[]";
         var blocks = JsonSerializer.Deserialize<List<MinerUBlock>>(contentListJson) ?? [];
 
         var items = new List<PdfStructureItem>(blocks.Count + 256);

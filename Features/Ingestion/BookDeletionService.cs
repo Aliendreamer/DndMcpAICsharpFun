@@ -31,11 +31,13 @@ public sealed partial class BookDeletionService(
         if (!string.IsNullOrEmpty(record.FileHash))
             await entityStore.DeleteByFileHashAsync(record.FileHash, cancellationToken);
 
-        var canonicalSlug = record.FivetoolsSourceKey is { } key
-            ? EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0]
-            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
+        var canonicalSlug = CanonicalSlugOf(record);
         var canonicalPath = Path.Combine(entityIngestionOptions.Value.CanonicalDirectory, canonicalSlug + ".json");
-        if (File.Exists(canonicalPath))
+        // Only delete the canonical file when no OTHER book resolves to the same slug — otherwise a
+        // slug collision would delete a different book's canonical file (COR-18).
+        var allRecords = await tracker.GetAllAsync(int.MaxValue, 0, cancellationToken);
+        var slugSharedByOther = allRecords.Any(r => r.Id != id && CanonicalSlugOf(r) == canonicalSlug);
+        if (!slugSharedByOther && File.Exists(canonicalPath))
         {
             File.Delete(canonicalPath);
             LogCanonicalDeleted(logger, id, canonicalPath);
@@ -48,6 +50,11 @@ public sealed partial class BookDeletionService(
         LogBookDeleted(logger, record.DisplayName, id);
         return DeleteBookResult.Deleted;
     }
+
+    private static string CanonicalSlugOf(IngestionRecord record) =>
+        record.FivetoolsSourceKey is { } key
+            ? EntityIdSlug.For(key, EntityType.Class, "x").Split('.')[0]
+            : EntityIdSlug.For(record.DisplayName, EntityType.Class, "x").Split('.')[0];
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleted book {DisplayName} (id={Id})")]
     private static partial void LogBookDeleted(ILogger logger, string displayName, int id);

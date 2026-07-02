@@ -36,7 +36,9 @@ public sealed class SearXNGClient(
         }
         catch (Exception ex)
         {
-            logger.LogWarning("SearXNG search failed: {Message}", ex.Message);
+            // Log the full exception (transport/deserialization failure) so a genuine error is
+            // distinguishable from a legitimate empty result set (NET-11).
+            logger.LogWarning(ex, "SearXNG search failed; returning no results for this query.");
             return [];
         }
     }

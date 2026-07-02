@@ -5,7 +5,10 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
 public sealed class CanonicalJsonWriter
 {
-    // Per-book-path write lock — serialises concurrent resolves on the same file.
+    // Per-book-path write lock — serialises concurrent resolves on the same file. The number of
+    // distinct canonical paths is bounded by the (small) number of registered books, so these
+    // never-disposed semaphores are an accepted, bounded trade-off rather than an unbounded leak
+    // (NET-05).
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim>
         _fileLocks = new(StringComparer.OrdinalIgnoreCase);
 

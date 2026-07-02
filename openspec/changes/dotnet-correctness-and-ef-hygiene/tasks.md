@@ -7,18 +7,18 @@
 
 ## 2. Async + resource hygiene
 
-- [ ] 2.1 Propagate `CancellationToken` to block deletion (NET-04, `Features/Ingestion/BlockIngestionOrchestrator.cs:55`)
+- [x] 2.1 Propagate `CancellationToken` to block deletion (NET-04, `Features/Ingestion/BlockIngestionOrchestrator.cs:55`)
 - [ ] 2.2 Make `IPdfBlockExtractor` async; await conversion instead of blocking (NET-06, `Pdf/StructureBlockExtractor.cs:11`)
 - [ ] 2.3 Batch the projector's `SaveChangesAsync` (NET-07, `Features/Resolution/StructuredFactProjector.cs:24`)
-- [ ] 2.4 Evict/dispose per-key semaphores (NET-05, `EntityExtraction/CanonicalJsonWriter.cs:9`)
-- [ ] 2.5 Distinguish + log web-search failures with the exception (NET-11, `Features/Search/SearXNGClient.cs:34`)
+- [x] 2.4 Evict/dispose per-key semaphores (NET-05, `EntityExtraction/CanonicalJsonWriter.cs:9`)
+- [x] 2.5 Distinguish + log web-search failures with the exception (NET-11, `Features/Search/SearXNGClient.cs:34`)
 
 ## 3. Data-path logic bugs
 
-- [ ] 3.1 Guard slug-collision canonical deletion (COR-18, `Features/Ingestion/BookDeletionService.cs:33`)
+- [x] 3.1 Guard slug-collision canonical deletion (COR-18, `Features/Ingestion/BookDeletionService.cs:33`)
 - [ ] 3.2 Propagate table/choice-set removals on re-projection (COR-21, `StructuredFactProjector.cs:30`)
-- [ ] 3.3 Render ability lines only when values present (COR-13, `CanonicalText/MonsterCanonicalTextRenderer.cs:84`)
-- [ ] 3.4 Throw descriptive errors on malformed MinerU responses (COR-19, `Pdf/MinerUPdfConverter.cs:56`)
+- [x] 3.3 Render ability lines only when values present (COR-13, `CanonicalText/MonsterCanonicalTextRenderer.cs:84`)
+- [x] 3.4 Throw descriptive errors on malformed MinerU responses (COR-19, `Pdf/MinerUPdfConverter.cs:56`)
 - [ ] 3.5 Attribute computed `saveDC` provenance correctly (COR-20, `Features/Resolution/CharacterResolutionService.cs:152`)
 
 ## 4. Test hygiene

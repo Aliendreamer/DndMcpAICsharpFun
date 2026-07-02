@@ -67,11 +67,17 @@ public sealed class MonsterCanonicalTextRenderer : IEntityCanonicalTextRenderer<
             sb.AppendLine($"Speed {string.Join(", ", parts)}");
         }
 
-        // Ability scores
-        if (f.Str.HasValue || f.Dex.HasValue || f.Con.HasValue)
-        {
-            sb.AppendLine($"STR {f.Str} DEX {f.Dex} CON {f.Con} INT {f.Int} WIS {f.Wis} CHA {f.Cha}");
-        }
+        // Ability scores — emit only the scores that are present so partial stat blocks do not
+        // render blank "DEX  INT " gaps (COR-13).
+        var abilities = new List<string>(6);
+        if (f.Str.HasValue) abilities.Add($"STR {f.Str}");
+        if (f.Dex.HasValue) abilities.Add($"DEX {f.Dex}");
+        if (f.Con.HasValue) abilities.Add($"CON {f.Con}");
+        if (f.Int.HasValue) abilities.Add($"INT {f.Int}");
+        if (f.Wis.HasValue) abilities.Add($"WIS {f.Wis}");
+        if (f.Cha.HasValue) abilities.Add($"CHA {f.Cha}");
+        if (abilities.Count > 0)
+            sb.AppendLine(string.Join(" ", abilities));
 
         // CR
         var crText = ExtractCr(f.Cr);
