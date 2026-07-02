@@ -16,9 +16,9 @@
 
 ## 3. Adversarial verification
 
-- [ ] 3.1 Merge/dedup findings by `file:line`; assign stable IDs and provisional severity
-- [ ] 3.2 Refute-pass every Critical/Important finding against live code; drop/downgrade refuted ones, keep refutation notes
-- [ ] 3.3 Spot-check Minor findings during synthesis
+- [x] 3.1 Merge/dedup findings by `file:line`; assign stable IDs and provisional severity
+- [x] 3.2 Refute-pass every Critical/Important finding against live code; drop/downgrade refuted ones, keep refutation notes
+- [x] 3.3 Spot-check Minor findings during synthesis
 
 ## 4. Report + finish
 
