@@ -7,12 +7,12 @@
 
 ## 2. Parallel dimension audits (agent fan-out, read-only)
 
-- [ ] 2.1 Security audit over the manifest (VPS threat model; endpoint auth classification; secrets handling; ingestion SSRF/path traversal; rate limiting; cookies/headers)
-- [ ] 2.2 Structure/architecture audit (slice boundaries, Domain purity, dependency direction, oversized files)
-- [ ] 2.3 .NET best-practices audit (async correctness, DI lifetimes, EF Core patterns, nullability, disposal, cancellation)
-- [ ] 2.4 Simplification audit (dead code, duplication, over-abstraction, unused packages)
-- [ ] 2.5 Correctness + tests + infra audit (logic bugs, races, test smells/gaps on critical paths, Dockerfile/compose hygiene, `.http`/insomnia contract drift)
-- [ ] 2.6 Reconcile visited/skipped ledgers against the manifest; re-dispatch any gaps until coverage is complete
+- [x] 2.1 Security audit over the manifest (VPS threat model; endpoint auth classification; secrets handling; ingestion SSRF/path traversal; rate limiting; cookies/headers)
+- [x] 2.2 Structure/architecture audit (slice boundaries, Domain purity, dependency direction, oversized files)
+- [x] 2.3 .NET best-practices audit (async correctness, DI lifetimes, EF Core patterns, nullability, disposal, cancellation)
+- [x] 2.4 Simplification audit (dead code, duplication, over-abstraction, unused packages)
+- [x] 2.5 Correctness + tests + infra audit (logic bugs, races, test smells/gaps on critical paths, Dockerfile/compose hygiene, `.http`/insomnia contract drift)
+- [x] 2.6 Reconcile visited/skipped ledgers against the manifest; re-dispatch any gaps until coverage is complete
 
 ## 3. Adversarial verification
 
