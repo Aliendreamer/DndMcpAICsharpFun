@@ -9,11 +9,8 @@ using DndMcpAICsharpFun.Features.Resolution;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
-using DndMcpAICsharpFun.Infrastructure.Ingestion;
 
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
-using Microsoft.Net.Http.Headers;
 
 namespace DndMcpAICsharpFun.Features.Admin;
 
@@ -185,110 +182,19 @@ public static partial class BooksAdminEndpoints
 
     private static async Task<IResult> RegisterBook(
         HttpContext httpContext,
-        IIngestionTracker tracker,
-        BookSourceRegistry registry,
-        IOptions<IngestionOptions> ingestionOptions,
-        ILogger<RegisterBookRequest> logger,
+        BookRegistrationService registration,
         CancellationToken ct)
     {
-        var contentType = httpContext.Request.ContentType;
-        if (string.IsNullOrEmpty(contentType) ||
-            !contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase))
-            return Results.Problem("Expected multipart/form-data.", statusCode: 400);
-
-        var boundary = HeaderUtilities.RemoveQuotes(
-            MediaTypeHeaderValue.Parse(contentType).Boundary).Value;
-        if (string.IsNullOrEmpty(boundary))
-            return Results.Problem("Missing multipart boundary.", statusCode: 400);
-
-        var booksPath = ingestionOptions.Value.BooksPath;
-        Directory.CreateDirectory(booksPath);
-
-        string? version = null, displayName = null, originalFileName = null, filePath = null;
-        string? bookTypeRaw = null;
-        string? fivetoolsSourceKey = null;
-
-        var reader = new MultipartReader(boundary, httpContext.Request.Body);
-        var section = await reader.ReadNextSectionAsync(ct);
-        try
+        var result = await registration.RegisterAsync(
+            httpContext.Request.ContentType, httpContext.Request.Body, ct);
+        return result switch
         {
-            while (section is not null)
-            {
-                if (!ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var cd))
-                {
-                    section = await reader.ReadNextSectionAsync(ct);
-                    continue;
-                }
-
-                if (cd.FileName.HasValue || cd.FileNameStar.HasValue)
-                {
-                    var rawName = (cd.FileNameStar.HasValue ? cd.FileNameStar.Value : cd.FileName.Value) ?? string.Empty;
-                    originalFileName = SanitizeDisplayFileName(rawName);
-                    if (!originalFileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-                        return Results.Problem("Only PDF files are accepted.", statusCode: 400);
-
-                    filePath = Path.Combine(booksPath, $"{Guid.NewGuid():N}.pdf");
-                    await using var dest = File.Create(filePath);
-                    await section.Body.CopyToAsync(dest, ct);
-                }
-                else if (cd.Name.HasValue)
-                {
-                    using var sr = new StreamReader(section.Body);
-                    var value = await sr.ReadToEndAsync(ct);
-                    switch (cd.Name.Value)
-                    {
-                        case "version": version = value; break;
-                        case "displayName": displayName = value; break;
-                        case "bookType": bookTypeRaw = value; break;
-                        case "fivetoolsSourceKey": fivetoolsSourceKey = value; break;
-                    }
-                }
-
-                section = await reader.ReadNextSectionAsync(ct);
-            }
-
-            if (filePath is null || originalFileName is null)
-                return Results.Problem("file is required.", statusCode: 400);
-            if (string.IsNullOrEmpty(displayName))
-                return Results.Problem("displayName is required.", statusCode: 400);
-            if (!Enum.TryParse<DndVersion>(version, ignoreCase: true, out var parsedVersion))
-                return Results.Problem(
-                    $"Invalid version '{version}'. Valid values: {string.Join(", ", Enum.GetNames<DndVersion>())}",
-                    statusCode: 400);
-
-            var bookType = Enum.TryParse<BookType>(bookTypeRaw, ignoreCase: true, out var parsedType)
-                ? parsedType
-                : BookType.Unknown;
-
-            if (fivetoolsSourceKey is not null && registry.TryGetBook(fivetoolsSourceKey) is null)
-                return Results.UnprocessableEntity(
-                    $"Unknown fivetoolsSourceKey '{fivetoolsSourceKey}'. Call GET /admin/5etools/sources for valid values.");
-
-            var record = new IngestionRecord
-            {
-                FilePath = filePath,
-                FileName = originalFileName,
-                FileHash = string.Empty,
-                Version = parsedVersion.ToString(),
-                DisplayName = displayName,
-                Status = IngestionStatus.Pending,
-                BookType = bookType,
-                FivetoolsSourceKey = fivetoolsSourceKey,
-            };
-
-            var created = await tracker.CreateAsync(record, ct);
-            LogBookRegistered(logger, created.DisplayName, created.Id, originalFileName);
-            filePath = null;
-            var suggestions = fivetoolsSourceKey is null
-                ? registry.SuggestByName(displayName ?? "")
-                : (IReadOnlyList<string>)Array.Empty<string>();
-            return Results.Created($"/admin/books/{created.Id}", new RegisterBookResponse(created, suggestions));
-        }
-        finally
-        {
-            if (filePath is not null && File.Exists(filePath))
-                File.Delete(filePath);
-        }
+            BookRegistrationResult.Success s =>
+                Results.Created($"/admin/books/{s.Record.Id}", new RegisterBookResponse(s.Record, s.Suggestions)),
+            BookRegistrationResult.Unprocessable u => Results.UnprocessableEntity(u.Message),
+            BookRegistrationResult.BadRequest b => Results.Problem(b.Message, statusCode: 400),
+            _ => Results.Problem("Unknown registration error.", statusCode: 500),
+        };
     }
 
     private static async Task<IResult> GetAllBooks(
@@ -300,12 +206,6 @@ public static partial class BooksAdminEndpoints
         var records = await tracker.GetAllAsync(limit, offset, ct);
         return Results.Ok(records);
     }
-
-    
-
-    
-
-    
 
     private static async Task<IResult> DeleteBook(
         int id,
@@ -320,25 +220,6 @@ public static partial class BooksAdminEndpoints
             DeleteBookResult.Conflict => Results.Conflict("Book is currently being ingested. Wait for ingestion to complete before deleting."),
             _ => Results.StatusCode(500)
         };
-    }
-
-    
-
-    
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Registered book {DisplayName} (id={Id}, file={File})")]
-    private static partial void LogBookRegistered(ILogger logger, string displayName, int id, string file);
-
-    private static string SanitizeDisplayFileName(string raw)
-    {
-        var name = Path.GetFileName(raw.Replace('\\', '/'));
-        var invalid = Path.GetInvalidFileNameChars();
-        var chars = name
-            .Where(c => !char.IsControl(c) && Array.IndexOf(invalid, c) < 0)
-            .ToArray();
-        var cleaned = new string(chars).Trim().Trim('.');
-        if (cleaned.Length > 200) cleaned = cleaned[..200];
-        return cleaned.Length == 0 ? "upload.pdf" : cleaned;
     }
 
     private static string CanonicalSlugFor(IngestionRecord record) =>

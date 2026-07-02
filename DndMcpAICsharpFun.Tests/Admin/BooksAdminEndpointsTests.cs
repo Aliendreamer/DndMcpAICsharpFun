@@ -33,10 +33,11 @@ public sealed class BooksAdminEndpointsTests : IDisposable
         builder.Services.AddSingleton(tracker);
         builder.Services.AddSingleton(queue);
         builder.Services.AddSingleton(deletionService);
-        builder.Services.AddSingleton<ILogger<RegisterBookRequest>>(
-            NullLogger<RegisterBookRequest>.Instance);
         builder.Services.AddSingleton(
             new BookSourceRegistry(TestPaths.RepoFile("5etools/books.json")));
+        builder.Services.AddSingleton<ILogger<BookRegistrationService>>(
+            NullLogger<BookRegistrationService>.Instance);
+        builder.Services.AddScoped<BookRegistrationService>();
         builder.Services.Configure<AdminOptions>(o => o.ApiKey = "test-key");
         Directory.CreateDirectory(_booksDir);
         builder.Services.Configure<IngestionOptions>(o => o.BooksPath = _booksDir);

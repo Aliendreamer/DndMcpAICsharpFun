@@ -227,6 +227,7 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalTypeFixerService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalNameNormalizerService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.NeedsReviewService>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Admin.BookRegistrationService>();
         return services;
     }
 
