@@ -43,12 +43,22 @@ public sealed class EntityCandidateBuilder(
         }
 
         // 3. Project structure items into ScannerInputs.
-        var scannerInputs = BuildScannerInputs(doc.Items);
-        var sectionCandidates = scanner.Scan(scannerInputs, tocMap).ToList();
         // Recover stat blocks MinerU failed to tag with a heading (headerless / fragmented under
         // mis-detected ACTIONS headers). Prepend so they win the id-keyed dedup with clean stat-block
-        // text and supersede a headerless monster's lore-only section candidate.
+        // text and supersede a headerless monster's lore-only section candidate. Computed first so the
+        // section scanner can ungate a non-official book whose TOC categorization failed but which
+        // nonetheless yields stat blocks (a bestiary the TOC misclassified as prose).
         var statBlockCandidates = statBlockScanner.Scan(doc.Items).ToList();
+        var scannerInputs = BuildScannerInputs(doc.Items);
+        // 5etools-roster recovery runs only for official books (those with a fivetools source key);
+        // TOC-failure ungating runs only for the non-official fallback. The two are mutually exclusive.
+        var recoverMonsters = record.FivetoolsSourceKey is not null;
+        var sectionCandidates = scanner.Scan(
+            scannerInputs,
+            tocMap,
+            _matcher,
+            recoverMonsters,
+            ungateOnTocFailure: !recoverMonsters && statBlockCandidates.Count > 0).ToList();
         // Collapse same-id candidates (a header-clean monster yields both a section and a
         // stat-block candidate) to the best input: prefer the one carrying a stat block, then
         // the richer text — so header-clean monsters extract from full-context section text

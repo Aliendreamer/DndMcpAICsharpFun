@@ -199,4 +199,124 @@ public class EntityCandidateScannerTests
         candidates.Should().ContainSingle();
         capturingLogger.Logs.Should().BeEmpty("no warning should be emitted for a correctly categorised section");
     }
+
+    // ── 5etools-roster monster candidate recovery (Task 1.3) ─────────────────────────
+
+    // Shared real 5etools index (Aboleth/Beholder live in bestiary-mm.json).
+    private static readonly EntityNameMatcher RosterMatcher =
+        new(new EntityNameIndex(TestPaths.RepoFile("5etools")));
+
+    [Fact]
+    public void Recovers_monster_candidate_from_rule_page_for_official_book()
+    {
+        // MM reality: every page classifies Rule, so the monster-name section would be dropped.
+        // With recovery on + a matcher, an ABOLETH heading is recovered as a Monster candidate.
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Legal", ContentCategory.Rule, StartPage: 1, EndPage: 400),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("ABOLETH", 12, "The aboleth is an aberration that dwells in the deep."),
+        };
+
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
+        var candidates = scanner.Scan(blocks, toc, RosterMatcher, recoverMonsters: true).ToList();
+
+        candidates.Should().ContainSingle()
+            .Which.Should().Match<EntityCandidate>(c =>
+                c.Type == EntityType.Monster && c.DisplayName == "Aboleth" && c.Page == 12);
+    }
+
+    [Fact]
+    public void Does_not_recover_rule_section_that_matches_no_monster()
+    {
+        // Precision guard: a Rule-category heading that is NOT a monster stays skipped.
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Rules", ContentCategory.Rule, StartPage: 1, EndPage: 400),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("ABILITY SCORES", 8, "Six abilities describe every creature's physical and mental characteristics."),
+        };
+
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
+        var candidates = scanner.Scan(blocks, toc, RosterMatcher, recoverMonsters: true).ToList();
+
+        candidates.Should().BeEmpty("a non-monster Rule heading must not be recovered");
+    }
+
+    [Fact]
+    public void Does_not_recover_monster_when_recovery_flag_is_off()
+    {
+        // Non-official books pass recoverMonsters:false → the matcher is never consulted.
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Legal", ContentCategory.Rule, StartPage: 1, EndPage: 400),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("ABOLETH", 12, "The aboleth is an aberration that dwells in the deep."),
+        };
+
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
+        var candidates = scanner.Scan(blocks, toc, RosterMatcher, recoverMonsters: false).ToList();
+
+        candidates.Should().BeEmpty("recovery is off for non-official books even when the matcher would match");
+    }
+
+    // ── TOC-failure ungate (Task 1.2) ────────────────────────────────────────────────
+
+    [Fact]
+    public void Ungates_sections_when_toc_categorization_failed_wholesale()
+    {
+        // Non-official bestiary whose TOC maps ZERO sections to an entity type: with ungating on,
+        // sections are emitted (broad prior) instead of all being dropped by the broken TOC gate.
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Everything", ContentCategory.Rule, StartPage: 1, EndPage: 400),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("GRUUL", 10, "Gruul stat block prose."),
+            new("SNAPMAW", 20, "Snapmaw stat block prose."),
+        };
+
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
+        var candidates = scanner.Scan(blocks, toc, matcher: null,
+            recoverMonsters: false, ungateOnTocFailure: true).ToList();
+
+        candidates.Should().HaveCount(2, "no section maps to an entity type, so the TOC gate is bypassed");
+        candidates.Select(c => c.DisplayName).Should().Contain(new[] { "GRUUL", "SNAPMAW" });
+        candidates.Should().OnlyContain(c => c.TypePrior.Contains(EntityType.Monster),
+            "the broad prior offers Monster (plus the frequency floor) as a union branch");
+    }
+
+    [Fact]
+    public void Does_not_ungate_when_some_section_maps_to_an_entity_type()
+    {
+        // Categorization did NOT fail (a Monster page exists) → the Rule section is still dropped.
+        var toc = new TocCategoryMap(new[]
+        {
+            new TocSectionEntry("Intro", ContentCategory.Rule, StartPage: 1, EndPage: 5),
+            new TocSectionEntry("Monsters", ContentCategory.Monster, StartPage: 6, EndPage: 400),
+        });
+
+        var blocks = new List<ScannerInput>
+        {
+            new("FOREWORD", 2, "Some rules prose."),
+            new("BULLYWUG", 40, "Bullywug stat block prose."),
+        };
+
+        var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
+        var candidates = scanner.Scan(blocks, toc, matcher: null,
+            recoverMonsters: false, ungateOnTocFailure: true).ToList();
+
+        candidates.Should().ContainSingle().Which.DisplayName.Should().Be("BULLYWUG");
+    }
 }

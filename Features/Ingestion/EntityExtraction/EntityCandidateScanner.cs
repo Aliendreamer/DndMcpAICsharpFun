@@ -8,7 +8,12 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
 public sealed class EntityCandidateScanner(ILogger<EntityCandidateScanner> logger)
 {
-    public IEnumerable<EntityCandidate> Scan(IList<ScannerInput> blocks, TocCategoryMap toc)
+    public IEnumerable<EntityCandidate> Scan(
+        IList<ScannerInput> blocks,
+        TocCategoryMap toc,
+        EntityNameMatcher? matcher = null,
+        bool recoverMonsters = false,
+        bool ungateOnTocFailure = false)
     {
         ArgumentNullException.ThrowIfNull(blocks);
         ArgumentNullException.ThrowIfNull(toc);
@@ -64,6 +69,13 @@ public sealed class EntityCandidateScanner(ILogger<EntityCandidateScanner> logge
             ));
         }
 
+        // TOC-failure detection: when ungating is permitted (non-official book with stat blocks) and
+        // NOT ONE section maps to an entity type, the book's TOC categorization has failed wholesale.
+        // In that case we must not let the (broken) TOC gate suppress its sections — emit them with a
+        // broad prior and rely on the downstream decline gate to filter non-entities.
+        var tocFailed = ungateOnTocFailure && groups.TrueForAll(
+            g => MapCategoryToEntityType(toc.GetCategory(g.Page) ?? ContentCategory.Unknown) is null);
+
         foreach (var s in groups.OrderBy(s => s.FirstIndex))
         {
             // TocCategoryMap is page-keyed: look up the category by the section's earliest page.
@@ -71,6 +83,30 @@ public sealed class EntityCandidateScanner(ILogger<EntityCandidateScanner> logge
             var type = MapCategoryToEntityType(category);
             if (type is null)
             {
+                // 5etools-roster recovery (official books): a section the TOC gate would drop but
+                // whose heading confidently matches a 5etools MONSTER is recovered as a Monster
+                // candidate. Recovery only ADDS — extraction + the decline gate still adjudicate the
+                // final entity, so it cannot lower precision.
+                if (recoverMonsters && matcher is not null &&
+                    matcher.MatchOfType(s.Section, EntityType.Monster) is { } monster)
+                {
+                    var recoveredPrior = ExpandToEntityPrior(ContentCategory.Monster);
+                    logger.LogInformation(
+                        "Recovered monster candidate '{Canonical}' from TOC-skipped section on page {Page}",
+                        monster.Canonical, s.Page);
+                    yield return new EntityCandidate(EntityType.Monster, monster.Canonical, s.Text, s.Page, recoveredPrior);
+                    continue;
+                }
+
+                // TOC-failure ungate (non-official fallback): categorization failed wholesale, so
+                // emit the section with a broad prior instead of dropping it. The decline gate filters.
+                if (tocFailed)
+                {
+                    var broadPrior = ExpandToEntityPrior(ContentCategory.Unknown);
+                    yield return new EntityCandidate(broadPrior[0], s.Section, s.Text, s.Page, broadPrior);
+                    continue;
+                }
+
                 // Traceability guard: log skipped sections so silent candidate losses are visible.
                 logger.LogWarning(
                     "Skipping section '{Section}' on page {Page}: no entity category maps to this page (toc category: {Category})",
@@ -81,16 +117,21 @@ public sealed class EntityCandidateScanner(ILogger<EntityCandidateScanner> logge
             // Content-first prior: the primary keyword type plus its confusion set and the
             // frequency floor, mapped to entity types. Offered to the model as union branches so
             // it can re-type away from a wrong keyword guess (e.g. Dragonborn -> Race, not Monster).
-            var prior = HeadingCategoryClassifier.ExpandPrior(category)
-                .Select(MapCategoryToEntityType)
-                .Where(t => t is not null)
-                .Select(t => t!.Value)
-                .Distinct()
-                .ToList();
+            var prior = ExpandToEntityPrior(category);
 
             yield return new EntityCandidate(type.Value, s.Section, s.Text, s.Page, prior);
         }
     }
+
+    // Expands a content category into its ranked entity-type prior (primary + confusion set +
+    // frequency floor), dropping categories that are not entity types.
+    private static List<EntityType> ExpandToEntityPrior(ContentCategory category) =>
+        HeadingCategoryClassifier.ExpandPrior(category)
+            .Select(MapCategoryToEntityType)
+            .Where(t => t is not null)
+            .Select(t => t!.Value)
+            .Distinct()
+            .ToList();
 
     private static EntityType? MapCategoryToEntityType(ContentCategory category) => category switch
     {
