@@ -26,14 +26,32 @@ scheme and avoids IDF².
 
 ### Store (Postgres, via EF + migration)
 
+Global aggregates (what BM25 reads):
+
 - `Bm25TermStat { string Term (PK), long DocumentFrequency }` — per-term df across the whole `dnd_blocks`
   corpus.
 - `Bm25CorpusStat { int Id = 1 (singleton row), long DocumentCount, long TotalTokenLength }` — corpus
   totals; `avgDocLen = TotalTokenLength / max(DocumentCount, 1)`.
 
-Updated **incrementally** during block ingestion, in the same unit of work as the upsert: for each
-ingested doc, `+1` to each **unique** term's `DocumentFrequency`, `+1` to `DocumentCount`, and
-`+tokenCount` to `TotalTokenLength`. Concurrency-safe via an upsert/`ExecuteUpdate` increment.
+Per-book contribution (enables exact self-correction on re-ingest/delete — the "combine (1)+(2)" choice):
+
+- `Bm25BookStat { string FileHash (PK), long DocumentCount, long TotalTokenLength, string TermDfJson }` —
+  ONE row per ingested book keyed by its `FileHash`. `TermDfJson` is `{ term: dfInThisBook }` (the number
+  of that book's docs containing the term). The global aggregates are exactly the sum of all `Bm25BookStat`
+  rows.
+
+### Update rules (self-correcting)
+
+All wrapped in a transaction with the block upsert/delete:
+
+- **Ingest / re-ingest a book:** compute the book's `{term→df}`, `DocumentCount`, `TotalTokenLength`. If a
+  `Bm25BookStat` row already exists for this `FileHash` (a re-ingest), **subtract** its old contribution
+  from the global aggregates first. Then **add** the new contribution and **upsert** the `Bm25BookStat`
+  row. → re-ingesting a book never double-counts and never drifts.
+- **Delete a book:** subtract its `Bm25BookStat` from the global aggregates and delete the row.
+- **Rebuild op (admin, the recovery net):** clear the global aggregates and re-sum them from all
+  `Bm25BookStat` rows (DB-only, authoritative — no Qdrant re-read). Fixes any drift from an interrupted
+  ingest or a bug.
 
 ### Read paths
 
@@ -53,20 +71,21 @@ ingested doc, `+1` to each **unique** term's `DocumentFrequency`, `+1` to `Docum
 A new `IBm25CorpusStats` abstraction (backed by the Postgres store) is injected where docs are vectorized.
 `StableIndex`/`Tokenize` (COR-16/17, already shipped) are unchanged and shared.
 
-## Consistency model (the honest caveat)
+## Consistency model
 
-Because doc sparse vectors are **baked into Qdrant at ingest time**, and the global store **grows** as more
-books are ingested, docs ingested earlier used a smaller `n`/`df` snapshot than docs ingested later. So:
+The STATS store is always exact: per-book contributions make ingest/re-ingest/delete self-correct, and the
+rebuild op re-derives the global aggregates from the per-book rows. So a term's global `df` and the corpus
+totals always reflect the current corpus, regardless of ingest order.
 
-- Identical text ingested **against the same store state** → identical weights (the invariant the finding
-  wants; test 3.1 populates the store, then vectorizes both).
-- Across incremental ingests, weights are **approximately** consistent and **fully** consistent after a
-  **corpus re-ingest** (re-vectorize all blocks against the final store). This mirrors how Lucene/ES
-  recompute norms on segment merge.
+The one inherent BM25 caveat remains at the **vector** layer (not the stats layer): doc sparse vectors are
+**baked into Qdrant at ingest time** using the global stats *as they were then*. If books are added later,
+the global `df`/`n` grow, so earlier docs' baked weights lag the newest stats until those blocks are
+re-ingested. This is the standard incremental-BM25 trade-off (Lucene/ES recompute norms on merge). It is
+bounded and correct-on-re-ingest; the finding's invariant (identical text vectorized **against the same
+stats state** → identical weights) holds, and a corpus re-ingest gives full vector-layer consistency.
 
-**Re-ingestion is required for existing collections** to pick up global stats (the proposal already states
-this). Provided as a manual admin re-ingest (no auto-rebuild on every ingest — that would re-vectorize the
-whole corpus each time).
+**Existing `dnd_blocks` must be re-ingested once** to pick up global-stats weighting (the proposal states
+this). No auto-rebuild of the whole corpus on each incremental ingest.
 
 ## Impact
 
