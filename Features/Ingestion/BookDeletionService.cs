@@ -36,7 +36,8 @@ public sealed partial class BookDeletionService(
         // Only delete the canonical file when no OTHER book resolves to the same slug — otherwise a
         // slug collision would delete a different book's canonical file (COR-18).
         var allRecords = await tracker.GetAllAsync(int.MaxValue, 0, cancellationToken);
-        var slugSharedByOther = allRecords.Any(r => r.Id != id && CanonicalSlugOf(r) == canonicalSlug);
+        var slugSharedByOther = allRecords is not null
+            && allRecords.Any(r => r.Id != id && CanonicalSlugOf(r) == canonicalSlug);
         if (!slugSharedByOther && File.Exists(canonicalPath))
         {
             File.Delete(canonicalPath);
