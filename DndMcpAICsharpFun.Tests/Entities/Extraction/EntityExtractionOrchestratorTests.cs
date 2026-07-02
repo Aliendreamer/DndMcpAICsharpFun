@@ -72,14 +72,20 @@ public class EntityExtractionOrchestratorTests
                 SchemasDirectory = schemasDir,   // empty → LoadSchemas returns {}
             });
 
+            var sharedMatcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                    Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__")));
             var orchestrator = new EntityExtractionOrchestrator(
                 tracker: tracker,
                 registry: new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
                     Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json")),
                 converter: converter,
-                bookmarks: bookmarkReader,
-                scanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
-                statBlockScanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
+                candidateBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder(
+                    bookmarks: bookmarkReader,
+                    scanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
+                    statBlockScanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
+                    logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>.Instance,
+                    matcher: sharedMatcher),
                 writer: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
                 errorsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
                 warningsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
@@ -88,12 +94,13 @@ public class EntityExtractionOrchestratorTests
                 schemaProvider: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
                     opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
                 checkpointStore: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
-                candidateExtractor: BuildCandidateExtractor(llm, opts),
+                runner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
+                    candidateExtractor: BuildCandidateExtractor(llm, opts),
+                    logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                    matcher: sharedMatcher),
                 options: opts,
                 logger: NullLogger<EntityExtractionOrchestrator>.Instance,
-                matcher: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
-                    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
-                        Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__"))));
+                matcher: sharedMatcher);
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
@@ -198,7 +205,8 @@ public class EntityExtractionOrchestratorTests
         DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm,
         DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry? registry = null,
         DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher? matcher = null,
-        ILogger<EntityExtractionOrchestrator>? orchestratorLogger = null)
+        ILogger<EntityExtractionOrchestrator>? orchestratorLogger = null,
+        ILogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>? builderLogger = null)
     {
         var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
         {
@@ -219,9 +227,12 @@ public class EntityExtractionOrchestratorTests
             tracker:            tracker,
             registry:           effectiveRegistry,
             converter:          converter,
-            bookmarks:          bookmarkReader,
-            scanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
-            statBlockScanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
+            candidateBuilder:   new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder(
+                bookmarks:        bookmarkReader,
+                scanner:          new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
+                statBlockScanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
+                logger:           builderLogger ?? NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>.Instance,
+                matcher:          effectiveMatcher),
             writer:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
             errorsFile:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
             warningsFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
@@ -230,7 +241,10 @@ public class EntityExtractionOrchestratorTests
             schemaProvider:     new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
                 opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
             checkpointStore:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
-            candidateExtractor: BuildCandidateExtractor(llm, opts),
+            runner:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
+                candidateExtractor: BuildCandidateExtractor(llm, opts),
+                logger:             NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                matcher:            effectiveMatcher),
             options:            opts,
             logger:             orchestratorLogger ?? NullLogger<EntityExtractionOrchestrator>.Instance,
             matcher:            effectiveMatcher);
@@ -714,13 +728,19 @@ public class EntityExtractionOrchestratorTests
             var registry   = new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
                 Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json"));
 
+            var sharedMatcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                    Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__")));
             var orchestrator = new EntityExtractionOrchestrator(
                 tracker:            tracker,
                 registry:           registry,
                 converter:          converter,
-                bookmarks:          bookmarkReader,
-                scanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
-                statBlockScanner:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
+                candidateBuilder:   new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder(
+                    bookmarks:        bookmarkReader,
+                    scanner:          new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
+                    statBlockScanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
+                    logger:           NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>.Instance,
+                    matcher:          sharedMatcher),
                 writer:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
                 errorsFile:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
                 warningsFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
@@ -729,12 +749,13 @@ public class EntityExtractionOrchestratorTests
                 schemaProvider:     new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
                     opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
                 checkpointStore:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
-                candidateExtractor: BuildCandidateExtractor(llm, opts),
+                runner:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
+                    candidateExtractor: BuildCandidateExtractor(llm, opts),
+                    logger:             NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                    matcher:            sharedMatcher),
                 options:            opts,
                 logger:             NullLogger<EntityExtractionOrchestrator>.Instance,
-                matcher:            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
-                    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
-                        Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__"))));
+                matcher:            sharedMatcher);
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
@@ -1717,11 +1738,13 @@ public class EntityExtractionOrchestratorTests
                 new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark> { new("Spells", 1) });
 
             var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
-            var capturingLogger = new CapturingLogger<EntityExtractionOrchestrator>();
+            // BuildScannerInputs (and its traceability warning) now live on EntityCandidateBuilder,
+            // so capture the builder's logger. The assertion below is unchanged.
+            var capturingLogger = new CapturingLogger<EntityCandidateBuilder>();
 
             var orchestrator = BuildOrchestrator(
                 canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
-                orchestratorLogger: capturingLogger);
+                builderLogger: capturingLogger);
 
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
 
@@ -1774,11 +1797,13 @@ public class EntityExtractionOrchestratorTests
                 new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark> { new("Spells", 1) });
 
             var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
-            var capturingLogger = new CapturingLogger<EntityExtractionOrchestrator>();
+            // BuildScannerInputs (and its traceability warning) now live on EntityCandidateBuilder,
+            // so capture the builder's logger. The assertion below is unchanged.
+            var capturingLogger = new CapturingLogger<EntityCandidateBuilder>();
 
             var orchestrator = BuildOrchestrator(
                 canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
-                orchestratorLogger: capturingLogger);
+                builderLogger: capturingLogger);
 
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
 

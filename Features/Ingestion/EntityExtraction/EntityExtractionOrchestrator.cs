@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
-using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
@@ -14,9 +13,7 @@ public sealed class EntityExtractionOrchestrator(
     IIngestionTracker tracker,
     BookSourceRegistry registry,
     IPdfStructureConverter converter,
-    IPdfBookmarkReader bookmarks,
-    EntityCandidateScanner scanner,
-    StatBlockScanner statBlockScanner,
+    EntityCandidateBuilder candidateBuilder,
     CanonicalJsonWriter writer,
     ExtractionErrorsFile errorsFile,
     ExtractionWarningsFile warningsFile,
@@ -24,7 +21,7 @@ public sealed class EntityExtractionOrchestrator(
     EntityReferenceResolver refResolver,
     EntitySchemaProvider schemaProvider,
     ExtractionCheckpointStore checkpointStore,
-    CandidateExtractor candidateExtractor,
+    EntityExtractionRunner runner,
     IOptions<EntityExtractionOptions> options,
     ILogger<EntityExtractionOrchestrator> logger,
     EntityNameMatcher? matcher = null) : IEntityExtractionOrchestrator
@@ -40,7 +37,7 @@ public sealed class EntityExtractionOrchestrator(
         // Honour the 5etools source key for the slug/ids (PHB -> phb14), falling back to the
         // display name. Aligns the canonical file name and entity ids with the 5etools pipeline.
         var bookSlug = EntityIdSlug
-            .For(BookKey(record), EntityType.Class, "x")
+            .For(ExtractionEntityIds.BookKey(record), EntityType.Class, "x")
             .Split('.')[0];
 
         var canonicalPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".json");
@@ -62,55 +59,8 @@ public sealed class EntityExtractionOrchestrator(
             // 1. Convert PDF via MinerU (markdown + structured items).
             var doc = await converter.ConvertAsync(record.FilePath, ct);
 
-            // 2. Read bookmarks → TocCategoryMap.
-            var pdfBookmarks = bookmarks.ReadBookmarks(record.FilePath);
-            var tocEntries   = BookmarkTocMapper.Map(pdfBookmarks);
-            var tocMap       = new TocCategoryMap(tocEntries);
-
-            // 2b. No embedded bookmarks → derive the TOC from MinerU's heading structure items,
-            // reusing the same deterministic keyword classifier (no LLM). Bookmarked books skip this.
-            if (tocMap.IsEmpty)
-            {
-                var headingItems = doc.Items
-                    .Where(i => string.Equals(i.Type, "section_header", StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-                var headingEntries = HeadingTocMapper.Map(headingItems);
-                tocMap = new TocCategoryMap(headingEntries);
-                logger.LogInformation(
-                    "No bookmarks for book {BookId}; derived TOC from {HeadingCount} headings → {EntryCount} confident category entries (heading-derived fallback)",
-                    bookId, headingItems.Count, headingEntries.Count);
-            }
-
-            // 3. Project structure items into ScannerInputs.
-            var scannerInputs = BuildScannerInputs(doc.Items);
-            var sectionCandidates = scanner.Scan(scannerInputs, tocMap).ToList();
-            // Recover stat blocks MinerU failed to tag with a heading (headerless / fragmented under
-            // mis-detected ACTIONS headers). Prepend so they win the id-keyed dedup with clean stat-block
-            // text and supersede a headerless monster's lore-only section candidate.
-            var statBlockCandidates = statBlockScanner.Scan(doc.Items).ToList();
-            // Collapse same-id candidates (a header-clean monster yields both a section and a
-            // stat-block candidate) to the best input: prefer the one carrying a stat block, then
-            // the richer text — so header-clean monsters extract from full-context section text
-            // (reliable) and headerless ones keep their stat-block candidate.
-            var candidates    = ExtractionCandidateDeduplicator.Dedupe(
-                statBlockCandidates.Concat(sectionCandidates), BookKey(record));
-
-            // Deterministic resolution drops non-entity-named candidates (headings/fragments) before
-            // extraction — no wasted LLM call, no garbage entity. INVARIANT: this prefilter omits
-            // isOfficial on purpose — it removes ONLY Drop. Declines must survive to the recording loop
-            // below (which passes isOfficial) so they reach declined.json; passing isOfficial here would
-            // silently filter them out. Do not "fix" it to pass isOfficial.
-            var keptCandidates = candidates
-                .Where(c => DeterministicTypeResolver.Resolve(c, _matcher).Outcome != DeterministicOutcome.Drop)
-                .ToList();
-            var droppedCount = candidates.Count - keptCandidates.Count;
-            if (droppedCount > 0)
-                logger.LogInformation("Dropped {Count} non-entity-named candidates before extraction", droppedCount);
-            candidates = keptCandidates;
-
-            logger.LogInformation(
-                "Entity extraction: {CandidateCount} candidates from {ItemCount} structure items",
-                candidates.Count, doc.Items.Count);
+            // 2-3. Build the ordered candidate list (TOC classification, scanning, dedup, prefilter).
+            var candidates = candidateBuilder.Build(doc, record, bookId);
 
             // 4. Load schemas keyed by EntityType.
             var schemas = schemaProvider.LoadSchemas();
@@ -187,17 +137,17 @@ public sealed class EntityExtractionOrchestrator(
             var declineRes = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
             if (declineRes.Outcome == DeterministicOutcome.Decline)
             {
-                var rawId = EntityIdSlug.For(BookKey(record), candidate.TypePrior.FirstOrDefault(), candidate.DisplayName);
+                var rawId = EntityIdSlug.For(ExtractionEntityIds.BookKey(record), candidate.TypePrior.FirstOrDefault(), candidate.DisplayName);
                 declined.Add(new DeclinedEntry(rawId, candidate.DisplayName, candidate.TypePrior.FirstOrDefault(), declineRes.DeclineReason ?? "no_5etools_match"));
                 continue;
             }
 
-            var id = RecordedEntityId(record, candidate, isOfficial);
+            var id = ExtractionEntityIds.RecordedEntityId(record, candidate, _matcher, isOfficial);
 
             if (doneIds.Contains(id))
                 continue;
 
-            var (envelope, error) = await ExtractOneAsync(record, candidate, id, sourceBook, edition, schemas, ct, isOfficial);
+            var (envelope, error) = await runner.ExtractOneAsync(record, candidate, id, sourceBook, edition, schemas, ct, isOfficial);
 
             if (error is not null)
             {
@@ -350,11 +300,11 @@ public sealed class EntityExtractionOrchestrator(
             if (DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial).Outcome == DeterministicOutcome.Decline)
                 continue;
 
-            var id = RecordedEntityId(record, candidate, isOfficial);
+            var id = ExtractionEntityIds.RecordedEntityId(record, candidate, _matcher, isOfficial);
 
             if (!retrySet.Contains(id)) continue;
 
-            var (envelope, error) = await ExtractOneAsync(record, candidate, id, sourceBook, edition, schemas, ct, isOfficial);
+            var (envelope, error) = await runner.ExtractOneAsync(record, candidate, id, sourceBook, edition, schemas, ct, isOfficial);
 
             if (error is not null)
                 newErrors.Add(error);
@@ -420,11 +370,6 @@ public sealed class EntityExtractionOrchestrator(
         await tracker.MarkEntitiesExtractedAsync(bookId, mergedEntities.Count, ct);
     }
 
-    // The book identifier used for slug/id derivation: the 5etools source key when present
-    // (mapped to a canonical slug like phb14 by EntityIdSlug), else the display name.
-    private static string BookKey(DndMcpAICsharpFun.Domain.IngestionRecord record) =>
-        record.FivetoolsSourceKey ?? record.DisplayName;
-
     private (string SourceBook, string Edition) DeriveSourceAndEdition(DndMcpAICsharpFun.Domain.IngestionRecord record)
     {
         var sourceBook = record.FivetoolsSourceKey ?? record.DisplayName;
@@ -433,225 +378,4 @@ public sealed class EntityExtractionOrchestrator(
             : record.Version;
         return (sourceBook, edition);
     }
-
-    /// <summary>
-    /// Shared per-candidate extraction pipeline used by both full and errors-only run modes.
-    /// Returns either a successfully built <see cref="EntityEnvelope"/> or an <see cref="ExtractionErrorEntry"/>;
-    /// exactly one of the two tuple members is non-null.
-    /// </summary>
-    // The id under which an entity (or its error) is recorded: the canonical 5etools id when the
-    // name matches the index, else the raw heading id. Every membership test (checkpoint doneIds,
-    // errors-only retrySet) and ExtractOneAsync must agree on this id, or matched candidates are
-    // silently re-extracted (resume) or skipped (retry).
-    private string RecordedEntityId(DndMcpAICsharpFun.Domain.IngestionRecord record, EntityCandidate candidate, bool isOfficial = false)
-    {
-        var resolution = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
-        return resolution.Outcome == DeterministicOutcome.ForceType && resolution.CanonicalName is { } cn
-            ? EntityIdSlug.For(BookKey(record), resolution.ForcedType, cn)
-            : EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
-    }
-
-    private async Task<(EntityEnvelope? Envelope, ExtractionErrorEntry? Error)> ExtractOneAsync(
-        DndMcpAICsharpFun.Domain.IngestionRecord record,
-        EntityCandidate candidate,
-        string id,
-        string sourceBook,
-        string edition,
-        Dictionary<EntityType, JsonElement> schemas,
-        CancellationToken ct,
-        bool isOfficial = false)
-    {
-        // Offer only prior types that actually have a schema. If none do, it is a configuration
-        // problem (no_schema), recorded without an LLM call.
-        var availablePrior = candidate.TypePrior.Where(schemas.ContainsKey).ToList();
-        if (availablePrior.Count == 0)
-        {
-            logger.LogWarning(
-                "No schema for any prior type of candidate {Name}; recording no_schema",
-                candidate.DisplayName);
-            return (null, new ExtractionErrorEntry(
-                SourceEntityId: id,
-                FieldPath: "(type)",
-                MissingTargetId: string.Empty,
-                ErrorKind: "no_schema",
-                Detail: $"No JSON schema for any prior type of {candidate.DisplayName}"));
-        }
-
-        var displayName = NormalizeDisplayName(candidate.DisplayName);
-
-        // Deterministic type resolution before the content-first union. Drop/Decline candidates are
-        // handled upstream; only ForceType/Defer reach here. A forced type extracts with that
-        // type's schema directly; Defer uses the union below.
-        var resolution = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
-
-        // When the 5etools matcher supplies a canonical name, use it for both the entity's
-        // display name and ID so the canonical JSON reflects the authoritative 5etools spelling
-        // rather than the raw (often all-caps) heading text.
-        if (resolution.Outcome == DeterministicOutcome.ForceType && resolution.CanonicalName is { } cn)
-        {
-            displayName = NormalizeDisplayName(cn);
-            id = EntityIdSlug.For(BookKey(record), resolution.ForcedType, cn);
-        }
-
-        if (resolution.Outcome == DeterministicOutcome.ForceType &&
-            schemas.TryGetValue(resolution.ForcedType, out var forcedSchema))
-        {
-            var (forcedFields, forcedError) = await candidateExtractor.ExtractFieldsAsync(
-                record, candidate with { Type = resolution.ForcedType }, forcedSchema, ct);
-            if (forcedFields is null)
-            {
-                logger.LogWarning(
-                    "Forced {Type} extraction failed for '{Name}' (page {Page}): {Error}",
-                    resolution.ForcedType, candidate.DisplayName, candidate.Page, forcedError);
-                return (null, new ExtractionErrorEntry(
-                    SourceEntityId: id, FieldPath: "(extraction)", MissingTargetId: string.Empty,
-                    ErrorKind: "extraction_failure", Detail: forcedError));
-            }
-
-            var forcedConfidence = forcedFields.Value.TryGetProperty("confidence", out var fcp) ? fcp.GetString() : null;
-            var forcedClean = CandidateExtractor.StripConfidence(forcedFields.Value);
-            return (BuildTypedEnvelope(id, resolution.ForcedType, displayName, sourceBook, edition, candidate, forcedClean, forcedConfidence), null);
-        }
-
-        var result = await candidateExtractor.ExtractUnionAsync(record, candidate, availablePrior, schemas, ct);
-
-        switch (result.Outcome)
-        {
-            case UnionOutcome.Failed:
-                logger.LogWarning(
-                    "Union extraction failed for '{Name}' (page {Page}): {Error}",
-                    candidate.DisplayName, candidate.Page, result.ErrorMessage);
-                return (null, new ExtractionErrorEntry(
-                    SourceEntityId: id,
-                    FieldPath: "(extraction)",
-                    MissingTargetId: string.Empty,
-                    ErrorKind: "extraction_failure",
-                    Detail: result.ErrorMessage));
-
-            case UnionOutcome.Declined:
-                return (DeclinedEnvelope(id, candidate, displayName, sourceBook, edition, result.DeclineReason), null);
-
-            default:
-                return (BuildTypedEnvelope(id, result.Type, displayName, sourceBook, edition, candidate, result.Fields, result.Confidence), null);
-        }
-    }
-
-    // Builds a typed entity envelope, deriving the disposition from grounding + name/confidence.
-    // The Id keeps the keyword-primary type for stable checkpoint/resume identity (design.md §F);
-    // the authoritative type is the Type field.
-    private EntityEnvelope BuildTypedEnvelope(
-        string id, EntityType type, string displayName, string sourceBook, string edition,
-        EntityCandidate candidate, JsonElement fields, string? confidence)
-    {
-        var grounded = HasGroundedContent(fields, candidate.Text);
-        var disposition = ExtractionDispositionPolicy.Derive(grounded, displayName, confidence);
-        return new EntityEnvelope(
-            Id:              id,
-            Type:            type,
-            Name:            displayName,
-            SourceBook:      sourceBook,
-            Edition:         edition,
-            Page:            candidate.Page,
-            FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
-            RevisedIn:       Array.Empty<Revision>(),
-            SettingTags:     Array.Empty<string>(),
-            CanonicalText:   string.Empty,
-            Fields:          fields,
-            NeedsReview:     disposition != EntityDisposition.Accepted,
-            Disposition:     disposition);
-    }
-
-    private static EntityEnvelope DeclinedEnvelope(
-        string id, EntityCandidate candidate, string displayName,
-        string sourceBook, string edition, string? reason)
-    {
-        using var empty = JsonDocument.Parse("{}");
-        return new EntityEnvelope(
-            Id:              id,
-            Type:            candidate.Type,
-            Name:            displayName,
-            SourceBook:      sourceBook,
-            Edition:         edition,
-            Page:            candidate.Page,
-            FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
-            RevisedIn:       Array.Empty<Revision>(),
-            SettingTags:     Array.Empty<string>(),
-            CanonicalText:   reason ?? string.Empty,
-            Fields:          empty.RootElement.Clone(),
-            NeedsReview:     true,
-            Disposition:     EntityDisposition.Declined);
-    }
-
-    // Tier-0 grounding over the emitted fields: true when at least one significant string value
-    // grounds against the source prose. Pure fabrication / empty output (e.g. zeroed stat blocks)
-    // grounds nothing -> NeedsReview.
-    private static bool HasGroundedContent(JsonElement fields, string sourceText)
-    {
-        foreach (var value in EnumerateStringValues(fields))
-            if (Tier0FieldGrounding.IsTextGrounded(value, sourceText))
-                return true;
-        return false;
-    }
-
-    private static IEnumerable<string> EnumerateStringValues(JsonElement element)
-    {
-        switch (element.ValueKind)
-        {
-            case JsonValueKind.String:
-                var s = element.GetString();
-                if (!string.IsNullOrWhiteSpace(s)) yield return s;
-                break;
-            case JsonValueKind.Object:
-                foreach (var p in element.EnumerateObject())
-                    foreach (var v in EnumerateStringValues(p.Value))
-                        yield return v;
-                break;
-            case JsonValueKind.Array:
-                foreach (var item in element.EnumerateArray())
-                    foreach (var v in EnumerateStringValues(item))
-                        yield return v;
-                break;
-        }
-    }
-
-    private IList<ScannerInput> BuildScannerInputs(IReadOnlyList<PdfStructureItem> items)
-    {
-        var inputs = new List<ScannerInput>(items.Count);
-        var currentSection = "(unknown)";
-        var hadBody = false; // tracks whether currentSection has received any body text
-
-        foreach (var item in items)
-        {
-            var type = item.Type ?? string.Empty;
-            if (type.StartsWith("section", StringComparison.OrdinalIgnoreCase) ||
-                type.StartsWith("heading", StringComparison.OrdinalIgnoreCase) ||
-                type.Equals("title", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!string.IsNullOrWhiteSpace(item.Text))
-                {
-                    var nextSection = item.Text.Trim();
-                    // Traceability guard: a heading immediately following another heading with no
-                    // body text between them silently drops the prior section as a candidate.
-                    // Log a warning so the loss is visible in the extraction run output.
-                    if (!hadBody && currentSection != "(unknown)")
-                        logger.LogWarning(
-                            "Section '{Prev}' received no body before heading '{Next}' — it will not become a candidate",
-                            currentSection, nextSection);
-
-                    currentSection = nextSection;
-                    hadBody = false;
-                }
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(item.Text)) continue;
-            hadBody = true;
-            inputs.Add(new ScannerInput(currentSection, item.PageNumber, item.Text));
-        }
-        return inputs;
-    }
-
-    // Title-case clean all-caps display names before they become entity names + feed the heuristic.
-    private static string NormalizeDisplayName(string displayName)
-        => EntityNameNormalizer.TryNormalizeHeading(displayName, out var n) ? n : displayName;
 }
