@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Retrieval;
+using DndMcpAICsharpFun.Infrastructure.Persistence;
 using DndMcpAICsharpFun.Tests.Persistence;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -132,5 +133,35 @@ public sealed class Bm25CorpusStatsStoreTests(PostgresFixture pg) : IAsyncLifeti
         empty.DocumentCount.Should().Be(0);
         empty.AvgDocLength.Should().Be(1.0, "no divide-by-zero on an empty corpus");
         empty.DocFrequencies.Should().BeEmpty();
+    }
+
+    // Regression for the production-only bug where the transactional store methods threw
+    // "NpgsqlRetryingExecutionStrategy does not support user-initiated transactions": the app's context is
+    // registered with EnableRetryOnFailure, but the default test context is not, so 856 tests stayed green
+    // while ingestion failed live. This exercises Apply/Remove/Rebuild against a retry-ENABLED factory.
+    [Fact]
+    public async Task Transactional_ops_succeed_under_the_retrying_execution_strategy()
+    {
+        var store = new Bm25CorpusStatsStore(new RetryingTestDb(pg));
+        var df = new Dictionary<string, int> { ["fire"] = 2, ["ice"] = 1 };
+
+        await store.ApplyBookAsync("hashR", df, documentCount: 3, totalTokenLength: 90);
+        (await store.ReadAsync()).DocumentCount.Should().Be(3);
+
+        await store.RebuildAsync();                    // ExecuteDelete + tracked Adds inside a transaction
+        (await store.ReadAsync()).DocFrequencies["fire"].Should().Be(2, "rebuild re-derives from the per-book row");
+
+        await store.RemoveBookAsync("hashR");
+        (await store.ReadAsync()).DocumentCount.Should().Be(0);
+    }
+
+    /// <summary>A context factory that mirrors production's <c>EnableRetryOnFailure</c> configuration,
+    /// so transactional store methods are exercised under the retrying execution strategy.</summary>
+    private sealed class RetryingTestDb(PostgresFixture pg) : IDbContextFactory<AppDbContext>
+    {
+        public AppDbContext CreateDbContext() =>
+            new(new DbContextOptionsBuilder<AppDbContext>()
+                .UseNpgsql(pg.Container.GetConnectionString(), o => o.EnableRetryOnFailure())
+                .Options);
     }
 }

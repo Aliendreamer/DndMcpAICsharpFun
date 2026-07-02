@@ -90,10 +90,16 @@ public sealed class HeroRepository(IDbContextFactory<AppDbContext> dbf)
     public async Task DeleteAsync(long id)
     {
         await using var db = await dbf.CreateDbContextAsync();
-        await using var tx = await db.Database.BeginTransactionAsync();
-        await db.HeroSnapshots.Where(s => s.HeroId == id).ExecuteDeleteAsync();
-        await db.Heroes.Where(h => h.Id == id).ExecuteDeleteAsync();
-        await tx.CommitAsync();
+        // Wrap the multi-statement delete in the retrying execution strategy: the context is configured
+        // with EnableRetryOnFailure, which forbids a raw user-initiated BeginTransactionAsync.
+        var strategy = db.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await db.Database.BeginTransactionAsync();
+            await db.HeroSnapshots.Where(s => s.HeroId == id).ExecuteDeleteAsync();
+            await db.Heroes.Where(h => h.Id == id).ExecuteDeleteAsync();
+            await tx.CommitAsync();
+        });
     }
 
     private static Task<HeroSnapshot?> LatestSnapshotAsync(AppDbContext db, long heroId) =>

@@ -63,8 +63,10 @@ public sealed class Bm25CorpusStatsStore(IDbContextFactory<AppDbContext> dbf) : 
     public async Task ApplyBookAsync(string fileHash, IReadOnlyDictionary<string, int> termDocFrequencies,
         long documentCount, long totalTokenLength, CancellationToken ct = default)
     {
+        // A single SaveChangesAsync at the end is already atomic (EF wraps it in its own transaction),
+        // so no explicit user-initiated transaction is needed — which would also be incompatible with the
+        // context's retrying execution strategy (EnableRetryOnFailure).
         await using var db = await dbf.CreateDbContextAsync(ct);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var existing = await db.Bm25BookStats.FirstOrDefaultAsync(b => b.FileHash == fileHash, ct);
 
@@ -133,13 +135,12 @@ public sealed class Bm25CorpusStatsStore(IDbContextFactory<AppDbContext> dbf) : 
         }
 
         await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
     }
 
     public async Task RemoveBookAsync(string fileHash, CancellationToken ct = default)
     {
+        // Single atomic SaveChangesAsync — no explicit transaction (see ApplyBookAsync).
         await using var db = await dbf.CreateDbContextAsync(ct);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var existing = await db.Bm25BookStats.FirstOrDefaultAsync(b => b.FileHash == fileHash, ct);
         if (existing is null) return; // no-op if absent
@@ -150,49 +151,56 @@ public sealed class Bm25CorpusStatsStore(IDbContextFactory<AppDbContext> dbf) : 
         db.Bm25BookStats.Remove(existing);
 
         await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
     }
 
     public async Task RebuildAsync(CancellationToken ct = default)
     {
-        await using var db = await dbf.CreateDbContextAsync(ct);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-
-        // Clear the derived global aggregates; the per-book rows remain the source of truth.
-        await db.Bm25TermStats.ExecuteDeleteAsync(ct);
-        await db.Bm25CorpusStats.ExecuteDeleteAsync(ct);
-
-        // Re-sum from every per-book row.
-        var termTotals = new Dictionary<string, long>();
-        long documentCount = 0;
-        long totalTokenLength = 0;
-
-        await foreach (var book in db.Bm25BookStats.AsNoTracking().AsAsyncEnumerable().WithCancellation(ct))
+        // A fresh context per execution-strategy attempt keeps the change tracker clean on retry (this
+        // method Adds tracked rows), and the strategy wrap is required because the context is configured
+        // with EnableRetryOnFailure, which forbids a raw user-initiated BeginTransactionAsync.
+        await using var outer = await dbf.CreateDbContextAsync(ct);
+        var strategy = outer.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            documentCount += book.DocumentCount;
-            totalTokenLength += book.TotalTokenLength;
-            foreach (var (term, df) in Deserialize(book.TermDfJson))
+            await using var db = await dbf.CreateDbContextAsync(ct);
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+            // Clear the derived global aggregates; the per-book rows remain the source of truth.
+            await db.Bm25TermStats.ExecuteDeleteAsync(ct);
+            await db.Bm25CorpusStats.ExecuteDeleteAsync(ct);
+
+            // Re-sum from every per-book row.
+            var termTotals = new Dictionary<string, long>();
+            long documentCount = 0;
+            long totalTokenLength = 0;
+
+            await foreach (var book in db.Bm25BookStats.AsNoTracking().AsAsyncEnumerable().WithCancellation(ct))
             {
-                if (df == 0) continue;
-                termTotals[term] = termTotals.GetValueOrDefault(term) + df;
+                documentCount += book.DocumentCount;
+                totalTokenLength += book.TotalTokenLength;
+                foreach (var (term, df) in Deserialize(book.TermDfJson))
+                {
+                    if (df == 0) continue;
+                    termTotals[term] = termTotals.GetValueOrDefault(term) + df;
+                }
             }
-        }
 
-        foreach (var (term, df) in termTotals)
-        {
-            if (df <= 0) continue;
-            db.Bm25TermStats.Add(new Bm25TermStat { Term = term, DocumentFrequency = df });
-        }
+            foreach (var (term, df) in termTotals)
+            {
+                if (df <= 0) continue;
+                db.Bm25TermStats.Add(new Bm25TermStat { Term = term, DocumentFrequency = df });
+            }
 
-        db.Bm25CorpusStats.Add(new Bm25CorpusStat
-        {
-            Id = CorpusSingletonId,
-            DocumentCount = documentCount,
-            TotalTokenLength = totalTokenLength,
+            db.Bm25CorpusStats.Add(new Bm25CorpusStat
+            {
+                Id = CorpusSingletonId,
+                DocumentCount = documentCount,
+                TotalTokenLength = totalTokenLength,
+            });
+
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
         });
-
-        await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
     }
 
     private static async Task SubtractTermsAsync(
