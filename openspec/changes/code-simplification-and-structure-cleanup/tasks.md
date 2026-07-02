@@ -1,20 +1,20 @@
 ## 1. De-duplicate shared logic
 
-- [ ] 1.1 One book-slug helper, replace ~14 call sites (SIM-07, `.../Entities/EntityIngestionOrchestrator.cs:46`)
-- [ ] 1.2 Single `FivetoolsMapperRegistry` (SIM-14, STR-10, `FivetoolsIngestionService.cs:17`, `FivetoolsRecordIndex.cs:17`)
-- [ ] 1.3 Single `Edition2024Sources` source (SIM-15, STR-11, `FivetoolsMapperBase.cs:9`, `SpellBackfillService.cs:28`)
-- [ ] 1.4 Shared renderer helpers + feature-entry extraction (SIM-05, SIM-06, `SimpleEntityRenderers.cs:14`, `SubclassCanonicalTextRenderer.cs:30`)
-- [ ] 1.5 Single sidecar-file writer + shared `IsSidecar` (SIM-13, SIM-02, `ExtractionDeclinedFile.cs:21`, `NeedsReviewService.cs:48`)
-- [ ] 1.6 Heading-promotion local function (SIM-16, `MinerUPdfConverter.cs:88`)
-- [ ] 1.7 One enrich+merge helper (SIM-08, STR-08, `EntityIngestionOrchestrator.cs:189,68`)
-- [ ] 1.8 One bounded fuzzy-match scan (SIM-12, `EntityNameMatcher.cs:56`)
+- [x] 1.1 One book-slug helper, replace ~14 call sites (SIM-07, `.../Entities/EntityIngestionOrchestrator.cs:46`) — `EntityIdSlug.BookSlug`; one site inside EntityExtractionOrchestrator deferred to STR-09 split
+- [x] 1.2 Single `FivetoolsMapperRegistry` (SIM-14, STR-10, `FivetoolsIngestionService.cs:17`, `FivetoolsRecordIndex.cs:17`)
+- [x] 1.3 Single `Edition2024Sources` source (SIM-15, STR-11, `FivetoolsMapperBase.cs:9`, `SpellBackfillService.cs:28`)
+- [x] 1.4 Shared renderer helpers + feature-entry extraction (SIM-05, SIM-06, `SimpleEntityRenderers.cs:14`, `SubclassCanonicalTextRenderer.cs:30`) — Monster AlignMap kept local (genuine divergence); ExtractFeatureEntry parameterized on minParts
+- [x] 1.5 Single sidecar-file writer + shared `IsSidecar` (SIM-13, SIM-02, `ExtractionDeclinedFile.cs:21`, `NeedsReviewService.cs:48`) — SIM-02 also fixed a real bug (inline list omitted `.declined.json`)
+- [x] 1.6 Heading-promotion local function (SIM-16, `MinerUPdfConverter.cs:88`)
+- [x] 1.7 One enrich+merge helper (SIM-08, STR-08, `EntityIngestionOrchestrator.cs:189,68`) — three narrower helpers (BuildFivetoolsIndexAsync/MergeEnrichment/WithRenderedText); divergent flow kept inline
+- [x] 1.8 One bounded fuzzy-match scan (SIM-12, `EntityNameMatcher.cs:56`)
 
 ## 2. Remove dead code
 
-- [ ] 2.1 Delete `CanonicalJson.WriteAsync` + `ReadOptions` (SIM-10, SIM-11, `CanonicalJson.cs:19,27`)
-- [ ] 2.2 Remove `EntityIngestionResult.Enriched` alias (SIM-09, `IEntityIngestionOrchestrator.cs:30`)
-- [ ] 2.3 Drop unused `IEntityCanonicalTextRenderer<TFields>` abstraction (SIM-04)
-- [ ] 2.4 Clean stray blank-line/comment gaps (SIM-01, SIM-03)
+- [x] 2.1 Delete `CanonicalJson.WriteAsync` + `ReadOptions` (SIM-10, SIM-11, `CanonicalJson.cs:19,27`)
+- [x] 2.2 Remove `EntityIngestionResult.Enriched` alias (SIM-09, `IEntityIngestionOrchestrator.cs:30`)
+- [x] 2.3 Drop unused `IEntityCanonicalTextRenderer<TFields>` abstraction (SIM-04) — removed from 4 renderers + interface deleted
+- [x] 2.4 Clean stray blank-line/comment gaps (SIM-01, SIM-03)
 
 ## 3. Split the god file
 
