@@ -23,10 +23,10 @@
 ## 4. Layering conventions
 
 - [ ] 4.1 Move EF attributes off Domain types to Fluent config (STR-01, STR-02, `Domain/Hero.cs`, `Domain/IngestionRecord.cs`)
-- [ ] 4.2 Remove unused Infrastructure `using` in feature interface (STR-12, `IIngestionTracker.cs:1`)
+- [x] 4.2 Remove unused Infrastructure `using` in feature interface (STR-12, `IIngestionTracker.cs:1`)
 - [ ] 4.3 Adopt `IDbContextFactory` (or document exception) in `IngestionTracker` (STR-13, `IngestionTracker.cs:8`)
-- [ ] 4.4 Standardize Admin endpoint mapping; extract multipart parsing + shared options (STR-03, STR-04, STR-05, STR-06)
-- [ ] 4.5 Move inline option-binding + reranker DI into per-feature extensions (STR-16, `Program.cs:30`)
+- [~] 4.4 Standardize Admin endpoint mapping; extract multipart parsing + shared options (STR-03, STR-04, STR-05, STR-06) — STR-06 (endpoint mapping) + STR-04 (BookRegistrationService) DONE; STR-03 (document Admin as cross-cutting slice vs façade) + STR-05 (consolidate two CanonicalDirectory options vs document) = doc-vs-refactor decisions, PENDING
+- [x] 4.5 Move inline option-binding + reranker DI into per-feature extensions (STR-16, `Program.cs:30`) — reranker DI was STR-17 (change 2); 7 option blocks relocated, Admin/Mcp left inline as cross-cutting host config
 - [ ] 4.6 Document (ADR/README) the Ingestion→Entities shared-kernel relationship, or relocate the shared loaders under Ingestion (STR-07, `.../Entities/EntityIngestionOrchestrator.cs:1`)
 
 ## 5. Verify + close
