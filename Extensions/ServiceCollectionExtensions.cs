@@ -95,6 +95,8 @@ internal static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         services.AddScoped<IIngestionTracker, IngestionTracker>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.IBm25CorpusStats,
+            DndMcpAICsharpFun.Features.Retrieval.Bm25CorpusStatsStore>();
         services.AddScoped<IEmbeddingService, OllamaEmbeddingService>();
         services.AddScoped<IVectorStoreService, QdrantVectorStoreService>();
         services.AddScoped<IEntityVectorStore, QdrantEntityVectorStore>();

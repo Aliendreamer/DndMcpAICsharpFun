@@ -20,6 +20,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<StructuredTable> StructuredTables => Set<StructuredTable>();
     public DbSet<StructuredTableRow> StructuredTableRows => Set<StructuredTableRow>();
     public DbSet<ChoiceSetRow> ChoiceSetRows => Set<ChoiceSetRow>();
+    public DbSet<Bm25TermStat> Bm25TermStats => Set<Bm25TermStat>();
+    public DbSet<Bm25CorpusStat> Bm25CorpusStats => Set<Bm25CorpusStat>();
+    public DbSet<Bm25BookStat> Bm25BookStats => Set<Bm25BookStat>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -86,6 +89,28 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             e.HasIndex(c => c.CanonicalId).IsUnique();
             e.Property(c => c.OptionsJson).HasColumnType("text");
+        });
+
+        // BM25 corpus-statistics store (COR-15). Bm25CorpusStat is a fixed singleton (Id = 1), so its
+        // key is never auto-generated. Bm25BookStat holds each book's contribution keyed by FileHash,
+        // and the global Bm25TermStat/Bm25CorpusStat aggregates are exactly the sum of those rows.
+        modelBuilder.Entity<Bm25TermStat>(e =>
+        {
+            e.HasKey(t => t.Term);
+            e.Property(t => t.Term).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<Bm25CorpusStat>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Id).ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<Bm25BookStat>(e =>
+        {
+            e.HasKey(b => b.FileHash);
+            e.Property(b => b.FileHash).HasMaxLength(64);
+            e.Property(b => b.TermDfJson).HasColumnType("text");
         });
     }
 }
