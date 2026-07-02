@@ -71,6 +71,20 @@ public sealed class MinerUPdfConverter(
         // consecutive-only check is insufficient).
         var emittedHeadingNorms = new HashSet<string>(StringComparer.Ordinal);
 
+        // Promote a spell/race name to a synthetic "section_header" item once: normalize, length-check
+        // (2..40 chars), and dedupe against the immediately preceding heading before emitting and
+        // tracking it. Shared by all three heading-recovery paths below (SIM-16).
+        void TryPromoteHeading(string name, int page)
+        {
+            var nameNorm = Normalize(name);
+            if (name.Length is >= 2 and <= 40 && nameNorm.Length > 0 && nameNorm != lastHeadingNorm)
+            {
+                items.Add(new PdfStructureItem("section_header", name, page, 2));
+                lastHeadingNorm = nameNorm;
+                emittedHeadingNorms.Add(nameNorm);
+            }
+        }
+
         for (var i = 0; i < blocks.Count; i++)
         {
             var b = blocks[i];
@@ -94,13 +108,7 @@ public sealed class MinerUPdfConverter(
                 if (name.Length == 0 && i > 0)
                     name = StripLevelSchool(blocks[i - 1].Text ?? string.Empty);
 
-                var nameNorm = Normalize(name);
-                if (name.Length is >= 2 and <= 40 && nameNorm.Length > 0 && nameNorm != lastHeadingNorm)
-                {
-                    items.Add(new PdfStructureItem("section_header", name, page, 2));
-                    lastHeadingNorm = nameNorm;
-                    emittedHeadingNorms.Add(nameNorm);
-                }
+                TryPromoteHeading(name, page);
             }
 
             if (b.TextLevel is > 0)
@@ -182,13 +190,7 @@ public sealed class MinerUPdfConverter(
                         // (for levelled spells) or at the school+cantrip suffix (for cantrips).
                         var firstLine = text.Contains('\n') ? text[..text.IndexOf('\n')] : text;
                         var name = StripLevelSchool(firstLine);
-                        var nameNorm = Normalize(name);
-                        if (name.Length is >= 2 and <= 40 && nameNorm.Length > 0 && nameNorm != lastHeadingNorm)
-                        {
-                            items.Add(new PdfStructureItem("section_header", name, page, 2));
-                            lastHeadingNorm = nameNorm;
-                            emittedHeadingNorms.Add(nameNorm);
-                        }
+                        TryPromoteHeading(name, page);
                     }
                 }
                 // Bare-header promotion (no Casting-Time anchor): when the block's first line is a
@@ -203,13 +205,7 @@ public sealed class MinerUPdfConverter(
                     if (bareFirstLine.Length <= 55 && IsLevelSchoolLine(bareFirstLine))
                     {
                         var bareName = StripLevelSchool(bareFirstLine);
-                        var bareNameNorm = Normalize(bareName);
-                        if (bareName.Length is >= 2 and <= 40 && bareNameNorm.Length > 0 && bareNameNorm != lastHeadingNorm)
-                        {
-                            items.Add(new PdfStructureItem("section_header", bareName, page, 2));
-                            lastHeadingNorm = bareNameNorm;
-                            emittedHeadingNorms.Add(bareNameNorm);
-                        }
+                        TryPromoteHeading(bareName, page);
                     }
                 }
 

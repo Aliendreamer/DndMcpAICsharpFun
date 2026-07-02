@@ -13,39 +13,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 /// </summary>
 public sealed class EntityNameMatcher(EntityNameIndex index)
 {
-    public (string Canonical, EntityType Type)? Match(string rawName)
-    {
-        var normalized = EntityNameIndex.Normalize(rawName);
-
-        // 1. Exact normalized hit — handles de-spaced inputs ("magearmor" == "magearmor").
-        if (index.Entries.TryGetValue(normalized, out var exact))
-            return exact;
-
-        // 2. Bounded fuzzy: only compare against index keys within ±2 chars of the query
-        //    to keep the cost proportional to a small candidate set.
-        var queryLen = normalized.Length;
-        (string Canonical, EntityType Type)? best = null;
-        var bestRatio = 0.0;
-        string? bestCanonical = null;
-
-        foreach (var (key, value) in index.Entries)
-        {
-            if (Math.Abs(key.Length - queryLen) > 2) continue;
-
-            var dist = Levenshtein(normalized, key);
-            var maxLen = Math.Max(queryLen, key.Length);
-            var ratio = maxLen == 0 ? 1.0 : 1.0 - (double)dist / maxLen;
-
-            if (ratio > bestRatio || (ratio == bestRatio && string.CompareOrdinal(value.Canonical, bestCanonical) < 0))
-            {
-                bestRatio = ratio;
-                bestCanonical = value.Canonical;
-                best = value;
-            }
-        }
-
-        return bestRatio >= 0.90 ? best : null;
-    }
+    public (string Canonical, EntityType Type)? Match(string rawName) => Scan(rawName, null);
 
     /// <summary>
     /// Like <see cref="Match"/>, but restricted to entries of the given <paramref name="type"/>.
@@ -53,19 +21,31 @@ public sealed class EntityNameMatcher(EntityNameIndex index)
     /// (e.g. "Dwarf" → the Dwarf <em>Race</em> entry rather than the Dwarf Monster entry).
     /// Returns null when no entry of that type matches (exact or fuzzy).
     /// </summary>
-    public (string Canonical, EntityType Type)? MatchOfType(string rawName, EntityType type)
+    public (string Canonical, EntityType Type)? MatchOfType(string rawName, EntityType type) => Scan(rawName, type);
+
+    // Single bounded-fuzzy Levenshtein scan over EntriesByName shared by Match and MatchOfType.
+    // Entries is always the first-wins winner per normalized key — i.e. EntriesByName[key][0] —
+    // so the untyped path (type is null) scans EntriesByName exclusively by only ever
+    // considering each key's first entry, while the typed path filters every entry of that key
+    // to the requested EntityType. Same distance bound (±2), same 0.90 ratio threshold, same
+    // ordinal tie-break on Canonical, same return semantics as the original two scans.
+    private (string Canonical, EntityType Type)? Scan(string rawName, EntityType? type)
     {
         var normalized = EntityNameIndex.Normalize(rawName);
-        if (normalized.Length == 0) return null;
+        if (type is not null && normalized.Length == 0) return null;
 
-        // 1. Exact normalized hit of the requested type.
+        // 1. Exact normalized hit (optionally restricted to the requested type).
         if (index.EntriesByName.TryGetValue(normalized, out var exactList))
         {
+            if (type is null)
+                return exactList[0];
+
             foreach (var e in exactList)
                 if (e.Type == type) return e;
         }
 
-        // 2. Bounded fuzzy, restricted to entries of the requested type.
+        // 2. Bounded fuzzy: only compare against index keys within ±2 chars of the query
+        //    to keep the cost proportional to a small candidate set.
         var queryLen = normalized.Length;
         (string Canonical, EntityType Type)? best = null;
         var bestRatio = 0.0;
@@ -79,14 +59,27 @@ public sealed class EntityNameMatcher(EntityNameIndex index)
             var maxLen = Math.Max(queryLen, key.Length);
             var ratio = maxLen == 0 ? 1.0 : 1.0 - (double)dist / maxLen;
 
-            foreach (var value in values)
+            if (type is null)
             {
-                if (value.Type != type) continue;
+                var value = values[0];
                 if (ratio > bestRatio || (ratio == bestRatio && string.CompareOrdinal(value.Canonical, bestCanonical) < 0))
                 {
                     bestRatio = ratio;
                     bestCanonical = value.Canonical;
                     best = value;
+                }
+            }
+            else
+            {
+                foreach (var value in values)
+                {
+                    if (value.Type != type) continue;
+                    if (ratio > bestRatio || (ratio == bestRatio && string.CompareOrdinal(value.Canonical, bestCanonical) < 0))
+                    {
+                        bestRatio = ratio;
+                        bestCanonical = value.Canonical;
+                        best = value;
+                    }
                 }
             }
         }
