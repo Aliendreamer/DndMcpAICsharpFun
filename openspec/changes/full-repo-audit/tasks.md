@@ -22,7 +22,7 @@
 
 ## 4. Report + finish
 
-- [ ] 4.1 Write `docs/audits/2026-07-02-full-repo-audit.md` (finding format per spec: ID, severity, dimension, file:line, what/why, recommendation, S/M/L effort; endpoint auth-posture table; tooling evidence; commit SHA)
-- [ ] 4.2 `pnpm lint:md:fix` + `pnpm lint:md` → 0 errors
-- [ ] 4.3 Verify no code/config changes (`git status` clean apart from report + change artifacts); commit the report
+- [x] 4.1 Write `docs/audits/2026-07-02-full-repo-audit.md` (finding format per spec: ID, severity, dimension, file:line, what/why, recommendation, S/M/L effort; endpoint auth-posture table; tooling evidence; commit SHA)
+- [x] 4.2 `pnpm lint:md:fix` + `pnpm lint:md` → 0 errors
+- [x] 4.3 Verify no code/config changes (`git status` clean apart from report + change artifacts); commit the report
 - [ ] 4.4 Joint triage session with the user → decide fix batches → spin follow-up changes (out of this change's scope)
