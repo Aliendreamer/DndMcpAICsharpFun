@@ -24,7 +24,7 @@
 
 - [x] 4.1 Move EF attributes off Domain types to Fluent config (STR-01, STR-02, `Domain/Hero.cs`, `Domain/IngestionRecord.cs`) — proven schema-neutral (empty generated migration; snapshot unchanged)
 - [x] 4.2 Remove unused Infrastructure `using` in feature interface (STR-12, `IIngestionTracker.cs:1`)
-- [ ] 4.3 Adopt `IDbContextFactory` (or document exception) in `IngestionTracker` (STR-13, `IngestionTracker.cs:8`) — DEFERRED (only remaining Change-5 item)
+- [x] 4.3 Adopt `IDbContextFactory` (or document exception) in `IngestionTracker` (STR-13, `IngestionTracker.cs:8`) — short-lived context per method, matches peer repos
 - [x] 4.4 Standardize Admin endpoint mapping; extract multipart parsing + shared options (STR-03, STR-04, STR-05, STR-06) — STR-06 (endpoint mapping) + STR-04 (BookRegistrationService) refactored; STR-03 + STR-05 documented as ADRs 0001/0002
 - [x] 4.5 Move inline option-binding + reranker DI into per-feature extensions (STR-16, `Program.cs:30`) — reranker DI was STR-17 (change 2); 7 option blocks relocated, Admin/Mcp left inline as cross-cutting host config
 - [x] 4.6 Document (ADR/README) the Ingestion→Entities shared-kernel relationship, or relocate the shared loaders under Ingestion (STR-07, `.../Entities/EntityIngestionOrchestrator.cs:1`) — ADR 0003
@@ -32,4 +32,4 @@
 ## 5. Verify + close
 
 - [x] 5.1 `dotnet build` + `dotnet test` green — behaviour unchanged (847/847, 0 warnings/0 errors)
-- [x] 5.2 Confirm each finding (SIM-01..16, STR-01..12/16) is addressed — only STR-13 deferred (task 4.3)
+- [x] 5.2 Confirm each finding (SIM-01..16, STR-01..13/16) is addressed — ALL Change-5 findings complete
