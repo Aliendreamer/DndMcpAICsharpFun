@@ -332,6 +332,44 @@
       "authentication": {}
     },
     {
+      "_id": "req_books_monster_recall",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Monster recall check (official books only; report-only diff, no write)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/admin/books/1/monster-recall",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
+      "_id": "req_books_backfill_monsters",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Backfill missing monsters from 5etools (official books only)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/backfill-monsters",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_canonical_validate",
       "_type": "request",
       "parentId": "fld_admin_books",

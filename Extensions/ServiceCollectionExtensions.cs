@@ -226,6 +226,12 @@ internal static class ServiceCollectionExtensions
                 sp.GetRequiredService<CanonicalJsonLoader>(),
                 sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value.CanonicalDirectory,
                 configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools"));
+        services.AddSingleton<DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.MonsterBackfillService>(sp =>
+            new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.MonsterBackfillService(
+                sp.GetRequiredService<DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry>(),
+                sp.GetRequiredService<CanonicalJsonLoader>(),
+                sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value.CanonicalDirectory,
+                configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools"));
         services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
         services.AddSingleton<DndMcpAICsharpFun.Features.Admin.CanonicalValidationService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalTypeFixerService>();
