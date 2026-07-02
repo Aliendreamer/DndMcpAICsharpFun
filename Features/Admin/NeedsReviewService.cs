@@ -55,10 +55,7 @@ public sealed class NeedsReviewService(
             return [];
 
         return Directory.GetFiles(_opts.CanonicalDirectory, "*.json", SearchOption.TopDirectoryOnly)
-            .Where(f => !f.EndsWith(".errors.json",          StringComparison.Ordinal)
-                     && !f.EndsWith(".warnings.json",        StringComparison.Ordinal)
-                     && !f.EndsWith(".progress.json",        StringComparison.Ordinal)
-                     && !f.EndsWith(".progress.errors.json", StringComparison.Ordinal))
+            .Where(f => !CanonicalSidecarFiles.IsSidecar(f))
             .OrderBy(f => f)
             .ToArray();
     }

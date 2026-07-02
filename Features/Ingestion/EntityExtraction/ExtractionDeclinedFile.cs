@@ -18,17 +18,6 @@ public sealed class ExtractionDeclinedFile
         Converters = { new JsonStringEnumConverter() },
     };
 
-    public async Task WriteAsync(string path, IList<DeclinedEntry> declined, CancellationToken ct)
-    {
-        if (declined.Count == 0)
-        {
-            if (File.Exists(path)) File.Delete(path);
-            return;
-        }
-
-        var dir = Path.GetDirectoryName(path) ?? ".";
-        Directory.CreateDirectory(dir);
-        await using var stream = File.Create(path);
-        await JsonSerializer.SerializeAsync(stream, declined, JsonOptions, ct);
-    }
+    public Task WriteAsync(string path, IReadOnlyList<DeclinedEntry> declined, CancellationToken ct)
+        => SidecarJsonFileWriter.WriteAsync(path, declined, JsonOptions, ct);
 }

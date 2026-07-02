@@ -15,17 +15,6 @@ public sealed class ExtractionWarningsFile
         WriteIndented = true,
     };
 
-    public async Task WriteAsync(string path, IList<ExtractionWarningEntry> warnings, CancellationToken ct)
-    {
-        if (warnings.Count == 0)
-        {
-            if (File.Exists(path)) File.Delete(path);
-            return;
-        }
-
-        var dir = Path.GetDirectoryName(path) ?? ".";
-        Directory.CreateDirectory(dir);
-        await using var stream = File.Create(path);
-        await JsonSerializer.SerializeAsync(stream, warnings, JsonOptions, ct);
-    }
+    public Task WriteAsync(string path, IReadOnlyList<ExtractionWarningEntry> warnings, CancellationToken ct)
+        => SidecarJsonFileWriter.WriteAsync(path, warnings, JsonOptions, ct);
 }
