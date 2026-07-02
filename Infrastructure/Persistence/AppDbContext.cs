@@ -61,6 +61,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.HasIndex(n => n.CampaignId);
         });
 
+        // The *Json columns below are read/written only as whole blobs (deserialized in the app), never
+        // queried server-side, so plain `text` is the deliberate mapping (NET-12). If a future admin or
+        // reporting path needs to query into the JSON, migrate these to `jsonb` and add a GIN index.
         modelBuilder.Entity<StructuredTable>(e =>
         {
             e.HasIndex(t => t.CanonicalId).IsUnique();

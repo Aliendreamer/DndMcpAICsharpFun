@@ -3,7 +3,7 @@
 - [x] 1.1 Wrap campaign deletion in a transaction or DB cascade (NET-01, `Features/Campaigns/CampaignRepository.cs:41`)
 - [x] 1.2 Wrap hero deletion in a transaction (NET-03, `Features/Campaigns/HeroRepository.cs:87`)
 - [x] 1.3 Replace the per-hero latest-snapshot loop with one grouped query (NET-02, `HeroRepository.cs:22`)
-- [ ] 1.4 Decide and apply `jsonb`+GIN vs `text` for JSON columns (NET-12, `Infrastructure/Persistence/AppDbContext.cs:62`)
+- [x] 1.4 Decide and apply `jsonb`+GIN vs `text` for JSON columns (NET-12, `Infrastructure/Persistence/AppDbContext.cs:62`)
 
 ## 2. Async + resource hygiene
 
@@ -24,7 +24,7 @@
 ## 4. Test hygiene
 
 - [x] 4.1 Remove dead `Build()` helper (COR-01, `.../Admin/AdminApiKeyMiddlewareTests.cs:10`)
-- [ ] 4.2 Use shared `TestPaths` helper instead of `../../../../` (COR-03, `.../Admin/BooksAdminEndpointsTests.cs:33`)
+- [x] 4.2 Use shared `TestPaths` helper instead of `../../../../` (COR-03, `.../Admin/BooksAdminEndpointsTests.cs:33`)
 - [ ] 4.3 Isolate temp dirs with try/finally cleanup (COR-04, COR-07, `.../BooksAdminEndpointsTests.cs:80`, `.../Chat/DndChatServiceTests.cs:30`)
 - [ ] 4.4 Signal async completion instead of `Task.Delay(150)` (COR-08, `.../Ingestion/IngestionQueueWorkerTests.cs:25`)
 - [x] 4.5 Tighten weak `Contain("15")` assertion to `DC 15` (COR-09, `.../Mcp/ResolveCharacterFeatureToolTests.cs:117`)

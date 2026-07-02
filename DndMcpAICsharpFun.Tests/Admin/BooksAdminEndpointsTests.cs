@@ -33,8 +33,7 @@ public sealed class BooksAdminEndpointsTests
         builder.Services.AddSingleton<ILogger<RegisterBookRequest>>(
             NullLogger<RegisterBookRequest>.Instance);
         builder.Services.AddSingleton(
-            new BookSourceRegistry(
-                Path.Combine(AppContext.BaseDirectory, "../../../../5etools/books.json")));
+            new BookSourceRegistry(TestPaths.RepoFile("5etools/books.json")));
         builder.Services.Configure<AdminOptions>(o => o.ApiKey = "test-key");
         builder.Services.Configure<IngestionOptions>(o => o.BooksPath = Path.GetTempPath());
 
