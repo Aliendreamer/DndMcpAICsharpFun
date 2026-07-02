@@ -3,7 +3,7 @@ namespace DndMcpAICsharpFun.Features.Retrieval;
 public static class ModelDownloader
 {
     public static async Task<bool> EnsureModelAsync(
-        RerankerOptions opts, ILogger logger, CancellationToken ct)
+        RerankerOptions opts, HttpClient client, ILogger logger, CancellationToken ct)
     {
         try
         {
@@ -11,9 +11,6 @@ public static class ModelDownloader
 
             var modelPath = Path.Combine(opts.ModelPath, "model.onnx");
             var vocabPath = Path.Combine(opts.ModelPath, "vocab.txt");
-
-            using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromMinutes(10);
 
             if (!File.Exists(modelPath))
             {

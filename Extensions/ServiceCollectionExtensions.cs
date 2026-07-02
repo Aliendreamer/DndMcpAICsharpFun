@@ -129,6 +129,17 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<IRagRetrievalService, RagRetrievalService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.IEntityRetrievalService, DndMcpAICsharpFun.Features.Retrieval.Entities.EntityRetrievalService>();
 
+        services.AddOptions<RerankerOptions>()
+            .BindConfiguration("Reranker")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddHttpClient("reranker", static c => c.Timeout = TimeSpan.FromMinutes(10));
+        services.AddSingleton<CrossEncoderReranker>(static sp => new CrossEncoderReranker(
+            sp.GetRequiredService<IOptions<RerankerOptions>>().Value,
+            sp.GetRequiredService<IHttpClientFactory>(),
+            sp.GetRequiredService<ILogger<CrossEncoderReranker>>()));
+        services.AddSingleton<IReranker>(static sp => sp.GetRequiredService<CrossEncoderReranker>());
+
         return services;
     }
 

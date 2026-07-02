@@ -6,7 +6,7 @@ namespace DndMcpAICsharpFun.Tests.Retrieval;
 public sealed class CrossEncoderRerankerTests
 {
     private static CrossEncoderReranker DisabledReranker() =>
-        new(new RerankerOptions { Enabled = false }, NullLogger<CrossEncoderReranker>.Instance);
+        new(new RerankerOptions { Enabled = false }, Substitute.For<IHttpClientFactory>(), NullLogger<CrossEncoderReranker>.Instance);
 
     private static RetrievalResult MakeResult(string text) =>
         new(text, new ChunkMetadata("PHB", DndVersion.Edition2014, ContentCategory.Spell, null, "Ch1", 1, 0), 0.5f);

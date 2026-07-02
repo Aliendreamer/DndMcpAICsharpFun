@@ -6,6 +6,7 @@ namespace DndMcpAICsharpFun.Features.Retrieval;
 
 public sealed class CrossEncoderReranker(
     RerankerOptions opts,
+    IHttpClientFactory httpClientFactory,
     ILogger<CrossEncoderReranker> logger) : IReranker, IDisposable
 {
     private const int MaxTokens = 512;
@@ -24,7 +25,8 @@ public sealed class CrossEncoderReranker(
             return;
         }
 
-        var ready = await ModelDownloader.EnsureModelAsync(opts, logger, ct);
+        using var httpClient = httpClientFactory.CreateClient("reranker");
+        var ready = await ModelDownloader.EnsureModelAsync(opts, httpClient, logger, ct);
         if (!ready)
         {
             _enabled = false;

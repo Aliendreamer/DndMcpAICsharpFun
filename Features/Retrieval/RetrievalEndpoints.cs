@@ -22,8 +22,8 @@ public static class RetrievalEndpoints
         string? sourceBook,
         string? entityName,
         string? bookType,
+        IRagRetrievalService retrieval,
         int topK = 5,
-        IRagRetrievalService retrieval = default!,
         CancellationToken ct = default)
         => SearchCore(q, version, category, sourceBook, entityName, bookType, topK, retrieval, diagnostic: false, ct);
 
@@ -34,8 +34,8 @@ public static class RetrievalEndpoints
         string? sourceBook,
         string? entityName,
         string? bookType,
+        IRagRetrievalService retrieval,
         int topK = 5,
-        IRagRetrievalService retrieval = default!,
         CancellationToken ct = default)
         => SearchCore(q, version, category, sourceBook, entityName, bookType, topK, retrieval, diagnostic: true, ct);
 

@@ -2,6 +2,12 @@ using DndMcpAICsharpFun.Features.Retrieval;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;
 
+internal sealed class ThrowingMessageHandler : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        => throw new HttpRequestException("simulated network failure");
+}
+
 public sealed class ModelDownloaderTests : IDisposable
 {
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -29,8 +35,9 @@ public sealed class ModelDownloaderTests : IDisposable
         await File.WriteAllTextAsync(Path.Combine(_tempDir, "model.onnx"), "stub");
         await File.WriteAllTextAsync(Path.Combine(_tempDir, "vocab.txt"), "stub");
 
+        using var client = new HttpClient(new ThrowingMessageHandler());
         var result = await ModelDownloader.EnsureModelAsync(
-            MakeOpts(), NullLogger.Instance, CancellationToken.None);
+            MakeOpts(), client, NullLogger.Instance, CancellationToken.None);
 
         Assert.True(result);
     }
@@ -38,8 +45,9 @@ public sealed class ModelDownloaderTests : IDisposable
     [Fact]
     public async Task EnsureModelAsync_WhenDownloadFails_ReturnsFalseWithoutThrowing()
     {
+        using var client = new HttpClient(new ThrowingMessageHandler());
         var result = await ModelDownloader.EnsureModelAsync(
-            MakeOpts(), NullLogger.Instance, CancellationToken.None);
+            MakeOpts(), client, NullLogger.Instance, CancellationToken.None);
 
         Assert.False(result);
     }

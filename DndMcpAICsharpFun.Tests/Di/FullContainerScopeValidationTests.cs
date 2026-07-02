@@ -138,13 +138,6 @@ public sealed class FullContainerScopeValidationTests
         services.AddOptions<DndMcpAICsharpFun.Infrastructure.Postgres.PostgresOptions>()
             .BindConfiguration("Postgres");
 
-        // CrossEncoderReranker — registered inline in Program.cs (not via an extension).
-        services.AddSingleton<CrossEncoderReranker>(sp =>
-            new CrossEncoderReranker(
-                sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RerankerOptions>>().Value,
-                sp.GetRequiredService<ILogger<CrossEncoderReranker>>()));
-        services.AddSingleton<IReranker>(
-            sp => sp.GetRequiredService<CrossEncoderReranker>());
 
         // All internal Add* extension groups — same order as Program.cs.
         services.AddInfrastructureClients(config);
