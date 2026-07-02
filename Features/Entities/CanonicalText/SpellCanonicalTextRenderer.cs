@@ -1,14 +1,11 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using DndMcpAICsharpFun.Domain.Entities.Fields;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;
 
 public sealed class SpellCanonicalTextRenderer
 {
-    private static readonly Regex TagRx = new(@"\{@\w+\s([^|}]+)[^}]*\}", RegexOptions.Compiled);
-
     public string Render(string name, SpellFields f)
     {
         var sb = new StringBuilder();
@@ -78,7 +75,7 @@ public sealed class SpellCanonicalTextRenderer
     private static void AppendEntry(StringBuilder sb, JsonElement e)
     {
         if (e.ValueKind == JsonValueKind.String)
-            sb.AppendLine(StripTags(e.GetString()!));
+            sb.AppendLine(RendererHelpers.StripTags(e.GetString()!));
         else if (e.ValueKind == JsonValueKind.Object)
         {
             if (e.TryGetProperty("entries", out var entries))
@@ -89,8 +86,6 @@ public sealed class SpellCanonicalTextRenderer
                     AppendEntry(sb, child);
         }
     }
-
-    private static string StripTags(string s) => TagRx.Replace(s, "$1");
 
     private static string Ordinal(int n) => n switch
     {

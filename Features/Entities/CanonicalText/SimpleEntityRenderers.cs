@@ -45,6 +45,35 @@ internal static class RendererHelpers
             .Where(x => x.ValueKind == JsonValueKind.String)
             .Select(x => x.GetString()!);
     }
+
+
+    /// <summary>
+    /// Extracts a (feature name, level) pair from a class/subclass feature entry, which may be either
+    /// a pipe-delimited reference string (e.g. "Rage|Barbarian|PHB||1") or an object with a named
+    /// feature-reference property (e.g. "classFeature"/"subclassFeature") plus a numeric "level".
+    /// <paramref name="minParts"/> is the minimum number of pipe-delimited segments required for the
+    /// string form to be considered valid (class and subclass feature strings use different minimums).
+    /// </summary>
+    public static (string Name, int Level)? ExtractFeatureEntry(JsonElement element, string objectKey, int minParts = 2)
+    {
+        if (element.ValueKind == JsonValueKind.String)
+        {
+            var raw = element.GetString() ?? string.Empty;
+            var parts = raw.Split('|');
+            if (parts.Length >= minParts && int.TryParse(parts[^1], out var lv))
+                return (parts[0], lv);
+            return null;
+        }
+        if (element.ValueKind == JsonValueKind.Object
+            && element.TryGetProperty(objectKey, out var cf)
+            && element.TryGetProperty("level", out var lv2))
+        {
+            var raw = cf.GetString() ?? string.Empty;
+            var name = raw.Split('|')[0];
+            return (name, lv2.GetInt32());
+        }
+        return null;
+    }
 }
 
 public sealed class RaceCanonicalTextRenderer : ISimpleEntityRenderer

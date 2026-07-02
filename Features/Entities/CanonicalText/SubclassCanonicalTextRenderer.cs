@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities.Fields;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;
@@ -14,7 +13,7 @@ public sealed class SubclassCanonicalTextRenderer
         if (f.SubclassFeatures is { Count: > 0 })
         {
             var features = f.SubclassFeatures
-                .Select(ExtractFeatureEntry)
+                .Select(e => RendererHelpers.ExtractFeatureEntry(e, "subclassFeature", minParts: 2))
                 .Where(x => x.HasValue)
                 .Select(x => x!.Value)
                 .OrderBy(x => x.Level)
@@ -27,23 +26,5 @@ public sealed class SubclassCanonicalTextRenderer
         return sb.ToString();
     }
 
-    private static (string Name, int Level)? ExtractFeatureEntry(JsonElement e)
-    {
-        if (e.ValueKind == JsonValueKind.String)
-        {
-            var raw = e.GetString() ?? string.Empty;
-            var parts = raw.Split('|');
-            if (parts.Length >= 2 && int.TryParse(parts[^1], out var lv))
-                return (parts[0], lv);
-            return null;
-        }
-        if (e.ValueKind == JsonValueKind.Object
-            && e.TryGetProperty("subclassFeature", out var sf)
-            && e.TryGetProperty("level", out var lv2))
-        {
-            var raw = sf.GetString() ?? string.Empty;
-            return (raw.Split('|')[0], lv2.GetInt32());
-        }
-        return null;
-    }
+    
 }

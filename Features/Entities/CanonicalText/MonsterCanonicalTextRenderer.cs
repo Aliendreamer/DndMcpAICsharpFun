@@ -1,20 +1,14 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using DndMcpAICsharpFun.Domain.Entities.Fields;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;
 
 public sealed class MonsterCanonicalTextRenderer
 {
-    private static readonly Regex TagRx = new(@"\{@\w+\s([^|}]+)[^}]*\}", RegexOptions.Compiled);
-
-    private static readonly Dictionary<string, string> SizeMap = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["T"] = "Tiny", ["S"] = "Small", ["M"] = "Medium",
-        ["L"] = "Large", ["H"] = "Huge", ["G"] = "Gargantuan"
-    };
-
+    // NOTE: AlignMap intentionally stays local -- it diverges from RendererHelpers.AlignMap
+    // ("A" => "Any alignment" here vs "Any" there, plus NX/NY keys not present in the shared
+    // map). See SIM-05 consolidation report: this divergence was flagged rather than merged.
     private static readonly Dictionary<string, string> AlignMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["L"] = "Lawful", ["C"] = "Chaotic", ["G"] = "Good", ["E"] = "Evil",
@@ -28,7 +22,7 @@ public sealed class MonsterCanonicalTextRenderer
 
         // Size
         var sizeText = f.Size is { Count: > 0 }
-            ? string.Join(", ", f.Size.Select(s => SizeMap.TryGetValue(s, out var n) ? n : s))
+            ? string.Join(", ", f.Size.Select(RendererHelpers.MapSize))
             : "Unknown";
 
         // Type
@@ -149,8 +143,6 @@ public sealed class MonsterCanonicalTextRenderer
     {
         if (entries is null or { Count: 0 }) return string.Empty;
         var first = entries[0];
-        return first.ValueKind == JsonValueKind.String ? StripTags(first.GetString()!) : string.Empty;
+        return first.ValueKind == JsonValueKind.String ? RendererHelpers.StripTags(first.GetString()!) : string.Empty;
     }
-
-    private static string StripTags(string s) => TagRx.Replace(s, "$1");
 }
