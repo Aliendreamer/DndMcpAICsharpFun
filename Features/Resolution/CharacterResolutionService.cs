@@ -158,7 +158,10 @@ public sealed class CharacterResolutionService(
             new("breathArea",  breathAreaVal,  breathAreaCell?.Provenance),
             new("saveAbility", saveAbilityVal, saveAbilityCell?.Provenance),
             new("dice",        dice,           tierProv),
-            new("saveDC",      dc.ToString(),  saveAbilityCell?.Provenance),
+            // saveDC is COMPUTED (8 + proficiency bonus + CON modifier, via BreathWeaponRules) — it is
+            // not sourced from any cell, so it carries no provenance rather than mis-citing the
+            // saveAbility cell's source (COR-20).
+            new("saveDC",      dc.ToString(),  null),
         };
 
         var value = $"{breathAreaVal} of {damageTypeVal}, {saveAbilityVal} save DC {dc}, {dice}";
