@@ -40,6 +40,15 @@ internal static class ServiceCollectionExtensions
 {
     internal static IServiceCollection AddInfrastructureClients(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddOptions<QdrantOptions>()
+            .BindConfiguration("Qdrant")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddOptions<OllamaOptions>()
+            .BindConfiguration("Ollama")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddSingleton(static sp =>
         {
             var opts = sp.GetRequiredService<IOptions<QdrantOptions>>().Value;
@@ -76,6 +85,15 @@ internal static class ServiceCollectionExtensions
 
     internal static IServiceCollection AddIngestionPipeline(this IServiceCollection services)
     {
+        services.AddOptions<IngestionOptions>()
+            .BindConfiguration("Ingestion")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddOptions<DndMcpAICsharpFun.Features.Ingestion.Entities.EntityIngestionOptions>()
+            .BindConfiguration("EntityIngestion")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddScoped<IIngestionTracker, IngestionTracker>();
         services.AddScoped<IEmbeddingService, OllamaEmbeddingService>();
         services.AddScoped<IVectorStoreService, QdrantVectorStoreService>();
@@ -122,6 +140,11 @@ internal static class ServiceCollectionExtensions
 
     internal static IServiceCollection AddRetrieval(this IServiceCollection services)
     {
+        services.AddOptions<RetrievalOptions>()
+            .BindConfiguration("Retrieval")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddSingleton<IQdrantSearchClient>(static sp =>
             new QdrantSearchClientAdapter(sp.GetRequiredService<QdrantClient>()));
         services.AddSingleton<DndMcpAICsharpFun.Features.Retrieval.RerankingService>();

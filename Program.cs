@@ -6,7 +6,6 @@ using DndMcpAICsharpFun.Features.Retrieval.Entities;
 
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
-using DndMcpAICsharpFun.Infrastructure.Ingestion;
 using Serilog;
 using Serilog.Events;
 
@@ -27,28 +26,9 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 // Options
-builder.Services.AddOptions<QdrantOptions>()
-    .BindConfiguration("Qdrant")
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-builder.Services.AddOptions<OllamaOptions>()
-    .BindConfiguration("Ollama")
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-builder.Services.AddOptions<IngestionOptions>()
-    .BindConfiguration("Ingestion")
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
+// Cross-cutting host options (no owning feature extension): admin-api-key + MCP-server auth.
 builder.Services.AddOptions<AdminOptions>()
     .BindConfiguration("Admin")
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-builder.Services.AddOptions<RetrievalOptions>()
-    .BindConfiguration("Retrieval")
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-builder.Services.AddOptions<DndMcpAICsharpFun.Features.Ingestion.Entities.EntityIngestionOptions>()
-    .BindConfiguration("EntityIngestion")
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.Services.AddOptions<McpOptions>()
@@ -65,12 +45,6 @@ builder.Services.AddEntityExtraction(builder.Configuration);
 builder.Services.AddObservability(builder.Configuration);
 
 // Companion UI: persistence, chat, auth, rate limiting, Blazor, and the loopback MCP client.
-builder.Services.AddOptions<DndMcpAICsharpFun.Features.Chat.McpClientOptions>()
-    .BindConfiguration("McpClient")
-    .ValidateOnStart();
-builder.Services.AddOptions<DndMcpAICsharpFun.Infrastructure.Postgres.PostgresOptions>()
-    .BindConfiguration("Postgres")
-    .ValidateOnStart();
 builder.Services.AddAntiforgery();
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddDndChat(builder.Configuration);

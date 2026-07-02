@@ -7,6 +7,10 @@ internal static class ChatExtensions
 {
     internal static IServiceCollection AddDndChat(this IServiceCollection services, IConfiguration config)
     {
+        services.AddOptions<McpClientOptions>()
+            .BindConfiguration("McpClient")
+            .ValidateOnStart();
+
         var baseUrl = config["Ollama:BaseUrl"] ?? "http://ollama:11434";
         var chatModel = config["Ollama:ChatModel"] ?? "qwen3:8b";
         services.AddOptions<ChatPersonaOptions>()
