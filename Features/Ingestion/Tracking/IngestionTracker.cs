@@ -5,16 +5,23 @@ using DndMcpAICsharpFun.Domain;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Tracking;
 
-public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
+public sealed class IngestionTracker(IDbContextFactory<AppDbContext> dbf) : IIngestionTracker
 {
-    public Task<IngestionRecord?> GetByHashAsync(string hash, CancellationToken ct = default) =>
-        db.IngestionRecords.FirstOrDefaultAsync(r => r.FileHash == hash, ct);
+    public async Task<IngestionRecord?> GetByHashAsync(string hash, CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.IngestionRecords.FirstOrDefaultAsync(r => r.FileHash == hash, ct);
+    }
 
-    public Task<IngestionRecord?> GetByIdAsync(int id, CancellationToken ct = default) =>
-        db.IngestionRecords.FindAsync([id], ct).AsTask();
+    public async Task<IngestionRecord?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.IngestionRecords.FindAsync([id], ct);
+    }
 
     public async Task<IngestionRecord> CreateAsync(IngestionRecord record, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         db.IngestionRecords.Add(record);
         await db.SaveChangesAsync(ct);
         return record;
@@ -22,6 +29,7 @@ public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
 
     public async Task MarkHashAsync(int id, string fileHash, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         await db.IngestionRecords
             .Where(r => r.Id == id)
             .ExecuteUpdateAsync(s => s
@@ -31,6 +39,7 @@ public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
 
     public async Task MarkFailedAsync(int id, string error, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         await db.IngestionRecords
             .Where(r => r.Id == id)
             .ExecuteUpdateAsync(s => s
@@ -40,6 +49,7 @@ public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
 
     public async Task ResetForReingestionAsync(int id, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         await db.IngestionRecords
             .Where(r => r.Id == id)
             .ExecuteUpdateAsync(s => s
@@ -49,21 +59,28 @@ public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
                 .SetProperty(r => r.IngestedAt, (DateTime?)null), ct);
     }
 
-    public async Task<IList<IngestionRecord>> GetPendingAndFailedAsync(CancellationToken ct = default) =>
-        await db.IngestionRecords
+    public async Task<IList<IngestionRecord>> GetPendingAndFailedAsync(CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.IngestionRecords
             .Where(r => r.Status == IngestionStatus.Pending || r.Status == IngestionStatus.Failed)
             .OrderBy(r => r.CreatedAt)
             .ToListAsync(ct);
+    }
 
-    public async Task<List<IngestionRecord>> GetAllAsync(int limit = 100, int offset = 0, CancellationToken ct = default) =>
-        await db.IngestionRecords
+    public async Task<List<IngestionRecord>> GetAllAsync(int limit = 100, int offset = 0, CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.IngestionRecords
             .OrderBy(r => r.Id)
             .Skip(offset)
             .Take(limit)
             .ToListAsync(ct);
+    }
 
     public async Task MarkDuplicateAsync(int id, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         await db.IngestionRecords
             .Where(r => r.Id == id)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, IngestionStatus.Duplicate), ct);
@@ -71,6 +88,7 @@ public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         var deleted = await db.IngestionRecords
             .Where(r => r.Id == id && r.Status != IngestionStatus.Processing)
             .ExecuteDeleteAsync(ct);
@@ -80,6 +98,7 @@ public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
 
     public async Task MarkJsonIngestedAsync(int id, int chunkCount, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         await db.IngestionRecords
             .Where(r => r.Id == id)
             .ExecuteUpdateAsync(s => s
@@ -91,6 +110,7 @@ public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
 
     public async Task MarkEntitiesIngestedAsync(int id, int entityCount, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         await db.IngestionRecords
             .Where(r => r.Id == id)
             .ExecuteUpdateAsync(s => s
@@ -102,6 +122,7 @@ public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
 
     public async Task MarkEntitiesExtractingAsync(int bookId, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         await db.IngestionRecords
             .Where(r => r.Id == bookId)
             .ExecuteUpdateAsync(s => s
@@ -115,6 +136,7 @@ public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
         // Downstream ingestion (vector upsert into dnd_entities) is a separate
         // phase and uses MarkEntitiesIngestedAsync to advance to EntitiesIngested.
         // Do NOT overwrite ChunkCount.
+        await using var db = await dbf.CreateDbContextAsync(ct);
         await db.IngestionRecords
             .Where(r => r.Id == bookId)
             .ExecuteUpdateAsync(s => s
@@ -126,6 +148,7 @@ public sealed class IngestionTracker(AppDbContext db) : IIngestionTracker
 
     public async Task MarkEntitiesFailedAsync(int bookId, string error, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         await db.IngestionRecords
             .Where(r => r.Id == bookId)
             .ExecuteUpdateAsync(s => s
