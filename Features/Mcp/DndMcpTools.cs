@@ -3,7 +3,6 @@ using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
-using DndMcpAICsharpFun.Features.Resolution;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
 
@@ -15,8 +14,7 @@ namespace DndMcpAICsharpFun.Features.Mcp;
 public sealed class DndMcpTools(
     IRagRetrievalService ragService,
     IEntityRetrievalService entityService,
-    IFusedRetrievalService fusedService,
-    CharacterResolutionService resolutionService)
+    IFusedRetrievalService fusedService)
 {
     private static readonly JsonSerializerOptions _json =
         new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -166,17 +164,5 @@ public sealed class DndMcpTools(
                 text = r.Text,
                 score = r.Score
             }), _json);
-    }
-
-    [McpServerTool, Description(
-        "Compute a character-specific, cited rule fact (e.g. \"breath weapon\") for a hero snapshot. " +
-        "Returns the value plus the rule components and their source provenance.")]
-    public async Task<string> resolve_character_feature(
-        [Description("The hero snapshot id.")] long heroSnapshotId,
-        [Description("The feature to resolve, e.g. \"breath weapon\".")] string feature,
-        CancellationToken ct = default)
-    {
-        var fact = await resolutionService.ResolveAsync(heroSnapshotId, feature, ct);
-        return JsonSerializer.Serialize(fact, _json);
     }
 }

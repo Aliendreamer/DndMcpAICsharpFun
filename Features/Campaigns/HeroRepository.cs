@@ -56,6 +56,19 @@ public sealed class HeroRepository(IDbContextFactory<AppDbContext> dbf)
         return await db.HeroSnapshots.AsNoTracking().FirstOrDefaultAsync(s => s.Id == snapshotId);
     }
 
+    /// <summary>Loads a snapshot only if it belongs to a campaign owned by <paramref name="userId"/>;
+    /// returns null otherwise (used to enforce per-user access to character-scoped resolution).</summary>
+    public async Task<HeroSnapshot?> GetSnapshotForUserAsync(long snapshotId, long userId)
+    {
+        await using var db = await dbf.CreateDbContextAsync();
+        return await (
+            from s in db.HeroSnapshots.AsNoTracking()
+            join h in db.Heroes.AsNoTracking() on s.HeroId equals h.Id
+            join c in db.Campaigns.AsNoTracking() on h.CampaignId equals c.Id
+            where s.Id == snapshotId && c.UserId == userId
+            select s).FirstOrDefaultAsync();
+    }
+
     public async Task<long> CreateAsync(long campaignId, string name)
     {
         await using var db = await dbf.CreateDbContextAsync();

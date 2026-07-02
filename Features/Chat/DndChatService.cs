@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using DndMcpAICsharpFun.Domain;
+using DndMcpAICsharpFun.Features.Resolution;
 using Microsoft.Extensions.AI;
 
 namespace DndMcpAICsharpFun.Features.Chat;
@@ -10,7 +11,8 @@ public sealed class DndChatService(
     ChatRepository chatRepository,
     IHttpContextAccessor httpContextAccessor,
     ChatRateLimiter rateLimiter,
-    PersonaProvider personaProvider)
+    PersonaProvider personaProvider,
+    CharacterResolutionService resolutionService)
 {
     public List<ChatMessage> History { get; } = [];
 
@@ -48,6 +50,22 @@ public sealed class DndChatService(
             ? tools
             : tools.Where(t => t is not AIFunction fn || fn.Name != "search_web").ToList();
 
+        // Character-scoped resolution is NOT exposed on the shared-key MCP surface (SEC-08). It is
+        // added here as a per-user in-process tool that closes over the signed-in user's id, so the
+        // ownership check in ResolveForUserAsync is always applied. Unauthenticated callers get no tool.
+        var toolList = activeTools.ToList();
+        var idClaim = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (long.TryParse(idClaim, out var userId))
+        {
+            toolList.Add(AIFunctionFactory.Create(
+                (long heroSnapshotId, string feature, CancellationToken toolCt) =>
+                    resolutionService.ResolveForUserAsync(heroSnapshotId, userId, feature, toolCt),
+                name: "resolve_character_feature",
+                description: "Compute a character-specific, cited rule fact (e.g. \"breath weapon\") for " +
+                    "a hero snapshot the signed-in user owns. Returns the value plus the rule components " +
+                    "and their source provenance."));
+        }
+
         History.Add(new ChatMessage(ChatRole.User, userMessage));
         await PersistAsync("user", userMessage);
         try
@@ -62,7 +80,7 @@ public sealed class DndChatService(
 
             var response = await chatClient.GetResponseAsync(
                 messages,
-                new ChatOptions { Tools = [.. activeTools] },
+                new ChatOptions { Tools = [.. toolList] },
                 ct);
             var reply = response.Text ?? string.Empty;
             History.Add(new ChatMessage(ChatRole.Assistant, reply));

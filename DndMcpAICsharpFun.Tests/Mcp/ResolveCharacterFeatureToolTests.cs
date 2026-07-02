@@ -1,12 +1,7 @@
-using System.Text.Json;
-
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Campaigns;
 using DndMcpAICsharpFun.Features.Entities;
-using DndMcpAICsharpFun.Features.Mcp;
 using DndMcpAICsharpFun.Features.Resolution;
-using DndMcpAICsharpFun.Features.Retrieval;
-using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
 using DndMcpAICsharpFun.Tests;
 using DndMcpAICsharpFun.Tests.Persistence;
@@ -16,6 +11,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DndMcpAICsharpFun.Tests.Mcp;
 
+/// <summary>
+/// SEC-08: character-scoped resolution is enforced server-side via
+/// <see cref="CharacterResolutionService.ResolveForUserAsync"/>, which loads a snapshot only when
+/// it belongs to a campaign owned by the caller. These tests cover the positive path (owner can
+/// resolve) and, critically, the negative security path (a different user CANNOT resolve another
+/// user's snapshot — it throws <see cref="UnauthorizedAccessException"/> and returns no fact).
+/// </summary>
 [Collection("postgres")]
 public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyncLifetime
 {
@@ -36,22 +38,20 @@ public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyn
         return sp.GetRequiredService<IDbContextFactory<AppDbContext>>();
     }
 
-    private DndMcpTools BuildTools()
+    private HeroRepository Heroes() => new(DbFactory());
+
+    private CharacterResolutionService BuildService()
     {
-        var dbf     = DbFactory();
-        var heroes  = new HeroRepository(dbf);
-        var svc     = new CharacterResolutionService(dbf, heroes);
-
-        // The other three constructor params (ragService, entityService, fusedService)
-        // are not touched by resolve_character_feature — pass NSubstitute stubs.
-        var ragService    = Substitute.For<IRagRetrievalService>();
-        var entityService = Substitute.For<IEntityRetrievalService>();
-        var fusedService  = Substitute.For<IFusedRetrievalService>();
-
-        return new DndMcpTools(ragService, entityService, fusedService, svc);
+        var dbf    = DbFactory();
+        var heroes = new HeroRepository(dbf);
+        return new CharacterResolutionService(dbf, heroes);
     }
 
-    private async Task<long> SeedSnapshotAsync(int level)
+    /// <summary>
+    /// Seeds a full ownership chain (User → Campaign → Hero → HeroSnapshot) and returns the
+    /// snapshot id together with the id of the user that owns it.
+    /// </summary>
+    private async Task<(long SnapshotId, long OwnerUserId)> SeedOwnedSnapshotAsync(int level)
     {
         var sheet = new CharacterSheet
         {
@@ -65,12 +65,33 @@ public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyn
         };
 
         await using var db = pg.NewContext();
-        db.HeroSnapshots.Add(new HeroSnapshot(0, 1, level, $"L{level}", level, DateTime.UtcNow, sheet));
+
+        var user = new User(0, $"owner-{Guid.NewGuid():N}", "hash");
+        db.Users.Add(user);
         await db.SaveChangesAsync();
-        return await db.HeroSnapshots
-            .Where(s => s.HeroId == 1 && s.SessionNumber == level)
-            .Select(s => s.Id)
-            .FirstAsync();
+
+        var campaign = new DndMcpAICsharpFun.Domain.Campaign(0, user.Id, "Owned Campaign", "", DateTime.UtcNow);
+        db.Campaigns.Add(campaign);
+        await db.SaveChangesAsync();
+
+        var hero = new Hero(0, campaign.Id, "Dragonborn Hero", DateTime.UtcNow);
+        db.Heroes.Add(hero);
+        await db.SaveChangesAsync();
+
+        var snapshot = new HeroSnapshot(0, hero.Id, level, $"L{level}", level, DateTime.UtcNow, sheet);
+        db.HeroSnapshots.Add(snapshot);
+        await db.SaveChangesAsync();
+
+        return (snapshot.Id, user.Id);
+    }
+
+    private async Task<long> SeedUserAsync()
+    {
+        await using var db = pg.NewContext();
+        var user = new User(0, $"other-{Guid.NewGuid():N}", "hash");
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        return user.Id;
     }
 
     private async Task SeedStructuredFactsAsync()
@@ -95,45 +116,61 @@ public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyn
     }
 
     /// <summary>
-    /// resolve_character_feature returns a JSON string with fire, 15 ft. cone,
-    /// Dexterity, DC 15, 3d6, and a non-null provenance blockId for a Red Dragonborn
-    /// at Level 11 with Constitution 16.
+    /// The OWNER of a Red Dragonborn L11 (Con 16) snapshot can resolve its breath weapon:
+    /// 15 ft. cone of fire, Dexterity save DC 15, 3d6, with provenance and confidence "ok".
     /// </summary>
     [Fact]
-    public async Task ResolveCharacterFeature_RedDragonborn_Level11_returns_expected_json()
+    public async Task ResolveForUser_owner_RedDragonborn_Level11_returns_expected_fact()
     {
         // Arrange
         await SeedStructuredFactsAsync();
-        var snapshotId = await SeedSnapshotAsync(level: 11);
-        var tools = BuildTools();
+        var (snapshotId, ownerUserId) = await SeedOwnedSnapshotAsync(level: 11);
+        var svc = BuildService();
 
         // Act
-        var json = await tools.resolve_character_feature(snapshotId, "breath weapon");
+        var fact = await svc.ResolveForUserAsync(snapshotId, ownerUserId, "breath weapon");
 
-        // Assert — raw JSON contains expected substrings
-        json.Should().Contain("fire",       "Red dragon deals fire damage");
-        json.Should().Contain("15 ft. cone","Red dragon has cone breath");
-        json.Should().Contain("Dexterity",  "Red dragon breath requires Dex save");
-        json.Should().Contain("DC 15",      "DC 15 for Level 11 Con 16");
-        json.Should().Contain("3d6",        "Tier 3 (L11) → 3d6");
+        // Assert — value contains the key substrings
+        fact.Confidence.Should().Be("ok");
+        fact.Value.Should().Contain("fire",        "Red dragon deals fire damage");
+        fact.Value.Should().Contain("15 ft. cone", "Red dragon has cone breath");
+        fact.Value.Should().Contain("Dexterity",   "Red dragon breath requires Dex save");
+        fact.Value.Should().Contain("DC 15",       "Level 11 Con 16 → DC 15");
+        fact.Value.Should().Contain("3d6",         "Tier 3 (L11) → 3d6");
 
-        // Assert — the JSON deserialises cleanly and has provenance
-        var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
+        // Assert — components carry provenance
+        fact.Components.Should().HaveCountGreaterThanOrEqualTo(4);
+        fact.Components.Any(c => c.Provenance is not null && !string.IsNullOrEmpty(c.Provenance.BlockId))
+            .Should().BeTrue("at least one component must carry a blockId from the PHB source");
+    }
 
-        root.GetProperty("confidence").GetString().Should().Be("ok");
+    /// <summary>
+    /// SEC-08 negative security test: a user who does NOT own the snapshot cannot resolve it.
+    /// <see cref="CharacterResolutionService.ResolveForUserAsync"/> must throw
+    /// <see cref="UnauthorizedAccessException"/> and return no fact, and the repository's
+    /// ownership-scoped lookup must return null for the non-owner while returning the snapshot
+    /// for the owner.
+    /// </summary>
+    [Fact]
+    public async Task ResolveForUser_non_owner_throws_UnauthorizedAccess_and_returns_no_fact()
+    {
+        // Arrange — snapshot owned by user A; a different user B exists
+        await SeedStructuredFactsAsync();
+        var (snapshotId, ownerUserId) = await SeedOwnedSnapshotAsync(level: 11);
+        var otherUserId = await SeedUserAsync();
+        var svc    = BuildService();
+        var heroes = Heroes();
 
-        // At least one component must carry a non-null provenance with a blockId
-        var components = root.GetProperty("components").EnumerateArray().ToList();
-        components.Should().HaveCountGreaterThanOrEqualTo(4);
+        // Act — user B attempts to resolve user A's snapshot
+        var act = async () => await svc.ResolveForUserAsync(snapshotId, otherUserId, "breath weapon");
 
-        var hasProvenance = components.Any(c =>
-            c.TryGetProperty("provenance", out var prov) &&
-            prov.ValueKind == JsonValueKind.Object &&
-            prov.TryGetProperty("blockId", out var bid) &&
-            bid.ValueKind != JsonValueKind.Null &&
-            !string.IsNullOrEmpty(bid.GetString()));
+        // Assert — access is denied server-side; no fact is produced
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
 
-        hasProvenance.Should().BeTrue("at least one component must carry a blockId from the PHB source");
+        // Assert — the ownership-scoped lookup gates on the correct user
+        (await heroes.GetSnapshotForUserAsync(snapshotId, otherUserId))
+            .Should().BeNull("user B does not own the snapshot");
+        (await heroes.GetSnapshotForUserAsync(snapshotId, ownerUserId))
+            .Should().NotBeNull("user A owns the snapshot");
     }
 }

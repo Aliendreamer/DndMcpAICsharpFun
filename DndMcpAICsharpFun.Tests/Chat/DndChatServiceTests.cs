@@ -56,7 +56,10 @@ public sealed class DndChatServiceTests : IDisposable
             new ChatRepository(new NoOpDbFactory()),
             new NullHttpContextAccessor(),
             new ChatRateLimiter(1000),
-            personaProvider ?? CreatePersonaProvider());
+            personaProvider ?? CreatePersonaProvider(),
+            new DndMcpAICsharpFun.Features.Resolution.CharacterResolutionService(
+                new NoOpDbFactory(),
+                new DndMcpAICsharpFun.Features.Campaigns.HeroRepository(new NoOpDbFactory())));
 
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()

@@ -41,8 +41,29 @@ public sealed class CharacterResolutionService(
         if (snapshot is null)
             throw new InvalidOperationException("snapshot not found");
 
+        return await ResolveForSheetAsync(snapshot.Sheet, feature, ct);
+    }
+
+    /// <summary>
+    /// User-scoped resolution: loads the snapshot only if it belongs to a campaign owned by
+    /// <paramref name="userId"/>, throwing <see cref="UnauthorizedAccessException"/> otherwise.
+    /// This is the security boundary for character-scoped resolution (SEC-08) — the ownership
+    /// check is enforced here, server-side, so a caller can never resolve another user's snapshot.
+    /// </summary>
+    public async Task<ResolvedFact> ResolveForUserAsync(
+        long heroSnapshotId, long userId, string feature, CancellationToken ct = default)
+    {
+        var snapshot = await heroes.GetSnapshotForUserAsync(heroSnapshotId, userId);
+        if (snapshot is null)
+            throw new UnauthorizedAccessException(
+                "Hero snapshot not found or not owned by the caller.");
+        return await ResolveForSheetAsync(snapshot.Sheet, feature, ct);
+    }
+
+    private Task<ResolvedFact> ResolveForSheetAsync(CharacterSheet sheet, string feature, CancellationToken ct)
+    {
         if (feature.Equals("breath weapon", StringComparison.OrdinalIgnoreCase))
-            return await ResolveBreathWeaponAsync(snapshot.Sheet, ct);
+            return ResolveBreathWeaponAsync(sheet, ct);
 
         throw new NotSupportedException($"feature not supported: {feature}");
     }
