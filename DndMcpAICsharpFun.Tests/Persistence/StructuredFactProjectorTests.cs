@@ -1,3 +1,4 @@
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Tests;
 using DndMcpAICsharpFun.Features.Resolution;
@@ -63,5 +64,45 @@ public sealed class StructuredFactProjectorTests(PostgresFixture pg) : IAsyncLif
 
         row7.CellsJson.Should().Contain("fire", "row 7 is Red dragon with fire damage");
         row7.CellsJson.Should().Contain("15 ft. cone", "row 7 breathes in a 15 ft. cone");
+    }
+
+    [Fact]
+    public async Task ProjectAsync_removes_tables_and_choice_sets_dropped_from_the_file()
+    {
+        var projector = CreateProjector();
+        var book = new CanonicalBookMetadata("PHB", "2014", "hash-orphan", "Player's Handbook");
+
+        static CanonicalTable Table(string id) =>
+            new(id, id, ["col"], [new CanonicalTableRow([new CanonicalCell("v", null)])]);
+        static CanonicalChoiceSet Choice(string id, string tableId) =>
+            new(id, id, [new CanonicalChoiceOption("k", tableId, 0, null)]);
+
+        var full = new CanonicalJsonFile("1", book, [],
+            [Table("phb14.table.keep"), Table("phb14.table.drop")],
+            [Choice("phb14.choiceset.keep", "phb14.table.keep"),
+             Choice("phb14.choiceset.drop", "phb14.table.drop")]);
+
+        var reduced = new CanonicalJsonFile("1", book, [],
+            [Table("phb14.table.keep")],
+            [Choice("phb14.choiceset.keep", "phb14.table.keep")]);
+
+        await projector.ProjectAsync(full, CancellationToken.None);
+        await projector.ProjectAsync(reduced, CancellationToken.None);
+
+        await using var db = pg.NewContext();
+
+        (await db.StructuredTables.AnyAsync(t => t.CanonicalId == "phb14.table.drop"))
+            .Should().BeFalse("the dropped table must be removed on re-projection");
+        (await db.StructuredTables.AnyAsync(t => t.CanonicalId == "phb14.table.keep"))
+            .Should().BeTrue("the retained table must survive");
+        (await db.ChoiceSetRows.AnyAsync(c => c.CanonicalId == "phb14.choiceset.drop"))
+            .Should().BeFalse("the dropped choice-set must be removed on re-projection");
+        (await db.ChoiceSetRows.AnyAsync(c => c.CanonicalId == "phb14.choiceset.keep"))
+            .Should().BeTrue("the retained choice-set must survive");
+
+        var keepId = await db.StructuredTables
+            .Where(t => t.CanonicalId == "phb14.table.keep").Select(t => t.Id).FirstAsync();
+        (await db.StructuredTableRows.CountAsync(r => r.TableId == keepId))
+            .Should().Be(1, "orphaned rows of the dropped table must not remain");
     }
 }
