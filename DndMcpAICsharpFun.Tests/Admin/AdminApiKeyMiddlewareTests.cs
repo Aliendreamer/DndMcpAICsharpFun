@@ -7,15 +7,6 @@ public sealed class AdminApiKeyMiddlewareTests
 {
     private const string ValidKey = "super-secret";
 
-    private static (AdminApiKeyMiddleware Middleware, bool NextCalled) Build(string? headerValue)
-    {
-        bool nextCalled = false;
-        RequestDelegate next = _ => { nextCalled = true; return Task.CompletedTask; };
-        var opts = Options.Create(new AdminOptions { ApiKey = ValidKey });
-        var middleware = new AdminApiKeyMiddleware(next, opts);
-        return (middleware, nextCalled);
-    }
-
     [Fact]
     public async Task InvokeAsync_ValidKey_CallsNext()
     {

@@ -19,8 +19,7 @@ public sealed class HeroRepository(IDbContextFactory<AppDbContext> dbf)
             .Where(h => h.CampaignId == campaignId)
             .OrderBy(h => h.CreatedAt)
             .ToListAsync();
-        foreach (var h in heroes)
-            h.LatestSnapshot = await LatestSnapshotAsync(db, h.Id);
+        await AttachLatestSnapshotsAsync(db, heroes);
         return heroes;
     }
 
@@ -32,13 +31,9 @@ public sealed class HeroRepository(IDbContextFactory<AppDbContext> dbf)
                           where c.UserId == userId
                           orderby c.Name, h.Name
                           select new { Hero = h, CampaignName = c.Name }).ToListAsync();
-        var results = new List<HeroWithCampaign>(rows.Count);
-        foreach (var row in rows)
-        {
-            row.Hero.LatestSnapshot = await LatestSnapshotAsync(db, row.Hero.Id);
-            results.Add(new HeroWithCampaign(row.Hero, row.CampaignName));
-        }
-        return results;
+        var heroes = rows.Select(r => r.Hero).ToList();
+        await AttachLatestSnapshotsAsync(db, heroes);
+        return rows.Select(r => new HeroWithCampaign(r.Hero, r.CampaignName)).ToList();
     }
 
     public async Task<Hero?> GetByIdAsync(long id)
@@ -87,8 +82,10 @@ public sealed class HeroRepository(IDbContextFactory<AppDbContext> dbf)
     public async Task DeleteAsync(long id)
     {
         await using var db = await dbf.CreateDbContextAsync();
+        await using var tx = await db.Database.BeginTransactionAsync();
         await db.HeroSnapshots.Where(s => s.HeroId == id).ExecuteDeleteAsync();
         await db.Heroes.Where(h => h.Id == id).ExecuteDeleteAsync();
+        await tx.CommitAsync();
     }
 
     private static Task<HeroSnapshot?> LatestSnapshotAsync(AppDbContext db, long heroId) =>
@@ -96,4 +93,19 @@ public sealed class HeroRepository(IDbContextFactory<AppDbContext> dbf)
             .Where(s => s.HeroId == heroId)
             .OrderByDescending(s => s.CreatedAt)
             .FirstOrDefaultAsync();
+
+    // Load every hero's latest snapshot in ONE query instead of one query per hero (NET-02).
+    private static async Task AttachLatestSnapshotsAsync(AppDbContext db, IReadOnlyCollection<Hero> heroes)
+    {
+        if (heroes.Count == 0) return;
+        var heroIds = heroes.Select(h => h.Id).ToList();
+        var latest = await db.HeroSnapshots.AsNoTracking()
+            .Where(s => heroIds.Contains(s.HeroId))
+            .GroupBy(s => s.HeroId)
+            .Select(g => g.OrderByDescending(s => s.CreatedAt).First())
+            .ToListAsync();
+        var byHero = latest.ToDictionary(s => s.HeroId);
+        foreach (var h in heroes)
+            h.LatestSnapshot = byHero.GetValueOrDefault(h.Id);
+    }
 }

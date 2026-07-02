@@ -114,7 +114,7 @@ public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyn
         json.Should().Contain("fire",       "Red dragon deals fire damage");
         json.Should().Contain("15 ft. cone","Red dragon has cone breath");
         json.Should().Contain("Dexterity",  "Red dragon breath requires Dex save");
-        json.Should().Contain("15",         "DC 15 for Level 11 Con 16");
+        json.Should().Contain("DC 15",      "DC 15 for Level 11 Con 16");
         json.Should().Contain("3d6",        "Tier 3 (L11) → 3d6");
 
         // Assert — the JSON deserialises cleanly and has provenance
