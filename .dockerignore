@@ -1,5 +1,5 @@
-bin/
-obj/
+**/bin/
+**/obj/
 .git/
 .env
 .env.*
@@ -8,3 +8,20 @@ openspec/
 .claude/
 **/*.user
 **/*.suo
+
+# Runtime data — mounted as volumes by docker-compose, never baked into the image.
+books/
+5etools/
+models/
+data/
+logs/
+
+# Test project + tooling not needed to publish DndMcpAICsharpFun.csproj.
+DndMcpAICsharpFun.Tests/
+TestResults/
+node_modules/
+docs/
+.mineru-spike/
+.serena/
+.superpowers/
+.agents/

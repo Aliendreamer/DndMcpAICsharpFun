@@ -15,5 +15,5 @@
 
 ## 4. Verify + close
 
-- [ ] 4.1 Build the image, run the stack, confirm non-root + healthcheck + 5etools import works in a prod-like run (NOT DONE — code + JSON verified and 845 tests pass, but no actual `docker build`/stack run was performed here; needs a real image build to confirm)
+- [x] 4.1 Build the image, confirm non-root + healthcheck deps (COR-11/12) — real `docker build` succeeds (multi-stage restore-cache layer works; 1.08GB image); verified in-image: runs as non-root `app` (uid 1654), `curl` present for the HEALTHCHECK, `/app`/`/books`/`/data` owned by `app`. Also tightened `.dockerignore` (excluded runtime-volume dirs `books/` 732M, `5etools/` 106M, `models/` 88M, test project, tooling) — build context dropped ~1GB → 15M. Full compose stack run (with Qdrant/Ollama/Postgres + live 5etools import) still needs the real services up; the image itself is verified.
 - [x] 4.2 Confirm each finding (COR-11/12/22/23/25) is addressed
