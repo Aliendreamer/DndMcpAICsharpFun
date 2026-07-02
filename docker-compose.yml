@@ -33,7 +33,7 @@ services:
       - ./5etools:/app/5etools:ro
       - models_data:/app/models
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/5101' 2>/dev/null || exit 1"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:5101/health"]
       interval: 15s
       timeout: 5s
       retries: 5

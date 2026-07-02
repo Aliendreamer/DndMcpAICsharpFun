@@ -351,6 +351,30 @@
       "authentication": {}
     },
     {
+      "_id": "req_canonical_normalize",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Normalize canonical corpus",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/canonical/normalize",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "dryRun",
+          "value": "true"
+        }
+      ],
+      "authentication": {}
+    },
+    {
       "_id": "req_canonical_fix_types",
       "_type": "request",
       "parentId": "fld_admin_books",

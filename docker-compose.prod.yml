@@ -7,6 +7,7 @@ services:
       - "5101:5101"
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - Admin__ApiKey=${ADMIN_API_KEY}
       - Qdrant__Host=qdrant
       - Ollama__BaseUrl=http://ollama:11434
       - Ingestion__BooksPath=/books
@@ -18,6 +19,9 @@ services:
       - Postgres__Password=${POSTGRES_PASSWORD}
     volumes:
       - books_data:/books
+      # 5etools data is required for import/backfill/enrichment; without it those paths silently
+      # no-op (COR-23). Mount the repo's 5etools/ read-only into the image's expected location.
+      - ./5etools:/app/5etools:ro
     depends_on:
       postgres:
         condition: service_healthy

@@ -53,7 +53,12 @@ public static class FivetoolsRecordIndex
         var baseDir = fivetoolsBaseDir ?? "5etools";
 
         if (!Directory.Exists(baseDir))
+        {
+            Serilog.Log.Warning(
+                "5etools data directory '{BaseDir}' not found — Fivetools enrichment index is empty. " +
+                "Mount the 5etools data (COR-23) to enable import/backfill/enrichment.", baseDir);
             return new Dictionary<string, EntityEnvelope>();
+        }
 
         // Build a normalised set of accepted source keys for fast lookup.
         HashSet<string>? filterSet = sourceKeyFilter is { Count: > 0 }
