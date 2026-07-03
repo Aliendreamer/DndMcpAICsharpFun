@@ -1,44 +1,34 @@
-# Monster Manual (and likely DMG) recall root cause — diagnosed 2026-07-02 live
+# Monster Manual recall — root cause + FIX (mm-monster-recall change), 2026-07-02/03
 
-Goal: get core 2014 books (PHB/MM/DMG) to PHB-quality entity recall, then 2024 books. PHB (re-extracted
-2026-07-01, post-recall-fix) is good. MM + DMG were extracted **2026-06-27, BEFORE the `extraction-name-resolution`
-recall fix merged (2026-06-28)** — but re-extracting them does NOT fix recall, because the gap is UPSTREAM of
-extraction.
+Goal: core 2014 books (PHB/MM/DMG) to PHB-quality entity recall, then 2024 books. PHB (2026-07-01,
+post-recall-fix) good. MM/DMG were extracted 2026-06-27 pre-fix. **A live `force` re-extract proved the gap
+is UPSTREAM of extraction** (not the `extraction-name-resolution` fix): MM classifies 100% TOC `Rule`
+(699 Rule/3 Unknown/0 Monster), so `EntityCandidateScanner` skipped 449 monster sections. Missing Aboleth+
+Beholder. `BookType`=Core for all three (no bestiary flag).
 
-## Symptom
-`mm14.json` (old) has 226 Monster + 4 Item = 230; **missing Aboleth AND Beholder** (iconic). A live `force`
-re-extract produced only **258 candidates from 6547 MinerU items**, still missing the iconics — so the early
-Aboleth/Beholder checkpoint gate FAILED and the run was aborted (old canonical preserved; force writes only on success).
+## FIX = openspec change `mm-monster-recall` (brainstormed->propose->build, MONSTER-ONLY, MM-FIRST; DMG later)
+Design decisions (user): success anchored to the 5etools MM roster (A); approach = 5etools recovery for
+official books + structural fallback (C); completeness = extraction + 5etools backfill (A, like PHB spells).
 
-## Root cause (quantified from the aborted run's logs)
-- **TOC/bookmark categorization maps 100% of MM to `Rule`**: `699 toc category: Rule, 3 Unknown, 0 Monster`.
-  `HeadingCategoryClassifier.Guess` keys on CATEGORY keywords ("monster","dragon","fiend"...), but MM's section
-  headings are individual monster NAMES ("ABOLETH","BEHOLDER","MIND FLAYER") with no "Monsters" parent bookmark to
-  inherit from → every monster section falls through to `ContentCategory.Rule`.
-- `EntityCandidateScanner` then SKIPS sections whose page category isn't entity-eligible: **449 unique real-monster
-  sections skipped** (Aarakocra, Aboleth, Allosaurus, Androsphinx, Angels, Ankheg, Kraken, Lich, Sphinx, Unicorn...).
-  This is THE dominant loss (MM has ~450 monsters).
-- The **stat-block scanner** (detects `Armor Class/Hit Points/Speed` structure, bypasses the TOC gate) is the only
-  path that caught anything → the 258 survivors. It misses Aboleth/Beholder because their stat blocks are OCR-damaged.
-- MinerU OCR splitting name-heading from stat body ("received no body before heading 'Armor Class...'") loses only
-  ~20 — a minor cause vs the 449 TOC-gate skips.
+**Code shipped (commits c301bfb T1, 0104f1f T2/T3; 872 tests green):**
+- **T1 candidate recovery** (`EntityCandidateScanner.Scan` now takes matcher+recoverMonsters+ungateOnTocFailure;
+  `EntityCandidateBuilder` passes `_matcher` + `recoverMonsters = FivetoolsSourceKey is not null`): in the
+  `type is null` skip branch, `matcher.MatchOfType(section, Monster)` recovers the section as a Monster
+  candidate. Non-official fallback: ungate when stat blocks exist but 0 entity-mappable TOC pages. Stat-block
+  scanner already TOC-independent.
+- **T2/T3 `MonsterBackfillService`** (mirrors `SpellBackfillService`): reads `5etools/bestiary/bestiary-*.json`
+  (prop `monster`, source==key), diffs canonical Monster names → `{missing,extra,grounded,backfilled}`;
+  builds missing as EntityEnvelope with full stat-block Fields projected from 5etools JSON (round-trips as
+  MonsterFields), `dataSource:"5etools-backfill"`, gap-only+idempotent. Endpoints:
+  `GET /admin/books/{id}/monster-recall` (diff, no write) + `POST /admin/books/{id}/backfill-monsters`.
 
-## Why BookType can't drive the fix
-`BookType` = `Core` (1) for MM, PHB, AND DMG (enum: Unknown/Core/Supplement/Adventure/Setting — a PUBLISHING
-category, not content). So there is no existing "bestiary" flag. `fivetoolsSourceKey` ("MM") could be a hint.
-
-## Fix space (needs brainstorm -> opsx:propose, NOT a blind patch; recall-critical, "days"-level like PHB)
-1. Make the structural **stat-block scanner authoritative** (a detected stat block IS a creature regardless of TOC)
-   + robustify it against OCR name/body splits.
-2. **Detect TOC-categorization failure** (a book with stat blocks but 0 Monster pages) and fall back to ungated
-   candidate scanning, relying on the extraction DECLINE gate to filter non-entities (Ability Scores, Alignment,
-   lair intros) rather than the TOC gate.
-3. A `fivetoolsSourceKey`/content-type signal to mark monster-heavy books.
-Tradeoff: ungating floods extraction with prose sections -> more LLM calls + declines (slower) but higher recall.
-
-Relevant code: `Features/Ingestion/Pdf/HeadingCategoryClassifier.cs`, `BookmarkTocMapper.cs`,
-`Features/Ingestion/EntityExtraction/EntityCandidateScanner.cs` (the skip at ~line 76), `EntityCandidateBuilder.cs`,
-`Features/Ingestion/Extraction/TocCategoryMap.cs`. Related: `mem:project_companion_roadmap` (Item 4),
-`mem:operations/running_the_stack`, the dev-flow skill ("recall low -> separate our-logic bug vs upstream parser gap;
-if not in declined.json it was never a candidate"). MM/DMG blocks (dnd_blocks/BM25) ARE ingested; only the ENTITY
-layer is blocked on this.
+## Live validation (in progress 2026-07-03)
+BASELINE recall (old mm14.json vs 5etools MM roster, ~450 monsters): **156 present / 294 MISSING / 0
+backfilled**, 61 extra. Re-extract with recovery: **227 monsters recovered**, candidates **258 -> 392**;
+iconics back grounded (Aboleth/Aarakocra/Androsphinx/Mind Flayer/Owlbear/Tarrasque); 475 non-monster
+sections correctly still skipped (precision held). Full grounded extraction (~3h over 392 candidates)
+RUNNING; then `monster-recall` to measure grounded recall, then `backfill-monsters` to close residual ->
+target ~100%. TASK 4.x of the change open until this completes + validate + (optional) ingest-entities.
+DMG + other gated types = explicit follow-up. Relevant code in `Features/Ingestion/EntityExtraction/` +
+`FivetoolsIngestion/MonsterBackfillService.cs`. See `mem:project_companion_roadmap`,
+`mem:operations/running_the_stack`.
