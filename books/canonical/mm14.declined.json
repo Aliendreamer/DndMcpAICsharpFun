@@ -1,0 +1,242 @@
+[
+  {
+    "id": "mm14.monster.adult-blue-dracolich-huge-undead-lawful-evil",
+    "name": "ADULT BLUE DRACOLICH Huge undead, lawful evil",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.dragon-shadow",
+    "name": "DRAGON, SHADOW",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.shadow-dragon-template",
+    "name": "SHADOW DRAGON TEMPLATE",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.dragons",
+    "name": "DRAGONS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.variant-dragons-as-innate-spellcasters",
+    "name": "VARIANT: DRAGONS AS INNATE SPELLCASTERS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.black-dragon",
+    "name": "BLACK DRAGON",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.white-dragon",
+    "name": "WHITE DRAGON",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.metallic-dragons",
+    "name": "METALLIC DRAGONS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.brass-dragon",
+    "name": "BRASS DRAGON",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.bronze-dragon",
+    "name": "BRONZE DRAGON",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.copper-dragon",
+    "name": "COPPER DRAGON",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.gold-dragon",
+    "name": "GOLD DRAGON",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.silver-dragon",
+    "name": "SILVER DRAGON",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.young-silver-dragon-large-dragon-lawful-good",
+    "name": "YOUNG SILVER DRAGON Large dragon, lawful good",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.spell.variant-drider-spellcasting",
+    "name": "VARIANT: DRIDER SPELLCASTING",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.elementals",
+    "name": "ELEMENTALS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.faerie-dragon",
+    "name": "FAERIE DRAGON",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.giants",
+    "name": "GIANTS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.the-ordning",
+    "name": "THE ORDNING",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.half-dragon-template",
+    "name": "HALF-DRAGON TEMPLATE",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.sample-half-dragon",
+    "name": "SAMPLE HALF-DRAGON",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.oozes",
+    "name": "OOzES",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.variant-psychic-gray-ooze",
+    "name": "VARIANT: PSYCHIC GRAY OOZE",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.gray-ooze-medium-ooze-unaligned",
+    "name": "GRAY OOZE \u0027Medium ooze, unaligned",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.ochrejelly-large-ooze-unaligned",
+    "name": "OCHREJELLY Large ooze, unaligned",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.variant-pseudodragon-familiar",
+    "name": "VARIANT: PSEUDODRAGON FAMILIAR",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.other-animals",
+    "name": "OTHER ANIMALS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.variant-diseased-giant-rats",
+    "name": "VARIANT: DISEASED GIANT RATS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.giant-toad-large-beast-unaligned",
+    "name": "GIANT TOAD Large beast, unaligned",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.giant-wolf-spider-medium-beast-unaligned",
+    "name": "GIANT WOLF SPIDER Medium beast, unaligned",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.killer-whale-huge-beast-unaligned",
+    "name": "KILLER WHALE Huge beast, unaligned",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.saber-toothed-tiger-large-beast-unaligned",
+    "name": "SABER-TOOTHED TIGER Large beast, unaligned",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.the-nature-of-swarms",
+    "name": "THE NATURE OF SWARMS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.swarm-of-insects-medium-swarm-of-tiny-beasts-unaligned",
+    "name": "SWaRM OF INSECTs Medium swarm of Tiny beasts, unaligned",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.swarm-of-poisonous-snakes-medium-swarm-of-tiny-beasts-unaligned",
+    "name": "SWARM OF POISONOUS SNAKES Medium swarm of Tiny beasts, unaligned",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.swarm-of-rats-medium-swarm-of-tiny-beasts-unaligned",
+    "name": "SWaRM OF RATS Medium swarm of Tiny beasts, unaligned",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.warhorse-large-beast-unaligned",
+    "name": "WARHORSE Large beast, unaligned",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.variant-warhorse-armor",
+    "name": "VARIANT: WARHORSE ARMOR",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.customizing-npcs",
+    "name": "CUSTOMIZING NPCs",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "mm14.monster.variant-familiars",
+    "name": "VARIANT: FAMILIARS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  }
+]

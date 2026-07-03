@@ -16,13 +16,13 @@
 
 ## 4. Live validation on MM (the real gate)
 
-- [ ] 4.1 `dotnet build` + `dotnet test` green (sandbox disabled per git-crypt; Docker up for persistence tests).
-- [ ] 4.2 Re-extract MM (`extract-entities?force=true`) on the running stack; early-checkpoint spot-check that **Aboleth AND Beholder return as `Monster` (grounded)** before the full run — abort+diagnose if not.
-- [ ] 4.3 Full run → run the recall check: report grounded monster count + the residual-missing list vs the 5etools MM roster; diff types vs the old `mm14.json` (a count change is not automatically a regression).
-- [ ] 4.4 `backfill-monsters` to close the residual; re-run the recall check → confirm ~100% monster recall, with backfilled entries marked; note grounded-vs-backfilled split.
-- [ ] 4.5 `POST /admin/canonical/validate` clean; ingest-entities if we want MM monsters in `dnd_entities` ("quadrant fill" is cheap once the canonical is good).
+- [x] 4.1 `dotnet build` + `dotnet test` green (sandbox disabled per git-crypt; Docker up for persistence tests).
+- [x] 4.2 Re-extract MM (`extract-entities?force=true`) on the running stack; early-checkpoint spot-check that **Aboleth AND Beholder return as `Monster` (grounded)** before the full run — abort+diagnose if not.
+- [x] 4.3 Full run → run the recall check: report grounded monster count + the residual-missing list vs the 5etools MM roster; diff types vs the old `mm14.json` (a count change is not automatically a regression).
+- [x] 4.4 `backfill-monsters` to close the residual; re-run the recall check → confirm ~100% monster recall, with backfilled entries marked; note grounded-vs-backfilled split.
+- [x] 4.5 `POST /admin/canonical/validate` clean; ingest-entities if we want MM monsters in `dnd_entities` ("quadrant fill" is cheap once the canonical is good).
 
 ## 5. Verify + close
 
-- [ ] 5.1 Confirm each requirement (monster-candidate-recovery, fivetools-monster-backfill) is satisfied by tests + the live MM result.
-- [ ] 5.2 Note the DMG / other-gated-types generalization as the explicit follow-up (roadmap).
+- [x] 5.1 Confirm each requirement (monster-candidate-recovery, fivetools-monster-backfill) is satisfied by tests + the live MM result.
+- [x] 5.2 Note the DMG / other-gated-types generalization as the explicit follow-up (roadmap).
