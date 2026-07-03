@@ -1,8 +1,10 @@
 using DndMcpAICsharpFun.Features.Embedding;
-using DndMcpAICsharpFun.Infrastructure.Search;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+using DndMcpAICsharpFun.Infrastructure.Search;
+
 using Microsoft.Extensions.Options;
+
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Features.Retrieval;
