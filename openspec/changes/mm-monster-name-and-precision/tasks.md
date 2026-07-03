@@ -1,7 +1,7 @@
 ## 1. Stat-line name stripping (#1)
 
-- [ ] 1.1 Add `MonsterStatLineName.Strip(string) -> string` (deterministic regex stripper for a trailing `"<Size> <creature-type>[, ...]"` suffix; never returns empty; unchanged when no match). Unit tests: garbled dragon → clean; Animated Armor → clean; Dragon Turtle / Giant Ape / Beholder unchanged; whole-string-is-statline guard.
-- [ ] 1.2 Apply `Strip` in `EntityNameMatcher.Match` and `MatchOfType` to `rawName` BEFORE `EntityNameIndex.Normalize`. Unit tests: `Match("ANCIENT BLACK DRAGON Gargantuan dragon, chaotic evil")` returns canonical `Ancient Black Dragon` / Monster; clean names still match as before.
+- [x] 1.1 Add `MonsterStatLineName.Strip(string) -> string` (deterministic regex stripper for a trailing `"<Size> <creature-type>[, ...]"` suffix; never returns empty; unchanged when no match). Unit tests: garbled dragon → clean; Animated Armor → clean; Dragon Turtle / Giant Ape / Beholder unchanged; whole-string-is-statline guard.
+- [x] 1.2 Apply `Strip` in `EntityNameMatcher.Match` and `MatchOfType` to `rawName` BEFORE `EntityNameIndex.Normalize`. Unit tests: `Match("ANCIENT BLACK DRAGON Gargantuan dragon, chaotic evil")` returns canonical `Ancient Black Dragon` / Monster; clean names still match as before.
 
 ## 2. Extra categorization + precision flag (#2)
 

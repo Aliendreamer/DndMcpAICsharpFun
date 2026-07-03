@@ -81,4 +81,20 @@ public sealed class EntityNameMatcherTests
     [Fact]
     public void MatchOfType_empty_string_returns_null() =>
         Matcher.MatchOfType("", EntityType.Spell).Should().BeNull();
+
+
+    // ── Monster stat-line stripping (mm-monster-name-and-precision #1) ──────────────
+
+    // A garbled heading where OCR/Marker conversion merged the stat line onto the name; the
+    // matcher must strip the trailing "<Size> <type>, <alignment>" suffix before normalizing so
+    // it still resolves against the clean 5etools roster entry.
+    [Fact]
+    public void Match_ancient_black_dragon_statline_resolves_to_clean_name() =>
+        Matcher.Match("ANCIENT BLACK DRAGON Gargantuan dragon, chaotic evil")
+            .Should().Be(("Ancient Black Dragon", EntityType.Monster));
+
+    [Fact]
+    public void MatchOfType_animated_armor_statline_resolves_to_clean_name() =>
+        Matcher.MatchOfType("ANIMATED ARMOR Medium construct, unaligned", EntityType.Monster)
+            .Should().Be(("Animated Armor", EntityType.Monster));
 }
