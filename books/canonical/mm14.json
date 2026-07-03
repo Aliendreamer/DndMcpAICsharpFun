@@ -5319,7 +5319,7 @@
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
+      "needsReview": true,
       "disposition": "Accepted",
       "keywords": [
         "Keen Sight",
@@ -5892,7 +5892,7 @@
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
+      "needsReview": true,
       "disposition": "Accepted",
       "keywords": [
         "Confusing Gaze",
@@ -10407,9 +10407,9 @@
       ]
     },
     {
-      "id": "mm14.monster.young-red-shadow-dragon-large-dragon",
+      "id": "mm14.monster.young-red-shadow-dragon",
       "type": "Monster",
-      "name": "YOUNG RED SHADOW DRAGON Large dragon,",
+      "name": "Young Red Shadow Dragon",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 86,
@@ -10481,9 +10481,9 @@
       ]
     },
     {
-      "id": "mm14.monster.ancient-black-dragon-gargantuan-dragon-chaotic-evil",
+      "id": "mm14.monster.ancient-black-dragon",
       "type": "Monster",
-      "name": "ANCIENT BLACK DRAGON Gargantuan dragon, chaotic evil",
+      "name": "Ancient Black Dragon",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 88,
@@ -10557,9 +10557,9 @@
       ]
     },
     {
-      "id": "mm14.monster.ancient-blue-dragon-gargantuan-dragon-lawful-evil",
+      "id": "mm14.monster.ancient-blue-dragon",
       "type": "Monster",
-      "name": "ANCIENT BLUE DRAGON Gargantuan dragon, lawful evil",
+      "name": "Ancient Blue Dragon",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 91,
@@ -10639,9 +10639,9 @@
       ]
     },
     {
-      "id": "mm14.monster.adult-green-dragon-huge-dragon-lawful-evil",
+      "id": "mm14.monster.adult-green-dragon",
       "type": "Monster",
-      "name": "ADULT GREEn DRaGON Huge dragon, lawful evil",
+      "name": "Adult Green Dragon",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 95,
@@ -10712,9 +10712,9 @@
       ]
     },
     {
-      "id": "mm14.monster.young-green-dragon-large-dragon-lawful-evil",
+      "id": "mm14.monster.young-green-dragon",
       "type": "Monster",
-      "name": "YOUNG GREEN DRAGON Large dragon, lawful evil",
+      "name": "Young Green Dragon",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 95,
@@ -10793,9 +10793,9 @@
       "keywords": []
     },
     {
-      "id": "mm14.monster.green-dragon-wyrmling-medium-dragon-lawful-evil",
+      "id": "mm14.monster.green-dragon-wyrmling",
       "type": "Monster",
-      "name": "GREEN DRAGON WYRMLING Medium dragon, lawful evil",
+      "name": "Green Dragon Wyrmling",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 96,
@@ -10918,9 +10918,9 @@
       "keywords": []
     },
     {
-      "id": "mm14.monster.ancient-white-dragon-gargantuan-dragon-chaotic-evil",
+      "id": "mm14.monster.ancient-white-dragon",
       "type": "Monster",
-      "name": "ANCIENT WHITE DRAGON Gargantuan dragon, chaotic evil",
+      "name": "Ancient White Dragon",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 101,
@@ -10989,9 +10989,9 @@
       ]
     },
     {
-      "id": "mm14.monster.young-white-dragon-large-dragon-chaotic-evil",
+      "id": "mm14.monster.young-white-dragon",
       "type": "Monster",
-      "name": "YOUNG WHITE DRAGON Large dragon, chaotic evil",
+      "name": "Young White Dragon",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 102,
@@ -11079,9 +11079,9 @@
       ]
     },
     {
-      "id": "mm14.monster.white-dragon-wyrmling-medium-dragon-chaotic-evi",
+      "id": "mm14.monster.white-dragon-wyrmling",
       "type": "Monster",
-      "name": "WHITE DRAGON WYRMLING Medium dragon, chaotic evi",
+      "name": "White Dragon Wyrmling",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 103,
@@ -11148,9 +11148,9 @@
       ]
     },
     {
-      "id": "mm14.monster.young-brass-dragon-large-dragon-chaotic-good",
+      "id": "mm14.monster.young-brass-dragon",
       "type": "Monster",
-      "name": "YOUNG BRASS DRAGON Large dragon, chaotic good",
+      "name": "Young Brass Dragon",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 106,
@@ -11239,9 +11239,9 @@
       ]
     },
     {
-      "id": "mm14.monster.brass-dragon-wyrmling-medium-dragon-chaotic-good",
+      "id": "mm14.monster.brass-dragon-wyrmling",
       "type": "Monster",
-      "name": "BRASS DRAGON WYRMLING Medium dragon, chaotic good",
+      "name": "Brass Dragon Wyrmling",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 107,
@@ -11349,9 +11349,9 @@
       ]
     },
     {
-      "id": "mm14.monster.bronze-dragon-wyrmling-medium-dragon-lawful-good",
+      "id": "mm14.monster.bronze-dragon-wyrmling",
       "type": "Monster",
-      "name": "BRONZE DRAGON WYRMLING Medium dragon, lawful good",
+      "name": "Bronze Dragon Wyrmling",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 110,
@@ -11428,9 +11428,9 @@
       ]
     },
     {
-      "id": "mm14.monster.young-copper-dragon-large-dragon-chaotic-good",
+      "id": "mm14.monster.young-copper-dragon",
       "type": "Monster",
-      "name": "YOUNG COPPER DRAGON Large dragon, chaotic good",
+      "name": "Young Copper Dragon",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 112,
@@ -11516,9 +11516,9 @@
       "keywords": []
     },
     {
-      "id": "mm14.monster.adult-silver-dragon-huge-dragon-lawful-good",
+      "id": "mm14.monster.adult-silver-dragon",
       "type": "Monster",
-      "name": "ADULT SILVER DRAGON Huge dragon, lawful good",
+      "name": "Adult Silver Dragon",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 118,
@@ -11717,7 +11717,7 @@
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
+      "needsReview": true,
       "disposition": "Accepted",
       "keywords": [
         "Amphibious"
@@ -11848,7 +11848,7 @@
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
+      "needsReview": true,
       "disposition": "Accepted",
       "keywords": [
         "Fey Ancestry",
@@ -12394,7 +12394,7 @@
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
+      "needsReview": true,
       "disposition": "Accepted",
       "keywords": [
         "Superior Invisibility",
@@ -13656,9 +13656,9 @@
       ]
     },
     {
-      "id": "mm14.monster.half-red-dragon-veteran-medium-humanoid-human-any-alignment",
+      "id": "mm14.monster.half-red-dragon-veteran",
       "type": "Monster",
-      "name": "HALF-RED DRAGOn VETERAN Medium humanoid (human), any alignment",
+      "name": "Half-Red Dragon Veteran",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 181,
@@ -15796,7 +15796,7 @@
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
+      "needsReview": true,
       "disposition": "Accepted",
       "keywords": [
         "Engulf",
@@ -16333,7 +16333,7 @@
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
+      "needsReview": true,
       "disposition": "Accepted",
       "keywords": [
         "Keen Senses",
@@ -17716,7 +17716,7 @@
       "srd": false,
       "srd52": false,
       "basicRules2024": false,
-      "needsReview": false,
+      "needsReview": true,
       "disposition": "Accepted",
       "keywords": []
     },
@@ -20474,9 +20474,9 @@
       ]
     },
     {
-      "id": "mm14.monster.giant-spider-large-beast-unaligned",
+      "id": "mm14.monster.giant-spider",
       "type": "Monster",
-      "name": "GIANT SPIDER Large beast, unaligned",
+      "name": "Giant Spider",
       "sourceBook": "MM",
       "edition": "Edition2014",
       "page": 329,
@@ -23197,344 +23197,6 @@
       ]
     },
     {
-      "id": "mm14.monster.adult-green-dragon",
-      "type": "Monster",
-      "name": "Adult Green Dragon",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 94,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 94
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "H"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "L",
-          "E"
-        ],
-        "ac": [
-          {
-            "ac": 19,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 207,
-          "formula": "18d12 \u002B 90"
-        },
-        "speed": {
-          "walk": 40,
-          "fly": 80,
-          "swim": 40
-        },
-        "str": 23,
-        "dex": 12,
-        "con": 21,
-        "int": 18,
-        "wis": 15,
-        "cha": 17,
-        "save": {
-          "dex": "\u002B6",
-          "con": "\u002B10",
-          "wis": "\u002B7",
-          "cha": "\u002B8"
-        },
-        "skill": {
-          "deception": "\u002B8",
-          "insight": "\u002B7",
-          "perception": "\u002B12",
-          "persuasion": "\u002B8",
-          "stealth": "\u002B6"
-        },
-        "immune": [
-          "poison"
-        ],
-        "conditionImmune": [
-          "poisoned"
-        ],
-        "senses": [
-          "blindsight 60 ft.",
-          "darkvision 120 ft."
-        ],
-        "passive": 22,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "15",
-        "trait": [
-          {
-            "name": "Amphibious",
-            "entries": [
-              "The dragon can breathe air and water."
-            ]
-          },
-          {
-            "name": "Legendary Resistance (3/Day)",
-            "entries": [
-              "If the dragon fails a saving throw, it can choose to succeed instead."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 11} to hit, reach 10 ft., one target. {@h}17 ({@damage 2d10 \u002B 6}) piercing damage plus 7 ({@damage 2d6}) poison damage."
-            ]
-          },
-          {
-            "name": "Claw",
-            "entries": [
-              "{@atk mw} {@hit 11} to hit, reach 5 ft., one target. {@h}13 ({@damage 2d6 \u002B 6}) slashing damage."
-            ]
-          },
-          {
-            "name": "Tail",
-            "entries": [
-              "{@atk mw} {@hit 11} to hit, reach 15 ft., one target. {@h}15 ({@damage 2d8 \u002B 6}) bludgeoning damage."
-            ]
-          },
-          {
-            "name": "Frightful Presence",
-            "entries": [
-              "Each creature of the dragon\u0027s choice that is within 120 feet of the dragon and aware of it must succeed on a {@dc 16} Wisdom saving throw or become {@condition frightened} for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature\u0027s saving throw is successful or the effect ends for it, the creature is immune to the dragon\u0027s Frightful Presence for the next 24 hours."
-            ]
-          },
-          {
-            "name": "Poison Breath {@recharge 5}",
-            "entries": [
-              "The dragon exhales poisonous gas in a 60-foot cone. Each creature in that area must make a {@dc 18} Constitution saving throw, taking 56 ({@damage 16d6}) poison damage on a failed save, or half as much damage on a successful one."
-            ]
-          }
-        ],
-        "legendary": [
-          {
-            "name": "Detect",
-            "entries": [
-              "The dragon makes a Wisdom ({@skill Perception}) check."
-            ]
-          },
-          {
-            "name": "Tail Attack",
-            "entries": [
-              "The dragon makes a tail attack."
-            ]
-          },
-          {
-            "name": "Wing Attack (Costs 2 Actions)",
-            "entries": [
-              "The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a {@dc 19} Dexterity saving throw or take 13 ({@damage 2d6 \u002B 6}) bludgeoning damage and be knocked {@condition prone}. The dragon can then fly up to half its flying speed."
-            ]
-          }
-        ],
-        "environment": [
-          "forest"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": [
-        "Amphibious",
-        "Legendary Resistances"
-      ]
-    },
-    {
-      "id": "mm14.monster.adult-silver-dragon",
-      "type": "Monster",
-      "name": "Adult Silver Dragon",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 117,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 117
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "H"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "L",
-          "G"
-        ],
-        "ac": [
-          {
-            "ac": 19,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 243,
-          "formula": "18d12 \u002B 126"
-        },
-        "speed": {
-          "walk": 40,
-          "fly": 80
-        },
-        "str": 27,
-        "dex": 10,
-        "con": 25,
-        "int": 16,
-        "wis": 13,
-        "cha": 21,
-        "save": {
-          "dex": "\u002B5",
-          "con": "\u002B12",
-          "wis": "\u002B6",
-          "cha": "\u002B10"
-        },
-        "skill": {
-          "arcana": "\u002B8",
-          "history": "\u002B8",
-          "perception": "\u002B11",
-          "stealth": "\u002B5"
-        },
-        "immune": [
-          "cold"
-        ],
-        "senses": [
-          "blindsight 60 ft.",
-          "darkvision 120 ft."
-        ],
-        "passive": 21,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "16",
-        "trait": [
-          {
-            "name": "Legendary Resistance (3/Day)",
-            "entries": [
-              "If the dragon fails a saving throw, it can choose to succeed instead."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 13} to hit, reach 10 ft., one target. {@h}19 ({@damage 2d10 \u002B 8}) piercing damage."
-            ]
-          },
-          {
-            "name": "Claw",
-            "entries": [
-              "{@atk mw} {@hit 13} to hit, reach 5 ft., one target. {@h}15 ({@damage 2d6 \u002B 8}) slashing damage."
-            ]
-          },
-          {
-            "name": "Tail",
-            "entries": [
-              "{@atk mw} {@hit 13} to hit, reach 15 ft., one target. {@h}17 ({@damage 2d8 \u002B 8}) bludgeoning damage."
-            ]
-          },
-          {
-            "name": "Frightful Presence",
-            "entries": [
-              "Each creature of the dragon\u0027s choice that is within 120 feet of the dragon and aware of it must succeed on a {@dc 18} Wisdom saving throw or become {@condition frightened} for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature\u0027s saving throw is successful or the effect ends for it, the creature is immune to the dragon\u0027s Frightful Presence for the next 24 hours."
-            ]
-          },
-          {
-            "name": "Breath Weapons {@recharge 5}",
-            "entries": [
-              "The dragon uses one of the following breath weapons.",
-              {
-                "type": "list",
-                "style": "list-hang-notitle",
-                "items": [
-                  {
-                    "type": "item",
-                    "name": "Cold Breath",
-                    "entry": "The dragon exhales an icy blast in a 60-foot cone. Each creature in that area must make a {@dc 20} Constitution saving throw, taking 58 ({@damage 13d8}) cold damage on a failed save, or half as much damage on a successful one."
-                  },
-                  {
-                    "type": "item",
-                    "name": "Paralyzing Breath",
-                    "entry": "The dragon exhales paralyzing gas in a 60-foot cone. Each creature in that area must succeed on a {@dc 20} Constitution saving throw or be {@condition paralyzed} for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success."
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "name": "Change Shape",
-            "entries": [
-              "The dragon magically polymorphs into a humanoid or beast that has a challenge rating no higher than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the dragon\u0027s choice).",
-              "In a new form, the dragon retains its alignment, hit points, Hit Dice, ability to speak, proficiencies, Legendary Resistance, lair actions, and Intelligence, Wisdom, and Charisma scores, as well as this action. Its statistics and capabilities are otherwise replaced by those of the new form, except any class features or legendary actions of that form."
-            ]
-          }
-        ],
-        "legendary": [
-          {
-            "name": "Detect",
-            "entries": [
-              "The dragon makes a Wisdom ({@skill Perception}) check."
-            ]
-          },
-          {
-            "name": "Tail Attack",
-            "entries": [
-              "The dragon makes a tail attack."
-            ]
-          },
-          {
-            "name": "Wing Attack (Costs 2 Actions)",
-            "entries": [
-              "The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a {@dc 22} Dexterity saving throw or take 15 ({@damage 2d6 \u002B 8}) bludgeoning damage and be knocked {@condition prone}. The dragon can then fly up to half its flying speed."
-            ]
-          }
-        ],
-        "environment": [
-          "mountain",
-          "urban"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": [
-        "Legendary Resistances"
-      ]
-    },
-    {
       "id": "mm14.monster.adult-white-dragon",
       "type": "Monster",
       "name": "Adult White Dragon",
@@ -23679,314 +23341,6 @@
         ],
         "environment": [
           "arctic"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": [
-        "Legendary Resistances"
-      ]
-    },
-    {
-      "id": "mm14.monster.ancient-black-dragon",
-      "type": "Monster",
-      "name": "Ancient Black Dragon",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 87,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 87
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "G"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "C",
-          "E"
-        ],
-        "ac": [
-          {
-            "ac": 22,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 367,
-          "formula": "21d20 \u002B 147"
-        },
-        "speed": {
-          "walk": 40,
-          "fly": 80,
-          "swim": 40
-        },
-        "str": 27,
-        "dex": 14,
-        "con": 25,
-        "int": 16,
-        "wis": 15,
-        "cha": 19,
-        "save": {
-          "dex": "\u002B9",
-          "con": "\u002B14",
-          "wis": "\u002B9",
-          "cha": "\u002B11"
-        },
-        "skill": {
-          "perception": "\u002B16",
-          "stealth": "\u002B9"
-        },
-        "immune": [
-          "acid"
-        ],
-        "senses": [
-          "blindsight 60 ft.",
-          "darkvision 120 ft."
-        ],
-        "passive": 26,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "21",
-        "trait": [
-          {
-            "name": "Amphibious",
-            "entries": [
-              "The dragon can breathe air and water."
-            ]
-          },
-          {
-            "name": "Legendary Resistance (3/Day)",
-            "entries": [
-              "If the dragon fails a saving throw, it can choose to succeed instead."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 15} to hit, reach 15 ft., one target. {@h}19 ({@damage 2d10 \u002B 8}) piercing damage plus 9 ({@damage 2d8}) acid damage."
-            ]
-          },
-          {
-            "name": "Claw",
-            "entries": [
-              "{@atk mw} {@hit 15} to hit, reach 10 ft., one target. {@h}15 ({@damage 2d6 \u002B 8}) slashing damage."
-            ]
-          },
-          {
-            "name": "Tail",
-            "entries": [
-              "{@atk mw} {@hit 15} to hit, reach 20 ft., one target. {@h}17 ({@damage 2d8 \u002B 8}) bludgeoning damage."
-            ]
-          },
-          {
-            "name": "Frightful Presence",
-            "entries": [
-              "Each creature of the dragon\u0027s choice that is within 120 feet of the dragon and aware of it must succeed on a {@dc 19} Wisdom saving throw or become {@condition frightened} for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature\u0027s saving throw is successful or the effect ends for it, the creature is immune to the dragon\u0027s Frightful Presence for the next 24 hours."
-            ]
-          },
-          {
-            "name": "Acid Breath {@recharge 5}",
-            "entries": [
-              "The dragon exhales acid in a 90-foot line that is 10 feet wide. Each creature in that line must make a {@dc 22} Dexterity saving throw, taking 67 ({@damage 15d8}) acid damage on a failed save, or half as much damage on a successful one."
-            ]
-          }
-        ],
-        "legendary": [
-          {
-            "name": "Detect",
-            "entries": [
-              "The dragon makes a Wisdom ({@skill Perception}) check."
-            ]
-          },
-          {
-            "name": "Tail Attack",
-            "entries": [
-              "The dragon makes a tail attack."
-            ]
-          },
-          {
-            "name": "Wing Attack (Costs 2 Actions)",
-            "entries": [
-              "The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a {@dc 23} Dexterity saving throw or take 15 ({@damage 2d6 \u002B 8}) bludgeoning damage and be knocked {@condition prone}. The dragon can then fly up to half its flying speed."
-            ]
-          }
-        ],
-        "environment": [
-          "swamp"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": [
-        "Amphibious",
-        "Legendary Resistances"
-      ]
-    },
-    {
-      "id": "mm14.monster.ancient-blue-dragon",
-      "type": "Monster",
-      "name": "Ancient Blue Dragon",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 90,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 90
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "G"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "L",
-          "E"
-        ],
-        "ac": [
-          {
-            "ac": 22,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 481,
-          "formula": "26d20 \u002B 208"
-        },
-        "speed": {
-          "walk": 40,
-          "burrow": 40,
-          "fly": 80
-        },
-        "str": 29,
-        "dex": 10,
-        "con": 27,
-        "int": 18,
-        "wis": 17,
-        "cha": 21,
-        "save": {
-          "dex": "\u002B7",
-          "con": "\u002B15",
-          "wis": "\u002B10",
-          "cha": "\u002B12"
-        },
-        "skill": {
-          "perception": "\u002B17",
-          "stealth": "\u002B7"
-        },
-        "immune": [
-          "lightning"
-        ],
-        "senses": [
-          "blindsight 60 ft.",
-          "darkvision 120 ft."
-        ],
-        "passive": 27,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "23",
-        "trait": [
-          {
-            "name": "Legendary Resistance (3/Day)",
-            "entries": [
-              "If the dragon fails a saving throw, it can choose to succeed instead."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 16} to hit, reach 15 ft., one target. {@h}20 ({@damage 2d10 \u002B 9}) piercing damage plus 11 ({@damage 2d10}) lightning damage."
-            ]
-          },
-          {
-            "name": "Claw",
-            "entries": [
-              "{@atk mw} {@hit 16} to hit, reach 10 ft., one target. {@h}16 ({@damage 2d6 \u002B 9}) slashing damage."
-            ]
-          },
-          {
-            "name": "Tail",
-            "entries": [
-              "{@atk mw} {@hit 16} to hit, reach 20 ft., one target. {@h}18 ({@damage 2d8 \u002B 9}) bludgeoning damage."
-            ]
-          },
-          {
-            "name": "Frightful Presence",
-            "entries": [
-              "Each creature of the dragon\u0027s choice that is within 120 feet of the dragon and aware of it must succeed on a {@dc 20} Wisdom saving throw or become {@condition frightened} for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature\u0027s saving throw is successful or the effect ends for it, the creature is immune to the dragon\u0027s Frightful Presence for the next 24 hours."
-            ]
-          },
-          {
-            "name": "Lightning Breath {@recharge 5}",
-            "entries": [
-              "The dragon exhales lightning in a 120-foot line that is 10 feet wide. Each creature in that line must make a {@dc 23} Dexterity saving throw, taking 88 ({@damage 16d10}) lightning damage on a failed save, or half as much damage on a successful one."
-            ]
-          }
-        ],
-        "legendary": [
-          {
-            "name": "Detect",
-            "entries": [
-              "The dragon makes a Wisdom ({@skill Perception}) check."
-            ]
-          },
-          {
-            "name": "Tail Attack",
-            "entries": [
-              "The dragon makes a tail attack."
-            ]
-          },
-          {
-            "name": "Wing Attack (Costs 2 Actions)",
-            "entries": [
-              "The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a {@dc 24} Dexterity saving throw or take 16 ({@damage 2d6 \u002B 9}) bludgeoning damage and be knocked {@condition prone}. The dragon can then fly up to half its flying speed."
-            ]
-          }
-        ],
-        "environment": [
-          "desert",
-          "coastal"
         ]
       },
       "dataSource": "5etools-backfill",
@@ -25014,163 +24368,6 @@
         "environment": [
           "mountain",
           "urban"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": [
-        "Legendary Resistances"
-      ]
-    },
-    {
-      "id": "mm14.monster.ancient-white-dragon",
-      "type": "Monster",
-      "name": "Ancient White Dragon",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 100,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 100
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "G"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "C",
-          "E"
-        ],
-        "ac": [
-          {
-            "ac": 20,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 333,
-          "formula": "18d20 \u002B 144"
-        },
-        "speed": {
-          "walk": 40,
-          "burrow": 40,
-          "fly": 80,
-          "swim": 40
-        },
-        "str": 26,
-        "dex": 10,
-        "con": 26,
-        "int": 10,
-        "wis": 13,
-        "cha": 14,
-        "save": {
-          "dex": "\u002B6",
-          "con": "\u002B14",
-          "wis": "\u002B7",
-          "cha": "\u002B8"
-        },
-        "skill": {
-          "perception": "\u002B13",
-          "stealth": "\u002B6"
-        },
-        "immune": [
-          "cold"
-        ],
-        "senses": [
-          "blindsight 60 ft.",
-          "darkvision 120 ft."
-        ],
-        "passive": 23,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "20",
-        "trait": [
-          {
-            "name": "Ice Walk",
-            "entries": [
-              "The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, {@quickref difficult terrain||3} composed of ice or snow doesn\u0027t cost it extra movement."
-            ]
-          },
-          {
-            "name": "Legendary Resistance (3/Day)",
-            "entries": [
-              "If the dragon fails a saving throw, it can choose to succeed instead."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 14} to hit, reach 15 ft., one target. {@h}19 ({@damage 2d10 \u002B 8}) piercing damage plus 9 ({@damage 2d8}) cold damage."
-            ]
-          },
-          {
-            "name": "Claw",
-            "entries": [
-              "{@atk mw} {@hit 14} to hit, reach 10 ft., one target. {@h}15 ({@damage 2d6 \u002B 8}) slashing damage."
-            ]
-          },
-          {
-            "name": "Tail",
-            "entries": [
-              "{@atk mw} {@hit 14} to hit, reach 20 ft., one target. {@h}17 ({@damage 2d8 \u002B 8}) bludgeoning damage."
-            ]
-          },
-          {
-            "name": "Frightful Presence",
-            "entries": [
-              "Each creature of the dragon\u0027s choice that is within 120 feet of the dragon and aware of it must succeed on a {@dc 16} Wisdom saving throw or become {@condition frightened} for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature\u0027s saving throw is successful or the effect ends for it, the creature is immune to the dragon\u0027s Frightful Presence for the next 24 hours."
-            ]
-          },
-          {
-            "name": "Cold Breath {@recharge 5}",
-            "entries": [
-              "The dragon exhales an icy blast in a 90-foot cone. Each creature in that area must make a {@dc 22} Constitution saving throw, taking 72 ({@damage 16d8}) cold damage on a failed save, or half as much damage on a successful one."
-            ]
-          }
-        ],
-        "legendary": [
-          {
-            "name": "Detect",
-            "entries": [
-              "The dragon makes a Wisdom ({@skill Perception}) check."
-            ]
-          },
-          {
-            "name": "Tail Attack",
-            "entries": [
-              "The dragon makes a tail attack."
-            ]
-          },
-          {
-            "name": "Wing Attack (Costs 2 Actions)",
-            "entries": [
-              "The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a {@dc 22} Dexterity saving throw or take 15 ({@damage 2d6 \u002B 8}) bludgeoning damage and be knocked {@condition prone}. The dragon can then fly up to half its flying speed."
-            ]
-          }
-        ],
-        "environment": [
-          "arctic"
         ]
       },
       "dataSource": "5etools-backfill",
@@ -26293,232 +25490,6 @@
       "needsReview": false,
       "disposition": "Accepted",
       "keywords": []
-    },
-    {
-      "id": "mm14.monster.brass-dragon-wyrmling",
-      "type": "Monster",
-      "name": "Brass Dragon Wyrmling",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 106,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 106
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "C",
-          "G"
-        ],
-        "ac": [
-          {
-            "ac": 16,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 16,
-          "formula": "3d8 \u002B 3"
-        },
-        "speed": {
-          "walk": 30,
-          "burrow": 15,
-          "fly": 60
-        },
-        "str": 15,
-        "dex": 10,
-        "con": 13,
-        "int": 10,
-        "wis": 11,
-        "cha": 13,
-        "save": {
-          "dex": "\u002B2",
-          "con": "\u002B3",
-          "wis": "\u002B2",
-          "cha": "\u002B3"
-        },
-        "skill": {
-          "perception": "\u002B4",
-          "stealth": "\u002B2"
-        },
-        "immune": [
-          "fire"
-        ],
-        "senses": [
-          "blindsight 10 ft.",
-          "darkvision 60 ft."
-        ],
-        "passive": 14,
-        "languages": [
-          "Draconic"
-        ],
-        "cr": "1",
-        "action": [
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 4} to hit, reach 5 ft., one target. {@h}7 ({@damage 1d10 \u002B 2}) piercing damage."
-            ]
-          },
-          {
-            "name": "Breath Weapons {@recharge 5}",
-            "entries": [
-              "The dragon uses one of the following breath weapons.",
-              {
-                "type": "list",
-                "style": "list-hang-notitle",
-                "items": [
-                  {
-                    "type": "item",
-                    "name": "Fire Breath",
-                    "entry": "The dragon exhales fire in a 20-foot line that is 5 feet wide. Each creature in that line must make a {@dc 11} Dexterity saving throw, taking 14 ({@damage 4d6}) fire damage on a failed save, or half as much damage on a successful one."
-                  },
-                  {
-                    "type": "item",
-                    "name": "Sleep Breath",
-                    "entry": "The dragon exhales sleep gas in a 15-foot cone. Each creature in that area must succeed on a {@dc 11} Constitution saving throw or fall {@condition unconscious} for 1 minute. This effect ends for a creature if the creature takes damage or someone uses an action to wake it."
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": []
-    },
-    {
-      "id": "mm14.monster.bronze-dragon-wyrmling",
-      "type": "Monster",
-      "name": "Bronze Dragon Wyrmling",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 109,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 109
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "L",
-          "G"
-        ],
-        "ac": [
-          {
-            "ac": 17,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 32,
-          "formula": "5d8 \u002B 10"
-        },
-        "speed": {
-          "walk": 30,
-          "fly": 60,
-          "swim": 30
-        },
-        "str": 17,
-        "dex": 10,
-        "con": 15,
-        "int": 12,
-        "wis": 11,
-        "cha": 15,
-        "save": {
-          "dex": "\u002B2",
-          "con": "\u002B4",
-          "wis": "\u002B2",
-          "cha": "\u002B4"
-        },
-        "skill": {
-          "perception": "\u002B4",
-          "stealth": "\u002B2"
-        },
-        "immune": [
-          "lightning"
-        ],
-        "senses": [
-          "blindsight 10 ft.",
-          "darkvision 60 ft."
-        ],
-        "passive": 14,
-        "languages": [
-          "Draconic"
-        ],
-        "cr": "2",
-        "trait": [
-          {
-            "name": "Amphibious",
-            "entries": [
-              "The dragon can breathe air and water."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}8 ({@damage 1d10 \u002B 3}) piercing damage."
-            ]
-          },
-          {
-            "name": "Breath Weapons {@recharge 5}",
-            "entries": [
-              "The dragon uses one of the following breath weapons.",
-              {
-                "type": "list",
-                "style": "list-hang-notitle",
-                "items": [
-                  {
-                    "type": "item",
-                    "name": "Lightning Breath",
-                    "entry": "The dragon exhales lightning in a 40-foot line that is 5 feet wide. Each creature in that line must make a {@dc 12} Dexterity saving throw, taking 16 ({@damage 3d10}) lightning damage on a failed save, or half as much damage on a successful one."
-                  },
-                  {
-                    "type": "item",
-                    "name": "Repulsion Breath",
-                    "entry": "The dragon exhales repulsion energy in a 30-foot cone. Each creature in that area must succeed on a {@dc 12} Strength saving throw. On a failed save, the creature is pushed 30 feet away from the dragon."
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": [
-        "Amphibious"
-      ]
     },
     {
       "id": "mm14.monster.bugbear-chief",
@@ -29689,114 +28660,6 @@
       "keywords": []
     },
     {
-      "id": "mm14.monster.giant-spider",
-      "type": "Monster",
-      "name": "Giant Spider",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 328,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 328
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "L"
-        ],
-        "type": "beast",
-        "alignment": [
-          "U"
-        ],
-        "ac": [
-          {
-            "ac": 14,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 26,
-          "formula": "4d10 \u002B 4"
-        },
-        "speed": {
-          "walk": 30,
-          "climb": 30
-        },
-        "str": 14,
-        "dex": 16,
-        "con": 12,
-        "int": 2,
-        "wis": 11,
-        "cha": 4,
-        "skill": {
-          "stealth": "\u002B7"
-        },
-        "senses": [
-          "blindsight 10 ft.",
-          "darkvision 60 ft."
-        ],
-        "passive": 10,
-        "cr": "1",
-        "trait": [
-          {
-            "name": "Spider Climb",
-            "entries": [
-              "The spider can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check."
-            ]
-          },
-          {
-            "name": "Web Sense",
-            "entries": [
-              "While in contact with a web, the spider knows the exact location of any other creature in contact with the same web."
-            ]
-          },
-          {
-            "name": "Web Walker",
-            "entries": [
-              "The spider ignores movement restrictions caused by webbing."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 5} to hit, reach 5 ft., one creature. {@h}7 ({@damage 1d8 \u002B 3}) piercing damage, and the target must make a {@dc 11} Constitution saving throw, taking 9 ({@damage 2d8}) poison damage on a failed save, or half as much damage on a successful one. If the poison damage reduces the target to 0 hit points, the target is stable but {@condition poisoned} for 1 hour, even after regaining hit points, and is {@condition paralyzed} while {@condition poisoned} in this way."
-            ]
-          },
-          {
-            "name": "Web {@recharge 5}",
-            "entries": [
-              "{@atk rw} {@hit 5} to hit, range 30/60 ft., one creature. {@h}The target is {@condition restrained} by webbing. As an action, the {@condition restrained} target can make a {@dc 12} Strength check, bursting the webbing on a success. The webbing can also be attacked and destroyed (AC 10; hp 5; vulnerability to fire damage; immunity to bludgeoning, poison, and psychic damage)."
-            ]
-          }
-        ],
-        "environment": [
-          "underdark",
-          "forest",
-          "swamp",
-          "urban",
-          "desert"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": [
-        "Spider Climb",
-        "Web Sense",
-        "Web Walker"
-      ]
-    },
-    {
       "id": "mm14.monster.giant-toad",
       "type": "Monster",
       "name": "Giant Toad",
@@ -30648,111 +29511,6 @@
       "keywords": []
     },
     {
-      "id": "mm14.monster.green-dragon-wyrmling",
-      "type": "Monster",
-      "name": "Green Dragon Wyrmling",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 95,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 95
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "L",
-          "E"
-        ],
-        "ac": [
-          {
-            "ac": 17,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 38,
-          "formula": "7d8 \u002B 7"
-        },
-        "speed": {
-          "walk": 30,
-          "fly": 60,
-          "swim": 30
-        },
-        "str": 15,
-        "dex": 12,
-        "con": 13,
-        "int": 14,
-        "wis": 11,
-        "cha": 13,
-        "save": {
-          "dex": "\u002B3",
-          "con": "\u002B3",
-          "wis": "\u002B2",
-          "cha": "\u002B3"
-        },
-        "skill": {
-          "perception": "\u002B4",
-          "stealth": "\u002B3"
-        },
-        "immune": [
-          "poison"
-        ],
-        "conditionImmune": [
-          "poisoned"
-        ],
-        "senses": [
-          "blindsight 10 ft.",
-          "darkvision 60 ft."
-        ],
-        "passive": 14,
-        "languages": [
-          "Draconic"
-        ],
-        "cr": "2",
-        "trait": [
-          {
-            "name": "Amphibious",
-            "entries": [
-              "The dragon can breathe air and water."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 4} to hit, reach 5 ft., one target. {@h}7 ({@damage 1d10 \u002B 2}) piercing damage plus 3 ({@damage 1d6}) poison damage."
-            ]
-          },
-          {
-            "name": "Poison Breath {@recharge 5}",
-            "entries": [
-              "The dragon exhales poisonous gas in a 15-foot cone. Each creature in that area must make a {@dc 11} Constitution saving throw, taking 21 ({@damage 6d6}) poison damage on a failed save, or half as much damage on a successful one."
-            ]
-          }
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": [
-        "Amphibious"
-      ]
-    },
-    {
       "id": "mm14.monster.grick-alpha",
       "type": "Monster",
       "name": "Grick Alpha",
@@ -30944,113 +29702,6 @@
       },
       "dataSource": "5etools-backfill",
       "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": []
-    },
-    {
-      "id": "mm14.monster.half-red-dragon-veteran",
-      "type": "Monster",
-      "name": "Half-Red Dragon Veteran",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 180,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 180
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": {
-          "type": "humanoid",
-          "tags": [
-            "human"
-          ]
-        },
-        "alignment": [
-          "A"
-        ],
-        "ac": [
-          {
-            "ac": 18,
-            "from": [
-              "{@item plate armor|phb}"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 65,
-          "formula": "10d8 \u002B 20"
-        },
-        "speed": {
-          "walk": 30
-        },
-        "str": 16,
-        "dex": 13,
-        "con": 14,
-        "int": 10,
-        "wis": 11,
-        "cha": 10,
-        "skill": {
-          "athletics": "\u002B6",
-          "perception": "\u002B3"
-        },
-        "resist": [
-          "fire"
-        ],
-        "senses": [
-          "blindsight 10 ft.",
-          "darkvision 60 ft."
-        ],
-        "passive": 12,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "5",
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The veteran makes two longsword attacks. If it has a shortsword drawn, it can also make a shortsword attack."
-            ]
-          },
-          {
-            "name": "Longsword",
-            "entries": [
-              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}7 ({@damage 1d8 \u002B 3}) slashing damage, or 8 ({@damage 1d10 \u002B 3}) slashing damage if used with two hands."
-            ]
-          },
-          {
-            "name": "Shortsword",
-            "entries": [
-              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}6 ({@damage 1d6 \u002B 3}) piercing damage."
-            ]
-          },
-          {
-            "name": "Heavy Crossbow",
-            "entries": [
-              "{@atk rw} {@hit 3} to hit, range 100/400 ft., one target. {@h}6 ({@damage 1d10 \u002B 1}) piercing damage."
-            ]
-          },
-          {
-            "name": "Fire Breath {@recharge 5}",
-            "entries": [
-              "The veteran exhales fire in a 15-foot cone. Each creature in that area must make a {@dc 15} Dexterity saving throw, taking 24 ({@damage 7d6}) fire damage on a failed save, or half as much damage on a successful one."
-            ]
-          }
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
       "srd52": false,
       "basicRules2024": false,
       "needsReview": false,
@@ -38703,99 +37354,6 @@
       "keywords": []
     },
     {
-      "id": "mm14.monster.white-dragon-wyrmling",
-      "type": "Monster",
-      "name": "White Dragon Wyrmling",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 102,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 102
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "M"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "C",
-          "E"
-        ],
-        "ac": [
-          {
-            "ac": 16,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 32,
-          "formula": "5d8 \u002B 10"
-        },
-        "speed": {
-          "walk": 30,
-          "burrow": 15,
-          "fly": 60,
-          "swim": 30
-        },
-        "str": 14,
-        "dex": 10,
-        "con": 14,
-        "int": 5,
-        "wis": 10,
-        "cha": 11,
-        "save": {
-          "dex": "\u002B2",
-          "con": "\u002B4",
-          "wis": "\u002B2",
-          "cha": "\u002B2"
-        },
-        "skill": {
-          "perception": "\u002B4",
-          "stealth": "\u002B2"
-        },
-        "immune": [
-          "cold"
-        ],
-        "senses": [
-          "blindsight 10 ft.",
-          "darkvision 60 ft."
-        ],
-        "passive": 14,
-        "languages": [
-          "Draconic"
-        ],
-        "cr": "2",
-        "action": [
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 4} to hit, reach 5 ft., one target. {@h}7 ({@damage 1d10 \u002B 2}) piercing damage plus 2 ({@damage 1d4}) cold damage."
-            ]
-          },
-          {
-            "name": "Cold Breath {@recharge 5}",
-            "entries": [
-              "The dragon exhales an icy blast of hail in a 15-foot cone. Each creature in that area must make a {@dc 12} Constitution saving throw, taking 22 ({@damage 5d8}) cold damage on a failed save, or half as much damage on a successful one."
-            ]
-          }
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": []
-    },
-    {
       "id": "mm14.monster.winged-kobold",
       "type": "Monster",
       "name": "Winged Kobold",
@@ -39201,131 +37759,6 @@
       ]
     },
     {
-      "id": "mm14.monster.young-brass-dragon",
-      "type": "Monster",
-      "name": "Young Brass Dragon",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 105,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 105
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "L"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "C",
-          "G"
-        ],
-        "ac": [
-          {
-            "ac": 17,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 110,
-          "formula": "13d10 \u002B 39"
-        },
-        "speed": {
-          "walk": 40,
-          "burrow": 20,
-          "fly": 80
-        },
-        "str": 19,
-        "dex": 10,
-        "con": 17,
-        "int": 12,
-        "wis": 11,
-        "cha": 15,
-        "save": {
-          "dex": "\u002B3",
-          "con": "\u002B6",
-          "wis": "\u002B3",
-          "cha": "\u002B5"
-        },
-        "skill": {
-          "perception": "\u002B6",
-          "persuasion": "\u002B5",
-          "stealth": "\u002B3"
-        },
-        "immune": [
-          "fire"
-        ],
-        "senses": [
-          "blindsight 30 ft.",
-          "darkvision 120 ft."
-        ],
-        "passive": 16,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "6",
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The dragon makes three attacks: one with its bite and two with its claws."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 7} to hit, reach 10 ft., one target. {@h}15 ({@damage 2d10 \u002B 4}) piercing damage."
-            ]
-          },
-          {
-            "name": "Claw",
-            "entries": [
-              "{@atk mw} {@hit 7} to hit, reach 5 ft., one target. {@h}11 ({@damage 2d6 \u002B 4}) slashing damage."
-            ]
-          },
-          {
-            "name": "Breath Weapons {@recharge 5}",
-            "entries": [
-              "The dragon uses one of the following breath weapons.",
-              {
-                "type": "list",
-                "style": "list-hang-notitle",
-                "items": [
-                  {
-                    "type": "item",
-                    "name": "Fire Breath",
-                    "entry": "The dragon exhales fire in a 40-foot line that is 5 feet wide. Each creature in that line must make a {@dc 14} Dexterity saving throw, taking 42 ({@damage 12d6}) fire damage on a failed save, or half as much damage on a successful one."
-                  },
-                  {
-                    "type": "item",
-                    "name": "Sleep Breath",
-                    "entry": "The dragon exhales sleep gas in a 30-foot cone. Each creature in that area must succeed on a {@dc 14} Constitution saving throw or fall {@condition unconscious} for 5 minutes. This effect ends for a creature if the creature takes damage or someone uses an action to wake it."
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "environment": [
-          "desert"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": []
-    },
-    {
       "id": "mm14.monster.young-bronze-dragon",
       "type": "Monster",
       "name": "Young Bronze Dragon",
@@ -39458,386 +37891,6 @@
       "disposition": "Accepted",
       "keywords": [
         "Amphibious"
-      ]
-    },
-    {
-      "id": "mm14.monster.young-copper-dragon",
-      "type": "Monster",
-      "name": "Young Copper Dragon",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 112,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 112
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "L"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "C",
-          "G"
-        ],
-        "ac": [
-          {
-            "ac": 17,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 119,
-          "formula": "14d10 \u002B 42"
-        },
-        "speed": {
-          "walk": 40,
-          "climb": 40,
-          "fly": 80
-        },
-        "str": 19,
-        "dex": 12,
-        "con": 17,
-        "int": 16,
-        "wis": 13,
-        "cha": 15,
-        "save": {
-          "dex": "\u002B4",
-          "con": "\u002B6",
-          "wis": "\u002B4",
-          "cha": "\u002B5"
-        },
-        "skill": {
-          "deception": "\u002B5",
-          "perception": "\u002B7",
-          "stealth": "\u002B4"
-        },
-        "immune": [
-          "acid"
-        ],
-        "senses": [
-          "blindsight 30 ft.",
-          "darkvision 120 ft."
-        ],
-        "passive": 17,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "7",
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The dragon makes three attacks: one with its bite and two with its claws."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 7} to hit, reach 10 ft., one target. {@h}15 ({@damage 2d10 \u002B 4}) piercing damage."
-            ]
-          },
-          {
-            "name": "Claw",
-            "entries": [
-              "{@atk mw} {@hit 7} to hit, reach 5 ft., one target. {@h}11 ({@damage 2d6 \u002B 4}) slashing damage."
-            ]
-          },
-          {
-            "name": "Breath Weapons {@recharge 5}",
-            "entries": [
-              "The dragon uses one of the following breath weapons.",
-              {
-                "type": "list",
-                "style": "list-hang-notitle",
-                "items": [
-                  {
-                    "type": "item",
-                    "name": "Acid Breath",
-                    "entry": "The dragon exhales acid in a 40-foot line that is 5 feet wide. Each creature in that line must make a {@dc 14} Dexterity saving throw, taking 40 ({@damage 9d8}) acid damage on a failed save, or half as much damage on a successful one."
-                  },
-                  {
-                    "type": "item",
-                    "name": "Slowing Breath",
-                    "entry": "The dragon exhales gas in a 30-foot cone. Each creature in that area must succeed on a {@dc 14} Constitution saving throw. On a failed save, the creature can\u0027t use reactions, its speed is halved, and it can\u0027t make more than one attack on its turn. In addition, the creature can use either an action or a bonus action on its turn, but not both. These effects last for 1 minute. The creature can repeat the saving throw at the end of each of its turns, ending the effect on itself with a successful save."
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "environment": [
-          "hill"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": []
-    },
-    {
-      "id": "mm14.monster.young-green-dragon",
-      "type": "Monster",
-      "name": "Young Green Dragon",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 94,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 94
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "L"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "L",
-          "E"
-        ],
-        "ac": [
-          {
-            "ac": 18,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 136,
-          "formula": "16d10 \u002B 48"
-        },
-        "speed": {
-          "walk": 40,
-          "fly": 80,
-          "swim": 40
-        },
-        "str": 19,
-        "dex": 12,
-        "con": 17,
-        "int": 16,
-        "wis": 13,
-        "cha": 15,
-        "save": {
-          "dex": "\u002B4",
-          "con": "\u002B6",
-          "wis": "\u002B4",
-          "cha": "\u002B5"
-        },
-        "skill": {
-          "deception": "\u002B5",
-          "perception": "\u002B7",
-          "stealth": "\u002B4"
-        },
-        "immune": [
-          "poison"
-        ],
-        "conditionImmune": [
-          "poisoned"
-        ],
-        "senses": [
-          "blindsight 30 ft.",
-          "darkvision 120 ft."
-        ],
-        "passive": 17,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "8",
-        "trait": [
-          {
-            "name": "Amphibious",
-            "entries": [
-              "The dragon can breathe air and water."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The dragon makes three attacks: one with its bite and two with its claws."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 7} to hit, reach 10 ft., one target. {@h}15 ({@damage 2d10 \u002B 4}) piercing damage plus 7 ({@damage 2d6}) poison damage."
-            ]
-          },
-          {
-            "name": "Claw",
-            "entries": [
-              "{@atk mw} {@hit 7} to hit, reach 5 ft., one target. {@h}11 ({@damage 2d6 \u002B 4}) slashing damage."
-            ]
-          },
-          {
-            "name": "Poison Breath {@recharge 5}",
-            "entries": [
-              "The dragon exhales poisonous gas in a 30-foot cone. Each creature in that area must make a {@dc 14} Constitution saving throw, taking 42 ({@damage 12d6}) poison damage on a failed save, or half as much damage on a successful one."
-            ]
-          }
-        ],
-        "environment": [
-          "forest"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": [
-        "Amphibious"
-      ]
-    },
-    {
-      "id": "mm14.monster.young-red-shadow-dragon",
-      "type": "Monster",
-      "name": "Young Red Shadow Dragon",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 85,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 85
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "L"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "C",
-          "E"
-        ],
-        "ac": [
-          {
-            "ac": 18,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 178,
-          "formula": "17d10 \u002B 85"
-        },
-        "speed": {
-          "walk": 40,
-          "climb": 40,
-          "fly": 80
-        },
-        "str": 23,
-        "dex": 10,
-        "con": 21,
-        "int": 14,
-        "wis": 11,
-        "cha": 19,
-        "save": {
-          "dex": "\u002B5",
-          "con": "\u002B10",
-          "wis": "\u002B5",
-          "cha": "\u002B9"
-        },
-        "skill": {
-          "perception": "\u002B10",
-          "stealth": "\u002B10"
-        },
-        "resist": [
-          "necrotic"
-        ],
-        "immune": [
-          "fire"
-        ],
-        "senses": [
-          "blindsight 30 ft.",
-          "darkvision 120 ft."
-        ],
-        "passive": 18,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "13",
-        "trait": [
-          {
-            "name": "Living Shadow",
-            "entries": [
-              "While in dim light or darkness, the dragon has resistance to damage that isn\u0027t force, psychic, or radiant."
-            ]
-          },
-          {
-            "name": "Shadow Stealth",
-            "entries": [
-              "While in dim light or darkness, the dragon can take the {@action Hide} action as a bonus action."
-            ]
-          },
-          {
-            "name": "Sunlight Sensitivity",
-            "entries": [
-              "While in sunlight, the dragon has disadvantage on attack rolls, as well as on Wisdom ({@skill Perception}) checks that rely on sight."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The dragon makes three attacks: one with its bite and two with its claws."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 11} to hit, reach 10 ft., one target. {@h}17 ({@damage 2d10 \u002B 6}) piercing damage plus 3 ({@damage 1d6}) necrotic damage."
-            ]
-          },
-          {
-            "name": "Claw",
-            "entries": [
-              "{@atk mw} {@hit 11} to hit, reach 5 ft., one target. {@h}13 ({@damage 2d6 \u002B 6}) slashing damage."
-            ]
-          },
-          {
-            "name": "Shadow Breath {@recharge 5}",
-            "entries": [
-              "The dragon exhales shadowy fire in a 30-foot cone. Each creature in that area must make a {@dc 18} Dexterity saving throw, taking 56 ({@damage 16d6}) necrotic damage on a failed save, or half as much damage on a successful one. A humanoid reduced to 0 hit points by this damage dies, and an undead {@creature shadow} rises from its corpse and acts immediately after the dragon in the initiative count. The shadow is under the dragon\u0027s control."
-            ]
-          }
-        ],
-        "environment": [
-          "underdark"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": false,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": [
-        "Sunlight Sensitivity"
       ]
     },
     {
@@ -40039,123 +38092,6 @@
         "environment": [
           "mountain",
           "urban"
-        ]
-      },
-      "dataSource": "5etools-backfill",
-      "srd": true,
-      "srd52": false,
-      "basicRules2024": false,
-      "needsReview": false,
-      "disposition": "Accepted",
-      "keywords": []
-    },
-    {
-      "id": "mm14.monster.young-white-dragon",
-      "type": "Monster",
-      "name": "Young White Dragon",
-      "sourceBook": "MM",
-      "edition": "Edition2014",
-      "page": 101,
-      "firstAppearedIn": {
-        "book": "MM",
-        "edition": "Edition2014",
-        "page": 101
-      },
-      "revisedIn": [],
-      "settingTags": [],
-      "canonicalText": "",
-      "fields": {
-        "size": [
-          "L"
-        ],
-        "type": "dragon",
-        "alignment": [
-          "C",
-          "E"
-        ],
-        "ac": [
-          {
-            "ac": 17,
-            "from": [
-              "natural armor"
-            ]
-          }
-        ],
-        "hp": {
-          "average": 133,
-          "formula": "14d10 \u002B 56"
-        },
-        "speed": {
-          "walk": 40,
-          "burrow": 20,
-          "fly": 80,
-          "swim": 40
-        },
-        "str": 18,
-        "dex": 10,
-        "con": 18,
-        "int": 6,
-        "wis": 11,
-        "cha": 12,
-        "save": {
-          "dex": "\u002B3",
-          "con": "\u002B7",
-          "wis": "\u002B3",
-          "cha": "\u002B4"
-        },
-        "skill": {
-          "perception": "\u002B6",
-          "stealth": "\u002B3"
-        },
-        "immune": [
-          "cold"
-        ],
-        "senses": [
-          "blindsight 30 ft.",
-          "darkvision 120 ft."
-        ],
-        "passive": 16,
-        "languages": [
-          "Common",
-          "Draconic"
-        ],
-        "cr": "6",
-        "trait": [
-          {
-            "name": "Ice Walk",
-            "entries": [
-              "The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, {@quickref difficult terrain||3} composed of ice or snow doesn\u0027t cost it extra movement."
-            ]
-          }
-        ],
-        "action": [
-          {
-            "name": "Multiattack",
-            "entries": [
-              "The dragon makes three attacks: one with its bite and two with its claws."
-            ]
-          },
-          {
-            "name": "Bite",
-            "entries": [
-              "{@atk mw} {@hit 7} to hit, reach 10 ft., one target. {@h}15 ({@damage 2d10 \u002B 4}) piercing damage plus 4 ({@damage 1d8}) cold damage."
-            ]
-          },
-          {
-            "name": "Claw",
-            "entries": [
-              "{@atk mw} {@hit 7} to hit, reach 5 ft., one target. {@h}11 ({@damage 2d6 \u002B 4}) slashing damage."
-            ]
-          },
-          {
-            "name": "Cold Breath {@recharge 5}",
-            "entries": [
-              "The dragon exhales an icy blast in a 30-foot cone. Each creature in that area must make a {@dc 15} Constitution saving throw, taking 45 ({@damage 10d8}) cold damage on a failed save, or half as much damage on a successful one."
-            ]
-          }
-        ],
-        "environment": [
-          "arctic"
         ]
       },
       "dataSource": "5etools-backfill",
