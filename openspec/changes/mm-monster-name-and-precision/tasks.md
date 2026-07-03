@@ -5,8 +5,8 @@
 
 ## 2. Extra categorization + precision flag (#2)
 
-- [ ] 2.1 In the monster recall result, split `extra` into `extraOtherSource` (matches a Monster in the full cross-source 5etools index) and `extraUnknown` (matches no 5etools monster). Unit test: Orcus → otherSource, Roa → unknown.
-- [ ] 2.2 Admin operation `POST /admin/books/{id}/flag-unknown-monsters` (or fold into the recall/backfill flow) that sets `NeedsReview=true` on each `extraUnknown` monster in the canonical, gap-only, never deletes, never touches `extraOtherSource`. Add to `.http` + insomnia. Unit test: unknown flagged, otherSource untouched, no deletions.
+- [x] 2.1 In the monster recall result, split `extra` into `extraOtherSource` (matches a Monster in the full cross-source 5etools index) and `extraUnknown` (matches no 5etools monster). Unit test: Orcus → otherSource, Roa → unknown.
+- [x] 2.2 Admin operation `POST /admin/books/{id}/flag-unknown-monsters` (or fold into the recall/backfill flow) that sets `NeedsReview=true` on each `extraUnknown` monster in the canonical, gap-only, never deletes, never touches `extraOtherSource`. Add to `.http` + insomnia. Unit test: unknown flagged, otherSource untouched, no deletions.
 
 ## 3. Verify
 

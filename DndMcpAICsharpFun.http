@@ -80,12 +80,16 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/backfill-spells
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Monster recall check (official books only; report-only diff of canonical monsters vs the 5etools roster — present/grounded/backfilled/missing/extra, no write)
+### Admin Books — Monster recall check (official books only; report-only diff of canonical monsters vs the 5etools roster — present/grounded/backfilled/missing/extra (split into extraOtherSource/extraUnknown), no write)
 GET {{baseUrl}}/admin/books/1/monster-recall
 X-Admin-Api-Key: {{adminKey}}
 
 ### Admin Books — Backfill missing monsters from 5etools (official books only; fills parser gaps, appends dataSource:"5etools-backfill" entities)
 POST {{baseUrl}}/admin/books/1/backfill-monsters
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin Books — Flag unknown extra monsters for review (official books only; sets needsReview:true on canonical monsters whose name matches no 5etools monster under any source — extraUnknown; never deletes, never touches extraOtherSource)
+POST {{baseUrl}}/admin/books/1/flag-unknown-monsters
 X-Admin-Api-Key: {{adminKey}}
 
 ### Admin — needsReview triage — List flagged entities (all books, all reasons, first 50)

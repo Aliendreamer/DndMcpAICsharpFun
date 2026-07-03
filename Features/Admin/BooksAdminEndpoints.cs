@@ -31,6 +31,7 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/{id:int}/backfill-spells", BackfillSpells).DisableAntiforgery();
         group.MapGet("/books/{id:int}/monster-recall", MonsterRecall);
         group.MapPost("/books/{id:int}/backfill-monsters", BackfillMonsters).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/flag-unknown-monsters", FlagUnknownMonsters).DisableAntiforgery();
         group.MapPost("/books/{id:int}/project-structured", ProjectStructured).DisableAntiforgery();
         return group;
     }
@@ -203,6 +204,8 @@ public static partial class BooksAdminEndpoints
             backfilled = result.BackfilledCount,
             missing = result.Missing,
             extra = result.Extra,
+            extraOtherSource = result.ExtraOtherSource,
+            extraUnknown = result.ExtraUnknown,
         });
     }
 
@@ -239,6 +242,34 @@ public static partial class BooksAdminEndpoints
         {
             backfilled = result.ToAppend.Select(e => e.Name).ToList(),
             alreadyPresent = result.AlreadyPresent,
+        });
+    }
+
+    private static async Task<IResult> FlagUnknownMonsters(
+        int id,
+        [FromServices] IIngestionTracker tracker,
+        [FromServices] MonsterBackfillService backfill,
+        [FromServices] CanonicalJsonWriter writer,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        var result = await backfill.FlagUnknownAsync(record, writer, ct);
+
+        if (!result.HasSourceKey)
+            return Results.Problem(
+                "Book has no fivetoolsSourceKey; monster flagging requires an official 5etools source.",
+                statusCode: StatusCodes.Status400BadRequest);
+
+        if (result.CanonicalPath is null || !File.Exists(result.CanonicalPath))
+            return Results.Conflict($"No canonical file found for book {id}; run extraction first.");
+
+        return Results.Ok(new
+        {
+            flagged = result.Flagged,
+            flaggedCount = result.Flagged.Count,
         });
     }
 

@@ -21,7 +21,19 @@ public sealed record MonsterBackfillResult(
     IReadOnlyList<string> Missing,
     IReadOnlyList<string> Extra,
     int GroundedCount,
-    int BackfilledCount);
+    int BackfilledCount,
+    IReadOnlyList<string> ExtraOtherSource,
+    IReadOnlyList<string> ExtraUnknown);
+
+/// <summary>
+/// Result of the precision-flag operation: which canonical monsters (from <see cref="MonsterBackfillResult.ExtraUnknown"/>)
+/// had <c>NeedsReview</c> newly set true and the canonical rewritten.  Never deletes an entity and never
+/// touches <see cref="MonsterBackfillResult.ExtraOtherSource"/> monsters.
+/// </summary>
+public sealed record MonsterFlagResult(
+    bool HasSourceKey,
+    string? CanonicalPath,
+    IReadOnlyList<string> Flagged);
 
 /// <summary>
 /// Diffs a book's canonical Monster entities against the 5etools monsters of the book's source key.
@@ -60,7 +72,8 @@ public sealed class MonsterBackfillService
         if (string.IsNullOrWhiteSpace(key))
             return new MonsterBackfillResult(
                 false, null, Array.Empty<EntityEnvelope>(), 0,
-                Array.Empty<string>(), Array.Empty<string>(), 0, 0);
+                Array.Empty<string>(), Array.Empty<string>(), 0, 0,
+                Array.Empty<string>(), Array.Empty<string>());
 
         // Canonical slug derives from the source key (e.g. MM → mm) via the id-slug override table.
         var slug = EntityIdSlug.BookSlug(key);
@@ -93,11 +106,14 @@ public sealed class MonsterBackfillService
         // Working set seeds with the canonical names so a name present there (or an earlier gap) is not re-added.
         var seen = new HashSet<string>(canonicalNames.Keys, StringComparer.Ordinal);
         var rosterNames = new HashSet<string>(StringComparer.Ordinal);
+        // ALL-source monster names (every bestiary-*.json, any source) — used to split Extra below into
+        // cross-printed-elsewhere (extraOtherSource) vs matching no 5etools monster at all (extraUnknown).
+        var allSourceNames = new HashSet<string>(StringComparer.Ordinal);
         var toAppend = new List<EntityEnvelope>();
         var missing = new List<string>();
         var alreadyPresent = 0;
 
-        foreach (var monster in EnumerateFivetoolsMonsters(key))
+        foreach (var monster in EnumerateFivetoolsMonsters(sourceKey: null))
         {
             ct.ThrowIfCancellationRequested();
 
@@ -105,6 +121,14 @@ public sealed class MonsterBackfillService
             if (string.IsNullOrWhiteSpace(name)) continue;
 
             var norm = EntityNameIndex.Normalize(name);
+            allSourceNames.Add(norm);
+
+            var source = monster.TryGetProperty("source", out var srcProp) && srcProp.ValueKind == JsonValueKind.String
+                ? srcProp.GetString()
+                : null;
+            if (!string.Equals(source, key, StringComparison.OrdinalIgnoreCase))
+                continue;
+
             rosterNames.Add(norm);
 
             // seen.Add returns false when the name is already there (canonical or an earlier gap).
@@ -118,18 +142,69 @@ public sealed class MonsterBackfillService
             toAppend.Add(BuildEntity(key, edition, name, monster));
         }
 
-        // Extra: canonical monsters absent from the 5etools roster (report only; never deleted).
-        var extra = canonicalNames
+        // Extra: canonical monsters absent from the 5etools roster (report only; never deleted).  Split
+        // into extraOtherSource (name matches a Monster in the full 5etools index, just under a different
+        // source — plausibly real, a cross-print) and extraUnknown (matches no 5etools monster at all —
+        // dominated by OCR garbage / cross-book contamination).
+        var extraEntries = canonicalNames
             .Where(kv => !rosterNames.Contains(kv.Key))
-            .Select(kv => kv.Value)
             .ToList();
+        var extra = extraEntries.Select(kv => kv.Value).ToList();
+        var extraOtherSource = extraEntries.Where(kv => allSourceNames.Contains(kv.Key)).Select(kv => kv.Value).ToList();
+        var extraUnknown = extraEntries.Where(kv => !allSourceNames.Contains(kv.Key)).Select(kv => kv.Value).ToList();
 
         return new MonsterBackfillResult(
-            true, canonicalPath, toAppend, alreadyPresent, missing, extra, grounded, backfilled);
+            true, canonicalPath, toAppend, alreadyPresent, missing, extra, grounded, backfilled,
+            extraOtherSource, extraUnknown);
     }
 
-    /// <summary>Raw 5etools monster records for <paramref name="sourceKey"/> (source-filtered).</summary>
-    private IEnumerable<JsonElement> EnumerateFivetoolsMonsters(string sourceKey)
+    /// <summary>
+    /// Precision-flag operation: computes <see cref="MonsterBackfillResult.ExtraUnknown"/> and sets
+    /// <c>NeedsReview = true</c> on each matching canonical Monster entity, rewriting the canonical via
+    /// <paramref name="writer"/> (the same write path as the backfill apply).  Gap-only: an entity whose
+    /// <c>NeedsReview</c> is already true is left alone (not re-flagged, not re-written unnecessarily).
+    /// Never deletes an entity and never touches <see cref="MonsterBackfillResult.ExtraOtherSource"/> monsters.
+    /// </summary>
+    public async Task<MonsterFlagResult> FlagUnknownAsync(IngestionRecord record, CanonicalJsonWriter writer, CancellationToken ct)
+    {
+        var result = await ComputeAsync(record, ct);
+        if (!result.HasSourceKey)
+            return new MonsterFlagResult(false, null, Array.Empty<string>());
+
+        if (result.CanonicalPath is null || !File.Exists(result.CanonicalPath))
+            return new MonsterFlagResult(true, result.CanonicalPath, Array.Empty<string>());
+
+        var unknown = new HashSet<string>(result.ExtraUnknown, StringComparer.Ordinal);
+        if (unknown.Count == 0)
+            return new MonsterFlagResult(true, result.CanonicalPath, Array.Empty<string>());
+
+        var file = await _loader.LoadAsync(result.CanonicalPath, ct);
+        var flagged = new List<string>();
+        var entities = new List<EntityEnvelope>(file.Entities.Count);
+        foreach (var e in file.Entities)
+        {
+            if (e.Type == EntityType.Monster && !e.NeedsReview && unknown.Contains(e.Name))
+            {
+                flagged.Add(e.Name);
+                entities.Add(e with { NeedsReview = true });
+            }
+            else
+            {
+                entities.Add(e);
+            }
+        }
+
+        if (flagged.Count > 0)
+            await writer.WriteAsync(result.CanonicalPath, file with { Entities = entities }, ct);
+
+        return new MonsterFlagResult(true, result.CanonicalPath, flagged);
+    }
+
+    /// <summary>
+    /// Raw 5etools monster records across every bestiary-*.json.  When <paramref name="sourceKey"/> is
+    /// non-null, filters to that source only; when null, returns every monster from every source.
+    /// </summary>
+    private IEnumerable<JsonElement> EnumerateFivetoolsMonsters(string? sourceKey)
     {
         var bestiaryDir = Path.Combine(_fivetoolsDirectory, "bestiary");
         if (!Directory.Exists(bestiaryDir)) yield break;
@@ -156,11 +231,15 @@ public sealed class MonsterBackfillService
 
                 foreach (var el in arr.EnumerateArray())
                 {
-                    if (!el.TryGetProperty("source", out var src)
-                        || src.ValueKind != JsonValueKind.String)
-                        continue;
-                    if (!string.Equals(src.GetString(), sourceKey, StringComparison.OrdinalIgnoreCase))
-                        continue;
+                    // sourceKey == null: return every monster regardless of source (all-source pass).
+                    if (sourceKey is not null)
+                    {
+                        if (!el.TryGetProperty("source", out var src)
+                            || src.ValueKind != JsonValueKind.String)
+                            continue;
+                        if (!string.Equals(src.GetString(), sourceKey, StringComparison.OrdinalIgnoreCase))
+                            continue;
+                    }
 
                     yield return el.Clone();
                 }

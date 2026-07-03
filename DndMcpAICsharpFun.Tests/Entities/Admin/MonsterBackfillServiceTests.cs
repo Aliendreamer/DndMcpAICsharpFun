@@ -51,8 +51,10 @@ public sealed class MonsterBackfillServiceTests : IDisposable
         ] }
         """);
 
-        // canonical mm14.json — Goblin (grounded), Vault Guardian (grounded, not in roster → Extra),
-        // Ghost Recall (previously backfilled, not in roster → Extra).
+        // canonical mm14.json — Goblin (grounded), Vault Guardian (grounded, not in roster → Extra,
+        // matches no 5etools monster → extraUnknown), Ghost Recall (previously backfilled, not in roster
+        // → Extra, matches no 5etools monster → extraUnknown), Aboleth (grounded, not in the MM roster but
+        // present in 5etools under MPMM → extraOtherSource, a cross-print, never flagged).
         File.WriteAllText(Path.Combine(_canonicalDir, "mm14.json"), """
         {
           "schemaVersion": "1",
@@ -75,6 +77,12 @@ public sealed class MonsterBackfillServiceTests : IDisposable
               "firstAppearedIn": { "book": "MM", "edition": "Edition2014", "page": 998 },
               "revisedIn": [], "settingTags": [], "canonicalText": "",
               "fields": { "str": 6 }, "dataSource": "5etools-backfill", "srd": false, "srd52": false,
+              "basicRules2024": false, "needsReview": false, "disposition": "Accepted", "keywords": [] },
+            { "id": "mm14.monster.aboleth", "type": "Monster", "name": "Aboleth", "sourceBook": "MM",
+              "edition": "Edition2014", "page": 997,
+              "firstAppearedIn": { "book": "MM", "edition": "Edition2014", "page": 997 },
+              "revisedIn": [], "settingTags": [], "canonicalText": "",
+              "fields": { "str": 21 }, "dataSource": "", "srd": false, "srd52": false,
               "basicRules2024": false, "needsReview": false, "disposition": "Accepted", "keywords": [] }
           ]
         }
@@ -166,7 +174,7 @@ public sealed class MonsterBackfillServiceTests : IDisposable
     {
         var result = await _service.ComputeAsync(Record("MM"), CancellationToken.None);
 
-        Assert.Equal(2, result.GroundedCount);   // Goblin + Vault Guardian
+        Assert.Equal(3, result.GroundedCount);   // Goblin + Vault Guardian + Aboleth
         Assert.Equal(1, result.BackfilledCount);  // Ghost Recall
     }
 
@@ -177,7 +185,31 @@ public sealed class MonsterBackfillServiceTests : IDisposable
 
         Assert.Contains("Vault Guardian", result.Extra);
         Assert.Contains("Ghost Recall", result.Extra);
+        Assert.Contains("Aboleth", result.Extra);
         Assert.DoesNotContain("Goblin", result.Extra); // Goblin is in the roster
+    }
+
+    [Fact]
+    public async Task Compute_ExtraOtherSource_ReportsNamesMatchingAnotherSourceInFiveTools()
+    {
+        var result = await _service.ComputeAsync(Record("MM"), CancellationToken.None);
+
+        // Aboleth is extra for MM (sourced MPMM in the bestiary) but matches a 5etools monster
+        // elsewhere — a plausible cross-print, not a false positive.
+        Assert.Contains("Aboleth", result.ExtraOtherSource);
+        Assert.DoesNotContain("Vault Guardian", result.ExtraOtherSource);
+        Assert.DoesNotContain("Ghost Recall", result.ExtraOtherSource);
+    }
+
+    [Fact]
+    public async Task Compute_ExtraUnknown_ReportsNamesMatchingNoFiveToolsMonster()
+    {
+        var result = await _service.ComputeAsync(Record("MM"), CancellationToken.None);
+
+        // Vault Guardian and Ghost Recall match no 5etools monster under any source.
+        Assert.Contains("Vault Guardian", result.ExtraUnknown);
+        Assert.Contains("Ghost Recall", result.ExtraUnknown);
+        Assert.DoesNotContain("Aboleth", result.ExtraUnknown);
     }
 
     [Fact]
@@ -207,6 +239,76 @@ public sealed class MonsterBackfillServiceTests : IDisposable
         Assert.Empty(result.ToAppend);
         Assert.Empty(result.Missing);
         Assert.Empty(result.Extra);
+        Assert.Empty(result.ExtraOtherSource);
+        Assert.Empty(result.ExtraUnknown);
+    }
+
+    [Fact]
+    public async Task FlagUnknown_SetsNeedsReview_OnExtraUnknownMonsters()
+    {
+        var writer = new CanonicalJsonWriter();
+
+        var result = await _service.FlagUnknownAsync(Record("MM"), writer, CancellationToken.None);
+
+        Assert.True(result.HasSourceKey);
+        Assert.Contains("Vault Guardian", result.Flagged);
+        Assert.Contains("Ghost Recall", result.Flagged);
+        Assert.DoesNotContain("Aboleth", result.Flagged);
+
+        var file = await _loader.LoadAsync(result.CanonicalPath!, CancellationToken.None);
+        var vaultGuardian = file.Entities.Single(e => e.Name == "Vault Guardian");
+        var ghostRecall = file.Entities.Single(e => e.Name == "Ghost Recall");
+        Assert.True(vaultGuardian.NeedsReview);
+        Assert.True(ghostRecall.NeedsReview);
+    }
+
+    [Fact]
+    public async Task FlagUnknown_LeavesExtraOtherSourceMonstersUntouched()
+    {
+        var writer = new CanonicalJsonWriter();
+
+        await _service.FlagUnknownAsync(Record("MM"), writer, CancellationToken.None);
+
+        var file = await _loader.LoadAsync(Path.Combine(_canonicalDir, "mm14.json"), CancellationToken.None);
+        var aboleth = file.Entities.Single(e => e.Name == "Aboleth");
+        Assert.False(aboleth.NeedsReview);
+    }
+
+    [Fact]
+    public async Task FlagUnknown_NeverDeletesAnEntity()
+    {
+        var writer = new CanonicalJsonWriter();
+        var before = await _loader.LoadAsync(Path.Combine(_canonicalDir, "mm14.json"), CancellationToken.None);
+
+        await _service.FlagUnknownAsync(Record("MM"), writer, CancellationToken.None);
+
+        var after = await _loader.LoadAsync(Path.Combine(_canonicalDir, "mm14.json"), CancellationToken.None);
+        Assert.Equal(before.Entities.Count, after.Entities.Count);
+        foreach (var e in before.Entities)
+            Assert.Contains(after.Entities, a => a.Id == e.Id);
+    }
+
+    [Fact]
+    public async Task FlagUnknown_IsIdempotent_AlreadyFlaggedIsNotReFlagged()
+    {
+        var writer = new CanonicalJsonWriter();
+
+        var first = await _service.FlagUnknownAsync(Record("MM"), writer, CancellationToken.None);
+        Assert.NotEmpty(first.Flagged);
+
+        var second = await _service.FlagUnknownAsync(Record("MM"), writer, CancellationToken.None);
+        Assert.Empty(second.Flagged);
+    }
+
+    [Fact]
+    public async Task FlagUnknown_NoSourceKey_ReturnsEmptyNoOp()
+    {
+        var writer = new CanonicalJsonWriter();
+
+        var result = await _service.FlagUnknownAsync(Record(null), writer, CancellationToken.None);
+
+        Assert.False(result.HasSourceKey);
+        Assert.Empty(result.Flagged);
     }
 
     public void Dispose()
