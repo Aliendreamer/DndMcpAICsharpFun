@@ -89,7 +89,45 @@ public sealed class MonsterNameCleanupTests
 
         counts.GroundedCollisionsFlagged.Should().Be(1);
         entities.Should().HaveCount(2);                                    // neither deleted
+        entities.Select(e => e.Id).Should().OnlyHaveUniqueItems();         // no duplicate ids
         entities.Count(e => e.NeedsReview).Should().Be(1);                 // the second flagged
         entities.First(e => e.Name == "Ancient Black Dragon").NeedsReview.Should().BeFalse(); // first untouched
+
+        var winner = entities.Single(e => !e.NeedsReview);
+        winner.Name.Should().Be("Ancient Black Dragon");
+        winner.Id.Should().Be(EntityIdSlug.For(BookKey, EntityType.Monster, "Ancient Black Dragon"));
+    }
+
+    [Theory]
+    [InlineData(false)] // clean name first, garbled second
+    [InlineData(true)]  // garbled name first, clean second
+    public void Grounded_vs_grounded_collision_keeps_distinct_ids_regardless_of_source_order(bool garbledFirst)
+    {
+        var clean = Monster("Ancient Black Dragon");
+        var garbled = Monster("ANCIENT BLACK DRAGON Gargantuan dragon, chaotic evil");
+        var input = garbledFirst ? new[] { garbled, clean } : new[] { clean, garbled };
+
+        var (entities, counts) = MonsterNameCleanup.Clean(input, Matcher, BookKey);
+
+        entities.Should().HaveCount(2);
+        entities.Select(e => e.Id).Should().OnlyHaveUniqueItems();
+        entities.Count(e => e.Id == EntityIdSlug.For(BookKey, EntityType.Monster, "Ancient Black Dragon"))
+            .Should().Be(1);
+        entities.Count(e => e.NeedsReview).Should().Be(1);
+        counts.GroundedCollisionsFlagged.Should().Be(1);
+    }
+
+    [Fact]
+    public void Output_has_no_duplicate_ids()
+    {
+        var garbledGrounded = Monster("ANCIENT BLACK DRAGON Gargantuan dragon, chaotic evil");
+        var cleanGrounded = Monster("Ancient Black Dragon");
+        var otherMonster = Monster("Dragon Turtle");
+        var nonMonster = NonMonster("Fireball");
+
+        var (entities, _) = MonsterNameCleanup.Clean(
+            new[] { garbledGrounded, cleanGrounded, otherMonster, nonMonster }, Matcher, BookKey);
+
+        entities.Select(e => e.Id).Should().OnlyHaveUniqueItems();
     }
 }
