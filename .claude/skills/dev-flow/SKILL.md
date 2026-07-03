@@ -55,6 +55,7 @@ Unit-green is necessary, NOT sufficient for pipeline changes. Before claiming an
 - [ ] **Read the real data shape before writing a predicate over it.** `EntityCandidate.TypePrior` always carries the scanner's frequency floor `{Monster,Spell,Item,Class}` — an "all priors gated" test could never fire. Check the producer (`HeadingCategoryClassifier.ExpandPrior`, the scanner) first.
 - [ ] **When recall looks low, separate OUR-logic bugs from UPSTREAM/parser gaps.** If a missing entity is NOT in `declined.json`, it was never a candidate → upstream (Marker/scanner) gap, not our gate. (8 missing classes / 8 missing races this cycle were a parser gap → `mem:project_parser_upgrade_mineru`, not a false-drop.)
 - [ ] **A reviewer "verified against the diff" ≠ behavioral truth.** Confirm against live code/producer and real output.
+- [ ] **An in-place canonical rewrite (any tool/transform that edits `<slug>.json`) MUST end with a unique-id invariant + a load round-trip.** `CanonicalJsonLoader` THROWS on a duplicate id, so a rewrite that can map two entities onto the same id writes an un-loadable, un-ingestable file. Assert `ids.Should().OnlyHaveUniqueItems()` in a test AND reload the written file (or hit a real read/flag endpoint) before trusting it. This cycle a grounded-vs-grounded name collision wrote 6 duplicate ids that FOUR per-task-green reviews missed — only the whole-branch review + a real-data round-trip caught it. Reuse the extractor's own `EntityNameMatcher` + `EntityIdSlug` so the rewrite ≡ a re-extract (no second stripping/slug impl to drift), and prefer flag-`NeedsReview`-not-delete for ambiguous duplicates.
 
 ## Behavior-preserving refactor gates (dedup, moves, EF mapping, god-file splits — learned this cycle)
 
@@ -90,6 +91,7 @@ Structural changes that must not alter behavior have their OWN gates beyond "tes
 - "The tool takes a userId argument." → Never trust a spoofable id across a shared-key boundary; close over the session identity + ship a negative-ownership test.
 - "I'll edit the `.cs` directly." → Serena only.
 - "I'll branch for this." → No. Single-dev, work on `main`.
+- "It's a one-time data cleanup — I'll add an endpoint." → A one-shot migration is a `Tools/` console (like the retired `Tools/SqliteToPostgres`), NOT a permanent HTTP surface. The app's services are self-contained enough to reuse directly (`new EntityNameMatcher(new EntityNameIndex(fivetoolsDir))` needs no DI/DB). Endpoints are for behavior the product calls again.
 
 ## Common Mistakes
 
@@ -102,3 +104,5 @@ Structural changes that must not alter behavior have their OWN gates beyond "tes
 | Editing `.cs` by blind text replace | Serena `find_symbol`/`replace_symbol_body`. |
 | Creating a feature branch | Work on `main` (single-dev). |
 | Grinding parser rules past the yield plateau | Official-book spells: `backfill-spells`; otherwise hand-author. |
+| Permanent endpoint for a one-time data migration | `Tools/` console reusing the app's services directly. |
+| In-place canonical rewrite trusted on unit-green | Assert unique ids + reload the written file before ingesting. |
