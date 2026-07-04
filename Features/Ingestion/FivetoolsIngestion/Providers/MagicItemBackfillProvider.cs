@@ -14,34 +14,48 @@ public sealed class MagicItemBackfillProvider : IFivetoolsBackfillProvider
 {
     public EntityType Type => EntityType.MagicItem;
 
-    /// <summary>Raw 5etools item records from items.json's "item" array, filtered to magic items
-    /// only (rarity present and not "none" — this is the magic-item filter).</summary>
+    /// <summary>Raw 5etools item records from items.json's "item" array, PLUS synthetic templated
+    /// +N variants expanded from magicvariants.json against the items-base.json base-item pool (see
+    /// <see cref="MagicVariantExpander"/>) — both filtered to magic items only (rarity present and
+    /// not "none" — this is the magic-item filter).</summary>
     public IEnumerable<JsonElement> EnumerateRoster(string fivetoolsDir)
     {
         var path = Path.Combine(fivetoolsDir, "items.json");
-        if (!File.Exists(path)) yield break;
-
-        JsonDocument doc;
-        try { doc = JsonDocument.Parse(File.ReadAllBytes(path)); }
-        catch (JsonException) { yield break; }
-
-        using (doc)
+        if (File.Exists(path))
         {
-            if (!doc.RootElement.TryGetProperty("item", out var arr)
-                || arr.ValueKind != JsonValueKind.Array)
-                yield break;
+            JsonDocument? doc = null;
+            try { doc = JsonDocument.Parse(File.ReadAllBytes(path)); }
+            catch (JsonException) { /* fall through: skip items.json, still try variants below */ }
 
-            foreach (var el in arr.EnumerateArray())
+            if (doc is not null)
             {
-                if (el.TryGetProperty("rarity", out var rarity)
-                    && rarity.ValueKind == JsonValueKind.String
-                    && !string.Equals(rarity.GetString(), "none", StringComparison.OrdinalIgnoreCase))
+                using (doc)
                 {
-                    yield return el.Clone();
+                    if (doc.RootElement.TryGetProperty("item", out var arr) && arr.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var el in arr.EnumerateArray())
+                        {
+                            if (IsQualifyingRarity(el))
+                                yield return el.Clone();
+                        }
+                    }
                 }
             }
         }
+
+        // Templated +N variants (e.g. "+1 Longsword") live in magicvariants.json, not items.json —
+        // expand them against the base-item pool so recall/backfill see them too.
+        foreach (var el in MagicVariantExpander.Expand(fivetoolsDir))
+        {
+            if (IsQualifyingRarity(el))
+                yield return el;
+        }
     }
+
+    private static bool IsQualifyingRarity(JsonElement el)
+        => el.TryGetProperty("rarity", out var rarity)
+            && rarity.ValueKind == JsonValueKind.String
+            && !string.Equals(rarity.GetString(), "none", StringComparison.OrdinalIgnoreCase);
 
     public EntityEnvelope BuildEntity(string sourceKey, string edition, string name, JsonElement element)
     {
