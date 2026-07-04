@@ -159,6 +159,52 @@ public sealed class MagicVariantExpanderTests
         }
     }
 
+
+    [Fact]
+    public void Expand_ScalarRequiresPredicateAgainstArrayBaseItemField_MatchesAnyArrayElement()
+    {
+        // Mirrors the real "Repeating Shot" / "Returning Weapon" shape: the variant's `requires`
+        // predicate has a SCALAR "property" value ("A|XPHB"), while every real base item's
+        // "property" field in items-base.json is an ARRAY (e.g. ["A|XPHB", "LD|XPHB"]). The
+        // matcher must treat this as "the scalar equals any element of the array".
+        var root = CreateFivetoolsDir(
+            """
+            { "magicvariant": [
+              { "name": "+1 Repeating Weapon",
+                "requires": [ { "weaponCategory": "simple", "property": "A|XPHB" } ],
+                "inherits": {
+                  "namePrefix": "+1 ",
+                  "source": "DMG",
+                  "rarity": "uncommon",
+                  "entries": [ "This weapon can fire an extra time." ]
+                }
+              }
+            ] }
+            """,
+            """
+            { "baseitem": [
+              { "name": "Shortbow", "source": "PHB", "weaponCategory": "simple", "property": ["A|XPHB", "LD|XPHB"], "type": "R|PHB" },
+              { "name": "Sling", "source": "PHB", "weaponCategory": "simple", "property": ["S|XPHB"], "type": "R|PHB" }
+            ] }
+            """);
+        try
+        {
+            var roster = MagicVariantExpander.Expand(root).ToList();
+            var names = roster.Select(e => e.GetProperty("name").GetString()).ToList();
+
+            // Base item whose property array CONTAINS the scalar predicate value matches.
+            Assert.Contains("+1 Shortbow", names);
+
+            // Base item whose property array does NOT contain the scalar predicate value
+            // must not match.
+            Assert.DoesNotContain("+1 Sling", names);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public void Expand_TagsSyntheticItemWithVariantsOwnInheritsSource()
     {

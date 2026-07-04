@@ -134,6 +134,18 @@ public static partial class MagicVariantExpander
             return false;
         }
 
+        if (actual.ValueKind == JsonValueKind.Array)
+        {
+            // Scalar-valued expected value against an array-valued base-item field (e.g. a
+            // variant's scalar "property" predicate matched against a weapon's "property"
+            // array): match if the scalar equals ANY element of the actual array.
+            foreach (var actualElement in actual.EnumerateArray())
+            {
+                if (ScalarValueMatches(key, expected, actualElement)) return true;
+            }
+            return false;
+        }
+
         return ScalarValueMatches(key, expected, actual);
     }
 
