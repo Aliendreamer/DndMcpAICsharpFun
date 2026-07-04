@@ -146,7 +146,7 @@ public static partial class BooksAdminEndpoints
         return Results.Accepted($"/admin/books/{id}");
     }
 
-    private static IResult? UnsupportedType(string type) => Results.Problem(
+    private static IResult UnsupportedType(string type) => Results.Problem(
         $"Unsupported type '{type}'. Supported: Monster, Spell, MagicItem, God.",
         statusCode: StatusCodes.Status400BadRequest);
 
@@ -170,7 +170,7 @@ public static partial class BooksAdminEndpoints
         CancellationToken ct)
     {
         if (!TryResolveService(type, services, out var svc))
-            return UnsupportedType(type)!;
+            return UnsupportedType(type);
 
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)
@@ -202,7 +202,7 @@ public static partial class BooksAdminEndpoints
         CancellationToken ct)
     {
         if (!TryResolveService(type, services, out var svc))
-            return UnsupportedType(type)!;
+            return UnsupportedType(type);
 
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)
@@ -241,7 +241,7 @@ public static partial class BooksAdminEndpoints
         CancellationToken ct)
     {
         if (!TryResolveService(type, services, out var svc))
-            return UnsupportedType(type)!;
+            return UnsupportedType(type);
 
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)

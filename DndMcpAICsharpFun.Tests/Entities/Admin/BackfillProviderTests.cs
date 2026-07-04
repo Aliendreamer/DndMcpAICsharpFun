@@ -7,10 +7,9 @@ using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 namespace DndMcpAICsharpFun.Tests.Entities.Admin;
 
 /// <summary>
-/// Covers <see cref="MonsterBackfillProvider"/> and <see cref="SpellBackfillProvider"/>: the curated
-/// field-projection logic lifted verbatim from <c>MonsterBackfillService</c>/<c>SpellBackfillService</c>
-/// into the <c>IFivetoolsBackfillProvider</c> seam. Fixtures mirror <c>MonsterBackfillServiceTests</c>
-/// and <c>SpellBackfillServiceTests</c>.
+/// Covers MonsterBackfillProvider, SpellBackfillProvider, MagicItemBackfillProvider, and GodBackfillProvider:
+/// the curated field-projection logic lifted verbatim from the corresponding backfill services into the
+/// <c>IFivetoolsBackfillProvider</c> seam. Fixtures mirror the corresponding backfill service tests.
 /// </summary>
 public sealed class BackfillProviderTests
 {
