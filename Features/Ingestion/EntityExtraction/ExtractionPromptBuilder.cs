@@ -58,9 +58,10 @@ public sealed class ExtractionPromptBuilder(
         sb.AppendLine("- Use `God` only when the entity is a named deity with known alignment and at least one domain.");
         sb.AppendLine("- Use `Plane` only when the entity is a named plane of existence with a defined category (Inner, Outer, Transitive, Material, etc.).");
         sb.AppendLine("- Use `Monster` only when the entity has a stat block with a challenge rating.");
+        sb.AppendLine("- Use `Object` for a NON-CREATURE that has a stat block with Armor Class and Hit Points but NO ability scores and NO challenge rating: siege weapons (ballista, cannon, mangonel, ram, trebuchet, siege tower), animated objects, doors, statues, and similar. Prefer `Object` over `Monster` when the thing is not alive.");
         sb.AppendLine();
         sb.AppendLine("IMPORTANT — EntityType classification rules:");
-        sb.AppendLine("Valid types: Class, Subclass, Spell, Monster, Race, Subrace, Background, Feat, Item, MagicItem, Weapon, Armor, God, Trap, Condition, DiseasePoison, VehicleMount, Rule, Lore, Plane, Faction, Location.");
+        sb.AppendLine("Valid types: Class, Subclass, Spell, Monster, Object, Race, Subrace, Background, Feat, Item, MagicItem, Weapon, Armor, God, Trap, Condition, DiseasePoison, VehicleMount, Rule, Lore, Plane, Faction, Location.");
         sb.AppendLine("- Use Subclass for named subclass entries (e.g. Path of Wild Magic, Circle of Spores, Oath of Glory).");
         sb.AppendLine("- Use Spell for any named spell entry with casting time, range, duration, and components.");
         sb.AppendLine("- Use Feat for player feats with prerequisites.");
@@ -100,6 +101,14 @@ public sealed class ExtractionPromptBuilder(
                 sb.AppendLine("CR example: \"cr\": \"1/4\"");
                 sb.AppendLine("Traits/actions use entries: \"trait\": [{\"name\": \"Amphibious\", \"entries\": [\"Can breathe air and water.\"]}]");
                 sb.AppendLine("keywords: collect the name of each named trait or special ability visible in the stat block (e.g. [\"Pack Tactics\", \"Keen Senses\"]). Use names exactly as they appear in the text. Omit if none.");
+                break;
+
+            case EntityType.Object:
+                sb.AppendLine("AC example: \"ac\": [15] or \"ac\": [{\"ac\": 17, \"from\": [\"natural armor\"]}]");
+                sb.AppendLine("HP example: \"hp\": {\"average\": 50, \"formula\": \"unbroken\"}");
+                sb.AppendLine("Damage immunities/resistances/vulnerabilities are string arrays: \"immune\": [\"poison\", \"psychic\"]");
+                sb.AppendLine("Attack actions use entries: \"action\": [{\"name\": \"Bolt\", \"entries\": [\"Ranged Weapon Attack: +6 to hit, range 120/480 ft. Hit: 16 (3d10) piercing damage.\"]}]");
+                sb.AppendLine("Objects have NO ability scores, NO challenge rating, NO legendary/lair actions — omit those.");
                 break;
 
             case EntityType.Race:

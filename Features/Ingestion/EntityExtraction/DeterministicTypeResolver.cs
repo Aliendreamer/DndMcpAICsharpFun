@@ -64,6 +64,13 @@ public static class DeterministicTypeResolver
         if (match is { } m)
             return TypeResolution.Force(m.Type, m.Canonical);
 
+        // Object rescue: a gated stat-block candidate that explicitly offers the Object branch
+        // (StatBlockScanner tags non-creature stat blocks — siege weapons, animated objects — with
+        // Object in TypePrior) is DEFERRED to the model rather than declined, so it can be
+        // classified as Object (a non-gated type) instead of a bogus, ungrounded Monster.
+        if (match is null && candidate.TypePrior.Contains(EntityType.Object))
+            return TypeResolution.Defer;
+
         // Official-book gate: decline only when the primary prior is gated AND there was no
         // 5etools match at all (a cross-type match above is content, not grounds to decline).
         if (isOfficial

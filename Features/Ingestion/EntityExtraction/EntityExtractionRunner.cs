@@ -101,7 +101,16 @@ public sealed class EntityExtractionRunner(
                     Detail: result.ErrorMessage));
 
             case UnionOutcome.Declined:
-                return (DeclinedEnvelope(id, candidate, displayName, sourceBook, edition, result.DeclineReason), null);
+                // The model chose the `none` branch — it could not confidently extract an entity.
+                // Record it as a re-triable extraction decline (errors.json) instead of persisting an
+                // empty entity whose canonicalText would be the model's classification reasoning
+                // (the reasoning-leak defect). An errorsOnly retry re-processes it.
+                return (null, new ExtractionErrorEntry(
+                    SourceEntityId: id,
+                    FieldPath: "(extraction)",
+                    MissingTargetId: string.Empty,
+                    ErrorKind: "extraction_declined",
+                    Detail: result.DeclineReason ?? "model declined (entityType:none)"));
 
             default:
                 return (BuildTypedEnvelope(id, result.Type, displayName, sourceBook, edition, candidate, result.Fields, result.Confidence), null);
@@ -133,26 +142,7 @@ public sealed class EntityExtractionRunner(
             Disposition:     disposition);
     }
 
-    private static EntityEnvelope DeclinedEnvelope(
-        string id, EntityCandidate candidate, string displayName,
-        string sourceBook, string edition, string? reason)
-    {
-        using var empty = JsonDocument.Parse("{}");
-        return new EntityEnvelope(
-            Id:              id,
-            Type:            candidate.Type,
-            Name:            displayName,
-            SourceBook:      sourceBook,
-            Edition:         edition,
-            Page:            candidate.Page,
-            FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
-            RevisedIn:       Array.Empty<Revision>(),
-            SettingTags:     Array.Empty<string>(),
-            CanonicalText:   reason ?? string.Empty,
-            Fields:          empty.RootElement.Clone(),
-            NeedsReview:     true,
-            Disposition:     EntityDisposition.Declined);
-    }
+    
 
     // Tier-0 grounding over the emitted fields: true when at least one significant string value
     // grounds against the source prose. Pure fabrication / empty output (e.g. zeroed stat blocks)

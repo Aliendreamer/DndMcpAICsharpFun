@@ -54,7 +54,10 @@ public sealed partial class StatBlockScanner
                 DisplayName: name,
                 Text: text,
                 Page: items[i].PageNumber,
-                TypePrior: new[] { EntityType.Monster });
+                // Offer Object alongside Monster: a stat block with AC/HP may be a non-creature
+                // object (siege weapon, animated door). The model picks Object for those; the
+                // keyword-derived primary Type stays Monster for stable identity/checkpointing.
+                TypePrior: new[] { EntityType.Monster, EntityType.Object });
 
             i = end; // don't re-scan inside the stat block we just emitted
         }

@@ -30,6 +30,24 @@ public sealed class StatBlockScannerTests
     }
 
     [Fact]
+    public void Stat_block_candidate_offers_Object_branch_alongside_Monster()
+    {
+        // A siege weapon: "Large object" + AC/HP stat block. The scanner keeps Monster as the
+        // primary type (stable identity) but must ALSO offer Object so the model can classify a
+        // non-creature correctly instead of it being declined as a bogus Monster.
+        var items = new[]
+        {
+            H("BALLISTA"),
+            T("Large object"),
+            T("Armor Class 15  Hit Points 50 (unbroken)"),
+        };
+
+        var c = _scanner.Scan(items).Should().ContainSingle().Subject;
+        c.Type.Should().Be(EntityType.Monster);
+        c.TypePrior.Should().Contain(EntityType.Object).And.Contain(EntityType.Monster);
+    }
+
+    [Fact]
     public void Detects_headerless_stat_block_naming_from_nearest_lore_header()
     {
         // The size/type line has NO immediate header; the name is the lore-section header above.
