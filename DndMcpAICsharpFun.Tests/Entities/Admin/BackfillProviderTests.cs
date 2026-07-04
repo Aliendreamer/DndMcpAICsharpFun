@@ -60,6 +60,96 @@ public sealed class BackfillProviderTests
     }
 
     [Fact]
+    public void MagicItemBackfillProvider_Type_IsMagicItem()
+    {
+        var provider = new MagicItemBackfillProvider();
+
+        Assert.Equal(EntityType.MagicItem, provider.Type);
+    }
+
+    [Fact]
+    public void MagicItemBackfillProvider_BuildEntity_ProjectsCuratedFieldsForRodOfThePactKeeper()
+    {
+        var provider = new MagicItemBackfillProvider();
+        using var doc = JsonDocument.Parse("""
+            { "name": "+1 Rod of the Pact Keeper", "source": "DMG", "rarity": "uncommon",
+              "type": "RD|DMG", "reqAttune": "by a warlock",
+              "entries": ["While holding this rod..."] }
+            """);
+
+        var entity = provider.BuildEntity("DMG", "Edition2014", "+1 Rod of the Pact Keeper", doc.RootElement);
+
+        Assert.Equal(EntityType.MagicItem, entity.Type);
+        Assert.Equal("5etools-backfill", entity.DataSource);
+        Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
+        Assert.False(entity.NeedsReview);
+
+        var fields = _loader.DeserialiseFields<MagicItemFields>(entity);
+        Assert.Equal("uncommon", fields.Rarity);
+        Assert.Equal("RD", fields.ItemCategory);
+        Assert.Equal("by a warlock", fields.Attunement);
+        Assert.StartsWith("While holding", fields.Description);
+    }
+
+    [Fact]
+    public void MagicItemBackfillProvider_EnumerateRoster_ExcludesMundaneItems()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magicitem-backfill-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "items.json"), """
+                { "item": [
+                  { "name": "+1 Rod of the Pact Keeper", "source": "DMG", "rarity": "rare" },
+                  { "name": "Dagger", "source": "PHB", "rarity": "none" }
+                ] }
+                """);
+
+            var provider = new MagicItemBackfillProvider();
+            var roster = provider.EnumerateRoster(root).ToList();
+
+            var only = Assert.Single(roster);
+            Assert.Equal("+1 Rod of the Pact Keeper", only.GetProperty("name").GetString());
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void GodBackfillProvider_Type_IsGod()
+    {
+        var provider = new GodBackfillProvider();
+
+        Assert.Equal(EntityType.God, provider.Type);
+    }
+
+    [Fact]
+    public void GodBackfillProvider_BuildEntity_ProjectsCuratedFieldsForAsmodeus()
+    {
+        var provider = new GodBackfillProvider();
+        using var doc = JsonDocument.Parse("""
+            { "name": "Asmodeus", "source": "DMG", "alignment": ["L", "E"],
+              "domains": ["Trickery", "Order"], "symbol": "Three triangles",
+              "pantheon": "Dawn War" }
+            """);
+
+        var entity = provider.BuildEntity("DMG", "Edition2014", "Asmodeus", doc.RootElement);
+
+        Assert.Equal(EntityType.God, entity.Type);
+        Assert.Equal("5etools-backfill", entity.DataSource);
+        Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
+
+        var fields = _loader.DeserialiseFields<GodFields>(entity);
+        Assert.Equal("L, E", fields.Alignment);
+        Assert.Contains("Trickery", fields.Domains);
+        Assert.NotNull(fields.Symbol);
+        Assert.Null(fields.Plane);
+        Assert.Equal("", fields.Description);
+    }
+
+    [Fact]
     public void SpellBackfillProvider_Type_IsSpell()
     {
         var provider = new SpellBackfillProvider();
