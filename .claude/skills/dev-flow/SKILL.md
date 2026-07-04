@@ -42,6 +42,7 @@ pnpm lint:md                                          # markdown: 0 error(s) (af
 
 - Persistence tests need Docker running (Testcontainers + Respawn). Non-persistence suite needs nothing.
 - Endpoint change (`MapGet/Post/Put/Delete`) → update `DndMcpAICsharpFun.http` AND `dnd-mcp-api.insomnia.json` in the same commit.
+- **SECURITY REVIEW (HTTP / endpoint / config changes) — mandatory.** The `security-guidance` plugin runs pattern warnings on every edit and an async LLM review on `git commit`/`git push`. Do NOT dismiss it. For any HTTP endpoint (`MapGet/Post/Put/Delete`), request-body/query/header handling, admin-key/auth surface, MCP tool surface, or `Config/appsettings.*`/env/`docker-compose*` change, explicitly review the diff for: **authz/admin-gate gaps, injection/SSRF, secret exposure, and unsafe config/CORS/rate-limit**. If the commit/push hook re-wakes with findings, address or explicitly acknowledge each before continuing. Treat "no HTTP/config change in this diff" as the only reason to skip.
 
 ## Validation gates for DATA / EXTRACTION changes (must-not-omit — learned the hard way)
 
