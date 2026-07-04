@@ -226,6 +226,73 @@ Preconditions: Ollama up (`curl -s localhost:11434/api/tags`), app stack reachab
 
 ---
 
+### Task 7: Rich entry flattening for MagicItem + God Description
+
+**Files:**
+- Create: `Features/Ingestion/FivetoolsIngestion/FivetoolsEntryText.cs`
+- Modify: `Features/Ingestion/FivetoolsIngestion/Providers/MagicItemBackfillProvider.cs`, `GodBackfillProvider.cs`
+- Test: `DndMcpAICsharpFun.Tests/Entities/Admin/FivetoolsEntryTextTests.cs`
+
+**Interfaces:**
+- Produces: `static string FivetoolsEntryText.Flatten(JsonElement entriesArray)` (consumed by both providers).
+
+Current MagicItem/God `Description` joins only top-level string `entries`. This task replaces that with a recursive flattener.
+
+- [ ] **Step 1: Write failing tests.** In `FivetoolsEntryTextTests`, parse a JsonElement array containing: a plain string; a `{"type":"entries","name":"Sub","entries":["inner"]}`; a `{"type":"list","items":["a","b"]}`; a `{"type":"table","colLabels":["d100","Result"],"rows":[["01-50","Water"],["51-00","Beer"]]}`; and a string with an inline tag `"Roll {@dice 1d4} then {@item Rope|PHB}."`. Assert `Flatten` returns text that: keeps the plain string; includes "inner" (optionally "Sub" header); has bulleted "a"/"b"; includes "d100 | Result" and "01-50 | Water"; and reduces the tags to "Roll 1d4 then Rope." Assert an empty/absent array → "".
+
+- [ ] **Step 2: Run — fail.** `dotnet test DndMcpAICsharpFun.Tests --filter FullyQualifiedName~FivetoolsEntryTextTests` (sandbox disabled if `.gitmodules` access error). Expected: build FAIL (Flatten undefined).
+
+- [ ] **Step 3: Implement `FivetoolsEntryText.Flatten`.** Iterate the array; per element by `ValueKind`: `String` → strip inline tags then append; `Object` switch on `type`: `"entries"`/`"section"` → optional `name` as a line then recurse `entries`; `"list"` → each `items` element via `"• " + FlattenInline`; `"table"` → `string.Join(" | ", colLabels)` header line + each `rows[i]` (array) cells joined `" | "` (recursing/stripping cell strings); `"item"`/`"itemSpell"` → `name` + `entry`/`entries`; default → if it has `entries`/`entry` recurse, else skip. Join top-level pieces with `"\n\n"`. Inline-tag strip: regex replace `\{@\w+\s+([^}|]+)(\|[^}]*)?\}` → `$1` (display text before any `|`), applied to every string. Keep it a single static class, no state.
+
+- [ ] **Step 4: Rewire providers.** In `MagicItemBackfillProvider` and `GodBackfillProvider`, replace the top-level-strings Description join with `FivetoolsEntryText.Flatten(entriesElement)` (guard when `entries` absent → "").
+
+- [ ] **Step 5: Run tests + the existing provider tests.** `dotnet test DndMcpAICsharpFun.Tests --filter "FullyQualifiedName~FivetoolsEntryTextTests|FullyQualifiedName~BackfillProviderTests"` (sandbox disabled). Expected PASS — update any BackfillProviderTests Description assertion that assumed the old top-level-only behavior to the richer output (the round-trip still deserialises as `MagicItemFields`/`GodFields`). `dotnet build` 0/0.
+
+- [ ] **Step 6: Commit.**
+```bash
+git add Features/Ingestion/FivetoolsIngestion/FivetoolsEntryText.cs Features/Ingestion/FivetoolsIngestion/Providers/MagicItemBackfillProvider.cs Features/Ingestion/FivetoolsIngestion/Providers/GodBackfillProvider.cs DndMcpAICsharpFun.Tests/Entities/Admin/FivetoolsEntryTextTests.cs DndMcpAICsharpFun.Tests/Entities/Admin/BackfillProviderTests.cs
+git commit -m "feat(backfill): rich recursive entry flattening for MagicItem + God Description"
+```
+
+---
+
+### Task 8: +N magic-item variant expansion into the MagicItem roster
+
+**Files:**
+- Create: `Features/Ingestion/FivetoolsIngestion/MagicVariantExpander.cs`
+- Modify: `Features/Ingestion/FivetoolsIngestion/Providers/MagicItemBackfillProvider.cs`
+- Test: `DndMcpAICsharpFun.Tests/Entities/Admin/MagicVariantExpanderTests.cs`
+
+**Interfaces:**
+- Consumes: `FivetoolsEntryText` (Task 7) is unaffected; the expander emits synthetic 5etools-shaped `JsonElement`s that the existing `MagicItemBackfillProvider.BuildEntity`/rarity-filter already handle.
+- Produces: `IEnumerable<JsonElement> MagicVariantExpander.Expand(string fivetoolsDir)` — synthetic magic items across ALL sources, each tagged with its `inherits.source`.
+
+The expander generates the templated `+N` items that live in `magicvariants.json` (not `items.json`), so recall matches extracted "+1 Longsword" and backfill fills the gaps.
+
+- [ ] **Step 1: Write failing tests.** In `MagicVariantExpanderTests`, write a temp `magicvariants.json` with one variant: `{"name":"+1 Weapon","inherits":{"namePrefix":"+1 ","source":"DMG","rarity":"uncommon","bonusWeapon":"+1","entries":["You have a {=bonusWeapon} bonus to attack and damage rolls made with this magic weapon."]},"requires":[{"weapon":true}]}`, and a temp `items-base.json` with `{"baseitem":[{"name":"Longsword","source":"PHB","weapon":true,"type":"M|PHB"},{"name":"Torch","source":"PHB"}]}`. Assert `Expand(dir)` yields a synthetic item with `name`=="+1 Longsword", `source`=="DMG", `rarity`=="uncommon", and `entries[0]` containing "+1 bonus to attack" (placeholder substituted), and does NOT yield a variant for "Torch" (no `weapon:true`). Also assert an `excludes` predicate suppresses a match, and a variant with a different `inherits.source` is tagged with THAT source.
+
+- [ ] **Step 2: Run — fail.** `dotnet test DndMcpAICsharpFun.Tests --filter FullyQualifiedName~MagicVariantExpanderTests` (sandbox disabled). Expected: build FAIL.
+
+- [ ] **Step 3: Implement `MagicVariantExpander.Expand(dir)`.** Read `{dir}/magicvariants.json` `"magicvariant"[]` (JsonException guard → empty). Read the base-item pool from `{dir}/items-base.json` `"baseitem"[]` (guard). For each variant: read `inherits` (skip if absent); for each base item, `Matches(baseItem, requires, excludes)`: `requires` is a list — matches if ANY entry matches; an entry matches if EVERY key/value pair matches the base item (`type` compared after stripping `|SOURCE`; boolean/string/number compared by value); `excludes` (if present) is a list — if ANY entry matches, reject. For a matching base item, build a `JsonObject`: `name` = `(namePrefix??"") + baseName + (nameSuffix??"")`; `source` = `inherits.source`; copy `page`,`rarity`,`reqAttune`,`srd`,`tier` from `inherits` when present; `type` = base item's `type`; `entries` = `inherits.entries` deep-copied with placeholders substituted — replace every `{=key}` or `{=key/mod}` token with `inherits[key]`'s string value (or `baseName` for `{=baseName}`; empty string when the key is absent). Yield each as a cloned `JsonElement`. No state; pure function of the files.
+
+- [ ] **Step 4: Wire into the roster.** In `MagicItemBackfillProvider.EnumerateRoster(dir)`, after yielding the real `items.json` magic items, also yield `MagicVariantExpander.Expand(dir)` results that pass the same rarity filter (variants carry `inherits.rarity`, so they qualify). The synthetic items carry `source`, so the engine's source filter and the otherSource/unknown split treat them correctly.
+
+- [ ] **Step 5: Run tests + provider/engine tests.** `dotnet test DndMcpAICsharpFun.Tests --filter "FullyQualifiedName~MagicVariantExpanderTests|FullyQualifiedName~BackfillProviderTests|FullyQualifiedName~EntityBackfillServiceTests"` (sandbox disabled). Expected PASS. `dotnet build` 0/0.
+
+- [ ] **Step 6: Commit.**
+```bash
+git add Features/Ingestion/FivetoolsIngestion/MagicVariantExpander.cs Features/Ingestion/FivetoolsIngestion/Providers/MagicItemBackfillProvider.cs DndMcpAICsharpFun.Tests/Entities/Admin/MagicVariantExpanderTests.cs
+git commit -m "feat(backfill): expand +N magicvariants into the MagicItem roster"
+```
+
+---
+
+### Task 9: Refresh API contracts note
+
+- [ ] **Step 1: Update `.http` + `.insomnia.json`.** No route change, but add a comment on the `backfill-entities?type=MagicItem` example noting it now includes rich-flattened Descriptions and expanded `+N` variants; re-verify `DndMcpAICsharpFun.http` and `dnd-mcp-api.insomnia.json` are in sync. Commit `docs(http): note MagicItem backfill covers +N variants + rich descriptions`.
+
+---
+
 ## Self-Review
 
 - **Spec coverage:** entity-recall (Task 5 §3-4), backfill via provider (Tasks 1-5), MagicItem roster rule (Task 3), extra categorization + flag-unknown (Task 1 engine, Task 5 endpoint), DMG re-extraction + parity + validation (Task 6). All spec requirements mapped.

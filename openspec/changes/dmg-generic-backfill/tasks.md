@@ -39,3 +39,17 @@
 - [ ] 6.1 Full build (0/0) + `dotnet test` non-persistence suite green.
 - [ ] 6.2 Whole-change review on opus (reviewer subagent, Serena-driven) before committing.
 - [ ] 6.3 DEFERRED (stack-up, not in this change's commit): start Ollama-backed stack → `POST /admin/books/{dmgId}/ingest-entities` to project `dmg14` into `dnd_entities`.
+
+## 7. Rich Description flattening (enhancement)
+
+- [ ] 7.1 `FivetoolsEntryText.Flatten(JsonElement)` — recursive: strings, nested entries/section, list→bullets, table→header+pipe-rows, inline-tag strip (`{@tag text|...}`→text). Unit tests (table/list/nested/tags/empty).
+- [ ] 7.2 Rewire `MagicItemBackfillProvider` + `GodBackfillProvider` Description to use `Flatten`; update any BackfillProviderTests Description assertion to the richer output.
+
+## 8. +N magic-item variant expansion (enhancement)
+
+- [ ] 8.1 `MagicVariantExpander.Expand(dir)` — read `magicvariants.json` + `items-base.json`; match base items to `requires`/`excludes`; emit synthetic magic items (namePrefix+base+nameSuffix, inherited source/rarity/attunement, `{=placeholder}` substituted entries), tagged with `inherits.source`. Unit tests (weapon match, non-match, excludes, source tag, placeholder).
+- [ ] 8.2 `MagicItemBackfillProvider.EnumerateRoster` yields real items.json magic items + `Expand(dir)` results (rarity-filtered). Engine source-filter/otherSource split handle them uniformly.
+
+## 9. API contracts note
+
+- [ ] 9.1 `.http` + `.insomnia.json`: note MagicItem backfill now includes rich Descriptions + expanded +N variants; verify sync.
