@@ -45,8 +45,12 @@ public sealed partial class QdrantCollectionInitializer(
 
     private async Task EnsureCollectionAsync(string name, CancellationToken ct)
     {
+        var quantization = QdrantQuantization.ConfigFor(_options.Quantization);
         if (await client.CollectionExistsAsync(name, ct))
+        {
             LogCollectionExists(logger, name);
+            await EnsureQuantizationAsync(name, ct); // in-place add for a pre-quantization collection
+        }
         else
         {
             var isBlocks = string.Equals(name, _options.BlocksCollectionName, StringComparison.Ordinal);
@@ -54,7 +58,7 @@ public sealed partial class QdrantCollectionInitializer(
             {
                 await client.CreateCollectionAsync(
                     name,
-                    new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine },
+                    new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine, QuantizationConfig = quantization },
                     sparseVectorsConfig: ("text-sparse", new SparseVectorParams()),
                     cancellationToken: ct);
             }
@@ -62,7 +66,7 @@ public sealed partial class QdrantCollectionInitializer(
             {
                 await client.CreateCollectionAsync(
                     name,
-                    new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine },
+                    new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine, QuantizationConfig = quantization },
                     cancellationToken: ct);
             }
             LogCollectionCreated(logger, name, _options.VectorSize);
@@ -72,6 +76,24 @@ public sealed partial class QdrantCollectionInitializer(
             await CreateEntityPayloadIndexesAsync(name, ct);
         else
             await CreatePayloadIndexesAsync(name, ct);
+    }
+
+    /// <summary>
+    /// Adds scalar int8 quantization to an EXISTING collection in place (background re-quantization,
+    /// no re-ingest). Idempotent: no-op when quantization is disabled or already configured.
+    /// </summary>
+    private async Task EnsureQuantizationAsync(string name, CancellationToken ct)
+    {
+        if (!_options.Quantization.Enabled) return;
+
+        var info = await client.GetCollectionInfoAsync(name, ct);
+        if (info.Config?.QuantizationConfig is not null) return; // already quantized
+
+        var diff = QdrantQuantization.DiffFor(_options.Quantization);
+        if (diff is null) return;
+
+        await client.UpdateCollectionAsync(name, quantizationConfig: diff, cancellationToken: ct);
+        LogQuantizationEnabled(logger, name);
     }
 
     private async Task DetectSparseVectorSupportAsync(string collectionName, CancellationToken ct)
@@ -161,6 +183,9 @@ public sealed partial class QdrantCollectionInitializer(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Created payload indexes on collection '{Collection}'")]
     private static partial void LogPayloadIndexesCreated(ILogger logger, string collection);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Enabled scalar int8 quantization on existing collection '{Collection}' (background re-quantization)")]
+    private static partial void LogQuantizationEnabled(ILogger logger, string collection);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "'{Collection}' collection has no sparse vector support; hybrid search disabled until re-ingestion")]
     private static partial void LogSparseVectorsMissing(ILogger logger, string collection);

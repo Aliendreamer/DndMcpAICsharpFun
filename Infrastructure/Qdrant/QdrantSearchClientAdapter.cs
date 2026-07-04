@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Options;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
@@ -6,8 +7,10 @@ using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
 namespace DndMcpAICsharpFun.Infrastructure.Qdrant;
 
 [ExcludeFromCodeCoverage]
-public sealed class QdrantSearchClientAdapter(QdrantClient client) : IQdrantSearchClient
+public sealed class QdrantSearchClientAdapter(QdrantClient client, IOptions<QdrantOptions> options) : IQdrantSearchClient
 {
+    private readonly QdrantQuantizationOptions _quantization = options.Value.Quantization;
+
     public Task<IReadOnlyList<ScoredPoint>> SearchAsync(
         string collectionName,
         ReadOnlyMemory<float> vector,
@@ -16,7 +19,8 @@ public sealed class QdrantSearchClientAdapter(QdrantClient client) : IQdrantSear
         float? scoreThreshold = null,
         CancellationToken cancellationToken = default)
         => client.SearchAsync(collectionName, vector, filter: filter, limit: limit,
-            scoreThreshold: scoreThreshold, cancellationToken: cancellationToken);
+            scoreThreshold: scoreThreshold, searchParams: QdrantQuantization.SearchParamsFor(_quantization),
+            cancellationToken: cancellationToken);
 
     public Task<IReadOnlyList<ScoredPoint>> QueryAsync(
         string collectionName,
@@ -32,7 +36,8 @@ public sealed class QdrantSearchClientAdapter(QdrantClient client) : IQdrantSear
         {
             Query = denseVector.Span.ToArray(),
             Filter = filter,
-            Limit = limit
+            Limit = limit,
+            Params = QdrantQuantization.SearchParamsFor(_quantization),
         };
 
         var sparsePrefetch = new PrefetchQuery

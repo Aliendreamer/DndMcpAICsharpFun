@@ -150,7 +150,9 @@ internal static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         services.AddSingleton<IQdrantSearchClient>(static sp =>
-            new QdrantSearchClientAdapter(sp.GetRequiredService<QdrantClient>()));
+            new QdrantSearchClientAdapter(
+                sp.GetRequiredService<QdrantClient>(),
+                sp.GetRequiredService<IOptions<QdrantOptions>>()));
         services.AddSingleton<DndMcpAICsharpFun.Features.Retrieval.RerankingService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.IFusedRetrievalService, DndMcpAICsharpFun.Features.Retrieval.FusedRetrievalService>();
         services.AddScoped<IRagRetrievalService, RagRetrievalService>();
