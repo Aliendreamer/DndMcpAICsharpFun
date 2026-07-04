@@ -116,6 +116,50 @@ public sealed class BackfillProviderTests
         }
     }
 
+
+    [Fact]
+    public void MagicItemBackfillProvider_EnumerateRoster_IncludesBothItemsJsonAndExpandedVariants()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magicitem-backfill-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "items.json"), """
+                { "item": [
+                  { "name": "+1 Rod of the Pact Keeper", "source": "DMG", "rarity": "rare" }
+                ] }
+                """);
+            File.WriteAllText(Path.Combine(root, "magicvariants.json"), """
+                { "magicvariant": [
+                  { "name": "+1 Weapon",
+                    "requires": [ { "weapon": true } ],
+                    "inherits": {
+                      "namePrefix": "+1 ",
+                      "source": "DMG",
+                      "rarity": "uncommon",
+                      "entries": [ "Bonus to attack and damage rolls." ]
+                    }
+                  }
+                ] }
+                """);
+            File.WriteAllText(Path.Combine(root, "items-base.json"), """
+                { "baseitem": [
+                  { "name": "Longsword", "source": "PHB", "weapon": true, "type": "M|PHB" }
+                ] }
+                """);
+
+            var provider = new MagicItemBackfillProvider();
+            var names = provider.EnumerateRoster(root).Select(e => e.GetProperty("name").GetString()).ToList();
+
+            Assert.Contains("+1 Rod of the Pact Keeper", names);
+            Assert.Contains("+1 Longsword", names);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public void GodBackfillProvider_Type_IsGod()
     {

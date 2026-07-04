@@ -99,6 +99,66 @@ public sealed class MagicVariantExpanderTests
         }
     }
 
+
+    [Fact]
+    public void Expand_ArrayValuedExcludes_SuppressesAnyMatchingElement()
+    {
+        var root = CreateFivetoolsDir(
+            """
+            { "magicvariant": [
+              { "name": "+1 Imbued Wood",
+                "requires": [ { "imbuable": true } ],
+                "excludes": { "name": ["Crystal", "Orb"] },
+                "inherits": {
+                  "namePrefix": "+1 ",
+                  "source": "ERLW",
+                  "rarity": "uncommon",
+                  "entries": [ "Bonus to attack and damage rolls." ]
+                }
+              },
+              { "name": "+1 Armblade",
+                "requires": [ { "armbladeable": true } ],
+                "excludes": { "property": ["2H", "2H|XPHB"] },
+                "inherits": {
+                  "namePrefix": "+1 ",
+                  "source": "ERLW",
+                  "rarity": "uncommon",
+                  "entries": [ "Bonus to attack and damage rolls." ]
+                }
+              }
+            ] }
+            """,
+            """
+            { "baseitem": [
+              { "name": "Wand", "source": "PHB", "imbuable": true, "type": "M|PHB" },
+              { "name": "Crystal", "source": "PHB", "imbuable": true, "type": "M|PHB" },
+              { "name": "Orb", "source": "PHB", "imbuable": true, "type": "M|PHB" },
+              { "name": "Greatsword", "source": "PHB", "armbladeable": true, "property": ["2H"], "type": "M|PHB" },
+              { "name": "Shortsword", "source": "PHB", "armbladeable": true, "property": ["F"], "type": "M|PHB" }
+            ] }
+            """);
+        try
+        {
+            var roster = MagicVariantExpander.Expand(root).ToList();
+            var names = roster.Select(e => e.GetProperty("name").GetString()).ToList();
+
+            // Array-valued excludes on a scalar actual field (name) suppresses matching elements
+            // but lets everything else through.
+            Assert.Contains("+1 Wand", names);
+            Assert.DoesNotContain("+1 Crystal", names);
+            Assert.DoesNotContain("+1 Orb", names);
+
+            // Array-valued excludes on an array actual field (property) suppresses on non-empty
+            // intersection but lets everything else through.
+            Assert.DoesNotContain("+1 Greatsword", names);
+            Assert.Contains("+1 Shortsword", names);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public void Expand_TagsSyntheticItemWithVariantsOwnInheritsSource()
     {

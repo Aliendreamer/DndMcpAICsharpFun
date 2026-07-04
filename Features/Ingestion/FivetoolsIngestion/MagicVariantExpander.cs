@@ -109,6 +109,37 @@ public static partial class MagicVariantExpander
     /// key is compared by value (string/bool/number).</summary>
     private static bool ValueMatches(string key, JsonElement expected, JsonElement actual)
     {
+        if (expected.ValueKind == JsonValueKind.Array)
+        {
+            // Array-valued expected value means "matches if the base item's field equals ANY
+            // of the array elements" (contains-any-of semantics). The base item's actual field
+            // may itself be a scalar (e.g. name) or an array (e.g. property on a weapon), in
+            // which case a match requires the intersection to be non-empty.
+            if (actual.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var actualElement in actual.EnumerateArray())
+                {
+                    foreach (var expectedElement in expected.EnumerateArray())
+                    {
+                        if (ScalarValueMatches(key, expectedElement, actualElement)) return true;
+                    }
+                }
+                return false;
+            }
+
+            foreach (var expectedElement in expected.EnumerateArray())
+            {
+                if (ScalarValueMatches(key, expectedElement, actual)) return true;
+            }
+            return false;
+        }
+
+        return ScalarValueMatches(key, expected, actual);
+    }
+
+
+    private static bool ScalarValueMatches(string key, JsonElement expected, JsonElement actual)
+    {
         if (key == "type")
         {
             return string.Equals(
