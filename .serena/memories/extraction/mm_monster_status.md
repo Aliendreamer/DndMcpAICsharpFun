@@ -1,46 +1,48 @@
-# WHERE WE ARE — Monster Manual entity recall/quality (2026-07-03)
+# WHERE WE ARE — Monster Manual entity recall/quality (2026-07-03, COMPLETE except dnd_entities re-ingest)
 
-Goal: core 2014 books (PHB/MM/DMG) to PHB-quality entity recall, then 2024. **MM is essentially DONE; DMG
-is next.** Two shipped openspec changes (both NOT archived yet):
+Goal: core 2014 books (PHB/MM/DMG) to PHB-quality entity recall, then 2024. **MM is DONE (recall +
+name-precision + in-place data cleanup all shipped, committed, ARCHIVED); DMG is next.**
 
-## 1. `mm-monster-recall` — DONE + committed, live-validated
-Fixed the upstream candidate-generation gap (MM classified 100% TOC `Rule` → 449 monster sections skipped).
-Recovery (`EntityCandidateScanner` fuzzy-matches skipped headings vs 5etools Monster roster) + 5etools
-backfill. **Result: MM 156/450 → 450/450 monster recall, 0 missing** (337 grounded + 152 backfilled).
-Good canonical committed at **73c291d** (`books/canonical/mm14.json`, 493 entities). 872 unit tests. Also
-caught+fixed a non-root bind-mount write bug (see `mem:operations/running_the_stack`).
+## Shipped + ARCHIVED (all three, 2026-07-03)
+1. `mm-monster-recall` (73c291d) — MM 156/450 → 450/450, 0 missing. Recovery + 5etools backfill.
+2. `mm-monster-name-and-precision` — stat-line strip (#1, closes the extraction path: `ExtractOneAsync`
+   rewrites name+id from the matcher's canonical), extra split + `flag-unknown-monsters` (#2), errorsOnly (#3).
+3. `mm-canonical-name-cleanup` (transform 7629ac1, dup-id fix 168865c, console 92e99c6, DATA e5d4d59) —
+   ONE-TIME in-place cleanup (NO endpoint; `Tools/CanonicalNameCleanup`). `MonsterNameCleanup.Clean` reuses
+   `EntityNameMatcher.MatchOfType` + `EntityIdSlug.For` so output ≡ a re-extract. Winner holds canonical id,
+   losers keep ORIGINAL id+name + NeedsReview (distinct ids). Archived as 2026-07-03-*.
 
-## 2. `mm-monster-name-and-precision` — CODE DONE + committed + VERIFIED; DATA-cleanup NOT applied
-Three improvements from the result deep-dive (commits a89c372 #1, a2f7a8a #2, 38e7dff chore; 891 tests):
-- **#1 stat-line name strip** (`MonsterStatLineName.Strip` + applied in `EntityNameMatcher.Scan`): garbled
-  names like `ANCIENT BLACK DRAGON Gargantuan dragon, chaotic evil` (a REAL grounded dragon, hp=367, just
-  misnamed) now resolve to the clean 5etools `Ancient Black Dragon`. VERIFIED by unit test (definitive for a
-  deterministic strip). This stops the ~37 dragons being both `extra` (garbled) AND `backfilled` (clean) =
-  duplicates.
-- **#2 extra split + flag**: `monster-recall` now splits `extra` into `extraOtherSource` (in 5etools under
-  another source, e.g. Orcus/MPMM, Lord Soth/Dragonlance — plausibly real cross-printing) vs `extraUnknown`
-  (in no bestiary — false positives like Roa). `POST /admin/books/{id}/flag-unknown-monsters` sets
-  NeedsReview on `extraUnknown` (never deletes, never touches otherSource). VERIFIED unit + LIVE (split
-  observed: 12 otherSource / 25 unknown on the current canonical).
-- **#3 errorsOnly retry**: VERIFIED — ran, recovered ~9 of the 11 failed candidates.
+## LIVE RUN RESULT (commit e5d4d59, real books/canonical/mm14.json)
+console: cleaned 16, deduped 16, groundedCollisionsFlagged 7 → 493→477 entities, **0 duplicate ids**.
+flag-unknown-monsters flagged 4 more. monster-recall: **present 450, missing 0 (still 450/450)**, grounded
+337 : backfilled 136 (was 337:152). canonical/validate: **0 failures for mm14** (corpus HTTP 422 = pre-existing
+dangling-cross-ref warnings in `system-reference-document.json` only; endpoint 422s on NeedsReview.Count>0 too).
 
-## ⚠️ PENDING (the data-cleanup, NOT done — user aborted the ~8h run 2026-07-03)
-The #1 fix is CODE-only so far. The 37 garbled dragons + their duplicate backfills are STILL in the
-committed `mm14.json` (493). Applying #1 to the data needs a full `force` re-extract (~8h) OR a cheaper
-in-place canonical name-fix (run the matcher over the existing garbled monster names + de-dupe backfills —
-NOT yet built/investigated; was offered as "abort + cheaper cleanup"). Also NOT run: `flag-unknown-monsters`
-(must run AFTER the dragon names are cleaned, else it wrongly flags the garbled-but-real dragons).
-`mm-monster-name-and-precision` tasks 3.2/3.4/3.5/3.6 (live re-extract + flag + backfill + commit improved
-canonical) are OPEN.
+## CRITICAL LESSON (folded into dev-flow skill)
+The grounded-vs-grounded collision path first wrote the loser at the SAME canonical id as the winner → 6
+duplicate ids → `CanonicalJsonLoader` THROWS → file un-ingestable. FOUR per-task-green reviews missed it;
+the whole-branch review + a real-data reload caught it. Rule: any in-place canonical rewrite MUST end with a
+unique-id invariant (`ids.OnlyHaveUniqueItems()`) + a load round-trip before trusting. Also: one-time
+migration = `Tools/` console, NOT a permanent endpoint. dev-flow SKILL.md updated (commit 0c7dca1).
+
+## ⚠️ DEFERRED — dnd_entities re-ingest (finishing step 5 `ingest-entities`)
+`POST /admin/books/1/ingest-entities` returns 202 but the background job FAILS: **Ollama is unreachable**
+(entity ingestion embeds canonicalText via Ollama). Ollama container `personalcommandcenter-ollama-1`
+(a DIFFERENT compose project) Exited (128) ~11h ago, not on :11434. TO FINISH: start Ollama
+(`docker start personalcommandcenter-ollama-1`), then re-run `ingest-entities` so `dnd_entities` reflects
+the cleaned names/dropped dupes. The canonical (source of truth) is already clean+committed; this only
+re-projects into Qdrant. The app container "unhealthy" flag is ONLY this Ollama probe — admin/canonical
+endpoints work without it.
+
+### Known residuals (flagged NeedsReview for human review — NOT bugs)
+- Collision losers keep garbled names + NeedsReview (ANIMATED ARMOR, BLACK/GELATINOUS/PSEUDODRAGON/REVENANT …).
+- `DRAGON TURTLE Gargantuan'dragon, neutral`: OCR apostrophe defeats the `\s+<Size>\s+<type>` stripper →
+  not cleaned, but flag-unknown flagged it. To catch this class, widen the separator to `[\s']+`. Low priority.
 
 ## State of the machine
-Working tree CLEAN (canonical reverted to committed 493). `books/` chowned back to host uid — **re-chown to
-1654 before the container extracts again** (`docker run --rm -v "$(pwd)/books:/books" alpine chown -R
-1654:1654 /books`). App container running. User stops the PC ~2h after 2026-07-03 ~08:00.
+Working tree CLEAN. `books/` chowned back to host uid 1000. Admin auth = header `X-Admin-Api-Key`
+(value=`Admin__ApiKey`, git-crypt'd; DON'T extract to output). 899 unit tests green, build 0/0.
 
-## NEXT SESSION options
-(a) cheaper in-place dragon-name cleanup (investigate: rewrite garbled monster names via the matcher, dedupe
-backfills) — avoids 8h; (b) full `force` re-extract to realize #1 (8h); then flag-unknown + backfill +
-validate + commit improved canonical + report grounded:backfilled delta (was 337:152); (c) DMG — generalize
-recovery+backfill to all gated types (MagicItem-heavy). Both changes still need archiving after their
-data steps. See `mem:project_companion_roadmap`, `mem:operations/running_the_stack`.
+## NEXT
+- Start Ollama + re-run `ingest-entities` to finish MM (deferred above).
+- DMG: generalize recovery+backfill to all gated types (MagicItem-heavy). See `mem:companion_roadmap`.
