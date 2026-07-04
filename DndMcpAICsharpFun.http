@@ -76,20 +76,20 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/extract-entities?errorsOnly=true
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Backfill missing spells from 5etools (official books only; fills parser gaps, appends dataSource:"5etools-backfill" entities)
-POST {{baseUrl}}/admin/books/1/backfill-spells
+### Admin Books — Entity recall check (official books only; ?type=Monster|Spell|MagicItem|God; report-only diff of canonical entities vs the 5etools roster — present/grounded/backfilled/missing/extra (split into extraOtherSource/extraUnknown), no write)
+GET {{baseUrl}}/admin/books/1/entity-recall?type=Monster
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Monster recall check (official books only; report-only diff of canonical monsters vs the 5etools roster — present/grounded/backfilled/missing/extra (split into extraOtherSource/extraUnknown), no write)
-GET {{baseUrl}}/admin/books/1/monster-recall
+### Admin Books — Backfill missing entities from 5etools (official books only; ?type=Monster|Spell|MagicItem|God; fills parser gaps, appends dataSource:"5etools-backfill" entities)
+POST {{baseUrl}}/admin/books/1/backfill-entities?type=MagicItem
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Backfill missing monsters from 5etools (official books only; fills parser gaps, appends dataSource:"5etools-backfill" entities)
-POST {{baseUrl}}/admin/books/1/backfill-monsters
+### Admin Books — Flag unknown extra entities for review (official books only; ?type=Monster|Spell|MagicItem|God; sets needsReview:true on canonical entities whose name matches no 5etools entity under any source — extraUnknown; never deletes, never touches extraOtherSource)
+POST {{baseUrl}}/admin/books/1/flag-unknown-entities?type=Monster
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Flag unknown extra monsters for review (official books only; sets needsReview:true on canonical monsters whose name matches no 5etools monster under any source — extraUnknown; never deletes, never touches extraOtherSource)
-POST {{baseUrl}}/admin/books/1/flag-unknown-monsters
+### Admin Books — Entity recall with an unsupported ?type (400 Problem response listing supported types)
+GET {{baseUrl}}/admin/books/1/entity-recall?type=Plane
 X-Admin-Api-Key: {{adminKey}}
 
 ### Admin — needsReview triage — List flagged entities (all books, all reasons, first 50)
