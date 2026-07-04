@@ -1,5 +1,8 @@
-## ADDED Requirements
+# fivetools-entity-backfill Specification
 
+## Purpose
+TBD - created by archiving change dmg-generic-backfill. Update Purpose after archive.
+## Requirements
 ### Requirement: Type-parameterized 5etools recall check
 
 The system SHALL provide `GET /admin/books/{id}/entity-recall?type={type}` that, for a book with a
@@ -138,3 +141,4 @@ corpus validation MUST report zero FAIL-class issues for `dmg14`.
 
 - **WHEN** DMG is re-extracted, backfilled across the four types, and `POST /admin/canonical/validate` runs
 - **THEN** validation reports zero FAIL-class issues attributable to `dmg14.json`
+
