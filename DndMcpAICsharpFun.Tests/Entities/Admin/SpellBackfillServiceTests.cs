@@ -3,6 +3,7 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
+using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Admin;
 
@@ -11,7 +12,7 @@ public sealed class SpellBackfillServiceTests : IDisposable
     private readonly string _root;
     private readonly string _fivetoolsDir;
     private readonly string _canonicalDir;
-    private readonly SpellBackfillService _service;
+    private readonly EntityBackfillService _service;
 
     public SpellBackfillServiceTests()
     {
@@ -60,7 +61,7 @@ public sealed class SpellBackfillServiceTests : IDisposable
         """);
 
         var registry = new BookSourceRegistry(Path.Combine(_fivetoolsDir, "books.json"));
-        _service = new SpellBackfillService(registry, new CanonicalJsonLoader(), _canonicalDir, _fivetoolsDir);
+        _service = new EntityBackfillService(new SpellBackfillProvider(), registry, new CanonicalJsonLoader(), _canonicalDir, _fivetoolsDir);
     }
 
     private static IngestionRecord Record(string? sourceKey) => new()

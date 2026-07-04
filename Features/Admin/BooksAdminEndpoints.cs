@@ -28,10 +28,9 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/{id:int}/ingest-blocks", IngestBlocks).DisableAntiforgery();
         group.MapPost("/books/{id:int}/ingest-entities", IngestEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/extract-entities", ExtractEntities).DisableAntiforgery();
-        group.MapPost("/books/{id:int}/backfill-spells", BackfillSpells).DisableAntiforgery();
-        group.MapGet("/books/{id:int}/monster-recall", MonsterRecall);
-        group.MapPost("/books/{id:int}/backfill-monsters", BackfillMonsters).DisableAntiforgery();
-        group.MapPost("/books/{id:int}/flag-unknown-monsters", FlagUnknownMonsters).DisableAntiforgery();
+        group.MapGet("/books/{id:int}/entity-recall", EntityRecall);
+        group.MapPost("/books/{id:int}/backfill-entities", BackfillEntities).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/flag-unknown-entities", FlagUnknownEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/project-structured", ProjectStructured).DisableAntiforgery();
         return group;
     }
@@ -147,53 +146,37 @@ public static partial class BooksAdminEndpoints
         return Results.Accepted($"/admin/books/{id}");
     }
 
-    private static async Task<IResult> BackfillSpells(
-        int id,
-        [FromServices] IIngestionTracker tracker,
-        [FromServices] SpellBackfillService backfill,
-        [FromServices] CanonicalJsonLoader loader,
-        [FromServices] CanonicalJsonWriter writer,
-        CancellationToken ct)
+    private static IResult? UnsupportedType(string type) => Results.Problem(
+        $"Unsupported type '{type}'. Supported: Monster, Spell, MagicItem, God.",
+        statusCode: StatusCodes.Status400BadRequest);
+
+    private static bool TryResolveService(
+        string type,
+        IReadOnlyDictionary<EntityType, EntityBackfillService> services,
+        [NotNullWhen(true)] out EntityBackfillService? service)
     {
-        var record = await tracker.GetByIdAsync(id, ct);
-        if (record is null)
-            return Results.NotFound($"Book with id {id} not found");
+        if (Enum.TryParse<EntityType>(type, ignoreCase: true, out var et) && services.TryGetValue(et, out service))
+            return true;
 
-        var result = await backfill.ComputeAsync(record, ct);
-
-        if (!result.HasSourceKey)
-            return Results.Problem(
-                "Book has no fivetoolsSourceKey; spell backfill requires an official 5etools source.",
-                statusCode: StatusCodes.Status400BadRequest);
-
-        if (result.CanonicalPath is null || !File.Exists(result.CanonicalPath))
-            return Results.Conflict($"No canonical file found for book {id}; run extraction first.");
-
-        if (result.ToAppend.Count > 0)
-        {
-            var file = await loader.LoadAsync(result.CanonicalPath, ct);
-            var merged = file.Entities.Concat(result.ToAppend).ToList();
-            await writer.WriteAsync(result.CanonicalPath, file with { Entities = merged }, ct);
-        }
-
-        return Results.Ok(new
-        {
-            backfilled = result.ToAppend.Select(e => e.Name).ToList(),
-            alreadyPresent = result.AlreadyPresent,
-        });
+        service = null;
+        return false;
     }
 
-    private static async Task<IResult> MonsterRecall(
+    private static async Task<IResult> EntityRecall(
         int id,
+        [FromQuery] string type,
         [FromServices] IIngestionTracker tracker,
-        [FromServices] MonsterBackfillService backfill,
+        [FromServices] IReadOnlyDictionary<EntityType, EntityBackfillService> services,
         CancellationToken ct)
     {
+        if (!TryResolveService(type, services, out var svc))
+            return UnsupportedType(type)!;
+
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)
             return Results.NotFound($"Book with id {id} not found");
 
-        var result = await backfill.ComputeAsync(record, ct);
+        var result = await svc.ComputeAsync(record, ct);
 
         return Results.Ok(new
         {
@@ -209,23 +192,27 @@ public static partial class BooksAdminEndpoints
         });
     }
 
-    private static async Task<IResult> BackfillMonsters(
+    private static async Task<IResult> BackfillEntities(
         int id,
+        [FromQuery] string type,
         [FromServices] IIngestionTracker tracker,
-        [FromServices] MonsterBackfillService backfill,
+        [FromServices] IReadOnlyDictionary<EntityType, EntityBackfillService> services,
         [FromServices] CanonicalJsonLoader loader,
         [FromServices] CanonicalJsonWriter writer,
         CancellationToken ct)
     {
+        if (!TryResolveService(type, services, out var svc))
+            return UnsupportedType(type)!;
+
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)
             return Results.NotFound($"Book with id {id} not found");
 
-        var result = await backfill.ComputeAsync(record, ct);
+        var result = await svc.ComputeAsync(record, ct);
 
         if (!result.HasSourceKey)
             return Results.Problem(
-                "Book has no fivetoolsSourceKey; monster backfill requires an official 5etools source.",
+                $"Book has no fivetoolsSourceKey; {type} backfill requires an official 5etools source.",
                 statusCode: StatusCodes.Status400BadRequest);
 
         if (result.CanonicalPath is null || !File.Exists(result.CanonicalPath))
@@ -245,22 +232,26 @@ public static partial class BooksAdminEndpoints
         });
     }
 
-    private static async Task<IResult> FlagUnknownMonsters(
+    private static async Task<IResult> FlagUnknownEntities(
         int id,
+        [FromQuery] string type,
         [FromServices] IIngestionTracker tracker,
-        [FromServices] MonsterBackfillService backfill,
+        [FromServices] IReadOnlyDictionary<EntityType, EntityBackfillService> services,
         [FromServices] CanonicalJsonWriter writer,
         CancellationToken ct)
     {
+        if (!TryResolveService(type, services, out var svc))
+            return UnsupportedType(type)!;
+
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)
             return Results.NotFound($"Book with id {id} not found");
 
-        var result = await backfill.FlagUnknownAsync(record, writer, ct);
+        var result = await svc.FlagUnknownAsync(record, writer, ct);
 
         if (!result.HasSourceKey)
             return Results.Problem(
-                "Book has no fivetoolsSourceKey; monster flagging requires an official 5etools source.",
+                $"Book has no fivetoolsSourceKey; {type} flagging requires an official 5etools source.",
                 statusCode: StatusCodes.Status400BadRequest);
 
         if (result.CanonicalPath is null || !File.Exists(result.CanonicalPath))

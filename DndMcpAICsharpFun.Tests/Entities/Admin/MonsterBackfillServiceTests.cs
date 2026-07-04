@@ -5,6 +5,7 @@ using DndMcpAICsharpFun.Domain.Entities.Fields;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
+using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Admin;
 
@@ -14,7 +15,7 @@ public sealed class MonsterBackfillServiceTests : IDisposable
     private readonly string _fivetoolsDir;
     private readonly string _canonicalDir;
     private readonly CanonicalJsonLoader _loader;
-    private readonly MonsterBackfillService _service;
+    private readonly EntityBackfillService _service;
 
     public MonsterBackfillServiceTests()
     {
@@ -90,7 +91,7 @@ public sealed class MonsterBackfillServiceTests : IDisposable
 
         var registry = new BookSourceRegistry(Path.Combine(_fivetoolsDir, "books.json"));
         _loader = new CanonicalJsonLoader();
-        _service = new MonsterBackfillService(registry, _loader, _canonicalDir, _fivetoolsDir);
+        _service = new EntityBackfillService(new MonsterBackfillProvider(), registry, _loader, _canonicalDir, _fivetoolsDir);
     }
 
     private static IngestionRecord Record(string? sourceKey) => new()

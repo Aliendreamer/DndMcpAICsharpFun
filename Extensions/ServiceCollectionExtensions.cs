@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
@@ -8,6 +9,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
+using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Search;
@@ -232,6 +234,16 @@ internal static class ServiceCollectionExtensions
                 sp.GetRequiredService<CanonicalJsonLoader>(),
                 sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value.CanonicalDirectory,
                 configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools"));
+        services.AddSingleton<IReadOnlyDictionary<EntityType, EntityBackfillService>>(sp =>
+        {
+            var registry = sp.GetRequiredService<BookSourceRegistry>();
+            var loader = sp.GetRequiredService<CanonicalJsonLoader>();
+            var canonicalDir = sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value.CanonicalDirectory;
+            var fivetoolsDir = configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools";
+            IFivetoolsBackfillProvider[] providers =
+                { new MonsterBackfillProvider(), new SpellBackfillProvider(), new MagicItemBackfillProvider(), new GodBackfillProvider() };
+            return providers.ToDictionary(p => p.Type, p => new EntityBackfillService(p, registry, loader, canonicalDir, fivetoolsDir));
+        });
         services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
         services.AddSingleton<DndMcpAICsharpFun.Features.Admin.CanonicalValidationService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalTypeFixerService>();
