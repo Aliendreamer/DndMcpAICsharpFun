@@ -24,4 +24,5 @@ public enum EntityType
     Condition,
     Lore,
     Rule,
+    Object,
 }

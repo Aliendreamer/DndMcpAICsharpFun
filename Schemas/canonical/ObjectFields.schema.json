@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "ObjectFields",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "ac": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "hp": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/MonsterHp"
+        }
+      ]
+    },
+    "immune": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "resist": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "vulnerable": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "conditionImmune": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {}
+    },
+    "action": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/MonsterBlock"
+      }
+    },
+    "description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "definitions": {
+    "MonsterHp": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "average": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "formula": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "special": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "MonsterBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "entries": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {}
+        }
+      }
+    }
+  }
+}

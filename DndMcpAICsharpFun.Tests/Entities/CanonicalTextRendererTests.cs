@@ -32,6 +32,35 @@ public class CanonicalTextRendererTests
     }
 
     [Fact]
+    public void Object_renderer_includes_ac_hp_immunities_and_attack_action()
+    {
+        var fields = new ObjectFields(
+            Ac: new[] { JsonSerializer.Deserialize<JsonElement>("15") },
+            Hp: new MonsterHp(50, "unbroken"),
+            Immune: new[]
+            {
+                JsonSerializer.Deserialize<JsonElement>("\"poison\""),
+                JsonSerializer.Deserialize<JsonElement>("\"psychic\""),
+            },
+            Resist: null,
+            Vulnerable: null,
+            ConditionImmune: null,
+            Action: new[]
+            {
+                new MonsterBlock("Bolt", new[]
+                {
+                    JsonSerializer.Deserialize<JsonElement>("\"Ranged Weapon Attack: +6 to hit. Hit: 3d10 piercing damage.\""),
+                }),
+            },
+            Description: "A Large object.");
+        var text = new ObjectCanonicalTextRenderer().Render("Ballista", fields);
+        text.Should().Contain("AC 15")
+            .And.Contain("HP 50 (unbroken)")
+            .And.Contain("Damage Immunities: poison, psychic")
+            .And.Contain("Bolt: Ranged Weapon Attack: +6 to hit. Hit: 3d10 piercing damage.");
+    }
+
+    [Fact]
     public void Class_renderer_includes_hitdie_proficiencies_and_features()
     {
         var features = new[]

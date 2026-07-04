@@ -10,6 +10,7 @@ public sealed class EntityCanonicalTextDispatcher
     private readonly SpellCanonicalTextRenderer _spellR = new();
     private readonly ClassCanonicalTextRenderer _classR = new();
     private readonly SubclassCanonicalTextRenderer _subclassR = new();
+    private readonly ObjectCanonicalTextRenderer _objectR = new();
     private readonly CanonicalJsonLoader _loader = new();
 
     private readonly Dictionary<EntityType, ISimpleEntityRenderer> _simpleRenderers = new()
@@ -42,6 +43,7 @@ public sealed class EntityCanonicalTextDispatcher
             EntityType.Spell    => _spellR.Render(envelope.Name, _loader.DeserialiseFields<SpellFields>(envelope)),
             EntityType.Class    => _classR.Render(envelope.Name, _loader.DeserialiseFields<ClassFields>(envelope)),
             EntityType.Subclass => _subclassR.Render(envelope.Name, _loader.DeserialiseFields<SubclassFields>(envelope)),
+            EntityType.Object   => _objectR.Render(envelope.Name, _loader.DeserialiseFields<ObjectFields>(envelope)),
             _ when _simpleRenderers.TryGetValue(envelope.Type, out var r) => r.Render(envelope.Name, envelope.Fields),
             _ => envelope.CanonicalText,
         };

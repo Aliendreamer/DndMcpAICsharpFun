@@ -1,14 +1,14 @@
 ## 1. Object type — domain + schema
 
-- [ ] 1.1 Add `Object` to `Domain/Entities/EntityType.cs`
-- [ ] 1.2 Define `ObjectFields` POCO (Monster-subset): `armorClass`, `hitPoints`, damage immunities/resistances/vulnerabilities, condition immunities, optional attack `actions` (name, attack bonus, damage, reach/range), short description
-- [ ] 1.3 Regenerate canonical schemas via `Tools/SchemaGenerator` (delete `obj/canonical-schemas.stamp` if needed) and confirm `Schemas/canonical/ObjectFields.schema.json` is produced
+- [x] 1.1 Add `Object` to `Domain/Entities/EntityType.cs`
+- [x] 1.2 Define `ObjectFields` POCO (Monster-subset): `armorClass`, `hitPoints`, damage immunities/resistances/vulnerabilities, condition immunities, optional attack `actions` (name, attack bonus, damage, reach/range), short description
+- [x] 1.3 Regenerate canonical schemas via `Tools/SchemaGenerator` (delete `obj/canonical-schemas.stamp` if needed) and confirm `Schemas/canonical/ObjectFields.schema.json` is produced
 
 ## 2. Object rendering
 
-- [ ] 2.1 (test) Write a failing renderer test: an `Object` renders `canonicalText` stating AC, HP, and attack actions
-- [ ] 2.2 Implement `ObjectCanonicalTextRenderer` (mirror `MonsterCanonicalTextRenderer`)
-- [ ] 2.3 Wire the renderer into `EntityCanonicalTextDispatcher`; test passes
+- [x] 2.1 (test) Write a failing renderer test: an `Object` renders `canonicalText` stating AC, HP, and attack actions
+- [x] 2.2 Implement `ObjectCanonicalTextRenderer` (mirror `MonsterCanonicalTextRenderer`)
+- [x] 2.3 Wire the renderer into `EntityCanonicalTextDispatcher`; test passes
 
 ## 3. Object extraction routing (non-gated)
 
