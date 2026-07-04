@@ -121,8 +121,6 @@ public sealed class MagicItemBackfillProvider : IFivetoolsBackfillProvider
     {
         if (!item.TryGetProperty("entries", out var entries) || entries.ValueKind != JsonValueKind.Array)
             return "";
-        return string.Join("\n\n", entries.EnumerateArray()
-            .Where(e => e.ValueKind == JsonValueKind.String)
-            .Select(e => e.GetString()!));
+        return FivetoolsEntryText.Flatten(entries);
     }
 }
