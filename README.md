@@ -297,14 +297,13 @@ Mental shortcut: `version` describes the rules edition the book was published fo
 
 ## Observability
 
-When the stack is running, these UIs are available:
+Observability lives in the shared **PersonalCommandCenter** infra stack (Prometheus, Grafana, Tempo, OTel collector), not in this repo. Bring that stack up first; its UIs are exposed through Traefik at `*.pcc.localhost`:
 
 | Service | URL | Description |
 | --- | --- | --- |
-| Grafana | <http://localhost:3000> | Pre-provisioned dashboards: .NET runtime, Qdrant, Ollama |
-| Prometheus | <http://localhost:9090> | Raw metrics and query UI |
-| pgAdmin | <http://localhost:8080> | Browse and query the Postgres tables (incl. `IngestionRecords`) |
-| Qdrant UI | <http://localhost:6333/dashboard> | Browse vector collections and run test queries |
-| marker | <http://localhost:5002/docs> | Swagger UI for the Marker layout service (mostly for debugging) |
+| Grafana | <http://grafana.pcc.localhost> | Dashboards: this app's .NET runtime, Qdrant, Ollama (provisioned in the infra repo) |
+| Prometheus | <http://prometheus.pcc.localhost> | Metrics store (scrapes the app via the OTel collector) |
+| pgAdmin | <http://pgadmin.pcc.localhost> | Browse and query the Postgres tables (incl. `IngestionRecords`) |
+| Qdrant UI | <http://qdrant.pcc.localhost/dashboard> | Browse vector collections and run test queries |
 
-Grafana anonymous access is enabled in the dev stack (`GF_AUTH_ANONYMOUS_ORG_ROLE=Admin`). Remove this before any non-local deployment.
+Grafana admin access in the infra stack is set via `GRAFANA_ADMIN_PASSWORD`. See the PersonalCommandCenter repo for stack configuration.

@@ -88,15 +88,14 @@ New endpoints:
 
 ## Observability
 
-When the full stack is running (`docker compose up`), these UIs are available:
+Observability is provided by the shared **PersonalCommandCenter** infra stack (bring it up first) — Prometheus, Grafana, Tempo, and the OTel collector all live there, not in this repo. Metrics reach Prometheus via the stack's OTel collector. The UIs are exposed through the stack's Traefik router at `*.pcc.localhost`:
 
 | Service | URL | Notes |
 | --- | --- | --- |
-| Grafana | <http://localhost:3000> | Pre-provisioned dashboards for .NET, Qdrant, Ollama |
-| Prometheus | <http://localhost:9090> | Metrics scraping and querying |
-| pgAdmin | <http://localhost:8080> | Browse/query the Postgres tables (incl. `IngestionRecords`) |
-| Qdrant UI | <http://localhost:6333/dashboard> | Vector collection browser |
-| Marker | <http://localhost:5002/docs> | PDF conversion service Swagger (debugging) |
+| Grafana | <http://grafana.pcc.localhost> | Dashboards incl. this app's .NET-runtime, Qdrant, and Ollama boards (provisioned in the infra repo's `harness/grafana/provisioning/dashboards/`) |
+| Prometheus | <http://prometheus.pcc.localhost> | Metrics store (scrapes the app via the OTel collector) |
+| pgAdmin | <http://pgadmin.pcc.localhost> | Browse/query the Postgres tables (incl. `IngestionRecords`) |
+| Qdrant UI | <http://qdrant.pcc.localhost/dashboard> | Vector collection browser |
 
 > **Note:** The `/metrics` endpoint is unauthenticated — rely on Docker network isolation to limit access. It can be disabled by setting `OpenTelemetry:Enabled: false` in configuration.
 
