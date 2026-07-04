@@ -17,7 +17,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 /// </list>
 /// MinerU page indices are 0-based; they are shifted to 1-based to align with the bookmark TOC.
 /// </summary>
-public sealed class MinerUPdfConverter(
+public sealed partial class MinerUPdfConverter(
     IHttpClientFactory httpClientFactory,
     IOptions<MinerUOptions> options,
     ILogger<MinerUPdfConverter> logger) : IPdfStructureConverter
@@ -117,7 +117,7 @@ public sealed class MinerUPdfConverter(
                 // (e.g. "Casting Time: 1 action", "Range: 60 feet") as headings.
                 // Demote them to plain text BEFORE any heading-clean or TRAITS logic
                 // so the preceding spell-name heading keeps ownership of the body.
-                if (StatLineRx.IsMatch(text))
+                if (StatLineRx().IsMatch(text))
                 {
                     items.Add(new PdfStructureItem("text", text, page, null));
                     continue;
@@ -183,7 +183,7 @@ public sealed class MinerUPdfConverter(
                 if (text.Contains("Casting Time", StringComparison.OrdinalIgnoreCase))
                 {
                     var probe = text.Length > 60 ? text[..60] : text;
-                    if (LevelRx.IsMatch(probe) || SchoolRx.IsMatch(probe) || CantripRx.IsMatch(probe))
+                    if (LevelRx().IsMatch(probe) || SchoolRx().IsMatch(probe) || CantripRx().IsMatch(probe))
                     {
                         // Name is on the first line; level/school suffix follows on line 2 (or is
                         // space-glued on the same line). StripLevelSchool cuts at the first digit
@@ -223,31 +223,37 @@ public sealed class MinerUPdfConverter(
 
     // --- spell-entry recovery (the spell-chapter post-processor) ---
 
-    private static readonly Regex SchoolRx = new(
+    [GeneratedRegex(
         "abjurati[ao]n|conjuration|divination|enchantment|evocation|illusion|necromancy|transmutation",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase)]
+    private static partial Regex SchoolRx();
 
     // a digit followed within a few (possibly OCR-garbled) chars by 'leve' — tolerates
     // "3rd-level", "1st leveI", "2nd.level", "3rdievel", etc.
-    private static readonly Regex LevelRx = new(@"\d.{0,4}leve", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    [GeneratedRegex(@"\d.{0,4}leve", RegexOptions.IgnoreCase)]
+    private static partial Regex LevelRx();
 
-    private static readonly Regex CantripRx = new(@"\bca[l]*[nl]trip\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    [GeneratedRegex(@"\bca[l]*[nl]trip\b", RegexOptions.IgnoreCase)]
+    private static partial Regex CantripRx();
 
-    private static readonly Regex DigitRx = new(@"\d", RegexOptions.Compiled);
+    [GeneratedRegex(@"\d")]
+    private static partial Regex DigitRx();
 
-    private static readonly Regex OcrLevelWordRx = new(@"\b(ca[l]*[nl]trip|lst|ist)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    [GeneratedRegex(@"\b(ca[l]*[nl]trip|lst|ist)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex OcrLevelWordRx();
 
     // Spell stat-line labels that MinerU sometimes mis-tags as section_header blocks.
     // When a heading matches this pattern it is demoted to plain text so the spell-name
     // heading retains ownership of the body that follows.
-    private static readonly Regex StatLineRx = new(
+    [GeneratedRegex(
         @"^\s*(Casting Time|Range|Components|Duration|At Higher Levels|Ritual|Concentration)\b",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase)]
+    private static partial Regex StatLineRx();
 
 
     /// <summary>True if the line looks like a spell's "level &amp; school" line (short; carries a level or school token).</summary>
     private static bool IsLevelSchoolLine(string text) =>
-        text.Length <= 90 && (LevelRx.IsMatch(text) || SchoolRx.IsMatch(text) || CantripRx.IsMatch(text));
+        text.Length <= 90 && (LevelRx().IsMatch(text) || SchoolRx().IsMatch(text) || CantripRx().IsMatch(text));
 
     /// <summary>
     /// Extract a spell name by cutting at the first level/school marker. Spell names contain no digits,
@@ -258,12 +264,12 @@ public sealed class MinerUPdfConverter(
     {
         // Rule 1: if a digit is present the suffix is "<Nth>-level <school>" — cut at the first digit.
         // Spell names never contain digits, so this is unambiguous.
-        var d = DigitRx.Match(text);
+        var d = DigitRx().Match(text);
         if (d.Success)
         {
             var cut = d.Index;
             // OCR artefacts ("lst", "ist") can appear instead of a digit; keep taking the minimum.
-            var o = OcrLevelWordRx.Match(text);
+            var o = OcrLevelWordRx().Match(text);
             if (o.Success) cut = Math.Min(cut, o.Index);
             return text[..cut].Trim();
         }
@@ -271,13 +277,13 @@ public sealed class MinerUPdfConverter(
         // Rule 2 (cantrip): the suffix is exactly "<school> cantrip" (possibly glued: no space).
         // Find the school word that is IMMEDIATELY followed (optional whitespace) by the cantrip token
         // rather than the first school word in the string (which may be part of the spell name).
-        var c = CantripRx.Match(text);
+        var c = CantripRx().Match(text);
         if (c.Success)
         {
             // Examine only the text before the cantrip token.
             var prefix = text[..c.Index];
             // Walk school matches in reverse; pick the last one whose end abuts the cantrip.
-                        foreach (Match sm in SchoolRx.Matches(prefix).Cast<Match>().Reverse())
+                        foreach (Match sm in SchoolRx().Matches(prefix).Cast<Match>().Reverse())
             {
                 var between = prefix[(sm.Index + sm.Length)..];
                 if (between.Trim().Length == 0)
@@ -287,7 +293,7 @@ public sealed class MinerUPdfConverter(
         }
 
         // Rule 3: OCR-mangled level words ("lst", "ist") with no digit — cut there.
-        var ocr = OcrLevelWordRx.Match(text);
+        var ocr = OcrLevelWordRx().Match(text);
         if (ocr.Success)
             return text[..ocr.Index].Trim();
 

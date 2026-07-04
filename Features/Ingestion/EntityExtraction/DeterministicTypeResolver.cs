@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -29,7 +30,7 @@ public static class DeterministicTypeResolver
     {
         EntityType.Spell, EntityType.Monster, EntityType.Class, EntityType.Race,
         EntityType.Background, EntityType.Feat, EntityType.Condition, EntityType.God,
-    };
+    }.ToFrozenSet();
 
     public static TypeResolution Resolve(EntityCandidate candidate, EntityNameMatcher? matcher = null, bool isOfficial = false)
     {

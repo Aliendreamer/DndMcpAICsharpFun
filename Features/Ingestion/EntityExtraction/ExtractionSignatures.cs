@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text.RegularExpressions;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -7,7 +8,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 /// case-insensitive. All stat-block / magic-item / name-quality checks route through here rather
 /// than re-matching marker strings independently.
 /// </summary>
-public static class ExtractionSignatures
+public static partial class ExtractionSignatures
 {
     public static bool HasArmorClass(string text) => Has(text, "Armor Class");
     public static bool HasHitPoints(string text) => Has(text, "Hit Points");
@@ -22,7 +23,7 @@ public static class ExtractionSignatures
     {
         if (string.IsNullOrEmpty(text)) return false;
         if (Has(text, "requires attunement") || Has(text, "wondrous item")) return true;
-        return MagicItemHeader.IsMatch(text);
+        return MagicItemHeader().IsMatch(text);
     }
 
     /// Whether a candidate name is a real entity name (true) vs a section heading / stat-block fragment
@@ -33,26 +34,31 @@ public static class ExtractionSignatures
         var n = name.Trim();
         if (!n.Any(char.IsLetter)) return false;
         if (char.IsDigit(n[0])) return false;
-        if (StepHeading.IsMatch(n)) return false;
-        if (ChallengeFragment.IsMatch(n)) return false;
-        if (SectionHeading.IsMatch(n)) return false;
+        if (StepHeading().IsMatch(n)) return false;
+        if (ChallengeFragment().IsMatch(n)) return false;
+        if (SectionHeading().IsMatch(n)) return false;
         if (n.StartsWith("Appendix", StringComparison.OrdinalIgnoreCase)) return false;
         if (StructuralHeaders.Contains(n)) return false;
-        if (LairHeading.IsMatch(n) && n.StartsWith("A ", StringComparison.OrdinalIgnoreCase)) return false;
+        if (LairHeading().IsMatch(n) && n.StartsWith("A ", StringComparison.OrdinalIgnoreCase)) return false;
         return true;
     }
 
-    private static readonly Regex MagicItemHeader = new(
+    [GeneratedRegex(
         @"\b(weapon|armou?r|ring|rod|staff|wand|potion|scroll|wondrous)\b[^.\n]{0,40}?,\s*(common|uncommon|rare|very rare|legendary|artifact)\b",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    private static readonly Regex StepHeading = new(@"^step\s+\d+\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    private static readonly Regex ChallengeFragment = new(@"^challenge\s+\d", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase)]
+    private static partial Regex MagicItemHeader();
+    [GeneratedRegex(@"^step\s+\d+\b", RegexOptions.IgnoreCase)]
+    private static partial Regex StepHeading();
+    [GeneratedRegex(@"^challenge\s+\d", RegexOptions.IgnoreCase)]
+    private static partial Regex ChallengeFragment();
     // Tutorial / section headings: "Creating a Monster" (incl. all-caps "CREATING A …"), "Monster
     // Features", "Class Features". All such corpus names are headings, never real entities.
-    private static readonly Regex SectionHeading = new(@"^creating\b|\bfeatures$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    private static readonly HashSet<string> StructuralHeaders = new(StringComparer.OrdinalIgnoreCase)
-        { "ACTIONS", "REACTIONS", "TRAITS", "BONUS ACTIONS", "LEGENDARY ACTIONS", "LAIR ACTIONS", "REGIONAL EFFECTS" };
-    private static readonly Regex LairHeading = new(@"\blair\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    [GeneratedRegex(@"^creating\b|\bfeatures$", RegexOptions.IgnoreCase)]
+    private static partial Regex SectionHeading();
+    private static readonly FrozenSet<string> StructuralHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        { "ACTIONS", "REACTIONS", "TRAITS", "BONUS ACTIONS", "LEGENDARY ACTIONS", "LAIR ACTIONS", "REGIONAL EFFECTS" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+    [GeneratedRegex(@"\blair\b", RegexOptions.IgnoreCase)]
+    private static partial Regex LairHeading();
 
     private static bool Has(string text, string token) =>
         !string.IsNullOrEmpty(text) && text.Contains(token, StringComparison.OrdinalIgnoreCase);

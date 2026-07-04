@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Mappers;
 
@@ -32,5 +33,5 @@ internal static class FivetoolsMapperRegistry
         [EntityType.DiseasePoison] = new FivetoolsDiseasePoisonMapper(),
         [EntityType.VehicleMount]  = new FivetoolsVehicleMapper(),
         [EntityType.Rule]          = new FivetoolsRuleMapper(),
-    };
+    }.ToFrozenDictionary();
 }

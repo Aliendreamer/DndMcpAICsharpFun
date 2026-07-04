@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -9,15 +10,16 @@ public interface ISimpleEntityRenderer
     string Render(string name, JsonElement fields);
 }
 
-internal static class RendererHelpers
+internal static partial class RendererHelpers
 {
-    private static readonly Regex TagRx = new(@"\{@\w+\s([^|}]+)[^}]*\}", RegexOptions.Compiled);
-    private static readonly Dictionary<string, string> SizeMap = new(StringComparer.OrdinalIgnoreCase)
-        { ["T"] = "Tiny", ["S"] = "Small", ["M"] = "Medium", ["L"] = "Large", ["H"] = "Huge", ["G"] = "Gargantuan" };
-    private static readonly Dictionary<string, string> AlignMap = new(StringComparer.OrdinalIgnoreCase)
-        { ["L"] = "Lawful", ["C"] = "Chaotic", ["G"] = "Good", ["E"] = "Evil", ["N"] = "Neutral", ["U"] = "Unaligned", ["A"] = "Any" };
+    [GeneratedRegex(@"\{@\w+\s([^|}]+)[^}]*\}")]
+    private static partial Regex TagRx();
+    private static readonly FrozenDictionary<string, string> SizeMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        { ["T"] = "Tiny", ["S"] = "Small", ["M"] = "Medium", ["L"] = "Large", ["H"] = "Huge", ["G"] = "Gargantuan" }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+    private static readonly FrozenDictionary<string, string> AlignMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        { ["L"] = "Lawful", ["C"] = "Chaotic", ["G"] = "Good", ["E"] = "Evil", ["N"] = "Neutral", ["U"] = "Unaligned", ["A"] = "Any" }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
-    public static string StripTags(string s) => TagRx.Replace(s, "$1");
+    public static string StripTags(string s) => TagRx().Replace(s, "$1");
     public static string MapSize(string code) => SizeMap.TryGetValue(code, out var v) ? v : code;
     public static string MapAlign(string code) => AlignMap.TryGetValue(code, out var v) ? v : code;
 
@@ -332,8 +334,8 @@ public sealed class LoreCanonicalTextRenderer : ISimpleEntityRenderer
 
 public sealed class RuleCanonicalTextRenderer : ISimpleEntityRenderer
 {
-    private static readonly Dictionary<string, string> RuleTypeMap = new(StringComparer.OrdinalIgnoreCase)
-        { ["C"] = "core", ["O"] = "optional", ["V"] = "variant" };
+    private static readonly FrozenDictionary<string, string> RuleTypeMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        { ["C"] = "core", ["O"] = "optional", ["V"] = "variant" }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     public string Render(string name, JsonElement f)
     {

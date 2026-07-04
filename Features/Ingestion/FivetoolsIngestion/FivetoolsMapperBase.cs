@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities;
 
@@ -6,8 +7,8 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 public abstract class FivetoolsMapperBase : IFivetoolsEntityMapper
 {
     // Sources released under the 2024 D&D ruleset revision.
-    internal static readonly HashSet<string> Edition2024Sources = new(StringComparer.OrdinalIgnoreCase)
-        { "PHB24", "DMG24", "MM25", "XPHB", "XDMG" };
+    internal static readonly FrozenSet<string> Edition2024Sources = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        { "PHB24", "DMG24", "MM25", "XPHB", "XDMG" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     protected abstract EntityType EntityType { get; }
 

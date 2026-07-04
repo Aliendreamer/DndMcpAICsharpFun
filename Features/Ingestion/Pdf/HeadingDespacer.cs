@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text.RegularExpressions;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
@@ -32,7 +33,7 @@ public static partial class HeadingDespacer
     // D&D stat/currency abbreviations (2 letters) are explicitly whitelisted to prevent
     // spurious merges such as "XP COSTS" → "XPCOSTS" or "AC BONUS" → "ACBONUS".
 
-    private static readonly HashSet<string> Whitelist = new(StringComparer.Ordinal)
+    private static readonly FrozenSet<string> Whitelist = new HashSet<string>(StringComparer.Ordinal)
     {
         // 1-letter
         "A", "I",
@@ -43,7 +44,7 @@ public static partial class HeadingDespacer
         "XP", "HP", "AC", "DC", "CR", "GP", "SP", "CP", "EP", "PP",
         // Dice tokens
         "D4", "D6", "D8", "D10", "D12", "D20",
-    };
+    }.ToFrozenSet(StringComparer.Ordinal);
 
     // ── Regex ────────────────────────────────────────────────────────────────
 

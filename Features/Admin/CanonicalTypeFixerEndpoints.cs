@@ -1,11 +1,12 @@
+using System.Text.RegularExpressions;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 
 namespace DndMcpAICsharpFun.Features.Admin;
 
-public static class CanonicalTypeFixerEndpoints
+public static partial class CanonicalTypeFixerEndpoints
 {
-    private static readonly System.Text.RegularExpressions.Regex BookSlugRegex =
-        new(@"^[a-zA-Z0-9_\-]+$", System.Text.RegularExpressions.RegexOptions.Compiled);
+    [GeneratedRegex(@"^[a-zA-Z0-9_\-]+$")]
+    private static partial Regex BookSlugRegex();
 
     public static WebApplication MapCanonicalTypeFixerEndpoints(this WebApplication app)
     {
@@ -20,7 +21,7 @@ public static class CanonicalTypeFixerEndpoints
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(book) ||
-            !BookSlugRegex.IsMatch(book))
+            !BookSlugRegex().IsMatch(book))
             return Results.BadRequest("Invalid book slug.");
 
         var lookup = await fivetools.BuildTypeLookupAsync(ct);

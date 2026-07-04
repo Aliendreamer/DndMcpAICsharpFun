@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities;
 
@@ -7,8 +8,8 @@ public sealed record EntityReferenceWarning(string SourceEntityId, string FieldP
 
 public sealed class EntityReferenceResolver
 {
-    private static readonly HashSet<string> KnownTypeSlugs =
-        new(Enum.GetNames<EntityType>().Select(n => n.ToLowerInvariant()), StringComparer.Ordinal);
+    private static readonly FrozenSet<string> KnownTypeSlugs =
+        new HashSet<string>(Enum.GetNames<EntityType>().Select(n => n.ToLowerInvariant()), StringComparer.Ordinal).ToFrozenSet(StringComparer.Ordinal);
 
     public IEnumerable<EntityReferenceWarning> Resolve(IReadOnlyList<EntityEnvelope> entities)
     {

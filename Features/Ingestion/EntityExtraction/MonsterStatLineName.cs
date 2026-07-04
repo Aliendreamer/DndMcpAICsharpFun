@@ -9,11 +9,12 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 /// + alignment all on one line); this strips that suffix without touching a leading size word that is
 /// legitimately part of the monster's own name (e.g. "GIANT APE").
 /// </summary>
-public static class MonsterStatLineName
+public static partial class MonsterStatLineName
 {
-    private static readonly Regex StatLineSuffix = new(
+    [GeneratedRegex(
         @"\s+(Tiny|Small|Medium|Large|Huge|Gargantuan)\s+(aberration|beast|celestial|construct|dragon|elemental|fey|fiend|giant|humanoid|monstrosity|ooze|plant|undead|swarm)\b.*$",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase)]
+    private static partial Regex StatLineSuffix();
 
     /// <summary>
     /// Removes a trailing "&lt;Size&gt; &lt;type&gt;..." stat-line suffix, if present. Returns the
@@ -22,7 +23,7 @@ public static class MonsterStatLineName
     /// </summary>
     public static string Strip(string rawName)
     {
-        var match = StatLineSuffix.Match(rawName);
+        var match = StatLineSuffix().Match(rawName);
         if (!match.Success) return rawName;
 
         var stripped = rawName[..match.Index].Trim();

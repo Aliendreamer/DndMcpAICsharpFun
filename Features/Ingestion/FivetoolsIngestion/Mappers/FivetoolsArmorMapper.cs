@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities;
 
@@ -8,8 +9,8 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Mappers;
 /// </summary>
 public sealed class FivetoolsArmorMapper : FivetoolsMapperBase
 {
-    private static readonly HashSet<string> ArmorTypes = new(StringComparer.OrdinalIgnoreCase)
-        { "LA", "MA", "HA", "S" };
+    private static readonly FrozenSet<string> ArmorTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        { "LA", "MA", "HA", "S" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     protected override EntityType EntityType => EntityType.Armor;
 

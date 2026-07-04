@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text.RegularExpressions;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
@@ -15,17 +16,18 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 /// non-internal section header. Emitted candidates are deduped by the orchestrator's id-keyed
 /// loop, so a header-clean stat block already captured by the section scanner is not duplicated.
 /// </summary>
-public sealed class StatBlockScanner
+public sealed partial class StatBlockScanner
 {
-    private static readonly Regex SizeTypeLine = new(
+    [GeneratedRegex(
         @"^\s*(tiny|small|medium|large|huge|gargantuan)\s+[a-z]",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase)]
+    private static partial Regex SizeTypeLine();
 
     // Stat-block-internal sub-headings MinerU often mis-detects as section headers; never a name.
-    private static readonly HashSet<string> InternalHeaders = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenSet<string> InternalHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "actions", "reactions", "legendary actions", "lair actions", "regional effects", "traits",
-    };
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     // A monster name sits in a header close to its stat block. A far-back header is a different
     // monster (MinerU sometimes strips a stat block's name entirely, e.g. the MM "true giants"
@@ -59,7 +61,7 @@ public sealed class StatBlockScanner
     }
 
     private static bool IsSizeTypeLine(string text) =>
-        !string.IsNullOrWhiteSpace(text) && SizeTypeLine.IsMatch(text);
+        !string.IsNullOrWhiteSpace(text) && SizeTypeLine().IsMatch(text);
 
     private static bool HasArmorClassWithin(IReadOnlyList<PdfStructureItem> items, int i, int window)
     {

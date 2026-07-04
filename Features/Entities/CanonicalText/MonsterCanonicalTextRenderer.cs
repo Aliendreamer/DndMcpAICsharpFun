@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text;
 using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities.Fields;
@@ -9,12 +10,12 @@ public sealed class MonsterCanonicalTextRenderer
     // NOTE: AlignMap intentionally stays local -- it diverges from RendererHelpers.AlignMap
     // ("A" => "Any alignment" here vs "Any" there, plus NX/NY keys not present in the shared
     // map). See SIM-05 consolidation report: this divergence was flagged rather than merged.
-    private static readonly Dictionary<string, string> AlignMap = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenDictionary<string, string> AlignMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["L"] = "Lawful", ["C"] = "Chaotic", ["G"] = "Good", ["E"] = "Evil",
         ["N"] = "Neutral", ["U"] = "Unaligned", ["A"] = "Any alignment",
         ["NX"] = "non-chaotic", ["NY"] = "non-evil"
-    };
+    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     public string Render(string name, MonsterFields f)
     {

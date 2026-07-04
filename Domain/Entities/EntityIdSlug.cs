@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Globalization;
 using System.Text;
 using DndMcpAICsharpFun.Domain;
@@ -6,7 +7,7 @@ namespace DndMcpAICsharpFun.Domain.Entities;
 
 public static class EntityIdSlug
 {
-    private static readonly Dictionary<string, string> BookOverrides = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenDictionary<string, string> BookOverrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         // Display name → slug
         ["Player's Handbook 2014"]                            = "phb14",
@@ -33,7 +34,7 @@ public static class EntityIdSlug
         ["MPMM"] = "mpmm",
         ["VGM"]  = "vgm",
         ["ERLW"] = "erlw",
-    };
+    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     public static string For(string book, EntityType type, string name)
     {

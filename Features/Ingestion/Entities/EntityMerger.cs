@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using DndMcpAICsharpFun.Domain.Entities;
@@ -10,14 +11,14 @@ public static class EntityMerger
     // Keys whose canonical (LLM) value always wins over the 5etools value.
     // These carry prose/lore that our extraction pipeline produces and that we
     // never want overwritten by 5etools' terse text or tag arrays.
-    private static readonly HashSet<string> NarrativeKeys = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenSet<string> NarrativeKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "entries",
         "description",
         "text",
         // Pattern-suffix: any key ending in "Entries" is also narrative (e.g. classEntries,
         // subclassEntries, featureEntries). These are checked via IsNarrativeKey() below.
-    };
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Returns <see langword="true"/> when <paramref name="key"/> is a narrative key whose

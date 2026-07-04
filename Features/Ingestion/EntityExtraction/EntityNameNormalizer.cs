@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text.RegularExpressions;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -7,25 +8,28 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 /// gate (<see cref="TryNormalizeHeading"/>) that title-cases only all-caps names with no other OCR
 /// artifact, so genuinely garbled names are left intact for the artifact heuristic to catch.
 /// </summary>
-public static class EntityNameNormalizer
+public static partial class EntityNameNormalizer
 {
-    private static readonly HashSet<string> SmallWords = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenSet<string> SmallWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "a", "an", "the", "and", "but", "or", "for", "nor",
         "on", "at", "to", "in", "of", "as",
-    };
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly Dictionary<string, string> Acronyms = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenDictionary<string, string> Acronyms = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["NPC"] = "NPC", ["NPCs"] = "NPCs", ["PC"] = "PC", ["PCs"] = "PCs", ["DM"] = "DM",
         ["GP"] = "GP", ["SP"] = "SP", ["CP"] = "CP", ["PP"] = "PP", ["EP"] = "EP",
         ["XP"] = "XP", ["HP"] = "HP", ["AC"] = "AC", ["DC"] = "DC", ["CR"] = "CR",
         ["AoE"] = "AoE", ["D&D"] = "D&D",
-    };
+    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly Regex ApostropheUpperS = new(@"'[A-Z]", RegexOptions.Compiled);
-    private static readonly Regex LeadingPunct = new(@"^([^A-Za-z0-9]*)(.*)", RegexOptions.Compiled);
-    private static readonly Regex TrailingPunct = new(@"(.*?)([^A-Za-z0-9]*)$", RegexOptions.Compiled);
+    [GeneratedRegex(@"'[A-Z]")]
+    private static partial Regex ApostropheUpperS();
+    [GeneratedRegex(@"^([^A-Za-z0-9]*)(.*)")]
+    private static partial Regex LeadingPunct();
+    [GeneratedRegex(@"(.*?)([^A-Za-z0-9]*)$")]
+    private static partial Regex TrailingPunct();
 
     public static string TitleCase(string name)
     {
@@ -67,10 +71,10 @@ public static class EntityNameNormalizer
         if (string.IsNullOrEmpty(word)) return word;
 
         // Strip leading/trailing punctuation so acronym and small-word lookups work on the bare token.
-        var leadMatch = LeadingPunct.Match(word);
+        var leadMatch = LeadingPunct().Match(word);
         var prefix = leadMatch.Groups[1].Value;
         var inner = leadMatch.Groups[2].Value;
-        var trailMatch = TrailingPunct.Match(inner);
+        var trailMatch = TrailingPunct().Match(inner);
         var core = trailMatch.Groups[1].Value;
         var suffix = trailMatch.Groups[2].Value;
 
@@ -84,7 +88,7 @@ public static class EntityNameNormalizer
             return prefix + low + suffix;
 
         var cap = char.ToUpperInvariant(low[0]) + low[1..];
-        var converted = ApostropheUpperS.Replace(cap, m => m.Value.ToLowerInvariant());
+        var converted = ApostropheUpperS().Replace(cap, m => m.Value.ToLowerInvariant());
         return prefix + converted + suffix;
     }
 }
