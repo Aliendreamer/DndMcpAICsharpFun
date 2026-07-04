@@ -26,6 +26,6 @@
 
 ## 5. Validation
 
-- [ ] 5.1 `dotnet build` 0 warnings / 0 errors (warnings-as-errors); full non-persistence test suite green
-- [ ] 5.2 Update docs if the entity-type surface is documented (CLAUDE.md entity list); no HTTP endpoint change expected, but sync `.http` + `.insomnia` if any route surface changed
+- [x] 5.1 `dotnet build` 0 warnings / 0 errors (warnings-as-errors); full non-persistence test suite green (927/927)
+- [x] 5.2 Update docs if the entity-type surface is documented (no-op: CLAUDE.md entity list is illustrative "etc."; no HTTP route change so `.http`/`.insomnia` unchanged)
 - [ ] 5.3 Data validation on DMG siege candidates: ballista/cannon/ram/cauldron/trebuchet extract as `Object` with populated AC/HP/attack fields; zero empty-shell entities carrying reasoning `canonicalText`; `POST /admin/canonical/validate` clean for the affected file
