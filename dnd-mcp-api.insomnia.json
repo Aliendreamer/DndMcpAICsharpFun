@@ -336,6 +336,7 @@
       "_type": "request",
       "parentId": "fld_admin_books",
       "name": "Backfill missing entities from 5etools (official books only; ?type=Monster|Spell|MagicItem|God)",
+      "description": "Fills parser gaps, appending dataSource:\"5etools-backfill\" entities. For MagicItem the roster also includes templated +N variants expanded from magicvariants.json (e.g. \"+1 Longsword\"), and Descriptions are richly flattened from 5etools entries (nested lists/tables/sub-entries, inline tags reduced to display text).",
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/books/1/backfill-entities?type=MagicItem",
       "headers": [
