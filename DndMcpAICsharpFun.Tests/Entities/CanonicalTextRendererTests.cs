@@ -36,7 +36,7 @@ public class CanonicalTextRendererTests
     {
         var fields = new ObjectFields(
             Ac: new[] { JsonSerializer.Deserialize<JsonElement>("15") },
-            Hp: new MonsterHp(50, "unbroken"),
+            Hp: new ObjectHp(50, "unbroken"),
             Immune: new[]
             {
                 JsonSerializer.Deserialize<JsonElement>("\"poison\""),
@@ -47,7 +47,7 @@ public class CanonicalTextRendererTests
             ConditionImmune: null,
             Action: new[]
             {
-                new MonsterBlock("Bolt", new[]
+                new ObjectAttack("Bolt", new[]
                 {
                     JsonSerializer.Deserialize<JsonElement>("\"Ranged Weapon Attack: +6 to hit. Hit: 3d10 piercing damage.\""),
                 }),

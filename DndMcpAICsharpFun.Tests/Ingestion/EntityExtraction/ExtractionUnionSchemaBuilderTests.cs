@@ -49,6 +49,28 @@ public sealed class ExtractionUnionSchemaBuilderTests
     }
 
     [Fact]
+    public void Build_HoistsBranchDefinitionsToUnionRoot()
+    {
+        // A branch schema that references its own $defs — like ObjectFields -> ObjectHp. When
+        // embedded as a union branch, the ROOT-relative "#/definitions/ObjectHp" ref only resolves
+        // if the definition is hoisted to the union root (else Ollama rejects: "definitions not in ...").
+        var schemaWithDefs = JsonDocument.Parse(
+            """
+            { "type": "object", "additionalProperties": false,
+              "required": ["hp"],
+              "properties": { "hp": { "$ref": "#/definitions/ObjectHp" } },
+              "definitions": { "ObjectHp": { "type": "object", "properties": { "average": { "type": "integer" } } } } }
+            """).RootElement.Clone();
+        var schemas = new Dictionary<EntityType, JsonElement> { [EntityType.Object] = schemaWithDefs };
+
+        var union = ExtractionUnionSchemaBuilder.Build(new[] { EntityType.Object }, schemas);
+
+        union.TryGetProperty("definitions", out var defs)
+            .Should().BeTrue("branch definitions must be hoisted to the union root");
+        defs.TryGetProperty("ObjectHp", out _).Should().BeTrue();
+    }
+
+    [Fact]
     public void Build_PutsConstDiscriminatorAndKeepsTypeFields()
     {
         var union = ExtractionUnionSchemaBuilder.Build(new[] { EntityType.Monster }, FakeSchemas());

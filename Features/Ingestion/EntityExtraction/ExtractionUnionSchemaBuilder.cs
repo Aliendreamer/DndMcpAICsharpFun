@@ -25,6 +25,12 @@ public static class ExtractionUnionSchemaBuilder
         IReadOnlyList<EntityType> branches,
         IReadOnlyDictionary<EntityType, JsonElement> perTypeSchemas)
     {
+        // A branch schema may carry its own `definitions` (e.g. ObjectFields -> ObjectHp/
+        // ObjectAttack), and its properties reference them via ROOT-relative `#/definitions/...`.
+        // Those definitions MUST be hoisted to the union root, or the ref dangles once the branch
+        // is embedded here and Ollama rejects the whole union ("definitions not in ...").
+        var hoistedDefs = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+
         using var ms = new MemoryStream();
         using (var writer = new Utf8JsonWriter(ms))
         {
@@ -39,11 +45,27 @@ public static class ExtractionUnionSchemaBuilder
                 if (!seen.Add(type)) continue;
                 if (!perTypeSchemas.TryGetValue(type, out var schema)) continue;
                 WriteTypeBranch(writer, type, schema);
+                if (schema.TryGetProperty("definitions", out var defs) && defs.ValueKind == JsonValueKind.Object)
+                    foreach (var def in defs.EnumerateObject())
+                        hoistedDefs[def.Name] = def.Value.Clone();
             }
 
             WriteDeclineBranch(writer);
 
             writer.WriteEndArray();
+
+            if (hoistedDefs.Count > 0)
+            {
+                writer.WritePropertyName("definitions");
+                writer.WriteStartObject();
+                foreach (var (name, value) in hoistedDefs)
+                {
+                    writer.WritePropertyName(name);
+                    value.WriteTo(writer);
+                }
+                writer.WriteEndObject();
+            }
+
             writer.WriteEndObject();
         }
 
