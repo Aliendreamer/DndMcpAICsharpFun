@@ -1,27 +1,6 @@
 [
   {
-    "sourceEntityId": "dmg14.item.carpet-of-flying",
-    "fieldPath": "(extraction)",
-    "missingTargetId": "",
-    "errorKind": "extraction_failure",
-    "detail": "Empty response from Ollama"
-  },
-  {
-    "sourceEntityId": "dmg14.item.a-question-of-enmity",
-    "fieldPath": "(extraction)",
-    "missingTargetId": "",
-    "errorKind": "extraction_failure",
-    "detail": "Response was not valid JSON: Expected end of string, but instead reached end of data. LineNumber: 0 | BytePositionInLine: 68836."
-  },
-  {
-    "sourceEntityId": "dmg14.item.keoghtom-s-ointment",
-    "fieldPath": "(extraction)",
-    "missingTargetId": "",
-    "errorKind": "extraction_failure",
-    "detail": "Empty response from Ollama"
-  },
-  {
-    "sourceEntityId": "dmg14.item.weapon-1-2-or-3",
+    "sourceEntityId": "dmg14.item.ioun-stone",
     "fieldPath": "(extraction)",
     "missingTargetId": "",
     "errorKind": "extraction_failure",

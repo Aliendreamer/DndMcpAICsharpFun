@@ -1,0 +1,554 @@
+[
+  {
+    "id": "dmg14.monster.ballista",
+    "name": "BALLISTA",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.cannon",
+    "name": "CANNON",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.cauldron-suspended",
+    "name": "CAULDRON, SUSPENDED",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.damage-immunities-poison-psychic",
+    "name": "Damage Immunities: poison, psychic",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.ram",
+    "name": "RAM",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.gods-of-your-world",
+    "name": "GODS OF YOUR WORLD",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.loose-pantheons",
+    "name": "LOOSE PANTHEONS",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.dawn-war-deities",
+    "name": "DAWN WAR DEITIES",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.a-sample-pantheon",
+    "name": "A SAMPLE PANTHEON",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.other-religious-systems",
+    "name": "OTHER RELIGIOUS SYSTEMS",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.tight-pantheons",
+    "name": "TIGHT PANTHEONS",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.mystery-cults",
+    "name": "MYSTERY CULTS",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.divine-rank",
+    "name": "DIVINE RANK",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.monotheism",
+    "name": "MONOTHEISM",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.dualism",
+    "name": "DUALISM",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.animism",
+    "name": "ANIMISM",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.forces-and-philosophies",
+    "name": "FORCES AND PHILOSOPHIES",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.god.humanoids-and-the-gods",
+    "name": "HUMANOIDS AND THE GODS",
+    "type": "God",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.ethereal-curtains",
+    "name": "ETHEREAL CURTAINS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.ether-cyclones",
+    "name": "ETHER CYCLONES",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.ether-cyclone",
+    "name": "ETHER CYCLONE",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.ethereal-plane-encounters",
+    "name": "ETHEREAL PLANE ENCOUNTERS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.feywild",
+    "name": "FEYWILD",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.seelie-and-unseelie-fey",
+    "name": "SEELIE AND UNSEELIE FEY",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.fey-crossings",
+    "name": "FEY CROSSINGS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.optional-rules-feywild-magic",
+    "name": "OPTIONAL RULES: FEYWILD MAGIC",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.time-warp",
+    "name": "TIME WARP",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.chapter-4-creating-nonplayer-characters",
+    "name": "CHAPTER 4: CREATING NONPLAYER CHARACTERS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.designing-npcs",
+    "name": "DESIGNING NPCs",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.quick-npcs",
+    "name": "QUICK NPCs",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.detailed-npcs",
+    "name": "DETAILED NPCS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.occupation-and-history",
+    "name": "OCCUPATION AND HISTORY",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.appearance",
+    "name": "APPEARANCE",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.abilities",
+    "name": "ABILITIES",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.d6-high-ability",
+    "name": "d6 High Ability",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.d6-low-ability",
+    "name": "d6 Low Ability",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.talent",
+    "name": "TALENT",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.mannerism",
+    "name": "MANNERISM",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.interactions-with-others",
+    "name": "INTERACTIONS WITH OTHERS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.useful-knowledge",
+    "name": "USEFUL KNOWLEDGE",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.ideal",
+    "name": "IDEAL",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.bond",
+    "name": "BOND",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.flaw-or-secret",
+    "name": "FLAW OR SECRET",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.monsters-as-npcs",
+    "name": "MONSTERS AS NPCS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.npc-statistics",
+    "name": "NPC STATISTICS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.using-a-monster-stat-block",
+    "name": "USING A MONSTER STAT BLOCK",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.using-classes-and-levels",
+    "name": "USING CLASSES AND LEVELS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.npc-party-members",
+    "name": "NPC PARTY MEMBERS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.low-level-followers",
+    "name": "LOW-LEVEL FOLLOWERS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.adventurer-npcs",
+    "name": "ADVENTURER NPCS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.optional-rule-loyalty",
+    "name": "OPTIONAL RULE: LOYALTY",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.loyalty-score",
+    "name": "LOYALTY SCORE",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.tracking-loyalty",
+    "name": "TRACKING LOYALTY",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.contacts",
+    "name": "CONTACTS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.patrons",
+    "name": "PATRONS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.hirelings",
+    "name": "HIRELINGS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.extras",
+    "name": "EXTRAS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.villains",
+    "name": "VILLAINS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.d8-objective-and-scheme",
+    "name": "d8 Objective and Scheme",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.villain-s-secret-weakness",
+    "name": "VILLAIN\u0027s SECRET WEAKNESS",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.d8weakness",
+    "name": "d8Weakness",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.villainous-class-options",
+    "name": "VILLAINOUS CLASS OPTIONS",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.cleric-death-domain",
+    "name": "CLERIC: DEATH DOMAIN",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.cleric-level-spells",
+    "name": "Cleric Level Spells",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.bonus-proficiency",
+    "name": "BONUS PROFICIENCY",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.reaper",
+    "name": "REAPER",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.inescapable-destruction",
+    "name": "INESCAPABLE DESTRUCTION",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.divine-strike",
+    "name": "DIVINE STRIKE",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.improved-reaper",
+    "name": "IMPROVED REAPER",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.paladin-oathbreaker",
+    "name": "PALADIN: OATHBREAKER",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.oathbreaker-spells",
+    "name": "OATHBREAKER SPELLS",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.channel-divinity",
+    "name": "CHANNEL DIVINITY",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.aura-of-hate",
+    "name": "AURA OF HATE",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.supernatural-resistance",
+    "name": "SUPERNATURAL RESISTANCE",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.dread-lord",
+    "name": "DREAD LORD",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.class.oathbreaker-atonement",
+    "name": "OATHBREAKER ATONEMENT",
+    "type": "Class",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.massive-damage",
+    "name": "MASSIVE DAMAGE",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.morale",
+    "name": "MORALE",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.modifying-a-monster",
+    "name": "MODIFYING A MONSTER",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.switching-weapons",
+    "name": "SWITCHING WEAPONS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.adding-a-special-trait",
+    "name": "ADDING A SPECIAL TRAIT",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.monster-statistics-by-challenge-rating",
+    "name": "MONSTER STATISTICS BY CHALLENGE RATING",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.step-l-name",
+    "name": "STEP l. NAME",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.step-ll-damage",
+    "name": "STEP ll. DAMAGE",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.attack-riders",
+    "name": "ATTACK RIDERS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.step-l7-skill-bonuses",
+    "name": "STEP l7. SKILL BONUSES",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.npc-stat-blocks",
+    "name": "NPC STAT BLOCKS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.spell.monsters-with-classes",
+    "name": "MONSTERS WITH CLASSES",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.spell.spell-damage",
+    "name": "SPELL DAMAGE",
+    "type": "Spell",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.monsters-by-environment",
+    "name": "MONSTERS BY ENVIRONMENT",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.urban-monsters",
+    "name": "URBAN MONSTERS",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  },
+  {
+    "id": "dmg14.monster.monsters-by-challenge-rating",
+    "name": "MONSTERS BY CHALLENGE RATING",
+    "type": "Monster",
+    "reason": "no_5etools_match"
+  }
+]
