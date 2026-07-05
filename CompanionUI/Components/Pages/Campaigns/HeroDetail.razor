@@ -4,6 +4,7 @@
 @using System.Security.Claims
 @using System.Text.Json
 @using DndMcpAICsharpFun.Features.Campaigns
+@using DndMcpAICsharpFun.Features.Resolution
 @attribute [Authorize]
 @inject HeroRepository HeroRepo
 @inject CampaignRepository CampaignRepo
@@ -51,9 +52,29 @@ else
             {
                 <div class="edit-grid">
                     <label>Race <input @bind="_editSheet.Race" /></label>
-                    <label>Class <input @bind="_editClass" /></label>
-                    <label>Subclass <input @bind="_editSubclass" /></label>
-                    <label>Level <input type="number" @bind="_editLevel" /></label>
+                    <div class="class-rows">
+                        <b>Classes</b>
+                        @for (int i = 0; i < _editSheet.Classes.Count; i++)
+                        {
+                            var idx = i;
+                            <div class="class-edit-row">
+                                <select @bind="_editSheet.Classes[idx].Class">
+                                    @foreach (var cls in MulticlassRules.KnownClasses)
+                                    {
+                                        <option value="@cls">@cls</option>
+                                    }
+                                </select>
+                                <input type="number" min="1" @bind="_editSheet.Classes[idx].Level" />
+                                <input placeholder="Subclass" @bind="_editSheet.Classes[idx].Subclass" />
+                                <button type="button" @onclick="() => RemoveClass(idx)">Remove</button>
+                            </div>
+                        }
+                        <button type="button" @onclick="AddClass">+ Add class</button>
+                        <span class="derived-readout">
+                            <b>Total level:</b> @_editSheet.Level &nbsp;
+                            <b>Prof. Bonus:</b> +@CharacterSheet.ProficiencyBonusForLevel(_editSheet.Level)
+                        </span>
+                    </div>
                     <label>Background <input @bind="_editSheet.Background" /></label>
                     <label>Alignment <input @bind="_editSheet.Alignment" /></label>
                     <label>XP <input type="number" @bind="_editSheet.ExperiencePoints" /></label>
@@ -133,7 +154,7 @@ else
                     <label>AC <input type="number" @bind="_editSheet.ArmorClass" /></label>
                     <label>Speed <input type="number" @bind="_editSheet.Speed" /></label>
                     <label>Initiative <input type="number" @bind="_editSheet.Initiative" /></label>
-                    <span class="prof-bonus-readout"><b>Prof. Bonus:</b> +@CharacterSheet.ProficiencyBonusForLevel(_editLevel) (auto, from level)</span>
+                    <span class="prof-bonus-readout"><b>Prof. Bonus:</b> +@CharacterSheet.ProficiencyBonusForLevel(_editSheet.Level) (auto, from level)</span>
                 </div>
             }
         </div>
@@ -297,9 +318,6 @@ else
 
     private bool _editMode;
     private CharacterSheet _editSheet = new();
-    private string _editClass = "";
-    private string _editSubclass = "";
-    private int _editLevel;
     private bool _showSavePrompt;
     private int _sessionNumber;
     private string _sessionLabel = "";
@@ -339,9 +357,6 @@ else
     {
         var src = _hero!.LatestSnapshot?.Sheet ?? new CharacterSheet();
         _editSheet = JsonSerializer.Deserialize<CharacterSheet>(JsonSerializer.Serialize(src))!;
-        _editClass = _editSheet.Class;
-        _editSubclass = _editSheet.Subclass;
-        _editLevel = _editSheet.Level;
         _spellsText = string.Join("\n", _editSheet.SpellsKnown);
         _armorProfText = string.Join("\n", _editSheet.ArmorProficiencies);
         _weaponProfText = string.Join("\n", _editSheet.WeaponProficiencies);
@@ -357,11 +372,13 @@ else
     private void ShowSavePrompt() => _showSavePrompt = true;
     private void HideSavePrompt() => _showSavePrompt = false;
     private void AddFeature() => _editSheet.Features.Add(new CharacterFeature());
+    private void AddClass() =>
+        _editSheet.Classes.Add(new ClassLevel { Class = MulticlassRules.KnownClasses[0], Level = 1 });
+    private void RemoveClass(int index) => _editSheet.Classes.RemoveAt(index);
     private void ClearSnapshot() => _viewingSnapshot = null;
 
     private async Task ConfirmSaveAsync()
     {
-        _editSheet.SetSingleClass(_editClass, _editSubclass, _editLevel);
         _editSheet.SpellsKnown = Split(_spellsText);
         _editSheet.ArmorProficiencies = Split(_armorProfText);
         _editSheet.WeaponProficiencies = Split(_weaponProfText);
