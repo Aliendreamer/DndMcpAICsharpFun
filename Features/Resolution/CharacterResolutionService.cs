@@ -64,6 +64,8 @@ public sealed class CharacterResolutionService(
     {
         if (feature.Equals("breath weapon", StringComparison.OrdinalIgnoreCase))
             return ResolveBreathWeaponAsync(sheet, ct);
+        if (feature.Equals("spell slots", StringComparison.OrdinalIgnoreCase))
+            return ResolveSpellSlotsAsync(sheet, ct);
 
         throw new NotSupportedException($"feature not supported: {feature}");
     }
@@ -188,5 +190,53 @@ public sealed class CharacterResolutionService(
         var value = $"{breathAreaVal} of {damageTypeVal}, {saveAbilityVal} save DC {dc}, {dice}";
 
         return new ResolvedFact("breath weapon", value, components, confidence);
+    }
+
+
+    private async Task<ResolvedFact> ResolveSpellSlotsAsync(CharacterSheet sheet, CancellationToken ct)
+    {
+        var combined = MulticlassSpellcasting.CombinedCasterLevel(sheet.Classes);
+        var pact = MulticlassSpellcasting.WarlockPact(sheet.Classes);
+
+        if (combined == 0 && pact is null)
+            return new ResolvedFact("spell slots", "no spellcasting", [], "needsReview");
+
+        var components = new List<ResolvedComponent>();
+        var rendered = new List<string>();
+
+        if (combined > 0)
+        {
+            await using var db = await dbf.CreateDbContextAsync(ct);
+            var table = await db.StructuredTables
+                .FirstOrDefaultAsync(t => t.CanonicalId == MulticlassSlotTableSeeder.TableId, ct);
+            var row = table is null ? null : await db.StructuredTableRows
+                .FirstOrDefaultAsync(r => r.TableId == table.Id && r.RowIndex == combined - 1, ct);
+
+            if (table is null || row is null)
+                return new ResolvedFact("spell slots", "combined caster level " + combined, [], "needsReview");
+
+            var columns = JsonSerializer.Deserialize<List<string>>(table.ColumnsJson, JsonOpts) ?? [];
+            var cells = JsonSerializer.Deserialize<List<CanonicalCell>>(row.CellsJson, JsonOpts) ?? [];
+
+            // columns[0] is "casterLevel"; columns 1..9 are spell levels.
+            for (var lvl = 1; lvl <= 9 && lvl < columns.Count && lvl < cells.Count; lvl++)
+            {
+                var count = cells[lvl].Value;
+                if (count == "0" || string.IsNullOrWhiteSpace(count)) continue;
+                components.Add(new ResolvedComponent($"level {lvl} slots", count, cells[lvl].Provenance));
+                rendered.Add($"L{lvl}:{count}");
+            }
+        }
+
+        if (pact is not null)
+        {
+            // Pact Magic is computed (PHB Warlock progression), not a table cell -> no provenance (COR-20).
+            components.Add(new ResolvedComponent(
+                "pact magic", $"{pact.SlotCount} slots at level {pact.SlotLevel}", null));
+            rendered.Add($"pact {pact.SlotCount}@L{pact.SlotLevel}");
+        }
+
+        var value = rendered.Count > 0 ? string.Join(", ", rendered) : "no spellcasting";
+        return new ResolvedFact("spell slots", value, components, "ok");
     }
 }
