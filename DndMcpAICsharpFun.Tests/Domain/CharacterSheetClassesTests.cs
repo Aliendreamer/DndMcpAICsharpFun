@@ -43,4 +43,13 @@ public sealed class CharacterSheetClassesTests
         sheet.Level.Should().Be(0);
         sheet.ProficiencyBonus.Should().Be(2); // floor: level treated as >=1
     }
+
+    [Fact]
+    public void ProficiencyBonusForLevel_matches_the_5e_progression_table()
+    {
+        CharacterSheet.ProficiencyBonusForLevel(0).Should().Be(2);
+        CharacterSheet.ProficiencyBonusForLevel(1).Should().Be(2);
+        CharacterSheet.ProficiencyBonusForLevel(5).Should().Be(3);
+        CharacterSheet.ProficiencyBonusForLevel(20).Should().Be(6);
+    }
 }

@@ -30,7 +30,8 @@ public sealed class CharacterSheet : IJsonOnDeserialized
     public int ArmorClass { get; set; }
     public int Speed { get; set; }
     public int Initiative { get; set; }
-    [JsonIgnore] public int ProficiencyBonus => 2 + (Math.Max(1, Level) - 1) / 4;
+    public static int ProficiencyBonusForLevel(int level) => 2 + (Math.Max(1, level) - 1) / 4;
+    [JsonIgnore] public int ProficiencyBonus => ProficiencyBonusForLevel(Level);
 
     public string SpellcastingAbility { get; set; } = "";
     public int SpellSaveDC { get; set; }
@@ -55,7 +56,6 @@ public sealed class CharacterSheet : IJsonOnDeserialized
         var m = Modifier(score);
         return m >= 0 ? $"+{m}" : $"{m}";
     }
-
 
     /// <summary>
     /// Captures JSON properties not mapped to a member — notably legacy flat "Class"/"Subclass"/"Level"
@@ -95,7 +95,6 @@ public sealed class CharacterFeature
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
 }
-
 
 public sealed class ClassLevel
 {

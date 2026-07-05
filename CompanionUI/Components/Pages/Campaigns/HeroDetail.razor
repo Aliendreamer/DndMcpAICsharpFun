@@ -133,7 +133,7 @@ else
                     <label>AC <input type="number" @bind="_editSheet.ArmorClass" /></label>
                     <label>Speed <input type="number" @bind="_editSheet.Speed" /></label>
                     <label>Initiative <input type="number" @bind="_editSheet.Initiative" /></label>
-                    <span class="prof-bonus-readout"><b>Prof. Bonus:</b> +@_editSheet.ProficiencyBonus (auto, from level)</span>
+                    <span class="prof-bonus-readout"><b>Prof. Bonus:</b> +@CharacterSheet.ProficiencyBonusForLevel(_editLevel) (auto, from level)</span>
                 </div>
             }
         </div>
