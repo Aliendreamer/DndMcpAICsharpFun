@@ -1,42 +1,43 @@
-# dmg-generic-backfill — DONE + ARCHIVED (2026-07-04)
+# DMG extraction + Object type — DONE + ARCHIVED (2026-07-05)
 
-Change `dmg-generic-backfill` is **complete, merged, validated on real DMG data, and ARCHIVED**
-(`openspec/changes/archive/2026-07-04-dmg-generic-backfill/`). Spec sync: new capability
-`fivetools-entity-backfill` (8 reqs) supersedes+retires `fivetools-monster-backfill`,
-`fivetools-spell-backfill`, `monster-precision-flagging`.
+Two openspec changes shipped + archived for DMG:
+- `dmg-generic-backfill` (archived 2026-07-04): generic EntityBackfillService + 4 providers +
+  type-parameterized routes. New capability `fivetools-entity-backfill`.
+- `object-entity-type-and-decline-leak` (archived 2026-07-05): new Object entity type + decline-not-leak.
 
-## What shipped (code, earlier commits) — the generic engine
-EntityBackfillService + IFivetoolsBackfillProvider + 4 providers (Monster/Spell/MagicItem/God) +
-FivetoolsEntryText.Flatten (rich recursive entry flattening) + MagicVariantExpander (+N variants).
-Type-parameterized routes REPLACED the old per-type ones:
-- GET  /admin/books/{id}/entity-recall?type=Monster|Spell|MagicItem|God
-- POST /admin/books/{id}/backfill-entities?type=...
-- POST /admin/books/{id}/flag-unknown-entities?type=...
+## Object type — the hard-won result
+Goal: siege weapons (ballista/cannon) extract as a real `Object` type with AC/HP/attack, NOT empty
+Item shells with the model's reasoning leaked into canonicalText. Took FOUR fixes across two re-extracts:
+1. **union-hoist** (739b5ef): ObjectFields was the only schema with `$ref`/`definitions`; the
+   ExtractionUnionSchemaBuilder dropped branch `definitions`, so `#/definitions/ObjectHp` dangled in
+   the union -> Ollama HTTP 400 "json_schema conversion failed" on EVERY stat-block candidate (~70%
+   mass failure). Fix: hoist each branch's definitions to the union root. ObjectFields now uses its
+   OWN ObjectHp/ObjectAttack sub-types (not shared MonsterHp/MonsterBlock).
+2. **decline-not-leak** (bf08d13): UnionOutcome.Declined -> ExtractionErrorEntry("extraction_declined"),
+   NOT a persisted shell (removed DeclinedEnvelope, which wrote reason into canonicalText).
+3. **deterministic Force(Object)** (803da7b): the LLM classified UNRELIABLY (Ballista->Object w/o stats,
+   Cannon->Monster). ExtractionSignatures.IsObjectStatBlock ("<Size> object" + AC + HP, no Challenge)
+   -> DeterministicTypeResolver.Force(Object). Now reliable + extracts via the ObjectFields schema.
+4. **/no_think** (803da7b): qwen3 thinking caused runaway generations (3793+ tokens) that exhausted the
+   token budget -> "Empty response" failures + ~8x slowdown (~114s/candidate). Append `/no_think` to the
+   extraction user turn -> ~14-42s/candidate, 0 non-decline losses (was 7). Type selection is already
+   deterministic + union-constrained so <think> adds nothing.
 
-## DMG DATA RUN — DONE (book id 3, key DMG)
-Full flow executed end-to-end and committed (`e8ea8d2`):
-- Fresh content-first re-extract (qwen3, ~3.35h): 426 clean / 5 err / 92 declined. 14 bogus Class GONE.
-- errorsOnly retry recovered 4/5 (Flame Tongue, Robe of Eyes, Scarab of Protection, d12 Quirk);
-  Ioun Stone re-failed but recovered via 5etools backfill.
-- Deterministic backfill/flag/validate: 551→1321 entities (MagicItem 1069 incl variants, God 21
-  Dawn War pantheon, Monster+2), ALL 1321 ids unique, canonical/validate 0 failures, 247 NeedsReview.
-- ingest-entities: 1321 entities reprojected into Qdrant dnd_entities (Ollama up).
+## FINAL DMG canonical (committed 62444a9)
+Re-extract: 259 clean / 177 errors (mostly declines) -> 1151 after 5etools backfill. Ballista + Cannon
+= type=Object with ac/hp/immune/action. 0 reasoning shells. All 1151 ids UNIQUE, canonical/validate 0
+failures, 60 NeedsReview flags. Committed + archived.
 
-## KNOWN RESIDUAL → new spec
-Siege weapons (Ballista/Cannon/Ram/Cauldron) persist as EMPTY Item shells with the model's
-classification reasoning leaked into canonicalText — schema has no Object type for AC/HP-bearing
-non-creatures. Spec'd + committed (`9ad8f3b`): `openspec/changes/object-entity-type-and-decline-leak`
-(new Object type + decline-not-leak fix). NOT yet implemented at time of writing.
+### Known residuals (hand-correctable, flagged)
+- Ballista/Cannon appear TWICE (dmg14.monster.* + dmg14.item.* — distinct ids, both Object): the
+  stat-block candidate AND the prose candidate each produced one. Redundant, not load-breaking.
+- 2 junk Objects named "Damage Immunities: poison, psychic" (a stat-line fragment mis-scanned as a
+  candidate name, then Force(Object)'d). Over-scan artifact; tighten StatBlockScanner naming or
+  IsObjectStatBlock later.
+- Ram/Cauldron/Mangonel/Trebuchet not captured as Object (declined/absent upstream).
 
-## Infra state (2026-07-04)
-GPU works (RTX 5070, qwen3 100% GPU) — earlier "GPU down" was a sandbox false-negative
-(`mem:project/sandbox_blocks_gpu`-equiv; always dangerouslyDisableSandbox for nvidia-smi).
-App container rebuilt on fresh image (new routes live). books/ chmod a+rwX so the container
-(uid 1654) can write canonical files. Perf sweep (Frozen + [GeneratedRegex]) committed `df26884`
-but only takes effect on next image rebuild. Relates to `mem:companion_roadmap`.
-
-## openspec archive gotcha (learned)
-`openspec archive` ABORTS when a REMOVED-requirements delta would empty a spec ("Spec must have
-at least one requirement"). To retire a capability fully: delete its delta file from the change +
-`git rm` its main spec, THEN archive. Also this CLI version writes the ADDED spec file even on an
-aborted run, so re-runs hit "already exists" — clean up before retry.
+## Infra / follow-ups
+GPU healthy (RTX 5070); `mem:project/sandbox_blocks_gpu`. Force(Object)+/no_think shipped in the
+extraction code but NOT yet folded into the extraction-think-mode spec tasks (that spec = config toggle).
+`qdrant-scalar-quantization` (committed 11c7665) code done; live validation (4.2/4.3) needs a rebuild.
+Relates to `mem:companion_roadmap`, `mem:project_entity_extraction_rethink`.
