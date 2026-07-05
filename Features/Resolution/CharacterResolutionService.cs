@@ -283,4 +283,31 @@ public sealed class CharacterResolutionService(
     private Task<ResolvedFact> ResolveSpellAttackAsync(CharacterSheet sheet, CancellationToken ct)
         => Task.FromResult(PerCasterClass(
             sheet, "spell attack", "spell attack", (pb, mod) => pb + mod, v => $"+{v}"));
+
+    /// <summary>
+    /// Deterministic multiclass-validity answer for a target class: prerequisite check + reduced
+    /// proficiency subset. Pure (no DB) so it serves non-caster combos with zero spellcasting.
+    /// </summary>
+    public static ResolvedFact ResolveMulticlassValidity(CharacterSheet sheet, string targetClass)
+    {
+        var prereq = MulticlassRules.CanMulticlassInto(targetClass, sheet);
+        var profs = MulticlassRules.MulticlassProficiencies(targetClass);
+        var components = new List<ResolvedComponent>
+        {
+            new("prerequisite", prereq.Allowed ? "met" : prereq.Reason, null),
+            new("proficiencies", string.Join(", ", profs), null),
+        };
+        var value = prereq.Allowed ? "allowed" : $"not allowed: {prereq.Reason}";
+        return new ResolvedFact($"multiclass into {targetClass}", value, components, "ok");
+    }
+
+    /// <summary>User-scoped wrapper: enforces snapshot ownership (SEC-08) then runs the pure check.</summary>
+    public async Task<ResolvedFact> ResolveMulticlassValidityForUserAsync(
+        long heroSnapshotId, long userId, string targetClass, CancellationToken ct = default)
+    {
+        var snapshot = await heroes.GetSnapshotForUserAsync(heroSnapshotId, userId);
+        if (snapshot is null)
+            throw new UnauthorizedAccessException("Hero snapshot not found or not owned by the caller.");
+        return ResolveMulticlassValidity(snapshot.Sheet, targetClass);
+    }
 }
