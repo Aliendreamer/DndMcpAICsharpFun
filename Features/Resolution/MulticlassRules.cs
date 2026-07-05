@@ -50,6 +50,17 @@ public static class MulticlassRules
             ["Artificer"] = ["light armor", "medium armor", "shields", "thieves' tools", "tinker's tools"],
         };
 
+    /// <summary>
+    /// The 13 supported class names — the single source for the hero-editor class dropdown. Kept identical
+    /// to the prerequisite/proficiency map keys (unit-tested), so the UI can never offer a name the rules
+    /// engine does not understand.
+    /// </summary>
+    public static readonly IReadOnlyList<string> KnownClasses =
+    [
+        "Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk", "Paladin",
+        "Ranger", "Rogue", "Sorcerer", "Warlock", "Wizard", "Artificer",
+    ];
+
     public static PrereqResult CanMulticlassInto(string @class, CharacterSheet sheet)
     {
         if (!Prereqs.TryGetValue(@class, out var groups))

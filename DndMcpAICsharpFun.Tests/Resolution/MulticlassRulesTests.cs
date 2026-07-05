@@ -51,4 +51,23 @@ public sealed class MulticlassRulesTests
         profs.Should().NotContain("heavy armor");
         profs.Should().NotContain(p => p.Contains("saving throw"));
     }
+
+    [Fact]
+    public void KnownClasses_has_the_13_classes_and_every_entry_is_a_valid_rules_key()
+    {
+        MulticlassRules.KnownClasses.Should().HaveCount(13);
+        MulticlassRules.KnownClasses.Should().BeEquivalentTo(new[]
+        {
+            "Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk", "Paladin",
+            "Ranger", "Rogue", "Sorcerer", "Warlock", "Wizard", "Artificer",
+        });
+
+        var sheet = new CharacterSheet(); // all abilities default 0 — prereqs fail, but the class is KNOWN
+        foreach (var c in MulticlassRules.KnownClasses)
+        {
+            // A known class never yields the "Unknown class" reason, and always has a proficiency entry.
+            MulticlassRules.CanMulticlassInto(c, sheet).Reason.Should().NotContain("Unknown class");
+            MulticlassRules.MulticlassProficiencies(c).Should().NotBeNull();
+        }
+    }
 }
