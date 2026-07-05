@@ -67,6 +67,19 @@ else
                                 <input type="number" min="1" @bind="_editSheet.Classes[idx].Level" />
                                 <input placeholder="Subclass" @bind="_editSheet.Classes[idx].Subclass" />
                                 <button type="button" @onclick="() => RemoveClass(idx)">Remove</button>
+                                @if (idx > 0)
+                                {
+                                    var check = MulticlassRules.CanMulticlassInto(_editSheet.Classes[idx].Class, _editSheet);
+                                    <span class="advisory @(check.Allowed ? "advisory-ok" : "advisory-warn")">
+                                        @(check.Allowed ? "✓ multiclass allowed" : $"⚠ {check.Reason}")
+                                    </span>
+                                }
+                                <span class="advisory advisory-prof">
+                                    @{
+                                        var profs = MulticlassRules.MulticlassProficiencies(_editSheet.Classes[idx].Class);
+                                    }
+                                    @(profs.Count == 0 ? "" : $"grants: {string.Join(", ", profs)}")
+                                </span>
                             </div>
                         }
                         <button type="button" @onclick="AddClass">+ Add class</button>
