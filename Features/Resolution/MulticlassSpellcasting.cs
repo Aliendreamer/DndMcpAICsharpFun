@@ -81,7 +81,6 @@ public static class MulticlassSpellcasting
     public static string? SpellcastingAbility(string @class) =>
         Abilities.GetValueOrDefault(@class);
 
-
     /// <summary>Which slot table a character reads and at what level: multiclass = combined-caster-level
     /// table; half/third = the single-class Paladin/Ranger or EK/AT progression at the class's own level;
     /// none = no non-pact spellcasting class. Warlock (Pact) is never counted here.</summary>

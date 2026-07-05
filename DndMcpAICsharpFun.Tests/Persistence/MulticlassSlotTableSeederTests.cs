@@ -47,7 +47,6 @@ public sealed class MulticlassSlotTableSeederTests(PostgresFixture pg) : IAsyncL
         cells[1].Provenance!.SourceBook.Should().Be("PHB");
     }
 
-
     [Fact]
     public async Task Seeds_half_caster_table_with_20_rows_and_cites_phb()
     {

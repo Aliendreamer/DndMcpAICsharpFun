@@ -64,7 +64,6 @@ public sealed class MulticlassSpellcastingTests
         MulticlassSpellcasting.SpellcastingAbility("Rogue").Should().BeNull();
     }
 
-
     [Fact]
     public void Warlock_level_2_has_two_first_level_pact_slots()
     {
@@ -89,7 +88,6 @@ public sealed class MulticlassSpellcastingTests
         MulticlassSpellcasting.Classify(C("Barbarian", 6, "Eldritch Knight"))
             .Should().Be(CasterType.None);
     }
-
 
     [Fact]
     public void Single_class_paladin_reads_the_half_caster_table_at_class_level()

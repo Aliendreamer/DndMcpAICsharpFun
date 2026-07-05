@@ -98,7 +98,6 @@ public sealed class ResolveSpellSlotsTests(PostgresFixture pg) : IAsyncLifetime
         fact.Confidence.Should().Be("needsReview");
     }
 
-
     [Fact]
     public async Task Single_class_paladin_5_reads_the_half_caster_table_not_combined()
     {
