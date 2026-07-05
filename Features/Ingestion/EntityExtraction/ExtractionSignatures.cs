@@ -18,6 +18,13 @@ public static partial class ExtractionSignatures
     public static bool IsCompleteStatBlock(string text) =>
         !string.IsNullOrEmpty(text) && HasArmorClass(text) && HasHitPoints(text) && HasChallenge(text);
 
+    /// An OBJECT stat block: a "&lt;Size&gt; object" line with Armor Class + Hit Points but NO Challenge.
+    /// Objects (siege weapons, animated objects, doors) are non-creatures — no ability scores or CR —
+    /// so this reliably distinguishes them from a Monster stat block.
+    public static bool IsObjectStatBlock(string text) =>
+        !string.IsNullOrEmpty(text) && HasArmorClass(text) && HasHitPoints(text)
+        && !HasChallenge(text) && ObjectSizeType().IsMatch(text);
+
     /// A magic item: explicit attunement / wondrous-item phrasing, or a "<category>, <rarity>" header line.
     public static bool IsMagicItem(string text)
     {
@@ -59,6 +66,9 @@ public static partial class ExtractionSignatures
         { "ACTIONS", "REACTIONS", "TRAITS", "BONUS ACTIONS", "LEGENDARY ACTIONS", "LAIR ACTIONS", "REGIONAL EFFECTS" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
     [GeneratedRegex(@"\blair\b", RegexOptions.IgnoreCase)]
     private static partial Regex LairHeading();
+
+    [GeneratedRegex(@"\b(tiny|small|medium|large|huge|gargantuan)\s+object\b", RegexOptions.IgnoreCase)]
+    private static partial Regex ObjectSizeType();
 
     private static bool Has(string text, string token) =>
         !string.IsNullOrEmpty(text) && text.Contains(token, StringComparison.OrdinalIgnoreCase);

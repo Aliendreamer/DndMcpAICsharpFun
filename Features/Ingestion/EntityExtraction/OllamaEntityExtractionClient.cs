@@ -10,10 +10,15 @@ public sealed class OllamaEntityExtractionClient(
 {
     public async Task<ExtractionResponse> ExtractAsync(ExtractionRequest req, CancellationToken ct)
     {
+        // Suppress qwen3's thinking block for extraction: type selection is already handled
+        // deterministically (DeterministicTypeResolver) + by the discriminated-union schema, so the
+        // <think> block adds latency and causes runaway generations that exhaust the token budget
+        // (empty responses) — see the extraction-think-mode change. `/no_think` at the end of the
+        // user turn is the reliable qwen3 directive.
         var messages = new List<ChatMessage>
         {
             new(ChatRole.System, req.SystemPrompt),
-            new(ChatRole.User, req.UserPrompt),
+            new(ChatRole.User, req.UserPrompt + "\n\n/no_think"),
         };
 
         var chatOptions = new ChatOptions

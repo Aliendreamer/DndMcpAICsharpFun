@@ -22,6 +22,18 @@ public sealed class DeterministicTypeResolverTests
     }
 
     [Fact]
+    public void Object_stat_block_forces_Object()
+    {
+        // "Large object" + AC + HP but NO Challenge -> a non-creature (siege weapon) is forced to
+        // the non-gated Object type DETERMINISTICALLY, not left to the model or declined.
+        var r = DeterministicTypeResolver.Resolve(
+            new(EntityType.Monster, "Ballista", "Large object  Armor Class 15  Hit Points 50 (unbroken)",
+                1, new[] { EntityType.Monster, EntityType.Object }));
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Object);
+    }
+
+    [Fact]
     public void Complete_stat_block_with_creature_name_forces_Monster()
     {
         // "Aboleth" matches 5etools as Monster — step 1 wins, Outcome/ForcedType unchanged.

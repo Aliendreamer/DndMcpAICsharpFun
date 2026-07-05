@@ -14,6 +14,15 @@ public sealed class ExtractionSignaturesTests
         ExtractionSignatures.IsCompleteStatBlock(text).Should().Be(expected);
 
     [Theory]
+    [InlineData("Large object  Armor Class 15  Hit Points 50 (unbroken)", true)]          // siege weapon
+    [InlineData("Huge object  Armor Class 19  Hit Points 100", true)]                     // animated object
+    [InlineData("Large aberration  Armor Class 17  Hit Points 135  Challenge 10", false)] // creature: has Challenge
+    [InlineData("Large object  Armor Class 15", false)]                                   // no Hit Points
+    [InlineData("Large beast  Armor Class 12  Hit Points 20", false)]                     // not an "object" type
+    public void IsObjectStatBlock_matches_size_object_with_AC_HP_no_Challenge(string text, bool expected) =>
+        ExtractionSignatures.IsObjectStatBlock(text).Should().Be(expected);
+
+    [Theory]
     [InlineData("Weapon (any sword that deals slashing damage), legendary (requires attunement)", true)]
     [InlineData("Wondrous item, rare", true)]
     [InlineData("Ring, uncommon (requires attunement)", true)]

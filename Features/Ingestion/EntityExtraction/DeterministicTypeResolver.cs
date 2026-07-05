@@ -49,6 +49,13 @@ public static class DeterministicTypeResolver
         if (match is null && !ExtractionSignatures.IsEntityLikeName(candidate.DisplayName))
             return TypeResolution.Drop;
 
+        // Object stat-block rescue — a "<Size> object" with Armor Class + Hit Points but no Challenge
+        // is a non-creature (siege weapon, animated object). Force the non-gated Object type so it
+        // extracts with the Object schema DETERMINISTICALLY, instead of relying on the model to pick
+        // Object over Monster (which it does inconsistently). Runs before the Monster rescue.
+        if (ExtractionSignatures.IsObjectStatBlock(candidate.Text))
+            return TypeResolution.Force(EntityType.Object);
+
         // Stat-block monster rescue — MUST win over a cross-type name collision, so it runs before
         // the cross-type force below (a complete stat block resolves to Monster even if the name
         // matches a non-Monster 5etools entry).
