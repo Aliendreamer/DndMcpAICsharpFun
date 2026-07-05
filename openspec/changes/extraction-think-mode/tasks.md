@@ -1,3 +1,13 @@
+> **Interim shipped (2026-07-05, commit `803da7b`):** qwen3 `/no_think` is appended to the extraction
+> user turn in `OllamaEntityExtractionClient` as a fast, hardcoded think-suppression. Validated live on
+> the DMG re-extracts — ~8× faster (~114 s → ~14–42 s/candidate), the thinking-runaway "empty response"
+> losses eliminated (7 → 0), and no classification regression (siege weapons still extract correctly).
+> This effectively pre-answers the A/B (tasks 4.1–4.3): `think:false` wins for structured extraction,
+> because type selection is already deterministic (`DeterministicTypeResolver`) + union-constrained.
+> **This spec's REMAINING scope** is to REPLACE the hardcoded `/no_think` with the configurable `think`
+> option below (tasks 1–3), so it is toggleable + the `<think>` strip is defensive, rather than a
+> permanent prompt directive. Task 4 is now a confirmation/cleanup, not a discovery.
+
 ## 1. Configurable think option
 
 - [ ] 1.1 Add `bool? Think` to `EntityExtractionOptions` (default null = model default)

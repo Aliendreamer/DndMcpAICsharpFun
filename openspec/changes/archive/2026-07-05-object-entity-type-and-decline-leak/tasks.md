@@ -14,7 +14,7 @@
 
 - [x] 3.1 Confirm/keep `Object` OUT of the gated-type set (`DeterministicTypeResolver.GatedTypes`) so it is never declined for lack of a 5etools monster match
 - [x] 3.2 (test) Prior-type routing: an AC/HP-bearing non-creature stat block resolves to `Object`, not `Monster`
-- [x] 3.3 Implement the routing + add extraction prompt guidance in `ExtractionPromptBuilder` (siege weapons / AC-HP non-creatures → `Object`)
+- [x] 3.3 Implement the routing + add extraction prompt guidance in `ExtractionPromptBuilder` (siege weapons / AC-HP non-creatures → `Object`). FOLLOW-UP (commit `803da7b`): the LLM prompt-routing proved UNRELIABLE at scale (Cannon→Monster, Ballista→Object-without-stats), so it was strengthened to a DETERMINISTIC `Force(Object)` — `ExtractionSignatures.IsObjectStatBlock` ("`<Size> object`" + AC + HP, no Challenge) → `DeterministicTypeResolver.Force(EntityType.Object)`, extracting via the ObjectFields schema. Validated: Ballista + Cannon → `Object` with full ac/hp/immune/action.
 - [x] 3.4 Ensure the extraction union decoder handles `ObjectFields` (discriminated-union-extraction-decoding); round-trip test decode → `Object` entity (auto: EntitySchemaProvider loads ObjectFields.schema.json by reflection)
 
 ## 4. Decline-not-leak fix
