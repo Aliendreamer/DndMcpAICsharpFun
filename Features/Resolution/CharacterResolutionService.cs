@@ -244,64 +244,43 @@ public sealed class CharacterResolutionService(
         return new ResolvedFact("spell slots", value, components, "ok");
     }
 
+    // Shared per-caster-class resolution for computed spellcasting facts (save DC, attack). Each caster
+    // class contributes one component using its own spellcasting ability; computed values carry no
+    // provenance (COR-20). No caster classes => needsReview.
+    private static ResolvedFact PerCasterClass(
+        CharacterSheet sheet, string feature, string labelSuffix,
+        Func<int, int, int> valueFn, Func<int, string> render)
+    {
+        var pb = sheet.ProficiencyBonus;
+        var components = new List<ResolvedComponent>();
+        foreach (var c in sheet.Classes)
+        {
+            var ability = MulticlassSpellcasting.SpellcastingAbility(c.Class);
+            if (ability is null) continue;
+            var score = ability switch
+            {
+                "Strength" => sheet.Strength,
+                "Dexterity" => sheet.Dexterity,
+                "Constitution" => sheet.Constitution,
+                "Intelligence" => sheet.Intelligence,
+                "Wisdom" => sheet.Wisdom,
+                "Charisma" => sheet.Charisma,
+                _ => 10,
+            };
+            var v = valueFn(pb, CharacterSheet.Modifier(score));
+            components.Add(new ResolvedComponent($"{c.Class} {labelSuffix}", render(v), null));
+        }
+        if (components.Count == 0)
+            return new ResolvedFact(feature, "no spellcasting", [], "needsReview");
+        var value = string.Join(", ", components.Select(x => $"{x.Label} {x.Value}"));
+        return new ResolvedFact(feature, value, components, "ok");
+    }
 
     private Task<ResolvedFact> ResolveSpellSaveDcAsync(CharacterSheet sheet, CancellationToken ct)
-    {
-        var pb = sheet.ProficiencyBonus;
-        var components = new List<ResolvedComponent>();
-        foreach (var c in sheet.Classes)
-        {
-            var ability = MulticlassSpellcasting.SpellcastingAbility(c.Class);
-            if (ability is null) continue;
-            var score = ability switch
-            {
-                "Strength" => sheet.Strength,
-                "Dexterity" => sheet.Dexterity,
-                "Constitution" => sheet.Constitution,
-                "Intelligence" => sheet.Intelligence,
-                "Wisdom" => sheet.Wisdom,
-                "Charisma" => sheet.Charisma,
-                _ => 10,
-            };
-            var dc = 8 + pb + CharacterSheet.Modifier(score);
-            // Computed value (8 + PB + ability mod) -> no provenance (COR-20).
-            components.Add(new ResolvedComponent($"{c.Class} save DC", dc.ToString(), null));
-        }
-
-        if (components.Count == 0)
-            return Task.FromResult(new ResolvedFact("spell save dc", "no spellcasting", [], "needsReview"));
-
-        var value = string.Join(", ", components.Select(c => $"{c.Label} {c.Value}"));
-        return Task.FromResult(new ResolvedFact("spell save dc", value, components, "ok"));
-    }
+        => Task.FromResult(PerCasterClass(
+            sheet, "spell save dc", "save DC", (pb, mod) => 8 + pb + mod, v => v.ToString()));
 
     private Task<ResolvedFact> ResolveSpellAttackAsync(CharacterSheet sheet, CancellationToken ct)
-    {
-        var pb = sheet.ProficiencyBonus;
-        var components = new List<ResolvedComponent>();
-        foreach (var c in sheet.Classes)
-        {
-            var ability = MulticlassSpellcasting.SpellcastingAbility(c.Class);
-            if (ability is null) continue;
-            var score = ability switch
-            {
-                "Strength" => sheet.Strength,
-                "Dexterity" => sheet.Dexterity,
-                "Constitution" => sheet.Constitution,
-                "Intelligence" => sheet.Intelligence,
-                "Wisdom" => sheet.Wisdom,
-                "Charisma" => sheet.Charisma,
-                _ => 10,
-            };
-            var attack = pb + CharacterSheet.Modifier(score);
-            // Computed value (PB + ability mod) -> no provenance (COR-20).
-            components.Add(new ResolvedComponent($"{c.Class} spell attack", $"+{attack}", null));
-        }
-
-        if (components.Count == 0)
-            return Task.FromResult(new ResolvedFact("spell attack", "no spellcasting", [], "needsReview"));
-
-        var value = string.Join(", ", components.Select(c => $"{c.Label} {c.Value}"));
-        return Task.FromResult(new ResolvedFact("spell attack", value, components, "ok"));
-    }
+        => Task.FromResult(PerCasterClass(
+            sheet, "spell attack", "spell attack", (pb, mod) => pb + mod, v => $"+{v}"));
 }
