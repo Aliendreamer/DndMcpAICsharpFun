@@ -37,7 +37,7 @@ public sealed class HeroRepositoryTests(PostgresFixture pg) : IAsyncLifetime
     public async Task SaveSnapshotAsync_AddsNewSnapshot()
     {
         var id = await _repo.CreateAsync(_campaignId, "Frodo");
-        var sheet = new CharacterSheet { Level = 3, Class = "Rogue" };
+        var sheet = new CharacterSheet { Classes = [new ClassLevel { Class = "Rogue", Level = 3 }] };
 
         await _repo.SaveSnapshotAsync(id, 2, "After Moria", sheet);
 
@@ -52,8 +52,8 @@ public sealed class HeroRepositoryTests(PostgresFixture pg) : IAsyncLifetime
     public async Task GetSnapshotsAsync_ReturnsAllInDescendingOrder()
     {
         var id = await _repo.CreateAsync(_campaignId, "Aragorn");
-        await _repo.SaveSnapshotAsync(id, 1, "Session 1", new CharacterSheet { Level = 1 });
-        await _repo.SaveSnapshotAsync(id, 2, "Session 2", new CharacterSheet { Level = 2 });
+        await _repo.SaveSnapshotAsync(id, 1, "Session 1", new CharacterSheet { Classes = [new ClassLevel { Level = 1 }] });
+        await _repo.SaveSnapshotAsync(id, 2, "Session 2", new CharacterSheet { Classes = [new ClassLevel { Level = 2 }] });
 
         var snapshots = await _repo.GetSnapshotsAsync(id);
 
@@ -67,7 +67,7 @@ public sealed class HeroRepositoryTests(PostgresFixture pg) : IAsyncLifetime
     public async Task GetSnapshotAsync_ReturnsFullSheet()
     {
         var id = await _repo.CreateAsync(_campaignId, "Legolas");
-        var sheet = new CharacterSheet { Level = 7, Race = "Elf", Class = "Ranger" };
+        var sheet = new CharacterSheet { Race = "Elf", Classes = [new ClassLevel { Class = "Ranger", Level = 7 }] };
         await _repo.SaveSnapshotAsync(id, 3, "Helm's Deep", sheet);
 
         var snapshots = await _repo.GetSnapshotsAsync(id);

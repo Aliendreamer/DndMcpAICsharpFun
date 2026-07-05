@@ -56,7 +56,7 @@ public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyn
         var sheet = new CharacterSheet
         {
             Race            = "Dragonborn",
-            Level           = level,
+            Classes         = [new ClassLevel { Level = level }],
             Constitution    = 16,
             ResolvedChoices = new Dictionary<string, string>
             {

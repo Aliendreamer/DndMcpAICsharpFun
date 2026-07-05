@@ -28,7 +28,7 @@ public sealed class AppDbContextSmokeTests(PostgresFixture pg) : IAsyncLifetime
         await using (var db = pg.NewContext())
         {
             db.HeroSnapshots.Add(new HeroSnapshot(0, 1, 1, "S1", 5,
-                DateTime.UtcNow, new CharacterSheet { Level = 5, Race = "Dwarf", Class = "Cleric" }));
+                DateTime.UtcNow, new CharacterSheet { Race = "Dwarf", Classes = [new ClassLevel { Class = "Cleric", Level = 5 }] }));
             await db.SaveChangesAsync();
         }
 

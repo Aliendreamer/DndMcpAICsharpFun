@@ -51,9 +51,9 @@ else
             {
                 <div class="edit-grid">
                     <label>Race <input @bind="_editSheet.Race" /></label>
-                    <label>Class <input @bind="_editSheet.Class" /></label>
-                    <label>Subclass <input @bind="_editSheet.Subclass" /></label>
-                    <label>Level <input type="number" @bind="_editSheet.Level" /></label>
+                    <label>Class <input @bind="_editClass" /></label>
+                    <label>Subclass <input @bind="_editSubclass" /></label>
+                    <label>Level <input type="number" @bind="_editLevel" /></label>
                     <label>Background <input @bind="_editSheet.Background" /></label>
                     <label>Alignment <input @bind="_editSheet.Alignment" /></label>
                     <label>XP <input type="number" @bind="_editSheet.ExperiencePoints" /></label>
@@ -133,7 +133,7 @@ else
                     <label>AC <input type="number" @bind="_editSheet.ArmorClass" /></label>
                     <label>Speed <input type="number" @bind="_editSheet.Speed" /></label>
                     <label>Initiative <input type="number" @bind="_editSheet.Initiative" /></label>
-                    <label>Prof. Bonus <input type="number" @bind="_editSheet.ProficiencyBonus" /></label>
+                    <span class="prof-bonus-readout"><b>Prof. Bonus:</b> +@_editSheet.ProficiencyBonus (auto, from level)</span>
                 </div>
             }
         </div>
@@ -297,6 +297,9 @@ else
 
     private bool _editMode;
     private CharacterSheet _editSheet = new();
+    private string _editClass = "";
+    private string _editSubclass = "";
+    private int _editLevel;
     private bool _showSavePrompt;
     private int _sessionNumber;
     private string _sessionLabel = "";
@@ -336,6 +339,9 @@ else
     {
         var src = _hero!.LatestSnapshot?.Sheet ?? new CharacterSheet();
         _editSheet = JsonSerializer.Deserialize<CharacterSheet>(JsonSerializer.Serialize(src))!;
+        _editClass = _editSheet.Class;
+        _editSubclass = _editSheet.Subclass;
+        _editLevel = _editSheet.Level;
         _spellsText = string.Join("\n", _editSheet.SpellsKnown);
         _armorProfText = string.Join("\n", _editSheet.ArmorProficiencies);
         _weaponProfText = string.Join("\n", _editSheet.WeaponProficiencies);
@@ -355,6 +361,7 @@ else
 
     private async Task ConfirmSaveAsync()
     {
+        _editSheet.SetSingleClass(_editClass, _editSubclass, _editLevel);
         _editSheet.SpellsKnown = Split(_spellsText);
         _editSheet.ArmorProficiencies = Split(_armorProfText);
         _editSheet.WeaponProficiencies = Split(_weaponProfText);

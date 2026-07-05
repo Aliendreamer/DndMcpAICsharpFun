@@ -42,7 +42,7 @@ public sealed class CharacterResolutionIntegrationTests(PostgresFixture pg) : IA
         var sheet = new CharacterSheet
         {
             Race         = "Dragonborn",
-            Level        = level,
+            Classes      = [new ClassLevel { Level = level }],
             Constitution = 16,
             ResolvedChoices = new Dictionary<string, string>
             {
@@ -162,7 +162,7 @@ public sealed class CharacterResolutionIntegrationTests(PostgresFixture pg) : IA
         // Arrange — snapshot with no ancestry choice
         await using (var db = pg.NewContext())
         {
-            var sheet = new CharacterSheet { Level = 5, Race = "Dragonborn", Constitution = 14 };
+            var sheet = new CharacterSheet { Race = "Dragonborn", Constitution = 14, Classes = [new ClassLevel { Level = 5 }] };
             db.HeroSnapshots.Add(new HeroSnapshot(0, 2, 1, "NoAncestry", 5, DateTime.UtcNow, sheet));
             await db.SaveChangesAsync();
         }
@@ -195,7 +195,7 @@ public sealed class CharacterResolutionIntegrationTests(PostgresFixture pg) : IA
         // Arrange — seed minimal snapshot
         await using (var db = pg.NewContext())
         {
-            var sheet = new CharacterSheet { Level = 1 };
+            var sheet = new CharacterSheet { Classes = [new ClassLevel { Level = 1 }] };
             db.HeroSnapshots.Add(new HeroSnapshot(0, 3, 1, "UnsupportedFeature", 1, DateTime.UtcNow, sheet));
             await db.SaveChangesAsync();
         }
