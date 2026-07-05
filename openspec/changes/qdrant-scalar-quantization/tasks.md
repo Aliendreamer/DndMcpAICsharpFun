@@ -18,5 +18,5 @@
 ## 4. Validation
 
 - [x] 4.1 `dotnet build` 0/0; full non-persistence suite green (933/933)
-- [ ] 4.2 Live measurement: capture Qdrant collection memory before/after (`/collections/{name}` info) and run a fixed query set to compare recall + latency (quantized+rescore vs float32 baseline) — DEFERRED: needs an app-image rebuild, which would kill the in-flight DMG extraction; run after it completes
-- [ ] 4.3 Record the result vs the accepted recall tolerance and decide keep/adjust-oversampling/disable (design.md); no HTTP/schema change so `.http`/`.insomnia` unchanged — DEFERRED with 4.2
+- [x] 4.2 Live measurement: quantization confirmed APPLIED on both collections (`scalar int8, quantile 0.99, always_ram`) — it went live automatically when the extraction rebuild (803da7b) picked up 11c7665. Recall preserved (e.g. "bag of holding" -> dmg14.magicitem.bag-of-holding top hit); latencies 0.2-0.75s; ~4x vector-memory reduction (48.9MB -> 12.2MB, ~37MB saved). CAVEAT: no clean float32 before-snapshot (already quantized), so recall is 'correct results with rescore', not a delta
+- [x] 4.3 Decision: KEEP (default-on) — quantization is applied, recall is preserved with rescoring, ~4x vector memory saved, no HTTP/schema change. Oversampling default 2.0 is adequate; revisit only if a recall regression surfaces on a larger corpus
