@@ -89,4 +89,41 @@ public sealed class MulticlassSpellcastingTests
         MulticlassSpellcasting.Classify(C("Barbarian", 6, "Eldritch Knight"))
             .Should().Be(CasterType.None);
     }
+
+
+    [Fact]
+    public void Single_class_paladin_reads_the_half_caster_table_at_class_level()
+    {
+        var s = MulticlassSpellcasting.ResolveSlotSource([C("Paladin", 5)]);
+        s.Kind.Should().Be("half"); s.Level.Should().Be(5);   // NOT combined level 2
+    }
+
+    [Fact]
+    public void Single_class_eldritch_knight_reads_the_third_caster_table_at_class_level()
+    {
+        var s = MulticlassSpellcasting.ResolveSlotSource([C("Fighter", 7, "Eldritch Knight")]);
+        s.Kind.Should().Be("third"); s.Level.Should().Be(7);  // NOT combined level 2
+    }
+
+    [Fact]
+    public void Single_class_wizard_uses_the_multiclass_table_which_coincides()
+    {
+        var s = MulticlassSpellcasting.ResolveSlotSource([C("Wizard", 5)]);
+        s.Kind.Should().Be("multiclass"); s.Level.Should().Be(5);
+    }
+
+    [Fact]
+    public void Two_spellcasting_classes_use_the_combined_multiclass_table()
+    {
+        var s = MulticlassSpellcasting.ResolveSlotSource([C("Paladin", 6), C("Sorcerer", 2)]);
+        s.Kind.Should().Be("multiclass"); s.Level.Should().Be(5);  // ⌊6/2⌋+2
+    }
+
+    [Fact]
+    public void One_spellcasting_class_plus_warlock_reads_that_class_table_not_combined()
+    {
+        // Warlock is Pact (not a "spellcasting class" for the fork); Paladin is the sole caster class.
+        var s = MulticlassSpellcasting.ResolveSlotSource([C("Warlock", 3), C("Paladin", 2)]);
+        s.Kind.Should().Be("half"); s.Level.Should().Be(2);
+    }
 }

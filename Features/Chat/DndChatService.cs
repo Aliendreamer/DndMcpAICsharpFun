@@ -64,8 +64,9 @@ public sealed class DndChatService(
                 description: "Compute a character-specific, cited rule fact for a hero snapshot the " +
                     "signed-in user owns. Supported features: \"breath weapon\", \"spell slots\" " +
                     "(multiclass-aware combined caster level; Warlock pact reported separately), " +
-                    "\"spell save dc\" (one value per caster class). Returns the value plus the rule " +
-                    "components and their source provenance."));
+                    "\"spell save dc\" (one value per caster class), \"spell attack\" (spell attack " +
+                    "bonus per caster class). Returns the value plus the rule components and their " +
+                    "source provenance."));
 
             toolList.Add(AIFunctionFactory.Create(
                 (long heroSnapshotId, string targetClass, CancellationToken toolCt) =>

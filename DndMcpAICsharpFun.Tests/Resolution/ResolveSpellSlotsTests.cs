@@ -97,4 +97,24 @@ public sealed class ResolveSpellSlotsTests(PostgresFixture pg) : IAsyncLifetime
         fact.Value.Should().Contain("no spellcasting");
         fact.Confidence.Should().Be("needsReview");
     }
+
+
+    [Fact]
+    public async Task Single_class_paladin_5_reads_the_half_caster_table_not_combined()
+    {
+        var sheet = new CharacterSheet { Classes = [ new() { Class = "Paladin", Level = 5 } ], Charisma = 16 };
+        var fact = await ResolveSpellSlotsForSheet(sheet);
+        fact.Components.Should().Contain(c => c.Label == "level 1 slots" && c.Value == "4");
+        fact.Components.Should().Contain(c => c.Label == "level 2 slots" && c.Value == "2");
+        fact.Confidence.Should().Be("ok");
+    }
+
+    [Fact]
+    public async Task Single_class_wizard_5_is_unchanged()
+    {
+        var sheet = new CharacterSheet { Classes = [ new() { Class = "Wizard", Level = 5 } ], Intelligence = 16 };
+        var fact = await ResolveSpellSlotsForSheet(sheet);
+        fact.Components.Should().Contain(c => c.Label == "level 1 slots" && c.Value == "4");
+        fact.Components.Should().Contain(c => c.Label == "level 3 slots" && c.Value == "2");
+    }
 }

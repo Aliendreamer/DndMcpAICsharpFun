@@ -80,4 +80,31 @@ public static class MulticlassSpellcasting
 
     public static string? SpellcastingAbility(string @class) =>
         Abilities.GetValueOrDefault(@class);
+
+
+    /// <summary>Which slot table a character reads and at what level: multiclass = combined-caster-level
+    /// table; half/third = the single-class Paladin/Ranger or EK/AT progression at the class's own level;
+    /// none = no non-pact spellcasting class. Warlock (Pact) is never counted here.</summary>
+    public sealed record SlotSource(string Kind, int Level);
+
+    public static SlotSource ResolveSlotSource(IEnumerable<ClassLevel> classes)
+    {
+        var casters = classes
+            .Where(c => Classify(c) is CasterType.Full or CasterType.Half or CasterType.Third)
+            .ToList();
+        if (casters.Count == 0) return new SlotSource("none", 0);
+        if (casters.Count == 1)
+        {
+            var c = casters[0];
+            if (string.Equals(c.Class, "Paladin", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(c.Class, "Ranger", StringComparison.OrdinalIgnoreCase))
+                return new SlotSource("half", c.Level);
+            if (ThirdCasterSubclasses.Contains(c.Subclass))
+                return new SlotSource("third", c.Level);
+            // Single full caster or Artificer: the combined table at the class's combined level coincides
+            // with the class's own progression, so reuse it.
+            return new SlotSource("multiclass", CombinedCasterLevel(casters));
+        }
+        return new SlotSource("multiclass", CombinedCasterLevel(casters));
+    }
 }

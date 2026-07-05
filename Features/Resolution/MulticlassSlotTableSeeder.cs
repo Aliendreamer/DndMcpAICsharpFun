@@ -14,6 +14,8 @@ namespace DndMcpAICsharpFun.Features.Resolution;
 public sealed class MulticlassSlotTableSeeder(IDbContextFactory<AppDbContext> dbf)
 {
     public const string TableId = "phb14.table.multiclass-spellcaster";
+    public const string HalfCasterTableId = "phb14.table.half-caster-slots";
+    public const string ThirdCasterTableId = "phb14.table.third-caster-slots";
     private static readonly ProvenanceRef Prov = new("phb14.block.multiclassing", "PHB", 164);
 
     // PHB p.164. Row i (0-based) = combined caster level i+1. Columns: slots for spell levels 1..9.
@@ -26,18 +28,45 @@ public sealed class MulticlassSlotTableSeeder(IDbContextFactory<AppDbContext> db
         [4,3,3,3,2,1,1,1,1], [4,3,3,3,3,1,1,1,1], [4,3,3,3,3,2,1,1,1], [4,3,3,3,3,2,2,1,1],
     ];
 
+    // PHB Paladin/Ranger. L1 has no slots; half-casters cap at 5th-level spells.
+    private static readonly int[][] HalfCasterSlots =
+    [
+        [0,0,0,0,0,0,0,0,0], [2,0,0,0,0,0,0,0,0], [3,0,0,0,0,0,0,0,0], [3,0,0,0,0,0,0,0,0],
+        [4,2,0,0,0,0,0,0,0], [4,2,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0],
+        [4,3,2,0,0,0,0,0,0], [4,3,2,0,0,0,0,0,0], [4,3,3,0,0,0,0,0,0], [4,3,3,0,0,0,0,0,0],
+        [4,3,3,1,0,0,0,0,0], [4,3,3,1,0,0,0,0,0], [4,3,3,2,0,0,0,0,0], [4,3,3,2,0,0,0,0,0],
+        [4,3,3,3,1,0,0,0,0], [4,3,3,3,1,0,0,0,0], [4,3,3,3,2,0,0,0,0], [4,3,3,3,2,0,0,0,0],
+    ];
+
+    // PHB Eldritch Knight / Arcane Trickster. No slots before class level 3; third-casters cap at 4th-level.
+    private static readonly int[][] ThirdCasterSlots =
+    [
+        [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [2,0,0,0,0,0,0,0,0], [3,0,0,0,0,0,0,0,0],
+        [3,0,0,0,0,0,0,0,0], [3,0,0,0,0,0,0,0,0], [4,2,0,0,0,0,0,0,0], [4,2,0,0,0,0,0,0,0],
+        [4,2,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0],
+        [4,3,2,0,0,0,0,0,0], [4,3,2,0,0,0,0,0,0], [4,3,2,0,0,0,0,0,0], [4,3,3,0,0,0,0,0,0],
+        [4,3,3,0,0,0,0,0,0], [4,3,3,0,0,0,0,0,0], [4,3,3,1,0,0,0,0,0], [4,3,3,1,0,0,0,0,0],
+    ];
+
     public async Task SeedAsync(CancellationToken ct)
     {
         await using var db = await dbf.CreateDbContextAsync(ct);
+        await SeedTableAsync(db, TableId, "Multiclass Spellcaster", Slots, ct);
+        await SeedTableAsync(db, HalfCasterTableId, "Half-Caster Slots", HalfCasterSlots, ct);
+        await SeedTableAsync(db, ThirdCasterTableId, "Third-Caster Slots", ThirdCasterSlots, ct);
+    }
 
-        var table = await db.StructuredTables.FirstOrDefaultAsync(t => t.CanonicalId == TableId, ct);
+    private static async Task SeedTableAsync(
+        AppDbContext db, string id, string name, int[][] rows, CancellationToken ct)
+    {
+        var table = await db.StructuredTables.FirstOrDefaultAsync(t => t.CanonicalId == id, ct);
         var columns = new[] { "casterLevel", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
         if (table is null)
         {
             table = new StructuredTable
             {
-                CanonicalId = TableId,
-                Name = "Multiclass Spellcaster",
+                CanonicalId = id,
+                Name = name,
                 ColumnsJson = JsonSerializer.Serialize(columns),
                 SourceBook = "PHB",
             };
@@ -47,10 +76,10 @@ public sealed class MulticlassSlotTableSeeder(IDbContextFactory<AppDbContext> db
 
         // Idempotent: clear then reinsert rows.
         await db.StructuredTableRows.Where(r => r.TableId == table.Id).ExecuteDeleteAsync(ct);
-        for (var i = 0; i < Slots.Length; i++)
+        for (var i = 0; i < rows.Length; i++)
         {
             var cells = new List<CanonicalCell> { new((i + 1).ToString(), Prov) };
-            cells.AddRange(Slots[i].Select(n => new CanonicalCell(n.ToString(), Prov)));
+            cells.AddRange(rows[i].Select(n => new CanonicalCell(n.ToString(), Prov)));
             db.StructuredTableRows.Add(new StructuredTableRow
             {
                 TableId = table.Id,
