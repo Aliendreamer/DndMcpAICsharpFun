@@ -66,6 +66,10 @@ public sealed class CharacterResolutionService(
             return ResolveBreathWeaponAsync(sheet, ct);
         if (feature.Equals("spell slots", StringComparison.OrdinalIgnoreCase))
             return ResolveSpellSlotsAsync(sheet, ct);
+        if (feature.Equals("spell save dc", StringComparison.OrdinalIgnoreCase))
+            return ResolveSpellSaveDcAsync(sheet, ct);
+        if (feature.Equals("spell attack", StringComparison.OrdinalIgnoreCase))
+            return ResolveSpellAttackAsync(sheet, ct);
 
         throw new NotSupportedException($"feature not supported: {feature}");
     }
@@ -238,5 +242,66 @@ public sealed class CharacterResolutionService(
 
         var value = rendered.Count > 0 ? string.Join(", ", rendered) : "no spellcasting";
         return new ResolvedFact("spell slots", value, components, "ok");
+    }
+
+
+    private Task<ResolvedFact> ResolveSpellSaveDcAsync(CharacterSheet sheet, CancellationToken ct)
+    {
+        var pb = sheet.ProficiencyBonus;
+        var components = new List<ResolvedComponent>();
+        foreach (var c in sheet.Classes)
+        {
+            var ability = MulticlassSpellcasting.SpellcastingAbility(c.Class);
+            if (ability is null) continue;
+            var score = ability switch
+            {
+                "Strength" => sheet.Strength,
+                "Dexterity" => sheet.Dexterity,
+                "Constitution" => sheet.Constitution,
+                "Intelligence" => sheet.Intelligence,
+                "Wisdom" => sheet.Wisdom,
+                "Charisma" => sheet.Charisma,
+                _ => 10,
+            };
+            var dc = 8 + pb + CharacterSheet.Modifier(score);
+            // Computed value (8 + PB + ability mod) -> no provenance (COR-20).
+            components.Add(new ResolvedComponent($"{c.Class} save DC", dc.ToString(), null));
+        }
+
+        if (components.Count == 0)
+            return Task.FromResult(new ResolvedFact("spell save dc", "no spellcasting", [], "needsReview"));
+
+        var value = string.Join(", ", components.Select(c => $"{c.Label} {c.Value}"));
+        return Task.FromResult(new ResolvedFact("spell save dc", value, components, "ok"));
+    }
+
+    private Task<ResolvedFact> ResolveSpellAttackAsync(CharacterSheet sheet, CancellationToken ct)
+    {
+        var pb = sheet.ProficiencyBonus;
+        var components = new List<ResolvedComponent>();
+        foreach (var c in sheet.Classes)
+        {
+            var ability = MulticlassSpellcasting.SpellcastingAbility(c.Class);
+            if (ability is null) continue;
+            var score = ability switch
+            {
+                "Strength" => sheet.Strength,
+                "Dexterity" => sheet.Dexterity,
+                "Constitution" => sheet.Constitution,
+                "Intelligence" => sheet.Intelligence,
+                "Wisdom" => sheet.Wisdom,
+                "Charisma" => sheet.Charisma,
+                _ => 10,
+            };
+            var attack = pb + CharacterSheet.Modifier(score);
+            // Computed value (PB + ability mod) -> no provenance (COR-20).
+            components.Add(new ResolvedComponent($"{c.Class} spell attack", $"+{attack}", null));
+        }
+
+        if (components.Count == 0)
+            return Task.FromResult(new ResolvedFact("spell attack", "no spellcasting", [], "needsReview"));
+
+        var value = string.Join(", ", components.Select(c => $"{c.Label} {c.Value}"));
+        return Task.FromResult(new ResolvedFact("spell attack", value, components, "ok"));
     }
 }
