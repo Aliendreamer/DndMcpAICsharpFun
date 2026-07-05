@@ -1360,15 +1360,226 @@ git commit -m "chore(multiclass): validation pass — build 0/0, suites green, d
 
 ---
 
+## Task 12: Single-class vs multiclass spell-slot fork (correctness fix)
+
+**Why:** Task 7 shipped `ResolveSpellSlotsAsync` reading the Multiclass Spellcaster combined-level table for EVERY sheet. That coincides with the correct answer for full casters and Artificer, but is WRONG for single-class half-casters (Paladin/Ranger) and third-casters (Eldritch Knight / Arcane Trickster), because the multiclass table rounds their caster level down (⌊N/2⌋, ⌊N/3⌋) whereas a single-class caster uses its own class progression at full class level. The spec's *"Resolution forks single-class vs multiclass"* requirement mandates the fork on the number of spellcasting classes: **≥2 spellcasting classes → combined table; exactly 1 → that class's own progression.** (Warlock Pact Magic is not counted as a spellcasting class for this fork and is always a separate component.)
+
+**Files:**
+- Modify: `Features/Resolution/MulticlassSpellcasting.cs` (add `SlotSource` + `ResolveSlotSource`)
+- Modify: `Features/Resolution/MulticlassSlotTableSeeder.cs` (seed two more tables)
+- Modify: `Features/Resolution/CharacterResolutionService.cs` (fork on `ResolveSlotSource`)
+- Test: `DndMcpAICsharpFun.Tests/Resolution/MulticlassSpellcastingTests.cs`, `MulticlassSlotTableSeederTests.cs`, `ResolveSpellSlotsTests.cs`
+
+**Interfaces:**
+- Produces: `MulticlassSpellcasting.SlotSource(string Kind, int Level)` (record; `Kind` ∈ `"multiclass"|"half"|"third"|"none"`) and `ResolveSlotSource(IEnumerable<ClassLevel>) : SlotSource`.
+- Produces: `MulticlassSlotTableSeeder.HalfCasterTableId = "phb14.table.half-caster-slots"`, `ThirdCasterTableId = "phb14.table.third-caster-slots"`.
+
+- [ ] **Step 1: Add `ResolveSlotSource` + unit tests to `MulticlassSpellcasting`**
+
+```csharp
+    /// <summary>Which slot table a character reads and at what level: multiclass = combined-caster-level
+    /// table; half/third = the single-class Paladin/Ranger or EK/AT progression at the class's own level;
+    /// none = no non-pact spellcasting class. Warlock (Pact) is never counted here.</summary>
+    public sealed record SlotSource(string Kind, int Level);
+
+    public static SlotSource ResolveSlotSource(IEnumerable<ClassLevel> classes)
+    {
+        var casters = classes
+            .Where(c => Classify(c) is CasterType.Full or CasterType.Half or CasterType.Third)
+            .ToList();
+        if (casters.Count == 0) return new SlotSource("none", 0);
+        if (casters.Count == 1)
+        {
+            var c = casters[0];
+            if (string.Equals(c.Class, "Paladin", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(c.Class, "Ranger", StringComparison.OrdinalIgnoreCase))
+                return new SlotSource("half", c.Level);
+            if (ThirdCasterSubclasses.Contains(c.Subclass))
+                return new SlotSource("third", c.Level);
+            // Single full caster or Artificer: the combined table at the class's combined level coincides
+            // with the class's own progression, so reuse it.
+            return new SlotSource("multiclass", CombinedCasterLevel(casters));
+        }
+        return new SlotSource("multiclass", CombinedCasterLevel(casters));
+    }
+```
+
+Tests (add to `MulticlassSpellcastingTests`):
+
+```csharp
+    [Fact]
+    public void Single_class_paladin_reads_the_half_caster_table_at_class_level()
+    {
+        var s = MulticlassSpellcasting.ResolveSlotSource([C("Paladin", 5)]);
+        s.Kind.Should().Be("half"); s.Level.Should().Be(5);   // NOT combined level 2
+    }
+
+    [Fact]
+    public void Single_class_eldritch_knight_reads_the_third_caster_table_at_class_level()
+    {
+        var s = MulticlassSpellcasting.ResolveSlotSource([C("Fighter", 7, "Eldritch Knight")]);
+        s.Kind.Should().Be("third"); s.Level.Should().Be(7);  // NOT combined level 2
+    }
+
+    [Fact]
+    public void Single_class_wizard_uses_the_multiclass_table_which_coincides()
+    {
+        var s = MulticlassSpellcasting.ResolveSlotSource([C("Wizard", 5)]);
+        s.Kind.Should().Be("multiclass"); s.Level.Should().Be(5);
+    }
+
+    [Fact]
+    public void Two_spellcasting_classes_use_the_combined_multiclass_table()
+    {
+        var s = MulticlassSpellcasting.ResolveSlotSource([C("Paladin", 6), C("Sorcerer", 2)]);
+        s.Kind.Should().Be("multiclass"); s.Level.Should().Be(5);  // ⌊6/2⌋+2
+    }
+
+    [Fact]
+    public void One_spellcasting_class_plus_warlock_reads_that_class_table_not_combined()
+    {
+        // Warlock is Pact (not a "spellcasting class" for the fork); Paladin is the sole caster class.
+        var s = MulticlassSpellcasting.ResolveSlotSource([C("Warlock", 3), C("Paladin", 2)]);
+        s.Kind.Should().Be("half"); s.Level.Should().Be(2);
+    }
+```
+
+- [ ] **Step 2: Seed the half-caster and third-caster tables (extend `MulticlassSlotTableSeeder`)**
+
+Add the two ids and their 20-row progressions, and seed all three tables in `SeedAsync` (factor the single-table upsert into a private helper `SeedTableAsync(db, id, name, rows, ct)` so the three calls share it). The half-caster table is the PHB Paladin/Ranger progression; the third-caster table is the PHB Eldritch Knight / Arcane Trickster progression. Row i (0-based) = class level i+1; nine columns = slots for spell levels 1..9.
+
+```csharp
+    public const string HalfCasterTableId = "phb14.table.half-caster-slots";
+    public const string ThirdCasterTableId = "phb14.table.third-caster-slots";
+
+    // PHB Paladin/Ranger. L1 has no slots; half-casters cap at 5th-level spells.
+    private static readonly int[][] HalfCasterSlots =
+    [
+        [0,0,0,0,0,0,0,0,0], [2,0,0,0,0,0,0,0,0], [3,0,0,0,0,0,0,0,0], [3,0,0,0,0,0,0,0,0],
+        [4,2,0,0,0,0,0,0,0], [4,2,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0],
+        [4,3,2,0,0,0,0,0,0], [4,3,2,0,0,0,0,0,0], [4,3,3,0,0,0,0,0,0], [4,3,3,0,0,0,0,0,0],
+        [4,3,3,1,0,0,0,0,0], [4,3,3,1,0,0,0,0,0], [4,3,3,2,0,0,0,0,0], [4,3,3,2,0,0,0,0,0],
+        [4,3,3,3,1,0,0,0,0], [4,3,3,3,1,0,0,0,0], [4,3,3,3,2,0,0,0,0], [4,3,3,3,2,0,0,0,0],
+    ];
+
+    // PHB Eldritch Knight / Arcane Trickster. No slots before class level 3; third-casters cap at 4th-level.
+    private static readonly int[][] ThirdCasterSlots =
+    [
+        [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [2,0,0,0,0,0,0,0,0], [3,0,0,0,0,0,0,0,0],
+        [3,0,0,0,0,0,0,0,0], [3,0,0,0,0,0,0,0,0], [4,2,0,0,0,0,0,0,0], [4,2,0,0,0,0,0,0,0],
+        [4,2,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0],
+        [4,3,2,0,0,0,0,0,0], [4,3,2,0,0,0,0,0,0], [4,3,2,0,0,0,0,0,0], [4,3,3,0,0,0,0,0,0],
+        [4,3,3,0,0,0,0,0,0], [4,3,3,0,0,0,0,0,0], [4,3,3,1,0,0,0,0,0], [4,3,3,1,0,0,0,0,0],
+    ];
+```
+
+`SeedAsync` now seeds `(TableId, "Multiclass Spellcaster", Slots)`, `(HalfCasterTableId, "Half-Caster Slots", HalfCasterSlots)`, `(ThirdCasterTableId, "Third-Caster Slots", ThirdCasterSlots)` via the shared helper. Add seeder-test assertions: half table row 4 (Paladin/Ranger level 5) = `4/2`; third table row 6 (EK/AT level 7) = `4/2`; each table has 20 rows; provenance PHB.
+
+- [ ] **Step 3: Fork `ResolveSpellSlotsAsync` on `ResolveSlotSource`**
+
+Replace the `combined`/table selection at the top of `ResolveSpellSlotsAsync` with the fork. Keep the rest (per-non-zero-level components with the cell's provenance; Warlock pact separate with null provenance; needsReview on missing table/row) identical.
+
+```csharp
+    private async Task<ResolvedFact> ResolveSpellSlotsAsync(CharacterSheet sheet, CancellationToken ct)
+    {
+        var source = MulticlassSpellcasting.ResolveSlotSource(sheet.Classes);
+        var pact = MulticlassSpellcasting.WarlockPact(sheet.Classes);
+
+        if (source.Kind == "none" && pact is null)
+            return new ResolvedFact("spell slots", "no spellcasting", [], "needsReview");
+
+        var components = new List<ResolvedComponent>();
+        var rendered = new List<string>();
+
+        if (source.Kind != "none" && source.Level >= 1)
+        {
+            var tableId = source.Kind switch
+            {
+                "half"  => MulticlassSlotTableSeeder.HalfCasterTableId,
+                "third" => MulticlassSlotTableSeeder.ThirdCasterTableId,
+                _        => MulticlassSlotTableSeeder.TableId,
+            };
+
+            await using var db = await dbf.CreateDbContextAsync(ct);
+            var table = await db.StructuredTables.FirstOrDefaultAsync(t => t.CanonicalId == tableId, ct);
+            var row = table is null ? null : await db.StructuredTableRows
+                .FirstOrDefaultAsync(r => r.TableId == table.Id && r.RowIndex == source.Level - 1, ct);
+
+            if (table is null || row is null)
+            {
+                // Table/row missing: still surface the (table-independent) pact component if present.
+                if (pact is not null)
+                    return new ResolvedFact("spell slots",
+                        $"pact {pact.SlotCount}@L{pact.SlotLevel}",
+                        [new ResolvedComponent("pact magic", $"{pact.SlotCount} slots at level {pact.SlotLevel}", null)],
+                        "needsReview");
+                return new ResolvedFact("spell slots", "caster level " + source.Level, [], "needsReview");
+            }
+
+            var columns = JsonSerializer.Deserialize<List<string>>(table.ColumnsJson, JsonOpts) ?? [];
+            var cells = JsonSerializer.Deserialize<List<CanonicalCell>>(row.CellsJson, JsonOpts) ?? [];
+            for (var lvl = 1; lvl <= 9 && lvl < columns.Count && lvl < cells.Count; lvl++)
+            {
+                var count = cells[lvl].Value;
+                if (count == "0" || string.IsNullOrWhiteSpace(count)) continue;
+                components.Add(new ResolvedComponent($"level {lvl} slots", count, cells[lvl].Provenance));
+                rendered.Add($"L{lvl}:{count}");
+            }
+        }
+
+        if (pact is not null)
+        {
+            components.Add(new ResolvedComponent(
+                "pact magic", $"{pact.SlotCount} slots at level {pact.SlotLevel}", null));
+            rendered.Add($"pact {pact.SlotCount}@L{pact.SlotLevel}");
+        }
+
+        var value = rendered.Count > 0 ? string.Join(", ", rendered) : "no spellcasting";
+        var confidence = components.Count > 0 ? "ok" : "needsReview";
+        return new ResolvedFact("spell slots", value, components, confidence);
+    }
+```
+
+(This also resolves the Task-7 Minors: the missing-table branch now surfaces the pact, and `confidence` derives from `components.Count` rather than a hardcoded `"ok"`.)
+
+- [ ] **Step 4: Add resolution regression tests (`ResolveSpellSlotsTests`)**
+
+```csharp
+    [Fact]
+    public async Task Single_class_paladin_5_reads_the_half_caster_table_not_combined()
+    {
+        var sheet = new CharacterSheet { Classes = [ new() { Class = "Paladin", Level = 5 } ], Charisma = 16 };
+        var fact = await ResolveSpellSlotsForSheet(sheet);
+        fact.Components.Should().Contain(c => c.Label == "level 1 slots" && c.Value == "4");
+        fact.Components.Should().Contain(c => c.Label == "level 2 slots" && c.Value == "2");
+        fact.Confidence.Should().Be("ok");
+    }
+
+    [Fact]
+    public async Task Single_class_wizard_5_is_unchanged()
+    {
+        var sheet = new CharacterSheet { Classes = [ new() { Class = "Wizard", Level = 5 } ], Intelligence = 16 };
+        var fact = await ResolveSpellSlotsForSheet(sheet);
+        fact.Components.Should().Contain(c => c.Label == "level 1 slots" && c.Value == "4");
+        fact.Components.Should().Contain(c => c.Label == "level 3 slots" && c.Value == "2");
+    }
+```
+
+- [ ] **Step 5: Verify + commit**
+
+`dotnet test --filter FullyQualifiedName~MulticlassSpellcastingTests` + `~MulticlassSlotTableSeederTests` + `~ResolveSpellSlotsTests` (dangerouslyDisableSandbox), full non-persistence suite green, `dotnet build` 0/0. Commit: `fix(resolution): fork single-class half/third caster spell slots onto their own tables`.
+
+---
+
 ## Self-Review
 
 **Spec coverage** (each ADDED requirement → task):
 - *Character sheet models per-class levels* → Task 1 (Classes source-of-truth, derived flat fields, PB from total). ✓
 - *Existing single-class heroes migrate tolerantly* → Task 2 (JSON round-trip) + Task 3 (DB round-trip). ✓
 - *Multiclass validity checked deterministically for any combination* → Task 4 (prereqs + proficiency subsets) + Task 9 (resolution, non-caster path). ✓
-- *Spellcasting slots compose via combined caster level* (Warlock separate) → Task 5 (arithmetic) + Task 6 (seeded table) + Task 7 (resolution, provenance). ✓
-- *Spell save DC / attack per caster class* → Task 8 (per-class DC). *(Spell attack bonus mirrors save DC; save DC proves the per-class shape — attack is a trivial `+PB+mod` variant deferred unless the reviewer wants it in Task 8.)* ✓ (save DC)
-- *Resolution forks single-vs-multi and is exposed via MCP* → Task 7 (fork) + Task 10 (MCP tools). ✓
+- *Spellcasting slots compose via combined caster level* (Warlock separate) → Task 5 (arithmetic) + Task 6 (seeded combined table) + Task 7 (multiclass resolution, provenance) + Task 12 (single-class half/third-caster tables + the fork). ✓
+- *Spell save DC / attack per caster class* → Task 8 (per-class save DC AND per-class attack bonus, via the shared `PerCasterClass` helper). ✓
+- *Resolution forks single-vs-multi and is exposed via MCP* → Task 12 (the ≥2-spellcasting-class fork onto the combined vs single-class tables) + Task 10 (MCP tools). ✓
 
 **Placeholder scan:** every code step contains full code; the only intentional "match the existing fixture" notes are in the persistence tests, which must copy the sibling `[Collection]`/fixture wiring (an existing pattern, not an invented API).
 
