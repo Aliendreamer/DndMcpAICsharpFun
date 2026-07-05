@@ -76,13 +76,11 @@ else
                                     <span class="advisory @(check.Allowed ? "advisory-ok" : "advisory-warn")">
                                         @(check.Allowed ? "✓ multiclass allowed" : $"⚠ {check.Reason}")
                                     </span>
+                                    var profs = MulticlassRules.MulticlassProficiencies(_editSheet.Classes[idx].Class);
+                                    <span class="advisory advisory-prof">
+                                        @(profs.Count == 0 ? "" : $"grants: {string.Join(", ", profs)}")
+                                    </span>
                                 }
-                                <span class="advisory advisory-prof">
-                                    @{
-                                        var profs = MulticlassRules.MulticlassProficiencies(_editSheet.Classes[idx].Class);
-                                    }
-                                    @(profs.Count == 0 ? "" : $"grants: {string.Join(", ", profs)}")
-                                </span>
                             </div>
                         }
                         <button type="button" @onclick="AddClass">+ Add class</button>
