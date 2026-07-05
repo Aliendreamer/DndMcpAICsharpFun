@@ -18,6 +18,10 @@ internal static class WebApplicationExtensions
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
+
+        var seeder = scope.ServiceProvider
+            .GetRequiredService<DndMcpAICsharpFun.Features.Resolution.MulticlassSlotTableSeeder>();
+        await seeder.SeedAsync(CancellationToken.None);
     }
 
     internal static void ValidateStartupConfiguration(this WebApplication app)
