@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace DndMcpAICsharpFun.Domain;
@@ -57,32 +56,31 @@ public sealed class CharacterSheet : IJsonOnDeserialized
         return m >= 0 ? $"+{m}" : $"{m}";
     }
 
-    /// <summary>
-    /// Captures JSON properties not mapped to a member — notably legacy flat "Class"/"Subclass"/"Level"
-    /// on pre-multiclass HeroSnapshot rows. Consumed and cleared by <see cref="OnDeserialized"/>; never
-    /// re-serialized (new writes only contain <see cref="Classes"/>).
-    /// </summary>
-    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+    // Legacy deserialization sinks: pre-multiclass HeroSnapshot rows wrote flat "Class"/"Subclass"/"Level".
+    // The [JsonIgnore] derived getters shadow those keys from [JsonExtensionData], so capture them here.
+    // Set-only (no getter) => deserialized but never re-serialized. Consumed in OnDeserialized.
+    private string? _legacyClass;
+    private string? _legacySubclass;
+    private int? _legacyLevel;
+
+    [JsonInclude, JsonPropertyName("Class")]
+    internal string LegacyClassSink { set => _legacyClass = value; }
+    [JsonInclude, JsonPropertyName("Subclass")]
+    internal string LegacySubclassSink { set => _legacySubclass = value; }
+    [JsonInclude, JsonPropertyName("Level")]
+    internal int LegacyLevelSink { set => _legacyLevel = value; }
 
     void IJsonOnDeserialized.OnDeserialized()
     {
-        // Tolerant migration: a legacy single-class snapshot has flat "Class"/"Level" (captured in Extra)
-        // and no "Classes". Back-fill a one-entry list. Only fires when Classes is empty AND a flat class
-        // name is present, so a genuinely class-less sheet stays empty.
-        if (Classes.Count == 0 && Extra is not null
-            && Extra.TryGetValue("Class", out var c) && c.ValueKind == JsonValueKind.String)
-        {
-            var cls = c.GetString() ?? "";
-            if (!string.IsNullOrWhiteSpace(cls))
+        // Tolerant migration: legacy single-class snapshots have flat "Class"/"Level" and no "Classes".
+        // Back-fill a one-entry list, only when Classes is empty AND a flat class name was present.
+        if (Classes.Count == 0 && !string.IsNullOrWhiteSpace(_legacyClass))
+            Classes.Add(new ClassLevel
             {
-                var sub = Extra.TryGetValue("Subclass", out var s) && s.ValueKind == JsonValueKind.String
-                    ? s.GetString() ?? "" : "";
-                var lvl = Extra.TryGetValue("Level", out var l) && l.ValueKind == JsonValueKind.Number
-                    ? l.GetInt32() : 1;
-                Classes.Add(new ClassLevel { Class = cls, Subclass = sub, Level = lvl });
-            }
-        }
-        Extra = null; // do not echo legacy keys back out on the next serialize
+                Class = _legacyClass,
+                Subclass = _legacySubclass ?? "",
+                Level = _legacyLevel ?? 1,
+            });
     }
 
     /// <summary>Sets the character to a single class (the common non-multiclass path).</summary>
