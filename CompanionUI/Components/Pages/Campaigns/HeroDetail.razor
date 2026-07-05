@@ -41,7 +41,10 @@ else
             {
                 <div class="identity-grid">
                     <span><b>Race:</b> @sheet.Race</span>
-                    <span><b>Class:</b> @sheet.Class @(string.IsNullOrEmpty(sheet.Subclass) ? "" : $"({sheet.Subclass})")</span>
+                    <span><b>Class:</b> @(sheet.Classes.Count == 0
+                        ? "—"
+                        : string.Join(" / ", sheet.Classes.Select(c =>
+                            string.IsNullOrEmpty(c.Subclass) ? $"{c.Class} {c.Level}" : $"{c.Class} {c.Level} ({c.Subclass})")))</span>
                     <span><b>Level:</b> @sheet.Level</span>
                     <span><b>Background:</b> @sheet.Background</span>
                     <span><b>Alignment:</b> @sheet.Alignment</span>
