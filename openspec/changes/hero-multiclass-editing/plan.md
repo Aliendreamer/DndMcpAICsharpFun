@@ -247,7 +247,7 @@ git commit -m "feat(ui): per-class list editor in HeroDetail; drop SetSingleClas
 
 - [ ] **Step 1: Add the advisory inside each class row**
 
-In the class-edit row markup from Task 2, inside the `<div class="class-edit-row">` (after the Remove button), add a per-row advisory. The prerequisite advisory shows only for **non-primary** rows (`idx > 0`); the proficiency subset shows for every row:
+In the class-edit row markup from Task 2, inside the `<div class="class-edit-row">` (after the Remove button), add a per-row advisory. Per the spec, BOTH the prerequisite and the reduced proficiency subset are scoped to **non-primary** rows (`idx > 0`) — the primary class has no multiclass-into prerequisite, and for the primary class the *reduced* multiclass proficiency subset understates its real grants, so it must not be shown there. Both spans live inside the single `@if (idx > 0)` block:
 
 ```razor
                             <div class="class-edit-row">
@@ -266,13 +266,11 @@ In the class-edit row markup from Task 2, inside the `<div class="class-edit-row
                                     <span class="advisory @(check.Allowed ? "advisory-ok" : "advisory-warn")">
                                         @(check.Allowed ? "✓ multiclass allowed" : $"⚠ {check.Reason}")
                                     </span>
+                                    var profs = MulticlassRules.MulticlassProficiencies(_editSheet.Classes[idx].Class);
+                                    <span class="advisory advisory-prof">
+                                        @(profs.Count == 0 ? "" : $"grants: {string.Join(", ", profs)}")
+                                    </span>
                                 }
-                                <span class="advisory advisory-prof">
-                                    @{
-                                        var profs = MulticlassRules.MulticlassProficiencies(_editSheet.Classes[idx].Class);
-                                    }
-                                    @(profs.Count == 0 ? "" : $"grants: {string.Join(", ", profs)}")
-                                </span>
                             </div>
 ```
 
