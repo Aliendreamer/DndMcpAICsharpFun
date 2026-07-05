@@ -61,9 +61,21 @@ public sealed class DndChatService(
                 (long heroSnapshotId, string feature, CancellationToken toolCt) =>
                     resolutionService.ResolveForUserAsync(heroSnapshotId, userId, feature, toolCt),
                 name: "resolve_character_feature",
-                description: "Compute a character-specific, cited rule fact (e.g. \"breath weapon\") for " +
-                    "a hero snapshot the signed-in user owns. Returns the value plus the rule components " +
-                    "and their source provenance."));
+                description: "Compute a character-specific, cited rule fact for a hero snapshot the " +
+                    "signed-in user owns. Supported features: \"breath weapon\", \"spell slots\" " +
+                    "(multiclass-aware combined caster level; Warlock pact reported separately), " +
+                    "\"spell save dc\" (one value per caster class). Returns the value plus the rule " +
+                    "components and their source provenance."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (long heroSnapshotId, string targetClass, CancellationToken toolCt) =>
+                    resolutionService.ResolveMulticlassValidityForUserAsync(
+                        heroSnapshotId, userId, targetClass, toolCt),
+                name: "check_multiclass",
+                description: "Check whether the signed-in user's hero snapshot may multiclass into a " +
+                    "given class (targetClass, e.g. \"Rogue\"). Returns allowed/not-allowed with the " +
+                    "failed ability-score prerequisite and the reduced proficiency subset the class " +
+                    "grants. Works for any combination, caster or not."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));
