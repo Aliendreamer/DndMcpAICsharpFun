@@ -37,7 +37,10 @@ public static class MulticlassSpellcasting
         if (FullCasters.Contains(c.Class)) return CasterType.Full;
         if (HalfCasters.Contains(c.Class)) return CasterType.Half;
         if (string.Equals(c.Class, "Artificer", StringComparison.OrdinalIgnoreCase)) return CasterType.Half;
-        if (ThirdCasterSubclasses.Contains(c.Subclass)) return CasterType.Third;
+        if (ThirdCasterSubclasses.Contains(c.Subclass)
+            && (string.Equals(c.Class, "Fighter", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(c.Class, "Rogue", StringComparison.OrdinalIgnoreCase)))
+            return CasterType.Third;
         return CasterType.None;
     }
 
@@ -69,8 +72,9 @@ public static class MulticlassSpellcasting
             string.Equals(c.Class, "Warlock", StringComparison.OrdinalIgnoreCase));
         if (warlock is null || warlock.Level < 1) return null;
         var lvl = warlock.Level;
-        var slotLevel = lvl switch { 1 => 1, 2 or 3 or 4 => 2, 5 or 6 => 3, 7 or 8 => 4, _ => 5 };
-        var slotCount = lvl switch { 1 => 1, 2 => 2, <= 10 => 2, <= 16 => 3, _ => 4 };
+        // PHB Pact Magic: slot LEVEL advances to 2nd only at Warlock 3 (L1-2 are 1st-level slots).
+        var slotLevel = lvl switch { 1 or 2 => 1, 3 or 4 => 2, 5 or 6 => 3, 7 or 8 => 4, _ => 5 };
+        var slotCount = lvl switch { 1 => 1, <= 10 => 2, <= 16 => 3, _ => 4 };
         return new PactMagic(slotCount, slotLevel);
     }
 

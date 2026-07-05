@@ -63,4 +63,30 @@ public sealed class MulticlassSpellcastingTests
         MulticlassSpellcasting.SpellcastingAbility("Wizard").Should().Be("Intelligence");
         MulticlassSpellcasting.SpellcastingAbility("Rogue").Should().BeNull();
     }
+
+
+    [Fact]
+    public void Warlock_level_2_has_two_first_level_pact_slots()
+    {
+        var pact = MulticlassSpellcasting.WarlockPact([C("Warlock", 2)])!;
+        pact.SlotCount.Should().Be(2);
+        pact.SlotLevel.Should().Be(1);   // NOT 2 — slot level advances at Warlock 3
+    }
+
+    [Fact]
+    public void Warlock_level_5_has_two_third_level_pact_slots()
+    {
+        var pact = MulticlassSpellcasting.WarlockPact([C("Warlock", 5)])!;
+        pact.SlotCount.Should().Be(2);
+        pact.SlotLevel.Should().Be(3);
+    }
+
+    [Fact]
+    public void Third_caster_subclass_on_wrong_parent_class_is_not_a_caster()
+    {
+        // A malformed ClassLevel pairing an EK subclass with a non-Fighter class must NOT be a caster.
+        MulticlassSpellcasting.CombinedCasterLevel([C("Barbarian", 6, "Eldritch Knight")]).Should().Be(0);
+        MulticlassSpellcasting.Classify(C("Barbarian", 6, "Eldritch Knight"))
+            .Should().Be(CasterType.None);
+    }
 }
