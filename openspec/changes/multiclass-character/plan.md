@@ -4,7 +4,7 @@
 
 **Goal:** Extend `CharacterSheet` to a per-class level model (any combination, caster or not), add deterministic multiclass validity and combined-caster-level spellcasting, and expose the single-vs-multi resolution fork as cited MCP tools.
 
-**Architecture:** `CharacterSheet.Classes: List<ClassLevel>` becomes the source of truth; `Class`/`Subclass`/`Level`/`ProficiencyBonus` become derived `[JsonIgnore]` getters. Legacy single-class `HeroSnapshot` JSON (flat `Class`/`Level`, no `Classes`) is migrated tolerantly at deserialize time via `[JsonExtensionData]` capture + the STJ `IJsonOnDeserialized` hook — no data-migration script. Multiclass validity (`MulticlassRules`) and spellcasting composition (`MulticlassSpellcasting`) are pure deterministic code; the combined-level→slots reference table is seeded into Postgres `StructuredTables` so the resolved answer carries a `ProvenanceRef`, exactly as slice-1's breath-weapon path does. `CharacterResolutionService` gains a fork keyed on `Classes`, surfaced through the existing per-user in-process MCP tool plus a new `check_multiclass` tool.
+**Architecture:** `CharacterSheet.Classes: List<ClassLevel>` becomes the source of truth; `Class`/`Subclass`/`Level`/`ProficiencyBonus` become derived `[JsonIgnore]` getters. Legacy single-class `HeroSnapshot` JSON (flat `Class`/`Level`, no `Classes`) is migrated tolerantly at deserialize time via private set-only sink properties (`[JsonPropertyName]`+`[JsonInclude]`) feeding the STJ `IJsonOnDeserialized` hook — no data-migration script. (Set-only sinks, not `[JsonExtensionData]`: the `[JsonIgnore]` derived getters shadow the legacy keys from any extension-data bag — verified empirically.) Multiclass validity (`MulticlassRules`) and spellcasting composition (`MulticlassSpellcasting`) are pure deterministic code; the combined-level→slots reference table is seeded into Postgres `StructuredTables` so the resolved answer carries a `ProvenanceRef`, exactly as slice-1's breath-weapon path does. `CharacterResolutionService` gains a fork keyed on `Classes`, surfaced through the existing per-user in-process MCP tool plus a new `check_multiclass` tool.
 
 **Tech Stack:** .NET 10, C# (nullable + warnings-as-errors), System.Text.Json, EF Core (Npgsql/PostgreSQL), xunit + FluentAssertions + NSubstitute (global usings). Persistence tests run against real Postgres via Testcontainers + Respawn (Docker required).
 
@@ -23,7 +23,7 @@
 
 ## File Structure
 
-- `Domain/CharacterSheet.cs` — **modify**: add `ClassLevel`; add `Classes` list; convert `Class`/`Subclass`/`Level`/`ProficiencyBonus` to derived `[JsonIgnore]` getters; add `[JsonExtensionData]` legacy-capture; implement `IJsonOnDeserialized`; add `SetSingleClass`.
+- `Domain/CharacterSheet.cs` — **modify**: add `ClassLevel`; add `Classes` list; convert `Class`/`Subclass`/`Level`/`ProficiencyBonus` to derived `[JsonIgnore]` getters; add private set-only legacy sinks (`[JsonPropertyName]`+`[JsonInclude]`); implement `IJsonOnDeserialized`; add `SetSingleClass`.
 - `Features/Resolution/MulticlassRules.cs` — **create**: ability-score prerequisite map + reduced proficiency-subset map (all combos, caster or not).
 - `Features/Resolution/MulticlassSpellcasting.cs` — **create**: caster-type classification, combined caster level, Warlock pact, per-class spellcasting ability.
 - `Features/Resolution/MulticlassSlotTableSeeder.cs` — **create**: idempotent seeding of the `phb14.table.multiclass-spellcaster` `StructuredTable` (+ 20 rows, PHB provenance).
@@ -105,10 +105,9 @@ Expected: FAIL — `ClassLevel` does not exist / `Classes` not defined / `Class`
 
 - [ ] **Step 3: Modify `CharacterSheet.cs`**
 
-Add the `using`s at the top of the file:
+Add the `using` at the top of the file (for `IJsonOnDeserialized`, `[JsonIgnore]`, `[JsonInclude]`, `[JsonPropertyName]`):
 
 ```csharp
-using System.Text.Json;
 using System.Text.Json.Serialization;
 ```
 
@@ -150,35 +149,37 @@ Delete the old `public int Level { get; set; }` line. Then convert the stored `P
     [JsonIgnore] public int ProficiencyBonus => 2 + (Math.Max(1, Level) - 1) / 4;
 ```
 
-Add, at the end of the class body (after `ModifierStr`), the legacy-capture bag, the migration hook, and the helper:
+Add, at the end of the class body (after `ModifierStr`), the legacy deserialization sinks, the migration hook, and the helper.
+
+**Why set-only sinks, not `[JsonExtensionData]`:** the derived `[JsonIgnore]` getters named `Class`/`Subclass`/`Level` **shadow** the legacy JSON keys — an ignored member still "claims" its name, so STJ matches the incoming `"Class"` key to the ignored getter and drops it; it never reaches a `[JsonExtensionData]` bag (verified empirically: extension-data stays empty). Instead, capture each legacy key with a private **set-only** property carrying `[JsonPropertyName(...)]` + `[JsonInclude]`. Set-only (no getter) means STJ deserializes into it but never re-serializes it, so migrated sheets round-trip as `{"Classes":[...]}` with no stray top-level `"Class"`/`"Level"` keys. No name collision occurs because the public same-named getters are `[JsonIgnore]`.
 
 ```csharp
-    /// <summary>
-    /// Captures JSON properties not mapped to a member — notably legacy flat "Class"/"Subclass"/"Level"
-    /// on pre-multiclass HeroSnapshot rows. Consumed and cleared by <see cref="OnDeserialized"/>; never
-    /// re-serialized (new writes only contain <see cref="Classes"/>).
-    /// </summary>
-    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+    // Legacy deserialization sinks: pre-multiclass HeroSnapshot rows wrote flat "Class"/"Subclass"/"Level".
+    // The [JsonIgnore] derived getters above shadow those keys from [JsonExtensionData], so capture them
+    // here instead. Set-only (no getter) => deserialized but never re-serialized. Consumed in OnDeserialized.
+    private string? _legacyClass;
+    private string? _legacySubclass;
+    private int? _legacyLevel;
+
+    [JsonInclude, JsonPropertyName("Class")]
+    internal string LegacyClassSink { set => _legacyClass = value; }
+    [JsonInclude, JsonPropertyName("Subclass")]
+    internal string LegacySubclassSink { set => _legacySubclass = value; }
+    [JsonInclude, JsonPropertyName("Level")]
+    internal int LegacyLevelSink { set => _legacyLevel = value; }
 
     void IJsonOnDeserialized.OnDeserialized()
     {
-        // Tolerant migration: a legacy single-class snapshot has flat "Class"/"Level" (captured in Extra)
-        // and no "Classes". Back-fill a one-entry list. Only fires when Classes is empty AND a flat class
-        // name is present, so a genuinely class-less sheet stays empty.
-        if (Classes.Count == 0 && Extra is not null
-            && Extra.TryGetValue("Class", out var c) && c.ValueKind == JsonValueKind.String)
-        {
-            var cls = c.GetString() ?? "";
-            if (!string.IsNullOrWhiteSpace(cls))
+        // Tolerant migration: a legacy single-class snapshot has flat "Class"/"Level" and no "Classes".
+        // Back-fill a one-entry list. Fires only when Classes is empty AND a flat class name was present,
+        // so a genuinely class-less sheet stays empty.
+        if (Classes.Count == 0 && !string.IsNullOrWhiteSpace(_legacyClass))
+            Classes.Add(new ClassLevel
             {
-                var sub = Extra.TryGetValue("Subclass", out var s) && s.ValueKind == JsonValueKind.String
-                    ? s.GetString() ?? "" : "";
-                var lvl = Extra.TryGetValue("Level", out var l) && l.ValueKind == JsonValueKind.Number
-                    ? l.GetInt32() : 1;
-                Classes.Add(new ClassLevel { Class = cls, Subclass = sub, Level = lvl });
-            }
-        }
-        Extra = null; // do not echo legacy keys back out on the next serialize
+                Class = _legacyClass,
+                Subclass = _legacySubclass ?? "",
+                Level = _legacyLevel ?? 1,
+            });
     }
 
     /// <summary>Sets the character to a single class (the common non-multiclass path).</summary>
@@ -258,8 +259,13 @@ public sealed class CharacterSheetMigrationTests
         second.Class.Should().Be("Wizard");
         second.Level.Should().Be(5);
         second.Classes.Should().ContainSingle();
-        // Legacy top-level "Class"/"Level" keys are not echoed back (only "Classes" is written).
-        reserialized.Should().NotContain("\"Level\":");
+        // Legacy top-level "Class"/"Level"/"Subclass" keys are not echoed back — only "Classes" is
+        // written (the nested "Level"/"Class" inside each ClassLevel entry is expected and correct,
+        // so assert on the ROOT object's properties, not a substring).
+        using var doc = JsonDocument.Parse(reserialized);
+        doc.RootElement.TryGetProperty("Classes", out _).Should().BeTrue();
+        doc.RootElement.TryGetProperty("Level", out _).Should().BeFalse();
+        doc.RootElement.TryGetProperty("Class", out _).Should().BeFalse();
     }
 
     [Fact]
@@ -277,7 +283,7 @@ public sealed class CharacterSheetMigrationTests
 - [ ] **Step 2: Run test to verify it fails or passes**
 
 Run: `dotnet test --filter FullyQualifiedName~CharacterSheetMigrationTests`
-Expected: PASS if Task 1's hook is correct. If any fail, fix `OnDeserialized` in `CharacterSheet.cs` (do NOT weaken the test). Common causes: forgot `[JsonExtensionData]`, or set `Extra = null` before reading it.
+Expected: PASS if Task 1's hook is correct. If any fail, fix `OnDeserialized` / the legacy sinks in `CharacterSheet.cs` (do NOT weaken the test). Common cause: a sink that isn't set-only or lacks `[JsonInclude]`+`[JsonPropertyName]`, so the legacy key is dropped and `Classes` stays empty.
 
 - [ ] **Step 3: Commit**
 
