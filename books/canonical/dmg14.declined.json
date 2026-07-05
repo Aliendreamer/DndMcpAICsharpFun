@@ -1,35 +1,5 @@
 [
   {
-    "id": "dmg14.monster.ballista",
-    "name": "BALLISTA",
-    "type": "Monster",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "dmg14.monster.cannon",
-    "name": "CANNON",
-    "type": "Monster",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "dmg14.monster.cauldron-suspended",
-    "name": "CAULDRON, SUSPENDED",
-    "type": "Monster",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "dmg14.monster.damage-immunities-poison-psychic",
-    "name": "Damage Immunities: poison, psychic",
-    "type": "Monster",
-    "reason": "no_5etools_match"
-  },
-  {
-    "id": "dmg14.monster.ram",
-    "name": "RAM",
-    "type": "Monster",
-    "reason": "no_5etools_match"
-  },
-  {
     "id": "dmg14.god.gods-of-your-world",
     "name": "GODS OF YOUR WORLD",
     "type": "God",

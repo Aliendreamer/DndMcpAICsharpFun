@@ -1,9 +1,1241 @@
 [
   {
-    "sourceEntityId": "dmg14.item.ioun-stone",
+    "sourceEntityId": "dmg14.monster.cauldron-suspended",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The source text only describes it as a \u0022Large object\u0022 without providing specific rules, abilities, or detailed mechanics that would define it as a discrete game entity in the D\u0026D system."
+  },
+  {
+    "sourceEntityId": "dmg14.monster.ram",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The source text \u0022Large object\u0022 is a general category description and does not correspond to a specific game entity (creature, magic item, feat, etc.) or mention \u0022RAM\u0022."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.chapter-2-creating-a-multiverse",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a chapter heading, not a game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.the-planes",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text is a narrative explanation of the Planes concept, not a discrete game entity. It describes lore and cosmology rather than a specific rule, item, spell, or creature."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.planar-categories",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text describes planar categories as part of the cosmology framework, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.putting-the-planes-together",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This section provides narrative guidance on cosmology and plane relationships, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.inventing-your-own-planes",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading and narrative guidance for dungeon masters, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.spells",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes multiple spells (Plane Shift, Gate) and their mechanics, but the overall structure is a section heading followed by narrative and rule explanations, not a single discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.color-pools",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a game mechanic (color pools) but is not a discrete entity. It contains narrative explanation and rules context rather than a standalone game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.psychic-wind-effects",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text describes the effects of a psychic wind, which is a narrative rule section rather than a discrete game entity. It outlines d20-based consequences for location and mental effects but does not represent a standalone spell, ability, or object."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.astral-plane-encounters",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes narrative world-building about the Astral Plane\u0027s denizens and encounters, not a discrete game entity with structured rules data."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.shadowfell",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text is a narrative description of the Shadowfell\u0027s lore and environment, not a discrete game entity with structured rules data."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.shadow-crossings",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a game mechanic/setting feature but does not present it as a discrete entity with defined attributes, stats, or structured rules. It serves as narrative context rather than a distinct game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.domains-of-dread",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes narrative background about Shadowfell domains and an optional rule, but does not define a discrete game entity like a monster, item, feat, or class."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.shadowfell-despair",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a rule description for a condition effect, not a discrete game entity. It outlines mechanics for the Shadowfell Despair curse, including its d6 outcomes, replacement rules, saving throws, and removal methods."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.evernight",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a narrative lore entry about a fictional location (Evernight) rather than a discrete game entity with structured rules data."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.elemental-chaos",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Descriptive passage about the Elemental Chaos setting, not a discrete game entity with structured rules."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.plane-of-air",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes the Plane of Air as a narrative worldbuilding section, not a discrete game entity with quantifiable rules data. It contains environmental descriptions, lore, and setting details rather than mechanics or structured statistics."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.the-city-of-brass",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a narrative setting rather than a discrete game entity with defined rules data."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.plane-of-water",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text is a descriptive narrative about the Plane of Water, a planar location, and does not represent a discrete game entity with structured rules data."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.outer-planes",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text is a narrative description of the Outer Planes\u0027 concept and characteristics, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.the-outer-planes",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes conceptual planes and their inhabitants rather than a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.layers-of-the-outer-planes",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a general concept (layers of Outer Planes) rather than a discrete game entity with specific attributes or rules."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.traveling-the-outer-planes",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes general mechanics for traveling between the Outer Planes and mentions planar features, but does not introduce a discrete game entity with defined rules or attributes."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.the-river-styx",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a narrative/location feature but does not represent a discrete game entity with quantifiable rules (e.g., no attack table, stat block, or mechanical effect beyond the feeblemind description). The \u0027River Styx\u0027 is a lore element rather than a standalone rule entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.the-infinite-staircase",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a narrative element (The Infinite Staircase) as a location with lore, but it is not a discrete game entity with defined rules or mechanics. It serves as a story element rather than a structured rulebook entry."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.optional-rules",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a section heading and its associated optional rule content, but \u0027OPTIONAL RULES\u0027 itself is not a discrete game entity (it\u0027s a section title). The actual rule (PSYCHIC DISSONANCE) is a game entity, but the entity name provided refers to the section heading."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.mount-celestia",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a celestial location and an optional rule, but neither constitutes a discrete game entity (creature, item, spell, etc.). The narrative about Mount Celestia is setting context, and the optional rule is a gameplay mechanic rather than an entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.elysium",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a planar location (Elysium) and its optional rule, but the structure contains both narrative description and rule text. Since it\u0027s not a discrete game entity (like a monster, item, or spell) but rather a planar description with an associated rule, it doesn\u0027t fit the \u0027plane\u0027 entityType schema as the rule is an optional effect rather than a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.the-beastlands",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a plane of existence (The Beastlands) and includes optional rules, but the primary content is a narrative description and game mechanics rather than a discrete entity. The optional rules are not standalone entities but features of the plane."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.optional-rule-mad-winds",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a narrative rule description, not a discrete game entity. It describes a conditional effect (Wisdom saving throw, exhaustion, madness) but lacks the structured format of a formal rule entry (e.g., no explicit \u0027rule\u0027 header, no separate effect/exception branches)."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.the-abyss",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a plane of existence (The Abyss) but contains narrative exposition and optional rules rather than a discrete game entity. It includes mechanics but is presented as a setting description rather than a standalone entity with fixed attributes."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.abyssal-corruption",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a d10 table for the Abyssal Corruption effect but is part of a larger rule entry. It contains narrative descriptions of consequences rather than a standalone discrete entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.optional-rule-prison-plane",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a narrative description of a rule effect, not a discrete game entity. The text describes mechanical properties of the Carceri plane but does not represent a named entity like a monster, item, or feat."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.optional-rule-cruel-hindrance",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text contains both a rule description and narrative context about the Nine Hells, but the entire block is not a discrete game entity. The rule\u0027s mechanics are described, but the second paragraph is narrative worldbuilding rather than a separate entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.optional-rule-pervasive-evil",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Optional rule not a standard entity type"
+  },
+  {
+    "sourceEntityId": "dmg14.plane.the-nine-layers",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes the Nine Hells as a planar location with multiple layers, but it is not a discrete game entity (e.g., a creature, item, or feat). It serves as a narrative context rather than a structured rule entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.optional-rule-bloodlust",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is an optional rule description, not a discrete game entity like an ability, attack, or spell."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.optional-rule-law-of-averages",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a narrative rule description, not a discrete game entity. It explains a specific game mechanic (average damage on Mechanus) but does not represent a standalone entity like a spell, feat, or class."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.optional-rule-imposing-order",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a narrative rule description, not a discrete game entity. It outlines a conditional effect but does not represent a standalone entity like a spell, class, feat, or item."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.other-planes",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text is a general narrative statement about the existence of realms between or beyond other planes, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.gate-towns-of-the-outlands",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a location but is part of a narrative section about the Outlands, not a discrete game entity with defined rules or statistics."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.the-far-realm",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a lore concept (the Far Realm) rather than a discrete game entity. It contains narrative exposition about the multiversal setting, effects on other planes, and historical references, but no specific rules, mechanics, or stat-block data."
+  },
+  {
+    "sourceEntityId": "dmg14.plane.known-worlds-of-the-material-plane",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading/section title describing a list of game worlds, not a discrete entity."
+  },
+  {
+    "sourceEntityId": "dmg14.trap.traps",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text provides a general description of traps in the D\u0026D game, not a discrete game entity. It explains trap mechanics and types but does not define a specific entity with structured attributes."
+  },
+  {
+    "sourceEntityId": "dmg14.trap.traps-in-play",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading and explanatory text about trap mechanics, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.trap.triggering-a-trap",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text explains general rules about trap triggering mechanics, not a specific discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.trap.detecting-and-disabling-a-trap",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text provides general rules and mechanics for detecting and disarming traps, not a specific discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.trap.trap-effects",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes general rules about trap effects and severity levels, not a specific discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.trap.sample-traps",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading introducing trap content, not a specific discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.trap.falling-net-mechanical-trap",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a mechanical trap but is part of a rulebook section that includes both narrative explanations and rule entries. It does not represent a discrete game entity like a monster, item, or class, but rather a trap mechanism with associated rules."
+  },
+  {
+    "sourceEntityId": "dmg14.trap.poison-darts-mechanical-trap",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a mechanical trap\u0027s mechanics but is part of a larger rule description rather than a discrete entity. It contains narrative and rule details but no standalone entity name or unique identifier."
+  },
+  {
+    "sourceEntityId": "dmg14.trap.poison-needle-mechanical-trap",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a mechanical trap\u0027s mechanics but is part of a larger rule description rather than a discrete entity. It contains narrative and rule text but no standalone entity definition."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.chapter-7-treasure",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a chapter heading from the Dungeon Master\u0027s Guide, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.random-treasure",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is an introductory text explaining the purpose of treasure generation tables, not a specific game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.treasure-tables",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a heading/title section descriptor, not a discrete game entity. The text describes rules for treasure allocation systems but does not represent a specific game entity like a monster, item, spell, or class."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.using-the-treasure-hoard-tables",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text is a procedural guide explaining how to use treasure hoard tables, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.gemstones",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text describes a rule for determining gemstone types in treasure hoards, not a specific discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.art-objects",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a procedural rule for generating art objects in treasure hoards, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.magic-items",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Section heading introducing magic items concept"
+  },
+  {
+    "sourceEntityId": "dmg14.item.rarity",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a game mechanic (rarity classification for magic items) rather than a discrete entity, and does not describe a specific item, creature, or concept with its own properties."
+  },
+  {
+    "sourceEntityId": "dmg14.item.buying-and-selling",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text is a narrative explanation of game mechanics and campaign considerations, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.identifying-a-magic-item",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes rules and mechanics for identifying magic items, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.cursed-items",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes general rules about cursed items rather than a specific discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.armor",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Describes general rules for magic armor functionality, not a specific discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.rings",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text describes general rules about magic rings rather than a specific discrete game entity. It outlines functionality rules for all magic rings, not a particular item or concept."
+  },
+  {
+    "sourceEntityId": "dmg14.item.weapons",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading followed by narrative text introducing magic weapons, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.variant-mixing-potions",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a rule explanation text about potion interactions, not a discrete game entity. It describes mechanics for mixing potions but does not represent a specific entity like a spell, item, or creature."
+  },
+  {
+    "sourceEntityId": "dmg14.item.potion-miscibility",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Source text does not mention potion miscibility; discusses magic weapon types instead."
+  },
+  {
+    "sourceEntityId": "dmg14.item.wearing-and-wielding-items",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading explaining general rules about using magic items, not a specific discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.variant-scroll-mishaps",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a rule description text, not a discrete game entity. It explains a variant rule mechanism but does not represent a standalone entity like a spell, feat, or item."
+  },
+  {
+    "sourceEntityId": "dmg14.item.scroll-mishap",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The source text discusses general item usability rules for different creature types (dwarves, nonhumanoids) and examples of item interaction, but does not describe a specific game entity named \u0027Scroll Mishap\u0027 or any scroll-related mechanics."
+  },
+  {
+    "sourceEntityId": "dmg14.item.multiple-items-of-the-same-kind",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text explains a general rule about wearing multiple magic items, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.paired-items",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a rule explanation text, not a discrete game entity. It describes a game mechanic but does not represent a specific entity like a spell, monster, or item."
+  },
+  {
+    "sourceEntityId": "dmg14.item.activating-an-item",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text explains general rules for activating magic items and interaction with features like Fast Hands, but does not describe a specific discrete game entity (item, class, feat, spell, etc.)."
+  },
+  {
+    "sourceEntityId": "dmg14.item.command-word",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a general rule about magic items and command words, not a specific discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.consumables",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Describes mechanics of existing consumable items, not introducing a new discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.spells",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text discusses rules about magic items and spellcasting mechanics, not a specific discrete game entity like a spell, creature, or item."
+  },
+  {
+    "sourceEntityId": "dmg14.item.charges",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a rule explanation about magic item charges, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.magic-item-resilience",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes general properties of magic items and artifacts rather than a specific discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.variant-wands-that-don-t-recharge",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a rule variant description, not a discrete game entity. It provides optional rules for wands but does not represent a separate entity like a creature, item, or feat."
+  },
+  {
+    "sourceEntityId": "dmg14.item.d20-creator-or-intended-user",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text provides descriptive guidelines for item creation based on creature types (e.g., Elemental Fire, Elf, Fey), but does not represent discrete game entities like creatures, items, or spells. It is a rule-adjacent narrative for generating item properties."
+  },
+  {
+    "sourceEntityId": "dmg14.item.d8-history",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes possible histories for magic items as part of a rule system, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.what-minor-property-does-it-have",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Section heading/question, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.d12-quirk",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes multiple discrete quirks (e.g., Confident, Frail, etc.) under the d12 Quirk category, but the source text itself is a list of entries rather than a single entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.random-magic-items",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a procedural instruction explaining how to use treasure hoard tables, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.magic-item-table-g",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text represents a table of magic items, not a single discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.magic-items-a-z",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading introducing the alphabetical listing of magic items, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.wondrous-item-legendary",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but is part of a larger entry spanning multiple pages. The provided source text is an excerpt and lacks the complete structure required for a standalone entity entry."
+  },
+  {
+    "sourceEntityId": "dmg14.item.armor-class-20",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The source text describes creature statistics (Hit Points, Speed) but does not mention Armor Class. It appears to be part of a monster\u0027s stat block rather than a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.wondrous-item-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but is presented as a rule entry rather than a discrete entity. It contains narrative and mechanical details but lacks a distinct entity identifier beyond the item\u0027s name."
+  },
+  {
+    "sourceEntityId": "dmg14.item.d100-effect",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a table of effects for a d100 roll, which is a rule mechanism rather than a discrete game entity. It contains narrative descriptions of possible outcomes, not a singular entity like a spell, monster, or item."
+  },
+  {
+    "sourceEntityId": "dmg14.item.wondrous-item-uncommon",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes two distinct wondrous items (Bag of Holding and Bag of Tricks) but is presented as a single entry. It contains narrative descriptions and rules, not a single discrete entity. The \u0027Wondrous item, uncommon (page 153)\u0027 label is a header, not a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.bowl-of-commanding-water-elementals-wondrous-item-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but lacks required structured fields like \u0027name\u0027, \u0027rarity\u0027, \u0027weight\u0027, and \u0027volume\u0027 that would fit the \u0027wondrousItem\u0027 schema. The original entity header already includes these details, so the text is narrative context rather than a discrete entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.censer-of-controlling-air-elementals-wondrous-item-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but lacks required structured fields like \u0027name\u0027, \u0027rarity\u0027, or \u0027usage\u0027 from the schema. The physical description and ability are narrative details, not a discrete entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.wondrous-item-rare-requires-attunement",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but is part of a rule description rather than a discrete entity entry. It lacks a formal item name and is presented as a narrative rule rather than a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.cube-of-force-faces",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes properties of a cube (likely related to the CUBIC GATE entry) but does not present \u0027Cube of Force Faces\u0027 as a distinct game entity with its own rules or statistics."
+  },
+  {
+    "sourceEntityId": "dmg14.item.daern-s-instant-fortress-wondrous-item-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but contains narrative and rule text mixed with formatting that cannot be cleanly parsed into a structured entity without additional context. The item\u0027s description includes activation mechanics, damage effects, and durability rules that span multiple paragraphs and require contextual grouping beyond simple field extraction."
+  },
+  {
+    "sourceEntityId": "dmg14.item.weapon-any-sword-very-rare-requires-attunement",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a magical weapon\u0027s abilities but does not present it as a discrete game entity with a defined name or entry in the rulebook. It is a rule description rather than a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.a-question-of-enmity",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Response was not valid JSON: Expected end of string, but instead reached end of data. LineNumber: 0 | BytePositionInLine: 66088."
+  },
+  {
+    "sourceEntityId": "dmg14.item.dwarven-plate",
     "fieldPath": "(extraction)",
     "missingTargetId": "",
     "errorKind": "extraction_failure",
     "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "dmg14.item.figurine-of-wondrous-power-wondrous-item-rarity-by-figurine",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_failure",
+    "detail": "Empty response from Ollama"
+  },
+  {
+    "sourceEntityId": "dmg14.item.glamoured-studded-leather-armor-studded-leather-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a magical effect of an armor piece but does not present it as a discrete game entity with its own structured rule entry. It is part of a narrative explanation within a rule description."
+  },
+  {
+    "sourceEntityId": "dmg14.item.horseshoes-of-speed-wondrous-item-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item\u0027s effect but lacks the full rule entry structure (name, type, rarity, properties, etc.) required for a discrete entity. It\u0027s part of a larger item description."
+  },
+  {
+    "sourceEntityId": "dmg14.item.iron-bands-of-bilarro-wondrous-item-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item rule but is presented as narrative text within a rulebook entry, not a discrete entity with a structured data representation in the 2014 edition."
+  },
+  {
+    "sourceEntityId": "dmg14.item.keoghtom-s-ointment-wondrous-item-uncommon",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but is part of a larger item description block. The schema requires discrete entities, and this text is a continuation of the item\u0027s properties rather than a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.manual-of-golems-wondrous-item-very-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The source text describes the \u0027Manual of Golems\u0027 as a wondrous item, but the provided entity name already includes its rarity and page reference. The text details its function (creating golems, spellcasting requirements, damage effects) but does not present it as a discrete entity in the schema\u0027s defined categories (items, spells, monsters, etc.). The rules are procedural and contextual, not a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.manual-of-quickness-of-action-wondrous-item-very-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but is part of a narrative explanation rather than a discrete rule entity. The item\u0027s properties are described in context, not as a standalone rule entry."
+  },
+  {
+    "sourceEntityId": "dmg14.item.mirror-of-life-trapping-wondrous-item-very-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but contains narrative and rule text rather than a discrete entity. It includes activation mechanics, effects, and interactions that are part of the item\u0027s description rather than standalone entities."
+  },
+  {
+    "sourceEntityId": "dmg14.item.nolzur-s-marvelous-pigments-wondrous-item-very-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but is presented as a rulebook entry rather than a discrete entity. It contains narrative and rules but lacks the structured formatting of a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.oil-of-sharpness-potion-very-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a potion\u0027s effects but does not present it as a discrete game entity with standardized attributes. It is narrative context rather than a structured rule entry."
+  },
+  {
+    "sourceEntityId": "dmg14.item.periapt-of-health-wondrous-item-uncommon",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The source text is a rule description for an existing wondrous item, but the entity name provided (Periapt of Health) is already accounted for in the schema as a wondrousItem. This text does not introduce a new discrete entity but rather describes properties of an existing item."
+  },
+  {
+    "sourceEntityId": "dmg14.item.periapt-of-proof-against-poison-wondrous-item-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item\u0027s properties but does not represent a discrete game entity in the schema. It is narrative text explaining the item\u0027s effects rather than a structured entity definition."
+  },
+  {
+    "sourceEntityId": "dmg14.item.portable-hole-wondrous-item-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but is part of a rulebook section that includes both item descriptions and narrative context. The Portable Hole\u0027s rules are presented as part of the item\u0027s description rather than as a standalone entity in the schema."
+  },
+  {
+    "sourceEntityId": "dmg14.item.quiver-of-ehlonna-wondrous-item-uncommon",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but is part of a rulebook entry\u0027s flavor text, not a discrete game entity in the schema."
+  },
+  {
+    "sourceEntityId": "dmg14.item.ring-legendary-requires-attunement",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes multiple distinct items (Ring of Air Elemental Command, etc.) rather than a single discrete entity. The source text is a collection of item descriptions under a general category, not a single entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.robe-of-useful-items-wondrous-item-uncommon",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wondrous item but lacks a discrete entity structure. The \u0027ROBE OF USEFUL ITEMS\u0027 is a game entity, but the provided schema requires explicit entity types. Since the text is a rule description rather than a structured entity, entityType is \u0027none\u0027."
+  },
+  {
+    "sourceEntityId": "dmg14.item.staff-of-thunder-and-lightning-staff-very-rare-requires-attunement",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a magic item\u0027s properties but is part of a rulebook\u0027s item description section, not a discrete entity in the schema."
+  },
+  {
+    "sourceEntityId": "dmg14.item.weapon-longsword-rare-requires-attunement",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a magical weapon (Sun Blade) but contains narrative elements and rule interactions (e.g., light effects, attunement) that don\u0027t fit neatly into a single discrete entity type. It combines item description, ability effects, and environmental interactions."
+  },
+  {
+    "sourceEntityId": "dmg14.item.tome-of-leadership-and-influence-wondrous-item-very-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The source text describes a wondrous item\u0027s effect but does not provide the full structured rules data required for a discrete entity. The text lacks mechanical properties like cost, charges, or specific usage conditions beyond the described effect."
+  },
+  {
+    "sourceEntityId": "dmg14.item.tome-of-the-stilled-tongue-wondrous-item-legendary-requires-attunement-by-a-wizard",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a narrative lore entry about a wondrous item, not a discrete game entity. It contains flavor text and special properties but lacks the structured rule data required for a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.weapon-any-rare",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a rule effect for a magic weapon but does not provide a named discrete entity. It is part of a larger weapon description and lacks unique identifier fields."
+  },
+  {
+    "sourceEntityId": "dmg14.item.weapon-any-sword-that-deals-slashing-damage-legendary-requires-attunement",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a weapon\u0027s properties but does not provide a named discrete game entity. It is part of a rule description rather than a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.wand-rare-requires-attunement-by-a-spellcaster",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a wand\u0027s properties but is part of a larger item description block. It lacks a distinct, uniquely identifiable entity name and contains repeated information, making it unsuitable for structured extraction as a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.wand-uncommon",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The source text describes two distinct wands but lacks a single, unified entity name or structure. It contains narrative descriptions rather than a single discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.sentient-magic-items",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text explains rules for sentient magic items as a general mechanic, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.abilities",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Section heading explaining rules for determining abilities of sentient magic items, not a discrete game entity"
+  },
+  {
+    "sourceEntityId": "dmg14.item.communication",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a rule explanation about sentient item communication mechanics, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.senses",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading explaining rules for sentient items\u0027 perception, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.alignment",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text explains a rule for determining alignment of sentient magic items, not a distinct game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.characteristics",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text is part of the narrative guidance for creating NPCs and sentient items, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.special-purpose",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a rule description text, not a discrete game entity. It explains a game mechanic but does not represent a specific entity like a spell, feat, or item."
+  },
+  {
+    "sourceEntityId": "dmg14.item.d10-purpose",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Describes categories/purposes for magic items (alignment, bane, protector, etc.), not discrete entities."
+  },
+  {
+    "sourceEntityId": "dmg14.item.conflict",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text describes a rule mechanic for sentient items\u0027 conflicts with wielders, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.sample-sentient-items",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading introducing content about sentient weapons, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.moonblade-properties",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes properties of a moonblade, which are game mechanics, but the entire section is a list of possible property effects rather than a single discrete entity. It includes narrative elements (sentience, personality) and rule-based properties, making it a mixed content block rather than a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.artifacts",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text provides a narrative description of artifacts\u0027 role in D\u0026D campaigns rather than defining a discrete game entity with structured rules or properties."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.minor-beneficial-properties",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text is a narrative example describing adventure scenarios, not a discrete game entity or rule."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.artifact-properties",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text describes general rules for artifact properties rather than a specific game entity. It outlines how artifacts can have beneficial/detrimental properties but does not represent a discrete item, spell, or feature."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.destroying-artifacts",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text describes rule guidelines for destroying artifacts, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.sample-artifacts",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading introducing sample artifact concepts, not a discrete game entity. The text describes artifacts as examples for DMs to use/modify, not specific named items with stat blocks."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.wondrous-item-artifact-requires-attunement",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes narrative lore about Vecna\u0027s artifacts and the Orbs of Dragonkind, which are not discrete game entities but part of a story section. It contains no standalone rulebook entries for wondrous items."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.other-rewards",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading introducing content rather than a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.supernatural-gifts",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a conceptual explanation of supernatural gifts as a game mechanic, not a discrete entity like a spell, monster, or item."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.charms",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a section about charms, including general rules and examples, but does not represent a discrete game entity like a spell, monster, or item."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.marks-of-prestige",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading introducing a concept rather than a specific game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.letters-of-recommendation",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a narrative scenario and game mechanic (use of letters of recommendation) rather than a discrete game entity like a spell, item, or class."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.medals",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes narrative context and symbolic value of medals, but does not present a discrete game entity with defined rules, attributes, or mechanics."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.special-favors",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text explains the mechanics of special favors as a narrative guideline, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.special-rights",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a general game concept (special rights) and its mechanics, but does not represent a discrete game entity like a feat, spell, item, or class."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.strongholds",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text provides a narrative explanation of strongholds as a reward mechanism and their implications, rather than defining a discrete game entity with specific rules or attributes."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.titles",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a game mechanic (titles in a feudal society) but is not a discrete game entity like a spell, feat, class, or monster."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.alternatives-to-epic-boons",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes existing game features (Ability Score Improvement and New Feat) as alternatives to epic boons, rather than defining a new discrete entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.training",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a narrative rule about training as a reward mechanism, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.epic-boons",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a game mechanic but does not present a discrete entity (like a spell, item, or creature). It serves as a narrative guideline for DMs rather than a structured rule entry."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-high-magic",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a game effect but does not present it as a named discrete entity (like a feat, spell, or class feature). It appears as part of a rule or condition rather than a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-immortality",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes the effects of the Boon of Immortality but does not present it as a discrete game entity with its own structured rule entry. It is a narrative description of a boon\u0027s effects rather than a standalone entity definition."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-invincibility",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a game mechanic but does not present it as a discrete entity with a defined name or structure. It is part of a rule explanation rather than a standalone game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-luck",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a game feature but is presented as a rule description rather than a discrete entity. It lacks a formal name in the source text (the title \u0027Boon of Luck\u0027 is provided externally)."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-magic-resistance",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The provided text is a rule description, not a discrete game entity. It describes a mechanical effect (advantage on saving throws) but does not represent a named entity like a feat, spell, or item."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-perfect-health",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a rule effect description, not a discrete game entity. It describes the benefits of a boon but does not represent a separate entity with its own structured data in the DMG."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.choose-one-of-your-spells-of",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a rule description, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-resilience",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a game effect (resistance to damage types) but is not a discrete entity like a spell, feat, or monster. It appears as part of a rule description rather than a standalone entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-skill-proficiency",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes an effect of a boon but does not provide a complete definition or context of the boon as a discrete entity. It is part of a larger rule description."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-spell-mastery",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a rule feature but is part of a larger rule entry (Boon of Spell Mastery) that requires contextual framing beyond isolated text. The provided snippet lacks explicit entity metadata like name or category."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-the-fire-soul",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes the effects of a boon but does not provide a named entity or structured rule entry. It is a narrative description of abilities rather than a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-the-stormborn",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a narrative description of a boon\u0027s effects, not a discrete game entity. The text describes abilities but does not present them as a structured feature with distinct game mechanics or rules."
+  },
+  {
+    "sourceEntityId": "dmg14.magicitem.boon-of-undetectability",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes the effect of a boon but does not present it as a structured entity with a defined name or category in the source text."
+  },
+  {
+    "sourceEntityId": "dmg14.item.mapping-the-chase",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text provides narrative guidance for handling chases and complications in gameplay, but does not describe a discrete game entity (monster, item, spell, etc.)."
+  },
+  {
+    "sourceEntityId": "dmg14.item.role-reversal",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The text describes a narrative scenario and gameplay mechanic (chase reversal) rather than a discrete game entity, heading, or table of contents entry."
+  },
+  {
+    "sourceEntityId": "dmg14.item.siege-equipment",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Explanatory passage about siege weapons\u0027 role in campaigns, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.cauldron-suspended",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Source text only describes a general object category without specific entity details or attributes."
+  },
+  {
+    "sourceEntityId": "dmg14.item.armor-class-19",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The source text only contains \u0027Hit Points: 20\u0027 which is not the entity \u0027Armor Class: 19 (page 255)\u0027 mentioned in the query. The provided source text does not contain armor class information."
+  },
+  {
+    "sourceEntityId": "dmg14.item.armor-class-15",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "Stat line without associated entity"
+  },
+  {
+    "sourceEntityId": "dmg14.item.ram",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "The source text only mentions \u0022Large object\u0022 without specifying a named entity or providing details about RAM."
+  },
+  {
+    "sourceEntityId": "dmg14.item.healing-spells",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This is a section heading and rule explanation, not a discrete game entity."
+  },
+  {
+    "sourceEntityId": "dmg14.item.modifying-an-item",
+    "fieldPath": "(extraction)",
+    "missingTargetId": "",
+    "errorKind": "extraction_declined",
+    "detail": "This text describes procedural guidelines for modifying items (e.g., changing damage types, combining properties) rather than a specific game entity."
   }
 ]
