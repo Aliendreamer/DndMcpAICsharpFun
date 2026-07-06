@@ -12,8 +12,14 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet restore DndMcpAICsharpFun.csproj
 
 COPY . .
+# NOT --no-restore: the csproj-only restore above evaluates the project before wwwroot/
+# and the Razor components exist, leaving obj/ static-web-asset caches that describe an empty
+# project. `publish --no-restore` would trust those and silently drop the FRAMEWORK static web
+# assets (notably _framework/blazor.web.js — Blazor interactivity dies with a 404). Letting
+# publish re-restore regenerates the manifest with all files present; it's cache-mount-fast so
+# the earlier restore layer still pays off (warm NuGet cache, no re-download).
 RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet publish DndMcpAICsharpFun.csproj -c Release -o /app/publish --no-restore
+    dotnet publish DndMcpAICsharpFun.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
