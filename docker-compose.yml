@@ -28,10 +28,17 @@ services:
       - McpClient__ApiKey=${MCP_API_KEY:?set MCP_API_KEY (copy .env.example to .env)}
       - Postgres__Host=postgres
       - Postgres__Password=${POSTGRES_PASSWORD:-dnd}
+      # Reranker model lives in its own subdir of the shared ONNX volume (matches the
+      # ms-marco-MiniLM-L-6-v2/ layout below) so it never collides with the aidoctor
+      # stack's multilingual-e5-large/ model in the same volume.
+      - Reranker__ModelPath=models/ms-marco-MiniLM-L-6-v2
     volumes:
       - ./books:/books
       - ./5etools:/app/5etools:ro
-      - models_data:/app/models
+      # Shared ONNX model cache — same external volume as the aidoctor (MedAssist) stack.
+      # The cross-encoder reranker lives in the ms-marco-MiniLM-L-6-v2/ subdir (see
+      # Reranker:ModelPath) so it's downloaded once and reused across both projects.
+      - shared_onnx_models:/app/models
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:5101/health"]
       interval: 15s
@@ -43,7 +50,10 @@ services:
     restart: unless-stopped
 
 volumes:
-  models_data:
+  # Externally-managed, shared with the aidoctor (MedAssist) stack. Create once with
+  # `docker volume create shared_onnx_models`. Not auto-created by compose.
+  shared_onnx_models:
+    external: true
 
 networks:
   shared:

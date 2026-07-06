@@ -21,7 +21,6 @@ internal static class AppExtensions
 
     internal static WebApplication UseDndMiddleware(this WebApplication app)
     {
-        app.UseStaticFiles();
         app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();

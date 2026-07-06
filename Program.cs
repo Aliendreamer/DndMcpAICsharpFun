@@ -9,11 +9,7 @@ using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using Serilog;
 using Serilog.Events;
 
-var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-{
-    Args = args,
-    WebRootPath = "CompanionUI/wwwroot",
-});
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((ctx, cfg) =>
     cfg.ReadFrom.Configuration(ctx.Configuration));
@@ -118,6 +114,11 @@ app.MapEntityRetrievalEndpoints();
 app.MapCanonicalTypeFixerEndpoints();
 app.MapCanonicalNameNormalizerEndpoints();
 app.MapMcp("/mcp");
+
+// Static web assets (app.css, app.js, _framework/blazor.web.js) served from the publish
+// endpoints manifest — required because the .NET SDK no longer copies them into a physical
+// wwwroot on publish. Must precede the Razor component endpoints.
+app.MapStaticAssets();
 
 // Blazor UI endpoints (Razor components + logout).
 app.MapDndEndpoints();
