@@ -20,6 +20,7 @@
       "Bash(docker *)",
       "Bash(docker compose *)",
       "mcp__serena__*",
+      "mcp__postgres__*",
       "mcp__plugin_serena_serena__*"
     ],
     "deny": [
@@ -47,7 +48,9 @@
     "dotnet-nuget@dotnet-agent-skills": true,
     "dotnet-template-engine@dotnet-agent-skills": true,
     "dotnet-test@dotnet-agent-skills": true,
-    "dotnet-upgrade@dotnet-agent-skills": true
+    "dotnet-upgrade@dotnet-agent-skills": true,
+    "playwright@claude-plugins-official": true,
+    "serena@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "dotnet-agent-skills": {
@@ -80,18 +83,18 @@
       ]
     },
     "filesystem": {
-      "denyRead": [
-        ".env",
-        ".env.*",
-        "Config/appsettings.json",
-        "Config/appsettings.*.json"
-      ],
       "allowWrite": [
         "/usr/local/share/.yarn-global",
         "~/.npm",
         "~/.cache",
         "~/.local/share/pnpm",
         "/var/run/docker.sock"
+      ],
+      "denyRead": [
+        ".env",
+        ".env.*",
+        "Config/appsettings.json",
+        "Config/appsettings.*.json"
       ]
     }
   }

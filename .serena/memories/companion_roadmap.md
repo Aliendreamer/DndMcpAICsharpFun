@@ -46,7 +46,7 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   Deferred minors (still open): off-list class shows no selected `<option>` (display-only); unstyled
   CSS; bidirectional KnownClasses↔map-keys test.
 
-  **⚠ FOUND: published container UI is broken** (pre-existing, unrelated to multiclass). The Docker
+  **✅ FIXED (commit `4d8b6db`, 2026-07-06): published-container Blazor UI static assets.** The Docker
   image's `/app/wwwroot` is EMPTY, so `app.UseStaticFiles()` (Extensions/AppExtensions.cs:24) 404s
   `app.css`, `app.js`, and `_framework/blazor.web.js` → no CSS + dead Blazor circuit in the container.
   Cause: .NET 9+ publish no longer copies static web assets into `wwwroot`; they're fingerprinted and
