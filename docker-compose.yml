@@ -18,14 +18,13 @@ services:
       - "5101:5101"
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
-      - Admin__ApiKey=${ADMIN_API_KEY:?set ADMIN_API_KEY (copy .env.example to .env)}
+      # Admin/Mcp/McpClient API keys come from the (git-crypt) Config/appsettings.{env}.json —
+      # no env injection, no .env file. Prod overrides via appsettings.Production.json.
       - Qdrant__Host=qdrant
       - Ollama__BaseUrl=http://ollama:11434
       - Ingestion__BooksPath=/books
       - SearXNG__Url=http://searxng:8080
-      - Mcp__ApiKey=${MCP_API_KEY:?set MCP_API_KEY (copy .env.example to .env)}
       - McpClient__Url=http://localhost:5101/mcp
-      - McpClient__ApiKey=${MCP_API_KEY:?set MCP_API_KEY (copy .env.example to .env)}
       - Postgres__Host=postgres
       - Postgres__Password=${POSTGRES_PASSWORD:-dnd}
       # Reranker model lives in its own subdir of the shared ONNX volume (matches the

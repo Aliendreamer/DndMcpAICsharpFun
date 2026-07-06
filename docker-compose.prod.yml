@@ -17,14 +17,14 @@ services:
       - "5101:5101"
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
-      - Admin__ApiKey=${ADMIN_API_KEY}
+      # Admin/Mcp/McpClient API keys come from the (git-crypt) Config/appsettings.Production.json —
+      # no env injection. (Injecting an unset ${ADMIN_API_KEY} would override those to an empty
+      # string and break auth, so it's deliberately omitted.)
       - Qdrant__Host=qdrant
       - Ollama__BaseUrl=http://ollama:11434
       - Ingestion__BooksPath=/books
       - SearXNG__Url=http://searxng:8080
-      - Mcp__ApiKey=${MCP_API_KEY}
       - McpClient__Url=http://localhost:5101/mcp
-      - McpClient__ApiKey=${MCP_API_KEY}
       - Postgres__Host=postgres
       - Postgres__Password=${POSTGRES_PASSWORD}
     volumes:
