@@ -51,10 +51,19 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   `app.css`, `app.js`, and `_framework/blazor.web.js` → no CSS + dead Blazor circuit in the container.
   Cause: .NET 9+ publish no longer copies static web assets into `wwwroot`; they're fingerprinted and
   served via `MapStaticAssets` + the `*.staticwebassets.endpoints.json` manifest (which IS in /app).
-  `dotnet run` (dev) serves them fine. FIX candidate: switch `UseStaticFiles()` → `app.MapStaticAssets()`
-  and chain `.MapStaticAssets()` on `MapRazorComponents<App>()`. Also: `docker compose up app` fails on
-  missing external volume `shared_onnx_models` (compose override drift) — use `docker start
-  dndmcpaicsharpfun-app-1` to reuse the existing container.
+  `dotnet run` (dev) serves them fine. FIX APPLIED: `UseStaticFiles()` → `app.MapStaticAssets()`;
+  moved `app.css`/`app.js` to project-root `wwwroot/`; dropped the `WebRootPath="CompanionUI/wwwroot"`
+  override (Program.cs) + csproj `<WebRoot>`. Also hoisted `_Imports.razor` to `CompanionUI/` after the
+  user moved `Layout/`+`Pages/` out of `Components/` (they'd lost their `@using`s). Reranker moved to the
+  shared `shared_onnx_models` volume (`Reranker__ModelPath=models/ms-marco-MiniLM-L-6-v2` compose env,
+  model seeded). `.playwright-mcp/` gitignored. Verified LOCALLY (`dotnet run`, SDK 10.0.203): /login,
+  /app.css, /app.js, /_framework/blazor.web.js all 200; 978/978 non-persistence tests green.
+  ⏳ CONTAINER REBUILD PENDING: couldn't rebuild the image to confirm — the env's nuget.org restore was
+  failing ("Connection reset by peer"). Added a BuildKit NuGet cache mount to the Dockerfile to make
+  restore resumable. Also NOTE the SDK feature-band question: earlier 301-SDK builds (during the flaky
+  network) omitted `_framework/blazor.web.js` from the publish manifest while 203 emits it — likely an
+  incomplete restore, RE-CONFIRM on a clean rebuild. `docker start dndmcpaicsharpfun-app-1` reuses the
+  existing container (compose up trips on the external volume lookup).
 - **Qdrant scalar int8 quantization:** shipped + archived; live-validated (recall preserved, ~4× vector
   memory). Effectively closed.
 - **Spec housekeeping:** `extraction-think-mode` spec (config-toggle form) proposed, not applied
