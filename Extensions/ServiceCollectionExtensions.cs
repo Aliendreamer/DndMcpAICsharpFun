@@ -159,6 +159,7 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<IRagRetrievalService, RagRetrievalService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.IEntityRetrievalService, DndMcpAICsharpFun.Features.Retrieval.Entities.EntityRetrievalService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup.IBookTypeLookup, DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup.BookTypeLookup>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup.EntityDuplicateService>();
 
         services.AddOptions<RerankerOptions>()
             .BindConfiguration("Reranker")
