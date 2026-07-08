@@ -1,8 +1,8 @@
-# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-06)
+# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-08)
 
 **North star:** a companion agent that REASONS (character build / encounter design / setting-aware
 lore), not just retrieves. RAG + extraction are the *means*, and that foundation is now largely built —
-the remaining north-star work is the REASONING layer (Items 3–4; Item 2 is DONE).
+the remaining north-star work is the REASONING layer (Item 3; Items 2 & 4 are DONE).
 
 ## Status legend: ✅ done · 🔄 in progress · ⬜ not started
 
@@ -17,74 +17,55 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
 
 ## FRONTIER — the REASONING layer (north star)
 - **Item 2 — Slice 2: multiclass character** ✅ DONE (archived `multiclass-character`, 2026-07-05;
-  18 commits `057e7e7..db16979`, 992/992 tests). GENERAL multiclass (any combo, caster or not — user was
-  emphatic "not only spellcaster"): `CharacterSheet.Classes: List<ClassLevel>` source of truth + derived
-  flat fields + tolerant legacy-JSON migration (set-only STJ sinks); `MulticlassRules` (prereqs +
-  proficiency subsets, all 13 classes); `MulticlassSpellcasting` (combined caster level, Warlock pact
-  carve-out); THREE seeded PHB slot tables (multiclass + half + third caster); resolution fork
-  (single-class → own table; ≥2 spellcasting classes → combined) + per-class save DC / attack +
-  `check_multiclass`; SEC-08 per-user MCP tools.
+  18 commits `057e7e7..db16979`, 992/992 tests). GENERAL multiclass (any combo, caster or not).
+  Plus **HeroDetail multiclass-editing UI** ✅ DONE (archived `hero-multiclass-editing`) + Playwright
+  UI smoke passed (2026-07-06).
 - **Item 3 — Auto-NeedsReview grounding cascade** ⬜ ← candidate NEXT (own brainstorm→spec). Tier 1 =
   embedding check (reuse mxbai `dnd_blocks` vectors → promote); Tier 2 = qwen3 judge on residual.
-- **Item 4 — Corpus-wide dedup** ⬜ — dedup by canonical id / `EntityNameIndex` key, OUT of extraction.
+- **Item 4 — Corpus-wide dedup** ✅ DONE (archived `corpus-wide-entity-dedup`, 2026-07-08;
+  9 code commits `bf0909c..d68e99b`, base 4af09a5; build 0/0, FULL suite 1017/1017 incl real Qdrant +
+  Postgres Testcontainers). Dedup key = `(EntityNameIndex.Normalize(name), Type, Edition)` — editions
+  never merge. Pure authority-first `DuplicateResolver` (BookType Core>Supplement>Adventure>Setting>
+  Unknown → authoritative DataSource 5etools-backfill/hand-authored → not-NeedsReview → longer
+  CanonicalText → smallest Id). Slice 1 = query-time collapse in `FusedRetrievalService` (group entity
+  candidates by dedup key BEFORE fusion/rerank, emit winner carrying group MAX score; prose untouched;
+  distinct editions survive) = the DURABLE correctness layer. Slice 2 = `GET /admin/retrieval/entities/
+  duplicates` (read-only report) + `POST /admin/retrieval/entities/compact?apply=` (dry-run default;
+  apply deletes ONLY loser points from Qdrant; canonical JSON NEVER rewritten). New store methods
+  `ScrollAllAsync`/`DeleteByIdsAsync` (delete guards empty-set, no match-all). BookType resolved at
+  dedup time via `BookTypeLookup` (SourceBook→BookType from ingestion records; keyed by
+  FivetoolsSourceKey for official + raw DisplayName for non-official — final-review fix d68e99b caught
+  that entities carry DisplayName not slug in SourceBook). Dedup kept OUT of extraction/ingestion write
+  path; compact is transient (re-ingest re-adds losers) — query-time collapse is what guarantees
+  continuous correctness. New infra: first real Qdrant Testcontainer (`Testcontainers.Qdrant` 4.12.0 +
+  `QdrantFixture`). Files: `Features/Retrieval/Entities/Dedup/*`. DEFERRED (non-blocking): live-host
+  endpoint smoke (stack was down; Testcontainers cover the real-infra paths); Minors — BuildAsync
+  per-query rebuild + sequential await on hot path (small tables, could Task.WhenAll/cache);
+  QdrantFixture has no per-test reset (safe w/ unique collection name).
 
 ## LOOSE ENDS / follow-ups
-- **HeroDetail multiclass-editing UI** ✅ DONE (archived `hero-multiclass-editing`, 2026-07-05;
-  commits a95c488,cdfec2c,4a70bb1,bae7c1b,c1e9d1a). Per-class list editor bound directly to
-  `_editSheet.Classes` (add/remove class/level/subclass rows); `SetSingleClass` collapse REMOVED from
-  `ConfirmSaveAsync` (footgun gone); `MulticlassRules.KnownClasses` dropdown; live derived total level +
-  PB; non-blocking validity + reduced-proficiency advisory (non-primary rows); view mode lists all
-  classes. Final opus review = MERGE-READY; fixed one spec-conformance Minor (prof advisory was on every
-  row — plan had deviated from spec; SPEC governs). build 0/0, 978 non-persistence green.
-  **Playwright UI smoke DONE (2026-07-06)** — via Playwright MCP against a local `dotnet run` on 5101
-  (registered user `smoke_mc`, campaign+hero created live). VALIDATED: add class ×2 (live derived
-  total 5→8, PB +3), remove class (2→1 rows, total→5), save 2-class hero, **hard reload persists**
-  `Fighter 5 (Champion) / Wizard 3 (Evocation)` Level 8 + Session-1 snapshot; advisory scoped to
-  non-primary rows only (row0=0, row1=2: "⚠ Requires Intelligence 13" validity + prof grant) —
-  confirms c1e9d1a. Playwright gotcha: MCP browser context drops between tool calls (loses auth
-  cookie + Blazor circuit) — drive login+multi-step edit in ONE `browser_run_code_unsafe` call.
-  Deferred minors (still open): off-list class shows no selected `<option>` (display-only); unstyled
-  CSS; bidirectional KnownClasses↔map-keys test.
-
-  **✅ FIXED (commit `4d8b6db`, 2026-07-06): published-container Blazor UI static assets.** The Docker
-  image's `/app/wwwroot` is EMPTY, so `app.UseStaticFiles()` (Extensions/AppExtensions.cs:24) 404s
-  `app.css`, `app.js`, and `_framework/blazor.web.js` → no CSS + dead Blazor circuit in the container.
-  Cause: .NET 9+ publish no longer copies static web assets into `wwwroot`; they're fingerprinted and
-  served via `MapStaticAssets` + the `*.staticwebassets.endpoints.json` manifest (which IS in /app).
-  `dotnet run` (dev) serves them fine. FIX APPLIED: `UseStaticFiles()` → `app.MapStaticAssets()`;
-  moved `app.css`/`app.js` to project-root `wwwroot/`; dropped the `WebRootPath="CompanionUI/wwwroot"`
-  override (Program.cs) + csproj `<WebRoot>`. Also hoisted `_Imports.razor` to `CompanionUI/` after the
-  user moved `Layout/`+`Pages/` out of `Components/` (they'd lost their `@using`s). Reranker moved to the
-  shared `shared_onnx_models` volume (`Reranker__ModelPath=models/ms-marco-MiniLM-L-6-v2` compose env,
-  model seeded). `.playwright-mcp/` gitignored. Verified LOCALLY (`dotnet run`, SDK 10.0.203): /login,
-  /app.css, /app.js, /_framework/blazor.web.js all 200; 978/978 non-persistence tests green.
-  ⏳ CONTAINER REBUILD PENDING: couldn't rebuild the image to confirm — the env's nuget.org restore was
-  failing ("Connection reset by peer"). Added a BuildKit NuGet cache mount to the Dockerfile to make
-  restore resumable. Also NOTE the SDK feature-band question: earlier 301-SDK builds (during the flaky
-  network) omitted `_framework/blazor.web.js` from the publish manifest while 203 emits it — likely an
-  incomplete restore, RE-CONFIRM on a clean rebuild. `docker start dndmcpaicsharpfun-app-1` reuses the
-  existing container (compose up trips on the external volume lookup).
-- **Qdrant scalar int8 quantization:** shipped + archived; live-validated (recall preserved, ~4× vector
-  memory). Effectively closed.
-- **Spec housekeeping:** `extraction-think-mode` spec (config-toggle form) proposed, not applied
-  (`/no_think` already shipped in `803da7b`).
+- **Published-container Blazor static assets** ✅ FIXED (commit `8139397` — `blazor.web.js` restored in
+  image via `MapStaticAssets`). Container rebuild to confirm was the prior pending item; the fix landed.
+- **Qdrant scalar int8 quantization:** shipped + archived; live-validated. Closed.
+- **Spec housekeeping:** `extraction-think-mode` spec proposed, not applied (`/no_think` already shipped).
 - **DMG Object residuals** (hand-correctable): tighten `StatBlockScanner` naming / `IsObjectStatBlock`.
 
 ## How we progress (discipline — never skip)
 Each item: **superpowers:brainstorming** (full dialogue) → **opsx:propose** (spec in
 `openspec/changes/<name>/`) → **superpowers:writing-plans** → **superpowers:subagent-driven-development**
 (per-task TDD + reviewer subagents; final whole-branch review on opus). Work DIRECTLY on main — no
-feature branches (`mem:workflow/work_on_main`); commit autonomy granted. FINISH on "commit"/"archive":
-commit → `openspec archive` → `skill-optimizer` → refresh this roadmap (`mem:workflow/finishing_a_spec`).
-PLAN-VS-SPEC lesson (2026-07-05): a writing-plans plan can silently deviate from the approved spec it's
-derived from (hero-multiclass-editing: plan said "prof advisory every row", spec said "non-primary
-rows") — the final whole-branch review caught it; the SPEC governs. Cross-check the plan against the
-spec's ADDED Requirements during writing-plans self-review.
+feature branches (`mem:workflow/work_on_main`); commit autonomy granted. FINISH on "commit"/"archive"
+(or an explicit "finish X" goal): commit → `openspec archive` → `skill-optimizer` → refresh this roadmap
+(`mem:workflow/finishing_a_spec`).
+PLAN-VS-SPEC lesson: a writing-plans plan can silently deviate from the approved spec — the final
+whole-branch review catches it; the SPEC governs. (Item 4 example: the plan sketched
+`BookTypeLookup(IngestionTracker)` concrete; task-review corrected it to the `IIngestionTracker`
+interface per codebase convention.)
 
-## Current position (2026-07-06)
-Extraction/retrieval FOUNDATION complete; **Item 2 (multiclass) + its HeroDetail UI follow-up both
-SHIPPED + archived; Playwright UI smoke run + PASSED (2026-07-06).** Next: the frontier —
-**Item 3 (grounding cascade)** or **Item 4 (dedup)**. Side finding to triage: published-container UI
-static-assets bug (see loose-ends) — small standalone fix. Relates to
+## Current position (2026-07-08)
+Extraction/retrieval FOUNDATION complete; **Items 2 (multiclass) + its UI + 4 (corpus-wide dedup) all
+SHIPPED + archived.** Next frontier: **Item 3 — Auto-NeedsReview grounding cascade** (the last named
+reasoning-layer item). One deferred operational task on Item 4: live-host endpoint smoke of the two
+dedup admin endpoints (run when app+Qdrant+Postgres stack is up). Relates to
 `mem:extraction/dmg_generic_backfill_status`, `mem:project_entity_extraction_rethink`,
 `mem:reference_build_env_gotchas`.
