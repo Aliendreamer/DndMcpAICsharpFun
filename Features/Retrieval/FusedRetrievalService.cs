@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Features.Embedding;
+using DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Search;
@@ -24,7 +25,8 @@ public sealed class FusedRetrievalService(
     IOptions<QdrantOptions> qdrantOptions,
     IOptions<RetrievalOptions> retrievalOptions,
     IOptions<RerankerOptions> rerankerOptions,
-    QdrantSparseState sparseState) : IFusedRetrievalService
+    QdrantSparseState sparseState,
+    IBookTypeLookup bookTypeLookup) : IFusedRetrievalService
 {
     private readonly QdrantOptions _qdrant = qdrantOptions.Value;
     private readonly RetrievalOptions _retrieval = retrievalOptions.Value;
@@ -107,7 +109,9 @@ public sealed class FusedRetrievalService(
         float[] vector, int limit, CancellationToken ct)
     {
         var hits = await entityStore.SearchAsync(vector, new EntityFilters(), limit, ct);
-        return hits.Select(h => new FusedCandidate(
+        var bookTypes = await bookTypeLookup.BuildAsync(ct);
+        var collapsed = EntityHitCollapser.Collapse(hits.ToList(), bookTypes);
+        return collapsed.Select(h => new FusedCandidate(
             Source: "entity",
             Id: h.Envelope.Id,
             Title: h.Envelope.Name,

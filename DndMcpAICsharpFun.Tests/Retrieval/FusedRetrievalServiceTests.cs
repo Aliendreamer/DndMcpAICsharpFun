@@ -1,6 +1,8 @@
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Retrieval;
+using DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using FluentAssertions;
@@ -13,10 +15,15 @@ public sealed class FusedRetrievalServiceTests
     private readonly IQdrantSearchClient _qdrant = Substitute.For<IQdrantSearchClient>();
     private readonly IEntityVectorStore _entityStore = Substitute.For<IEntityVectorStore>();
     private readonly IEmbeddingService _embedding = Substitute.For<IEmbeddingService>();
+    private readonly IBookTypeLookup _bookTypeLookup = Substitute.For<IBookTypeLookup>();
 
     private void SetupEmbed() =>
         _embedding.EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IList<float[]>>([new float[] { 0.1f, 0.2f }]));
+
+    public FusedRetrievalServiceTests() =>
+        _bookTypeLookup.BuildAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyDictionary<string, BookType>>(new Dictionary<string, BookType>()));
 
     private static ScoredPoint MakePoint(string text, string title, float score, string uuid)
     {
@@ -60,7 +67,8 @@ public sealed class FusedRetrievalServiceTests
             }),
             Options.Create(new RetrievalOptions { MaxTopK = 50, ScoreThreshold = 0.0f }),
             Options.Create(rerankOpts),
-            new QdrantSparseState { SparseSupported = false });
+            new QdrantSparseState { SparseSupported = false },
+            _bookTypeLookup);
     }
 
     // ── Task 5.1 / Spec: "Fused result mixes both sources, jointly ranked" ────
