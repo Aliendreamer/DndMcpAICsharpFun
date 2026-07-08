@@ -248,10 +248,12 @@ X-Mcp-Api-Key: {{mcpKey}}
 ###
 
 # ── Observability ─────────────────────────────────────────────────────────────
-# /metrics is unauthenticated and only available when OpenTelemetry:Enabled is true.
+# /metrics is guarded by the admin API key (SEC-09, AdminApiKeyMiddleware) and
+# only mapped when OpenTelemetry:Enabled is true.
 
-### Metrics — Prometheus scraping endpoint
+### Metrics — Prometheus scraping endpoint (requires X-Admin-Api-Key)
 GET {{baseUrl}}/metrics
+X-Admin-Api-Key: {{adminKey}}
 
 ###
 

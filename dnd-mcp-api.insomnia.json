@@ -862,10 +862,12 @@
       "_id": "req_metrics",
       "_type": "request",
       "parentId": "fld_observability",
-      "name": "Prometheus metrics endpoint",
+      "name": "Prometheus metrics endpoint (requires X-Admin-Api-Key, SEC-09)",
       "method": "GET",
       "url": "{{ _.baseUrl }}/metrics",
-      "headers": [],
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" }
+      ],
       "body": {
         "mimeType": ""
       },

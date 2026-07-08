@@ -97,13 +97,13 @@ Observability is provided by the shared **PersonalCommandCenter** infra stack (b
 | pgAdmin | <http://pgadmin.pcc.localhost> | Browse/query the Postgres tables (incl. `IngestionRecords`) |
 | Qdrant UI | <http://qdrant.pcc.localhost/dashboard> | Vector collection browser |
 
-> **Note:** The `/metrics` endpoint is unauthenticated — rely on Docker network isolation to limit access. It can be disabled by setting `OpenTelemetry:Enabled: false` in configuration.
+> **Note:** The `/metrics` endpoint is guarded by the admin API key (SEC-09, `AdminApiKeyMiddleware` covers both `/admin` and `/metrics`) — scrapers must send `X-Admin-Api-Key`. It can be disabled by setting `OpenTelemetry:Enabled: false` in configuration.
 
 ## API Contracts
 
 `DndMcpAICsharpFun.http` at the project root is the authoritative runnable reference for all API endpoints.
 
-**Rule:** When adding, changing, or removing any HTTP endpoint (`MapGet`, `MapPost`, `MapPut`, `MapDelete`), update `DndMcpAICsharpFun.http` in the same commit. Every registered route must have a corresponding example request in the file.
+**Rule:** When you touch any HTTP endpoint (`MapGet`, `MapPost`, `MapPut`, `MapDelete`), update `DndMcpAICsharpFun.http` in the same commit. This covers not only adding, renaming, or removing a route, but also **changing an existing route's contract** — auth/required headers (e.g. `X-Admin-Api-Key`), query-string parameters, or request/response body shape. Every registered route must have a corresponding example request in the file, and that example must reflect the route's current auth and parameters. A backend endpoint change is not done until the `.http` file matches.
 
 **Rule:** `dnd-mcp-api.insomnia.json` at the project root is the Yaak-importable collection (Insomnia v4 format). Keep it in sync with `DndMcpAICsharpFun.http` — any change to the `.http` file must be reflected in the `.insomnia.json` file in the same commit. Import into Yaak via **File → Import**.
 
