@@ -1,5 +1,4 @@
 using DndMcpAICsharpFun.Domain;
-using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 
 namespace DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup;
@@ -25,7 +24,8 @@ public sealed class BookTypeLookup(IIngestionTracker tracker) : IBookTypeLookup
             if (!string.IsNullOrEmpty(r.FivetoolsSourceKey))
                 map[r.FivetoolsSourceKey] = r.BookType;
 
-            map[EntityIdSlug.BookSlug(r)] = r.BookType;
+            if (!string.IsNullOrEmpty(r.DisplayName))
+                map[r.DisplayName] = r.BookType;
         }
         return map;
     }
