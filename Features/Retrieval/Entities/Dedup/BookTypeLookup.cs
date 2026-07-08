@@ -9,7 +9,7 @@ public interface IBookTypeLookup
     Task<IReadOnlyDictionary<string, BookType>> BuildAsync(CancellationToken ct = default);
 }
 
-public sealed class BookTypeLookup(IngestionTracker tracker) : IBookTypeLookup
+public sealed class BookTypeLookup(IIngestionTracker tracker) : IBookTypeLookup
 {
     public async Task<IReadOnlyDictionary<string, BookType>> BuildAsync(CancellationToken ct = default)
     {
