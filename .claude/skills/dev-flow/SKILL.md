@@ -24,7 +24,7 @@ The repeatable cycle for changing this project: one ASP.NET Core .NET 10 host se
 2. **Propose** (`opsx:propose`) — create the OpenSpec change in `openspec/changes/<name>/` (proposal, design, specs, tasks).
 3. **Plan** (`superpowers:writing-plans`) — detailed bite-sized plan saved to `openspec/changes/<name>/plan.md`.
 4. **Implement** (`superpowers:subagent-driven-development`) — fresh implementer + reviewer subagent per task, per-task TDD, fix loop on Critical/Important, final whole-branch review on the most capable model. **All on `main`** — commit each reviewed task straight to main (commit autonomy granted; `mem:workflow/work_on_main`).
-5. **Finish** (user says "commit" on a done spec): **commit → `openspec archive <name> -y` → run `skill-optimizer` → `ingest-entities`** (`mem:workflow/finishing_a_spec`).
+5. **Finish** (user says "commit" / "finish X" on a done spec): **commit → `openspec archive <name> -y` → run `skill-optimizer` → refresh the roadmap memory** (`mem:workflow/finishing_a_spec`). **`ingest-entities` is extraction/canonical-only** — run it as the last step when the change adds/edits `books/canonical/*` entities (to project them into `dnd_entities`); retrieval-only, refactor, or endpoint changes SKIP it.
 
 ## Serena is MANDATORY for code
 
@@ -107,3 +107,4 @@ Structural changes that must not alter behavior have their OWN gates beyond "tes
 | Grinding parser rules past the yield plateau | Official-book spells: `backfill-spells`; otherwise hand-author. |
 | Permanent endpoint for a one-time data migration | `Tools/` console reusing the app's services directly. |
 | In-place canonical rewrite trusted on unit-green | Assert unique ids + reload the written file before ingesting. |
+| Injecting a concrete service the plan sketched | Depend on the interface (`IIngestionTracker`, not `IngestionTracker`) — this codebase injects interfaces exclusively; a concrete dep needs a redundant registration and constructs a second instance. The plan's example code is a starting point, not binding — task review corrects it. |
