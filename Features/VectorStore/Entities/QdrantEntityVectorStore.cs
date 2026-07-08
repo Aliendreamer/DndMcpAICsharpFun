@@ -101,6 +101,42 @@ public sealed class QdrantEntityVectorStore(
         return result;
     }
 
+    public async Task<IReadOnlyList<EntitySearchHit>> ScrollAllAsync(CancellationToken ct = default)
+    {
+        const uint PageSize = 1000;
+        var result = new List<EntitySearchHit>();
+        PointId? offset = null;
+        do
+        {
+            var page = await client.ScrollAsync(
+                _collection,
+                filter: null,
+                offset: offset,
+                limit: PageSize,
+                payloadSelector: true,
+                cancellationToken: ct);
+            foreach (var p in page.Result)
+            {
+                var env = ToEnvelope(p.Payload);
+                if (env is not null) result.Add(new EntitySearchHit(env, 0f, p.Id.Uuid));
+            }
+            offset = page.NextPageOffset;
+        } while (offset is not null);
+
+        return result;
+    }
+
+    public async Task DeleteByIdsAsync(IReadOnlyCollection<string> entityIds, CancellationToken ct = default)
+    {
+        if (entityIds.Count == 0) return;
+
+        var filter = new Filter();
+        var match = new Match { Keywords = new RepeatedStrings() };
+        match.Keywords.Strings.AddRange(entityIds);
+        filter.Must.Add(new Condition { Field = new FieldCondition { Key = EntityPayloadFields.Id, Match = match } });
+        await client.DeleteAsync(_collection, filter, cancellationToken: ct);
+    }
+
     public async Task<IReadOnlyDictionary<string, string>> GetDataSourcesAsync(
         IReadOnlyList<string> entityIds, CancellationToken ct = default)
     {

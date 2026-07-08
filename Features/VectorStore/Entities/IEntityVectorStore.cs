@@ -30,4 +30,7 @@ public interface IEntityVectorStore
         IReadOnlyList<string> entityIds, CancellationToken ct = default);
     Task<IReadOnlyDictionary<string, EntityEnvelope>> GetByIdsAsync(
         IReadOnlyList<string> entityIds, CancellationToken ct = default);
+
+    Task<IReadOnlyList<EntitySearchHit>> ScrollAllAsync(CancellationToken ct = default);
+    Task DeleteByIdsAsync(IReadOnlyCollection<string> entityIds, CancellationToken ct = default);
 }

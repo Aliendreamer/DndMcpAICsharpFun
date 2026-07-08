@@ -82,4 +82,15 @@ public sealed class RecordingEntityVectorStore : IEntityVectorStore
         IReadOnlyList<string> entityIds, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyDictionary<string, string>>(
             new Dictionary<string, string>(StringComparer.Ordinal));
+
+
+    public Task<IReadOnlyList<EntitySearchHit>> ScrollAllAsync(CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<EntitySearchHit>>(
+            _store.Select(kv => new EntitySearchHit(kv.Value.Env, 0f, "pt-" + kv.Key)).ToList());
+
+    public Task DeleteByIdsAsync(IReadOnlyCollection<string> entityIds, CancellationToken ct = default)
+    {
+        foreach (var id in entityIds) _store.Remove(id);
+        return Task.CompletedTask;
+    }
 }
