@@ -158,6 +158,19 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/retrieval/bm25/rebuild-stats
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin — Corpus-wide duplicate entity report (dedup)
+# Response: DuplicateReport { groupCount, loserCount, groups: [{ winnerId, loserIds, ... }] }
+GET {{baseUrl}}/admin/retrieval/entities/duplicates
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin — Compact duplicate entities (dry-run — reports without deleting)
+POST {{baseUrl}}/admin/retrieval/entities/compact
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin — Compact duplicate entities (apply — deletes the loser entities)
+POST {{baseUrl}}/admin/retrieval/entities/compact?apply=true
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}

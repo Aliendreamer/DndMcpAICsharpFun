@@ -476,6 +476,68 @@
       "authentication": {}
     },
     {
+      "_id": "req_entity_duplicates",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Corpus-wide duplicate entity report (dedup)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/admin/retrieval/entities/duplicates",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
+      "_id": "req_entity_compact_dry_run",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Compact duplicate entities (dry-run)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/retrieval/entities/compact",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
+      "_id": "req_entity_compact_apply",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Compact duplicate entities (apply)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/retrieval/entities/compact",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "apply",
+          "value": "true"
+        }
+      ],
+      "authentication": {}
+    },
+    {
       "_id": "req_5etools_import",
       "_type": "request",
       "parentId": "fld_admin_books",
