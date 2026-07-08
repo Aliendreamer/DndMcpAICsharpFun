@@ -97,6 +97,7 @@ internal static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         services.AddScoped<IIngestionTracker, IngestionTracker>();
+        services.AddScoped<IngestionTracker>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.IBm25CorpusStats,
             DndMcpAICsharpFun.Features.Retrieval.Bm25CorpusStatsStore>();
         services.AddScoped<IEmbeddingService, OllamaEmbeddingService>();
@@ -158,6 +159,7 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.IFusedRetrievalService, DndMcpAICsharpFun.Features.Retrieval.FusedRetrievalService>();
         services.AddScoped<IRagRetrievalService, RagRetrievalService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.IEntityRetrievalService, DndMcpAICsharpFun.Features.Retrieval.Entities.EntityRetrievalService>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup.IBookTypeLookup, DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup.BookTypeLookup>();
 
         services.AddOptions<RerankerOptions>()
             .BindConfiguration("Reranker")
