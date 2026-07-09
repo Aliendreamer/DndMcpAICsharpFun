@@ -173,6 +173,14 @@ internal static class ServiceCollectionExtensions
         return services;
     }
 
+    internal static IServiceCollection AddEncounters(this IServiceCollection services)
+    {
+        services.AddScoped<DndMcpAICsharpFun.Features.Encounters.EncounterAssessor>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Encounters.EncounterGenerator>();
+
+        return services;
+    }
+
     internal static IServiceCollection AddWebSearch(
         this IServiceCollection services, IConfiguration configuration)
     {

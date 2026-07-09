@@ -37,6 +37,7 @@ builder.Services.AddOptions<McpOptions>()
 builder.Services.AddInfrastructureClients(builder.Configuration);
 builder.Services.AddIngestionPipeline();
 builder.Services.AddRetrieval();
+builder.Services.AddEncounters();
 builder.Services.AddWebSearch(builder.Configuration);
 builder.Services.AddEntityExtraction(builder.Configuration);
 builder.Services.AddObservability(builder.Configuration);
