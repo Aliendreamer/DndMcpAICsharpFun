@@ -205,6 +205,7 @@ internal static class ServiceCollectionExtensions
             return new OllamaChatClient(new Uri(opts.BaseUrl), opts.ChatModel);
         });
         services.AddSingleton<IEntityExtractionLlmClient, OllamaEntityExtractionClient>();
+        services.AddScoped<IGroundingJudge, QwenGroundingJudge>();
         services.AddSingleton(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value;
