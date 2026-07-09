@@ -147,34 +147,9 @@ public sealed class EntityExtractionRunner(
     // Tier-0 grounding over the emitted fields: true when at least one significant string value
     // grounds against the source prose. Pure fabrication / empty output (e.g. zeroed stat blocks)
     // grounds nothing -> NeedsReview.
-    private static bool HasGroundedContent(JsonElement fields, string sourceText)
-    {
-        foreach (var value in EnumerateStringValues(fields))
-            if (Tier0FieldGrounding.IsTextGrounded(value, sourceText))
-                return true;
-        return false;
-    }
+    private static bool HasGroundedContent(JsonElement fields, string sourceText) =>
+        Tier0FieldGrounding.HasAnyFieldGrounded(fields, sourceText);
 
-    private static IEnumerable<string> EnumerateStringValues(JsonElement element)
-    {
-        switch (element.ValueKind)
-        {
-            case JsonValueKind.String:
-                var s = element.GetString();
-                if (!string.IsNullOrWhiteSpace(s)) yield return s;
-                break;
-            case JsonValueKind.Object:
-                foreach (var p in element.EnumerateObject())
-                    foreach (var v in EnumerateStringValues(p.Value))
-                        yield return v;
-                break;
-            case JsonValueKind.Array:
-                foreach (var item in element.EnumerateArray())
-                    foreach (var v in EnumerateStringValues(item))
-                        yield return v;
-                break;
-        }
-    }
 
     // Title-case clean all-caps display names before they become entity names + feed the heuristic.
     private static string NormalizeDisplayName(string displayName)

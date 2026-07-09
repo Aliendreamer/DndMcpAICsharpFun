@@ -14,7 +14,7 @@ public sealed class Tier1EmbeddingGrounding(
     IEmbeddingService embeddings,
     IQdrantSearchClient qdrant,
     IOptions<QdrantOptions> qdrantOptions,
-    IOptions<GroundingOptions> grounding)
+    IOptions<GroundingOptions> grounding) : ITier1Grounding
 {
     public async Task<Tier1Result> GroundAsync(
         string entityText, string sourceBook, int? page, CancellationToken ct)

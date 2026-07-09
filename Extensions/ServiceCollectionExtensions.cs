@@ -198,7 +198,7 @@ internal static class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.Configure<GroundingOptions>(configuration.GetSection("Grounding"));
-        services.AddScoped<Tier1EmbeddingGrounding>();
+        services.AddScoped<ITier1Grounding, Tier1EmbeddingGrounding>();
         services.AddSingleton<IChatClient>(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
@@ -206,6 +206,7 @@ internal static class ServiceCollectionExtensions
         });
         services.AddSingleton<IEntityExtractionLlmClient, OllamaEntityExtractionClient>();
         services.AddScoped<IGroundingJudge, QwenGroundingJudge>();
+        services.AddScoped<GroundingCascade>();
         services.AddSingleton(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value;
