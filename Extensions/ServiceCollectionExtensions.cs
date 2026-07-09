@@ -197,6 +197,8 @@ internal static class ServiceCollectionExtensions
             .BindConfiguration("EntityExtraction")
             .ValidateDataAnnotations()
             .ValidateOnStart();
+        services.Configure<GroundingOptions>(configuration.GetSection("Grounding"));
+        services.AddScoped<Tier1EmbeddingGrounding>();
         services.AddSingleton<IChatClient>(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
