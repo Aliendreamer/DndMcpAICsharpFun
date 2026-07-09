@@ -68,6 +68,27 @@ integration tests (Tier1 scoping + reground round-trip, 2026-07-09b) — GUID-un
 (the older `QdrantEntityVectorStoreScrollTests` still uses a fixed collection name; safe with 1 fact but
 GUID-suffix it if a sibling test is added). Only the real-Ollama JUDGE path stays smoke-only.
 
+## MODEL / INFERENCE UPGRADE PATH (MoE) — INVESTIGATION ⬜ (agreed 2026-06-27; research only, no config drafted)
+Cross-cutting: the local model drives BOTH extraction AND the grounding cascade's Tier 2 judge (currently
+dense `qwen3:8b` via Ollama, `OllamaOptions.ChatModel`) — and would drive the companion's reasoning too.
+**DESIGN STANCE (user):** single-user, LOCAL, personal tool → **latency is a non-issue**, so a
+slower-but-stronger local **MoE** can serve everything, staying 100% local ($0, private, no API/egress).
+The hard cap is the **8GB VRAM ceiling** (RTX 5070 Laptop), NOT latency.
+- **Item 5 — Local MoE upgrade (the real path for qwen3:8b):** **Gemma 4 26B A4B** (Google, Apr 2026,
+  Apache-2.0, MoE 26B total / 4B active, multimodal, 256K ctx) or **Qwen3-30B-A3B / Qwen3.6-35B-A3B** (MoE).
+  Fit on 8GB via llama.cpp **`--cpu-moe`** (park routed experts in system RAM; attention+shared-expert on
+  GPU) + **TurboQuant/`turbo3`** KV-cache compression (DeepMind, ICLR 2026, ~3-bit KV, ~75% VRAM cut).
+  Likely move OFF Ollama → **`llama-server`** for those flags. NOTE: plain `qwen3:30b-a3b` was tried
+  directly and ABANDONED (5h for 15 entities on 8GB — ran mostly in system RAM); `--cpu-moe` + turbo3 is
+  the fix that makes the 26B-MoE tier viable. All-local ceiling = **Gemma-4-26B-A4B**, NOT GLM-5.2.
+- **Item 6 — Cloud reasoning backend (OPTIONAL, hybrid only):** **GLM-5.2** (Z.ai, MIT, MoE ~744B total /
+  40B active, 1M ctx, ~1% behind Opus 4.8 on agentic; 744B does NOT fit 8GB at any speed → paid CLOUD API
+  only: z.ai/Together/OpenRouter, metered ~1/5–1/10 frontier $/token → likely a few $/mo at single-user
+  volume). ONLY as the companion's agentic/reasoning backend if the local 26B-MoE proves too weak for
+  recommendation turns. Decision: **all-local 26B-MoE for everything ($0, private, default)** vs **hybrid
+  local-extract + cloud GLM-5.2 reason (~few $/mo, near-Opus, cloud dep)** — validate on real D&D-rules
+  tasks first (coding/agentic benchmarks ≠ rules reasoning). STATUS: research only, user's call.
+
 ## LOOSE ENDS / follow-ups
 - **Published-container Blazor static assets** ✅ FIXED (`8139397`).
 - **Qdrant scalar int8 quantization:** shipped + archived. Closed.
@@ -96,7 +117,10 @@ with real-Qdrant integration coverage. **No named NEXT item** — the frontier i
 (a) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`
 — prose-as-source-of-truth, nested entities + typed relationships + first-class tables/choice-sets); or
 (b) net-new companion REASONING surfaces (encounter design/balancing, setting-aware lore synthesis,
-deeper character-build advice) that consume the now-solid retrieval+extraction+grounding foundation.
+deeper character-build advice) that consume the now-solid retrieval+extraction+grounding foundation; or
+(c) the **local MoE model upgrade** (see MODEL/INFERENCE UPGRADE PATH — Item 5/6): swap dense qwen3:8b
+for a 26B-MoE (Gemma-4-26B-A4B / Qwen3-30B-A3B) via llama.cpp `--cpu-moe`+turbo3, lifting BOTH extraction
+and the grounding judge quality on the same 8GB — a foundational lever under (a) and (b), not a rival to them.
 Deferred operational: live-host smokes for Item 3 (reground, esp. the Ollama judge path) + Item 4 (dedup
 endpoints). Relates to `mem:extraction/dmg_generic_backfill_status`, `mem:project_entity_extraction_rethink`,
 `mem:reference_build_env_gotchas`.
