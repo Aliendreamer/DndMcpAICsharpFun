@@ -22,7 +22,7 @@ public sealed class QwenGroundingJudge(
         "value must be traceable to the prose, not invented or drawn from general D&D knowledge. " +
         "Answer with exactly one word: \"yes\" if the fields are supported, or \"no\" if any are not.";
 
-    public async Task<bool> AreFieldsSupportedAsync(EntityEnvelope entity, string sourceProse, CancellationToken ct)
+    public async Task<bool?> AreFieldsSupportedAsync(EntityEnvelope entity, string sourceProse, CancellationToken ct)
     {
         var fieldsJson = entity.Fields.GetRawText();
         var userPrompt =
@@ -48,12 +48,23 @@ public sealed class QwenGroundingJudge(
         {
             var response = await chat.GetResponseAsync(messages, chatOptions, ct);
             var reply = response.Text?.Trim() ?? string.Empty;
-            return reply.StartsWith("yes", StringComparison.OrdinalIgnoreCase);
+
+            if (reply.StartsWith("yes", StringComparison.OrdinalIgnoreCase)) return true;
+            if (reply.StartsWith("no", StringComparison.OrdinalIgnoreCase)) return false;
+
+            // Hedged/garbage reply — the judge could not clearly decide. Treat as "unknown", not as
+            // a confirmed fabrication: the cascade maps a null verdict to Uncertain.
+            logger.LogWarning(
+                "Tier 2 grounding judge gave an unparsable reply for entity {EntityId}: {Reply}",
+                entity.Id, reply);
+            return null;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // A transient I/O/model failure must NOT be treated as a confirmed fabrication —
+            // returning null lets the cascade fall back to Uncertain instead of Ungrounded.
             logger.LogWarning(ex, "Tier 2 grounding judge call failed for entity {EntityId}", entity.Id);
-            return false;
+            return null;
         }
     }
 }

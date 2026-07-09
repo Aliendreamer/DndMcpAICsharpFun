@@ -7,6 +7,7 @@ using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
@@ -71,6 +72,7 @@ public sealed class RegroundServiceTests : IDisposable
     private readonly CanonicalJsonLoader _loader = new();
     private readonly CanonicalJsonWriter _writer = new();
     private readonly IEntityIngestionOrchestrator _orchestrator;
+    private readonly IEntityVectorStore _vectorStore;
     private readonly IIngestionTracker _tracker;
 
     public RegroundServiceTests()
@@ -80,6 +82,10 @@ public sealed class RegroundServiceTests : IDisposable
 
         _orchestrator = Substitute.For<IEntityIngestionOrchestrator>();
         _orchestrator.ReindexEntityAsync(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        _vectorStore = Substitute.For<IEntityVectorStore>();
+        _vectorStore.DeleteByIdsAsync(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         var record = new IngestionRecord
@@ -130,6 +136,7 @@ public sealed class RegroundServiceTests : IDisposable
         cascade,
         new FakeEmbeddingService(),
         new FakeQdrantSearchClient(),
+        _vectorStore,
         Options.Create(new QdrantOptions { BlocksCollectionName = "dnd_blocks" }),
         Options.Create(new GroundingOptions()),
         Options.Create(new EntityExtractionOptions { CanonicalDirectory = _dir }));
@@ -163,9 +170,15 @@ public sealed class RegroundServiceTests : IDisposable
         after.Entities.Single(e => e.Id == e3.Id).Disposition.Should().Be(EntityDisposition.NeedsReview);
         after.Entities.Single(e => e.Id == e3.Id).NeedsReview.Should().BeTrue();
 
+        // Promoted (e1) is reindexed. Ungrounded (e2) must be DELETED from the vector store —
+        // never reindexed/upserted, which would refresh the fabrication instead of removing it.
         await _orchestrator.Received(1).ReindexEntityAsync(1, e1.Id, Arg.Any<CancellationToken>());
-        await _orchestrator.Received(1).ReindexEntityAsync(1, e2.Id, Arg.Any<CancellationToken>());
+        await _orchestrator.DidNotReceive().ReindexEntityAsync(1, e2.Id, Arg.Any<CancellationToken>());
         await _orchestrator.DidNotReceive().ReindexEntityAsync(1, e3.Id, Arg.Any<CancellationToken>());
+
+        await _vectorStore.Received(1).DeleteByIdsAsync(
+            Arg.Is<IReadOnlyCollection<string>>(ids => ids.Count == 1 && ids.Contains(e2.Id)),
+            Arg.Any<CancellationToken>());
 
         File.Exists(CanonicalPath).Should().BeTrue("canonical file must never be deleted");
         File.Exists(CheckpointPath).Should().BeFalse("checkpoint sidecar is deleted on success");

@@ -9,5 +9,11 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 /// </summary>
 public interface IGroundingJudge
 {
-    Task<bool> AreFieldsSupportedAsync(EntityEnvelope entity, string sourceProse, CancellationToken ct);
+    /// <summary>
+    /// Tri-state verdict: <c>true</c> = fields are supported by the prose, <c>false</c> = fields
+    /// are not supported (a confirmed fabrication), <c>null</c> = the judge could not decide
+    /// (transient failure or an unparsable reply) — callers must treat this as Uncertain, never
+    /// as a confirmed fabrication.
+    /// </summary>
+    Task<bool?> AreFieldsSupportedAsync(EntityEnvelope entity, string sourceProse, CancellationToken ct);
 }

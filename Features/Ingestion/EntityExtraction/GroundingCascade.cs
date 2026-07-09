@@ -16,13 +16,20 @@ public sealed class GroundingCascade(ITier1Grounding tier1, IGroundingJudge judg
         if (Tier0FieldGrounding.HasAnyFieldGrounded(entity.Fields, sourceProse))
             return GroundingCombiner.Combine(tier0Grounded: true, tier1: null, judgeEnabled, tier2Grounded: null);
 
+        // With the judge disabled, Tier 1's score can never change the verdict — GroundingCombiner
+        // always yields Uncertain for a Tier-0 failure when judgeEnabled is false, regardless of
+        // the Tier 1 score. Skip the embed + Qdrant round trip entirely in that case (both the
+        // extraction hot path and the reground fast pass benefit).
+        if (!judgeEnabled)
+            return GroundingCombiner.Combine(tier0Grounded: false, tier1: null, judgeEnabled: false, tier2Grounded: null);
+
         var t1 = await tier1.GroundAsync(EntityTextFor(entity), entity.SourceBook, entity.Page, ct);
 
-        bool? tier2Grounded = null;
-        if (!t1.BelowFloor && judgeEnabled)
-            tier2Grounded = await judge.AreFieldsSupportedAsync(entity, sourceProse, ct);
+        bool? tier2Grounded = t1.BelowFloor
+            ? null
+            : await judge.AreFieldsSupportedAsync(entity, sourceProse, ct);
 
-        return GroundingCombiner.Combine(tier0Grounded: false, t1, judgeEnabled, tier2Grounded);
+        return GroundingCombiner.Combine(tier0Grounded: false, t1, judgeEnabled: true, tier2Grounded);
     }
 
     private static string EntityTextFor(EntityEnvelope entity) =>

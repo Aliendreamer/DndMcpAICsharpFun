@@ -546,6 +546,67 @@ public class EntityIngestionOrchestratorEnrichmentTests
         }
         finally { Directory.Delete(tmp, recursive: true); }
     }
+
+    [Fact]
+    public async Task UngroundedDisposition_Entity_ExcludedFromUpsert()
+    {
+        // entity-grounding-cascade Fix I-1(b): a canonical entity marked Ungrounded (a
+        // judge-confirmed fabrication) must never be (re-)added to dnd_entities, even on a full
+        // re-ingest — NeedsReview entities are unaffected and stay indexed as before.
+        var tmp = Path.Combine(Path.GetTempPath(), "ingest-test-ungrounded-" + Guid.NewGuid());
+        try
+        {
+            var entities = """
+                {
+                  "id": "phb14.spell.fireball",
+                  "type": "Spell", "name": "Fireball",
+                  "sourceBook": "PHB", "edition": "Edition2014", "page": 241,
+                  "firstAppearedIn": { "book": "PHB", "edition": "Edition2014" },
+                  "revisedIn": [], "settingTags": [], "canonicalText": "",
+                  "fields": { "level": 3 }
+                },
+                {
+                  "id": "phb14.spell.needs-review-spell",
+                  "type": "Spell", "name": "Needs Review Spell",
+                  "sourceBook": "PHB", "edition": "Edition2014", "page": 500,
+                  "firstAppearedIn": { "book": "PHB", "edition": "Edition2014" },
+                  "revisedIn": [], "settingTags": [], "canonicalText": "",
+                  "fields": { "level": 5 }, "disposition": "NeedsReview"
+                },
+                {
+                  "id": "phb14.spell.fabricated-bolt",
+                  "type": "Spell", "name": "Fabricated Bolt",
+                  "sourceBook": "PHB", "edition": "Edition2014", "page": 999,
+                  "firstAppearedIn": { "book": "PHB", "edition": "Edition2014" },
+                  "revisedIn": [], "settingTags": [], "canonicalText": "",
+                  "fields": { "level": 9 }, "disposition": "Ungrounded"
+                }
+                """;
+            var canonicalDir = Path.Combine(tmp, "canonical");
+            WriteCanonicalJson(canonicalDir, "phb14", entities);
+
+            var tracker = Substitute.For<IIngestionTracker>();
+            tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
+            {
+                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+            });
+
+            IList<EntityPoint>? captured = null;
+            var store = Substitute.For<IEntityVectorStore>();
+            store.UpsertAsync(Arg.Any<IList<EntityPoint>>(), Arg.Any<CancellationToken>())
+                .Returns(ci => { captured = ci.Arg<IList<EntityPoint>>(); return Task.CompletedTask; });
+
+            var orchestrator = BuildOrchestrator(tracker, MakeEmbeddings(), store, canonicalDir);
+
+            await orchestrator.IngestEntitiesAsync(1, CancellationToken.None);
+
+            Assert.NotNull(captured);
+            captured!.Select(p => p.Envelope.Id).Should().BeEquivalentTo(
+                ["phb14.spell.fireball", "phb14.spell.needs-review-spell"],
+                "the Ungrounded entity must be excluded while Accepted/NeedsReview entities stay indexed");
+        }
+        finally { Directory.Delete(tmp, recursive: true); }
+    }
 }
 
 /// <summary>Test helper extension to avoid boilerplate in substitute setup.</summary>

@@ -142,9 +142,12 @@ public sealed class EntityExtractionRunner(
             Disposition:     EntityDisposition.Accepted);
 
         // judgeEnabled is hardcoded false here: normal extraction runs keep Tier 2 (the LLM judge)
-        // off to leave per-candidate cost unchanged from the pre-cascade baseline. The backlog
-        // grounding pass (Task 7) re-grades existing entities with judgeEnabled: true threaded
-        // through from its own run options.
+        // off. With the judge disabled, GroundingCascade.GradeAsync also skips Tier 1 (the
+        // embed + Qdrant round trip) whenever Tier 0 fails, since Tier 1 alone can never change a
+        // judge-off verdict — so the common extraction path only pays Tier 0's cost, cheaper than
+        // the pre-cascade baseline, not merely "unchanged" from it. The backlog grounding pass
+        // (Task 7) re-grades existing entities with judgeEnabled: true threaded through from its
+        // own run options, which is what actually exercises Tier 1/2.
         var verdict = await cascade.GradeAsync(provisional, candidate.Text, judgeEnabled: false, ct);
         var disposition = ExtractionDispositionPolicy.Derive(verdict, displayName, confidence);
 

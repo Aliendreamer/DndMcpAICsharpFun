@@ -19,11 +19,11 @@ public sealed class GroundingCascadeTests
         }
     }
 
-    private sealed class FakeGroundingJudge(bool verdict) : IGroundingJudge
+    private sealed class FakeGroundingJudge(bool? verdict) : IGroundingJudge
     {
         public int CallCount { get; private set; }
 
-        public Task<bool> AreFieldsSupportedAsync(EntityEnvelope entity, string sourceProse, CancellationToken ct)
+        public Task<bool?> AreFieldsSupportedAsync(EntityEnvelope entity, string sourceProse, CancellationToken ct)
         {
             CallCount++;
             return Task.FromResult(verdict);
@@ -111,8 +111,11 @@ public sealed class GroundingCascadeTests
     }
 
     [Fact]
-    public async Task Tier1AboveFloor_JudgeDisabled_IsUncertain_JudgeNotCalled()
+    public async Task Tier0Fails_JudgeDisabled_SkipsTier1Entirely_IsUncertain()
     {
+        // M-1 optimization: with the judge off, Tier 1's score can never change the verdict
+        // (GroundingCombiner always returns Uncertain for a Tier-0 failure when judgeEnabled is
+        // false), so the embed + Qdrant round trip must never happen in this case.
         var entity = MakeEnvelope("""{"damage":"unmatched-fabricated-value"}""");
         const string sourceProse = "This prose does not support the fabricated field at all.";
         var tier1 = new FakeTier1Grounding(new Tier1Result(BelowFloor: false, Score: 0.8));
@@ -122,7 +125,24 @@ public sealed class GroundingCascadeTests
         var verdict = await sut.GradeAsync(entity, sourceProse, judgeEnabled: false, CancellationToken.None);
 
         verdict.Status.Should().Be(GroundingStatus.Uncertain);
-        tier1.CallCount.Should().Be(1);
+        tier1.CallCount.Should().Be(0, "Tier 1 must be skipped entirely when the judge is disabled");
         judge.CallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Tier1AboveFloor_JudgeEnabled_JudgeReturnsNull_IsUncertain_NotUngrounded()
+    {
+        // I-2: a judge that could not decide (transient failure or unparsable reply) must yield
+        // Uncertain, never a confirmed fabrication (Ungrounded).
+        var entity = MakeEnvelope("""{"damage":"unmatched-fabricated-value"}""");
+        const string sourceProse = "This prose does not support the fabricated field at all.";
+        var tier1 = new FakeTier1Grounding(new Tier1Result(BelowFloor: false, Score: 0.8));
+        var judge = new FakeGroundingJudge(null);
+        var sut = new GroundingCascade(tier1, judge);
+
+        var verdict = await sut.GradeAsync(entity, sourceProse, judgeEnabled: true, CancellationToken.None);
+
+        verdict.Status.Should().Be(GroundingStatus.Uncertain);
+        judge.CallCount.Should().Be(1);
     }
 }

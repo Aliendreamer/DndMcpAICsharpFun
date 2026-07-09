@@ -6,6 +6,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
+using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using Microsoft.Extensions.Options;
 using Qdrant.Client.Grpc;
@@ -30,6 +31,7 @@ public sealed class RegroundService(
     IGroundingCascade cascade,
     IEmbeddingService embeddings,
     IQdrantSearchClient qdrant,
+    IEntityVectorStore vectorStore,
     IOptions<QdrantOptions> qdrantOptions,
     IOptions<GroundingOptions> groundingOptions,
     IOptions<EntityExtractionOptions> options)
@@ -118,12 +120,25 @@ public sealed class RegroundService(
         await writer.WriteAsync(path, file with { Entities = entities }, ct);
         await WriteCheckpointAsync(checkpointPath, doneIds, changedIds, ct);
 
-        // Reindex every changed id — checkpoint-seeded (from a prior crashed run) union this run's
-        // own changes. ReindexEntityAsync is idempotent (re-embeds + upserts by id), so reindexing
-        // an id already reindexed by a prior run is harmless. Only delete the checkpoint once the
-        // full set has been reindexed.
+        // Reindex/delete every changed id — checkpoint-seeded (from a prior crashed run) union this
+        // run's own changes. The final canonical disposition (already flushed above) tells us which
+        // action applies: Ungrounded entities must be REMOVED from the vector store (never left to
+        // be refreshed as a stale upsert), while every other changed disposition (i.e. promoted to
+        // Accepted) is reindexed as before. Both ReindexEntityAsync and DeleteByIdsAsync are
+        // idempotent, so repeating either for an id already handled by a prior run is harmless.
+        // Only delete the checkpoint once the full set has been processed.
+        var reindexIds = new List<string>();
+        var deleteIds = new List<string>();
         foreach (var id in changedIds)
+        {
+            var final = entities.First(e => string.Equals(e.Id, id, StringComparison.Ordinal));
+            (final.Disposition == EntityDisposition.Ungrounded ? deleteIds : reindexIds).Add(id);
+        }
+
+        foreach (var id in reindexIds)
             await orchestrator.ReindexEntityAsync(bookId, id, ct);
+        if (deleteIds.Count > 0)
+            await vectorStore.DeleteByIdsAsync(deleteIds, ct);
 
         DeleteCheckpointIfExists(checkpointPath);
 

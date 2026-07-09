@@ -84,6 +84,11 @@ public sealed class EntityIngestionOrchestrator(
         {
             ct.ThrowIfCancellationRequested();
 
+            // Ungrounded entities are fabrications (Task: entity-grounding-cascade) — never
+            // (re-)add them to dnd_entities, even on a full re-ingest of the book.
+            if (envelope.Disposition == EntityDisposition.Ungrounded)
+                continue;
+
             var merged = MergeEnrichment(envelope, fivetoolsIndex, existingQdrant, out var matchedThis);
             if (matchedThis) matchedFivetools++; else unmatched++;
 

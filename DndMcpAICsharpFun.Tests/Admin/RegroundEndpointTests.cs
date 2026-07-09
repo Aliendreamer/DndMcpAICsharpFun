@@ -10,6 +10,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using FluentAssertions;
@@ -142,6 +143,10 @@ public sealed class RegroundEndpointTests : IDisposable
         orchestrator.ReindexEntityAsync(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
+        var vectorStore = Substitute.For<IEntityVectorStore>();
+        vectorStore.DeleteByIdsAsync(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
         var loader = new CanonicalJsonLoader();
         var writer = new CanonicalJsonWriter();
 
@@ -160,6 +165,7 @@ public sealed class RegroundEndpointTests : IDisposable
             cascade,
             new FakeEmbeddingService(),
             new FakeQdrantSearchClient(),
+            vectorStore,
             Options.Create(new QdrantOptions { BlocksCollectionName = "dnd_blocks" }),
             Options.Create(new GroundingOptions()),
             Options.Create(new EntityExtractionOptions { CanonicalDirectory = _dir }));
