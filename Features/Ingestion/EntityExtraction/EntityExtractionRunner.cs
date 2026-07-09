@@ -12,7 +12,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 public sealed class EntityExtractionRunner(
     CandidateExtractor candidateExtractor,
     ILogger<EntityExtractionRunner> logger,
-    GroundingCascade cascade,
+    IGroundingCascade cascade,
     EntityNameMatcher? matcher = null)
 {
     private readonly EntityNameMatcher? _matcher = matcher;

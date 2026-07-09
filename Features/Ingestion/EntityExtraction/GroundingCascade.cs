@@ -8,7 +8,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 /// skips Tier 1/2 entirely when it grounds; Tier 2 (LLM judge) only runs when Tier 1 is above its
 /// similarity floor and the judge is enabled.
 /// </summary>
-public sealed class GroundingCascade(ITier1Grounding tier1, IGroundingJudge judge)
+public sealed class GroundingCascade(ITier1Grounding tier1, IGroundingJudge judge) : IGroundingCascade
 {
     public async Task<GroundingVerdict> GradeAsync(
         EntityEnvelope entity, string sourceProse, bool judgeEnabled, CancellationToken ct)

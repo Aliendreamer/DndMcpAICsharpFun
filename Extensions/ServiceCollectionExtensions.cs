@@ -206,7 +206,7 @@ internal static class ServiceCollectionExtensions
         });
         services.AddSingleton<IEntityExtractionLlmClient, OllamaEntityExtractionClient>();
         services.AddScoped<IGroundingJudge, QwenGroundingJudge>();
-        services.AddScoped<GroundingCascade>();
+        services.AddScoped<IGroundingCascade, GroundingCascade>();
         services.AddSingleton(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value;
@@ -230,7 +230,7 @@ internal static class ServiceCollectionExtensions
                 configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools"));
         services.AddSingleton<EntityNameMatcher>();
         services.AddSingleton<EntityCandidateBuilder>();
-        // Scoped, not Singleton: EntityExtractionRunner now depends on GroundingCascade, which is
+        // Scoped, not Singleton: EntityExtractionRunner now depends on IGroundingCascade, which is
         // Scoped (it in turn depends on the Scoped ITier1Grounding/IGroundingJudge). A Singleton
         // cannot consume a Scoped service without becoming a captive dependency. Its only consumer,
         // IEntityExtractionOrchestrator, is already Scoped, so this is a safe lifetime change.
@@ -250,6 +250,7 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalTypeFixerService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalNameNormalizerService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.NeedsReviewService>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Admin.RegroundService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.BookRegistrationService>();
         return services;
     }
