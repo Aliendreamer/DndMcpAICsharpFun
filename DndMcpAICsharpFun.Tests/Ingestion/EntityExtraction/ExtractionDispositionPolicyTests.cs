@@ -57,4 +57,48 @@ public sealed class ExtractionDispositionPolicyTests
 
         envelope!.Disposition.Should().Be(EntityDisposition.Accepted);
     }
+
+    // ── Verdict overload (Task 6: shared GroundingCascade wiring) ──────────────────────────────
+
+    [Fact]
+    public void Verdict_Ungrounded_IsUngrounded_EvenWhenConfidentAndClean()
+    {
+        // Tier-2-judge-confirmed fabrication must NOT collapse into NeedsReview — it gets its own
+        // disposition so it stays excluded from dnd_entities while remaining distinct from a
+        // model-chosen Declined.
+        var verdict = new GroundingVerdict(GroundingStatus.Ungrounded, DecidedByTier: 2, Score: 0.1);
+
+        ExtractionDispositionPolicy.Derive(verdict, name: "Fireball", confidence: "high")
+            .Should().Be(EntityDisposition.Ungrounded);
+    }
+
+    [Fact]
+    public void Verdict_Uncertain_IsNeedsReview()
+    {
+        // No judge verdict (e.g. judge disabled at extraction time) → can't confirm ungrounded,
+        // so it falls back to the existing NeedsReview signal rather than a harder rejection.
+        var verdict = new GroundingVerdict(GroundingStatus.Uncertain, DecidedByTier: 1, Score: 0.5);
+
+        ExtractionDispositionPolicy.Derive(verdict, name: "Fireball", confidence: "high")
+            .Should().Be(EntityDisposition.NeedsReview);
+    }
+
+    [Fact]
+    public void Verdict_Grounded_CleanNameConfidentConfidence_IsAccepted()
+    {
+        var verdict = new GroundingVerdict(GroundingStatus.Grounded, DecidedByTier: 0, Score: 1.0);
+
+        ExtractionDispositionPolicy.Derive(verdict, name: "Fireball", confidence: "high")
+            .Should().Be(EntityDisposition.Accepted);
+    }
+
+    [Fact]
+    public void Verdict_Grounded_LowConfidence_IsNeedsReview()
+    {
+        // Grounded verdicts still run the existing name/confidence gate.
+        var verdict = new GroundingVerdict(GroundingStatus.Grounded, DecidedByTier: 0, Score: 1.0);
+
+        ExtractionDispositionPolicy.Derive(verdict, name: "Fireball", confidence: "low")
+            .Should().Be(EntityDisposition.NeedsReview);
+    }
 }

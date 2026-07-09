@@ -230,7 +230,11 @@ internal static class ServiceCollectionExtensions
                 configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools"));
         services.AddSingleton<EntityNameMatcher>();
         services.AddSingleton<EntityCandidateBuilder>();
-        services.AddSingleton<EntityExtractionRunner>();
+        // Scoped, not Singleton: EntityExtractionRunner now depends on GroundingCascade, which is
+        // Scoped (it in turn depends on the Scoped ITier1Grounding/IGroundingJudge). A Singleton
+        // cannot consume a Scoped service without becoming a captive dependency. Its only consumer,
+        // IEntityExtractionOrchestrator, is already Scoped, so this is a safe lifetime change.
+        services.AddScoped<EntityExtractionRunner>();
         services.AddSingleton<IReadOnlyDictionary<EntityType, EntityBackfillService>>(sp =>
         {
             var registry = sp.GetRequiredService<BookSourceRegistry>();

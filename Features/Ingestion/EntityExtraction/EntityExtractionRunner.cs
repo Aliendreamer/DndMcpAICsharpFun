@@ -12,6 +12,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 public sealed class EntityExtractionRunner(
     CandidateExtractor candidateExtractor,
     ILogger<EntityExtractionRunner> logger,
+    GroundingCascade cascade,
     EntityNameMatcher? matcher = null)
 {
     private readonly EntityNameMatcher? _matcher = matcher;
@@ -82,7 +83,7 @@ public sealed class EntityExtractionRunner(
 
             var forcedConfidence = forcedFields.Value.TryGetProperty("confidence", out var fcp) ? fcp.GetString() : null;
             var forcedClean = CandidateExtractor.StripConfidence(forcedFields.Value);
-            return (BuildTypedEnvelope(id, resolution.ForcedType, displayName, sourceBook, edition, candidate, forcedClean, forcedConfidence), null);
+            return (await BuildTypedEnvelope(id, resolution.ForcedType, displayName, sourceBook, edition, candidate, forcedClean, forcedConfidence, ct), null);
         }
 
         var result = await candidateExtractor.ExtractUnionAsync(record, candidate, availablePrior, schemas, ct);
@@ -113,20 +114,19 @@ public sealed class EntityExtractionRunner(
                     Detail: result.DeclineReason ?? "model declined (entityType:none)"));
 
             default:
-                return (BuildTypedEnvelope(id, result.Type, displayName, sourceBook, edition, candidate, result.Fields, result.Confidence), null);
+                return (await BuildTypedEnvelope(id, result.Type, displayName, sourceBook, edition, candidate, result.Fields, result.Confidence, ct), null);
         }
     }
 
-    // Builds a typed entity envelope, deriving the disposition from grounding + name/confidence.
+    // Builds a typed entity envelope, deriving the disposition from the shared GroundingCascade
+    // (Tier 0 field-text match, escalating to Tier 1/2 only when Tier 0 fails) plus name/confidence.
     // The Id keeps the keyword-primary type for stable checkpoint/resume identity (design.md §F);
     // the authoritative type is the Type field.
-    private EntityEnvelope BuildTypedEnvelope(
+    private async Task<EntityEnvelope> BuildTypedEnvelope(
         string id, EntityType type, string displayName, string sourceBook, string edition,
-        EntityCandidate candidate, JsonElement fields, string? confidence)
+        EntityCandidate candidate, JsonElement fields, string? confidence, CancellationToken ct)
     {
-        var grounded = HasGroundedContent(fields, candidate.Text);
-        var disposition = ExtractionDispositionPolicy.Derive(grounded, displayName, confidence);
-        return new EntityEnvelope(
+        var provisional = new EntityEnvelope(
             Id:              id,
             Type:            type,
             Name:            displayName,
@@ -138,18 +138,22 @@ public sealed class EntityExtractionRunner(
             SettingTags:     Array.Empty<string>(),
             CanonicalText:   string.Empty,
             Fields:          fields,
-            NeedsReview:     disposition != EntityDisposition.Accepted,
-            Disposition:     disposition);
+            NeedsReview:     false,
+            Disposition:     EntityDisposition.Accepted);
+
+        // judgeEnabled is hardcoded false here: normal extraction runs keep Tier 2 (the LLM judge)
+        // off to leave per-candidate cost unchanged from the pre-cascade baseline. The backlog
+        // grounding pass (Task 7) re-grades existing entities with judgeEnabled: true threaded
+        // through from its own run options.
+        var verdict = await cascade.GradeAsync(provisional, candidate.Text, judgeEnabled: false, ct);
+        var disposition = ExtractionDispositionPolicy.Derive(verdict, displayName, confidence);
+
+        return provisional with
+        {
+            NeedsReview = disposition != EntityDisposition.Accepted,
+            Disposition = disposition,
+        };
     }
-
-    
-
-    // Tier-0 grounding over the emitted fields: true when at least one significant string value
-    // grounds against the source prose. Pure fabrication / empty output (e.g. zeroed stat blocks)
-    // grounds nothing -> NeedsReview.
-    private static bool HasGroundedContent(JsonElement fields, string sourceText) =>
-        Tier0FieldGrounding.HasAnyFieldGrounded(fields, sourceText);
-
 
     // Title-case clean all-caps display names before they become entity names + feed the heuristic.
     private static string NormalizeDisplayName(string displayName)

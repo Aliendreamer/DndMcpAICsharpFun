@@ -13,7 +13,25 @@ public static class ExtractionDispositionPolicy
     public static EntityDisposition Derive(bool grounded, string name, string? confidence)
     {
         if (!grounded) return EntityDisposition.NeedsReview;
-        if (ExtractionNeedsReview.Derive(name, confidence)) return EntityDisposition.NeedsReview;
-        return EntityDisposition.Accepted;
+        return DeriveGroundedGate(name, confidence);
     }
+
+    /// <summary>
+    /// Verdict-based overload backed by the shared <see cref="GroundingCascade"/> (Task 6): an
+    /// <see cref="GroundingStatus.Ungrounded"/> verdict (Tier-2-judge-confirmed fabrication) maps to
+    /// its own <see cref="EntityDisposition.Ungrounded"/> rather than the softer NeedsReview; an
+    /// <see cref="GroundingStatus.Uncertain"/> verdict (no judge verdict reached) falls back to
+    /// NeedsReview; a <see cref="GroundingStatus.Grounded"/> verdict runs the existing name/confidence
+    /// gate, identical to the legacy <c>grounded == true</c> path above.
+    /// </summary>
+    public static EntityDisposition Derive(GroundingVerdict verdict, string name, string? confidence) =>
+        verdict.Status switch
+        {
+            GroundingStatus.Ungrounded => EntityDisposition.Ungrounded,
+            GroundingStatus.Uncertain => EntityDisposition.NeedsReview,
+            _ => DeriveGroundedGate(name, confidence),
+        };
+
+    private static EntityDisposition DeriveGroundedGate(string name, string? confidence) =>
+        ExtractionNeedsReview.Derive(name, confidence) ? EntityDisposition.NeedsReview : EntityDisposition.Accepted;
 }

@@ -2,6 +2,7 @@ using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
+using DndMcpAICsharpFun.Tests.TestDoubles;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -11,7 +12,7 @@ namespace DndMcpAICsharpFun.Tests.Entities.Extraction;
 
 public sealed class EntityExtractionRunnerDeclineTests
 {
-    private static EntityExtractionRunner BuildRunner(IEntityExtractionLlmClient llm) =>
+    private static EntityExtractionRunner BuildRunner(IEntityExtractionLlmClient llm, GroundingCascade? cascade = null) =>
         new(
             candidateExtractor: new CandidateExtractor(
                 llm:           llm,
@@ -22,7 +23,8 @@ public sealed class EntityExtractionRunnerDeclineTests
                 options:       Options.Create(new EntityExtractionOptions { MaxOutputTokensPerEntity = 4096 }),
                 ollamaOpts:    Options.Create(new OllamaOptions()),
                 logger:        NullLogger<CandidateExtractor>.Instance),
-            logger: NullLogger<EntityExtractionRunner>.Instance);
+            logger: NullLogger<EntityExtractionRunner>.Instance,
+            cascade: cascade ?? GroundingCascadeTestFactory.Inert());
 
     private static DndMcpAICsharpFun.Domain.IngestionRecord Record() => new()
     {
@@ -84,5 +86,36 @@ public sealed class EntityExtractionRunnerDeclineTests
         envelope.Should().NotBeNull("a typed extraction with real fields must be persisted");
         envelope!.Type.Should().Be(EntityType.Object);
         envelope.Fields.TryGetProperty("ac", out _).Should().BeTrue();
+
+        // Task 6: disposition now comes from the shared GroundingCascade (Tier 0 short-circuit) —
+        // preserves the pre-cascade behavior for a Tier-0-grounded, confident, clean-named entity.
+        envelope.Disposition.Should().Be(EntityDisposition.Accepted);
+        envelope.NeedsReview.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Ungrounded_fields_with_judge_off_are_NeedsReview_not_Ungrounded()
+    {
+        // The model fabricates fields with no support anywhere in the source prose. Extraction time
+        // keeps the grounding judge disabled (Task 7 threads the real per-run flag through), so the
+        // cascade can only reach GroundingStatus.Uncertain here — never a judge-confirmed Ungrounded.
+        // This preserves the pre-cascade HasGroundedContent-era behavior: ungrounded -> NeedsReview.
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        ReturnsToolInput(llm,
+            """{"entityType":"Object","ac":[999],"hp":{"average":12345,"formula":"totally-fabricated"}}""");
+
+        var candidate = new EntityCandidate(
+            Type: EntityType.Object, DisplayName: "Ballista", Text: "A Large object with no stats given here.",
+            Page: 1, TypePrior: new[] { EntityType.Object });
+        var schemas = new Dictionary<EntityType, JsonElement> { [EntityType.Object] = JsonDocument.Parse("{}").RootElement.Clone() };
+
+        var (envelope, error) = await BuildRunner(llm).ExtractOneAsync(
+            Record(), candidate, id: "test.object.ballista", sourceBook: "Test", edition: "5e",
+            schemas: schemas, ct: CancellationToken.None);
+
+        error.Should().BeNull();
+        envelope.Should().NotBeNull();
+        envelope!.Disposition.Should().Be(EntityDisposition.NeedsReview);
+        envelope.NeedsReview.Should().BeTrue();
     }
 }

@@ -97,6 +97,7 @@ public class EntityExtractionOrchestratorTests
                 runner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
                     candidateExtractor: BuildCandidateExtractor(llm, opts),
                     logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                    cascade: GroundingCascadeTestFactory.Inert(),
                     matcher: sharedMatcher),
                 options: opts,
                 logger: NullLogger<EntityExtractionOrchestrator>.Instance,
@@ -244,6 +245,7 @@ public class EntityExtractionOrchestratorTests
             runner:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
                 candidateExtractor: BuildCandidateExtractor(llm, opts),
                 logger:             NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                cascade:            GroundingCascadeTestFactory.Inert(),
                 matcher:            effectiveMatcher),
             options:            opts,
             logger:             orchestratorLogger ?? NullLogger<EntityExtractionOrchestrator>.Instance,
@@ -752,6 +754,7 @@ public class EntityExtractionOrchestratorTests
                 runner:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
                     candidateExtractor: BuildCandidateExtractor(llm, opts),
                     logger:             NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                    cascade:            GroundingCascadeTestFactory.Inert(),
                     matcher:            sharedMatcher),
                 options:            opts,
                 logger:             NullLogger<EntityExtractionOrchestrator>.Instance,
