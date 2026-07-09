@@ -20,4 +20,9 @@ public enum EntityDisposition
 
     /// <summary>No valid output after the retry budget.</summary>
     Failed = 3,
+
+    /// <summary>A Tier-2-judge-confirmed ungrounded fabrication: the model emitted an entity but
+    /// its fields are not supported by the source prose. Excluded from <c>dnd_entities</c>,
+    /// retained in canonical for audit. Distinct from a model-chosen <c>Declined</c>.</summary>
+    Ungrounded = 4,
 }
