@@ -78,4 +78,24 @@ public sealed class DiceExpressionTests
         result.Should().BeFalse();
         error.Should().NotBeNullOrEmpty();
     }
+
+
+    [Theory]
+    [InlineData("1d6+1001")]
+    [InlineData("1d6-1001")]
+    public void Modifier_magnitude_over_cap_is_rejected(string s)
+    {
+        DiceExpression.TryParse(s, out _, out var err).Should().BeFalse();
+        err.Should().NotBeNullOrEmpty();
+    }
+
+    [Theory]
+    [InlineData("1d6+1000", 1000)]
+    [InlineData("1d6-1000", -1000)]
+    public void Modifier_magnitude_at_cap_is_accepted(string s, int modifier)
+    {
+        DiceExpression.TryParse(s, out var e, out var err).Should().BeTrue();
+        err.Should().BeNull();
+        e.Modifier.Should().Be(modifier);
+    }
 }

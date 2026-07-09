@@ -13,6 +13,8 @@ public readonly partial record struct DiceExpression(int Count, int Die, int Mod
 {
     public const int MaxCount = 100;
 
+    public const int MaxModifier = 1000;
+
     public static readonly int[] Dice = { 4, 6, 8, 10, 12, 20, 100 };
 
     [GeneratedRegex(
@@ -68,6 +70,12 @@ public readonly partial record struct DiceExpression(int Count, int Die, int Mod
         if (count < 1 || count > MaxCount)
         {
             error = $"Dice count must be between 1 and {MaxCount} (got {count}).";
+            return false;
+        }
+
+        if (modifier < -MaxModifier || modifier > MaxModifier)
+        {
+            error = $"Dice modifier out of range: must be between -{MaxModifier} and {MaxModifier} (got {modifier}).";
             return false;
         }
 

@@ -55,6 +55,27 @@ public sealed class DiceRollerTests
         res.Breakdown.Should().Be("d20 (dis) → [18,7] → 7");
     }
 
+
+    [Fact]
+    public void Advantage_with_modifier()
+    {
+        var r = new DiceRoller(new ScriptedRng(18, 7));
+        var res = r.Roll(DiceExpression.Parse("d20+5 adv"));
+        res.Kept.Should().Equal(18);
+        res.Total.Should().Be(23);
+        res.Breakdown.Should().Be("d20 (adv) → [18,7] → 18+5 = 23");
+    }
+
+    [Fact]
+    public void Disadvantage_with_modifier()
+    {
+        var r = new DiceRoller(new ScriptedRng(18, 7));
+        var res = r.Roll(DiceExpression.Parse("d20-2 dis"));
+        res.Kept.Should().Equal(7);
+        res.Total.Should().Be(5);
+        res.Breakdown.Should().Be("d20 (dis) → [18,7] → 7-2 = 5");
+    }
+
     [Fact]
     public void Same_script_is_reproducible()
     {
