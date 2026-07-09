@@ -25,6 +25,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Bm25TermStat> Bm25TermStats => Set<Bm25TermStat>();
     public DbSet<Bm25CorpusStat> Bm25CorpusStats => Set<Bm25CorpusStat>();
     public DbSet<Bm25BookStat> Bm25BookStats => Set<Bm25BookStat>();
+    public DbSet<CampaignLogEntry> CampaignLogEntries => Set<CampaignLogEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -113,6 +114,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.HasKey(b => b.FileHash);
             e.Property(b => b.FileHash).HasMaxLength(64);
             e.Property(b => b.TermDfJson).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<CampaignLogEntry>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Kind).HasConversion<string>();
+            e.Property(x => x.PayloadJson).HasColumnType("text");
+            e.Property(x => x.Label);
+            e.HasIndex(x => new { x.CampaignId, x.UserId, x.CreatedAt });
         });
     }
 }
