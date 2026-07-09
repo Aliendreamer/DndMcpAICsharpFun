@@ -176,7 +176,10 @@ internal static class ServiceCollectionExtensions
     internal static IServiceCollection AddEncounters(this IServiceCollection services)
     {
         services.AddScoped<DndMcpAICsharpFun.Features.Encounters.EncounterAssessor>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Encounters.IEncounterMonsterSource,
+            DndMcpAICsharpFun.Features.Encounters.EntitySearchMonsterSource>();
         services.AddScoped<DndMcpAICsharpFun.Features.Encounters.EncounterGenerator>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Encounters.EncounterDesignService>();
 
         return services;
     }
