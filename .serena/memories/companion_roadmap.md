@@ -71,11 +71,9 @@ GUID-suffix it if a sibling test is added). Only the real-Ollama JUDGE path stay
 ## LOOSE ENDS / follow-ups
 - **Published-container Blazor static assets** ✅ FIXED (`8139397`).
 - **Qdrant scalar int8 quantization:** shipped + archived. Closed.
-- **`extraction-think-mode` spec** proposed, not applied (`/no_think` already shipped) — closeable.
+- **`extraction-think-mode` spec** ✅ CLOSED — deleted 2026-07-09b (superseded by shipped `/no_think` `803da7b`; the A/B toggle it proposed is moot now the decision is made).
 - **DMG Object residuals** (hand-correctable): tighten `StatBlockScanner` / `IsObjectStatBlock`.
-- **`dotnet format` repo-wide dirty** (300+ files, pre-existing import-ordering; build 0/0
-  warnings-as-errors is the real gate). A one-time repo format + `.editorconfig` would clean it — its
-  own small change if desired.
+- **`dotnet format`** — a comprehensive `.editorconfig` ALREADY EXISTS (18KB, `dotnet_separate_import_directive_groups`, `dotnet_sort_system_directives_first`); the repo had just drifted from it. One-time normalization was applied 2026-07-09b (whitespace/finalnewline/imports; behavior-neutral, build 0/0). `dotnet format --verify-no-changes` clean going forward.
 - **Operational live-host smokes** (deferred, need app+Qdrant+Postgres+Ollama up): Item 3 reground
   endpoint (fast pass + `?judge=true`); Item 4 dedup endpoints (duplicates report + compact apply).
 
