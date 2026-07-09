@@ -1,6 +1,8 @@
 using DndMcpAICsharpFun.Domain;              // DndVersion
 using DndMcpAICsharpFun.Features.Encounters;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Encounters;
@@ -8,8 +10,13 @@ namespace DndMcpAICsharpFun.Tests.Encounters;
 public sealed class EncounterMathTests
 {
     [Theory]
-    [InlineData(0, 10)] [InlineData(0.25, 50)] [InlineData(1, 200)]
-    [InlineData(5, 1800)] [InlineData(10, 5900)] [InlineData(20, 25000)] [InlineData(30, 155000)]
+    [InlineData(0, 10)]
+    [InlineData(0.25, 50)]
+    [InlineData(1, 200)]
+    [InlineData(5, 1800)]
+    [InlineData(10, 5900)]
+    [InlineData(20, 25000)]
+    [InlineData(30, 155000)]
     public void CrToXp_matches_standard_table(double cr, int xp) =>
         EncounterMath.CrToXp(cr).Should().Be(xp);
 
@@ -30,8 +37,12 @@ public sealed class EncounterMathTests
     }
 
     [Theory]
-    [InlineData(1, 4, 1.0)] [InlineData(2, 4, 1.5)] [InlineData(4, 4, 2.0)]
-    [InlineData(8, 4, 2.5)] [InlineData(12, 4, 3.0)] [InlineData(15, 4, 4.0)]
+    [InlineData(1, 4, 1.0)]
+    [InlineData(2, 4, 1.5)]
+    [InlineData(4, 4, 2.0)]
+    [InlineData(8, 4, 2.5)]
+    [InlineData(12, 4, 3.0)]
+    [InlineData(15, 4, 4.0)]
     public void Multiplier_2014_by_count(int count, int party, double mult) =>
         EncounterMath.Multiplier(count, party, DndVersion.Edition2014).Should().Be(mult);
 
@@ -67,7 +78,7 @@ public sealed class EncounterMathTests
     public void Classify_boundary_just_below_is_lower_band()
     {
         // 2024, party 4×L5: exactly Moderate(3000) => Medium; one below => Easy.
-        EncounterMath.Classify(3000, new[] { 5,5,5,5 }, 1, DndVersion.Edition2024).Should().Be(Difficulty.Medium);
-        EncounterMath.Classify(2999, new[] { 5,5,5,5 }, 1, DndVersion.Edition2024).Should().Be(Difficulty.Easy);
+        EncounterMath.Classify(3000, new[] { 5, 5, 5, 5 }, 1, DndVersion.Edition2024).Should().Be(Difficulty.Medium);
+        EncounterMath.Classify(2999, new[] { 5, 5, 5, 5 }, 1, DndVersion.Edition2024).Should().Be(Difficulty.Easy);
     }
 }

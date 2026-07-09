@@ -1,6 +1,8 @@
 using DndMcpAICsharpFun.Domain;              // DndVersion
 using DndMcpAICsharpFun.Features.Encounters;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Encounters;
