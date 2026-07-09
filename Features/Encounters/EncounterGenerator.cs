@@ -74,6 +74,34 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
         var effectiveCrLte = crLte ?? EncounterMath.HighestCrAtOrBelowXp(budget[bandIndex]);
         var effectiveCrGte = crGte ?? 0.125;
 
+        // Each bound above falls back to its OWN independent default, so a caller who pins down
+        // only one of crLte/crGte can end up with an inverted range once the other bound
+        // defaults: e.g. a low-level party at a low difficulty derives a low default crLte, and
+        // an explicit high crGte (the MCP tool's minCr) then exceeds it. Passed straight to the
+        // source, that inverted range silently returns zero candidates and produces a confusing
+        // "0 candidate(s) in CR [gte, lte]" note instead of honoring the caller's explicit bound.
+        // Policy: if BOTH bounds were caller-supplied and are still inverted, that is invalid
+        // caller input — fail loudly rather than degrade silently. If only ONE bound was
+        // caller-supplied, widen/lower the DEFAULTED bound to meet it, so the explicit bound is
+        // always honored (this can also fire when both bounds defaulted to an inverted pair —
+        // e.g. an extremely small budget — in which case the floor is lowered to match).
+        if (effectiveCrGte > effectiveCrLte)
+        {
+            if (crGte is not null && crLte is not null)
+            {
+                throw new ArgumentException("minCr cannot exceed maxCr.", nameof(crGte));
+            }
+
+            if (crGte is not null)
+            {
+                effectiveCrLte = effectiveCrGte;
+            }
+            else
+            {
+                effectiveCrGte = effectiveCrLte;
+            }
+        }
+
         var candidates = await source.FindAsync(ed, effectiveCrGte, effectiveCrLte, theme, srdOnly: false, CandidateLimit, ct);
 
         var selected = new List<MonsterRef>();

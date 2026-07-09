@@ -209,4 +209,39 @@ public sealed class EncounterGeneratorTests
         result.Assessment.Difficulty.Should().Be(Difficulty.Deadly);
         result.FullyMatched.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task BuildAsync_widens_the_default_ceiling_to_honor_an_explicit_floor_the_default_would_undercut()
+    {
+        // 4xL1 party, Easy target (2014): total party budget = 4 * 25 = 100 XP. The DERIVED
+        // default ceiling from that budget (EncounterMath.HighestCrAtOrBelowXp(100) = CR 0.5)
+        // sits far below an explicit CR-5 floor supplied via crGte (the MCP tool's minCr).
+        // Each bound falling back to its own independent default -- without a cross-clamp --
+        // would pass the source an INVERTED range (crGte=5 > crLte=0.5): against the real
+        // source that returns zero candidates and produces a confusing "0 candidate(s) in CR
+        // [5, 0.5]" note instead of honoring the caller's explicit floor. The fix must widen
+        // the defaulted ceiling to match the explicit floor so the range handed to the source
+        // is never inverted.
+        IReadOnlyList<int> party4L1 = [1, 1, 1, 1];
+        var source = new FakeMonsterSource(FiveCr3Monsters());
+        var generator = new EncounterGenerator(source, new EncounterAssessor());
+
+        await generator.BuildAsync(
+            party4L1, Difficulty.Easy, DndVersion.Edition2014, theme: null, crLte: null, crGte: 5.0, CancellationToken.None);
+
+        source.CapturedCrGte.Should().Be(5.0);
+        source.CapturedCrLte.Should().BeGreaterThanOrEqualTo(source.CapturedCrGte!.Value);
+    }
+
+    [Fact]
+    public async Task BuildAsync_throws_when_both_bounds_are_explicit_and_inverted()
+    {
+        var source = new FakeMonsterSource(FiveCr3Monsters());
+        var generator = new EncounterGenerator(source, new EncounterAssessor());
+
+        var act = async () => await generator.BuildAsync(
+            Party4L5, Difficulty.Medium, DndVersion.Edition2014, theme: null, crLte: 2.0, crGte: 10.0, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
 }
