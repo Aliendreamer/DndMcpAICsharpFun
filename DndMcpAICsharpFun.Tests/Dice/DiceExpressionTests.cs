@@ -48,4 +48,27 @@ public sealed class DiceExpressionTests
         DiceExpression.TryParse(s, out _, out var err).Should().BeFalse();
         err.Should().NotBeNullOrEmpty();
     }
+
+
+    [Fact] public void Oversized_count_is_rejected_without_throwing()
+    {
+        var result = false;
+        string? error = null;
+        Action act = () => result = DiceExpression.TryParse("99999999999d6", out _, out error);
+
+        act.Should().NotThrow();
+        result.Should().BeFalse();
+        error.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact] public void Oversized_modifier_is_rejected_without_throwing()
+    {
+        var result = false;
+        string? error = null;
+        Action act = () => result = DiceExpression.TryParse("1d6+99999999999", out _, out error);
+
+        act.Should().NotThrow();
+        result.Should().BeFalse();
+        error.Should().NotBeNullOrEmpty();
+    }
 }

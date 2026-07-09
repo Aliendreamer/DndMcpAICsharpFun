@@ -38,14 +38,24 @@ public readonly partial record struct DiceExpression(int Count, int Die, int Mod
             return false;
         }
 
-        var count = match.Groups[1].Success ? int.Parse(match.Groups[1].Value) : 1;
+        var count = 1;
+        if (match.Groups[1].Success && !int.TryParse(match.Groups[1].Value, out count))
+        {
+            error = $"Dice count out of range: '{match.Groups[1].Value}'.";
+            return false;
+        }
+
         var die = int.Parse(match.Groups[2].Value);
 
         var modifier = 0;
         if (match.Groups[3].Success)
         {
             var modText = match.Groups[3].Value.Replace(" ", string.Empty);
-            modifier = int.Parse(modText);
+            if (!int.TryParse(modText, out modifier))
+            {
+                error = $"Dice modifier out of range: '{modText}'.";
+                return false;
+            }
         }
 
         var mode = RollMode.Normal;
