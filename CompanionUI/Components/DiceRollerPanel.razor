@@ -184,14 +184,28 @@
 
         if (CampaignId > 0)
         {
+            var logged = false;
             try
             {
                 await LogRepo.AddRollAsync(UserId, CampaignId, res, string.IsNullOrWhiteSpace(_label) ? null : _label, hidden: false);
-                await OnLogged.InvokeAsync();
+                logged = true;
             }
             catch (Exception ex)
             {
                 _error = $"Roll saved locally but not logged: {ex.Message}";
+            }
+
+            if (logged)
+            {
+                try
+                {
+                    await OnLogged.InvokeAsync();
+                }
+                catch
+                {
+                    // The roll was logged successfully; a refresh-callback failure here must not
+                    // be reported as "not logged" and must not throw to the circuit.
+                }
             }
         }
     }

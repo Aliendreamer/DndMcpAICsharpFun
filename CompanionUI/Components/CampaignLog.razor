@@ -58,7 +58,8 @@
         await RefreshAsync();
     }
 
-    private static string? FormatEntry(CampaignLogEntry e)
+    // internal (not private) so DndMcpAICsharpFun.Tests can exercise the null-safety directly (InternalsVisibleTo is already configured).
+    internal static string? FormatEntry(CampaignLogEntry e)
     {
         try
         {
@@ -66,17 +67,21 @@
             {
                 var payload = JsonSerializer.Deserialize<RollLogPayload>(e.PayloadJson);
                 if (payload is null) return null;
-                return $"{e.Label} · {payload.Breakdown} · {payload.Total}";
+                var breakdown = payload.Breakdown ?? "";
+                return $"{e.Label} · {breakdown} · {payload.Total}";
             }
             else
             {
                 var payload = JsonSerializer.Deserialize<EncounterLogPayload>(e.PayloadJson);
-                if (payload is null) return null;
-                return $"{e.Label} · {payload.Difficulty} · {string.Join(", ", payload.Monsters.Select(m => m.Name))}";
+                if (payload is null || payload.Monsters is null) return null;
+                var names = string.Join(", ", payload.Monsters.Select(m => m?.Name ?? "?"));
+                return $"{e.Label} · {payload.Difficulty} · {names}";
             }
         }
-        catch (JsonException)
+        catch (Exception)
         {
+            // Any malformed/partial log entry (bad JSON, unexpected shape, null-field NRE, etc.)
+            // is skipped rather than allowed to crash the render loop.
             return null;
         }
     }
