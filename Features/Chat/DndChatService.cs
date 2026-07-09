@@ -1,6 +1,7 @@
 using System.Security.Claims;
 
 using DndMcpAICsharpFun.Domain;
+using DndMcpAICsharpFun.Features.Encounters;
 using DndMcpAICsharpFun.Features.Resolution;
 
 using Microsoft.Extensions.AI;
@@ -14,7 +15,8 @@ public sealed class DndChatService(
     IHttpContextAccessor httpContextAccessor,
     ChatRateLimiter rateLimiter,
     PersonaProvider personaProvider,
-    CharacterResolutionService resolutionService)
+    CharacterResolutionService resolutionService,
+    EncounterDesignService encounterService)
 {
     public List<ChatMessage> History { get; } = [];
 
@@ -52,9 +54,10 @@ public sealed class DndChatService(
             ? tools
             : tools.Where(t => t is not AIFunction fn || fn.Name != "search_web").ToList();
 
-        // Character-scoped resolution is NOT exposed on the shared-key MCP surface (SEC-08). It is
-        // added here as a per-user in-process tool that closes over the signed-in user's id, so the
-        // ownership check in ResolveForUserAsync is always applied. Unauthenticated callers get no tool.
+        // Character-scoped resolution and per-user encounter design are NOT exposed on the
+        // shared-key MCP surface (SEC-08). They are added here as per-user in-process tools that
+        // close over the signed-in user's id, so the ownership check in *ForUserAsync is always
+        // applied. Unauthenticated callers get no tool.
         var toolList = activeTools.ToList();
         var idClaim = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (long.TryParse(idClaim, out var userId))
@@ -79,6 +82,30 @@ public sealed class DndChatService(
                     "given class (targetClass, e.g. \"Rogue\"). Returns allowed/not-allowed with the " +
                     "failed ability-score prerequisite and the reduced proficiency subset the class " +
                     "grants. Works for any combination, caster or not."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (long? campaignId, int[]? partyLevels, string[] monsters, string edition, CancellationToken toolCt) =>
+                    encounterService.RateForUserAsync(
+                        userId, campaignId, partyLevels, monsters, ParseEdition(edition), toolCt),
+                name: "rate_encounter",
+                description: "Rate a combat encounter's difficulty (Trivial/Easy/Medium/Hard/Deadly) " +
+                    "for the signed-in user's party. The party comes from the caller's own campaign " +
+                    "(campaignId) or an explicit partyLevels list (one level per party member); " +
+                    "campaignId wins ownership-checked access, partyLevels overrides it when supplied. " +
+                    "monsters is a list of entity ids or free-text names to look up. edition is " +
+                    "\"2014\" or \"2024\"."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (long? campaignId, string difficulty, string edition, string? theme, CancellationToken toolCt) =>
+                    encounterService.BuildForUserAsync(
+                        userId, campaignId, partyLevels: null, ParseDifficulty(difficulty),
+                        ParseEdition(edition), theme, toolCt),
+                name: "build_encounter",
+                description: "Build a combat encounter for a target difficulty " +
+                    "(Trivial/Easy/Medium/Hard/Deadly) and optional theme, for the signed-in user's " +
+                    "party (from the caller's own campaignId). Rated by the same math as " +
+                    "rate_encounter, so a built encounter and a subsequent rate_encounter call agree " +
+                    "on its difficulty. edition is \"2014\" or \"2024\"."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));
@@ -144,4 +171,29 @@ public sealed class DndChatService(
             // Persistence of chat history must never break the chat response.
         }
     }
+
+    /// <summary>
+    /// Parses a caller-supplied edition string ("2014"/"2024", tolerant of the enum name form
+    /// e.g. "Edition2014") case-insensitively. Defaults to <see cref="DndVersion.Edition2014"/>
+    /// for anything unrecognized, since most of the corpus and existing campaigns are 2014-edition.
+    /// </summary>
+    private static DndVersion ParseEdition(string? edition) => edition?.Trim().ToLowerInvariant() switch
+    {
+        "2024" or "edition2024" => DndVersion.Edition2024,
+        _ => DndVersion.Edition2014,
+    };
+
+    /// <summary>
+    /// Parses a caller-supplied difficulty string (case-insensitive) into a <see cref="Difficulty"/>.
+    /// Defaults to <see cref="Difficulty.Medium"/> for anything unrecognized, since build_encounter
+    /// requires some target and "Medium" is the least surprising default.
+    /// </summary>
+    private static Difficulty ParseDifficulty(string? difficulty) => difficulty?.Trim().ToLowerInvariant() switch
+    {
+        "trivial" => Difficulty.Trivial,
+        "easy" => Difficulty.Easy,
+        "hard" => Difficulty.Hard,
+        "deadly" => Difficulty.Deadly,
+        _ => Difficulty.Medium,
+    };
 }

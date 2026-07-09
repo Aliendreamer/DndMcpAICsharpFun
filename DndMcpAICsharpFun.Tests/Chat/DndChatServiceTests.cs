@@ -1,4 +1,9 @@
+using System.Security.Claims;
+using System.Text.Json;
+
 using DndMcpAICsharpFun.Features.Chat;
+using DndMcpAICsharpFun.Features.Encounters;
+using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
 using DndMcpAICsharpFun.Tests.TestDoubles;
 
@@ -49,19 +54,62 @@ public sealed class DndChatServiceTests : IDisposable
         return new PersonaProvider(opts);
     }
 
+    /// <summary>
+    /// Builds a real <see cref="EncounterDesignService"/> over <see cref="NoOpDbFactory"/>-backed
+    /// repositories (mirroring <see cref="CharacterResolutionService"/> below) and a fake
+    /// monster-source/search — sealed/concrete, so it cannot be substituted directly, but its own
+    /// DB-touching dependencies can, keeping these chat-wiring tests DB-free.
+    /// </summary>
+    private static EncounterDesignService BuildEncounterDesignService(
+        IEntityRetrievalService? search = null, IEncounterMonsterSource? source = null)
+    {
+        var assessor = new EncounterAssessor();
+        var generator = new EncounterGenerator(source ?? Substitute.For<IEncounterMonsterSource>(), assessor);
+        return new EncounterDesignService(
+            assessor,
+            generator,
+            new DndMcpAICsharpFun.Features.Campaigns.HeroRepository(new NoOpDbFactory()),
+            new DndMcpAICsharpFun.Features.Campaigns.CampaignRepository(new NoOpDbFactory()),
+            search ?? Substitute.For<IEntityRetrievalService>());
+    }
+
+    private static IHttpContextAccessor AuthenticatedAs(long userId)
+    {
+        var ctx = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                [new Claim(ClaimTypes.NameIdentifier, userId.ToString())])),
+        };
+        return new NullHttpContextAccessor { HttpContext = ctx };
+    }
+
+    /// <summary>Round-trips an anonymous object through JSON so values arrive as <see cref="JsonElement"/>,
+    /// matching how a real LLM tool-call's arguments are bound.</summary>
+    private static AIFunctionArguments ToArgs(object args)
+    {
+        var json = JsonSerializer.Serialize(args);
+        var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json)!;
+        var result = new AIFunctionArguments();
+        foreach (var (key, value) in dict) result[key] = value;
+        return result;
+    }
+
     private DndChatService CreateService(
         FakeChatClient client,
         IReadOnlyList<AITool>? tools = null,
-        PersonaProvider? personaProvider = null) =>
+        PersonaProvider? personaProvider = null,
+        IHttpContextAccessor? httpContextAccessor = null,
+        EncounterDesignService? encounterService = null) =>
         new(client,
             new FakeMcpToolsProvider(tools ?? []),
             new ChatRepository(new NoOpDbFactory()),
-            new NullHttpContextAccessor(),
+            httpContextAccessor ?? new NullHttpContextAccessor(),
             new ChatRateLimiter(1000),
             personaProvider ?? CreatePersonaProvider(),
             new DndMcpAICsharpFun.Features.Resolution.CharacterResolutionService(
                 new NoOpDbFactory(),
-                new DndMcpAICsharpFun.Features.Campaigns.HeroRepository(new NoOpDbFactory())));
+                new DndMcpAICsharpFun.Features.Campaigns.HeroRepository(new NoOpDbFactory())),
+            encounterService ?? BuildEncounterDesignService());
 
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()
@@ -184,5 +232,94 @@ public sealed class DndChatServiceTests : IDisposable
 
         svc.History.Should().OnlyContain(m =>
             m.Role == ChatRole.User || m.Role == ChatRole.Assistant);
+    }
+
+    [Fact]
+    public async Task SendAsync_does_not_add_encounter_tools_when_unauthenticated()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client); // default NullHttpContextAccessor: no signed-in user
+
+        await svc.SendAsync("Rate my encounter", false, CancellationToken.None);
+
+        var toolNames = client.LastOptions!.Tools!.OfType<AIFunction>().Select(t => t.Name).ToList();
+        toolNames.Should().NotContain("rate_encounter");
+        toolNames.Should().NotContain("build_encounter");
+    }
+
+    [Fact]
+    public async Task SendAsync_adds_rate_and_build_encounter_tools_when_authenticated()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(1));
+
+        await svc.SendAsync("Rate my encounter", false, CancellationToken.None);
+
+        var toolNames = client.LastOptions!.Tools!.OfType<AIFunction>().Select(t => t.Name).ToList();
+        toolNames.Should().Contain("rate_encounter");
+        toolNames.Should().Contain("build_encounter");
+    }
+
+    [Fact]
+    public async Task Encounter_tool_schemas_do_not_expose_userId_as_a_caller_supplied_argument()
+    {
+        // SEC-08: userId must come from the signed-in user's claim (the closure), never from a
+        // caller-controlled tool argument — otherwise a caller could pass another user's id.
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(7));
+
+        await svc.SendAsync("Rate my encounter", false, CancellationToken.None);
+
+        var tools = client.LastOptions!.Tools!.OfType<AIFunction>()
+            .Where(t => t.Name is "rate_encounter" or "build_encounter");
+        foreach (var tool in tools)
+        {
+            var hasUserId = tool.JsonSchema.TryGetProperty("properties", out var props)
+                && props.TryGetProperty("userId", out _);
+            hasUserId.Should().BeFalse($"{tool.Name} must not expose userId as a caller argument");
+        }
+    }
+
+    [Fact]
+    public async Task RateEncounterTool_routes_partyLevels_and_monsters_to_EncounterDesignService()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(42));
+
+        await svc.SendAsync("Rate it", false, CancellationToken.None);
+
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "rate_encounter");
+        var result = await tool.InvokeAsync(
+            ToArgs(new { campaignId = (long?)null, partyLevels = new[] { 5 }, monsters = Array.Empty<string>(), edition = "2014" }),
+            CancellationToken.None);
+
+        // AIFunction.InvokeAsync marshals the delegate's return value through the tool's
+        // JsonSerializerOptions (the same path a real LLM tool-call result takes), so the raw
+        // result is a JsonElement rather than the EncounterAssessment instance directly.
+        result.Should().BeOfType<JsonElement>();
+        var assessment = ((JsonElement)result!).Deserialize<EncounterAssessment>(tool.JsonSerializerOptions);
+        assessment.Should().NotBeNull();
+        assessment!.Monsters.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task BuildEncounterTool_forwards_difficulty_edition_and_theme_to_EncounterDesignService()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(42));
+
+        await svc.SendAsync("Build it", false, CancellationToken.None);
+
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "build_encounter");
+
+        // build_encounter never supplies partyLevels (always null per BuildForUserAsync's contract),
+        // so with no campaignId either, EncounterDesignService.ResolvePartyAsync's
+        // "supply campaignId or partyLevels" guard fires — proving the tool actually reached
+        // BuildForUserAsync with the caller's difficulty/edition/theme rather than short-circuiting.
+        var act = () => tool.InvokeAsync(
+            ToArgs(new { campaignId = (long?)null, difficulty = "Hard", edition = "2024", theme = (string?)null }),
+            CancellationToken.None).AsTask();
+
+        await act.Should().ThrowAsync<ArgumentException>();
     }
 }
