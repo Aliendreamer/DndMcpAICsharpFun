@@ -125,4 +125,34 @@ public sealed class EncounterGeneratorTests
         result.Assessment.Monsters.Should().HaveCount(2);
         result.FullyMatched.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task BuildAsync_rejects_overshooting_candidates_and_reports_an_overshoot_worded_note()
+    {
+        // Party 4x L5 budget (2014): Easy=1000, Medium=2000, Hard=3000, Deadly=4400.
+        // Only CR-3 (700xp) monsters are available. 1 monster -> raw 700, x1.0 multiplier
+        // (1-monster step) -> adjusted 700, which is below Easy's 1000 threshold (Trivial).
+        // Every remaining candidate is identical, so trying a 2nd -> raw 1400, x1.5 multiplier
+        // (2-monster step) -> adjusted 2100, which is >= Medium's 2000 threshold: past the Easy
+        // target. The overshoot guard must reject every such 2nd-monster trial and stop the
+        // build at 1 monster (Trivial) rather than overshoot into Medium — or, if the guard kept
+        // adding regardless, compound further into Hard/Deadly as later multiplier steps apply.
+        var source = new FakeMonsterSource(FiveCr3Monsters());
+        var generator = new EncounterGenerator(source, new EncounterAssessor());
+
+        var result = await generator.BuildAsync(
+            Party4L5, Difficulty.Easy, DndVersion.Edition2014, theme: null, crLte: null, crGte: null, CancellationToken.None);
+
+        // Never overshoot: whatever the generator returns must never be assessed above the
+        // requested target band, even when the target itself turns out to be unreachable.
+        ((int)result.Assessment.Difficulty).Should().BeLessThanOrEqualTo((int)Difficulty.Easy);
+        result.Assessment.Monsters.Should().HaveCount(1);
+        result.FullyMatched.Should().BeFalse();
+
+        // The fallback Note must name the real stopping reason (overshoot-blocked), not the
+        // scarcity wording used when the loop simply runs out of candidates.
+        result.Note.Should().NotBeNullOrWhiteSpace();
+        result.Note.Should().Contain("overshoot");
+        result.Note.Should().NotContain("candidate(s) in CR");
+    }
 }

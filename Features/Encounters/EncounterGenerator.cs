@@ -61,6 +61,13 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
         var remaining = new List<MonsterRef>(candidates);
         var current = assessor.Assess(partyLevels, selected, ed);
 
+        // Tracks *why* the greedy loop stopped short of the target, so the fallback Note below
+        // can explain the real reason instead of always blaming candidate scarcity: either every
+        // remaining candidate was tried and rejected for overshooting past the target band, or
+        // the loop simply ran out of candidates (or hit MaxMonsters) without overshooting.
+        var overshootBlocked = false;
+        Difficulty? overshootBand = null;
+
         // Bounded greedy: each iteration moves exactly one candidate from `remaining` into
         // `selected` (or breaks), so this can never loop more than min(MaxMonsters,
         // candidates.Count) times — no separate iteration counter is needed for termination.
@@ -68,6 +75,7 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
         {
             MonsterRef? bestCandidate = null;
             EncounterAssessment? bestAssessment = null;
+            Difficulty? roundOvershootBand = null;
 
             foreach (var candidate in remaining)
             {
@@ -76,6 +84,13 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
 
                 if (trialAssessment.Difficulty > target)
                 {
+                    // Track the nearest band this (and other) rejected candidates would have
+                    // jumped to, so the fallback Note can name it if every candidate overshoots.
+                    if (roundOvershootBand is null || trialAssessment.Difficulty < roundOvershootBand)
+                    {
+                        roundOvershootBand = trialAssessment.Difficulty;
+                    }
+
                     continue; // this candidate would overshoot past the target band
                 }
 
@@ -88,6 +103,11 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
 
             if (bestCandidate is null || bestAssessment is null)
             {
+                // remaining.Count > 0 here (the while guard ensures it), so every candidate this
+                // round was rejected by the overshoot guard above — this is never candidate
+                // scarcity.
+                overshootBlocked = true;
+                overshootBand = roundOvershootBand;
                 break; // every remaining candidate would overshoot past the target band
             }
 
@@ -99,8 +119,11 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
         var fullyMatched = current.Difficulty == target;
         var note = fullyMatched
             ? null
-            : $"Only {candidates.Count} candidate(s) in CR [{effectiveCrGte:0.###}, {effectiveCrLte:0.###}]; " +
-              $"best achievable is {current.Difficulty} with {selected.Count} monster(s).";
+            : overshootBlocked
+                ? $"Couldn't reach {target} without overshooting to {overshootBand}; " +
+                  $"best achievable is {current.Difficulty} with {selected.Count} monster(s)."
+                : $"Only {candidates.Count} candidate(s) in CR [{effectiveCrGte:0.###}, {effectiveCrLte:0.###}]; " +
+                  $"best achievable is {current.Difficulty} with {selected.Count} monster(s).";
 
         return new BuiltEncounter(current, fullyMatched, note);
     }
