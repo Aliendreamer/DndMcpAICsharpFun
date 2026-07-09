@@ -120,6 +120,28 @@ public static class EncounterMath
             ? xp
             : throw new ArgumentOutOfRangeException(nameof(cr), cr, "CR must be 0, 1/8, 1/4, 1/2, or an integer 1..30.");
 
+
+    /// <summary>
+    /// Highest defined Challenge Rating (0 through 30) whose <see cref="CrToXp"/> value does not
+    /// exceed <paramref name="xpBudget"/>. Used to derive a default per-monster CR ceiling from a
+    /// target difficulty band's total party XP budget, so a single strong monster can nearly fill
+    /// the band without a caller having to reason about the CR→XP table directly. Returns 0 (the
+    /// lowest defined CR) if even a CR-0 monster's 10 XP would exceed the budget.
+    /// </summary>
+    public static double HighestCrAtOrBelowXp(int xpBudget)
+    {
+        var best = 0.0;
+        foreach (var (cr, xp) in CrToXpTable)
+        {
+            if (xp <= xpBudget && cr > best)
+            {
+                best = cr;
+            }
+        }
+
+        return best;
+    }
+
     /// <summary>
     /// Sums the per-character XP thresholds/budgets for the whole party.
     /// 2014 returns 4 columns [Easy, Medium, Hard, Deadly]; 2024 returns 3 columns [Low, Moderate, High].

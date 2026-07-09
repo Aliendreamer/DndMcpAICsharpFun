@@ -47,10 +47,12 @@ public sealed class EncounterDesignService(
         Difficulty target,
         DndVersion ed,
         string? theme,
+        double? crLte,
+        double? crGte,
         CancellationToken ct)
     {
         var party = await ResolvePartyAsync(userId, campaignId, partyLevels, ct);
-        return await generator.BuildAsync(party, target, ed, theme, crLte: null, crGte: null, ct);
+        return await generator.BuildAsync(party, target, ed, theme, crLte, crGte, ct);
     }
 
     /// <summary>

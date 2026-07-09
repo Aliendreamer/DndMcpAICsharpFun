@@ -28,10 +28,9 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
     /// <summary>
     /// Builds an encounter for <paramref name="partyLevels"/> toward <paramref name="target"/>.
     /// </summary>
-    /// <param name="crLte">Optional CR upper bound for candidates; derived from the party's
-    /// average level when omitted.</param>
-    /// <param name="crGte">Optional CR lower bound for candidates; derived from the party's
-    /// average level when omitted.</param>
+    /// <param name="crLte">Optional CR upper bound for candidates; derived from the target
+    /// difficulty band's own XP budget when omitted (see the derivation comment in the body).</param>
+    /// <param name="crGte">Optional CR lower bound for candidates; a fixed low floor when omitted.</param>
     public async Task<BuiltEncounter> BuildAsync(
         IReadOnlyList<int> partyLevels,
         Difficulty target,
@@ -57,13 +56,23 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
             ? Difficulty.Hard
             : target;
 
-        // Default per-monster CR band: when the caller doesn't pin one down, derive it from the
-        // party's average level rather than from a raw XP figure — a single monster near the
-        // party's level down to roughly a quarter of that (for encounters assembled from several
-        // weaker monsters), mirroring the DMG's own "start from CR ≈ party level" guidance.
-        var avgLevel = partyLevels.Average();
-        var effectiveCrLte = crLte ?? Math.Max(1.0, avgLevel);
-        var effectiveCrGte = crGte ?? Math.Max(0.0, avgLevel / 4.0);
+        // Default per-monster CR ceiling: when the caller doesn't pin one down, derive it from
+        // the TARGET band's own total-party XP budget rather than from the party's average level.
+        // The old avg-level cap (Math.Max(1, avgLevel)) excludes the single strong monster that
+        // would naturally fill a Hard/Deadly encounter for a high-level party — a solo boss's
+        // 2014 monster-count multiplier is 1.0, so its raw XP is its adjusted XP — so the build
+        // silently fell back to a lower band instead of reaching the one requested. Picking the
+        // highest CR whose EncounterMath.CrToXp does not exceed the target band's budget lets one
+        // monster nearly fill the band without blowing past it (the greedy loop below still adds
+        // more if one monster undershoots, and the overshoot guard still prevents exceeding the
+        // target when there IS a band above it to overshoot into).
+        // effectiveCrGte keeps a fixed, low floor (CR 1/8) rather than one scaled to party level:
+        // low enough that low-target bands (built from several weak monsters) aren't starved of
+        // candidates, but above CR 0 so the pool isn't dominated by zero-XP fodder.
+        var budget = EncounterMath.PartyBudget(partyLevels, ed);
+        var bandIndex = Math.Clamp((int)effectiveTarget - 1, 0, budget.Length - 1);
+        var effectiveCrLte = crLte ?? EncounterMath.HighestCrAtOrBelowXp(budget[bandIndex]);
+        var effectiveCrGte = crGte ?? 0.125;
 
         var candidates = await source.FindAsync(ed, effectiveCrGte, effectiveCrLte, theme, srdOnly: false, CandidateLimit, ct);
 

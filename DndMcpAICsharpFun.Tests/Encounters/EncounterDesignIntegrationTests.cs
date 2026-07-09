@@ -115,6 +115,8 @@ public sealed class EncounterDesignIntegrationTests : IAsyncLifetime
             Difficulty.Hard,
             DndVersion.Edition2014,
             theme: null,
+            crLte: null,
+            crGte: null,
             CancellationToken.None);
 
         // Non-vacuity: the build actually pulled real monsters back out of Qdrant, not an empty
@@ -137,10 +139,12 @@ public sealed class EncounterDesignIntegrationTests : IAsyncLifetime
         rated.TotalMonsterXp.Should().Be(built.Assessment.TotalMonsterXp);
         rated.AdjustedXp.Should().Be(built.Assessment.AdjustedXp);
 
-        // With 4x CR-3 (700xp each) and 1x CR-5 (1800xp) seeded within the generator's default
-        // CR band for a 4x level-5 party ([1.25, 5]), the greedy builder reaches Hard exactly
-        // (CR-5 first, then one CR-3 pushes the 2014 monster-count-adjusted total into the Hard
-        // band) without ever needing to overshoot — so FullyMatched is honestly true.
+        // With 4x CR-3 (700xp each) and 1x CR-5 (1800xp) seeded within the generator's default CR
+        // band for a Hard target and a 4x level-5 party ([0.125, 7] — derived from the Hard
+        // budget of 3000 XP, whose highest CR at or under is CR 7 @ 2900 XP), the greedy builder
+        // reaches Hard exactly (CR-5 first, then one CR-3 pushes the 2014 monster-count-adjusted
+        // total into the Hard band) without ever needing to overshoot — so FullyMatched is
+        // honestly true.
         built.Assessment.Difficulty.Should().Be(Difficulty.Hard);
         built.FullyMatched.Should().BeTrue();
     }

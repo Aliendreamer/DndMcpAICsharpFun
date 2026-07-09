@@ -33,6 +33,31 @@ public sealed class EncounterGeneratorTests
         }
     }
 
+
+    /// <summary>
+    /// Gates a high-CR monster behind a minimum requested <c>crLte</c>: returns the gated
+    /// monster (twice, so the greedy loop can stack two of it) only when the caller's crLte is
+    /// at or above <paramref name="gateCrLte"/>; otherwise returns only weak CR-1 filler that can
+    /// never climb to Deadly even by piling on MaxMonsters of it. This is how the FIX-1 test
+    /// proves the generator actually widened its default CR ceiling — the old avg-level cap
+    /// would never clear the gate, so the build would fall back to the weak filler and miss
+    /// Deadly; the new band-derived ceiling clears it.
+    /// </summary>
+    private sealed class CrGatedMonsterSource(double gateCrLte, MonsterRef gatedMonster) : IEncounterMonsterSource
+    {
+        public double? CapturedCrLte { get; private set; }
+
+        public Task<IReadOnlyList<MonsterRef>> FindAsync(
+            DndVersion ed, double crGte, double crLte, string? theme, bool srdOnly, int limit, CancellationToken ct)
+        {
+            CapturedCrLte = crLte;
+            IReadOnlyList<MonsterRef> pool = crLte >= gateCrLte
+                ? [gatedMonster, gatedMonster with { Id = gatedMonster.Id + "-2" }]
+                : [new MonsterRef("mm.monster.weak-filler", "Weak Filler", 1, EncounterMath.CrToXp(1))];
+            return Task.FromResult(pool);
+        }
+    }
+
     private static IReadOnlyList<MonsterRef> FiveCr3Monsters() =>
     [
         new MonsterRef("mm.monster.one", "Monster One", 3, EncounterMath.CrToXp(3)),
@@ -156,5 +181,32 @@ public sealed class EncounterGeneratorTests
         result.Note.Should().NotBeNullOrWhiteSpace();
         result.Note.Should().Contain("overshoot");
         result.Note.Should().NotContain("candidate(s) in CR");
+    }
+
+
+    [Fact]
+    public async Task BuildAsync_widens_the_default_cr_ceiling_so_a_high_level_party_can_reach_deadly()
+    {
+        // Party 4x L15 (2014) Deadly budget = 4 x 6400 = 25600 total party XP. The OLD default
+        // cap (Math.Max(1, avgLevel) = 15) would request crLte=15 from the source, never
+        // clearing this gate — the build would only ever see weak CR-1 filler and could never
+        // reach Deadly, however many it stacked (multiplier-adjusted total tops out at 200 * 15
+        // monsters * 4.0 = 12000, still short of 25600). The NEW default derives crLte from the
+        // Deadly band's own XP budget (highest CR whose EncounterMath.CrToXp <= 25600 is CR 20 @
+        // 25000 XP), which clears the gate and lets two CR-20 monsters stack past the Deadly
+        // threshold (2-monster x1.5 multiplier: 50000 -> adjusted 75000 >= 25600).
+        IReadOnlyList<int> party4L15 = [15, 15, 15, 15];
+        var gatedMonster = new MonsterRef("mm.monster.ancient-horror", "Ancient Horror", 20, EncounterMath.CrToXp(20));
+        var source = new CrGatedMonsterSource(gateCrLte: 20.0, gatedMonster);
+        var generator = new EncounterGenerator(source, new EncounterAssessor());
+
+        var result = await generator.BuildAsync(
+            party4L15, Difficulty.Deadly, DndVersion.Edition2014, theme: null, crLte: null, crGte: null, CancellationToken.None);
+
+        // Proves the widened ceiling was actually requested from the source, not just that the
+        // build happened to succeed for some unrelated reason.
+        source.CapturedCrLte.Should().BeGreaterThanOrEqualTo(20.0);
+        result.Assessment.Difficulty.Should().Be(Difficulty.Deadly);
+        result.FullyMatched.Should().BeTrue();
     }
 }

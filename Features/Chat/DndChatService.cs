@@ -96,16 +96,20 @@ public sealed class DndChatService(
                     "\"2014\" or \"2024\"."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (long? campaignId, string difficulty, string edition, string? theme, CancellationToken toolCt) =>
+                (long? campaignId, string difficulty, string edition, string? theme,
+                    double? maxCr, double? minCr, CancellationToken toolCt) =>
                     encounterService.BuildForUserAsync(
                         userId, campaignId, partyLevels: null, ParseDifficulty(difficulty),
-                        ParseEdition(edition), theme, toolCt),
+                        ParseEdition(edition), theme, crLte: maxCr, crGte: minCr, toolCt),
                 name: "build_encounter",
                 description: "Build a combat encounter for a target difficulty " +
                     "(Trivial/Easy/Medium/Hard/Deadly) and optional theme, for the signed-in user's " +
                     "party (from the caller's own campaignId). Rated by the same math as " +
                     "rate_encounter, so a built encounter and a subsequent rate_encounter call agree " +
-                    "on its difficulty. edition is \"2014\" or \"2024\"."));
+                    "on its difficulty. edition is \"2014\" or \"2024\". Optional maxCr/minCr let a DM " +
+                    "constrain the candidate monsters' CR range (e.g. \"nothing above CR 5\"); when " +
+                    "omitted, a sensible CR ceiling/floor is derived automatically from the target " +
+                    "difficulty band."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));

@@ -78,13 +78,16 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var campaignId = await SeedCampaignWithHeroLevelAsync(userId: 1, level: 8);
 
         await service.BuildForUserAsync(
-            1, campaignId, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null, CancellationToken.None);
+            1, campaignId, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null,
+            crLte: null, crGte: null, CancellationToken.None);
 
-        // The generator derives its default CR band from partyLevels.Average(); a single L8 hero
-        // proves the party used was in fact this campaign's hero (crLte = max(1, 8) = 8,
-        // crGte = max(0, 8/4) = 2), since no other value could produce this band.
-        source.CapturedCrLte.Should().Be(8.0);
-        source.CapturedCrGte.Should().Be(2.0);
+        // The generator derives its default CR ceiling from the Trivial target's (Easy-band)
+        // XP budget for the resolved party; a single L8 hero proves the party used was in fact
+        // this campaign's hero (Easy budget for one L8 character = 450 XP, highest CR at or
+        // under that is CR 2 @ 450 XP; crGte is the fixed low floor of 1/8), since no other
+        // party would produce this exact band.
+        source.CapturedCrLte.Should().Be(2.0);
+        source.CapturedCrGte.Should().Be(0.125);
     }
 
     [Fact]
@@ -95,10 +98,31 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var campaignId = await SeedCampaignWithHeroLevelAsync(userId: 1, level: 8);
 
         await service.BuildForUserAsync(
-            1, campaignId, partyLevels: [2], Difficulty.Trivial, DndVersion.Edition2014, theme: null, CancellationToken.None);
+            1, campaignId, partyLevels: [2], Difficulty.Trivial, DndVersion.Edition2014, theme: null,
+            crLte: null, crGte: null, CancellationToken.None);
 
-        source.CapturedCrLte.Should().Be(2.0); // from the explicit partyLevels, not the L8 hero
-        source.CapturedCrGte.Should().Be(0.5);
+        // Easy budget for one L2 character = 50 XP; highest CR at or under that is CR 1/4 @ 50 XP.
+        source.CapturedCrLte.Should().Be(0.25); // from the explicit partyLevels, not the L8 hero
+        source.CapturedCrGte.Should().Be(0.125);
+    }
+
+    [Fact]
+    public async Task BuildForUserAsync_forwards_an_explicit_crLte_and_crGte_overriding_the_default_derivation()
+    {
+        var source = new CapturingMonsterSource();
+        var service = BuildService(source: source);
+        var campaignId = await SeedCampaignWithHeroLevelAsync(userId: 1, level: 8);
+
+        await service.BuildForUserAsync(
+            1, campaignId, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null,
+            crLte: 5.0, crGte: 1.0, CancellationToken.None);
+
+        // An explicit crLte/crGte (e.g. from a DM-supplied maxCr/minCr on build_encounter) must
+        // win over the default band derivation (which would have produced crLte=2.0 for this L8
+        // hero, per the sibling test above) -- proving BuildForUserAsync actually forwards the
+        // caller's bounds through to the generator instead of always deriving its own.
+        source.CapturedCrLte.Should().Be(5.0);
+        source.CapturedCrGte.Should().Be(1.0);
     }
 
     [Fact]
@@ -109,7 +133,8 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var campaignId = await SeedCampaignWithHeroLevelAsync(userId: 2, level: 20); // decoy owner
 
         var act = () => service.BuildForUserAsync(
-            1, campaignId, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null, CancellationToken.None);
+            1, campaignId, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null,
+            crLte: null, crGte: null, CancellationToken.None);
 
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
         // The decoy owner's L20 hero was never fetched/used: if it had been, the captured CR band
@@ -123,7 +148,8 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var service = BuildService();
 
         var act = () => service.BuildForUserAsync(
-            1, campaignId: 999_999, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null, CancellationToken.None);
+            1, campaignId: 999_999, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null,
+            crLte: null, crGte: null, CancellationToken.None);
 
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
     }
@@ -159,7 +185,8 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var rateAct = () => service.RateForUserAsync(
             1, campaignId: null, partyLevels: null, monsters: [], DndVersion.Edition2014, CancellationToken.None);
         var buildAct = () => service.BuildForUserAsync(
-            1, campaignId: null, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null, CancellationToken.None);
+            1, campaignId: null, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null,
+            crLte: null, crGte: null, CancellationToken.None);
 
         await rateAct.Should().ThrowAsync<ArgumentException>();
         await buildAct.Should().ThrowAsync<ArgumentException>();
@@ -173,9 +200,10 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var campaignId = await SeedCampaignWithHeroLevelAsync(userId: 1, level: 8);
 
         await service.BuildForUserAsync(
-            1, campaignId, partyLevels: [], Difficulty.Trivial, DndVersion.Edition2014, theme: null, CancellationToken.None);
+            1, campaignId, partyLevels: [], Difficulty.Trivial, DndVersion.Edition2014, theme: null,
+            crLte: null, crGte: null, CancellationToken.None);
 
-        source.CapturedCrLte.Should().Be(8.0); // empty list is treated as "not supplied", not [] party
+        source.CapturedCrLte.Should().Be(2.0); // empty list is treated as "not supplied", not [] party
     }
 
     [Fact]
@@ -190,7 +218,8 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var rateAct = () => service.RateForUserAsync(
             1, campaignId, partyLevels: null, monsters: [], DndVersion.Edition2014, CancellationToken.None);
         var buildAct = () => service.BuildForUserAsync(
-            1, campaignId, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null, CancellationToken.None);
+            1, campaignId, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null,
+            crLte: null, crGte: null, CancellationToken.None);
 
         await rateAct.Should().ThrowAsync<ArgumentException>();
         await buildAct.Should().ThrowAsync<ArgumentException>();
@@ -209,7 +238,8 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var service = BuildService(source: new PoolMonsterSource(pool));
 
         var result = await service.BuildForUserAsync(
-            1, campaignId: null, partyLevels: [5, 5, 5, 5], Difficulty.Deadly, DndVersion.Edition2024, theme: null, CancellationToken.None);
+            1, campaignId: null, partyLevels: [5, 5, 5, 5], Difficulty.Deadly, DndVersion.Edition2024, theme: null,
+            crLte: null, crGte: null, CancellationToken.None);
 
         result.Assessment.Difficulty.Should().Be(Difficulty.Hard);
         result.FullyMatched.Should().BeTrue();
