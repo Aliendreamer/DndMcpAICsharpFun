@@ -40,6 +40,7 @@ builder.Services.AddRetrieval();
 builder.Services.AddWebSearch(builder.Configuration);
 builder.Services.AddEntityExtraction(builder.Configuration);
 builder.Services.AddObservability(builder.Configuration);
+builder.Services.AddDice();
 
 // Companion UI: persistence, chat, auth, rate limiting, Blazor, and the loopback MCP client.
 builder.Services.AddAntiforgery();

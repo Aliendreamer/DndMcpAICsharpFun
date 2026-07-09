@@ -148,6 +148,7 @@ public sealed class FullContainerScopeValidationTests
         services.AddWebSearch(config);
         services.AddEntityExtraction(config);
         services.AddObservability(config);
+        services.AddDice();
 
         // Companion-layer service registrations.
         // AddDndBlazor (Razor components) requires ASP.NET Core server infrastructure

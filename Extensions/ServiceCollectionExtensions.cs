@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 
 using DndMcpAICsharpFun.Domain.Entities;
+using DndMcpAICsharpFun.Features.Dice;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
@@ -277,6 +278,15 @@ internal static class ServiceCollectionExtensions
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
                 .AddPrometheusExporter());
+
+        return services;
+    }
+
+
+    internal static IServiceCollection AddDice(this IServiceCollection services)
+    {
+        services.AddSingleton<IRandomSource, SystemRandomSource>();
+        services.AddScoped<DiceRoller>();
 
         return services;
     }
