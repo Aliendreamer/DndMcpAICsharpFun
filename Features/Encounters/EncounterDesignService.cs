@@ -76,7 +76,17 @@ public sealed class EncounterDesignService(
             // A hero with no snapshot at all (never actually observed in practice — creation
             // always writes an initial snapshot) defaults to level 1 rather than being skipped,
             // so a mid-party gap can't silently shrink the party size used for XP budgeting.
-            return partyHeroes.Select(h => h.LatestSnapshot?.Level ?? 1).ToList();
+            var levels = partyHeroes.Select(h => h.LatestSnapshot?.Level ?? 1).ToList();
+
+            // An owned campaign with zero heroes is not a valid party. Left unchecked, the pure
+            // math downstream (EncounterMath.PartyBudget([]) is all-zero, and Classify's >=
+            // comparisons against a zero budget) would rate EVERY encounter as Deadly/2014 or
+            // Hard/2024 — a confidently-wrong rating instead of the explicit "missing party" error
+            // this should be. This mirrors the neither-campaignId-nor-partyLevels case below.
+            if (levels.Count == 0)
+                throw new ArgumentException("Campaign has no heroes; supply partyLevels or add heroes to the campaign.");
+
+            return levels;
         }
 
         throw new ArgumentException("supply campaignId or partyLevels");

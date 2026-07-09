@@ -47,6 +47,16 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
             throw new ArgumentException("Party must have at least one member.", nameof(partyLevels));
         }
 
+        // 2024 has no Deadly band — EncounterMath.Classify never returns Difficulty.Deadly for
+        // Edition2024, its top band is Hard. Left unclamped, a Deadly target under 2024 is
+        // unsatisfiable: the greedy loop below would never see current.Difficulty == target and
+        // would run all the way to MaxMonsters/candidate exhaustion, returning a misleading
+        // "only N candidates" scarcity note instead of the true best-effort Hard result. Clamping
+        // here targets the real top 2024 band; 2014 (which does have Deadly) is untouched.
+        var effectiveTarget = ed == DndVersion.Edition2024 && target == Difficulty.Deadly
+            ? Difficulty.Hard
+            : target;
+
         // Default per-monster CR band: when the caller doesn't pin one down, derive it from the
         // party's average level rather than from a raw XP figure — a single monster near the
         // party's level down to roughly a quarter of that (for encounters assembled from several
@@ -71,7 +81,7 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
         // Bounded greedy: each iteration moves exactly one candidate from `remaining` into
         // `selected` (or breaks), so this can never loop more than min(MaxMonsters,
         // candidates.Count) times — no separate iteration counter is needed for termination.
-        while (current.Difficulty != target && selected.Count < MaxMonsters && remaining.Count > 0)
+        while (current.Difficulty != effectiveTarget && selected.Count < MaxMonsters && remaining.Count > 0)
         {
             MonsterRef? bestCandidate = null;
             EncounterAssessment? bestAssessment = null;
@@ -82,7 +92,7 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
                 var trial = new List<MonsterRef>(selected) { candidate };
                 var trialAssessment = assessor.Assess(partyLevels, trial, ed);
 
-                if (trialAssessment.Difficulty > target)
+                if (trialAssessment.Difficulty > effectiveTarget)
                 {
                     // Track the nearest band this (and other) rejected candidates would have
                     // jumped to, so the fallback Note can name it if every candidate overshoots.
@@ -116,11 +126,11 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
             current = bestAssessment;
         }
 
-        var fullyMatched = current.Difficulty == target;
+        var fullyMatched = current.Difficulty == effectiveTarget;
         var note = fullyMatched
             ? null
             : overshootBlocked
-                ? $"Couldn't reach {target} without overshooting to {overshootBand}; " +
+                ? $"Couldn't reach {effectiveTarget} without overshooting to {overshootBand}; " +
                   $"best achievable is {current.Difficulty} with {selected.Count} monster(s)."
                 : $"Only {candidates.Count} candidate(s) in CR [{effectiveCrGte:0.###}, {effectiveCrLte:0.###}]; " +
                   $"best achievable is {current.Difficulty} with {selected.Count} monster(s).";

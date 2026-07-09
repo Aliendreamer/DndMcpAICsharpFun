@@ -43,6 +43,14 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         }
     }
 
+    /// <summary>A monster source that just hands back a fixed candidate pool, ignoring the CR band.</summary>
+    private sealed class PoolMonsterSource(IReadOnlyList<MonsterRef> pool) : IEncounterMonsterSource
+    {
+        public Task<IReadOnlyList<MonsterRef>> FindAsync(
+            DndVersion ed, double crGte, double crLte, string? theme, bool srdOnly, int limit, CancellationToken ct) =>
+            Task.FromResult(pool);
+    }
+
     private EncounterDesignService BuildService(
         IEncounterMonsterSource? source = null, IEntityRetrievalService? search = null)
     {
@@ -170,6 +178,43 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         source.CapturedCrLte.Should().Be(8.0); // empty list is treated as "not supplied", not [] party
     }
 
+    [Fact]
+    public async Task Owned_campaign_with_zero_heroes_throws_ArgumentException_instead_of_a_confident_wrong_rating()
+    {
+        // Regression for the empty-party bug: PartyBudget([]) is all-zero and Classify's >=
+        // comparisons then rate EVERY encounter as Deadly/2014 (or Hard/2024) — a silently wrong,
+        // confidently-reported rating instead of the "missing party" error this should be.
+        var service = BuildService();
+        var campaignId = await _campaigns.CreateAsync(1, "Empty Campaign", "desc"); // no heroes seeded
+
+        var rateAct = () => service.RateForUserAsync(
+            1, campaignId, partyLevels: null, monsters: [], DndVersion.Edition2014, CancellationToken.None);
+        var buildAct = () => service.BuildForUserAsync(
+            1, campaignId, partyLevels: null, Difficulty.Trivial, DndVersion.Edition2014, theme: null, CancellationToken.None);
+
+        await rateAct.Should().ThrowAsync<ArgumentException>();
+        await buildAct.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task BuildForUserAsync_clamps_a_2024_Deadly_target_down_to_Hard_the_top_2024_band()
+    {
+        // 2024 has no Deadly band (EncounterMath.Classify never returns Deadly for Edition2024),
+        // so an unclamped Deadly target would loop until MaxMonsters/candidates ran out and report
+        // a misleading "only N candidates" scarcity note. With the clamp, the build targets Hard
+        // (the real top 2024 band) and should fully match it.
+        IReadOnlyList<MonsterRef> pool = Enumerable.Range(1, 10)
+            .Select(i => new MonsterRef($"mm.monster.{i}", $"Monster {i}", 3, EncounterMath.CrToXp(3)))
+            .ToList();
+        var service = BuildService(source: new PoolMonsterSource(pool));
+
+        var result = await service.BuildForUserAsync(
+            1, campaignId: null, partyLevels: [5, 5, 5, 5], Difficulty.Deadly, DndVersion.Edition2024, theme: null, CancellationToken.None);
+
+        result.Assessment.Difficulty.Should().Be(Difficulty.Hard);
+        result.FullyMatched.Should().BeTrue();
+        result.Note.Should().BeNull(); // not the misleading "only N candidates" scarcity fallback
+    }
 
     private static EntityFullResult FullResultWithCr(string id, string name, string crJson) =>
         new(new EntityEnvelope(
