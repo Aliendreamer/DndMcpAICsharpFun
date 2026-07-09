@@ -60,6 +60,38 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   Qdrant Testcontainer (`Testcontainers.Qdrant` 4.12.0 + `QdrantFixture`). `Features/Retrieval/Entities/
   Dedup/*`. DEFERRED: live-host smoke of the two dedup admin endpoints.
 
+## COMPANION REASONING — net-new surfaces (the north star, now BUILDING)
+- **Encounter design (slice 1)** ✅ DONE (archived `encounter-design`, 2026-07-09; 12 code commits
+  `983907e..99c9feb` + integration test `a97c57e`, base 45649f9; build 0/0, FULL suite **1117/1117**).
+  FIRST shipped companion-reasoning surface. ONE deterministic math core shared by rate + build so they
+  never disagree. `Features/Encounters/`: **`EncounterMath`** (pure, both editions — CR→XP 0..30, 2014
+  per-level thresholds × count-multiplier w/ party-size shift, 2024 flat budgets no multiplier; 2024
+  table verified vs Roll20 authoritative). **`EncounterAssessor`** (rate: party+monsters→band + context
+  boundaries). **`EncounterGenerator`** (build: greedy to target BAND, bounded MaxMonsters=15, overshoot
+  guard, sparse fallback flagged; returns the Assessor's verdict → build==rate GUARANTEED; default CR
+  ceiling scales to the target band's budget; explicit maxCr/minCr cross-clamped). **`EntitySearchMonsterSource`**
+  (real monster retrieval via `IEntityRetrievalService.SearchDiagnosticAsync`, CR from Fields).
+  **`EncounterDesignService`** (party from caller's campaign heroes, OWNERSHIP-gated via
+  `CampaignRepository.GetByIdAsync(id,userId)` → foreign campaign throws, no leak; explicit partyLevels
+  override; empty-campaign = explicit error). Two per-user chat tools `rate_encounter`/`build_encounter`
+  (SEC-08 closure, not on shared-key surface, no HTTP route). `AddDndChat` pulls in `AddEncounters` so
+  the DI dep is self-contained. Real-Qdrant integration test proves build==rate end-to-end.
+  DEFERRED: **v2 monster-quantity/"N goblins" swarms** (own spec — generator selects each candidate once,
+  source maps 1 entity→1 MonsterRef); non-5etools "5e"-versioned content won't match the edition filter
+  (corpus-data); live chat-driven smoke needs Ollama.
+
+## COMPANION UX / TABLE-PLAY — PLANNED ⬜ (user-requested 2026-07-09b, two related items)
+- **Item A — Dice roller in the UI + all-dice functionality** ⬜: random die rolls in the Blazor UI for
+  all standard dice (d4/d6/d8/d10/d12/d20/d100), with roll expressions (e.g. `2d6+3`), likely
+  advantage/disadvantage and multi-die. A table-play utility surface (own brainstorm→spec). Deterministic
+  RNG core (seedable for tests) + Blazor UI component.
+- **Item B — Encounter + roll HISTORY, campaign-scoped, reveal/review** ⬜ (second part, builds on Item A
+  + the shipped encounter-design): PERSIST built/rated encounters AND dice rolls tied to the campaign, so
+  they can be reviewed / "revealed" later in the campaign (a campaign session log). Needs a persistence
+  model (EF `AppDbContext` — new tables for rolls + saved encounters, campaign-scoped, per-user
+  ownership) + a reveal/review UI. Ties the encounter-design output + the dice roller into a durable
+  campaign timeline.
+
 ## TEST INFRA (confirmed present)
 Real Testcontainers in-repo: `Testcontainers.PostgreSql` 4.12.0 (`Persistence/PostgresFixture.cs`,
 postgres:18-alpine) + Respawn 7.0.0 per-test isolation; `Testcontainers.Qdrant` 4.12.0
@@ -111,16 +143,17 @@ NOT excluded from `dnd_entities` — spanned 3 write paths — until final revie
 mislabeled real entities). Cross-path invariants must be traced across ALL paths at final review; inject
 INTERFACES not concrete types — both now in dev-flow SKILL.
 
-## Current position (2026-07-09b)
-Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED + archived**, Item 3 now
-with real-Qdrant integration coverage. **No named NEXT item** — the frontier is a fresh brainstorm:
-(a) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`
-— prose-as-source-of-truth, nested entities + typed relationships + first-class tables/choice-sets); or
-(b) net-new companion REASONING surfaces (encounter design/balancing, setting-aware lore synthesis,
-deeper character-build advice) that consume the now-solid retrieval+extraction+grounding foundation; or
-(c) the **local MoE model upgrade** (see MODEL/INFERENCE UPGRADE PATH — Item 5/6): swap dense qwen3:8b
-for a 26B-MoE (Gemma-4-26B-A4B / Qwen3-30B-A3B) via llama.cpp `--cpu-moe`+turbo3, lifting BOTH extraction
-and the grounding judge quality on the same 8GB — a foundational lever under (a) and (b), not a rival to them.
-Deferred operational: live-host smokes for Item 3 (reground, esp. the Ollama judge path) + Item 4 (dedup
-endpoints). Relates to `mem:extraction/dmg_generic_backfill_status`, `mem:project_entity_extraction_rethink`,
-`mem:reference_build_env_gotchas`.
+## Current position (2026-07-09c)
+Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED + archived**; **companion
+reasoning is now BUILDING — encounter-design (slice 1) SHIPPED + archived** (first net-new north-star
+surface, build==rate). NEXT candidates (user's call):
+(1) **Dice roller UI (Item A)** then **encounter+roll history/reveal (Item B)** — the two user-requested
+    table-play items above; A is a self-contained UI+RNG slice, B builds on A + encounter-design (durable
+    campaign log). Natural next given encounter-design just landed.
+(2) more companion REASONING surfaces (encounter-design v2 swarms; setting-aware lore synthesis; deeper
+    character-build advice);
+(3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
+(4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6), a foundational lever under all.
+Deferred operational: live-host smokes for Item 3 (reground, Ollama judge path), Item 4 (dedup endpoints),
+encounter-design (chat-driven build→rate). Relates to `mem:extraction/dmg_generic_backfill_status`,
+`mem:project_entity_extraction_rethink`, `mem:reference_build_env_gotchas`.
