@@ -80,17 +80,24 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   source maps 1 entity→1 MonsterRef); non-5etools "5e"-versioned content won't match the edition filter
   (corpus-data); live chat-driven smoke needs Ollama.
 
-## COMPANION UX / TABLE-PLAY — PLANNED ⬜ (user-requested 2026-07-09b, two related items)
-- **Item A — Dice roller in the UI + all-dice functionality** ⬜: random die rolls in the Blazor UI for
-  all standard dice (d4/d6/d8/d10/d12/d20/d100), with roll expressions (e.g. `2d6+3`), likely
-  advantage/disadvantage and multi-die. A table-play utility surface (own brainstorm→spec). Deterministic
-  RNG core (seedable for tests) + Blazor UI component.
-- **Item B — Encounter + roll HISTORY, campaign-scoped, reveal/review** ⬜ (second part, builds on Item A
-  + the shipped encounter-design): PERSIST built/rated encounters AND dice rolls tied to the campaign, so
-  they can be reviewed / "revealed" later in the campaign (a campaign session log). Needs a persistence
-  model (EF `AppDbContext` — new tables for rolls + saved encounters, campaign-scoped, per-user
-  ownership) + a reveal/review UI. Ties the encounter-design output + the dice roller into a durable
-  campaign timeline.
+## COMPANION UX / TABLE-PLAY — both SHIPPED (user-requested 2026-07-09/10)
+- **Item A — Dice roller** ✅ DONE (archived `dice-roller`, 2026-07-09; commits `4c25566..623b9a7`; full
+  suite 1143/1143). `Features/Dice/`: `DiceExpression.TryParse/Parse` (NdX±K, all 7 dice, d20-only adv/dis;
+  never throws — oversized count/modifier + MaxModifier 1000 rejected cleanly); `IRandomSource`/
+  `SystemRandomSource` (only nondeterminism, seedable); `DiceRoller.Roll → RollResult` (adv=max/dis=min two
+  d20, exact breakdown string). `CompanionUI/Components/DiceRollerPanel.razor` embedded on CampaignDetail
+  (quick-die buttons + count + modifier + adv/dis + free-text; ephemeral recent list; no-throw-to-circuit).
+- **Item B — Campaign roll+encounter HISTORY with hidden/reveal** ✅ DONE (archived `campaign-log-history`,
+  2026-07-10; commits `c9f027d..59412ce`; full suite **1153/1153**). ONE unified `CampaignLogEntry` table
+  (Kind Roll|Encounter + JSON PayloadJson, Label, Hidden, campaign+user scoped) + EF migration (additive,
+  cascade-deleted with the campaign). `CampaignLogRepository` — ALL reads/commands 3-key ownership-scoped
+  (Id/CampaignId/UserId); reveal/delete on a foreign entry = 0 rows (proven by real-Postgres negative test).
+  Rolls AUTO-LOG on every roll with an optional label (skill/save/attack/damage quick-picks); encounters
+  EXPLICIT-save via a new `EncounterPanel` (build via `EncounterDesignService.BuildForUserAsync`, save +
+  hidden checkbox). `CampaignLog` timeline component (newest-first, hidden badge + Reveal + Delete,
+  null-safe render). `_userId` from the authenticated NameIdentifier claim; page ownership gate
+  `GetByIdAsync(id,userId)` + redirect. DEFERRED minors: encounter payload PartyLevels always empty (needs
+  a service change); reveal/delete not try-wrapped (matches existing DeleteNote posture); live UI smoke.
 
 ## TEST INFRA (confirmed present)
 Real Testcontainers in-repo: `Testcontainers.PostgreSql` 4.12.0 (`Persistence/PostgresFixture.cs`,
@@ -143,17 +150,18 @@ NOT excluded from `dnd_entities` — spanned 3 write paths — until final revie
 mislabeled real entities). Cross-path invariants must be traced across ALL paths at final review; inject
 INTERFACES not concrete types — both now in dev-flow SKILL.
 
-## Current position (2026-07-09c)
-Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED + archived**; **companion
-reasoning is now BUILDING — encounter-design (slice 1) SHIPPED + archived** (first net-new north-star
-surface, build==rate). NEXT candidates (user's call):
-(1) **Dice roller UI (Item A)** then **encounter+roll history/reveal (Item B)** — the two user-requested
-    table-play items above; A is a self-contained UI+RNG slice, B builds on A + encounter-design (durable
-    campaign log). Natural next given encounter-design just landed.
-(2) more companion REASONING surfaces (encounter-design v2 swarms; setting-aware lore synthesis; deeper
-    character-build advice);
+## Current position (2026-07-10)
+Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**; **companion reasoning +
+table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
+(Item B).** Only active openspec change is the parked `prose-grounded-knowledge-model`. FULL suite 1153/1153.
+NEXT candidates (user's call):
+(1) more companion REASONING surfaces: **encounter-design v2 swarms** ("N goblins" — generator + monster
+    source emit per-monster quantities), setting-aware lore synthesis, deeper character-build advice;
+(2) table-play polish: encounter payload PartyLevels (surface resolved party from the service); a dedicated
+    dice/encounter surface beyond the campaign page; initiative tracker;
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6), a foundational lever under all.
 Deferred operational: live-host smokes for Item 3 (reground, Ollama judge path), Item 4 (dedup endpoints),
-encounter-design (chat-driven build→rate). Relates to `mem:extraction/dmg_generic_backfill_status`,
-`mem:project_entity_extraction_rethink`, `mem:reference_build_env_gotchas`.
+encounter-design (chat build→rate), table-play (roll→log→reveal UI). Relates to
+`mem:extraction/dmg_generic_backfill_status`, `mem:project_entity_extraction_rethink`,
+`mem:reference_build_env_gotchas`.
