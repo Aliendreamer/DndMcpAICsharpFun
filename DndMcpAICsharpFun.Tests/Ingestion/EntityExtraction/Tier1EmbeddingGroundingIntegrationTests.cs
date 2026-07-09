@@ -68,10 +68,10 @@ public sealed class Tier1EmbeddingGroundingIntegrationTests : IAsyncLifetime
         _sut = new Tier1EmbeddingGrounding(embeddings, searchClient, qdrantOptions, groundingOptions);
     }
 
-    public Task DisposeAsync()
+    public async Task DisposeAsync()
     {
+        try { await _client.DeleteCollectionAsync(_collectionName); } catch { /* best-effort cleanup */ }
         _client.Dispose();
-        return Task.CompletedTask;
     }
 
     [Fact]

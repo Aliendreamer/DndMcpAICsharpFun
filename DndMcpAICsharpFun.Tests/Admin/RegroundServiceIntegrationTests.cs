@@ -38,8 +38,8 @@ namespace DndMcpAICsharpFun.Tests.Admin;
 [Collection("qdrant")]
 public sealed class RegroundServiceIntegrationTests : IAsyncLifetime
 {
-    private const string EntitiesCollectionName = "dnd_entities_reground_test";
-    private const string BlocksCollectionName = "dnd_blocks_reground_test";
+    private readonly string _entitiesCollection = $"dnd_entities_reground_test_{Guid.NewGuid():N}";
+    private readonly string _blocksCollection = $"dnd_blocks_reground_test_{Guid.NewGuid():N}";
     private const string BookSlug = "reground-int-book";
     private const int BookId = 1;
     private const int VectorSize = 4;
@@ -59,17 +59,17 @@ public sealed class RegroundServiceIntegrationTests : IAsyncLifetime
         var grpc = new Uri(_fixture.Container.GetGrpcConnectionString());
         _client = new QdrantClient(grpc.Host, grpc.Port);
 
-        if (!await _client.CollectionExistsAsync(EntitiesCollectionName))
+        if (!await _client.CollectionExistsAsync(_entitiesCollection))
         {
             await _client.CreateCollectionAsync(
-                EntitiesCollectionName,
+                _entitiesCollection,
                 new VectorParams { Size = VectorSize, Distance = Distance.Cosine });
         }
 
         var qdrantOptions = Options.Create(new QdrantOptions
         {
-            EntitiesCollectionName = EntitiesCollectionName,
-            BlocksCollectionName = BlocksCollectionName,
+            EntitiesCollectionName = _entitiesCollection,
+            BlocksCollectionName = _blocksCollection,
         });
         _vectorStore = new QdrantEntityVectorStore(_client, qdrantOptions);
 
@@ -77,11 +77,12 @@ public sealed class RegroundServiceIntegrationTests : IAsyncLifetime
         Directory.CreateDirectory(_dir);
     }
 
-    public Task DisposeAsync()
+    public async Task DisposeAsync()
     {
+        try { await _client.DeleteCollectionAsync(_entitiesCollection); } catch { /* best-effort cleanup */ }
+        try { await _client.DeleteCollectionAsync(_blocksCollection); } catch { /* best-effort cleanup */ }
         _client.Dispose();
         if (Directory.Exists(_dir)) Directory.Delete(_dir, recursive: true);
-        return Task.CompletedTask;
     }
 
     private string CanonicalPath => Path.Combine(_dir, BookSlug + ".json");
@@ -192,8 +193,8 @@ public sealed class RegroundServiceIntegrationTests : IAsyncLifetime
             _vectorStore,
             Options.Create(new QdrantOptions
             {
-                EntitiesCollectionName = EntitiesCollectionName,
-                BlocksCollectionName = BlocksCollectionName,
+                EntitiesCollectionName = _entitiesCollection,
+                BlocksCollectionName = _blocksCollection,
             }),
             Options.Create(new GroundingOptions()),
             Options.Create(new EntityExtractionOptions { CanonicalDirectory = _dir }));
