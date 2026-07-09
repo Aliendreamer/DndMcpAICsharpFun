@@ -338,3 +338,76 @@ body {
 .add-note-form { display: flex; flex-direction: column; gap: 6px; max-width: 480px; margin-bottom: 16px; }
 .add-note-form textarea { resize: vertical; }
 .muted { color: #7c8499; font-style: italic; }
+
+/* Dice roller panel */
+.dice-roller-panel {
+    background: #13132a;
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+
+.dice-roller-panel h2 { margin-bottom: 10px; }
+
+.dice-quick-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+
+.dice-die-btn {
+    background: #1e1e3a;
+    border: 1px solid #343a4d;
+    border-radius: 6px;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 6px 10px;
+}
+
+.dice-die-btn.active { background: #5b3fa0; border-color: #7c6aaa; }
+.dice-die-btn:hover { border-color: #5b3fa0; }
+
+.dice-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 10px; }
+
+.dice-count-stepper { display: flex; align-items: center; gap: 8px; }
+.dice-count-value { min-width: 20px; text-align: center; }
+
+.dice-modifier { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #b0b0c8; }
+.dice-modifier input { width: 64px; background: #0f0f1a; border: 1px solid #3a3a5a; border-radius: 6px; color: #e0e0e0; padding: 4px 6px; }
+
+.dice-adv-toggle { display: flex; gap: 6px; }
+.dice-adv-toggle button {
+    background: #1e1e3a;
+    border: 1px solid #343a4d;
+    border-radius: 6px;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 6px 10px;
+}
+.dice-adv-toggle button.active { background: #5b3fa0; border-color: #7c6aaa; }
+.dice-adv-toggle button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.dice-expression-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.dice-expression-row input {
+    flex: 1;
+    background: #0f0f1a;
+    border: 1px solid #3a3a5a;
+    border-radius: 6px;
+    color: #e0e0e0;
+    padding: 8px 10px;
+}
+
+.dice-result-latest {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    background: #1f2230;
+    border: 1px solid #343a4d;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+}
+
+.dice-total { font-size: 24px; font-weight: 700; color: #a78bfa; }
+.dice-breakdown { color: #cbd5e1; }
+
+.dice-recent-list { list-style: none; display: flex; flex-direction: column; gap: 4px; color: #7c8499; font-size: 13px; }

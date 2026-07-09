@@ -1,0 +1,142 @@
+@using DndMcpAICsharpFun.Features.Dice
+@inject DndMcpAICsharpFun.Features.Dice.DiceRoller Roller
+
+<div class="dice-roller-panel">
+    <h2>Dice Roller</h2>
+
+    <div class="dice-quick-buttons">
+        @foreach (var die in DiceExpression.Dice)
+        {
+            <button type="button"
+                    class="@(_selectedDie == die ? "dice-die-btn active" : "dice-die-btn")"
+                    @onclick="() => SelectDie(die)">d@die</button>
+        }
+    </div>
+
+    <div class="dice-controls">
+        <div class="dice-count-stepper">
+            <button type="button" @onclick="DecrementCount" disabled="@(_count <= 1)">−</button>
+            <span class="dice-count-value">@_count</span>
+            <button type="button" @onclick="IncrementCount" disabled="@(_count >= DiceExpression.MaxCount)">+</button>
+        </div>
+
+        <label class="dice-modifier">
+            Modifier
+            <input type="number" @bind="_modifier" @bind:after="RebuildExpression" />
+        </label>
+
+        <div class="dice-adv-toggle">
+            <button type="button"
+                    class="@(_mode == RollMode.Advantage ? "active" : "")"
+                    disabled="@(!CanUseAdvDis)"
+                    @onclick="() => ToggleMode(RollMode.Advantage)">Adv</button>
+            <button type="button"
+                    class="@(_mode == RollMode.Disadvantage ? "active" : "")"
+                    disabled="@(!CanUseAdvDis)"
+                    @onclick="() => ToggleMode(RollMode.Disadvantage)">Dis</button>
+        </div>
+    </div>
+
+    <div class="dice-expression-row">
+        <input @bind="_expression" @bind:event="oninput" placeholder="e.g. 2d6+3 or d20 adv" />
+        <button type="button" @onclick="Roll">Roll</button>
+    </div>
+
+    @if (_error is not null)
+    {
+        <p class="error">@_error</p>
+    }
+
+    @if (_recent.Count > 0)
+    {
+        <div class="dice-result-latest">
+            <span class="dice-total">@_recent[0].Total</span>
+            <span class="dice-breakdown">@_recent[0].Breakdown</span>
+        </div>
+    }
+
+    @if (_recent.Count > 1)
+    {
+        <ul class="dice-recent-list">
+            @foreach (var r in _recent.Skip(1))
+            {
+                <li>@r.Breakdown</li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private int _selectedDie = 20;
+    private int _count = 1;
+    private int _modifier;
+    private RollMode _mode = RollMode.Normal;
+    private string _expression = "d20";
+    private string? _error;
+    private readonly List<RollResult> _recent = new();
+
+    private bool CanUseAdvDis => _selectedDie == 20 && _count == 1;
+
+    private void SelectDie(int die)
+    {
+        _selectedDie = die;
+        ClampMode();
+        RebuildExpression();
+    }
+
+    private void IncrementCount()
+    {
+        if (_count < DiceExpression.MaxCount) _count++;
+        ClampMode();
+        RebuildExpression();
+    }
+
+    private void DecrementCount()
+    {
+        if (_count > 1) _count--;
+        ClampMode();
+        RebuildExpression();
+    }
+
+    private void ToggleMode(RollMode mode)
+    {
+        _mode = _mode == mode ? RollMode.Normal : mode;
+        RebuildExpression();
+    }
+
+    private void ClampMode()
+    {
+        if (!CanUseAdvDis) _mode = RollMode.Normal;
+    }
+
+    private void RebuildExpression()
+    {
+        var modStr = _modifier switch
+        {
+            0 => "",
+            > 0 => $"+{_modifier}",
+            _ => _modifier.ToString(),
+        };
+        var modeStr = _mode switch
+        {
+            RollMode.Advantage => " adv",
+            RollMode.Disadvantage => " dis",
+            _ => "",
+        };
+        _expression = $"{_count}d{_selectedDie}{modStr}{modeStr}";
+    }
+
+    private void Roll()
+    {
+        if (!DiceExpression.TryParse(_expression, out var expr, out var err))
+        {
+            _error = err;
+            return;
+        }
+
+        var res = Roller.Roll(expr);
+        _recent.Insert(0, res);
+        if (_recent.Count > 10) _recent.RemoveAt(10);
+        _error = null;
+    }
+}
