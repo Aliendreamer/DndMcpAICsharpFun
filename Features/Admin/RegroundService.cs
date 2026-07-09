@@ -60,9 +60,8 @@ public sealed class RegroundService(
         var flaggedIds = entities.Where(IsFlagged).Select(e => e.Id).ToList();
 
         var checkpointPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".reground.progress.json");
-        var doneIds = await LoadCheckpointAsync(checkpointPath, ct);
+        var (doneIds, changedIds) = await LoadCheckpointAsync(checkpointPath, ct);
 
-        var changedIds = new HashSet<string>(StringComparer.Ordinal);
         var tier2Invoked = 0;
         var processedSinceFlush = 0;
 
@@ -107,15 +106,22 @@ public sealed class RegroundService(
                 // re-graded next run), never a checkpoint claiming "done" for a mutation that was
                 // never persisted.
                 await writer.WriteAsync(path, file with { Entities = entities }, ct);
-                await WriteCheckpointAsync(checkpointPath, doneIds, ct);
+                await WriteCheckpointAsync(checkpointPath, doneIds, changedIds, ct);
                 processedSinceFlush = 0;
             }
         }
 
-        // Final flush: guarantees the canonical file reflects every mutation made in this run, even
-        // when the last (partial) batch never hit the interval above.
+        // Final flush: guarantees the canonical file (and the checkpoint's changedIds) reflect
+        // every mutation made in this run, even when the last (partial) batch never hit the
+        // interval above. If a crash happens between this flush and the reindex loop below,
+        // changedIds is still recoverable from the checkpoint on the next run.
         await writer.WriteAsync(path, file with { Entities = entities }, ct);
+        await WriteCheckpointAsync(checkpointPath, doneIds, changedIds, ct);
 
+        // Reindex every changed id — checkpoint-seeded (from a prior crashed run) union this run's
+        // own changes. ReindexEntityAsync is idempotent (re-embeds + upserts by id), so reindexing
+        // an id already reindexed by a prior run is harmless. Only delete the checkpoint once the
+        // full set has been reindexed.
         foreach (var id in changedIds)
             await orchestrator.ReindexEntityAsync(bookId, id, ct);
 
@@ -184,27 +190,44 @@ public sealed class RegroundService(
         Field = new FieldCondition { Key = key, Match = new Match { Keyword = value } },
     };
 
-    private static async Task<HashSet<string>> LoadCheckpointAsync(string checkpointPath, CancellationToken ct)
+    private static async Task<(HashSet<string> DoneIds, HashSet<string> ChangedIds)> LoadCheckpointAsync(
+        string checkpointPath, CancellationToken ct)
     {
         try
         {
             await using var s = File.OpenRead(checkpointPath);
-            var ids = await JsonSerializer.DeserializeAsync<List<string>>(s, CheckpointJsonOptions, ct) ?? [];
-            return new HashSet<string>(ids, StringComparer.Ordinal);
+            using var doc = await JsonDocument.ParseAsync(s, cancellationToken: ct);
+
+            // Backward compat: a checkpoint written before changedIds tracking existed is a bare
+            // JSON array of done ids (no changedIds to seed — safe, since those entities were
+            // reindexed by the same run that deleted the checkpoint).
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                var legacyDoneIds = doc.RootElement.Deserialize<List<string>>(CheckpointJsonOptions) ?? [];
+                return (new HashSet<string>(legacyDoneIds, StringComparer.Ordinal), new HashSet<string>(StringComparer.Ordinal));
+            }
+
+            var checkpoint = doc.RootElement.Deserialize<RegroundCheckpoint>(CheckpointJsonOptions)
+                              ?? new RegroundCheckpoint([], []);
+            return (
+                new HashSet<string>(checkpoint.DoneIds, StringComparer.Ordinal),
+                new HashSet<string>(checkpoint.ChangedIds, StringComparer.Ordinal));
         }
         catch (FileNotFoundException)
         {
-            return new HashSet<string>(StringComparer.Ordinal);
+            return (new HashSet<string>(StringComparer.Ordinal), new HashSet<string>(StringComparer.Ordinal));
         }
     }
 
-    private static async Task WriteCheckpointAsync(string checkpointPath, HashSet<string> doneIds, CancellationToken ct)
+    private static async Task WriteCheckpointAsync(
+        string checkpointPath, HashSet<string> doneIds, HashSet<string> changedIds, CancellationToken ct)
     {
         var dir = Path.GetDirectoryName(checkpointPath) ?? ".";
         Directory.CreateDirectory(dir);
         var tmp = checkpointPath + ".tmp";
+        var checkpoint = new RegroundCheckpoint(doneIds.ToList(), changedIds.ToList());
         await using (var s = File.Create(tmp))
-            await JsonSerializer.SerializeAsync(s, doneIds.ToList(), CheckpointJsonOptions, ct);
+            await JsonSerializer.SerializeAsync(s, checkpoint, CheckpointJsonOptions, ct);
         try
         {
             File.Move(tmp, checkpointPath, overwrite: true);
@@ -220,4 +243,13 @@ public sealed class RegroundService(
     {
         try { File.Delete(checkpointPath); } catch { /* best effort */ }
     }
+
+    /// <summary>
+    /// Checkpoint sidecar shape. <c>ChangedIds</c> records entities whose disposition was mutated
+    /// this run (or a prior crashed run) and therefore still need
+    /// <see cref="IEntityIngestionOrchestrator.ReindexEntityAsync"/> — tracked independently of
+    /// <c>DoneIds</c> because a changed entity's canonical disposition may no longer be flagged on
+    /// resume, so it would otherwise never be reconsidered by the flaggedIds loop.
+    /// </summary>
+    private sealed record RegroundCheckpoint(List<string> DoneIds, List<string> ChangedIds);
 }

@@ -193,4 +193,37 @@ public sealed class RegroundServiceTests : IDisposable
         cascade.CalledIds.Should().NotContain(e1.Id, "an id already recorded in the checkpoint must be skipped");
         cascade.CalledIds.Should().Contain(e2.Id);
     }
+
+    [Fact]
+    public async Task RegroundAsync_CrashAfterFlush_ReindexesCheckpointRecordedChangedIds()
+    {
+        // Prior (crashed) run: `alreadyAccepted` was graded and promoted — canonical already
+        // reflects Disposition.Accepted — and its id was recorded in the checkpoint's changedIds,
+        // but the process crashed before the final reindex loop ran for it. On resume,
+        // `alreadyAccepted` is no longer flagged (IsFlagged is false), so it will never again be
+        // selected by the flaggedIds loop; only a checkpoint-seeded changedIds set can recover it.
+        var alreadyAccepted = MakeEntity($"{BookSlug}.spell.already-accepted", "Already Accepted") with
+        {
+            Disposition = EntityDisposition.Accepted, NeedsReview = false,
+        };
+        var stillFlagged = MakeEntity($"{BookSlug}.spell.still-flagged", "Still Flagged");
+        await SeedCanonicalAsync(alreadyAccepted, stillFlagged);
+
+        var checkpointJson = JsonSerializer.Serialize(new
+        {
+            doneIds = new[] { alreadyAccepted.Id },
+            changedIds = new[] { alreadyAccepted.Id },
+        });
+        await File.WriteAllTextAsync(CheckpointPath, checkpointJson);
+
+        var cascade = new FakeGroundingCascade(new Dictionary<string, GroundingVerdict>
+        {
+            [stillFlagged.Id] = new GroundingVerdict(GroundingStatus.Grounded, DecidedByTier: 0, Score: 1.0),
+        });
+
+        var sut = BuildSut(cascade);
+        await sut.RegroundAsync(1, judge: true, CancellationToken.None);
+
+        await _orchestrator.Received(1).ReindexEntityAsync(1, alreadyAccepted.Id, Arg.Any<CancellationToken>());
+    }
 }
