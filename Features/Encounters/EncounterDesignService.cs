@@ -90,7 +90,16 @@ public sealed class EncounterDesignService(
     {
         var byId = await search.GetByIdAsync(monster, ct);
         if (byId is not null && MonsterCr.TryRead(byId.Envelope.Fields, out var crById))
-            return new MonsterRef(byId.Envelope.Id, byId.Envelope.Name, crById, EncounterMath.CrToXp(crById));
+        {
+            try
+            {
+                return new MonsterRef(byId.Envelope.Id, byId.Envelope.Name, crById, EncounterMath.CrToXp(crById));
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                throw new ArgumentException($"Monster not found or has no usable CR: {monster}", nameof(monster));
+            }
+        }
 
         var query = new EntitySearchQuery(
             QueryText: monster,
@@ -111,6 +120,13 @@ public sealed class EncounterDesignService(
         if (hit is null || !MonsterCr.TryRead(hit.Fields, out var cr))
             throw new ArgumentException($"Monster not found or has no usable CR: {monster}", nameof(monster));
 
-        return new MonsterRef(hit.Id, hit.Name, cr, EncounterMath.CrToXp(cr));
+        try
+        {
+            return new MonsterRef(hit.Id, hit.Name, cr, EncounterMath.CrToXp(cr));
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            throw new ArgumentException($"Monster not found or has no usable CR: {monster}", nameof(monster));
+        }
     }
 }
