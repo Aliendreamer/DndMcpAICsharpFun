@@ -108,4 +108,15 @@ public sealed class CampaignLogRepositoryTests(PostgresFixture pg) : IAsyncLifet
         await _repo.DeleteAsync(rollId, campaign1, user1);
         (await _repo.GetByCampaignAsync(campaign1, user1)).Should().NotContain(e => e.Id == rollId);
     }
+
+    [Fact]
+    public async Task Deleting_campaign_cascades_campaign_log_entries()
+    {
+        var (user1, campaign1, _) = await SeedAsync();
+        await _repo.AddRollAsync(user1, campaign1, RollFixture, "Deception");
+
+        await _campaigns.DeleteAsync(campaign1, user1);
+
+        (await _repo.GetByCampaignAsync(campaign1, user1)).Should().BeEmpty();
+    }
 }
