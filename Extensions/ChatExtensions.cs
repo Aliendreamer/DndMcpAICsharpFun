@@ -8,6 +8,11 @@ internal static class ChatExtensions
 {
     internal static IServiceCollection AddDndChat(this IServiceCollection services, IConfiguration config)
     {
+        // DndChatService depends on EncounterDesignService; pulling AddEncounters() in here
+        // keeps that dependency self-contained regardless of composition order/omission
+        // (idempotent — AddEncounters only registers services, no options validation side effects).
+        services.AddEncounters();
+
         services.AddOptions<McpClientOptions>()
             .BindConfiguration("McpClient")
             .ValidateOnStart();
