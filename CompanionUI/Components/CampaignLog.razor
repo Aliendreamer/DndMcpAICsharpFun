@@ -1,0 +1,83 @@
+@using System.Text.Json
+@using DndMcpAICsharpFun.Features.Campaigns
+@inject DndMcpAICsharpFun.Features.Campaigns.CampaignLogRepository LogRepo
+
+<div class="campaign-log">
+    <h2>Campaign Log</h2>
+
+    @if (_entries.Count == 0)
+    {
+        <p class="muted">No log entries yet.</p>
+    }
+    else
+    {
+        <ul class="log-entries">
+            @foreach (var e in _entries)
+            {
+                var line = FormatEntry(e);
+                if (line is not null)
+                {
+                    <li class="log-entry @(e.Hidden ? "log-entry-hidden" : "")">
+                        <span class="log-line">@line</span>
+                        @if (e.Hidden)
+                        {
+                            <span class="badge">hidden</span>
+                            <button type="button" @onclick="() => RevealAsync(e.Id)">Reveal</button>
+                        }
+                        <button type="button" @onclick="() => DeleteAsync(e.Id)">Delete</button>
+                    </li>
+                }
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter] public long CampaignId { get; set; }
+    [Parameter] public long UserId { get; set; }
+
+    private List<CampaignLogEntry> _entries = new();
+
+    protected override async Task OnInitializedAsync() => await RefreshAsync();
+
+    public async Task RefreshAsync()
+    {
+        _entries = await LogRepo.GetByCampaignAsync(CampaignId, UserId);
+        StateHasChanged();
+    }
+
+    private async Task RevealAsync(long id)
+    {
+        await LogRepo.RevealAsync(id, CampaignId, UserId);
+        await RefreshAsync();
+    }
+
+    private async Task DeleteAsync(long id)
+    {
+        await LogRepo.DeleteAsync(id, CampaignId, UserId);
+        await RefreshAsync();
+    }
+
+    private static string? FormatEntry(CampaignLogEntry e)
+    {
+        try
+        {
+            if (e.Kind == CampaignLogKind.Roll)
+            {
+                var payload = JsonSerializer.Deserialize<RollLogPayload>(e.PayloadJson);
+                if (payload is null) return null;
+                return $"{e.Label} · {payload.Breakdown} · {payload.Total}";
+            }
+            else
+            {
+                var payload = JsonSerializer.Deserialize<EncounterLogPayload>(e.PayloadJson);
+                if (payload is null) return null;
+                return $"{e.Label} · {payload.Difficulty} · {string.Join(", ", payload.Monsters.Select(m => m.Name))}";
+            }
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+}

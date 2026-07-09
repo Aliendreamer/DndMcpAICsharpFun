@@ -59,7 +59,11 @@ else
             <button @onclick="ShowAddHero">+ Add Hero</button>
         }
 
-        <DiceRollerPanel />
+        <DiceRollerPanel CampaignId="Id" UserId="_userId" OnLogged="RefreshLog" />
+
+        <EncounterPanel CampaignId="Id" UserId="_userId" OnSaved="RefreshLog" />
+
+        <CampaignLog @ref="_log" CampaignId="Id" UserId="_userId" />
 
         <h2>Notes</h2>
         <div class="notes-list">
@@ -123,6 +127,7 @@ else
     private Campaign? _campaign;
     private List<Hero> _heroes = [];
     private long _userId;
+    private CampaignLog? _log;
     private bool _showAddHero;
     private string _newHeroName = "";
     private string _addHeroError = "";
@@ -153,6 +158,12 @@ else
     }
 
     private void GoToHero(long heroId) => Nav.NavigateTo($"/campaigns/{Id}/heroes/{heroId}");
+
+    private async Task RefreshLog()
+    {
+        if (_log is not null)
+            await _log.RefreshAsync();
+    }
     private void ShowAddHero() => _showAddHero = true;
     private void CancelAddHero() { _showAddHero = false; _addHeroError = ""; }
 
