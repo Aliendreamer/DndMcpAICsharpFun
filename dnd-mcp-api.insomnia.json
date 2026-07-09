@@ -371,6 +371,49 @@
       "authentication": {}
     },
     {
+      "_id": "req_books_reground_entities",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Re-ground NeedsReview entities (Tier 0/1 only; fast, no LLM judge)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/reground-entities",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
+      "_id": "req_books_reground_entities_judge",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Re-ground with the Tier 2 qwen3 judge (slow; promotes grounded, flags fabrications)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/reground-entities",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "judge",
+          "value": "true"
+        }
+      ],
+      "authentication": {}
+    },
+    {
       "_id": "req_books_entity_recall_bad_type",
       "_type": "request",
       "parentId": "fld_admin_books",

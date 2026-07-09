@@ -88,6 +88,14 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/flag-unknown-entities?type=Monster
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Re-ground NeedsReview entities (Tier 0/1 only; fast, no LLM judge)
+POST {{baseUrl}}/admin/books/1/reground-entities
+X-Admin-Api-Key: {{adminKey}}
+
+### Admin Books — Re-ground with the Tier 2 qwen3 judge (slow; promotes grounded, flags fabrications)
+POST {{baseUrl}}/admin/books/1/reground-entities?judge=true
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Entity recall with an unsupported ?type (400 Problem response listing supported types)
 GET {{baseUrl}}/admin/books/1/entity-recall?type=Plane
 X-Admin-Api-Key: {{adminKey}}

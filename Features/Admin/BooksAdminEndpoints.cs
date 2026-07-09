@@ -32,6 +32,7 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/{id:int}/backfill-entities", BackfillEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/flag-unknown-entities", FlagUnknownEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/project-structured", ProjectStructured).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/reground-entities", Reground).DisableAntiforgery();
         return group;
     }
 
@@ -145,6 +146,9 @@ public static partial class BooksAdminEndpoints
             Force: forceFlag, ErrorsOnly: errorsOnlyFlag));
         return Results.Accepted($"/admin/books/{id}");
     }
+
+    private static async Task<IResult> Reground(int id, RegroundService svc, CancellationToken ct, bool judge = false) =>
+        Results.Ok(await svc.RegroundAsync(id, judge, ct));
 
     private static IResult UnsupportedType(string type) => Results.Problem(
         $"Unsupported type '{type}'. Supported: Monster, Spell, MagicItem, God.",
