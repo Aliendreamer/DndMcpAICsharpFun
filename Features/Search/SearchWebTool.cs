@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+
 using ModelContextProtocol.Server;
 
 namespace DndMcpAICsharpFun.Features.Search;

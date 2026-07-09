@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Features.Auth;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Auth;

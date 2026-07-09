@@ -1,6 +1,8 @@
 using System.Collections.Frozen;
+
 using DndMcpAICsharpFun.Domain.Entities;
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+
 public static class FivetoolsEntityTypeMap
 {
     private static readonly FrozenSet<string> MagicRarities =

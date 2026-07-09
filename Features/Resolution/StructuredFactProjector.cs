@@ -1,7 +1,9 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace DndMcpAICsharpFun.Features.Resolution;
@@ -37,18 +39,18 @@ public sealed class StructuredFactProjector(IDbContextFactory<AppDbContext> dbf)
                 var newTable = new StructuredTable
                 {
                     CanonicalId = table.Id,
-                    Name        = table.Name,
+                    Name = table.Name,
                     ColumnsJson = JsonSerializer.Serialize(table.Columns),
-                    SourceBook  = file.Book.SourceBook,
+                    SourceBook = file.Book.SourceBook,
                 };
                 db.StructuredTables.Add(newTable);
                 newTables.Add((table, newTable));
             }
             else
             {
-                existing.Name        = table.Name;
+                existing.Name = table.Name;
                 existing.ColumnsJson = JsonSerializer.Serialize(table.Columns);
-                existing.SourceBook  = file.Book.SourceBook;
+                existing.SourceBook = file.Book.SourceBook;
             }
         }
 
@@ -94,8 +96,8 @@ public sealed class StructuredFactProjector(IDbContextFactory<AppDbContext> dbf)
             {
                 db.StructuredTableRows.Add(new StructuredTableRow
                 {
-                    TableId   = tableId,
-                    RowIndex  = i,
+                    TableId = tableId,
+                    RowIndex = i,
                     CellsJson = JsonSerializer.Serialize(table.Rows[i].Cells),
                 });
                 rowCount++;
@@ -118,13 +120,13 @@ public sealed class StructuredFactProjector(IDbContextFactory<AppDbContext> dbf)
                 db.ChoiceSetRows.Add(new ChoiceSetRow
                 {
                     CanonicalId = cs.Id,
-                    Name        = cs.Name,
+                    Name = cs.Name,
                     OptionsJson = JsonSerializer.Serialize(cs.Options),
                 });
             }
             else
             {
-                existing.Name        = cs.Name;
+                existing.Name = cs.Name;
                 existing.OptionsJson = JsonSerializer.Serialize(cs.Options);
             }
         }

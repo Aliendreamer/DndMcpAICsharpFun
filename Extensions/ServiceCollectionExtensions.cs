@@ -7,23 +7,24 @@ using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
-using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
+using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Search;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure;
-using DndMcpAICsharpFun.Infrastructure.Ollama;
-using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
+using DndMcpAICsharpFun.Infrastructure.Ollama;
+using DndMcpAICsharpFun.Infrastructure.Persistence;
+using DndMcpAICsharpFun.Infrastructure.Postgres;
+using DndMcpAICsharpFun.Infrastructure.Qdrant;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 
 using OllamaSharp;
 
@@ -31,9 +32,6 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 
 using Qdrant.Client;
-
-using DndMcpAICsharpFun.Infrastructure.Persistence;
-using DndMcpAICsharpFun.Infrastructure.Postgres;
 
 namespace DndMcpAICsharpFun.Extensions;
 

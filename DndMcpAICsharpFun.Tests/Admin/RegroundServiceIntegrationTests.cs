@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Admin;
@@ -13,13 +14,19 @@ using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Tests.TestDoubles;
 using DndMcpAICsharpFun.Tests.VectorStore.Entities;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+
 using NSubstitute;
+
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
+
 using Xunit;
+
 using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
 
 namespace DndMcpAICsharpFun.Tests.Admin;
@@ -155,9 +162,12 @@ public sealed class RegroundServiceIntegrationTests : IAsyncLifetime
     {
         var record = new IngestionRecord
         {
-            Id = BookId, DisplayName = BookSlug,
-            FilePath = "/tmp/fake.pdf", FileName = "fake.pdf",
-            FileHash = "cafebabe", Version = "Edition2014",
+            Id = BookId,
+            DisplayName = BookSlug,
+            FilePath = "/tmp/fake.pdf",
+            FileName = "fake.pdf",
+            FileHash = "cafebabe",
+            Version = "Edition2014",
             Status = IngestionStatus.EntitiesIngested,
         };
         var tracker = Substitute.For<IIngestionTracker>();

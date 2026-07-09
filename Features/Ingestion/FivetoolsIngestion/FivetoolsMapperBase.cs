@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
@@ -40,8 +41,8 @@ public abstract class FivetoolsMapperBase : IFivetoolsEntityMapper
             CanonicalText: "",
             Fields: BuildFields(entry),
             DataSource: "5etools",
-            Srd:            entry.TryGetProperty("srd",            out var srd)    && srd.ValueKind    == JsonValueKind.True,
-            Srd52:          entry.TryGetProperty("srd52",          out var srd52)  && srd52.ValueKind  == JsonValueKind.True,
+            Srd: entry.TryGetProperty("srd", out var srd) && srd.ValueKind == JsonValueKind.True,
+            Srd52: entry.TryGetProperty("srd52", out var srd52) && srd52.ValueKind == JsonValueKind.True,
             BasicRules2024: entry.TryGetProperty("basicRules2024", out var br2024) && br2024.ValueKind == JsonValueKind.True,
             Keywords: GetKeywords(entry));
     }

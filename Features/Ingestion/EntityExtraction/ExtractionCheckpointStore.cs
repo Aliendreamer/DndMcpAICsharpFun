@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -17,14 +18,14 @@ public sealed class ExtractionCheckpointStore
     internal static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = false,
-        Converters    = { new JsonStringEnumConverter() },
+        Converters = { new JsonStringEnumConverter() },
     };
 
     public async Task<(List<EntityEnvelope> Extracted, List<ExtractionErrorEntry> Errors, HashSet<string> DoneIds)>
         LoadCheckpointAsync(string progressPath, string errorsPath)
     {
         var extracted = new List<EntityEnvelope>();
-        var errors    = new List<ExtractionErrorEntry>();
+        var errors = new List<ExtractionErrorEntry>();
 
         try
         {
@@ -42,7 +43,7 @@ public sealed class ExtractionCheckpointStore
 
         var doneIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var e in extracted) doneIds.Add(e.Id);
-        foreach (var e in errors)    doneIds.Add(e.SourceEntityId);
+        foreach (var e in errors) doneIds.Add(e.SourceEntityId);
 
         return (extracted, errors, doneIds);
     }

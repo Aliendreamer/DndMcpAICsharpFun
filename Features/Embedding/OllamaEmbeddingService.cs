@@ -1,6 +1,9 @@
 using System.Diagnostics;
+
 using DndMcpAICsharpFun.Infrastructure.Ollama;
+
 using Microsoft.Extensions.Options;
+
 using OllamaSharp;
 using OllamaSharp.Models;
 

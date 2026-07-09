@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Chat;
 using DndMcpAICsharpFun.Tests.Persistence;
+
 using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Chat;

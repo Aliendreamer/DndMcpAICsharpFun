@@ -1,12 +1,13 @@
-using Microsoft.Extensions.Options;
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
-using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
+
+using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion;
 

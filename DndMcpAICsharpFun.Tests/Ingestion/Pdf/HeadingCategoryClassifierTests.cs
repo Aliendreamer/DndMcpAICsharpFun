@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Domain;
-using FluentAssertions;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
+
+using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Ingestion.Pdf;
 

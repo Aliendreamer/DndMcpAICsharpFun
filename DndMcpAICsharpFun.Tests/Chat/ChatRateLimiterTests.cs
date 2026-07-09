@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Features.Chat;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Chat;

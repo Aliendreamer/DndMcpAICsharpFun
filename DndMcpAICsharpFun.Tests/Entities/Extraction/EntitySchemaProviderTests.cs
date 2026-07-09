@@ -1,6 +1,9 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;
@@ -66,7 +69,7 @@ public sealed class EntitySchemaProviderTests
         Directory.CreateDirectory(schemasDir);
         try
         {
-            var opts     = Options.Create(new EntityExtractionOptions { SchemasDirectory = schemasDir });
+            var opts = Options.Create(new EntityExtractionOptions { SchemasDirectory = schemasDir });
             var provider = new EntitySchemaProvider(opts, NullLogger<EntitySchemaProvider>.Instance);
 
             var result = provider.LoadSchemas();
@@ -91,7 +94,7 @@ public sealed class EntitySchemaProviderTests
                 Path.Combine(schemasDir, "MonsterFields.schema.json"),
                 """{"type":"object","properties":{"cr":{"type":"string"}}}""");
 
-            var opts     = Options.Create(new EntityExtractionOptions { SchemasDirectory = schemasDir });
+            var opts = Options.Create(new EntityExtractionOptions { SchemasDirectory = schemasDir });
             var provider = new EntitySchemaProvider(opts, NullLogger<EntitySchemaProvider>.Instance);
 
             var result = provider.LoadSchemas();

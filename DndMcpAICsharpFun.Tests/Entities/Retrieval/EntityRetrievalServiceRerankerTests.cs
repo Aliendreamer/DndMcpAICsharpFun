@@ -1,10 +1,12 @@
+using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
+
 using FluentAssertions;
-using System.Text.Json;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Retrieval;
 

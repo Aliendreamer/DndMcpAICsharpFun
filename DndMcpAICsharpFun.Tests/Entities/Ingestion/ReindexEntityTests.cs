@@ -6,7 +6,9 @@ using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Tests.TestDoubles;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Ingestion;
@@ -33,7 +35,7 @@ public sealed class ReindexEntityTests : IDisposable
         _dir = Path.Combine(Path.GetTempPath(), $"ReindexEntityTests_{Guid.NewGuid():N}");
         Directory.CreateDirectory(_dir);
         // Copy the needs-review fixture (contains the "needs-review-book.*" entities).
-        var src  = Path.Combine(AppContext.BaseDirectory, "Fixtures", "canonical", "needs-review-book.json");
+        var src = Path.Combine(AppContext.BaseDirectory, "Fixtures", "canonical", "needs-review-book.json");
         var dest = Path.Combine(_dir, "needs-review-book.json");
         File.Copy(src, dest);
     }
@@ -42,10 +44,10 @@ public sealed class ReindexEntityTests : IDisposable
 
     private EntityIngestionOrchestrator BuildOrchestrator(RecordingEntityVectorStore store, IngestionRecord record)
     {
-        var tracker     = MakeTracker(record);
-        var loader      = new CanonicalJsonLoader();
-        var dispatcher  = new EntityCanonicalTextDispatcher();
-        var embeddings  = Substitute.For<IEmbeddingService>();
+        var tracker = MakeTracker(record);
+        var loader = new CanonicalJsonLoader();
+        var dispatcher = new EntityCanonicalTextDispatcher();
+        var embeddings = Substitute.For<IEmbeddingService>();
         embeddings.EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>())
             .Returns(ci =>
             {
@@ -55,7 +57,7 @@ public sealed class ReindexEntityTests : IDisposable
             });
 
         var refResolver = new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver();
-        var opts        = Options.Create(new EntityIngestionOptions
+        var opts = Options.Create(new EntityIngestionOptions
         {
             CanonicalDirectory = _dir,
             FivetoolsDirectory = Path.Combine(_dir, "5etools-absent"),   // absent → no enrichment
@@ -71,12 +73,16 @@ public sealed class ReindexEntityTests : IDisposable
     [Fact]
     public async Task ReindexEntityAsync_UpsertsExactlyOnePoint()
     {
-        var store  = new RecordingEntityVectorStore();
+        var store = new RecordingEntityVectorStore();
         var record = new IngestionRecord
         {
-            Id = 42, DisplayName = "needs-review-book", FileHash = "cafebabe",
-            FilePath = "/tmp/fake.pdf", FileName = "fake.pdf",
-            Version = "Edition2014", Status = IngestionStatus.EntitiesIngested,
+            Id = 42,
+            DisplayName = "needs-review-book",
+            FileHash = "cafebabe",
+            FilePath = "/tmp/fake.pdf",
+            FileName = "fake.pdf",
+            Version = "Edition2014",
+            Status = IngestionStatus.EntitiesIngested,
         };
 
         var sut = BuildOrchestrator(store, record);
@@ -92,12 +98,16 @@ public sealed class ReindexEntityTests : IDisposable
     [Fact]
     public async Task ReindexEntityAsync_DoesNotCallDeleteByFileHashExcept()
     {
-        var store  = new RecordingEntityVectorStore();
+        var store = new RecordingEntityVectorStore();
         var record = new IngestionRecord
         {
-            Id = 42, DisplayName = "needs-review-book", FileHash = "cafebabe",
-            FilePath = "/tmp/fake.pdf", FileName = "fake.pdf",
-            Version = "Edition2014", Status = IngestionStatus.EntitiesIngested,
+            Id = 42,
+            DisplayName = "needs-review-book",
+            FileHash = "cafebabe",
+            FilePath = "/tmp/fake.pdf",
+            FileName = "fake.pdf",
+            Version = "Edition2014",
+            Status = IngestionStatus.EntitiesIngested,
         };
 
         var sut = BuildOrchestrator(store, record);
@@ -112,12 +122,16 @@ public sealed class ReindexEntityTests : IDisposable
     [Fact]
     public async Task ReindexEntityAsync_PointCarriesCorrectFileHash()
     {
-        var store  = new RecordingEntityVectorStore();
+        var store = new RecordingEntityVectorStore();
         var record = new IngestionRecord
         {
-            Id = 42, DisplayName = "needs-review-book", FileHash = "deadbeef",
-            FilePath = "/tmp/fake.pdf", FileName = "fake.pdf",
-            Version = "Edition2014", Status = IngestionStatus.EntitiesIngested,
+            Id = 42,
+            DisplayName = "needs-review-book",
+            FileHash = "deadbeef",
+            FilePath = "/tmp/fake.pdf",
+            FileName = "fake.pdf",
+            Version = "Edition2014",
+            Status = IngestionStatus.EntitiesIngested,
         };
 
         var sut = BuildOrchestrator(store, record);
@@ -150,12 +164,16 @@ public sealed class ReindexEntityTests : IDisposable
             """;
         File.WriteAllText(Path.Combine(_dir, "ungrounded-book.json"), json);
 
-        var store  = new RecordingEntityVectorStore();
+        var store = new RecordingEntityVectorStore();
         var record = new IngestionRecord
         {
-            Id = 43, DisplayName = "ungrounded-book", FileHash = "feedface",
-            FilePath = "/tmp/fake2.pdf", FileName = "fake2.pdf",
-            Version = "Edition2014", Status = IngestionStatus.EntitiesIngested,
+            Id = 43,
+            DisplayName = "ungrounded-book",
+            FileHash = "feedface",
+            FilePath = "/tmp/fake2.pdf",
+            FileName = "fake2.pdf",
+            Version = "Edition2014",
+            Status = IngestionStatus.EntitiesIngested,
         };
 
         var sut = BuildOrchestrator(store, record);
@@ -172,12 +190,16 @@ public sealed class ReindexEntityTests : IDisposable
     [Fact]
     public async Task ReindexEntityAsync_UnknownEntity_Throws()
     {
-        var store  = new RecordingEntityVectorStore();
+        var store = new RecordingEntityVectorStore();
         var record = new IngestionRecord
         {
-            Id = 42, DisplayName = "needs-review-book", FileHash = "cafebabe",
-            FilePath = "/tmp/fake.pdf", FileName = "fake.pdf",
-            Version = "Edition2014", Status = IngestionStatus.EntitiesIngested,
+            Id = 42,
+            DisplayName = "needs-review-book",
+            FileHash = "cafebabe",
+            FilePath = "/tmp/fake.pdf",
+            FileName = "fake.pdf",
+            Version = "Edition2014",
+            Status = IngestionStatus.EntitiesIngested,
         };
 
         var sut = BuildOrchestrator(store, record);

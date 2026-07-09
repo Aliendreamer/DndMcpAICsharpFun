@@ -85,4 +85,3 @@ public class EntityIngestionSelfDeleteTests
             NullLogger<EntityIngestionOrchestrator>.Instance);
     }
 }
-

@@ -1,6 +1,9 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.CanonicalText;

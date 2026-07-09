@@ -1,7 +1,10 @@
-using DndMcpAICsharpFun.Domain;
 using System.Text.Json;
+
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Campaigns;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Campaign;
@@ -13,13 +16,25 @@ public sealed class CharacterSheetSerializationTests
     {
         var sheet = new CharacterSheet
         {
-            Race = "Elf", Classes = [new ClassLevel { Class = "Wizard", Subclass = "Divination", Level = 5 }],
-            Background = "Sage", Alignment = "Neutral Good", ExperiencePoints = 6500,
-            Strength = 8, Dexterity = 16, Constitution = 14,
-            Intelligence = 18, Wisdom = 12, Charisma = 10,
-            MaxHitPoints = 32, CurrentHitPoints = 28, ArmorClass = 13,
-            Speed = 30, Initiative = 3,
-            SpellcastingAbility = "Intelligence", SpellSaveDC = 15, SpellAttackBonus = 7,
+            Race = "Elf",
+            Classes = [new ClassLevel { Class = "Wizard", Subclass = "Divination", Level = 5 }],
+            Background = "Sage",
+            Alignment = "Neutral Good",
+            ExperiencePoints = 6500,
+            Strength = 8,
+            Dexterity = 16,
+            Constitution = 14,
+            Intelligence = 18,
+            Wisdom = 12,
+            Charisma = 10,
+            MaxHitPoints = 32,
+            CurrentHitPoints = 28,
+            ArmorClass = 13,
+            Speed = 30,
+            Initiative = 3,
+            SpellcastingAbility = "Intelligence",
+            SpellSaveDC = 15,
+            SpellAttackBonus = 7,
             SpellSlots = [4, 3, 2, 1, 0, 0, 0, 0, 0],
             UsedSpellSlots = [1, 0, 0, 0, 0, 0, 0, 0, 0],
             SpellsKnown = ["Fireball", "Counterspell"],

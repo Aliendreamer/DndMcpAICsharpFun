@@ -1,9 +1,10 @@
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
 
-using DndMcpAICsharpFun.Domain;
-
 namespace DndMcpAICsharpFun.Features.Auth;
+
 public sealed class UserRepository(IDbContextFactory<AppDbContext> dbf)
 {
     public async Task<User?> FindByUsernameAsync(string username)
@@ -27,5 +28,3 @@ public sealed class UserRepository(IDbContextFactory<AppDbContext> dbf)
         return user.Id;
     }
 }
-
-

@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Resolution;
+
 using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Resolution;

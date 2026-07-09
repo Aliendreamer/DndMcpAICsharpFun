@@ -2,10 +2,14 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
+
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using Microsoft.Extensions.Options;
+
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
+
 using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
 using QdrantVector = Qdrant.Client.Grpc.Vector;
 
@@ -68,18 +72,18 @@ public sealed partial class QdrantVectorStoreService(
         {
             point.Vectors = vector;
         }
-        point.Payload[QdrantPayloadFields.Text]         = chunk.Text;
-        point.Payload[QdrantPayloadFields.SourceBook]   = meta.SourceBook;
-        point.Payload[QdrantPayloadFields.Version]      = meta.Version.ToString();
-        point.Payload[QdrantPayloadFields.Category]     = meta.Category.ToString();
+        point.Payload[QdrantPayloadFields.Text] = chunk.Text;
+        point.Payload[QdrantPayloadFields.SourceBook] = meta.SourceBook;
+        point.Payload[QdrantPayloadFields.Version] = meta.Version.ToString();
+        point.Payload[QdrantPayloadFields.Category] = meta.Category.ToString();
         point.Payload[QdrantPayloadFields.SectionTitle] = meta.SectionTitle;
         point.Payload[QdrantPayloadFields.SectionStart] = (long)meta.SectionStart;
-        point.Payload[QdrantPayloadFields.SectionEnd]   = (long)meta.SectionEnd;
-        point.Payload[QdrantPayloadFields.PageNumber]   = (long)meta.PageNumber;
-        point.Payload[QdrantPayloadFields.BlockOrder]   = (long)meta.BlockOrder;
-        point.Payload[QdrantPayloadFields.ChunkIndex]   = (long)meta.GlobalIndex;
-        point.Payload[QdrantPayloadFields.BookType]     = meta.BookType.ToString();
-        point.Payload[QdrantPayloadFields.FileHash]     = fileHash;
+        point.Payload[QdrantPayloadFields.SectionEnd] = (long)meta.SectionEnd;
+        point.Payload[QdrantPayloadFields.PageNumber] = (long)meta.PageNumber;
+        point.Payload[QdrantPayloadFields.BlockOrder] = (long)meta.BlockOrder;
+        point.Payload[QdrantPayloadFields.ChunkIndex] = (long)meta.GlobalIndex;
+        point.Payload[QdrantPayloadFields.BookType] = meta.BookType.ToString();
+        point.Payload[QdrantPayloadFields.FileHash] = fileHash;
         return point;
     }
 

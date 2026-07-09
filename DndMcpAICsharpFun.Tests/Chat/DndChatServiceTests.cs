@@ -1,7 +1,9 @@
 using DndMcpAICsharpFun.Features.Chat;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
 using DndMcpAICsharpFun.Tests.TestDoubles;
+
 using FluentAssertions;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;

@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;

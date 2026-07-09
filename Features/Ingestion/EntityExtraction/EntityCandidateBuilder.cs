@@ -25,8 +25,8 @@ public sealed class EntityCandidateBuilder(
     {
         // 2. Read bookmarks → TocCategoryMap.
         var pdfBookmarks = bookmarks.ReadBookmarks(record.FilePath);
-        var tocEntries   = BookmarkTocMapper.Map(pdfBookmarks);
-        var tocMap       = new TocCategoryMap(tocEntries);
+        var tocEntries = BookmarkTocMapper.Map(pdfBookmarks);
+        var tocMap = new TocCategoryMap(tocEntries);
 
         // 2b. No embedded bookmarks → derive the TOC from MinerU's heading structure items,
         // reusing the same deterministic keyword classifier (no LLM). Bookmarked books skip this.
@@ -63,7 +63,7 @@ public sealed class EntityCandidateBuilder(
         // stat-block candidate) to the best input: prefer the one carrying a stat block, then
         // the richer text — so header-clean monsters extract from full-context section text
         // (reliable) and headerless ones keep their stat-block candidate.
-        var candidates    = ExtractionCandidateDeduplicator.Dedupe(
+        var candidates = ExtractionCandidateDeduplicator.Dedupe(
             statBlockCandidates.Concat(sectionCandidates), ExtractionEntityIds.BookKey(record));
 
         // Deterministic resolution drops non-entity-named candidates (headings/fragments) before

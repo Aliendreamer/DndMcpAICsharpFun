@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Features.Entities;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities;
@@ -37,7 +39,7 @@ public class EntityReferenceResolverTests
                 toolProficiencies = Array.Empty<string>(),
                 skillChoices = new { count = 2, options = new[] { "Athletics" } },
                 startingEquipment = Array.Empty<object>(),
-                multiclass = new { prerequisites = new { @operator = "or", abilities = new Dictionary<string,int> { ["Strength"] = 13 } }, proficienciesGained = Array.Empty<string>() },
+                multiclass = new { prerequisites = new { @operator = "or", abilities = new Dictionary<string, int> { ["Strength"] = 13 } }, proficienciesGained = Array.Empty<string>() },
                 spellcasting = (object?)null,
                 subclassSelectionLevel = 3,
                 subclasses = new[] { "test-book.subclass.does-not-exist" },

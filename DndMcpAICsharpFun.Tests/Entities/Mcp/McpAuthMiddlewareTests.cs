@@ -1,7 +1,10 @@
 using DndMcpAICsharpFun.Features.Mcp;
+
 using FluentAssertions;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Mcp;

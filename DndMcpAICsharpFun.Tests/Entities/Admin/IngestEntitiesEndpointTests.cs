@@ -1,9 +1,11 @@
-using DndMcpAICsharpFun.Domain;
 using System.Net;
+
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,15 +44,15 @@ public sealed class IngestEntitiesEndpointTests
     private static IngestionRecord MakeRecord(
         int id = 1,
         IngestionStatus status = IngestionStatus.Pending) => new()
-    {
-        Id = id,
-        FilePath = "/tmp/test.pdf",
-        FileName = "test.pdf",
-        FileHash = string.Empty,
-        Version = "5e",
-        DisplayName = "Player's Handbook",
-        Status = status,
-    };
+        {
+            Id = id,
+            FilePath = "/tmp/test.pdf",
+            FileName = "test.pdf",
+            FileHash = string.Empty,
+            Version = "5e",
+            DisplayName = "Player's Handbook",
+            Status = status,
+        };
 
     [Fact]
     public async Task IngestEntities_RecordNotFound_Returns404()

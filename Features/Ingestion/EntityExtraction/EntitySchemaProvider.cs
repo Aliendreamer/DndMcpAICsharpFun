@@ -1,5 +1,7 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -23,7 +25,7 @@ public sealed class EntitySchemaProvider(
             try
             {
                 using var stream = File.OpenRead(path);
-                using var doc    = JsonDocument.Parse(stream);
+                using var doc = JsonDocument.Parse(stream);
                 dict[type] = InjectConfidenceField(doc.RootElement.Clone());
             }
             catch (FileNotFoundException)
@@ -44,7 +46,7 @@ public sealed class EntitySchemaProvider(
 
     internal static JsonElement InjectConfidenceField(JsonElement schema)
     {
-        using var ms     = new MemoryStream();
+        using var ms = new MemoryStream();
         using var writer = new Utf8JsonWriter(ms);
         writer.WriteStartObject();
         foreach (var prop in schema.EnumerateObject())

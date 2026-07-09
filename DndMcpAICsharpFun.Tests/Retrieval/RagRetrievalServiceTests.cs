@@ -2,6 +2,7 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;

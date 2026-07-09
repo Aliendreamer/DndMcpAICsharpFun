@@ -1,7 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
+
 using Microsoft.Extensions.Options;
+
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
+
 using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
 
 namespace DndMcpAICsharpFun.Infrastructure.Qdrant;

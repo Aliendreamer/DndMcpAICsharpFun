@@ -1,7 +1,9 @@
+using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
-using DndMcpAICsharpFun.Features.Embedding;
+
 using FluentAssertions;
+
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;

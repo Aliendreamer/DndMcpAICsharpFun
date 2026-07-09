@@ -1,8 +1,10 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Campaigns;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace DndMcpAICsharpFun.Features.Resolution;
@@ -88,7 +90,7 @@ public sealed class CharacterResolutionService(
             return new ResolvedFact("breath weapon", "unknown", [], "needsReview");
 
         var choicesetId = ancestryValue[..lastColon];
-        var optionKey   = ancestryValue[(lastColon + 1)..];
+        var optionKey = ancestryValue[(lastColon + 1)..];
 
         await using var db = await dbf.CreateDbContextAsync(ct);
 
@@ -125,18 +127,18 @@ public sealed class CharacterResolutionService(
         for (var i = 0; i < columns.Count && i < cells.Count; i++)
             cellMap[columns[i]] = cells[i];
 
-        var damageTypeCell  = cellMap.GetValueOrDefault("damageType");
-        var breathAreaCell  = cellMap.GetValueOrDefault("breathArea");
+        var damageTypeCell = cellMap.GetValueOrDefault("damageType");
+        var breathAreaCell = cellMap.GetValueOrDefault("breathArea");
         var saveAbilityCell = cellMap.GetValueOrDefault("saveAbility");
 
         // Step d: dice from tier table (best-effort provenance)
         var dice = BreathWeaponRules.DiceForLevel(sheet.Level);
         var tier = sheet.Level switch
         {
-            <= 5  => 1,
+            <= 5 => 1,
             <= 10 => 2,
             <= 15 => 3,
-            _     => 4,
+            _ => 4,
         };
 
         ProvenanceRef? tierProv = null;
@@ -148,7 +150,7 @@ public sealed class CharacterResolutionService(
                 .FirstOrDefaultAsync(r => r.TableId == tierTable.Id && r.RowIndex == tier - 1, ct);
             if (tierRow is not null)
             {
-                var tierCols  = JsonSerializer.Deserialize<List<string>>(tierTable.ColumnsJson, JsonOpts) ?? [];
+                var tierCols = JsonSerializer.Deserialize<List<string>>(tierTable.ColumnsJson, JsonOpts) ?? [];
                 var tierCells = JsonSerializer.Deserialize<List<CanonicalCell>>(tierRow.CellsJson, JsonOpts) ?? [];
                 var tierCellMap = new Dictionary<string, CanonicalCell>(StringComparer.OrdinalIgnoreCase);
                 for (var i = 0; i < tierCols.Count && i < tierCells.Count; i++)
@@ -159,7 +161,7 @@ public sealed class CharacterResolutionService(
 
         // Step e: conMod and save DC
         var conMod = CharacterSheet.Modifier(sheet.Constitution);
-        var dc     = BreathWeaponRules.SaveDc(sheet.Level, conMod);
+        var dc = BreathWeaponRules.SaveDc(sheet.Level, conMod);
 
         // Step f+h: build components, detect missing/needsReview
         var confidence = "ok";
@@ -175,8 +177,8 @@ public sealed class CharacterResolutionService(
             return cell.Value;
         }
 
-        var damageTypeVal  = CellValue(damageTypeCell, "damageType");
-        var breathAreaVal  = CellValue(breathAreaCell, "breathArea");
+        var damageTypeVal = CellValue(damageTypeCell, "damageType");
+        var breathAreaVal = CellValue(breathAreaCell, "breathArea");
         var saveAbilityVal = CellValue(saveAbilityCell, "saveAbility");
 
         var components = (IReadOnlyList<ResolvedComponent>)new List<ResolvedComponent>
@@ -211,9 +213,9 @@ public sealed class CharacterResolutionService(
         {
             var tableId = source.Kind switch
             {
-                "half"  => MulticlassSlotTableSeeder.HalfCasterTableId,
+                "half" => MulticlassSlotTableSeeder.HalfCasterTableId,
                 "third" => MulticlassSlotTableSeeder.ThirdCasterTableId,
-                _        => MulticlassSlotTableSeeder.TableId,
+                _ => MulticlassSlotTableSeeder.TableId,
             };
 
             await using var db = await dbf.CreateDbContextAsync(ct);

@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
+using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
-using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -41,8 +43,8 @@ public sealed class EntityExtractionOrchestrator(
             .Split('.')[0];
 
         var canonicalPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".json");
-        var errorsPath    = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".errors.json");
-        var warningsPath  = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".warnings.json");
+        var errorsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".errors.json");
+        var warningsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".warnings.json");
 
         if (!errorsOnly && File.Exists(canonicalPath) && !force)
             throw new InvalidOperationException(
@@ -105,7 +107,7 @@ public sealed class EntityExtractionOrchestrator(
         string warningsPath,
         CancellationToken ct)
     {
-        var checkpointPath       = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".progress.json");
+        var checkpointPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".progress.json");
         var checkpointErrorsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".progress.errors.json");
 
         var (extracted, extractionErrors, doneIds) =
@@ -117,15 +119,15 @@ public sealed class EntityExtractionOrchestrator(
                 doneIds.Count, extracted.Count, extractionErrors.Count);
 
         var (sourceBook, edition) = DeriveSourceAndEdition(record);
-        bool isOfficial  = !string.IsNullOrWhiteSpace(record.FivetoolsSourceKey);
-        var declined     = new List<DeclinedEntry>();
+        bool isOfficial = !string.IsNullOrWhiteSpace(record.FivetoolsSourceKey);
+        var declined = new List<DeclinedEntry>();
         var declinedPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".declined.json");
 
-        int success   = extracted.Count;
-        int failed    = extractionErrors.Count;
+        int success = extracted.Count;
+        int failed = extractionErrors.Count;
         int processed = 0;
-        var sw        = Stopwatch.StartNew();
-        var lastLog   = TimeSpan.Zero;
+        var sw = Stopwatch.StartNew();
+        var lastLog = TimeSpan.Zero;
 
         for (int i = 0; i < candidates.Count; i++)
         {
@@ -177,7 +179,7 @@ public sealed class EntityExtractionOrchestrator(
 
         // Resolve references; classify intra vs inter book.
         var refWarnings = refResolver.Resolve(extracted).ToList();
-        var classifier  = new IntraBookReferenceClassifier(bookSlug);
+        var classifier = new IntraBookReferenceClassifier(bookSlug);
         var (intra, inter) = classifier.Partition(refWarnings);
 
         // Drop entities with intra-book dangling refs; record as errors.
@@ -189,29 +191,29 @@ public sealed class EntityExtractionOrchestrator(
             foreach (var w in intra)
             {
                 extractionErrors.Add(new ExtractionErrorEntry(
-                    SourceEntityId:  w.SourceEntityId,
-                    FieldPath:       w.FieldPath,
+                    SourceEntityId: w.SourceEntityId,
+                    FieldPath: w.FieldPath,
                     MissingTargetId: w.MissingTargetId,
-                    ErrorKind:       "intra_book_dangling_ref",
-                    Detail:          null));
+                    ErrorKind: "intra_book_dangling_ref",
+                    Detail: null));
             }
         }
 
         var interWarnings = inter
             .Select(w => new ExtractionWarningEntry(
-                SourceEntityId:  w.SourceEntityId,
-                FieldPath:       w.FieldPath,
+                SourceEntityId: w.SourceEntityId,
+                FieldPath: w.FieldPath,
                 MissingTargetId: w.MissingTargetId,
-                WarningKind:     "inter_book_dangling_ref"))
+                WarningKind: "inter_book_dangling_ref"))
             .ToList();
 
         // Write canonical JSON, errors, warnings.
         var canonicalFile = new CanonicalJsonFile(
             SchemaVersion: CanonicalJsonSchema.CurrentVersion,
             Book: new CanonicalBookMetadata(
-                SourceBook:  sourceBook,
-                Edition:     edition,
-                FileHash:    record.FileHash,
+                SourceBook: sourceBook,
+                Edition: edition,
+                FileHash: record.FileHash,
                 DisplayName: record.DisplayName),
             Entities: extracted);
 
@@ -286,7 +288,7 @@ public sealed class EntityExtractionOrchestrator(
             "Re-extracting {Count} failed entities for book {BookId}", retrySet.Count, bookId);
 
         var newlyExtracted = new List<EntityEnvelope>();
-        var newErrors      = new List<ExtractionErrorEntry>();
+        var newErrors = new List<ExtractionErrorEntry>();
 
         var (sourceBook, edition) = DeriveSourceAndEdition(record);
         bool isOfficial = !string.IsNullOrWhiteSpace(record.FivetoolsSourceKey);
@@ -314,7 +316,7 @@ public sealed class EntityExtractionOrchestrator(
 
         // Reference resolution on newly extracted only.
         var refWarnings = refResolver.Resolve(newlyExtracted).ToList();
-        var classifier  = new IntraBookReferenceClassifier(bookSlug);
+        var classifier = new IntraBookReferenceClassifier(bookSlug);
         var (intra, inter) = classifier.Partition(refWarnings);
 
         if (intra.Count > 0)
@@ -323,19 +325,19 @@ public sealed class EntityExtractionOrchestrator(
             newlyExtracted.RemoveAll(e => offenders.Contains(e.Id));
             foreach (var w in intra)
                 newErrors.Add(new ExtractionErrorEntry(
-                    SourceEntityId:  w.SourceEntityId,
-                    FieldPath:       w.FieldPath,
+                    SourceEntityId: w.SourceEntityId,
+                    FieldPath: w.FieldPath,
                     MissingTargetId: w.MissingTargetId,
-                    ErrorKind:       "intra_book_dangling_ref",
-                    Detail:          null));
+                    ErrorKind: "intra_book_dangling_ref",
+                    Detail: null));
         }
 
         var interWarnings = inter
             .Select(w => new ExtractionWarningEntry(
-                SourceEntityId:  w.SourceEntityId,
-                FieldPath:       w.FieldPath,
+                SourceEntityId: w.SourceEntityId,
+                FieldPath: w.FieldPath,
                 MissingTargetId: w.MissingTargetId,
-                WarningKind:     "inter_book_dangling_ref"))
+                WarningKind: "inter_book_dangling_ref"))
             .ToList();
 
         // Load pre-existing inter-book warnings; drop entries for retried entities (may now be resolved).
@@ -357,7 +359,7 @@ public sealed class EntityExtractionOrchestrator(
 
         // Merge newly extracted entities into the existing canonical file.
         var mergedEntities = existingFile.Entities.Concat(newlyExtracted).ToList();
-        var mergedFile     = existingFile with { Entities = mergedEntities };
+        var mergedFile = existingFile with { Entities = mergedEntities };
 
         await writer.WriteAsync(canonicalPath, mergedFile, ct);
         await errorsFile.WriteAsync(errorsPath, newErrors, ct);
@@ -373,7 +375,7 @@ public sealed class EntityExtractionOrchestrator(
     private (string SourceBook, string Edition) DeriveSourceAndEdition(DndMcpAICsharpFun.Domain.IngestionRecord record)
     {
         var sourceBook = record.FivetoolsSourceKey ?? record.DisplayName;
-        var edition    = record.FivetoolsSourceKey is { } key && registry.TryGetBook(key) is { } info
+        var edition = record.FivetoolsSourceKey is { } key && registry.TryGetBook(key) is { } info
             ? (info.PublishedYear >= 2024 ? "Edition2024" : "Edition2014")
             : record.Version;
         return (sourceBook, edition);

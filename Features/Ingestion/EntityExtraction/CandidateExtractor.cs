@@ -1,6 +1,8 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -20,8 +22,8 @@ public sealed class CandidateExtractor(
     IOptions<OllamaOptions> ollamaOpts,
     ILogger<CandidateExtractor> logger)
 {
-    private readonly EntityExtractionOptions _opts   = options.Value;
-    private readonly OllamaOptions           _ollama = ollamaOpts.Value;
+    private readonly EntityExtractionOptions _opts = options.Value;
+    private readonly OllamaOptions _ollama = ollamaOpts.Value;
 
     public async Task<(JsonElement? Fields, string? ErrorMessage)> ExtractFieldsAsync(
         DndMcpAICsharpFun.Domain.IngestionRecord record,
@@ -29,8 +31,8 @@ public sealed class CandidateExtractor(
         JsonElement schema,
         CancellationToken ct)
     {
-        var chunks        = chunker.Split(candidate.Text, _opts.MaxTokensPerChunk);
-        var partials      = new List<JsonElement>();
+        var chunks = chunker.Split(candidate.Text, _opts.MaxTokensPerChunk);
+        var partials = new List<JsonElement>();
         var chunkFailures = new List<int>();
         string? lastError = null;
 
@@ -38,12 +40,12 @@ public sealed class CandidateExtractor(
         {
             var chunkCandidate = chunks.Count == 1 ? candidate : candidate with { Text = chunks[c] };
             var request = new ExtractionRequest(
-                SystemPrompt:    promptBuilder.BuildSystemPrompt(record.DisplayName, record.Version, candidate.Type),
-                UserPrompt:      promptBuilder.BuildUserPrompt(chunkCandidate),
-                ToolName:        promptBuilder.ToolName(candidate.Type),
+                SystemPrompt: promptBuilder.BuildSystemPrompt(record.DisplayName, record.Version, candidate.Type),
+                UserPrompt: promptBuilder.BuildUserPrompt(chunkCandidate),
+                ToolName: promptBuilder.ToolName(candidate.Type),
                 ToolDescription: promptBuilder.ToolDescription(candidate.Type),
                 ToolInputSchema: schema,
-                ModelId:         _ollama.ChatModel,
+                ModelId: _ollama.ChatModel,
                 MaxOutputTokens: _opts.MaxOutputTokensPerEntity);
 
             var response = await retry.ExecuteAsync(
@@ -145,12 +147,12 @@ public sealed class CandidateExtractor(
         JsonElement schema, CancellationToken ct)
     {
         var request = new ExtractionRequest(
-            SystemPrompt:    systemPrompt,
-            UserPrompt:      promptBuilder.BuildUserPrompt(candidate),
-            ToolName:        toolName,
+            SystemPrompt: systemPrompt,
+            UserPrompt: promptBuilder.BuildUserPrompt(candidate),
+            ToolName: toolName,
             ToolDescription: toolDescription,
             ToolInputSchema: schema,
-            ModelId:         _ollama.ChatModel,
+            ModelId: _ollama.ChatModel,
             MaxOutputTokens: _opts.MaxOutputTokensPerEntity);
 
         return await retry.ExecuteAsync(
@@ -184,7 +186,7 @@ public sealed class CandidateExtractor(
     /// </summary>
     public static JsonElement StripConfidence(JsonElement toolInput)
     {
-        using var ms     = new MemoryStream();
+        using var ms = new MemoryStream();
         using var writer = new Utf8JsonWriter(ms);
         writer.WriteStartObject();
         foreach (var prop in toolInput.EnumerateObject())

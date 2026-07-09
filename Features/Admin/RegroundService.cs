@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Entities;
@@ -8,7 +9,9 @@ using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using Microsoft.Extensions.Options;
+
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Features.Admin;

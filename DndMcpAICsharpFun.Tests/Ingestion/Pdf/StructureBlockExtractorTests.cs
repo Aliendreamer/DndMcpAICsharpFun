@@ -53,7 +53,7 @@ public sealed class StructureBlockExtractorTests
         var result = (await sut.ExtractBlocksAsync("/tmp/x.pdf")).ToList();
 
         Assert.Equal(2, result.Count);
-        Assert.Equal("real",   result[0].Text);
+        Assert.Equal("real", result[0].Text);
         Assert.Equal("real 2", result[1].Text);
     }
 }

@@ -1,7 +1,9 @@
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Admin;
@@ -141,18 +143,18 @@ public class CanonicalTypeFixerTests
         var opts = DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJson.WriteOptions;
 
         var envelope = new EntityEnvelope(
-            Id:              "tce.subclass.circle-of-spores",
-            Type:            EntityType.Subclass,
-            Name:            "Circle of Spores",
-            SourceBook:      "TCE",
-            Edition:         "Edition2014",
-            Page:            36,
+            Id: "tce.subclass.circle-of-spores",
+            Type: EntityType.Subclass,
+            Name: "Circle of Spores",
+            SourceBook: "TCE",
+            Edition: "Edition2014",
+            Page: 36,
             FirstAppearedIn: new FirstAppearance("TCE", "Edition2014", 36),
-            RevisedIn:       [],
-            SettingTags:     [],
-            CanonicalText:   "",
-            Fields:          System.Text.Json.JsonDocument.Parse("{}").RootElement,
-            NeedsReview:     false);
+            RevisedIn: [],
+            SettingTags: [],
+            CanonicalText: "",
+            Fields: System.Text.Json.JsonDocument.Parse("{}").RootElement,
+            NeedsReview: false);
 
         var json = System.Text.Json.JsonSerializer.Serialize(envelope, opts);
 

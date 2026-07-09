@@ -1,7 +1,9 @@
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
+
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+
 using OllamaSharp;
 using OllamaSharp.Models;
 

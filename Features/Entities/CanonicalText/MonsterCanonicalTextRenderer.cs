@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using System.Text;
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities.Fields;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;
@@ -12,9 +13,15 @@ public sealed class MonsterCanonicalTextRenderer
     // map). See SIM-05 consolidation report: this divergence was flagged rather than merged.
     private static readonly FrozenDictionary<string, string> AlignMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
-        ["L"] = "Lawful", ["C"] = "Chaotic", ["G"] = "Good", ["E"] = "Evil",
-        ["N"] = "Neutral", ["U"] = "Unaligned", ["A"] = "Any alignment",
-        ["NX"] = "non-chaotic", ["NY"] = "non-evil"
+        ["L"] = "Lawful",
+        ["C"] = "Chaotic",
+        ["G"] = "Good",
+        ["E"] = "Evil",
+        ["N"] = "Neutral",
+        ["U"] = "Unaligned",
+        ["A"] = "Any alignment",
+        ["NX"] = "non-chaotic",
+        ["NY"] = "non-evil"
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     public string Render(string name, MonsterFields f)

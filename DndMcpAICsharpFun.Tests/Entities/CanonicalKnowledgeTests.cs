@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using DndMcpAICsharpFun.Domain.Entities;
+
 using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Entities;

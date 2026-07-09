@@ -1,10 +1,12 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Campaigns;
 using DndMcpAICsharpFun.Features.Entities;
-using DndMcpAICsharpFun.Tests;
 using DndMcpAICsharpFun.Features.Resolution;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
+using DndMcpAICsharpFun.Tests;
+
 using FluentAssertions;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -41,8 +43,8 @@ public sealed class CharacterResolutionIntegrationTests(PostgresFixture pg) : IA
     {
         var sheet = new CharacterSheet
         {
-            Race         = "Dragonborn",
-            Classes      = [new ClassLevel { Level = level }],
+            Race = "Dragonborn",
+            Classes = [new ClassLevel { Level = level }],
             Constitution = 16,
             ResolvedChoices = new Dictionary<string, string>
             {
@@ -61,10 +63,10 @@ public sealed class CharacterResolutionIntegrationTests(PostgresFixture pg) : IA
 
     private async Task SeedStructuredFactsAsync()
     {
-        var loader    = new CanonicalJsonLoader();
-        var dbf       = DbFactory();
+        var loader = new CanonicalJsonLoader();
+        var dbf = DbFactory();
         var projector = new StructuredFactProjector(dbf);
-        var file      = await loader.LoadAsync(DragonbornSlicePath, CancellationToken.None);
+        var file = await loader.LoadAsync(DragonbornSlicePath, CancellationToken.None);
         await projector.ProjectAsync(file, CancellationToken.None);
     }
 
@@ -97,11 +99,11 @@ public sealed class CharacterResolutionIntegrationTests(PostgresFixture pg) : IA
 
         // Assert value contains the key substrings
         fact.Confidence.Should().Be("ok");
-        fact.Value.Should().Contain("fire",        "Red dragon deals fire damage");
+        fact.Value.Should().Contain("fire", "Red dragon deals fire damage");
         fact.Value.Should().Contain("15 ft. cone", "Red dragon has cone breath");
-        fact.Value.Should().Contain("Dexterity",   "Red dragon breath requires Dex save");
-        fact.Value.Should().Contain("DC 15",       "Level 11 Con 16 → DC 15");
-        fact.Value.Should().Contain("3d6",         "Tier 3 (L11) → 3d6");
+        fact.Value.Should().Contain("Dexterity", "Red dragon breath requires Dex save");
+        fact.Value.Should().Contain("DC 15", "Level 11 Con 16 → DC 15");
+        fact.Value.Should().Contain("3d6", "Tier 3 (L11) → 3d6");
 
         // Assert ≥4 components
         fact.Components.Should().HaveCountGreaterThanOrEqualTo(4);

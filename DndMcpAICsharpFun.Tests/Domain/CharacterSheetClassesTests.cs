@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Domain;
+
 using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Domain;

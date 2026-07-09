@@ -1,8 +1,12 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;

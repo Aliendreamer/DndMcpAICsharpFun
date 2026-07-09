@@ -1,11 +1,15 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Tests.TestDoubles;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+
 using NSubstitute;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;
@@ -15,21 +19,25 @@ public sealed class EntityExtractionRunnerDeclineTests
     private static EntityExtractionRunner BuildRunner(IEntityExtractionLlmClient llm, GroundingCascade? cascade = null) =>
         new(
             candidateExtractor: new CandidateExtractor(
-                llm:           llm,
+                llm: llm,
                 promptBuilder: new ExtractionPromptBuilder(),
-                chunker:       new SemanticChunker(),
-                merger:        new EntityFieldMerger(),
-                retry:         new ExtractionRetryPolicy { MaxAttempts = 1 },
-                options:       Options.Create(new EntityExtractionOptions { MaxOutputTokensPerEntity = 4096 }),
-                ollamaOpts:    Options.Create(new OllamaOptions()),
-                logger:        NullLogger<CandidateExtractor>.Instance),
+                chunker: new SemanticChunker(),
+                merger: new EntityFieldMerger(),
+                retry: new ExtractionRetryPolicy { MaxAttempts = 1 },
+                options: Options.Create(new EntityExtractionOptions { MaxOutputTokensPerEntity = 4096 }),
+                ollamaOpts: Options.Create(new OllamaOptions()),
+                logger: NullLogger<CandidateExtractor>.Instance),
             logger: NullLogger<EntityExtractionRunner>.Instance,
             cascade: cascade ?? GroundingCascadeTestFactory.Inert());
 
     private static DndMcpAICsharpFun.Domain.IngestionRecord Record() => new()
     {
-        Id = 1, FilePath = "/dev/null", FileName = "test.pdf",
-        FileHash = "h", Version = "5e", DisplayName = "Test Book",
+        Id = 1,
+        FilePath = "/dev/null",
+        FileName = "test.pdf",
+        FileHash = "h",
+        Version = "5e",
+        DisplayName = "Test Book",
     };
 
     private static void ReturnsToolInput(IEntityExtractionLlmClient llm, string json)

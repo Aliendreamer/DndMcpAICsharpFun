@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace DndMcpAICsharpFun.Tests.Persistence;

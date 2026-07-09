@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;
@@ -10,11 +11,11 @@ public sealed class QdrantPayloadMapperTests
     private static Dictionary<string, Value> FullPayload(string? entityName = "Fireball") =>
         new Dictionary<string, Value>
         {
-            [QdrantPayloadFields.Text]       = "A bright streak flashes...",
+            [QdrantPayloadFields.Text] = "A bright streak flashes...",
             [QdrantPayloadFields.SourceBook] = "PHB",
-            [QdrantPayloadFields.Version]    = "Edition2014",
-            [QdrantPayloadFields.Category]   = "Spell",
-            [QdrantPayloadFields.Chapter]    = "Chapter 11",
+            [QdrantPayloadFields.Version] = "Edition2014",
+            [QdrantPayloadFields.Category] = "Spell",
+            [QdrantPayloadFields.Chapter] = "Chapter 11",
             [QdrantPayloadFields.PageNumber] = 241L,
             [QdrantPayloadFields.ChunkIndex] = 3L,
         }.Also(d => { if (entityName != null) d[QdrantPayloadFields.EntityName] = entityName; });

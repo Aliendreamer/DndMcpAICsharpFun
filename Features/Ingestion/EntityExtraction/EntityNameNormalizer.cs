@@ -18,10 +18,23 @@ public static partial class EntityNameNormalizer
 
     private static readonly FrozenDictionary<string, string> Acronyms = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
-        ["NPC"] = "NPC", ["NPCs"] = "NPCs", ["PC"] = "PC", ["PCs"] = "PCs", ["DM"] = "DM",
-        ["GP"] = "GP", ["SP"] = "SP", ["CP"] = "CP", ["PP"] = "PP", ["EP"] = "EP",
-        ["XP"] = "XP", ["HP"] = "HP", ["AC"] = "AC", ["DC"] = "DC", ["CR"] = "CR",
-        ["AoE"] = "AoE", ["D&D"] = "D&D",
+        ["NPC"] = "NPC",
+        ["NPCs"] = "NPCs",
+        ["PC"] = "PC",
+        ["PCs"] = "PCs",
+        ["DM"] = "DM",
+        ["GP"] = "GP",
+        ["SP"] = "SP",
+        ["CP"] = "CP",
+        ["PP"] = "PP",
+        ["EP"] = "EP",
+        ["XP"] = "XP",
+        ["HP"] = "HP",
+        ["AC"] = "AC",
+        ["DC"] = "DC",
+        ["CR"] = "CR",
+        ["AoE"] = "AoE",
+        ["D&D"] = "D&D",
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     [GeneratedRegex(@"'[A-Z]")]

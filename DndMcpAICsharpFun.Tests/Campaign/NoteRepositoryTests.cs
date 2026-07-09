@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Features.Campaigns;
 using DndMcpAICsharpFun.Tests.Persistence;
+
 using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Campaign;

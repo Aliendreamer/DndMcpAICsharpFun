@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
@@ -50,7 +51,7 @@ public sealed class SpellBackfillProvider : IFivetoolsBackfillProvider
     public EntityEnvelope BuildEntity(string sourceKey, string edition, string name, JsonElement element)
     {
         int? page = element.TryGetProperty("page", out var pg) && pg.TryGetInt32(out var pv) ? pv : null;
-        var srd   = element.TryGetProperty("srd",   out var s)  && s.ValueKind  == JsonValueKind.True;
+        var srd = element.TryGetProperty("srd", out var s) && s.ValueKind == JsonValueKind.True;
         var srd52 = element.TryGetProperty("srd52", out var s2) && s2.ValueKind == JsonValueKind.True;
 
         return new EntityEnvelope(

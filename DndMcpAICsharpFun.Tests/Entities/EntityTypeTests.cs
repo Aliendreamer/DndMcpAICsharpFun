@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Domain.Entities;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities;

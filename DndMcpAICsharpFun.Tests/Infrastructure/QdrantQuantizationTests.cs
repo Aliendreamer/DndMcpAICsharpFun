@@ -1,6 +1,9 @@
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using FluentAssertions;
+
 using Qdrant.Client.Grpc;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Infrastructure;

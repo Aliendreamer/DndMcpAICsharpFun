@@ -23,12 +23,12 @@ public sealed class BlockIngestionOrchestratorTests
 
         var record = new IngestionRecord
         {
-            Id          = bookId,
-            FilePath    = "/books/test.pdf",
-            FileName    = "test.pdf",
-            FileHash    = "abc123",
+            Id = bookId,
+            FilePath = "/books/test.pdf",
+            FileName = "test.pdf",
+            FileHash = "abc123",
             DisplayName = "Test Book",
-            Version     = "5e",
+            Version = "5e",
         };
 
         var tracker = Substitute.For<IIngestionTracker>();
@@ -47,13 +47,13 @@ public sealed class BlockIngestionOrchestratorTests
             new List<PdfBookmark> { new("Intro", 1) });
 
         var sut = new BlockIngestionOrchestrator(
-            tracker:        tracker,
+            tracker: tracker,
             bookmarkReader: bookmarkReader,
             blockExtractor: blockExtractor,
-            embedding:      Substitute.For<IEmbeddingService>(),
-            vectorStore:    Substitute.For<IVectorStoreService>(),
-            bm25Stats:      Substitute.For<IBm25CorpusStats>(),
-            logger:         NullLogger<BlockIngestionOrchestrator>.Instance);
+            embedding: Substitute.For<IEmbeddingService>(),
+            vectorStore: Substitute.For<IVectorStoreService>(),
+            bm25Stats: Substitute.For<IBm25CorpusStats>(),
+            logger: NullLogger<BlockIngestionOrchestrator>.Instance);
 
         await sut.IngestBlocksAsync(bookId);
 

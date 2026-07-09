@@ -1,11 +1,13 @@
-using DndMcpAICsharpFun.Domain;
 using System.Net;
 using System.Text.Json;
+
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,15 +60,15 @@ public sealed class BooksAdminEndpointsTests : IDisposable
     private static IngestionRecord MakeRecord(
         int id = 1,
         IngestionStatus status = IngestionStatus.Pending) => new()
-    {
-        Id = id,
-        FilePath = "/tmp/test.pdf",
-        FileName = "test.pdf",
-        FileHash = string.Empty,
-        Version = "5e",
-        DisplayName = "Player's Handbook",
-        Status = status,
-    };
+        {
+            Id = id,
+            FilePath = "/tmp/test.pdf",
+            FileName = "test.pdf",
+            FileHash = string.Empty,
+            Version = "5e",
+            DisplayName = "Player's Handbook",
+            Status = status,
+        };
 
     // POST /admin/books/register
     [Fact]

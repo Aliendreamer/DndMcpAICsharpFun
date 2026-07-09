@@ -1,8 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Admin;
@@ -38,7 +40,7 @@ public sealed class CanonicalTypeFixerService(IOptions<EntityIngestionOptions> o
         foreach (var entity in entities)
         {
             if (entity is null) continue;
-            var name   = entity["name"]?.GetValue<string>();
+            var name = entity["name"]?.GetValue<string>();
             var source = entity["sourceBook"]?.GetValue<string>();
             if (name is null || source is null) continue;
 
@@ -51,7 +53,7 @@ public sealed class CanonicalTypeFixerService(IOptions<EntityIngestionOptions> o
             }
 
             var currentType = entity["type"]?.GetValue<string>();
-            var oldId       = entity["id"]?.GetValue<string>();
+            var oldId = entity["id"]?.GetValue<string>();
             if (currentType is null || oldId is null) continue;
 
             if (string.Equals(currentType, correctType.ToString(), StringComparison.OrdinalIgnoreCase))

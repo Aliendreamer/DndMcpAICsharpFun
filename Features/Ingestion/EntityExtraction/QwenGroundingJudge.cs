@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
+
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 

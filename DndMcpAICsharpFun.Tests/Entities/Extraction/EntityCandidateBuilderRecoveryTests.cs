@@ -3,9 +3,13 @@ using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
 using DndMcpAICsharpFun.Tests;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging.Abstractions;
+
 using NSubstitute;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;

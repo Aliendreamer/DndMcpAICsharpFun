@@ -1,9 +1,14 @@
 using DndMcpAICsharpFun.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
+
 using Npgsql;
+
 using Respawn;
 using Respawn.Graph;
+
 using Testcontainers.PostgreSql;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Persistence;

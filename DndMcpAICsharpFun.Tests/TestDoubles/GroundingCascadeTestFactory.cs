@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+
 using NSubstitute;
 
 namespace DndMcpAICsharpFun.Tests.TestDoubles;

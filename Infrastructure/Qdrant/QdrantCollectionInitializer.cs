@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+
 using Microsoft.Extensions.Options;
+
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 

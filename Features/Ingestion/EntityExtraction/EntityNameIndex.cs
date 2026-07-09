@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -47,14 +48,14 @@ public sealed class EntityNameIndex
             _ => EntityType.Item);
 
         // remaining top-level entity files (single-file each)
-        LoadGlob(entries, byName, fivetoolsDir, "backgrounds.json",        "background", _ => EntityType.Background);
-        LoadGlob(entries, byName, fivetoolsDir, "races.json",              "race",       _ => EntityType.Race);
+        LoadGlob(entries, byName, fivetoolsDir, "backgrounds.json", "background", _ => EntityType.Background);
+        LoadGlob(entries, byName, fivetoolsDir, "races.json", "race", _ => EntityType.Race);
         // feats: exclude Fighting-Style sub-features (category exactly "FS")
         LoadGlob(entries, byName, fivetoolsDir, "feats.json", "feat", _ => EntityType.Feat,
             include: e => !e.TryGetProperty("category", out var cat) ||
                           (cat.GetString() ?? string.Empty) != "FS");
-        LoadGlob(entries, byName, fivetoolsDir, "conditionsdiseases.json", "condition",  _ => EntityType.Condition);
-        LoadGlob(entries, byName, fivetoolsDir, "deities.json",            "deity",      _ => EntityType.God);
+        LoadGlob(entries, byName, fivetoolsDir, "conditionsdiseases.json", "condition", _ => EntityType.Condition);
+        LoadGlob(entries, byName, fivetoolsDir, "deities.json", "deity", _ => EntityType.God);
 
         Entries = entries;
         EntriesByName = byName.ToDictionary(

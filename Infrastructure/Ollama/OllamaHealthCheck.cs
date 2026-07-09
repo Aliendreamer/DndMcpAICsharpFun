@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 using OllamaSharp;
 
 namespace DndMcpAICsharpFun.Infrastructure.Ollama;

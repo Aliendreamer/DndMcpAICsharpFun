@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Admin;
@@ -9,11 +10,17 @@ using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Options;
+
 using NSubstitute;
+
 using Qdrant.Client.Grpc;
+
 using Xunit;
+
 using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
 
 namespace DndMcpAICsharpFun.Tests.Admin;
@@ -90,9 +97,12 @@ public sealed class RegroundServiceTests : IDisposable
 
         var record = new IngestionRecord
         {
-            Id = 1, DisplayName = BookSlug,
-            FilePath = "/tmp/fake.pdf", FileName = "fake.pdf",
-            FileHash = "cafebabe", Version = "Edition2014",
+            Id = 1,
+            DisplayName = BookSlug,
+            FilePath = "/tmp/fake.pdf",
+            FileName = "fake.pdf",
+            FileHash = "cafebabe",
+            Version = "Edition2014",
             Status = IngestionStatus.EntitiesIngested,
         };
         _tracker = Substitute.For<IIngestionTracker>();
@@ -153,9 +163,9 @@ public sealed class RegroundServiceTests : IDisposable
 
         var cascade = new FakeGroundingCascade(new Dictionary<string, GroundingVerdict>
         {
-            [e1.Id] = new GroundingVerdict(GroundingStatus.Grounded,   DecidedByTier: 0, Score: 1.0),
+            [e1.Id] = new GroundingVerdict(GroundingStatus.Grounded, DecidedByTier: 0, Score: 1.0),
             [e2.Id] = new GroundingVerdict(GroundingStatus.Ungrounded, DecidedByTier: 2, Score: 0.3),
-            [e3.Id] = new GroundingVerdict(GroundingStatus.Uncertain,  DecidedByTier: 1, Score: 0.6),
+            [e3.Id] = new GroundingVerdict(GroundingStatus.Uncertain, DecidedByTier: 1, Score: 0.6),
         });
 
         var sut = BuildSut(cascade);
@@ -217,7 +227,8 @@ public sealed class RegroundServiceTests : IDisposable
         // selected by the flaggedIds loop; only a checkpoint-seeded changedIds set can recover it.
         var alreadyAccepted = MakeEntity($"{BookSlug}.spell.already-accepted", "Already Accepted") with
         {
-            Disposition = EntityDisposition.Accepted, NeedsReview = false,
+            Disposition = EntityDisposition.Accepted,
+            NeedsReview = false,
         };
         var stillFlagged = MakeEntity($"{BookSlug}.spell.still-flagged", "Still Flagged");
         await SeedCanonicalAsync(alreadyAccepted, stillFlagged);

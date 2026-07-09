@@ -3,7 +3,9 @@ using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Mcp;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Mcp;

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
@@ -81,16 +82,16 @@ public sealed partial class BlockIngestionOrchestrator(
                 foreach (var splitText in SplitLongBlock(block.Text))
                 {
                     var meta = new BlockMetadata(
-                        SourceBook:   record.DisplayName,
-                        Version:      version,
-                        Category:     entry.Category ?? ContentCategory.Rule,
+                        SourceBook: record.DisplayName,
+                        Version: version,
+                        Category: entry.Category ?? ContentCategory.Rule,
                         SectionTitle: entry.Title,
                         SectionStart: entry.StartPage,
-                        SectionEnd:   entry.EndPage ?? int.MaxValue,
-                        PageNumber:   block.PageNumber,
-                        BlockOrder:   block.Order,
-                        GlobalIndex:  globalIndex++,
-                        BookType:     record.BookType);
+                        SectionEnd: entry.EndPage ?? int.MaxValue,
+                        PageNumber: block.PageNumber,
+                        BlockOrder: block.Order,
+                        GlobalIndex: globalIndex++,
+                        BookType: record.BookType);
                     chunks.Add(new BlockChunk(splitText, meta));
                 }
             }

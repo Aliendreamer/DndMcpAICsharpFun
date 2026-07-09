@@ -1,6 +1,8 @@
 using System.Security.Claims;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Resolution;
+
 using Microsoft.Extensions.AI;
 
 namespace DndMcpAICsharpFun.Features.Chat;

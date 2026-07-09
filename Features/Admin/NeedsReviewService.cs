@@ -1,9 +1,11 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Admin;
@@ -137,11 +139,11 @@ public sealed class NeedsReviewService(
         CancellationToken ct)
     {
         if (!string.Equals(action, "accept", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(action, "edit",   StringComparison.OrdinalIgnoreCase))
+            !string.Equals(action, "edit", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException($"Unknown action '{action}'. Expected 'accept' or 'edit'.", nameof(action));
 
         // Only set name/fields when the action is "edit".
-        var applyName   = string.Equals(action, "edit", StringComparison.OrdinalIgnoreCase) ? name   : null;
+        var applyName = string.Equals(action, "edit", StringComparison.OrdinalIgnoreCase) ? name : null;
         var applyFields = string.Equals(action, "edit", StringComparison.OrdinalIgnoreCase) ? fields : null;
 
         foreach (var path in GetCanonicalFiles())

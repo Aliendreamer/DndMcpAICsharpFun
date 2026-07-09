@@ -3,8 +3,11 @@ using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Tests.TestDoubles;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;

@@ -1,6 +1,8 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
+
 using ModelContextProtocol.Client;
+
 using AppMcpClientOptions = DndMcpAICsharpFun.Features.Chat.McpClientOptions;
 
 namespace DndMcpAICsharpFun.Features.Chat;

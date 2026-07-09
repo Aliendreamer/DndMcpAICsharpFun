@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities.Fields;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;
@@ -11,9 +12,14 @@ public sealed class SpellCanonicalTextRenderer
         var sb = new StringBuilder();
         var schoolDisplay = (f.School ?? "").ToUpperInvariant() switch
         {
-            "A" => "Abjuration", "C" => "Conjuration", "D" => "Divination",
-            "E" => "Enchantment", "I" => "Illusion", "N" => "Necromancy",
-            "T" => "Transmutation", "V" => "Evocation",
+            "A" => "Abjuration",
+            "C" => "Conjuration",
+            "D" => "Divination",
+            "E" => "Enchantment",
+            "I" => "Illusion",
+            "N" => "Necromancy",
+            "T" => "Transmutation",
+            "V" => "Evocation",
             _ => f.School
         };
         var levelText = f.Level == 0
@@ -89,6 +95,9 @@ public sealed class SpellCanonicalTextRenderer
 
     private static string Ordinal(int n) => n switch
     {
-        1 => "1st", 2 => "2nd", 3 => "3rd", _ => $"{n}th"
+        1 => "1st",
+        2 => "2nd",
+        3 => "3rd",
+        _ => $"{n}th"
     };
 }

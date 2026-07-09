@@ -1,7 +1,9 @@
+using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
+
 using FluentAssertions;
-using System.Text.Json;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Ingestion;
 
@@ -38,7 +40,7 @@ public class EntityMergerTests
     {
         // OCR noise "l/4" → clean 5etools "1/4"
         var canonical = MakeEnvelope(fields: """{"cr":"l/4"}""");
-        var existing  = MakeEnvelope(fields: """{"cr":"1/4"}""", dataSource: "5etools");
+        var existing = MakeEnvelope(fields: """{"cr":"1/4"}""", dataSource: "5etools");
 
         var merged = EntityMerger.Merge(canonical, existing);
 
@@ -50,7 +52,7 @@ public class EntityMergerTests
     {
         // Both sides have "entries"; our LLM prose must win.
         var canonical = MakeEnvelope(fields: """{"entries":["Our lore prose."]}""");
-        var existing  = MakeEnvelope(fields: """{"entries":["5etools terse text."]}""",
+        var existing = MakeEnvelope(fields: """{"entries":["5etools terse text."]}""",
                                      dataSource: "5etools");
 
         var merged = EntityMerger.Merge(canonical, existing);
@@ -64,7 +66,7 @@ public class EntityMergerTests
     {
         // Canonical lacks "components"; 5etools has it.
         var canonical = MakeEnvelope(fields: """{"level":3}""");
-        var existing  = MakeEnvelope(fields: """{"level":3,"components":{"v":true,"s":true}}""",
+        var existing = MakeEnvelope(fields: """{"level":3,"components":{"v":true,"s":true}}""",
                                      dataSource: "5etools");
 
         var merged = EntityMerger.Merge(canonical, existing);
@@ -79,7 +81,7 @@ public class EntityMergerTests
     {
         // Canonical has "customField"; 5etools doesn't → keep canonical value.
         var canonical = MakeEnvelope(fields: """{"level":3,"customField":"ours"}""");
-        var existing  = MakeEnvelope(fields: """{"level":3}""", dataSource: "5etools");
+        var existing = MakeEnvelope(fields: """{"level":3}""", dataSource: "5etools");
 
         var merged = EntityMerger.Merge(canonical, existing);
 
@@ -90,7 +92,7 @@ public class EntityMergerTests
     public void Fivetools_name_wins_unless_manual()
     {
         var canonical = MakeEnvelope(name: "OCR Noisy Name", dataSource: "llm");
-        var existing  = MakeEnvelope(name: "Clean Name", dataSource: "5etools");
+        var existing = MakeEnvelope(name: "Clean Name", dataSource: "5etools");
 
         var merged = EntityMerger.Merge(canonical, existing);
 
@@ -101,7 +103,7 @@ public class EntityMergerTests
     public void Manual_name_is_protected()
     {
         var canonical = MakeEnvelope(name: "Hand Corrected", dataSource: "manual");
-        var existing  = MakeEnvelope(name: "5etools Name", dataSource: "5etools");
+        var existing = MakeEnvelope(name: "5etools Name", dataSource: "5etools");
 
         var merged = EntityMerger.Merge(canonical, existing);
 
@@ -112,7 +114,7 @@ public class EntityMergerTests
     public void DataSource_is_llm_after_merge_unless_manual()
     {
         var canonical = MakeEnvelope(dataSource: "llm");
-        var existing  = MakeEnvelope(dataSource: "5etools");
+        var existing = MakeEnvelope(dataSource: "5etools");
 
         EntityMerger.Merge(canonical, existing).DataSource.Should().Be("llm");
     }
@@ -121,7 +123,7 @@ public class EntityMergerTests
     public void DataSource_stays_manual_when_canonical_is_manual()
     {
         var canonical = MakeEnvelope(dataSource: "manual");
-        var existing  = MakeEnvelope(dataSource: "5etools");
+        var existing = MakeEnvelope(dataSource: "5etools");
 
         EntityMerger.Merge(canonical, existing).DataSource.Should().Be("manual");
     }
@@ -132,7 +134,7 @@ public class EntityMergerTests
     public void Fivetools_srd_flags_always_win()
     {
         var canonical = MakeEnvelope(srd: false, srd52: false, basicRules2024: false);
-        var existing  = MakeEnvelope(srd: true,  srd52: true,  basicRules2024: true,
+        var existing = MakeEnvelope(srd: true, srd52: true, basicRules2024: true,
                                      dataSource: "5etools");
         var merged = EntityMerger.Merge(canonical, existing);
         merged.Srd.Should().BeTrue();
@@ -144,7 +146,7 @@ public class EntityMergerTests
     public void Fivetools_srd_flags_only_win_when_existing_is_5etools()
     {
         var canonical = MakeEnvelope(srd: false, srd52: false, basicRules2024: false);
-        var existing  = MakeEnvelope(srd: true,  srd52: true,  basicRules2024: true,
+        var existing = MakeEnvelope(srd: true, srd52: true, basicRules2024: true,
                                      dataSource: "llm");
         var merged = EntityMerger.Merge(canonical, existing);
         merged.Srd.Should().BeFalse();
@@ -156,7 +158,7 @@ public class EntityMergerTests
     public void Fivetools_type_wins_when_canonical_type_is_Class()
     {
         var canonical = MakeEnvelope(type: EntityType.Class);
-        var existing  = MakeEnvelope(type: EntityType.Subclass, dataSource: "5etools");
+        var existing = MakeEnvelope(type: EntityType.Subclass, dataSource: "5etools");
         EntityMerger.Merge(canonical, existing).Type.Should().Be(EntityType.Subclass);
     }
 
@@ -164,7 +166,7 @@ public class EntityMergerTests
     public void Canonical_type_wins_when_not_Class()
     {
         var canonical = MakeEnvelope(type: EntityType.Spell);
-        var existing  = MakeEnvelope(type: EntityType.Subclass, dataSource: "5etools");
+        var existing = MakeEnvelope(type: EntityType.Subclass, dataSource: "5etools");
         EntityMerger.Merge(canonical, existing).Type.Should().Be(EntityType.Spell);
     }
 
@@ -173,7 +175,7 @@ public class EntityMergerTests
     {
         // New rule: UNION (not longer-wins) for keywords
         var canonical = MakeEnvelope(keywords: ["a", "b"]);
-        var existing  = MakeEnvelope(keywords: ["b", "c"], dataSource: "5etools");
+        var existing = MakeEnvelope(keywords: ["b", "c"], dataSource: "5etools");
 
         var merged = EntityMerger.Merge(canonical, existing);
         merged.Keywords.Should().BeEquivalentTo(["a", "b", "c"]);
@@ -183,7 +185,7 @@ public class EntityMergerTests
     public void Keywords_union_deduplicates()
     {
         var canonical = MakeEnvelope(keywords: ["fiend", "demon"]);
-        var existing  = MakeEnvelope(keywords: ["demon", "shapechanger"], dataSource: "5etools");
+        var existing = MakeEnvelope(keywords: ["demon", "shapechanger"], dataSource: "5etools");
 
         var merged = EntityMerger.Merge(canonical, existing);
         merged.Keywords.Should().BeEquivalentTo(["fiend", "demon", "shapechanger"]);
@@ -193,7 +195,7 @@ public class EntityMergerTests
     public void Page_existing_wins_if_set()
     {
         var canonical = MakeEnvelope(page: 42);
-        var existing  = MakeEnvelope(page: 10, dataSource: "5etools");
+        var existing = MakeEnvelope(page: 10, dataSource: "5etools");
         EntityMerger.Merge(canonical, existing).Page.Should().Be(10);
     }
 
@@ -201,7 +203,7 @@ public class EntityMergerTests
     public void Page_canonical_wins_if_existing_has_no_page()
     {
         var canonical = MakeEnvelope(page: 42);
-        var existing  = MakeEnvelope(page: null, dataSource: "5etools");
+        var existing = MakeEnvelope(page: null, dataSource: "5etools");
         EntityMerger.Merge(canonical, existing).Page.Should().Be(42);
     }
 
@@ -209,7 +211,7 @@ public class EntityMergerTests
     public void CanonicalText_always_from_canonical()
     {
         var canonical = MakeEnvelope(canonicalText: "canonical text");
-        var existing  = MakeEnvelope(canonicalText: "old", dataSource: "5etools");
+        var existing = MakeEnvelope(canonicalText: "old", dataSource: "5etools");
         EntityMerger.Merge(canonical, existing).CanonicalText.Should().Be("canonical text");
     }
 
@@ -229,7 +231,7 @@ public class EntityMergerTests
     public void Merge_does_not_mutate_inputs()
     {
         var canonical = MakeEnvelope(srd: false);
-        var existing  = MakeEnvelope(srd: true, dataSource: "5etools");
+        var existing = MakeEnvelope(srd: true, dataSource: "5etools");
         _ = EntityMerger.Merge(canonical, existing);
         canonical.Srd.Should().BeFalse();
         existing.Srd.Should().BeTrue();
@@ -239,7 +241,7 @@ public class EntityMergerTests
     public void Description_is_narrative_key_canonical_wins()
     {
         var canonical = MakeEnvelope(fields: """{"description":"Our description."}""");
-        var existing  = MakeEnvelope(fields: """{"description":"5etools description."}""",
+        var existing = MakeEnvelope(fields: """{"description":"5etools description."}""",
                                      dataSource: "5etools");
 
         EntityMerger.Merge(canonical, existing)
@@ -251,7 +253,7 @@ public class EntityMergerTests
     public void Text_is_narrative_key_canonical_wins()
     {
         var canonical = MakeEnvelope(fields: """{"text":"Our text."}""");
-        var existing  = MakeEnvelope(fields: """{"text":"5etools text."}""",
+        var existing = MakeEnvelope(fields: """{"text":"5etools text."}""",
                                      dataSource: "5etools");
 
         EntityMerger.Merge(canonical, existing)
@@ -264,7 +266,7 @@ public class EntityMergerTests
     {
         // e.g. "classEntries", "subclassEntries" → narrative
         var canonical = MakeEnvelope(fields: """{"classEntries":["Canonical class prose."]}""");
-        var existing  = MakeEnvelope(fields: """{"classEntries":["5etools class prose."]}""",
+        var existing = MakeEnvelope(fields: """{"classEntries":["5etools class prose."]}""",
                                      dataSource: "5etools");
 
         EntityMerger.Merge(canonical, existing)

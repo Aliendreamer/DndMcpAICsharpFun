@@ -1,6 +1,8 @@
 using DndMcpAICsharpFun.Extensions;
 using DndMcpAICsharpFun.Features.Retrieval;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

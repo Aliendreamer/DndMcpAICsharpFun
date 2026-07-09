@@ -1,6 +1,8 @@
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Tests.TestDoubles;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;
@@ -149,7 +151,7 @@ public class EntityExtractionOrchestratorTests
         BuildTwoMonsterHarness(int bookId, string displayName)
     {
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
 
@@ -160,11 +162,11 @@ public class EntityExtractionOrchestratorTests
 
         var record = new DndMcpAICsharpFun.Domain.IngestionRecord
         {
-            Id          = bookId,
-            FilePath    = "/dev/null",
-            FileName    = "test.pdf",
-            FileHash    = "abc123",
-            Version     = "5e",
+            Id = bookId,
+            FilePath = "/dev/null",
+            FileName = "test.pdf",
+            FileHash = "abc123",
+            Version = "5e",
             DisplayName = displayName,
         };
 
@@ -212,7 +214,7 @@ public class EntityExtractionOrchestratorTests
         var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
         {
             CanonicalDirectory = canonicalDir,
-            SchemasDirectory   = schemasDir,
+            SchemasDirectory = schemasDir,
         });
         // Use an empty registry (no books.json) when caller does not supply one.
         var effectiveRegistry = registry
@@ -225,31 +227,31 @@ public class EntityExtractionOrchestratorTests
                        Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__")));
 
         return new EntityExtractionOrchestrator(
-            tracker:            tracker,
-            registry:           effectiveRegistry,
-            converter:          converter,
-            candidateBuilder:   new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder(
-                bookmarks:        bookmarkReader,
-                scanner:          new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
+            tracker: tracker,
+            registry: effectiveRegistry,
+            converter: converter,
+            candidateBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder(
+                bookmarks: bookmarkReader,
+                scanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
                 statBlockScanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
-                logger:           builderLogger ?? NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>.Instance,
-                matcher:          effectiveMatcher),
-            writer:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
-            errorsFile:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
-            warningsFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
-            declinedFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionDeclinedFile(),
-            refResolver:        new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
-            schemaProvider:     new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
+                logger: builderLogger ?? NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>.Instance,
+                matcher: effectiveMatcher),
+            writer: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+            errorsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
+            warningsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
+            declinedFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionDeclinedFile(),
+            refResolver: new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
+            schemaProvider: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
                 opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
-            checkpointStore:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
-            runner:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
+            checkpointStore: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
+            runner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
                 candidateExtractor: BuildCandidateExtractor(llm, opts),
-                logger:             NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
-                cascade:            GroundingCascadeTestFactory.Inert(),
-                matcher:            effectiveMatcher),
-            options:            opts,
-            logger:             orchestratorLogger ?? NullLogger<EntityExtractionOrchestrator>.Instance,
-            matcher:            effectiveMatcher);
+                logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                cascade: GroundingCascadeTestFactory.Inert(),
+                matcher: effectiveMatcher),
+            options: opts,
+            logger: orchestratorLogger ?? NullLogger<EntityExtractionOrchestrator>.Instance,
+            matcher: effectiveMatcher);
     }
 
     private static DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CandidateExtractor BuildCandidateExtractor(
@@ -258,14 +260,14 @@ public class EntityExtractionOrchestratorTests
     {
         var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
         return new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CandidateExtractor(
-            llm:           llm,
+            llm: llm,
             promptBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
-            chunker:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.SemanticChunker(),
-            merger:        new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityFieldMerger(),
-            retry:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRetryPolicy { MaxAttempts = 1 },
-            options:       opts,
-            ollamaOpts:    ollamaOpts,
-            logger:        NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CandidateExtractor>.Instance);
+            chunker: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.SemanticChunker(),
+            merger: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityFieldMerger(),
+            retry: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRetryPolicy { MaxAttempts = 1 },
+            options: opts,
+            ollamaOpts: ollamaOpts,
+            logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CandidateExtractor>.Instance);
     }
 
     [Fact]
@@ -279,9 +281,9 @@ public class EntityExtractionOrchestratorTests
 
         try
         {
-            var bookSlug      = "test-book";
+            var bookSlug = "test-book";
             var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
-            var errorsPath    = Path.Combine(canonicalDir, bookSlug + ".errors.json");
+            var errorsPath = Path.Combine(canonicalDir, bookSlug + ".errors.json");
 
             // Pre-existing canonical with zero entities.
             var existing = new DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile(
@@ -339,7 +341,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -354,24 +356,24 @@ public class EntityExtractionOrchestratorTests
 
         try
         {
-            var bookSlug      = "test-book";
+            var bookSlug = "test-book";
             var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
-            var errorsPath    = Path.Combine(canonicalDir, bookSlug + ".errors.json");
+            var errorsPath = Path.Combine(canonicalDir, bookSlug + ".errors.json");
 
             // Existing canonical contains 1 entity (Beholder).
             using var emptyFields = System.Text.Json.JsonDocument.Parse("{}");
             var existingEntity = new DndMcpAICsharpFun.Domain.Entities.EntityEnvelope(
-                Id:              "test-book.monster.beholder",
-                Type:            DndMcpAICsharpFun.Domain.Entities.EntityType.Monster,
-                Name:            "Beholder",
-                SourceBook:      displayName,
-                Edition:         "5e",
-                Page:            2,
+                Id: "test-book.monster.beholder",
+                Type: DndMcpAICsharpFun.Domain.Entities.EntityType.Monster,
+                Name: "Beholder",
+                SourceBook: displayName,
+                Edition: "5e",
+                Page: 2,
                 FirstAppearedIn: new DndMcpAICsharpFun.Domain.Entities.FirstAppearance(displayName, "5e", 2),
-                RevisedIn:       Array.Empty<DndMcpAICsharpFun.Domain.Entities.Revision>(),
-                SettingTags:     Array.Empty<string>(),
-                CanonicalText:   string.Empty,
-                Fields:          emptyFields.RootElement.Clone());
+                RevisedIn: Array.Empty<DndMcpAICsharpFun.Domain.Entities.Revision>(),
+                SettingTags: Array.Empty<string>(),
+                CanonicalText: string.Empty,
+                Fields: emptyFields.RootElement.Clone());
 
             var existing = new DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile(
                 SchemaVersion: DndMcpAICsharpFun.Domain.Entities.CanonicalJsonSchema.CurrentVersion,
@@ -432,7 +434,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -447,9 +449,9 @@ public class EntityExtractionOrchestratorTests
 
         try
         {
-            var bookSlug      = "test-book";
+            var bookSlug = "test-book";
             var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
-            var errorsPath    = Path.Combine(canonicalDir, bookSlug + ".errors.json");
+            var errorsPath = Path.Combine(canonicalDir, bookSlug + ".errors.json");
 
             var existing = new DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile(
                 SchemaVersion: DndMcpAICsharpFun.Domain.Entities.CanonicalJsonSchema.CurrentVersion,
@@ -483,7 +485,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -498,7 +500,7 @@ public class EntityExtractionOrchestratorTests
 
         try
         {
-            var bookSlug      = "test-book";
+            var bookSlug = "test-book";
             var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
             File.Exists(canonicalPath).Should().BeFalse("test pre-condition: no canonical file");
 
@@ -514,7 +516,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -529,25 +531,25 @@ public class EntityExtractionOrchestratorTests
 
         try
         {
-            var bookSlug      = "test-book";
+            var bookSlug = "test-book";
             var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
-            var errorsPath    = Path.Combine(canonicalDir, bookSlug + ".errors.json");
-            var warningsPath  = Path.Combine(canonicalDir, bookSlug + ".warnings.json");
+            var errorsPath = Path.Combine(canonicalDir, bookSlug + ".errors.json");
+            var warningsPath = Path.Combine(canonicalDir, bookSlug + ".warnings.json");
 
             // Pre-existing canonical with one entity (Beholder — not in the retry set).
             using var emptyFields = System.Text.Json.JsonDocument.Parse("{}");
             var existingEntity = new DndMcpAICsharpFun.Domain.Entities.EntityEnvelope(
-                Id:              "test-book.monster.beholder",
-                Type:            DndMcpAICsharpFun.Domain.Entities.EntityType.Monster,
-                Name:            "Beholder",
-                SourceBook:      displayName,
-                Edition:         "5e",
-                Page:            2,
+                Id: "test-book.monster.beholder",
+                Type: DndMcpAICsharpFun.Domain.Entities.EntityType.Monster,
+                Name: "Beholder",
+                SourceBook: displayName,
+                Edition: "5e",
+                Page: 2,
                 FirstAppearedIn: new DndMcpAICsharpFun.Domain.Entities.FirstAppearance(displayName, "5e", 2),
-                RevisedIn:       Array.Empty<DndMcpAICsharpFun.Domain.Entities.Revision>(),
-                SettingTags:     Array.Empty<string>(),
-                CanonicalText:   string.Empty,
-                Fields:          emptyFields.RootElement.Clone());
+                RevisedIn: Array.Empty<DndMcpAICsharpFun.Domain.Entities.Revision>(),
+                SettingTags: Array.Empty<string>(),
+                CanonicalText: string.Empty,
+                Fields: emptyFields.RootElement.Clone());
 
             var existing = new DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile(
                 SchemaVersion: DndMcpAICsharpFun.Domain.Entities.CanonicalJsonSchema.CurrentVersion,
@@ -563,10 +565,10 @@ public class EntityExtractionOrchestratorTests
 
             // Pre-seed a warnings file with one inter-book warning for the Beholder — NOT in the retry set.
             var preExistingWarning = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningEntry(
-                SourceEntityId:  "test-book.monster.beholder",
-                FieldPath:       "fields.someRef",
+                SourceEntityId: "test-book.monster.beholder",
+                FieldPath: "fields.someRef",
                 MissingTargetId: "other-book.spell.fireball",
-                WarningKind:     "inter_book_dangling_ref");
+                WarningKind: "inter_book_dangling_ref");
 
             var webOpts = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
             await File.WriteAllTextAsync(
@@ -615,14 +617,14 @@ public class EntityExtractionOrchestratorTests
             warnings.Should().NotBeNull();
             warnings!.Should().Contain(
                 w => w.SourceEntityId == "test-book.monster.beholder"
-                  && w.FieldPath      == "fields.someRef"
+                  && w.FieldPath == "fields.someRef"
                   && w.MissingTargetId == "other-book.spell.fireball",
                 "pre-existing warning for a non-retried entity must be preserved");
         }
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -642,7 +644,7 @@ public class EntityExtractionOrchestratorTests
         const string displayName = "Test Book";
 
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
 
@@ -655,11 +657,11 @@ public class EntityExtractionOrchestratorTests
         {
             var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
-                Id          = bookId,
-                FilePath    = "/dev/null",
-                FileName    = "test.pdf",
-                FileHash    = "abc123",
-                Version     = "5e",
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "test.pdf",
+                FileHash = "abc123",
+                Version = "5e",
                 DisplayName = displayName,
             };
 
@@ -724,41 +726,41 @@ public class EntityExtractionOrchestratorTests
             var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
             {
                 CanonicalDirectory = canonicalDir,
-                SchemasDirectory   = schemasDir,
-                MaxTokensPerChunk  = 150,
+                SchemasDirectory = schemasDir,
+                MaxTokensPerChunk = 150,
             });
-            var registry   = new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
+            var registry = new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
                 Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json"));
 
             var sharedMatcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
                 new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
                     Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__")));
             var orchestrator = new EntityExtractionOrchestrator(
-                tracker:            tracker,
-                registry:           registry,
-                converter:          converter,
-                candidateBuilder:   new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder(
-                    bookmarks:        bookmarkReader,
-                    scanner:          new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
+                tracker: tracker,
+                registry: registry,
+                converter: converter,
+                candidateBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder(
+                    bookmarks: bookmarkReader,
+                    scanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
                     statBlockScanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
-                    logger:           NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>.Instance,
-                    matcher:          sharedMatcher),
-                writer:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
-                errorsFile:         new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
-                warningsFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
-                declinedFile:       new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionDeclinedFile(),
-                refResolver:        new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
-                schemaProvider:     new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
+                    logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>.Instance,
+                    matcher: sharedMatcher),
+                writer: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+                errorsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
+                warningsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
+                declinedFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionDeclinedFile(),
+                refResolver: new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
+                schemaProvider: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
                     opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
-                checkpointStore:    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
-                runner:             new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
+                checkpointStore: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
+                runner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
                     candidateExtractor: BuildCandidateExtractor(llm, opts),
-                    logger:             NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
-                    cascade:            GroundingCascadeTestFactory.Inert(),
-                    matcher:            sharedMatcher),
-                options:            opts,
-                logger:             NullLogger<EntityExtractionOrchestrator>.Instance,
-                matcher:            sharedMatcher);
+                    logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                    cascade: GroundingCascadeTestFactory.Inert(),
+                    matcher: sharedMatcher),
+                options: opts,
+                logger: NullLogger<EntityExtractionOrchestrator>.Instance,
+                matcher: sharedMatcher);
 
             // Act
             await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
@@ -787,15 +789,15 @@ public class EntityExtractionOrchestratorTests
             canonical!.Entities.Should().HaveCount(1, "one trap candidate was successfully extracted");
 
             var fieldsJson = canonical.Entities[0].Fields.GetRawText();
-            fieldsJson.Should().Contain("from chunk one",  "merged fields must include chunk-1 entry");
-            fieldsJson.Should().Contain("from chunk two",  "merged fields must include chunk-2 entry");
-            fieldsJson.Should().Contain("trapHazType",     "merged fields must include trapHazType from chunk 2");
-            fieldsJson.Should().Contain("MECH",            "merged fields must include MECH value from chunk 2");
+            fieldsJson.Should().Contain("from chunk one", "merged fields must include chunk-1 entry");
+            fieldsJson.Should().Contain("from chunk two", "merged fields must include chunk-2 entry");
+            fieldsJson.Should().Contain("trapHazType", "merged fields must include trapHazType from chunk 2");
+            fieldsJson.Should().Contain("MECH", "merged fields must include MECH value from chunk 2");
         }
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -817,7 +819,7 @@ public class EntityExtractionOrchestratorTests
         const string displayName = "Player's Handbook";
 
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
 
@@ -831,12 +833,12 @@ public class EntityExtractionOrchestratorTests
             // Record has FivetoolsSourceKey = "PHB".
             var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
-                Id                 = bookId,
-                FilePath           = "/dev/null",
-                FileName           = "phb.pdf",
-                FileHash           = "phbhash",
-                Version            = "5e",
-                DisplayName        = displayName,
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "phb.pdf",
+                FileHash = "phbhash",
+                Version = "5e",
+                DisplayName = displayName,
                 FivetoolsSourceKey = "PHB",
             };
 
@@ -920,7 +922,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -931,7 +933,7 @@ public class EntityExtractionOrchestratorTests
         // so IsEntityLikeName returns false → DeterministicTypeResolver.Resolve → Drop.
         // The LLM must never be called because the candidate is filtered before extraction.
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
 
@@ -947,11 +949,11 @@ public class EntityExtractionOrchestratorTests
 
             var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
-                Id          = bookId,
-                FilePath    = "/dev/null",
-                FileName    = "drop-test.pdf",
-                FileHash    = "drop123",
-                Version     = "5e",
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "drop-test.pdf",
+                FileHash = "drop123",
+                Version = "5e",
                 DisplayName = displayName,
             };
 
@@ -1014,7 +1016,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -1024,7 +1026,7 @@ public class EntityExtractionOrchestratorTests
         // Arrange — single candidate "Vorpal Sword" whose text contains "requires attunement"
         // → IsMagicItem=true → DeterministicTypeResolver.Resolve → ForceType(MagicItem).
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
 
@@ -1040,11 +1042,11 @@ public class EntityExtractionOrchestratorTests
 
             var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
-                Id          = bookId,
-                FilePath    = "/dev/null",
-                FileName    = "magic-items.pdf",
-                FileHash    = "mi123",
-                Version     = "5e",
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "magic-items.pdf",
+                FileHash = "mi123",
+                Version = "5e",
                 DisplayName = displayName,
             };
 
@@ -1118,7 +1120,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -1135,7 +1137,7 @@ public class EntityExtractionOrchestratorTests
         // The orchestrator is wired with the real 5etools index, so FIREBALL resolves to the
         // canonical name "Fireball" with type Spell and ACTIONS is dropped before the LLM is called.
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
 
@@ -1151,11 +1153,11 @@ public class EntityExtractionOrchestratorTests
 
             var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
-                Id          = bookId,
-                FilePath    = "/dev/null",
-                FileName    = "spell-test.pdf",
-                FileHash    = "spell123",
-                Version     = "5e",
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "spell-test.pdf",
+                FileHash = "spell123",
+                Version = "5e",
                 DisplayName = displayName,
             };
 
@@ -1246,7 +1248,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -1259,14 +1261,14 @@ public class EntityExtractionOrchestratorTests
         // The errors file records the CANONICAL id. errorsOnly membership must use that canonical id
         // so FIREBALL is retried. RecordedEntityId returns the canonical (forced) id → retry happens.
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
 
         // Both Monster and Spell schemas: TypePrior=[Monster,...] for the candidate,
         // Spell schema needed for the forced extraction path.
         File.WriteAllText(Path.Combine(schemasDir, "MonsterFields.schema.json"), "{ \"type\": \"object\" }");
-        File.WriteAllText(Path.Combine(schemasDir, "SpellFields.schema.json"),   "{ \"type\": \"object\" }");
+        File.WriteAllText(Path.Combine(schemasDir, "SpellFields.schema.json"), "{ \"type\": \"object\" }");
 
         try
         {
@@ -1275,11 +1277,11 @@ public class EntityExtractionOrchestratorTests
 
             var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
-                Id          = bookId,
-                FilePath    = "/dev/null",
-                FileName    = "fireball-test.pdf",
-                FileHash    = "fbhash1",
-                Version     = "5e",
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "fireball-test.pdf",
+                FileHash = "fbhash1",
+                Version = "5e",
                 DisplayName = displayName,
             };
 
@@ -1333,7 +1335,7 @@ public class EntityExtractionOrchestratorTests
                 .For(displayName, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
                 .Split('.')[0];
             var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
-            var errorsPath    = Path.Combine(canonicalDir, bookSlug + ".errors.json");
+            var errorsPath = Path.Combine(canonicalDir, bookSlug + ".errors.json");
 
             var jsonOpts = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
             {
@@ -1386,7 +1388,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -1398,12 +1400,12 @@ public class EntityExtractionOrchestratorTests
         // RecordedEntityId returns that canonical id, so the doneIds membership check hits → the
         // already-checkpointed entity is skipped → exactly one entity, no duplicate.
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
 
         File.WriteAllText(Path.Combine(schemasDir, "MonsterFields.schema.json"), "{ \"type\": \"object\" }");
-        File.WriteAllText(Path.Combine(schemasDir, "SpellFields.schema.json"),   "{ \"type\": \"object\" }");
+        File.WriteAllText(Path.Combine(schemasDir, "SpellFields.schema.json"), "{ \"type\": \"object\" }");
 
         try
         {
@@ -1412,11 +1414,11 @@ public class EntityExtractionOrchestratorTests
 
             var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
-                Id          = bookId,
-                FilePath    = "/dev/null",
-                FileName    = "fireball-ckpt.pdf",
-                FileHash    = "fbhash2",
-                Version     = "5e",
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "fireball-ckpt.pdf",
+                FileHash = "fbhash2",
+                Version = "5e",
                 DisplayName = displayName,
             };
 
@@ -1469,23 +1471,23 @@ public class EntityExtractionOrchestratorTests
             // Pre-seed checkpoint: already-extracted entity with CANONICAL Fireball id.
             using var emptyDoc = System.Text.Json.JsonDocument.Parse("{}");
             var checkpointEntity = new DndMcpAICsharpFun.Domain.Entities.EntityEnvelope(
-                Id:              canonicalFireballId,
-                Type:            DndMcpAICsharpFun.Domain.Entities.EntityType.Spell,
-                Name:            "Fireball",
-                SourceBook:      displayName,
-                Edition:         "5e",
-                Page:            1,
+                Id: canonicalFireballId,
+                Type: DndMcpAICsharpFun.Domain.Entities.EntityType.Spell,
+                Name: "Fireball",
+                SourceBook: displayName,
+                Edition: "5e",
+                Page: 1,
                 FirstAppearedIn: new DndMcpAICsharpFun.Domain.Entities.FirstAppearance(displayName, "5e", 1),
-                RevisedIn:       Array.Empty<DndMcpAICsharpFun.Domain.Entities.Revision>(),
-                SettingTags:     Array.Empty<string>(),
-                CanonicalText:   string.Empty,
-                Fields:          emptyDoc.RootElement.Clone());
+                RevisedIn: Array.Empty<DndMcpAICsharpFun.Domain.Entities.Revision>(),
+                SettingTags: Array.Empty<string>(),
+                CanonicalText: string.Empty,
+                Fields: emptyDoc.RootElement.Clone());
 
             var checkpointOpts = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
             {
                 Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
             };
-            var checkpointPath       = Path.Combine(canonicalDir, bookSlug + ".progress.json");
+            var checkpointPath = Path.Combine(canonicalDir, bookSlug + ".progress.json");
             var checkpointErrorsPath = Path.Combine(canonicalDir, bookSlug + ".progress.errors.json");
 
             await File.WriteAllTextAsync(checkpointPath,
@@ -1522,7 +1524,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -1555,7 +1557,7 @@ public class EntityExtractionOrchestratorTests
         // Page 2: "FIREBALL" under a "Spells" bookmark → real 5etools match →
         //   ForceType(Spell, "Fireball") → extracted via LLM.
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
 
@@ -1571,12 +1573,12 @@ public class EntityExtractionOrchestratorTests
 
             var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
-                Id                = bookId,
-                FilePath          = "/dev/null",
-                FileName          = "phb.pdf",
-                FileHash          = "phb-hash-1",
-                Version           = "5e",
-                DisplayName       = displayName,
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "phb.pdf",
+                FileHash = "phb-hash-1",
+                Version = "5e",
+                DisplayName = displayName,
                 FivetoolsSourceKey = "PHB",
             };
 
@@ -1649,7 +1651,7 @@ public class EntityExtractionOrchestratorTests
                 Arg.Any<CancellationToken>());
 
             // ── Assert 2: "Rage" is absent from the canonical entities.
-            var bookSlug     = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
                 .For(record.FivetoolsSourceKey!, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
                 .Split('.')[0];
             var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
@@ -1698,7 +1700,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -1711,7 +1713,7 @@ public class EntityExtractionOrchestratorTests
         // with no body text between them, the prior section will never become a candidate.
         // BuildScannerInputs must emit a LogWarning naming both the dropped and the next title.
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
         try
@@ -1719,8 +1721,12 @@ public class EntityExtractionOrchestratorTests
             const int bookId = 77;
             var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
-                Id = bookId, FilePath = "/dev/null", FileName = "test.pdf",
-                FileHash = "abc", Version = "5e", DisplayName = "Warn Book",
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "test.pdf",
+                FileHash = "abc",
+                Version = "5e",
+                DisplayName = "Warn Book",
             };
             var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
             tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
@@ -1760,7 +1766,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 
@@ -1769,7 +1775,7 @@ public class EntityExtractionOrchestratorTests
     {
         // Sanity guard: a normal heading→body→heading sequence must NOT trigger the warning.
         var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        var schemasDir   = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(canonicalDir);
         Directory.CreateDirectory(schemasDir);
         try
@@ -1777,8 +1783,12 @@ public class EntityExtractionOrchestratorTests
             const int bookId = 78;
             var record = new DndMcpAICsharpFun.Domain.IngestionRecord
             {
-                Id = bookId, FilePath = "/dev/null", FileName = "test.pdf",
-                FileHash = "abc", Version = "5e", DisplayName = "Clean Book",
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "test.pdf",
+                FileHash = "abc",
+                Version = "5e",
+                DisplayName = "Clean Book",
             };
             var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
             tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
@@ -1819,7 +1829,7 @@ public class EntityExtractionOrchestratorTests
         finally
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
-            try { Directory.Delete(schemasDir,   true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 }

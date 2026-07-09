@@ -2,10 +2,14 @@ using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Tests.Retrieval.Entities.Dedup;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Options;
+
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.VectorStore.Entities;

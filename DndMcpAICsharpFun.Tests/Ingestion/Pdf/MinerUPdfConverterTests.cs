@@ -1,8 +1,11 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -217,19 +220,19 @@ public class MinerUPdfConverterTests
                 .ToList();
 
             // Cantrips whose names contain a school word — must keep the full name
-            headings.Should().Contain("MINOR ILLUSION",      "school word in name must not be cut");
+            headings.Should().Contain("MINOR ILLUSION", "school word in name must not be cut");
             headings.Should().Contain("PROGRAMMED ILLUSION", "school word in name must not be cut");
-            headings.Should().Contain("PRESTIDIGITATION",    "no school word in name, cut at suffix school");
+            headings.Should().Contain("PRESTIDIGITATION", "no school word in name, cut at suffix school");
 
             // Leveled spells — cut at first digit (unchanged behaviour)
             headings.Should().Contain("SHIELD OF FAITH", "cut at '1' digit, not at 'abjuration'");
-            headings.Should().Contain("ALTER SELF",      "cut at '2' digit, not at 'transmutation'");
+            headings.Should().Contain("ALTER SELF", "cut at '2' digit, not at 'transmutation'");
 
             // Raw merged text must not survive
             headings.Should().NotContain("MINOR ILLUSION Illusion cantrip");
             headings.Should().NotContain("PROGRAMMED ILLUSION Illusion cantrip");
-            headings.Should().NotContain("MINOR",       "must not over-cut the name to only first word");
-            headings.Should().NotContain("PROGRAMMED",  "must not over-cut the name to only first word");
+            headings.Should().NotContain("MINOR", "must not over-cut the name to only first word");
+            headings.Should().NotContain("PROGRAMMED", "must not over-cut the name to only first word");
         }
         finally
         {
@@ -237,7 +240,7 @@ public class MinerUPdfConverterTests
         }
     }
 
-        [Fact]
+    [Fact]
     public async Task Race_traits_heading_renames_x_traits_to_x_when_bare_name_not_already_emitted()
     {
         // RENAME strategy: "GNOME TRAITS" with no preceding bare "GNOME" heading

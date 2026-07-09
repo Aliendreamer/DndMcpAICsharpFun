@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Features.Chat;
+
 using Microsoft.Extensions.AI;
 
 namespace DndMcpAICsharpFun.Extensions;

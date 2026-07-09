@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;

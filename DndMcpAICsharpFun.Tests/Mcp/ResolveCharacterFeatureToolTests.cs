@@ -5,7 +5,9 @@ using DndMcpAICsharpFun.Features.Resolution;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
 using DndMcpAICsharpFun.Tests;
 using DndMcpAICsharpFun.Tests.Persistence;
+
 using FluentAssertions;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -42,7 +44,7 @@ public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyn
 
     private CharacterResolutionService BuildService()
     {
-        var dbf    = DbFactory();
+        var dbf = DbFactory();
         var heroes = new HeroRepository(dbf);
         return new CharacterResolutionService(dbf, heroes);
     }
@@ -55,9 +57,9 @@ public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyn
     {
         var sheet = new CharacterSheet
         {
-            Race            = "Dragonborn",
-            Classes         = [new ClassLevel { Level = level }],
-            Constitution    = 16,
+            Race = "Dragonborn",
+            Classes = [new ClassLevel { Level = level }],
+            Constitution = 16,
             ResolvedChoices = new Dictionary<string, string>
             {
                 ["ancestry"] = "phb14.choiceset.draconic-ancestry:Red",
@@ -96,10 +98,10 @@ public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyn
 
     private async Task SeedStructuredFactsAsync()
     {
-        var loader    = new CanonicalJsonLoader();
-        var dbf       = DbFactory();
+        var loader = new CanonicalJsonLoader();
+        var dbf = DbFactory();
         var projector = new StructuredFactProjector(dbf);
-        var file      = await loader.LoadAsync(DragonbornSlicePath, CancellationToken.None);
+        var file = await loader.LoadAsync(DragonbornSlicePath, CancellationToken.None);
         await projector.ProjectAsync(file, CancellationToken.None);
     }
 
@@ -132,11 +134,11 @@ public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyn
 
         // Assert — value contains the key substrings
         fact.Confidence.Should().Be("ok");
-        fact.Value.Should().Contain("fire",        "Red dragon deals fire damage");
+        fact.Value.Should().Contain("fire", "Red dragon deals fire damage");
         fact.Value.Should().Contain("15 ft. cone", "Red dragon has cone breath");
-        fact.Value.Should().Contain("Dexterity",   "Red dragon breath requires Dex save");
-        fact.Value.Should().Contain("DC 15",       "Level 11 Con 16 → DC 15");
-        fact.Value.Should().Contain("3d6",         "Tier 3 (L11) → 3d6");
+        fact.Value.Should().Contain("Dexterity", "Red dragon breath requires Dex save");
+        fact.Value.Should().Contain("DC 15", "Level 11 Con 16 → DC 15");
+        fact.Value.Should().Contain("3d6", "Tier 3 (L11) → 3d6");
 
         // Assert — components carry provenance
         fact.Components.Should().HaveCountGreaterThanOrEqualTo(4);
@@ -158,7 +160,7 @@ public sealed class ResolveCharacterFeatureToolTests(PostgresFixture pg) : IAsyn
         await SeedStructuredFactsAsync();
         var (snapshotId, ownerUserId) = await SeedOwnedSnapshotAsync(level: 11);
         var otherUserId = await SeedUserAsync();
-        var svc    = BuildService();
+        var svc = BuildService();
         var heroes = Heroes();
 
         // Act — user B attempts to resolve user A's snapshot

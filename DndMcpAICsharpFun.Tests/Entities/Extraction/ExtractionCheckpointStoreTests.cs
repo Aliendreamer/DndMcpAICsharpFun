@@ -1,6 +1,8 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+
 using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;
@@ -43,31 +45,31 @@ public sealed class ExtractionCheckpointStoreTests
         var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(dir);
         var progressPath = Path.Combine(dir, "progress.json");
-        var errorsPath   = Path.Combine(dir, "progress.errors.json");
+        var errorsPath = Path.Combine(dir, "progress.errors.json");
         try
         {
             var store = new ExtractionCheckpointStore();
 
             var envelope = new EntityEnvelope(
-                Id:              "phb.monster.goblin",
-                Type:            EntityType.Monster,
-                Name:            "Goblin",
-                SourceBook:      "PHB",
-                Edition:         "5e",
-                Page:            123,
+                Id: "phb.monster.goblin",
+                Type: EntityType.Monster,
+                Name: "Goblin",
+                SourceBook: "PHB",
+                Edition: "5e",
+                Page: 123,
                 FirstAppearedIn: new FirstAppearance("PHB", "5e", 123),
-                RevisedIn:       Array.Empty<Revision>(),
-                SettingTags:     Array.Empty<string>(),
-                CanonicalText:   string.Empty,
-                Fields:          JsonDocument.Parse("{}").RootElement.Clone(),
-                NeedsReview:     false);
+                RevisedIn: Array.Empty<Revision>(),
+                SettingTags: Array.Empty<string>(),
+                CanonicalText: string.Empty,
+                Fields: JsonDocument.Parse("{}").RootElement.Clone(),
+                NeedsReview: false);
 
             var error = new ExtractionErrorEntry(
                 SourceEntityId: "phb.spell.fireball",
-                FieldPath:      "(extraction)",
+                FieldPath: "(extraction)",
                 MissingTargetId: string.Empty,
-                ErrorKind:      "extraction_failure",
-                Detail:         "LLM timed out");
+                ErrorKind: "extraction_failure",
+                Detail: "LLM timed out");
 
             // Write
             await store.WriteCheckpointAsync(
@@ -102,14 +104,14 @@ public sealed class ExtractionCheckpointStoreTests
         var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(dir);
         var progressPath = Path.Combine(dir, "progress.json");
-        var errorsPath   = Path.Combine(dir, "progress.errors.json");
+        var errorsPath = Path.Combine(dir, "progress.errors.json");
         try
         {
             var store = new ExtractionCheckpointStore();
             await store.WriteCheckpointAsync(progressPath, errorsPath, [], []);
 
             File.Exists(progressPath + ".tmp").Should().BeFalse("tmp file must be cleaned up");
-            File.Exists(errorsPath   + ".tmp").Should().BeFalse("tmp file must be cleaned up");
+            File.Exists(errorsPath + ".tmp").Should().BeFalse("tmp file must be cleaned up");
             File.Exists(progressPath).Should().BeTrue();
             File.Exists(errorsPath).Should().BeTrue();
         }
@@ -127,7 +129,7 @@ public sealed class ExtractionCheckpointStoreTests
         var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(dir);
         var progressPath = Path.Combine(dir, "progress.json");
-        var errorsPath   = Path.Combine(dir, "progress.errors.json");
+        var errorsPath = Path.Combine(dir, "progress.errors.json");
         try
         {
             var store = new ExtractionCheckpointStore();

@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Mappers;
 
@@ -15,23 +16,23 @@ internal static class FivetoolsMapperRegistry
 {
     public static readonly IReadOnlyDictionary<EntityType, IFivetoolsEntityMapper> Mappers = new Dictionary<EntityType, IFivetoolsEntityMapper>
     {
-        [EntityType.Class]         = new FivetoolsClassMapper(),
-        [EntityType.Subclass]      = new FivetoolsSubclassMapper(),
-        [EntityType.Spell]         = new FivetoolsSpellMapper(),
-        [EntityType.Monster]       = new FivetoolsMonsterMapper(),
-        [EntityType.Race]          = new FivetoolsRaceMapper(),
-        [EntityType.Subrace]       = new FivetoolsSubraceMapper(),
-        [EntityType.Background]    = new FivetoolsBackgroundMapper(),
-        [EntityType.Feat]          = new FivetoolsFeatMapper(),
-        [EntityType.Item]          = new FivetoolsItemMapper(),
-        [EntityType.MagicItem]     = new FivetoolsMagicItemMapper(),
-        [EntityType.Weapon]        = new FivetoolsWeaponMapper(),
-        [EntityType.Armor]         = new FivetoolsArmorMapper(),
-        [EntityType.God]           = new FivetoolsGodMapper(),
-        [EntityType.Trap]          = new FivetoolsTrapMapper(),
-        [EntityType.Condition]     = new FivetoolsConditionMapper(),
+        [EntityType.Class] = new FivetoolsClassMapper(),
+        [EntityType.Subclass] = new FivetoolsSubclassMapper(),
+        [EntityType.Spell] = new FivetoolsSpellMapper(),
+        [EntityType.Monster] = new FivetoolsMonsterMapper(),
+        [EntityType.Race] = new FivetoolsRaceMapper(),
+        [EntityType.Subrace] = new FivetoolsSubraceMapper(),
+        [EntityType.Background] = new FivetoolsBackgroundMapper(),
+        [EntityType.Feat] = new FivetoolsFeatMapper(),
+        [EntityType.Item] = new FivetoolsItemMapper(),
+        [EntityType.MagicItem] = new FivetoolsMagicItemMapper(),
+        [EntityType.Weapon] = new FivetoolsWeaponMapper(),
+        [EntityType.Armor] = new FivetoolsArmorMapper(),
+        [EntityType.God] = new FivetoolsGodMapper(),
+        [EntityType.Trap] = new FivetoolsTrapMapper(),
+        [EntityType.Condition] = new FivetoolsConditionMapper(),
         [EntityType.DiseasePoison] = new FivetoolsDiseasePoisonMapper(),
-        [EntityType.VehicleMount]  = new FivetoolsVehicleMapper(),
-        [EntityType.Rule]          = new FivetoolsRuleMapper(),
+        [EntityType.VehicleMount] = new FivetoolsVehicleMapper(),
+        [EntityType.Rule] = new FivetoolsRuleMapper(),
     }.ToFrozenDictionary();
 }

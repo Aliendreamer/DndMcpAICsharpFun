@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Features.Retrieval;

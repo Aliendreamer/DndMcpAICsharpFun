@@ -1,8 +1,10 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
+
 using Microsoft.Extensions.Logging;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;

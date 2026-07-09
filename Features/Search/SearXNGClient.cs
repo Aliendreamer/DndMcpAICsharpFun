@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Search;

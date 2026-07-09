@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Entities;
@@ -62,8 +63,8 @@ public static class EntityMerger
 
         var page = existing.Page ?? canonical.Page;
 
-        var srd            = existing.DataSource == "5etools" ? existing.Srd            : canonical.Srd;
-        var srd52          = existing.DataSource == "5etools" ? existing.Srd52          : canonical.Srd52;
+        var srd = existing.DataSource == "5etools" ? existing.Srd : canonical.Srd;
+        var srd52 = existing.DataSource == "5etools" ? existing.Srd52 : canonical.Srd52;
         var basicRules2024 = existing.DataSource == "5etools" ? existing.BasicRules2024 : canonical.BasicRules2024;
 
         // Name: existing clean name wins unless the canonical record is manual.
@@ -77,15 +78,15 @@ public static class EntityMerger
 
         return canonical with
         {
-            Type           = type,
-            Name           = name,
-            Srd            = srd,
-            Srd52          = srd52,
+            Type = type,
+            Name = name,
+            Srd = srd,
+            Srd52 = srd52,
             BasicRules2024 = basicRules2024,
-            Keywords       = keywords,
-            Page           = page,
-            DataSource     = dataSource,
-            Fields         = mergedFields,
+            Keywords = keywords,
+            Page = page,
+            DataSource = dataSource,
+            Fields = mergedFields,
             // canonicalText stays from canonical (it will be re-rendered by the orchestrator).
         };
     }
@@ -163,11 +164,11 @@ public static class EntityMerger
     private static bool IsEmpty(JsonElement el) => el.ValueKind switch
     {
         JsonValueKind.Undefined => true,
-        JsonValueKind.Null      => true,
-        JsonValueKind.String    => string.IsNullOrEmpty(el.GetString()),
-        JsonValueKind.Array     => el.GetArrayLength() == 0,
-        JsonValueKind.Object    => !el.EnumerateObject().Any(),
-        _                       => false,
+        JsonValueKind.Null => true,
+        JsonValueKind.String => string.IsNullOrEmpty(el.GetString()),
+        JsonValueKind.Array => el.GetArrayLength() == 0,
+        JsonValueKind.Object => !el.EnumerateObject().Any(),
+        _ => false,
     };
 
     /// <summary>Converts a <see cref="JsonElement"/> into a <see cref="System.Text.Json.Nodes.JsonNode"/>

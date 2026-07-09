@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Retrieval.Entities;

@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Features.Retrieval;
+
 using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;

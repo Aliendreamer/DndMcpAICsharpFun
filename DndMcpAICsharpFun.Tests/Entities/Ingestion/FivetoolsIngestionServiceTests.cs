@@ -1,12 +1,17 @@
+using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging.Abstractions;
+
 using NSubstitute;
-using System.Text.Json;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Ingestion;

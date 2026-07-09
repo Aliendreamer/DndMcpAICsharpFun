@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -127,19 +128,19 @@ public sealed class EntityExtractionRunner(
         EntityCandidate candidate, JsonElement fields, string? confidence, CancellationToken ct)
     {
         var provisional = new EntityEnvelope(
-            Id:              id,
-            Type:            type,
-            Name:            displayName,
-            SourceBook:      sourceBook,
-            Edition:         edition,
-            Page:            candidate.Page,
+            Id: id,
+            Type: type,
+            Name: displayName,
+            SourceBook: sourceBook,
+            Edition: edition,
+            Page: candidate.Page,
             FirstAppearedIn: new FirstAppearance(sourceBook, edition, candidate.Page),
-            RevisedIn:       Array.Empty<Revision>(),
-            SettingTags:     Array.Empty<string>(),
-            CanonicalText:   string.Empty,
-            Fields:          fields,
-            NeedsReview:     false,
-            Disposition:     EntityDisposition.Accepted);
+            RevisedIn: Array.Empty<Revision>(),
+            SettingTags: Array.Empty<string>(),
+            CanonicalText: string.Empty,
+            Fields: fields,
+            NeedsReview: false,
+            Disposition: EntityDisposition.Accepted);
 
         // judgeEnabled is hardcoded false here: normal extraction runs keep Tier 2 (the LLM judge)
         // off. With the judge disabled, GroundingCascade.GradeAsync also skips Tier 1 (the

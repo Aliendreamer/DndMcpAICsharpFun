@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities.Fields;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;

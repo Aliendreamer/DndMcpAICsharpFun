@@ -1,5 +1,7 @@
 using System.Reflection;
+
 using DndMcpAICsharpFun.Domain.Entities.Fields;
+
 using NJsonSchema;
 using NJsonSchema.Generation;
 

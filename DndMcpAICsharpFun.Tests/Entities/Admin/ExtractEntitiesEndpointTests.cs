@@ -1,10 +1,12 @@
-using DndMcpAICsharpFun.Domain;
 using System.Net;
+
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,15 +47,15 @@ public sealed class ExtractEntitiesEndpointTests
         int id = 1,
         IngestionStatus status = IngestionStatus.JsonIngested,
         string displayName = "Test Book") => new()
-    {
-        Id = id,
-        FilePath = "/tmp/test.pdf",
-        FileName = "test.pdf",
-        FileHash = "h",
-        Version = "5e",
-        DisplayName = displayName,
-        Status = status,
-    };
+        {
+            Id = id,
+            FilePath = "/tmp/test.pdf",
+            FileName = "test.pdf",
+            FileHash = "h",
+            Version = "5e",
+            DisplayName = displayName,
+            Status = status,
+        };
 
     [Fact]
     public async Task ExtractEntities_RecordNotFound_Returns404()

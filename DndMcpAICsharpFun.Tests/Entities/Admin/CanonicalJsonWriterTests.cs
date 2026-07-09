@@ -1,7 +1,9 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+
 using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Admin;
@@ -24,7 +26,7 @@ public sealed class CanonicalJsonWriterTests : IDisposable
 
     private string CopyFixture(string fixtureName)
     {
-        var src  = Path.Combine(AppContext.BaseDirectory, "Fixtures", "canonical", fixtureName);
+        var src = Path.Combine(AppContext.BaseDirectory, "Fixtures", "canonical", fixtureName);
         var dest = Path.Combine(_dir, fixtureName);
         File.Copy(src, dest, overwrite: true);
         return dest;
@@ -71,7 +73,7 @@ public sealed class CanonicalJsonWriterTests : IDisposable
         var path = CopyFixture("needs-review-book.json");
 
         // Build a fields patch.
-        var fieldsJson  = """{"level": 99, "newKey": "hello"}""";
+        var fieldsJson = """{"level": 99, "newKey": "hello"}""";
         var patchFields = JsonDocument.Parse(fieldsJson).RootElement;
 
         // ACT.
@@ -86,7 +88,7 @@ public sealed class CanonicalJsonWriterTests : IDisposable
         // ASSERT.
         result.Should().BeTrue();
 
-        var after    = await _loader.LoadAsync(path, CancellationToken.None);
+        var after = await _loader.LoadAsync(path, CancellationToken.None);
         var fireball = after.Entities.Single(e => e.Id == "needs-review-book.spell.fireball");
 
         fireball.NeedsReview.Should().BeFalse();

@@ -5,7 +5,9 @@ using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using FluentAssertions;
+
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;

@@ -1,6 +1,8 @@
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using Microsoft.Extensions.Options;
+
 using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;

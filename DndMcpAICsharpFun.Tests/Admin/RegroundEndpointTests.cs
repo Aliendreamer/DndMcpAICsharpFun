@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Admin;
@@ -13,13 +14,17 @@ using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using FluentAssertions;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
 using Qdrant.Client.Grpc;
+
 using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
 
 namespace DndMcpAICsharpFun.Tests.Admin;
@@ -132,9 +137,12 @@ public sealed class RegroundEndpointTests : IDisposable
         var tracker = Substitute.For<IIngestionTracker>();
         var record = new IngestionRecord
         {
-            Id = 1, DisplayName = BookSlug,
-            FilePath = "/tmp/fake.pdf", FileName = "fake.pdf",
-            FileHash = "cafebabe", Version = "Edition2014",
+            Id = 1,
+            DisplayName = BookSlug,
+            FilePath = "/tmp/fake.pdf",
+            FileName = "fake.pdf",
+            FileHash = "cafebabe",
+            Version = "Edition2014",
             Status = IngestionStatus.EntitiesIngested,
         };
         tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(record);

@@ -1,10 +1,15 @@
 using DndMcpAICsharpFun.Features.Embedding;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Options;
+
 using Qdrant.Client.Grpc;
+
 using Xunit;
+
 using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
 
 namespace DndMcpAICsharpFun.Tests.Ingestion.EntityExtraction;

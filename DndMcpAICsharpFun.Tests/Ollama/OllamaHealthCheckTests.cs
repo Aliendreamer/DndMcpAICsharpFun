@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Infrastructure.Ollama;
+
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 using OllamaSharp;
 using OllamaSharp.Models;
 

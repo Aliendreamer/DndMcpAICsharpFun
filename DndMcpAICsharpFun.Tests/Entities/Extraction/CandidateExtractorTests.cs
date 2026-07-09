@@ -1,6 +1,9 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Extraction;
@@ -62,22 +65,26 @@ public sealed class CandidateExtractorTests
                InputTokens: 0, OutputTokens: 0,
                ErrorMessage: null, RawJson: null));
 
-        var opts       = Options.Create(new EntityExtractionOptions { MaxOutputTokensPerEntity = 4096 });
+        var opts = Options.Create(new EntityExtractionOptions { MaxOutputTokensPerEntity = 4096 });
         var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
-        var extractor  = new CandidateExtractor(
-            llm:           llm,
+        var extractor = new CandidateExtractor(
+            llm: llm,
             promptBuilder: new ExtractionPromptBuilder(),
-            chunker:       new SemanticChunker(),
-            merger:        new EntityFieldMerger(),
-            retry:         new ExtractionRetryPolicy { MaxAttempts = 1 },
-            options:       opts,
-            ollamaOpts:    ollamaOpts,
-            logger:        NullLogger<CandidateExtractor>.Instance);
+            chunker: new SemanticChunker(),
+            merger: new EntityFieldMerger(),
+            retry: new ExtractionRetryPolicy { MaxAttempts = 1 },
+            options: opts,
+            ollamaOpts: ollamaOpts,
+            logger: NullLogger<CandidateExtractor>.Instance);
 
         var record = new DndMcpAICsharpFun.Domain.IngestionRecord
         {
-            Id = 1, FilePath = "/dev/null", FileName = "test.pdf",
-            FileHash = "h", Version = "5e", DisplayName = "Test Book",
+            Id = 1,
+            FilePath = "/dev/null",
+            FileName = "test.pdf",
+            FileHash = "h",
+            Version = "5e",
+            DisplayName = "Test Book",
         };
         using var schema = JsonDocument.Parse("""{"type":"object"}""");
         var candidate = new EntityCandidate(
@@ -108,22 +115,26 @@ public sealed class CandidateExtractorTests
                InputTokens: 0, OutputTokens: 0,
                ErrorMessage: "timeout", RawJson: null));
 
-        var opts       = Options.Create(new EntityExtractionOptions { MaxOutputTokensPerEntity = 4096 });
+        var opts = Options.Create(new EntityExtractionOptions { MaxOutputTokensPerEntity = 4096 });
         var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
-        var extractor  = new CandidateExtractor(
-            llm:           llm,
+        var extractor = new CandidateExtractor(
+            llm: llm,
             promptBuilder: new ExtractionPromptBuilder(),
-            chunker:       new SemanticChunker(),
-            merger:        new EntityFieldMerger(),
-            retry:         new ExtractionRetryPolicy { MaxAttempts = 1 },
-            options:       opts,
-            ollamaOpts:    ollamaOpts,
-            logger:        NullLogger<CandidateExtractor>.Instance);
+            chunker: new SemanticChunker(),
+            merger: new EntityFieldMerger(),
+            retry: new ExtractionRetryPolicy { MaxAttempts = 1 },
+            options: opts,
+            ollamaOpts: ollamaOpts,
+            logger: NullLogger<CandidateExtractor>.Instance);
 
         var record = new DndMcpAICsharpFun.Domain.IngestionRecord
         {
-            Id = 1, FilePath = "/dev/null", FileName = "test.pdf",
-            FileHash = "h", Version = "5e", DisplayName = "Test Book",
+            Id = 1,
+            FilePath = "/dev/null",
+            FileName = "test.pdf",
+            FileHash = "h",
+            Version = "5e",
+            DisplayName = "Test Book",
         };
         using var schema = JsonDocument.Parse("""{"type":"object"}""");
         var candidate = new EntityCandidate(
@@ -171,8 +182,12 @@ public sealed class CandidateExtractorTests
 
         var record = new DndMcpAICsharpFun.Domain.IngestionRecord
         {
-            Id = 1, FilePath = "/dev/null", FileName = "mm.pdf",
-            FileHash = "h", Version = "5e", DisplayName = "Monster Manual",
+            Id = 1,
+            FilePath = "/dev/null",
+            FileName = "mm.pdf",
+            FileHash = "h",
+            Version = "5e",
+            DisplayName = "Monster Manual",
         };
         var schemas = new Dictionary<DndMcpAICsharpFun.Domain.Entities.EntityType, JsonElement>
         {
@@ -216,7 +231,9 @@ public sealed class CandidateExtractorTests
 
         var opts = Options.Create(new EntityExtractionOptions
         {
-            MaxOutputTokensPerEntity = 4096, MaxTokensPerChunk = 2000, MaxTypeDecisionChars = 200,
+            MaxOutputTokensPerEntity = 4096,
+            MaxTokensPerChunk = 2000,
+            MaxTypeDecisionChars = 200,
         });
         var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
         var extractor = new CandidateExtractor(
@@ -226,8 +243,12 @@ public sealed class CandidateExtractorTests
 
         var record = new DndMcpAICsharpFun.Domain.IngestionRecord
         {
-            Id = 1, FilePath = "/dev/null", FileName = "phb.pdf",
-            FileHash = "h", Version = "5e", DisplayName = "Player's Handbook",
+            Id = 1,
+            FilePath = "/dev/null",
+            FileName = "phb.pdf",
+            FileHash = "h",
+            Version = "5e",
+            DisplayName = "Player's Handbook",
         };
         var schemas = new Dictionary<DndMcpAICsharpFun.Domain.Entities.EntityType, JsonElement>
         {

@@ -2,10 +2,14 @@ using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 using DndMcpAICsharpFun.Tests.TestDoubles;
 using DndMcpAICsharpFun.Tests.VectorStore.Entities;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Options;
+
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Ingestion.EntityExtraction;

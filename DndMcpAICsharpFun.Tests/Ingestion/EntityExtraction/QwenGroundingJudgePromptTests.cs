@@ -1,11 +1,15 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Ingestion.EntityExtraction;

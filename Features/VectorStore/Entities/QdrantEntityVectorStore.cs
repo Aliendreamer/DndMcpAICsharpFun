@@ -1,10 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
-using DndMcpAICsharpFun.Infrastructure;
 using System.Security.Cryptography;
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
+using DndMcpAICsharpFun.Infrastructure;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
+
 using Microsoft.Extensions.Options;
+
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 
@@ -171,22 +174,22 @@ public sealed class QdrantEntityVectorStore(
     {
         var payload = new Dictionary<string, Value>
         {
-            [EntityPayloadFields.Id]            = p.Envelope.Id,
-            [EntityPayloadFields.Type]          = p.Envelope.Type.ToString(),
-            [EntityPayloadFields.Name]          = p.Envelope.Name,
-            [EntityPayloadFields.SourceBook]    = p.Envelope.SourceBook,
-            [EntityPayloadFields.Edition]       = p.Envelope.Edition,
+            [EntityPayloadFields.Id] = p.Envelope.Id,
+            [EntityPayloadFields.Type] = p.Envelope.Type.ToString(),
+            [EntityPayloadFields.Name] = p.Envelope.Name,
+            [EntityPayloadFields.SourceBook] = p.Envelope.SourceBook,
+            [EntityPayloadFields.Edition] = p.Envelope.Edition,
             [EntityPayloadFields.CanonicalText] = p.Envelope.CanonicalText,
-            [EntityPayloadFields.FirstBook]     = p.Envelope.FirstAppearedIn.Book,
-            [EntityPayloadFields.FirstEdition]  = p.Envelope.FirstAppearedIn.Edition,
-            [EntityPayloadFields.FileHash]      = p.FileHash,
-            [EntityPayloadFields.DataSource]    = p.Envelope.DataSource,
-            [EntityPayloadFields.Srd]           = p.Envelope.Srd ? "true" : "false",
-            [EntityPayloadFields.Srd52]         = p.Envelope.Srd52 ? "true" : "false",
-            [EntityPayloadFields.BasicRules2024]= p.Envelope.BasicRules2024 ? "true" : "false",
-            [EntityPayloadFields.NeedsReview]   = p.Envelope.NeedsReview ? "true" : "false",
-            [EntityPayloadFields.SettingTags]   = StringList(p.Envelope.SettingTags),
-            [EntityPayloadFields.FieldsJson]    = p.Envelope.Fields.GetRawText(),
+            [EntityPayloadFields.FirstBook] = p.Envelope.FirstAppearedIn.Book,
+            [EntityPayloadFields.FirstEdition] = p.Envelope.FirstAppearedIn.Edition,
+            [EntityPayloadFields.FileHash] = p.FileHash,
+            [EntityPayloadFields.DataSource] = p.Envelope.DataSource,
+            [EntityPayloadFields.Srd] = p.Envelope.Srd ? "true" : "false",
+            [EntityPayloadFields.Srd52] = p.Envelope.Srd52 ? "true" : "false",
+            [EntityPayloadFields.BasicRules2024] = p.Envelope.BasicRules2024 ? "true" : "false",
+            [EntityPayloadFields.NeedsReview] = p.Envelope.NeedsReview ? "true" : "false",
+            [EntityPayloadFields.SettingTags] = StringList(p.Envelope.SettingTags),
+            [EntityPayloadFields.FieldsJson] = p.Envelope.Fields.GetRawText(),
         };
         if (p.Envelope.Page is { } page) payload[EntityPayloadFields.Page] = page;
         if (p.Envelope.Keywords.Count > 0)
@@ -262,7 +265,7 @@ public sealed class QdrantEntityVectorStore(
             return null;
         }
 
-        var firstBook    = p.TryGetValue(EntityPayloadFields.FirstBook,    out var fb) ? fb.StringValue : string.Empty;
+        var firstBook = p.TryGetValue(EntityPayloadFields.FirstBook, out var fb) ? fb.StringValue : string.Empty;
         var firstEdition = p.TryGetValue(EntityPayloadFields.FirstEdition, out var fe) ? fe.StringValue : string.Empty;
 
         return new EntityEnvelope(
@@ -280,10 +283,10 @@ public sealed class QdrantEntityVectorStore(
             CanonicalText: ctV.StringValue,
             Fields: fields,
             DataSource: p.TryGetValue(EntityPayloadFields.DataSource, out var ds) ? ds.StringValue : "",
-            Srd:            p.TryGetValue(EntityPayloadFields.Srd,            out var srdV)   && srdV.StringValue   == "true",
-            Srd52:          p.TryGetValue(EntityPayloadFields.Srd52,          out var srd52V) && srd52V.StringValue == "true",
-            BasicRules2024: p.TryGetValue(EntityPayloadFields.BasicRules2024, out var brV)    && brV.StringValue    == "true",
-            NeedsReview:    p.TryGetValue(EntityPayloadFields.NeedsReview,    out var nrV)    && nrV.StringValue    == "true",
+            Srd: p.TryGetValue(EntityPayloadFields.Srd, out var srdV) && srdV.StringValue == "true",
+            Srd52: p.TryGetValue(EntityPayloadFields.Srd52, out var srd52V) && srd52V.StringValue == "true",
+            BasicRules2024: p.TryGetValue(EntityPayloadFields.BasicRules2024, out var brV) && brV.StringValue == "true",
+            NeedsReview: p.TryGetValue(EntityPayloadFields.NeedsReview, out var nrV) && nrV.StringValue == "true",
             Keywords: p.TryGetValue(EntityPayloadFields.Keywords, out var kw) && kw.ListValue is { } kwList
                 ? kwList.Values.Select(v => v.StringValue).ToList()
                 : (IReadOnlyList<string>)Array.Empty<string>());
@@ -302,10 +305,10 @@ public sealed class QdrantEntityVectorStore(
         if (f.Type is { } t)
             must.Add(KW(EntityPayloadFields.Type, t.ToString()));
         if (!string.IsNullOrEmpty(f.SourceBook)) must.Add(KW(EntityPayloadFields.SourceBook, f.SourceBook));
-        if (!string.IsNullOrEmpty(f.Edition))    must.Add(KW(EntityPayloadFields.Edition, f.Edition));
-        if (!string.IsNullOrEmpty(f.BookType))   must.Add(KW(EntityPayloadFields.BookType, f.BookType));
+        if (!string.IsNullOrEmpty(f.Edition)) must.Add(KW(EntityPayloadFields.Edition, f.Edition));
+        if (!string.IsNullOrEmpty(f.BookType)) must.Add(KW(EntityPayloadFields.BookType, f.BookType));
         if (!string.IsNullOrEmpty(f.SettingTag)) must.Add(KW(EntityPayloadFields.SettingTags, f.SettingTag));
-        if (!string.IsNullOrEmpty(f.Keyword))    must.Add(KW(EntityPayloadFields.Keywords, f.Keyword));
+        if (!string.IsNullOrEmpty(f.Keyword)) must.Add(KW(EntityPayloadFields.Keywords, f.Keyword));
         if (!string.IsNullOrEmpty(f.DamageType)) must.Add(KW(EntityPayloadFields.DamageType, f.DamageType));
         if (f.SpellLevel is { } sl)
             must.Add(new Condition { Field = new FieldCondition { Key = EntityPayloadFields.SpellLevel, Match = new Match { Integer = sl } } });
@@ -316,8 +319,8 @@ public sealed class QdrantEntityVectorStore(
             if (f.CrNumericGte is { } v2) range.Gte = v2;
             must.Add(new Condition { Field = new FieldCondition { Key = EntityPayloadFields.CrNumeric, Range = range } });
         }
-        if (f.Srd == true)            must.Add(KW(EntityPayloadFields.Srd, "true"));
-        if (f.Srd52 == true)          must.Add(KW(EntityPayloadFields.Srd52, "true"));
+        if (f.Srd == true) must.Add(KW(EntityPayloadFields.Srd, "true"));
+        if (f.Srd52 == true) must.Add(KW(EntityPayloadFields.Srd52, "true"));
         if (f.BasicRules2024 == true) must.Add(KW(EntityPayloadFields.BasicRules2024, "true"));
         if (must.Count == 0) return null;
         var filter = new Filter();

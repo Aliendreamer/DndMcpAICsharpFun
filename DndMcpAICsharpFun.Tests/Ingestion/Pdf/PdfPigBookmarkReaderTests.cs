@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
+
 using UglyToad.PdfPig.Outline;
 using UglyToad.PdfPig.Outline.Destinations;
 using UglyToad.PdfPig.Writer;
@@ -108,9 +109,9 @@ public sealed class PdfPigBookmarkReaderTests
 
             // Parent titles are populated from the walked tree.
             Assert.Null(result.First(b => b.Title == "Part 1").ParentTitle);
-            Assert.Equal("Part 1",   result.First(b => b.Title == "Chapter 1").ParentTitle);
+            Assert.Equal("Part 1", result.First(b => b.Title == "Chapter 1").ParentTitle);
             Assert.Equal("Chapter 1", result.First(b => b.Title == "Section 1.1").ParentTitle);
-            Assert.Equal("Part 2",   result.First(b => b.Title == "Chapter 2").ParentTitle);
+            Assert.Equal("Part 2", result.First(b => b.Title == "Chapter 2").ParentTitle);
         }
         finally
         {

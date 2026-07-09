@@ -2,7 +2,9 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval.Entities.Dedup;

@@ -24,11 +24,17 @@ public static class MulticlassSpellcasting
     private static readonly Dictionary<string, string> Abilities =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Bard"] = "Charisma", ["Cleric"] = "Wisdom", ["Druid"] = "Wisdom",
-            ["Sorcerer"] = "Charisma", ["Wizard"] = "Intelligence",
-            ["Paladin"] = "Charisma", ["Ranger"] = "Wisdom",
-            ["Warlock"] = "Charisma", ["Artificer"] = "Intelligence",
-            ["Eldritch Knight"] = "Intelligence", ["Arcane Trickster"] = "Intelligence",
+            ["Bard"] = "Charisma",
+            ["Cleric"] = "Wisdom",
+            ["Druid"] = "Wisdom",
+            ["Sorcerer"] = "Charisma",
+            ["Wizard"] = "Intelligence",
+            ["Paladin"] = "Charisma",
+            ["Ranger"] = "Wisdom",
+            ["Warlock"] = "Charisma",
+            ["Artificer"] = "Intelligence",
+            ["Eldritch Knight"] = "Intelligence",
+            ["Arcane Trickster"] = "Intelligence",
         };
 
     public static CasterType Classify(ClassLevel c)

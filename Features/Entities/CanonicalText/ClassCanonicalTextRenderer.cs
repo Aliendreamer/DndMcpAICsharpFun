@@ -1,4 +1,5 @@
 using System.Text;
+
 using DndMcpAICsharpFun.Domain.Entities.Fields;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;
@@ -33,7 +34,7 @@ public sealed class ClassCanonicalTextRenderer
         return sb.ToString();
     }
 
-    
 
-    
+
+
 }

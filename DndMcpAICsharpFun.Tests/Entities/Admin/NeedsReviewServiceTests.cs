@@ -5,7 +5,9 @@ using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Admin;
@@ -26,7 +28,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
         Directory.CreateDirectory(_dir);
 
         // Copy the fixture that has 2 NeedsReview=true entities.
-        var src  = Path.Combine(AppContext.BaseDirectory, "Fixtures", "canonical", "needs-review-book.json");
+        var src = Path.Combine(AppContext.BaseDirectory, "Fixtures", "canonical", "needs-review-book.json");
         File.Copy(src, Path.Combine(_dir, "needs-review-book.json"));
 
         // Orchestrator and tracker are faked — we only care about the canonical file side.
@@ -37,9 +39,12 @@ public sealed class NeedsReviewServiceTests : IDisposable
 
         var record = new IngestionRecord
         {
-            Id = 1, DisplayName = "needs-review-book",
-            FilePath = "/tmp/fake.pdf", FileName = "fake.pdf",
-            FileHash = "cafebabe", Version = "Edition2014",
+            Id = 1,
+            DisplayName = "needs-review-book",
+            FilePath = "/tmp/fake.pdf",
+            FileName = "fake.pdf",
+            FileHash = "cafebabe",
+            Version = "Edition2014",
             Status = IngestionStatus.EntitiesIngested,
         };
         _tracker = Substitute.For<IIngestionTracker>();
@@ -61,7 +66,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task List_ReturnsOnlyNeedsReviewEntities()
     {
-        var sut    = BuildSut();
+        var sut = BuildSut();
         var result = await sut.ListAsync(null, null, 0, 50, CancellationToken.None);
 
         result.Items.Should().HaveCount(2);
@@ -74,7 +79,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task List_FilterByBook_OnlyMatchingBookReturned()
     {
-        var sut    = BuildSut();
+        var sut = BuildSut();
         var result = await sut.ListAsync("needs-review-book", null, 0, 50, CancellationToken.None);
 
         result.Items.Should().HaveCount(2);
@@ -84,7 +89,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task List_FilterByNonExistingBook_EmptyResult()
     {
-        var sut    = BuildSut();
+        var sut = BuildSut();
         var result = await sut.ListAsync("nonexistent-book", null, 0, 50, CancellationToken.None);
 
         result.Items.Should().BeEmpty();
@@ -94,7 +99,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task List_DeriveReason_LowConfidenceForCleanName()
     {
-        var sut    = BuildSut();
+        var sut = BuildSut();
         var result = await sut.ListAsync(null, null, 0, 50, CancellationToken.None);
 
         // "Fireball" has no OCR artifacts → low-confidence.
@@ -105,7 +110,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task List_DeriveReason_OcrArtifactForSplitName()
     {
-        var sut    = BuildSut();
+        var sut = BuildSut();
         var result = await sut.ListAsync(null, null, 0, 50, CancellationToken.None);
 
         // "B ullywug" has a split-word OCR artifact → ocr-artifact.
@@ -116,7 +121,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task List_FilterByReason_OnlyOcrArtifact()
     {
-        var sut    = BuildSut();
+        var sut = BuildSut();
         var result = await sut.ListAsync(null, "ocr-artifact", 0, 50, CancellationToken.None);
 
         result.Items.Should().HaveCount(1);
@@ -126,7 +131,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task List_Paging_OffsetAndLimit()
     {
-        var sut    = BuildSut();
+        var sut = BuildSut();
         var result = await sut.ListAsync(null, null, 1, 1, CancellationToken.None);
 
         result.Total.Should().Be(2, "total includes all matches, not just the page");
@@ -138,7 +143,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task Get_KnownId_ReturnsEntity()
     {
-        var sut    = BuildSut();
+        var sut = BuildSut();
         var entity = await sut.GetAsync("needs-review-book.spell.fireball", CancellationToken.None);
 
         entity.Should().NotBeNull();
@@ -149,7 +154,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task Get_UnknownId_ReturnsNull()
     {
-        var sut    = BuildSut();
+        var sut = BuildSut();
         var entity = await sut.GetAsync("nonexistent.entity.id", CancellationToken.None);
 
         entity.Should().BeNull();
@@ -160,8 +165,8 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task Resolve_Accept_ClearsFlagAndCallsReindex()
     {
-        var sut    = BuildSut();
-        var found  = await sut.ResolveAsync(
+        var sut = BuildSut();
+        var found = await sut.ResolveAsync(
             "needs-review-book.spell.fireball", "accept", null, null, CancellationToken.None);
 
         found.Should().BeTrue();
@@ -195,7 +200,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task Resolve_Edit_AppliesNameAndClearsFlag()
     {
-        var sut   = BuildSut();
+        var sut = BuildSut();
         var found = await sut.ResolveAsync(
             "needs-review-book.spell.fireball", "edit", "Fireball (Fixed)", null, CancellationToken.None);
 
@@ -213,7 +218,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task Resolve_UnknownId_ReturnsFalse()
     {
-        var sut   = BuildSut();
+        var sut = BuildSut();
         var found = await sut.ResolveAsync(
             "nonexistent.entity.id", "accept", null, null, CancellationToken.None);
 
@@ -253,7 +258,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task BulkAccept_NoFilter_ClearsAllFlaggedEntities()
     {
-        var sut     = BuildSut();
+        var sut = BuildSut();
         var cleared = await sut.BulkAcceptAsync(null, null, CancellationToken.None);
 
         cleared.Should().Be(2);
@@ -266,7 +271,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task BulkAccept_FilterByReason_OnlyClearsMatchingEntities()
     {
-        var sut     = BuildSut();
+        var sut = BuildSut();
         var cleared = await sut.BulkAcceptAsync(null, "low-confidence", CancellationToken.None);
 
         cleared.Should().Be(1, "only the low-confidence entity matches");
@@ -286,7 +291,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task BulkAccept_FilterByBook_OnlyClearsMatchingBook()
     {
-        var sut     = BuildSut();
+        var sut = BuildSut();
         var cleared = await sut.BulkAcceptAsync("needs-review-book", null, CancellationToken.None);
 
         cleared.Should().Be(2);
@@ -295,7 +300,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     [Fact]
     public async Task BulkAccept_FilterByNonExistingBook_ReturnsZero()
     {
-        var sut     = BuildSut();
+        var sut = BuildSut();
         var cleared = await sut.BulkAcceptAsync("no-such-book", null, CancellationToken.None);
 
         cleared.Should().Be(0);

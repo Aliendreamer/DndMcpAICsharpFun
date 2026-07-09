@@ -1,7 +1,10 @@
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
+
 using FluentAssertions;
+
 using NJsonSchema;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Schemas;
@@ -11,7 +14,7 @@ public class SchemaGenerationTests
     [Theory]
     [InlineData("test-book.class.fighter", "ClassFields")]
     [InlineData("test-book.monster.bullywug", "MonsterFields")]
-        [InlineData("test-book.spell.fireball", "SpellFields")]
+    [InlineData("test-book.spell.fireball", "SpellFields")]
     [InlineData("test-book.lore.the-planes", "LoreFields")]
     [InlineData("test-book.rule.encounter-building", "RuleFields")]
     [InlineData("test-book.race.human", "RaceFields")]

@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+
 using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
@@ -283,7 +284,7 @@ public sealed partial class MinerUPdfConverter(
             // Examine only the text before the cantrip token.
             var prefix = text[..c.Index];
             // Walk school matches in reverse; pick the last one whose end abuts the cantrip.
-                        foreach (Match sm in SchoolRx().Matches(prefix).Cast<Match>().Reverse())
+            foreach (Match sm in SchoolRx().Matches(prefix).Cast<Match>().Reverse())
             {
                 var between = prefix[(sm.Index + sm.Length)..];
                 if (between.Trim().Length == 0)

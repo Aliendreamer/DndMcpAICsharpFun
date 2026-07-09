@@ -2,8 +2,11 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
 using DndMcpAICsharpFun.Tests.Persistence;
+
 using FluentAssertions;
+
 using Microsoft.EntityFrameworkCore;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;

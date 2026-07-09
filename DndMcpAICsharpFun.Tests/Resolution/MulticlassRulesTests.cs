@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Resolution;
+
 using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Resolution;
@@ -8,8 +9,15 @@ public sealed class MulticlassRulesTests
 {
     private static CharacterSheet Sheet(int str = 10, int dex = 10, int con = 10,
         int intel = 10, int wis = 10, int cha = 10) =>
-        new() { Strength = str, Dexterity = dex, Constitution = con,
-                Intelligence = intel, Wisdom = wis, Charisma = cha };
+        new()
+        {
+            Strength = str,
+            Dexterity = dex,
+            Constitution = con,
+            Intelligence = intel,
+            Wisdom = wis,
+            Charisma = cha
+        };
 
     [Fact]
     public void Rogue_requires_dex_13()

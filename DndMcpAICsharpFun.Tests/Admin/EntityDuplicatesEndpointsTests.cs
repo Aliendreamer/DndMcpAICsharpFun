@@ -1,4 +1,5 @@
 using System.Net;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Admin;
@@ -6,10 +7,13 @@ using DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Tests.Retrieval.Entities.Dedup;
 using DndMcpAICsharpFun.Tests.TestDoubles;
+
 using FluentAssertions;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Admin;

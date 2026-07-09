@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -83,7 +84,7 @@ public sealed class CanonicalJsonWriter
             if (idx < 0) return false;
 
             var original = file.Entities[idx];
-            var patched  = original with { NeedsReview = false };
+            var patched = original with { NeedsReview = false };
 
             // v1: name edit keeps the existing id stable even if the slug would change.
             if (name is not null)

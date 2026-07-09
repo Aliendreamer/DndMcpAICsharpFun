@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 using Qdrant.Client;
 
 namespace DndMcpAICsharpFun.Infrastructure.Qdrant;

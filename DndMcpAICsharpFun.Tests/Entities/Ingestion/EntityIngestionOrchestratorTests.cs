@@ -1,13 +1,14 @@
 using DndMcpAICsharpFun.Domain;
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
-using FluentAssertions;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
-using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
+
+using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Ingestion;
 
@@ -326,7 +327,10 @@ public class EntityIngestionOrchestratorEnrichmentTests
             var tracker = Substitute.For<IIngestionTracker>();
             tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
             {
-                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+                Id = 1,
+                DisplayName = "PHB",
+                FileHash = "abc",
+                FivetoolsSourceKey = "PHB",
             });
 
             IList<EntityPoint>? captured = null;
@@ -381,7 +385,10 @@ public class EntityIngestionOrchestratorEnrichmentTests
             var tracker = Substitute.For<IIngestionTracker>();
             tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
             {
-                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+                Id = 1,
+                DisplayName = "PHB",
+                FileHash = "abc",
+                FivetoolsSourceKey = "PHB",
             });
 
             IList<EntityPoint>? captured = null;
@@ -434,7 +441,10 @@ public class EntityIngestionOrchestratorEnrichmentTests
             var tracker = Substitute.For<IIngestionTracker>();
             tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
             {
-                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+                Id = 1,
+                DisplayName = "PHB",
+                FileHash = "abc",
+                FivetoolsSourceKey = "PHB",
             });
 
             IList<EntityPoint>? captured = null;
@@ -476,7 +486,10 @@ public class EntityIngestionOrchestratorEnrichmentTests
             var tracker = Substitute.For<IIngestionTracker>();
             tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
             {
-                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+                Id = 1,
+                DisplayName = "PHB",
+                FileHash = "abc",
+                FivetoolsSourceKey = "PHB",
             });
 
             IList<EntityPoint>? captured = null;
@@ -531,7 +544,10 @@ public class EntityIngestionOrchestratorEnrichmentTests
             var tracker = Substitute.For<IIngestionTracker>();
             tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
             {
-                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+                Id = 1,
+                DisplayName = "PHB",
+                FileHash = "abc",
+                FivetoolsSourceKey = "PHB",
             });
 
             var store = Substitute.For<IEntityVectorStore>();
@@ -588,7 +604,10 @@ public class EntityIngestionOrchestratorEnrichmentTests
             var tracker = Substitute.For<IIngestionTracker>();
             tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
             {
-                Id = 1, DisplayName = "PHB", FileHash = "abc", FivetoolsSourceKey = "PHB",
+                Id = 1,
+                DisplayName = "PHB",
+                FileHash = "abc",
+                FivetoolsSourceKey = "PHB",
             });
 
             IList<EntityPoint>? captured = null;

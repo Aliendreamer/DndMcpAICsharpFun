@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace DndMcpAICsharpFun.Features.Chat;

@@ -1,8 +1,10 @@
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
-using DndMcpAICsharpFun.Tests;
 using DndMcpAICsharpFun.Features.Resolution;
+using DndMcpAICsharpFun.Tests;
+
 using FluentAssertions;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 

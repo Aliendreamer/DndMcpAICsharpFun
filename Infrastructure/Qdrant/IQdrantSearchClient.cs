@@ -1,4 +1,5 @@
 using Qdrant.Client.Grpc;
+
 using DomainSparseVector = DndMcpAICsharpFun.Infrastructure.Search.SparseVector;
 
 namespace DndMcpAICsharpFun.Infrastructure.Qdrant;

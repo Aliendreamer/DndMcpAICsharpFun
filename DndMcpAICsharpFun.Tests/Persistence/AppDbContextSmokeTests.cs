@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Domain;
+
 using FluentAssertions;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace DndMcpAICsharpFun.Tests.Persistence;

@@ -27,10 +27,10 @@ public static class DuplicateResolver
     // Higher = more authoritative. Core outranks all supplements/adventures/settings.
     private static int BookAuthority(BookType t) => t switch
     {
-        BookType.Core       => 4,
+        BookType.Core => 4,
         BookType.Supplement => 3,
-        BookType.Adventure  => 2,
-        BookType.Setting    => 1,
-        _                   => 0, // Unknown
+        BookType.Adventure => 2,
+        BookType.Setting => 1,
+        _ => 0, // Unknown
     };
 }

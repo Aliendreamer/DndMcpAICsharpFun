@@ -2,6 +2,7 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Extraction;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
+
 using Microsoft.Extensions.Logging;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
@@ -135,17 +136,17 @@ public sealed class EntityCandidateScanner(ILogger<EntityCandidateScanner> logge
 
     private static EntityType? MapCategoryToEntityType(ContentCategory category) => category switch
     {
-        ContentCategory.Spell      => EntityType.Spell,
-        ContentCategory.Monster    => EntityType.Monster,
-        ContentCategory.Class      => EntityType.Class,
-        ContentCategory.Race       => EntityType.Race,
+        ContentCategory.Spell => EntityType.Spell,
+        ContentCategory.Monster => EntityType.Monster,
+        ContentCategory.Class => EntityType.Class,
+        ContentCategory.Race => EntityType.Race,
         ContentCategory.Background => EntityType.Background,
-        ContentCategory.Item       => EntityType.Item,
-        ContentCategory.Condition  => EntityType.Condition,
-        ContentCategory.God        => EntityType.God,
-        ContentCategory.Plane      => EntityType.Plane,
-        ContentCategory.Treasure   => EntityType.MagicItem,
-        ContentCategory.Trap       => EntityType.Trap,
+        ContentCategory.Item => EntityType.Item,
+        ContentCategory.Condition => EntityType.Condition,
+        ContentCategory.God => EntityType.God,
+        ContentCategory.Plane => EntityType.Plane,
+        ContentCategory.Treasure => EntityType.MagicItem,
+        ContentCategory.Trap => EntityType.Trap,
         // Rule, Combat, Adventuring, Encounter, Trait, Lore, Unknown -> not entities (skipped).
         _ => null,
     };

@@ -1,4 +1,5 @@
 using System.Text;
+
 using DndMcpAICsharpFun.Features.Retrieval;
 
 namespace DndMcpAICsharpFun.Infrastructure.Search;

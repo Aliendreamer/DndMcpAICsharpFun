@@ -1,7 +1,9 @@
 using DndMcpAICsharpFun.Extensions;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
+
 using Microsoft.Extensions.DependencyInjection;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;

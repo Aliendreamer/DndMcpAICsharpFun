@@ -1,12 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
+
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Mcp;
 using DndMcpAICsharpFun.Infrastructure;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
+using DndMcpAICsharpFun.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-
-using DndMcpAICsharpFun.Infrastructure.Persistence;
 
 namespace DndMcpAICsharpFun.Extensions;
 
