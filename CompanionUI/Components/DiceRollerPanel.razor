@@ -1,5 +1,6 @@
 @using DndMcpAICsharpFun.Features.Dice
 @inject DndMcpAICsharpFun.Features.Dice.DiceRoller Roller
+@inject DndMcpAICsharpFun.Features.Campaigns.CampaignLogRepository LogRepo
 
 <div class="dice-roller-panel">
     <h2>Dice Roller</h2>
@@ -42,6 +43,43 @@
         <button type="button" @onclick="Roll">Roll</button>
     </div>
 
+    <div class="dice-label-row">
+        <input type="text" @bind="_label" @bind:event="oninput" placeholder="Label (optional)" />
+        <select @bind="_label" class="dice-label-select">
+            <option value="">Quick pick…</option>
+            <option value="Attack">Attack</option>
+            <option value="Damage">Damage</option>
+            <optgroup label="Skill Checks">
+                <option value="Acrobatics">Acrobatics</option>
+                <option value="Animal Handling">Animal Handling</option>
+                <option value="Arcana">Arcana</option>
+                <option value="Athletics">Athletics</option>
+                <option value="Deception">Deception</option>
+                <option value="History">History</option>
+                <option value="Insight">Insight</option>
+                <option value="Intimidation">Intimidation</option>
+                <option value="Investigation">Investigation</option>
+                <option value="Medicine">Medicine</option>
+                <option value="Nature">Nature</option>
+                <option value="Perception">Perception</option>
+                <option value="Performance">Performance</option>
+                <option value="Persuasion">Persuasion</option>
+                <option value="Religion">Religion</option>
+                <option value="Sleight of Hand">Sleight of Hand</option>
+                <option value="Stealth">Stealth</option>
+                <option value="Survival">Survival</option>
+            </optgroup>
+            <optgroup label="Ability Saves">
+                <option value="STR save">STR save</option>
+                <option value="DEX save">DEX save</option>
+                <option value="CON save">CON save</option>
+                <option value="INT save">INT save</option>
+                <option value="WIS save">WIS save</option>
+                <option value="CHA save">CHA save</option>
+            </optgroup>
+        </select>
+    </div>
+
     @if (_error is not null)
     {
         <p class="error">@_error</p>
@@ -67,11 +105,16 @@
 </div>
 
 @code {
+    [Parameter] public long CampaignId { get; set; }
+    [Parameter] public long UserId { get; set; }
+    [Parameter] public EventCallback OnLogged { get; set; }
+
     private int _selectedDie = 20;
     private int _count = 1;
     private int _modifier;
     private RollMode _mode = RollMode.Normal;
     private string _expression = "d20";
+    private string _label = "";
     private string? _error;
     private readonly List<RollResult> _recent = new();
 
@@ -126,7 +169,7 @@
         _expression = $"{_count}d{_selectedDie}{modStr}{modeStr}";
     }
 
-    private void Roll()
+    private async Task Roll()
     {
         if (!DiceExpression.TryParse(_expression, out var expr, out var err))
         {
@@ -138,5 +181,18 @@
         _recent.Insert(0, res);
         if (_recent.Count > 10) _recent.RemoveAt(10);
         _error = null;
+
+        if (CampaignId > 0)
+        {
+            try
+            {
+                await LogRepo.AddRollAsync(UserId, CampaignId, res, string.IsNullOrWhiteSpace(_label) ? null : _label, hidden: false);
+                await OnLogged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                _error = $"Roll saved locally but not logged: {ex.Message}";
+            }
+        }
     }
 }

@@ -396,6 +396,23 @@ body {
     padding: 8px 10px;
 }
 
+.dice-label-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.dice-label-row input {
+    flex: 1;
+    background: #0f0f1a;
+    border: 1px solid #3a3a5a;
+    border-radius: 6px;
+    color: #e0e0e0;
+    padding: 8px 10px;
+}
+.dice-label-select {
+    background: #0f0f1a;
+    border: 1px solid #3a3a5a;
+    border-radius: 6px;
+    color: #e0e0e0;
+    padding: 8px 10px;
+}
+
 .dice-result-latest {
     display: flex;
     align-items: baseline;
