@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Features.Dice;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Dice;
@@ -13,7 +15,8 @@ public sealed class DiceRollerTests
         public int Next(int min, int max) => vals[_i++];
     }
 
-    [Fact] public void Rolls_within_range_with_real_rng()
+    [Fact]
+    public void Rolls_within_range_with_real_rng()
     {
         var r = new DiceRoller(new SystemRandomSource());
         var res = r.Roll(DiceExpression.Parse("3d6"));
@@ -21,7 +24,8 @@ public sealed class DiceRollerTests
         res.Dice.Should().OnlyContain(v => v >= 1 && v <= 6);
     }
 
-    [Fact] public void Modifier_applied_and_dice_reported()
+    [Fact]
+    public void Modifier_applied_and_dice_reported()
     {
         var r = new DiceRoller(new ScriptedRng(4, 5));
         var res = r.Roll(DiceExpression.Parse("2d6+3"));
@@ -30,7 +34,8 @@ public sealed class DiceRollerTests
         res.Breakdown.Should().Be("2d6+3 → [4,5]+3 = 12");
     }
 
-    [Fact] public void Advantage_keeps_higher()
+    [Fact]
+    public void Advantage_keeps_higher()
     {
         var r = new DiceRoller(new ScriptedRng(18, 7));
         var res = r.Roll(DiceExpression.Parse("d20 adv"));
@@ -40,7 +45,8 @@ public sealed class DiceRollerTests
         res.Breakdown.Should().Be("d20 (adv) → [18,7] → 18");
     }
 
-    [Fact] public void Disadvantage_keeps_lower()
+    [Fact]
+    public void Disadvantage_keeps_lower()
     {
         var r = new DiceRoller(new ScriptedRng(18, 7));
         var res = r.Roll(DiceExpression.Parse("d20 dis"));
@@ -49,7 +55,8 @@ public sealed class DiceRollerTests
         res.Breakdown.Should().Be("d20 (dis) → [18,7] → 7");
     }
 
-    [Fact] public void Same_script_is_reproducible()
+    [Fact]
+    public void Same_script_is_reproducible()
     {
         var a = new DiceRoller(new ScriptedRng(3, 3, 3)).Roll(DiceExpression.Parse("3d6"));
         var b = new DiceRoller(new ScriptedRng(3, 3, 3)).Roll(DiceExpression.Parse("3d6"));

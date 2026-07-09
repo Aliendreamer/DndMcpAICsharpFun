@@ -1,19 +1,23 @@
 using DndMcpAICsharpFun.Features.Dice;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Dice;
 
 public sealed class DiceExpressionTests
 {
-    [Fact] public void Parses_count_die_modifier()
+    [Fact]
+    public void Parses_count_die_modifier()
     {
         DiceExpression.TryParse("2d6+3", out var e, out var err).Should().BeTrue();
         err.Should().BeNull();
         e.Should().Be(new DiceExpression(2, 6, 3, RollMode.Normal));
     }
 
-    [Fact] public void Bare_die_defaults_count_1_mod_0()
+    [Fact]
+    public void Bare_die_defaults_count_1_mod_0()
     {
         DiceExpression.TryParse("d20", out var e, out _).Should().BeTrue();
         e.Should().Be(new DiceExpression(1, 20, 0, RollMode.Normal));
@@ -29,7 +33,8 @@ public sealed class DiceExpressionTests
         e.Should().Be(new DiceExpression(c, d, m, RollMode.Normal));
     }
 
-    [Fact] public void Advantage_on_single_d20_ok()
+    [Fact]
+    public void Advantage_on_single_d20_ok()
     {
         DiceExpression.TryParse("d20 adv", out var e, out _).Should().BeTrue();
         e.Mode.Should().Be(RollMode.Advantage);
@@ -50,7 +55,8 @@ public sealed class DiceExpressionTests
     }
 
 
-    [Fact] public void Oversized_count_is_rejected_without_throwing()
+    [Fact]
+    public void Oversized_count_is_rejected_without_throwing()
     {
         var result = false;
         string? error = null;
@@ -61,7 +67,8 @@ public sealed class DiceExpressionTests
         error.Should().NotBeNullOrEmpty();
     }
 
-    [Fact] public void Oversized_modifier_is_rejected_without_throwing()
+    [Fact]
+    public void Oversized_modifier_is_rejected_without_throwing()
     {
         var result = false;
         string? error = null;
