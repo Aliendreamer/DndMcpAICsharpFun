@@ -127,6 +127,49 @@ public sealed class ReindexEntityTests : IDisposable
     }
 
     [Fact]
+    public async Task ReindexEntityAsync_UngroundedEntity_DeletesInsteadOfUpserting()
+    {
+        // entity-grounding-cascade Fix I-1(c): NeedsReviewService.ResolveAsync/BulkAcceptAsync call
+        // ReindexEntityAsync for accept/edit flows. An entity can be accepted (NeedsReview cleared)
+        // while its Disposition remains Ungrounded (a judge-confirmed fabrication) — that must never
+        // be (re-)indexed into dnd_entities. The central chokepoint deletes it instead of upserting.
+        var json = """
+            {
+              "schemaVersion": "1",
+              "book": { "sourceBook": "Ungrounded Book", "edition": "Edition2014",
+                        "fileHash": "feedface", "displayName": "Ungrounded Book" },
+              "entities": [{
+                "id": "ungrounded-book.spell.fabricated-bolt",
+                "type": "Spell", "name": "Fabricated Bolt",
+                "sourceBook": "Ungrounded Book", "edition": "Edition2014", "page": 999,
+                "firstAppearedIn": { "book": "Ungrounded Book", "edition": "Edition2014" },
+                "revisedIn": [], "settingTags": [], "canonicalText": "",
+                "fields": { "level": 9 }, "disposition": "Ungrounded", "needsReview": true
+              }]
+            }
+            """;
+        File.WriteAllText(Path.Combine(_dir, "ungrounded-book.json"), json);
+
+        var store  = new RecordingEntityVectorStore();
+        var record = new IngestionRecord
+        {
+            Id = 43, DisplayName = "ungrounded-book", FileHash = "feedface",
+            FilePath = "/tmp/fake2.pdf", FileName = "fake2.pdf",
+            Version = "Edition2014", Status = IngestionStatus.EntitiesIngested,
+        };
+
+        var sut = BuildOrchestrator(store, record);
+
+        await sut.ReindexEntityAsync(43, "ungrounded-book.spell.fabricated-bolt",
+            CancellationToken.None);
+
+        store.UpsertCalls.Should()
+            .BeEmpty("an Ungrounded entity must never be (re-)indexed into dnd_entities");
+        store.DeleteByIdsCalls.Should().ContainSingle()
+            .Which.Should().ContainSingle("ungrounded-book.spell.fabricated-bolt");
+    }
+
+    [Fact]
     public async Task ReindexEntityAsync_UnknownEntity_Throws()
     {
         var store  = new RecordingEntityVectorStore();

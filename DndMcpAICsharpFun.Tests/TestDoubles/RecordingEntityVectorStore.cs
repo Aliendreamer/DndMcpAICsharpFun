@@ -28,6 +28,9 @@ public sealed class RecordingEntityVectorStore : IEntityVectorStore
     /// <summary>Total number of DeleteByFileHashAsync calls received.</summary>
     public int DeleteByFileHashCallCount { get; private set; }
 
+    /// <summary>Each element is the id collection passed in one DeleteByIdsAsync call.</summary>
+    public List<IReadOnlyCollection<string>> DeleteByIdsCalls { get; } = [];
+
     // ── Convenience view ──────────────────────────────────────────────────────
 
     /// <summary>IDs of all currently stored points (live view).</summary>
@@ -90,6 +93,7 @@ public sealed class RecordingEntityVectorStore : IEntityVectorStore
 
     public Task DeleteByIdsAsync(IReadOnlyCollection<string> entityIds, CancellationToken ct = default)
     {
+        DeleteByIdsCalls.Add(entityIds);
         foreach (var id in entityIds) _store.Remove(id);
         return Task.CompletedTask;
     }

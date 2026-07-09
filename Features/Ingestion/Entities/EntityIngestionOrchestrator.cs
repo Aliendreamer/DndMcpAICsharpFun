@@ -156,6 +156,21 @@ public sealed class EntityIngestionOrchestrator(
             string.Equals(e.Id, entityId, StringComparison.Ordinal))
             ?? throw new InvalidOperationException($"Entity '{entityId}' not found in {path}");
 
+        // entity-grounding-cascade Fix I-1(c): a judge-confirmed fabrication must never be
+        // (re-)indexed into dnd_entities, even via the accept/edit/bulk-accept reindex path — the
+        // reground pass leaves NeedsReview=true on Ungrounded entities so they stay in the review
+        // queue, and an admin accepting/bulk-accepting one clears NeedsReview without changing the
+        // Disposition. Delete instead of upsert so the invariant holds regardless of caller.
+        if (envelope.Disposition == EntityDisposition.Ungrounded)
+        {
+            await store.DeleteByIdsAsync([entityId], ct);
+            logger.LogWarning(
+                "Reindex of Ungrounded entity {EntityId} (book {BookId}) converted to a delete — " +
+                "fabrications are never (re-)indexed into dnd_entities",
+                entityId, bookId);
+            return;
+        }
+
         // ── Enrichment (same path as IngestEntitiesAsync but for a single entity) ──
         var fivetoolsIndex = await BuildFivetoolsIndexAsync(
             record, "Could not build 5etools enrichment index for single-entity reindex — proceeding unenriched", ct);
