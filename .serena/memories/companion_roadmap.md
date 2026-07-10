@@ -1,4 +1,4 @@
-# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-09b)
+# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-10c)
 
 **North star:** a companion agent that REASONS (character build / encounter design / setting-aware
 lore), not just retrieves. RAG + extraction are the *means*, and that foundation is built —
@@ -80,7 +80,7 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   source maps 1 entity→1 MonsterRef); non-5etools "5e"-versioned content won't match the edition filter
   (corpus-data); live chat-driven smoke needs Ollama.
 
-## COMPANION UX / TABLE-PLAY — both SHIPPED (user-requested 2026-07-09/10)
+## COMPANION UX / TABLE-PLAY — all SHIPPED (user-requested 2026-07-09/10)
 - **Item A — Dice roller** ✅ DONE (archived `dice-roller`, 2026-07-09; commits `4c25566..623b9a7`; full
   suite 1143/1143). `Features/Dice/`: `DiceExpression.TryParse/Parse` (NdX±K, all 7 dice, d20-only adv/dis;
   never throws — oversized count/modifier + MaxModifier 1000 rejected cleanly); `IRandomSource`/
@@ -96,8 +96,30 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   EXPLICIT-save via a new `EncounterPanel` (build via `EncounterDesignService.BuildForUserAsync`, save +
   hidden checkbox). `CampaignLog` timeline component (newest-first, hidden badge + Reveal + Delete,
   null-safe render). `_userId` from the authenticated NameIdentifier claim; page ownership gate
-  `GetByIdAsync(id,userId)` + redirect. DEFERRED minors: encounter payload PartyLevels always empty (needs
-  a service change); reveal/delete not try-wrapped (matches existing DeleteNote posture); live UI smoke.
+  `GetByIdAsync(id,userId)` + redirect. FOLLOW-UPS SHIPPED (2026-07-10): encounter payload PartyLevels now
+  populated (commit `87fdbd0` — `BuiltEncounter.PartyLevels` threaded through `EncounterGenerator`, saved by
+  `EncounterPanel`); **live UI smoke of roll→log→reveal PASSED** (fresh local build vs real Postgres+Qdrant,
+  Playwright: d20 labelled "Deception" auto-logged + persisted across reload; hidden encounter row rendered
+  hidden badge + Reveal → click un-hid it in UI and flipped `Hidden`→false in Postgres; EncounterPanel
+  empty-campaign error path graceful). DEFERRED minor: reveal/delete not try-wrapped (matches DeleteNote posture).
+- **Item C — Persisted combat/initiative tracker + dedicated play page** ✅ DONE (archived
+  `combat-initiative-tracker`, 2026-07-10; 16 commits `b8492c3..687b4ee`; full suite **1179/1179**; final
+  whole-branch review on opus = READY TO MERGE, all 7 cross-path invariants held). New `Features/Combat/`
+  slice: `Combat`+`Combatant` two-table relational model (additive migration), `Condition` enum (fixed 15,
+  edition-independent, stored as `ConditionsJson`), `CombatRepository` (ALL commands 3-key ownership-scoped;
+  one-active-combat guard; ended-combat history), `CombatService` (draft party from heroes / draft monsters
+  with auto-rolled init via `DiceRoller`+seeded `IRandomSource` / manual add; `EndCombatAsync` = DM-approval
+  write-back of post-fight HP as a NEW append-only `HeroSnapshot` per linked hero + a `Combat`-kind
+  `CampaignLogEntry` breadcrumb). **IDENTITY-based turn tracking** (`CurrentTurnCombatantId`, NOT a positional
+  index — the review caught that a positional index drifts when the UI re-sorts on remove/add/init-edit; fixed
+  by task 12b). New `CompanionUI/Pages/Campaigns/CampaignTable.razor` at `/campaigns/{id}/table` hosts the
+  dice roller + encounter panel + `InitiativeTracker` + campaign log (all MOVED off `CampaignDetail`, which now
+  links "▶ Run session"). `EncounterPanel.OnBuilt` feeds built monsters to the tracker; editable per-combatant
+  MaxHp so encounter-drafted monsters (MonsterRef carries no HP) are trackable. NO HTTP/MCP surface (server-side
+  Blazor). DEFERRED (all acceptable per final review): `StartAsync` one-active TOCTOU (add filtered-unique index
+  on `Combats(CampaignId) WHERE Status=Active`); `EndCombatAsync` N+1 GetById per player; removing the CURRENT
+  combatant leaves no highlight until next advance (which re-anchors to top); monster Dex-mod from entity
+  (init default +0); live Playwright smoke of the play page.
 
 ## TEST INFRA (confirmed present)
 Real Testcontainers in-repo: `Testcontainers.PostgreSql` 4.12.0 (`Persistence/PostgresFixture.cs`,
@@ -150,18 +172,21 @@ NOT excluded from `dnd_entities` — spanned 3 write paths — until final revie
 mislabeled real entities). Cross-path invariants must be traced across ALL paths at final review; inject
 INTERFACES not concrete types — both now in dev-flow SKILL.
 
-## Current position (2026-07-10)
+## Current position (2026-07-10c)
 Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**; **companion reasoning +
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
-(Item B).** Only active openspec change is the parked `prose-grounded-knowledge-model`. FULL suite 1153/1153.
+(Item B), combat/initiative tracker + dedicated play page (Item C).** Only active openspec change is the parked
+`prose-grounded-knowledge-model`. FULL suite **1179/1179**.
 NEXT candidates (user's call):
 (1) more companion REASONING surfaces: **encounter-design v2 swarms** ("N goblins" — generator + monster
     source emit per-monster quantities), setting-aware lore synthesis, deeper character-build advice;
-(2) table-play polish: encounter payload PartyLevels (surface resolved party from the service); a dedicated
-    dice/encounter surface beyond the campaign page; initiative tracker;
+(2) table-play polish REMAINING: dedicated play page + initiative tracker are DONE (Item C); left = an
+    initiative-tracker v2 (monster stat-block auto-HP/Dex from the entity store; sort/turn UX; conditions
+    with duration), and a global (non-campaign) scratch dice/encounter surface if wanted;
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6), a foundational lever under all.
 Deferred operational: live-host smokes for Item 3 (reground, Ollama judge path), Item 4 (dedup endpoints),
-encounter-design (chat build→rate), table-play (roll→log→reveal UI). Relates to
+encounter-design (chat build→rate), Item C (play page + tracker Playwright smoke). Table-play roll→log→reveal
+UI smoke DONE 2026-07-10 (see Item B). Relates to
 `mem:extraction/dmg_generic_backfill_status`, `mem:project_entity_extraction_rethink`,
 `mem:reference_build_env_gotchas`.
