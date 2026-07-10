@@ -50,7 +50,8 @@
     "dotnet-test@dotnet-agent-skills": true,
     "dotnet-upgrade@dotnet-agent-skills": true,
     "playwright@claude-plugins-official": true,
-    "serena@claude-plugins-official": true
+    "serena@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "dotnet-agent-skills": {
