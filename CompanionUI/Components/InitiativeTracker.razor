@@ -1,0 +1,246 @@
+@inject DndMcpAICsharpFun.Features.Combat.CombatRepository CombatRepo
+@inject DndMcpAICsharpFun.Features.Combat.CombatService CombatSvc
+@using DndMcpAICsharpFun.Domain
+@using DndMcpAICsharpFun.Features.Combat
+@using DndMcpAICsharpFun.Features.Encounters
+
+<div class="initiative-tracker">
+    <h2>Initiative Tracker</h2>
+
+    @if (_error is not null)
+    {
+        <p class="error">@_error</p>
+    }
+
+    @if (_combat is null)
+    {
+        <div class="combat-start">
+            <input @bind="_newName" placeholder="Combat name (e.g. Goblin Ambush)" />
+            <select @bind="_newEdition">
+                <option value="@DndVersion.Edition2014">2014</option>
+                <option value="@DndVersion.Edition2024">2024</option>
+            </select>
+            <button @onclick="StartAsync">Start combat</button>
+        </div>
+    }
+    else
+    {
+        <div class="combat-active">
+            <div class="combat-head">
+                <strong>@_combat.Name</strong>
+                <span class="muted">Round @_combat.Round · @_combat.Edition</span>
+                <button @onclick="AdvanceAsync">Advance turn ▸</button>
+                <button @onclick="BeginEnd">End combat</button>
+            </div>
+
+            <div class="combat-add-row">
+                <button @onclick="DraftPartyAsync">+ Party</button>
+                <input @bind="_manualName" placeholder="Add combatant" />
+                <input type="number" @bind="_manualHp" placeholder="HP" />
+                <label><input type="checkbox" @bind="_manualIsPlayer" /> Player</label>
+                <button @onclick="AddManualAsync">Add</button>
+            </div>
+
+            <ol class="combatant-list">
+                @{ var ordered = CombatantOrder.Sort(_combatants); var i = 0; }
+                @foreach (var c in ordered)
+                {
+                    var isCurrent = i == _combat.CurrentTurnIndex;
+                    <li class="@(isCurrent ? "combatant current" : "combatant")">
+                        <span class="c-init">
+                            <input type="number" value="@c.InitiativeRoll"
+                                   @onchange="e => SetInitiativeAsync(c, e.Value?.ToString())" />
+                        </span>
+                        <span class="c-name">@c.Name @(c.IsPlayer ? "" : "(NPC)")</span>
+                        <span class="c-hp">
+                            <button @onclick="() => AdjustHpAsync(c, -1)">−</button>
+                            @c.CurrentHp / @c.MaxHp
+                            <button @onclick="() => AdjustHpAsync(c, +1)">+</button>
+                        </span>
+                        <span class="c-conditions">
+                            @foreach (var cond in Enum.GetValues<Condition>())
+                            {
+                                var on = c.Conditions.Contains(cond);
+                                <button class="@(on ? "cond on" : "cond")"
+                                        @onclick="() => ToggleConditionAsync(c, cond)">@cond</button>
+                            }
+                        </span>
+                        <button class="c-remove" @onclick="() => RemoveAsync(c)">✕</button>
+                    </li>
+                    i++;
+                }
+                @if (ordered.Count == 0)
+                {
+                    <li class="muted">No combatants yet — add the party or build an encounter above.</li>
+                }
+            </ol>
+        </div>
+
+        @if (_ending)
+        {
+            <div class="end-combat-review">
+                <h3>End combat — review player HP</h3>
+                @foreach (var c in _combatants.Where(c => c is { IsPlayer: true, HeroId: not null }))
+                {
+                    <div class="hp-review-row">
+                        <span>@c.Name</span>
+                        <span class="muted">now @c.CurrentHp</span>
+                        <input type="number" @bind="_approvedHp[c.Id]" />
+                    </div>
+                }
+                <button @onclick="ConfirmEndAsync">Approve &amp; end</button>
+                <button @onclick="() => _ending = false">Cancel</button>
+            </div>
+        }
+    }
+
+    @if (_history.Count > 0)
+    {
+        <details class="combat-history">
+            <summary>Past combats (@_history.Count)</summary>
+            <ul>
+                @foreach (var h in _history)
+                {
+                    <li>@h.Name · @h.Round rounds · @(h.EndedAt?.ToString("yyyy-MM-dd HH:mm"))</li>
+                }
+            </ul>
+        </details>
+    }
+</div>
+
+@code {
+    [Parameter] public long CampaignId { get; set; }
+    [Parameter] public long UserId { get; set; }
+
+    private Combat? _combat;
+    private IReadOnlyList<Combatant> _combatants = [];
+    private IReadOnlyList<Combat> _history = [];
+    private string? _error;
+
+    private string _newName = "";
+    private DndVersion _newEdition = DndVersion.Edition2014;
+
+    private string _manualName = "";
+    private int _manualHp = 1;
+    private bool _manualIsPlayer;
+
+    private bool _ending;
+    private readonly Dictionary<long, int> _approvedHp = new();
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    /// <summary>Called by the play page when an encounter is built, to draft its monsters.</summary>
+    public async Task AddMonstersAsync(IReadOnlyList<MonsterRef> monsters)
+    {
+        if (_combat is null) { _error = "Start a combat before adding monsters."; return; }
+        try
+        {
+            await CombatSvc.DraftMonstersAsync(_combat.Id, CampaignId, UserId, monsters);
+            await ReloadAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _combat = await CombatRepo.GetActiveAsync(CampaignId, UserId);
+            _combatants = _combat is null
+                ? []
+                : await CombatRepo.GetCombatantsAsync(_combat.Id, CampaignId, UserId);
+            _history = await CombatRepo.GetHistoryAsync(CampaignId, UserId);
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _combatants = [];
+        }
+    }
+
+    private async Task StartAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newName)) { _error = "Name the combat first."; return; }
+        var id = await CombatRepo.StartAsync(UserId, CampaignId, _newName.Trim(), _newEdition);
+        if (id is null) { _error = "A combat is already active for this campaign."; return; }
+        _newName = "";
+        await ReloadAsync();
+    }
+
+    private async Task DraftPartyAsync()
+    {
+        if (_combat is null) return;
+        await CombatSvc.DraftPartyAsync(_combat.Id, CampaignId, UserId);
+        await ReloadAsync();
+    }
+
+    private async Task AddManualAsync()
+    {
+        if (_combat is null || string.IsNullOrWhiteSpace(_manualName)) return;
+        await CombatSvc.AddManualAsync(_combat.Id, CampaignId, UserId, _manualName.Trim(),
+            Math.Max(0, _manualHp), ac: null, _manualIsPlayer, initiativeModifier: 0);
+        _manualName = "";
+        _manualHp = 1;
+        _manualIsPlayer = false;
+        await ReloadAsync();
+    }
+
+    private async Task AdvanceAsync()
+    {
+        if (_combat is null) return;
+        await CombatRepo.AdvanceTurnAsync(_combat.Id, CampaignId, UserId);
+        await ReloadAsync();
+    }
+
+    private async Task AdjustHpAsync(Combatant c, int delta)
+    {
+        if (_combat is null) return;
+        var hp = Math.Clamp(c.CurrentHp + delta, 0, c.MaxHp > 0 ? c.MaxHp : int.MaxValue);
+        await CombatRepo.UpdateCombatantAsync(c.Id, _combat.Id, CampaignId, UserId,
+            hp, c.InitiativeRoll, c.InitiativeModifier, c.Conditions);
+        await ReloadAsync();
+    }
+
+    private async Task SetInitiativeAsync(Combatant c, string? raw)
+    {
+        if (_combat is null) return;
+        int? init = int.TryParse(raw, out var v) ? v : null;
+        await CombatRepo.UpdateCombatantAsync(c.Id, _combat.Id, CampaignId, UserId,
+            c.CurrentHp, init, c.InitiativeModifier, c.Conditions);
+        await ReloadAsync();
+    }
+
+    private async Task ToggleConditionAsync(Combatant c, Condition cond)
+    {
+        if (_combat is null) return;
+        var set = c.Conditions.ToList();
+        if (!set.Remove(cond)) set.Add(cond);
+        await CombatRepo.UpdateCombatantAsync(c.Id, _combat.Id, CampaignId, UserId,
+            c.CurrentHp, c.InitiativeRoll, c.InitiativeModifier, set);
+        await ReloadAsync();
+    }
+
+    private async Task RemoveAsync(Combatant c)
+    {
+        if (_combat is null) return;
+        await CombatRepo.RemoveCombatantAsync(c.Id, _combat.Id, CampaignId, UserId);
+        await ReloadAsync();
+    }
+
+    private void BeginEnd()
+    {
+        _approvedHp.Clear();
+        foreach (var c in _combatants.Where(c => c is { IsPlayer: true, HeroId: not null }))
+            _approvedHp[c.Id] = c.CurrentHp;
+        _ending = true;
+    }
+
+    private async Task ConfirmEndAsync()
+    {
+        if (_combat is null) return;
+        await CombatSvc.EndCombatAsync(_combat.Id, CampaignId, UserId, new Dictionary<long, int>(_approvedHp));
+        _ending = false;
+        await ReloadAsync();
+    }
+}
