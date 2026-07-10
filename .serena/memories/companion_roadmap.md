@@ -1,4 +1,4 @@
-# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-10c)
+# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-11)
 
 **North star:** a companion agent that REASONS (character build / encounter design / setting-aware
 lore), not just retrieves. RAG + extraction are the *means*, and that foundation is built —
@@ -128,6 +128,26 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   STILL DEFERRED (minor UX): removing the CURRENT combatant leaves no highlight until the next advance (which
   re-anchors to top, not next-after-removed).
 
+## UI / VISUAL DESIGN — SHIPPED (user-requested 2026-07-11)
+- **`visual-design-system`** ✅ DONE (archived `2026-07-10-visual-design-system`; 9 commits `d1e633c..fce1d3c`
+  + archive `ec2b8e2`; build 0/0, full suite **1186/1186** unchanged = behavior-neutral; final opus review READY
+  TO MERGE). Rewrote `wwwroot/app.css` from ad-hoc hex into a **token-driven "arcane console" dark theme**:
+  `:root` custom properties (palette base `#0E1018`/surface `#171A27`/border `#2A2F48`/ember-gold `#E8B65A` for
+  primary+illumination/arcane-violet `#8B7CF6` for links+focus/hp/heal/muted/text; spacing/radii/shadow/type
+  scales), **self-hosted woff2 fonts** (`wwwroot/fonts/`, via `npm pack @fontsource/…` — Grenze Gotisch blackletter
+  display for wordmark/h1/combat-name ONLY, Alegreya Sans body, JetBrains Mono data; offline, no CDN), shared
+  primitives (`.btn`/`.btn--primary`/`.btn--ghost`/`.btn--danger`, `.card`, `.chip`, `.badge`, styled inputs), and
+  every surface restyled (sidebar+auth+campaigns+campaign-detail, the TABLE page + its 4 components, heroes+sheet,
+  chat). **Signature = the illuminated initiative rail** (current combatant gets an ember left-edge + glow + ember
+  init#) and **conditions collapsed** to active-chips + a "+" popover (killed the wall of 15 buttons). Presentational
+  only — NO behavior/route/domain/MCP change (markup edits = classes + pure display helpers `HpColor`/edition-label
+  + a view-state popover toggle; existing handlers reused). Responsive (sidebar collapses to a wrapping top bar at
+  ≤820px, no horizontal overflow), focus rings, reduced-motion. **NEW dev-flow gate added:** UI/presentational
+  changes verify via build+full-suite-green (behavior-neutral) + LIVE Playwright screenshots (desktop+mobile) +
+  overflow check + class-resolution grep — unit tests can't see a pixel (this session's 5 real defects were all
+  screenshot-only). Razor `text@id` email-heuristic gotcha (`d@die`→`d@(die)`) now a dev-flow red flag.
+  DEFERRED (minor): "Build" encounter button is neutral not gold; assistant chat bubble alignment.
+
 ## TEST INFRA (confirmed present)
 Real Testcontainers in-repo: `Testcontainers.PostgreSql` 4.12.0 (`Persistence/PostgresFixture.cs`,
 postgres:18-alpine) + Respawn 7.0.0 per-test isolation; `Testcontainers.Qdrant` 4.12.0
@@ -179,11 +199,12 @@ NOT excluded from `dnd_entities` — spanned 3 write paths — until final revie
 mislabeled real entities). Cross-path invariants must be traced across ALL paths at final review; inject
 INTERFACES not concrete types — both now in dev-flow SKILL.
 
-## Current position (2026-07-10c)
+## Current position (2026-07-11)
 Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**; **companion reasoning +
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
-(Item B), combat/initiative tracker + dedicated play page (Item C).** Only active openspec change is the parked
-`prose-grounded-knowledge-model`. FULL suite **1179/1179**.
+(Item B), combat/initiative tracker + dedicated play page (Item C).** **UI fully restyled — `visual-design-system`
+SHIPPED (token-based "arcane console" dark theme across every surface; the app no longer looks unfinished).**
+Only active openspec change is the parked `prose-grounded-knowledge-model`. FULL suite **1186/1186**.
 NEXT candidates (user's call):
 (1) more companion REASONING surfaces: **encounter-design v2 swarms** ("N goblins" — generator + monster
     source emit per-monster quantities), setting-aware lore synthesis, deeper character-build advice;
