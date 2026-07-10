@@ -33,6 +33,11 @@ public sealed class CampaignLogRepository(IDbContextFactory<AppDbContext> dbf)
         return await AddAsync(userId, campaignId, CampaignLogKind.Encounter, JsonSerializer.Serialize(payload), label, hidden);
     }
 
+    public async Task<long> AddCombatAsync(long userId, long campaignId, CombatLogPayload payload, string? label)
+    {
+        return await AddAsync(userId, campaignId, CampaignLogKind.Combat, JsonSerializer.Serialize(payload), label, hidden: false);
+    }
+
     public async Task<List<CampaignLogEntry>> GetByCampaignAsync(long campaignId, long userId)
     {
         await using var db = await dbf.CreateDbContextAsync();
