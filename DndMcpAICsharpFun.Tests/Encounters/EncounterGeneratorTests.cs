@@ -80,6 +80,7 @@ public sealed class EncounterGeneratorTests
         result.Assessment.Difficulty.Should().Be(Difficulty.Hard);
         result.FullyMatched.Should().BeTrue();
         result.Note.Should().BeNull();
+        result.PartyLevels.Should().Equal(Party4L5);
 
         // Build == rate: re-assessing the exact monster set the generator returned must agree
         // with what the generator itself reported — build and rate can never disagree.
@@ -131,6 +132,7 @@ public sealed class EncounterGeneratorTests
         result.FullyMatched.Should().BeFalse();
         result.Note.Should().NotBeNullOrWhiteSpace();
         result.Assessment.Monsters.Should().ContainSingle(m => m.Id == "mm.monster.tiny");
+        result.PartyLevels.Should().Equal(Party4L5);
     }
 
     [Fact]

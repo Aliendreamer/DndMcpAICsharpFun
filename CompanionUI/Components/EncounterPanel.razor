@@ -105,7 +105,7 @@
             a.Difficulty.ToString(),
             a.TotalMonsterXp,
             a.AdjustedXp,
-            Array.Empty<int>(),
+            _built.PartyLevels,
             a.Monsters.Select(m => new EncounterMonsterLog(m.Id, m.Name, m.Cr, m.Xp)).ToList(),
             _built.FullyMatched,
             _built.Note);

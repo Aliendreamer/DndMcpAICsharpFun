@@ -4,10 +4,16 @@ namespace DndMcpAICsharpFun.Features.Encounters;
 
 /// <summary>
 /// The result of building an encounter toward a target <see cref="Difficulty"/>: the shared
-/// Assessor's rating of the final monster set, whether the target band was actually reached, and
-/// — when it wasn't — an explanatory <see cref="Note"/>.
+/// Assessor's rating of the final monster set, whether the target band was actually reached,
+/// — when it wasn't — an explanatory <see cref="Note"/>, and the resolved <see cref="PartyLevels"/>
+/// actually used for the build (so callers that only pass a campaignId/heroes can still surface
+/// the concrete levels, e.g. in a campaign-log payload).
 /// </summary>
-public sealed record BuiltEncounter(EncounterAssessment Assessment, bool FullyMatched, string? Note);
+public sealed record BuiltEncounter(
+    EncounterAssessment Assessment,
+    bool FullyMatched,
+    string? Note,
+    IReadOnlyList<int> PartyLevels);
 
 /// <summary>
 /// Builds an encounter toward a target difficulty band by greedily adding monster candidates and
@@ -172,6 +178,6 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
                 : $"Only {candidates.Count} candidate(s) in CR [{effectiveCrGte:0.###}, {effectiveCrLte:0.###}]; " +
                   $"best achievable is {current.Difficulty} with {selected.Count} monster(s).";
 
-        return new BuiltEncounter(current, fullyMatched, note);
+        return new BuiltEncounter(current, fullyMatched, note, partyLevels);
     }
 }
