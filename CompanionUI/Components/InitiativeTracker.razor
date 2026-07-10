@@ -29,8 +29,8 @@
             <div class="combat-head">
                 <strong>@_combat.Name</strong>
                 <span class="muted">Round @_combat.Round · @_combat.Edition</span>
-                <button @onclick="AdvanceAsync">Advance turn ▸</button>
-                <button @onclick="BeginEnd">End combat</button>
+                <button class="btn btn--primary" @onclick="AdvanceAsync">Advance turn ▸</button>
+                <button class="btn btn--ghost" @onclick="BeginEnd">End combat</button>
             </div>
 
             <div class="combat-add-row">
@@ -54,15 +54,28 @@
                         <span class="c-name">@c.Name @(c.IsPlayer ? "" : "(NPC)")</span>
                         <span class="c-hp">
                             <button @onclick="() => AdjustHpAsync(c, -1)">−</button>
-                            @c.CurrentHp / <input type="number" class="c-maxhp" value="@c.MaxHp" @onchange="e => SetMaxHpAsync(c, e.Value?.ToString())" />
+                            <span class="c-hp-numbers">@c.CurrentHp / <input type="number" class="c-maxhp" value="@c.MaxHp" @onchange="e => SetMaxHpAsync(c, e.Value?.ToString())" /></span>
                             <button @onclick="() => AdjustHpAsync(c, +1)">+</button>
+                            <span class="hp-bar"><span style="width:@(HpPercent(c))%"></span></span>
                         </span>
                         <span class="c-conditions">
-                            @foreach (var cond in Enum.GetValues<Condition>())
+                            @foreach (var cond in c.Conditions)
                             {
-                                var on = c.Conditions.Contains(cond);
-                                <button class="@(on ? "cond on" : "cond")"
-                                        @onclick="() => ToggleConditionAsync(c, cond)">@cond</button>
+                                <button type="button" class="chip cond-chip"
+                                        @onclick="() => ToggleConditionAsync(c, cond)">@cond ✕</button>
+                            }
+                            <button type="button" class="cond-menu-toggle"
+                                    @onclick="() => ToggleConditionMenu(c.Id)">+</button>
+                            @if (_conditionMenuFor == c.Id)
+                            {
+                                <div class="cond-menu">
+                                    @foreach (var cond in Enum.GetValues<Condition>())
+                                    {
+                                        var on = c.Conditions.Contains(cond);
+                                        <button type="button" class="@(on ? "cond on" : "cond")"
+                                                @onclick="() => ToggleConditionAsync(c, cond)">@cond</button>
+                                    }
+                                </div>
                             }
                         </span>
                         <button class="c-remove" @onclick="() => RemoveAsync(c)">✕</button>
@@ -126,6 +139,15 @@
 
     private bool _ending;
     private readonly Dictionary<long, int> _approvedHp = new();
+
+    /// <summary>View-state only: which combatant's full 15-condition picker is currently expanded (collapse UI, no logic change).</summary>
+    private long? _conditionMenuFor;
+
+    private void ToggleConditionMenu(long combatantId) =>
+        _conditionMenuFor = _conditionMenuFor == combatantId ? null : combatantId;
+
+    private static int HpPercent(Combatant c) =>
+        c.MaxHp > 0 ? Math.Clamp((int)Math.Round(100.0 * c.CurrentHp / c.MaxHp), 0, 100) : 0;
 
     protected override async Task OnInitializedAsync() => await ReloadAsync();
 
