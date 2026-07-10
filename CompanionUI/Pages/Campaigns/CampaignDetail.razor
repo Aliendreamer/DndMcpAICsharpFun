@@ -36,7 +36,7 @@ else
                     @if (sheet is not null)
                     {
                         <span>@sheet.Class @(string.IsNullOrEmpty(sheet.Subclass) ? "" : $"({sheet.Subclass})") · Lv @sheet.Level</span>
-                        <span>HP @sheet.CurrentHitPoints / @sheet.MaxHitPoints · AC @sheet.ArmorClass</span>
+                        <span class="data">HP @sheet.CurrentHitPoints / @sheet.MaxHitPoints · AC @sheet.ArmorClass</span>
                     }
                 </div>
             }
