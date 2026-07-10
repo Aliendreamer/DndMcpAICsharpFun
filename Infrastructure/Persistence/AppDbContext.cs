@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain;
+using DndMcpAICsharpFun.Features.Combat;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +27,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Bm25CorpusStat> Bm25CorpusStats => Set<Bm25CorpusStat>();
     public DbSet<Bm25BookStat> Bm25BookStats => Set<Bm25BookStat>();
     public DbSet<CampaignLogEntry> CampaignLogEntries => Set<CampaignLogEntry>();
+    public DbSet<Combat> Combats => Set<Combat>();
+    public DbSet<Combatant> Combatants => Set<Combatant>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -123,6 +126,28 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.PayloadJson).HasColumnType("text");
             e.Property(x => x.Label);
             e.HasIndex(x => new { x.CampaignId, x.UserId, x.CreatedAt });
+        });
+
+        modelBuilder.Entity<Combat>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Edition).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+            e.Property(x => x.Name).IsRequired();
+            e.HasIndex(x => new { x.CampaignId, x.UserId, x.Status });
+        });
+
+        modelBuilder.Entity<Combatant>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).IsRequired();
+            e.Property(x => x.ConditionsJson).HasColumnType("text");
+            e.Ignore(x => x.Conditions);
+            e.HasIndex(x => x.CombatId);
+            e.HasOne<Combat>()
+                .WithMany()
+                .HasForeignKey(x => x.CombatId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
