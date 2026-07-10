@@ -82,4 +82,83 @@ public sealed class CombatRepository(IDbContextFactory<AppDbContext> dbf)
                 .SetProperty(c => c.Status, CombatStatus.Ended)
                 .SetProperty(c => c.EndedAt, DateTime.UtcNow));
     }
+
+
+    public async Task<long> AddCombatantAsync(long combatId, long campaignId, long userId, Combatant combatant)
+    {
+        await using var db = await dbf.CreateDbContextAsync();
+        var owns = await db.Combats
+            .AnyAsync(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId);
+        if (!owns) return 0;
+
+        combatant.CombatId = combatId;
+        combatant.AddedOrder = await db.Combatants.CountAsync(x => x.CombatId == combatId);
+        db.Combatants.Add(combatant);
+        await db.SaveChangesAsync();
+        return combatant.Id;
+    }
+
+    public async Task UpdateCombatantAsync(
+        long combatantId, long combatId, long campaignId, long userId,
+        int currentHp, int? initiativeRoll, int initiativeModifier, IReadOnlyList<Condition> conditions)
+    {
+        await using var db = await dbf.CreateDbContextAsync();
+        var owns = await db.Combats
+            .AnyAsync(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId);
+        if (!owns) return;
+
+        var conditionsJson = CombatantConditions.Serialize(conditions);
+        await db.Combatants
+            .Where(x => x.Id == combatantId && x.CombatId == combatId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.CurrentHp, currentHp)
+                .SetProperty(x => x.InitiativeRoll, initiativeRoll)
+                .SetProperty(x => x.InitiativeModifier, initiativeModifier)
+                .SetProperty(x => x.ConditionsJson, conditionsJson));
+    }
+
+    public async Task RemoveCombatantAsync(long combatantId, long combatId, long campaignId, long userId)
+    {
+        await using var db = await dbf.CreateDbContextAsync();
+        var owns = await db.Combats
+            .AnyAsync(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId);
+        if (!owns) return;
+
+        await db.Combatants
+            .Where(x => x.Id == combatantId && x.CombatId == combatId)
+            .ExecuteDeleteAsync();
+    }
+
+    public async Task AdvanceTurnAsync(long combatId, long campaignId, long userId)
+    {
+        await using var db = await dbf.CreateDbContextAsync();
+        var combat = await db.Combats
+            .FirstOrDefaultAsync(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId);
+        if (combat is null) return;
+
+        var count = await db.Combatants.CountAsync(x => x.CombatId == combatId);
+        if (count == 0) return;
+
+        var next = combat.CurrentTurnIndex + 1;
+        if (next >= count)
+        {
+            combat.CurrentTurnIndex = 0;
+            combat.Round += 1;
+        }
+        else
+        {
+            combat.CurrentTurnIndex = next;
+        }
+        await db.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(long combatId, long campaignId, long userId)
+    {
+        await using var db = await dbf.CreateDbContextAsync();
+        // Combatants cascade at the DB level via the FK, but the parent delete is ownership-scoped,
+        // so an intruder's DeleteAsync removes nothing.
+        await db.Combats
+            .Where(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId)
+            .ExecuteDeleteAsync();
+    }
 }
