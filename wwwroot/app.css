@@ -1,13 +1,43 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ============ fonts ============ */
+@font-face { font-family: "Grenze Gotisch"; src: url("fonts/grenze-gotisch-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Alegreya Sans"; src: url("fonts/alegreya-sans-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Alegreya Sans"; src: url("fonts/alegreya-sans-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Alegreya Sans"; src: url("fonts/alegreya-sans-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("fonts/jetbrains-mono-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("fonts/jetbrains-mono-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 
-body {
-    font-family: system-ui, sans-serif;
-    background: #0f0f1a;
-    color: #e0e0e0;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+/* ============ tokens ============ */
+:root {
+  --ink: #0E1018; --surface: #171A27; --surface-2: #20243A; --border: #2A2F48;
+  --arcane: #8B7CF6; --ember: #E8B65A; --hp: #E5484D; --heal: #3DD68C;
+  --muted: #8A90A6; --text: #E7E9F2;
+  --font-display: "Grenze Gotisch", Georgia, serif;
+  --font-body: "Alegreya Sans", system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, monospace;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --r-sm:7px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+  --shadow: 0 18px 50px -28px rgba(0,0,0,.85);
+  --ring: 0 0 0 2px var(--ink), 0 0 0 4px var(--arcane);
+  --fs-xs:12px; --fs-sm:13.5px; --fs-md:15px; --fs-lg:19px; --fs-xl:26px; --fs-2xl:38px;
 }
+
+/* ============ base ============ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body); color: var(--text);
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(232,182,90,.05), transparent 55%),
+    var(--ink);
+  min-height: 100vh; display: flex; flex-direction: column; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { text-wrap: balance; }
+a { color: var(--arcane); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-sm); }
+.muted { color: var(--muted); }
+.error { color: var(--hp); font-size: var(--fs-sm); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
 .chat-container {
     display: flex;
