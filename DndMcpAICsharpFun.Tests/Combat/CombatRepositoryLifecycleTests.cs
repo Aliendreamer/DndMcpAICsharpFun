@@ -6,6 +6,8 @@ using DndMcpAICsharpFun.Tests.Persistence;
 
 using FluentAssertions;
 
+using Microsoft.EntityFrameworkCore;
+
 namespace DndMcpAICsharpFun.Tests.Combat;
 
 [Collection("postgres")]
@@ -77,5 +79,29 @@ public sealed class CombatRepositoryLifecycleTests(PostgresFixture pg) : IAsyncL
 
         second.Should().NotBeNull();
         (await _repo.GetActiveAsync(campaignId, userId))!.Name.Should().Be("Second");
+    }
+
+    [Fact]
+    public async Task Database_rejects_a_second_active_combat_for_the_same_campaign()
+    {
+        var (userId, campaignId) = await SeedAsync();
+        await _repo.StartAsync(userId, campaignId, "First", DndVersion.Edition2014);
+
+        // Bypass StartAsync's pre-check and insert a second Active combat directly:
+        // the partial-unique index must reject it.
+        await using var db = new TestDb(pg).CreateDbContext();
+        db.Combats.Add(new DndMcpAICsharpFun.Features.Combat.Combat
+        {
+            CampaignId = campaignId,
+            UserId = userId,
+            Name = "Direct",
+            Edition = DndVersion.Edition2014,
+            Status = CombatStatus.Active,
+            Round = 1,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        var act = async () => await db.SaveChangesAsync();
+        await act.Should().ThrowAsync<DbUpdateException>();
     }
 }

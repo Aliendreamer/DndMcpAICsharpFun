@@ -31,7 +31,16 @@ public sealed class CombatRepository(IDbContextFactory<AppDbContext> dbf)
             CreatedAt = DateTime.UtcNow,
         };
         db.Combats.Add(combat);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Lost a concurrent-start race: the DB unique index rejected the second Active combat.
+            // Honor the same contract as the pre-check — no new active combat was created.
+            return null;
+        }
         return combat.Id;
     }
 

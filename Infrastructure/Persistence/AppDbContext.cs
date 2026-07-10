@@ -135,6 +135,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.Status).HasConversion<string>();
             e.Property(x => x.Name).IsRequired();
             e.HasIndex(x => new { x.CampaignId, x.UserId, x.Status });
+
+            // At most one Active combat per campaign, enforced at the DB (backstops StartAsync's
+            // check-then-insert against a concurrent-start race). Status persists as a string via
+            // HasConversion<string>(), so the partial-index filter matches the string literal.
+            e.HasIndex(x => x.CampaignId)
+                .IsUnique()
+                .HasFilter("\"Status\" = 'Active'")
+                .HasDatabaseName("IX_Combats_CampaignId_ActiveUnique");
         });
 
         modelBuilder.Entity<Combatant>(e =>

@@ -88,10 +88,11 @@ public sealed class CombatService(
 
         var combatants = await combats.GetCombatantsAsync(combatId, campaignId, userId);
 
+        var partyById = (await heroes.GetByCampaignAsync(campaignId)).ToDictionary(h => h.Id);
         foreach (var c in combatants.Where(c => c is { IsPlayer: true, HeroId: not null }))
         {
-            var hero = await heroes.GetByIdAsync(c.HeroId!.Value);
-            var latest = hero?.LatestSnapshot;
+            if (!partyById.TryGetValue(c.HeroId!.Value, out var hero)) continue;
+            var latest = hero.LatestSnapshot;
             if (latest is null) continue;
 
             var approvedHp = approvedHpByCombatantId.TryGetValue(c.Id, out var hp) ? hp : c.CurrentHp;
