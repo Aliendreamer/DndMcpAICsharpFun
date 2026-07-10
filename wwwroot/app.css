@@ -738,6 +738,10 @@ input::placeholder, textarea::placeholder { color:var(--muted); }
 .campaign-detail nav a { color: var(--arcane); font-size: var(--fs-sm); }
 .campaign-desc { color: var(--muted); }
 
+/* the two standalone "+ Add Hero" / "+ Add Note" buttons are direct children of the
+   flex-column .campaign-detail body, so they'd otherwise stretch to full width */
+.campaign-detail > button { align-self: flex-start; width: auto; }
+
 .campaign-detail h2 {
     font-size: var(--fs-lg);
     color: var(--text);
@@ -976,7 +980,7 @@ input::placeholder, textarea::placeholder { color:var(--muted); }
 .c-maxhp { width: 48px; font-family: var(--font-data); padding: 3px 6px; }
 
 .hp-bar { display: inline-block; width: 60px; height: 5px; border-radius: var(--r-pill); background: var(--surface); overflow: hidden; }
-.hp-bar > span { display: block; height: 100%; background: var(--hp); border-radius: var(--r-pill); }
+.hp-bar > span { display: block; height: 100%; border-radius: var(--r-pill); transition: width .15s ease, background .15s ease; }
 
 .c-conditions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; position: relative; }
 .cond-chip { cursor: pointer; }

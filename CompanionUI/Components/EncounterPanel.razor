@@ -30,7 +30,7 @@
             <input type="text" @bind="_theme" @bind:event="oninput" placeholder="e.g. undead (optional)" />
         </label>
 
-        <button type="button" @onclick="BuildAsync">Build</button>
+        <button type="button" class="btn btn--primary" @onclick="BuildAsync">Build</button>
     </div>
 
     @if (_error is not null)
@@ -54,7 +54,7 @@
             <div class="encounter-save-row">
                 <input type="text" @bind="_label" @bind:event="oninput" placeholder="Label (optional)" />
                 <label><input type="checkbox" @bind="_hidden" /> Hidden</label>
-                <button type="button" @onclick="SaveAsync">Save to log</button>
+                <button type="button" class="btn btn--primary" @onclick="SaveAsync">Save to log</button>
             </div>
         </div>
     }

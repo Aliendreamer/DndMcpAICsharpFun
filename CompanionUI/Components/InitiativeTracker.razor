@@ -28,7 +28,7 @@
         <div class="combat-active">
             <div class="combat-head">
                 <strong>@_combat.Name</strong>
-                <span class="muted">Round @_combat.Round · @_combat.Edition</span>
+                <span class="muted">Round @_combat.Round · @(_combat.Edition == DndVersion.Edition2024 ? "2024" : "2014")</span>
                 <button class="btn btn--primary" @onclick="AdvanceAsync">Advance turn ▸</button>
                 <button class="btn btn--ghost" @onclick="BeginEnd">End combat</button>
             </div>
@@ -56,7 +56,7 @@
                             <button @onclick="() => AdjustHpAsync(c, -1)">−</button>
                             <span class="c-hp-numbers">@c.CurrentHp / <input type="number" class="c-maxhp" value="@c.MaxHp" @onchange="e => SetMaxHpAsync(c, e.Value?.ToString())" /></span>
                             <button @onclick="() => AdjustHpAsync(c, +1)">+</button>
-                            <span class="hp-bar"><span style="width:@(HpPercent(c))%"></span></span>
+                            <span class="hp-bar"><span style="width:@(HpPercent(c))%;background:@(HpColor(c))"></span></span>
                         </span>
                         <span class="c-conditions">
                             @foreach (var cond in c.Conditions)
@@ -148,6 +148,13 @@
 
     private static int HpPercent(Combatant c) =>
         c.MaxHp > 0 ? Math.Clamp((int)Math.Round(100.0 * c.CurrentHp / c.MaxHp), 0, 100) : 0;
+
+    private static string HpColor(Combatant c)
+    {
+        if (c.MaxHp <= 0) return "var(--muted)";
+        var pct = (double)c.CurrentHp / c.MaxHp;
+        return pct > 0.5 ? "var(--heal)" : pct > 0.25 ? "var(--ember)" : "var(--hp)";
+    }
 
     protected override async Task OnInitializedAsync() => await ReloadAsync();
 
