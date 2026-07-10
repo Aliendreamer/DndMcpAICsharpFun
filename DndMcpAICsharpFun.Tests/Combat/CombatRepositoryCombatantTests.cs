@@ -129,4 +129,47 @@ public sealed class CombatRepositoryCombatantTests(PostgresFixture pg) : IAsyncL
         var combatants = await _repo.GetCombatantsAsync(combatId, campaignId, userId);
         combatants.Should().ContainSingle(c => c.Id == combatantId && c.CurrentHp == 7);
     }
+
+
+    [Fact]
+    public async Task SetMaxHp_on_a_freshly_drafted_combatant_sets_current_to_full()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        // A drafted monster starts at 0/0 (MonsterRef carries no HP).
+        var id = await _repo.AddCombatantAsync(combatId, campaignId, userId,
+            new Combatant { Name = "Goblin", IsPlayer = false, MaxHp = 0, CurrentHp = 0 });
+
+        await _repo.SetMaxHpAsync(id, combatId, campaignId, userId, 11);
+
+        var goblin = (await _repo.GetCombatantsAsync(combatId, campaignId, userId)).Single();
+        goblin.MaxHp.Should().Be(11);
+        goblin.CurrentHp.Should().Be(11);
+    }
+
+    [Fact]
+    public async Task SetMaxHp_lower_than_current_clamps_current()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var id = await _repo.AddCombatantAsync(combatId, campaignId, userId,
+            new Combatant { Name = "Ogre", IsPlayer = false, MaxHp = 20, CurrentHp = 20 });
+
+        await _repo.SetMaxHpAsync(id, combatId, campaignId, userId, 8);
+
+        var ogre = (await _repo.GetCombatantsAsync(combatId, campaignId, userId)).Single();
+        ogre.MaxHp.Should().Be(8);
+        ogre.CurrentHp.Should().Be(8);
+    }
+
+    [Fact]
+    public async Task SetMaxHp_on_another_users_combat_is_a_no_op()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var id = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("Goblin", 12));
+        var intruder = await _users.CreateAsync("intruder", "hash");
+
+        await _repo.SetMaxHpAsync(id, combatId, campaignId, intruder, 999);
+
+        var goblin = (await _repo.GetCombatantsAsync(combatId, campaignId, userId)).Single();
+        goblin.MaxHp.Should().Be(7); // Monster("Goblin", 12) helper seeds MaxHp 7, unchanged
+    }
 }

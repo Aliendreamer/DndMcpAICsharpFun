@@ -116,6 +116,24 @@ public sealed class CombatRepository(IDbContextFactory<AppDbContext> dbf)
                 .SetProperty(x => x.ConditionsJson, conditionsJson));
     }
 
+
+    public async Task SetMaxHpAsync(long combatantId, long combatId, long campaignId, long userId, int maxHp)
+    {
+        if (maxHp < 0) maxHp = 0;
+        await using var db = await dbf.CreateDbContextAsync();
+        var owns = await db.Combats
+            .AnyAsync(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId);
+        if (!owns) return;
+
+        var combatant = await db.Combatants.FirstOrDefaultAsync(x => x.Id == combatantId && x.CombatId == combatId);
+        if (combatant is null) return;
+
+        // A freshly-drafted combatant (MaxHp 0) starts at full; otherwise never leave CurrentHp above the new max.
+        combatant.CurrentHp = combatant.MaxHp == 0 ? maxHp : Math.Min(combatant.CurrentHp, maxHp);
+        combatant.MaxHp = maxHp;
+        await db.SaveChangesAsync();
+    }
+
     public async Task RemoveCombatantAsync(long combatantId, long combatId, long campaignId, long userId)
     {
         await using var db = await dbf.CreateDbContextAsync();

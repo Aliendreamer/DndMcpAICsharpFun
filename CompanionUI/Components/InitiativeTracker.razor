@@ -54,7 +54,7 @@
                         <span class="c-name">@c.Name @(c.IsPlayer ? "" : "(NPC)")</span>
                         <span class="c-hp">
                             <button @onclick="() => AdjustHpAsync(c, -1)">−</button>
-                            @c.CurrentHp / @c.MaxHp
+                            @c.CurrentHp / <input type="number" class="c-maxhp" value="@c.MaxHp" @onchange="e => SetMaxHpAsync(c, e.Value?.ToString())" />
                             <button @onclick="() => AdjustHpAsync(c, +1)">+</button>
                         </span>
                         <span class="c-conditions">
@@ -198,6 +198,14 @@
         var hp = Math.Clamp(c.CurrentHp + delta, 0, c.MaxHp > 0 ? c.MaxHp : int.MaxValue);
         await CombatRepo.UpdateCombatantAsync(c.Id, _combat.Id, CampaignId, UserId,
             hp, c.InitiativeRoll, c.InitiativeModifier, c.Conditions);
+        await ReloadAsync();
+    }
+
+    private async Task SetMaxHpAsync(Combatant c, string? raw)
+    {
+        if (_combat is null) return;
+        if (!int.TryParse(raw, out var maxHp)) return;
+        await CombatRepo.SetMaxHpAsync(c.Id, _combat.Id, CampaignId, UserId, maxHp);
         await ReloadAsync();
     }
 
