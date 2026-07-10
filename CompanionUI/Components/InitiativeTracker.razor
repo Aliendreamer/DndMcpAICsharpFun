@@ -42,10 +42,10 @@
             </div>
 
             <ol class="combatant-list">
-                @{ var ordered = CombatantOrder.Sort(_combatants); var i = 0; }
+                @{ var ordered = CombatantOrder.Sort(_combatants); var currentTurnId = _combat.CurrentTurnCombatantId ?? ordered.FirstOrDefault()?.Id; }
                 @foreach (var c in ordered)
                 {
-                    var isCurrent = i == _combat.CurrentTurnIndex;
+                    var isCurrent = c.Id == currentTurnId;
                     <li class="@(isCurrent ? "combatant current" : "combatant")">
                         <span class="c-init">
                             <input type="number" value="@c.InitiativeRoll"
@@ -67,7 +67,6 @@
                         </span>
                         <button class="c-remove" @onclick="() => RemoveAsync(c)">✕</button>
                     </li>
-                    i++;
                 }
                 @if (ordered.Count == 0)
                 {

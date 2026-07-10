@@ -28,7 +28,6 @@ public sealed class CombatRepository(IDbContextFactory<AppDbContext> dbf)
             Edition = edition,
             Status = CombatStatus.Active,
             Round = 1,
-            CurrentTurnIndex = 0,
             CreatedAt = DateTime.UtcNow,
         };
         db.Combats.Add(combat);
@@ -136,19 +135,28 @@ public sealed class CombatRepository(IDbContextFactory<AppDbContext> dbf)
             .FirstOrDefaultAsync(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId);
         if (combat is null) return;
 
-        var count = await db.Combatants.CountAsync(x => x.CombatId == combatId);
-        if (count == 0) return;
+        var combatants = await db.Combatants.Where(x => x.CombatId == combatId).ToListAsync();
+        if (combatants.Count == 0) return;
 
-        var next = combat.CurrentTurnIndex + 1;
-        if (next >= count)
+        var ordered = CombatantOrder.Sort(combatants);
+        // The current combatant is the tracked one, or (before the first advance) the top of the order.
+        var currentId = combat.CurrentTurnCombatantId ?? ordered[0].Id;
+
+        var pos = -1;
+        for (var i = 0; i < ordered.Count; i++)
         {
-            combat.CurrentTurnIndex = 0;
+            if (ordered[i].Id == currentId) { pos = i; break; }
+        }
+
+        // pos == -1 means the tracked combatant was removed; re-anchor to the top without bumping the round.
+        var next = pos + 1;
+        if (next >= ordered.Count)
+        {
+            next = 0;
             combat.Round += 1;
         }
-        else
-        {
-            combat.CurrentTurnIndex = next;
-        }
+
+        combat.CurrentTurnCombatantId = ordered[next].Id;
         await db.SaveChangesAsync();
     }
 

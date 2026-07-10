@@ -21,7 +21,7 @@ public sealed class Combat
     public DndVersion Edition { get; set; }
     public CombatStatus Status { get; set; }
     public int Round { get; set; } = 1;
-    public int CurrentTurnIndex { get; set; }
+    public long? CurrentTurnCombatantId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? EndedAt { get; set; }
 }

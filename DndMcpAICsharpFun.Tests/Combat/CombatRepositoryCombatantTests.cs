@@ -46,21 +46,41 @@ public sealed class CombatRepositoryCombatantTests(PostgresFixture pg) : IAsyncL
     }
 
     [Fact]
-    public async Task Advance_turn_wraps_and_increments_round()
+    public async Task Advance_turn_moves_to_next_in_order_and_wraps_incrementing_round()
     {
         var (userId, campaignId, combatId) = await SeedCombatAsync();
-        await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 20));
-        await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 10));
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 20));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 10));
 
-        await _repo.AdvanceTurnAsync(combatId, campaignId, userId); // 0 -> 1
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId); // top (A) -> B
         var mid = await _repo.GetByIdAsync(combatId, campaignId, userId);
-        mid!.CurrentTurnIndex.Should().Be(1);
+        mid!.CurrentTurnCombatantId.Should().Be(idB);
         mid.Round.Should().Be(1);
 
-        await _repo.AdvanceTurnAsync(combatId, campaignId, userId); // 1 -> wrap to 0, round 2
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId); // B -> wrap to A, round 2
         var wrapped = await _repo.GetByIdAsync(combatId, campaignId, userId);
-        wrapped!.CurrentTurnIndex.Should().Be(0);
+        wrapped!.CurrentTurnCombatantId.Should().Be(idA);
         wrapped.Round.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Removing_a_combatant_before_the_current_one_does_not_drift_the_turn()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 20));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 15));
+        var idC = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("C", 10));
+
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId); // A -> B
+        (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().Be(idB);
+
+        // Remove A (sorted BEFORE current B). Current must STILL be B (identity-tracked, no drift).
+        await _repo.RemoveCombatantAsync(idA, combatId, campaignId, userId);
+        (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().Be(idB);
+
+        // Advancing now goes B -> C in the reduced order.
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId);
+        (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().Be(idC);
     }
 
     [Fact]
@@ -105,7 +125,7 @@ public sealed class CombatRepositoryCombatantTests(PostgresFixture pg) : IAsyncL
         var combat = await _repo.GetByIdAsync(combatId, campaignId, userId);
         combat.Should().NotBeNull();
         combat!.Status.Should().Be(CombatStatus.Active);
-        combat.CurrentTurnIndex.Should().Be(0);
+        combat.CurrentTurnCombatantId.Should().BeNull();
         var combatants = await _repo.GetCombatantsAsync(combatId, campaignId, userId);
         combatants.Should().ContainSingle(c => c.Id == combatantId && c.CurrentHp == 7);
     }
