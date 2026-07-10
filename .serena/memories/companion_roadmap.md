@@ -116,10 +116,17 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   dice roller + encounter panel + `InitiativeTracker` + campaign log (all MOVED off `CampaignDetail`, which now
   links "▶ Run session"). `EncounterPanel.OnBuilt` feeds built monsters to the tracker; editable per-combatant
   MaxHp so encounter-drafted monsters (MonsterRef carries no HP) are trackable. NO HTTP/MCP surface (server-side
-  Blazor). DEFERRED (all acceptable per final review): `StartAsync` one-active TOCTOU (add filtered-unique index
-  on `Combats(CampaignId) WHERE Status=Active`); `EndCombatAsync` N+1 GetById per player; removing the CURRENT
-  combatant leaves no highlight until next advance (which re-anchors to top); monster Dex-mod from entity
-  (init default +0); live Playwright smoke of the play page.
+  Blazor). **DEFERRED FOLLOW-UPS SHIPPED (2026-07-10c, commits `9c21f27..25e9de9`, suite 1186/1186):** D1 =
+  DB filtered-unique index `IX_Combats_CampaignId_ActiveUnique` (one active combat per campaign, backstops the
+  StartAsync race → returns null on DbUpdateException) + `EndCombatAsync` batches the party load (N+1 killed);
+  D3 = monster initiative modifier from entity Dexterity (`MonsterFields.dex` → `floor((dex-10)/2)`, threaded
+  through `MonsterRef.InitiativeModifier`, tracker stays Qdrant-free); D4 = **live Playwright smoke PASSED**
+  (rebuilt dev container from current main: play page renders all 4 components, CampaignDetail relocated,
+  start→manual-monster-auto-init→editable-MaxHp→condition-toggle→HP−→PERSISTS-across-reload→advance-wraps-round→
+  end-with-approval→history→breadcrumb-rendered); D5 = smoke FOUND+FIXED a live bug (ending a combat didn't
+  refresh the on-page CampaignLog — added `InitiativeTracker.OnLogChanged`→`RefreshLog`, re-smoked green).
+  STILL DEFERRED (minor UX): removing the CURRENT combatant leaves no highlight until the next advance (which
+  re-anchors to top, not next-after-removed).
 
 ## TEST INFRA (confirmed present)
 Real Testcontainers in-repo: `Testcontainers.PostgreSql` 4.12.0 (`Persistence/PostgresFixture.cs`,
