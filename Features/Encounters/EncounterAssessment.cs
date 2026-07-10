@@ -4,7 +4,7 @@ namespace DndMcpAICsharpFun.Features.Encounters;
 /// A single monster's identity and XP contribution to an encounter, as evaluated by
 /// <see cref="EncounterAssessor"/>.
 /// </summary>
-public sealed record MonsterRef(string Id, string Name, double Cr, int Xp);
+public sealed record MonsterRef(string Id, string Name, double Cr, int Xp, int InitiativeModifier = 0);
 
 /// <summary>
 /// The minimum total monster XP (post-multiplier for 2014, raw for 2024) required to reach

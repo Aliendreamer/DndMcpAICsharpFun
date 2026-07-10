@@ -61,7 +61,8 @@ public sealed class EntitySearchMonsterSource(IEntityRetrievalService search) : 
                 continue; // CR outside the standard 0..30 table — skip rather than throw mid-search
             }
 
-            monsters.Add(new MonsterRef(hit.Id, hit.Name, cr, xp));
+            var initMod = MonsterDex.TryReadModifier(hit.Fields, out var m) ? m : 0;
+            monsters.Add(new MonsterRef(hit.Id, hit.Name, cr, xp, initMod));
         }
 
         return monsters;
@@ -100,5 +101,38 @@ internal static class MonsterCr
         }
 
         return double.TryParse(cr, NumberStyles.Any, CultureInfo.InvariantCulture, out value);
+    }
+}
+
+
+/// <summary>
+/// Reads a monster's Dexterity ability score from its entity fields (<c>MonsterFields.dex</c>) and
+/// derives the D&D initiative modifier <c>floor((dex-10)/2)</c>. Returns false when no usable dex is
+/// present (caller defaults the modifier to 0).
+/// </summary>
+internal static class MonsterDex
+{
+    public static bool TryReadModifier(JsonElement fields, out int modifier)
+    {
+        modifier = 0;
+        if (fields.ValueKind != JsonValueKind.Object || !fields.TryGetProperty("dex", out var dexEl))
+            return false;
+
+        int dex;
+        if (dexEl.ValueKind == JsonValueKind.Number && dexEl.TryGetInt32(out dex))
+        {
+            // ok
+        }
+        else if (dexEl.ValueKind == JsonValueKind.String && int.TryParse(dexEl.GetString(), out dex))
+        {
+            // ok
+        }
+        else
+        {
+            return false;
+        }
+
+        modifier = (int)Math.Floor((dex - 10) / 2.0);
+        return true;
     }
 }

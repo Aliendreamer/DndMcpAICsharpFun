@@ -105,7 +105,8 @@ public sealed class EncounterDesignService(
         {
             try
             {
-                return new MonsterRef(byId.Envelope.Id, byId.Envelope.Name, crById, EncounterMath.CrToXp(crById));
+                var initMod = MonsterDex.TryReadModifier(byId.Envelope.Fields, out var m) ? m : 0;
+                return new MonsterRef(byId.Envelope.Id, byId.Envelope.Name, crById, EncounterMath.CrToXp(crById), initMod);
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -134,7 +135,8 @@ public sealed class EncounterDesignService(
 
         try
         {
-            return new MonsterRef(hit.Id, hit.Name, cr, EncounterMath.CrToXp(cr));
+            var initMod = MonsterDex.TryReadModifier(hit.Fields, out var m) ? m : 0;
+            return new MonsterRef(hit.Id, hit.Name, cr, EncounterMath.CrToXp(cr), initMod);
         }
         catch (ArgumentOutOfRangeException)
         {

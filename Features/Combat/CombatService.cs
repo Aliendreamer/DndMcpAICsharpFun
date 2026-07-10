@@ -49,8 +49,8 @@ public sealed class CombatService(
             {
                 Name = monster.Name,
                 IsPlayer = false,
-                InitiativeModifier = 0,
-                InitiativeRoll = RollInitiative(0),
+                InitiativeModifier = monster.InitiativeModifier,
+                InitiativeRoll = RollInitiative(monster.InitiativeModifier),
                 MaxHp = 0,
                 CurrentHp = 0,
             });

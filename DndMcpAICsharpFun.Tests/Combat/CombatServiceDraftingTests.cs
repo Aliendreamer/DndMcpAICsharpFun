@@ -68,4 +68,21 @@ public sealed class CombatServiceDraftingTests(PostgresFixture pg) : IAsyncLifet
         goblin.InitiativeRoll.Should().Be(1); // MinRandomSource → d20 = 1, + modifier 0
         goblin.Name.Should().Be("Goblin");
     }
+
+
+    [Fact]
+    public async Task Draft_monsters_applies_the_monster_initiative_modifier()
+    {
+        var userId = await _users.CreateAsync("dm", "hash");
+        var campaignId = await _campaigns.CreateAsync(userId, "Camp", "");
+        var combatId = (await _combats.StartAsync(userId, campaignId, "Fight", DndVersion.Edition2014))!.Value;
+
+        // MonsterRef with InitiativeModifier +3; MinRandomSource → d20 = 1, so init = 1 + 3 = 4.
+        await NewService().DraftMonstersAsync(combatId, campaignId, userId,
+            new[] { new MonsterRef("mm.monster.ogre", "Ogre", 2, 450, 3) });
+
+        var ogre = (await _combats.GetCombatantsAsync(combatId, campaignId, userId)).Single();
+        ogre.InitiativeModifier.Should().Be(3);
+        ogre.InitiativeRoll.Should().Be(4);
+    }
 }
