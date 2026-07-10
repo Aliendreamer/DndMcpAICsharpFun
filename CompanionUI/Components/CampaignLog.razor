@@ -70,6 +70,13 @@
                 var breakdown = payload.Breakdown ?? "";
                 return $"{e.Label} · {breakdown} · {payload.Total}";
             }
+            else if (e.Kind == CampaignLogKind.Combat)
+            {
+                var payload = JsonSerializer.Deserialize<CombatLogPayload>(e.PayloadJson);
+                if (payload is null) return null;
+                var count = payload.Combatants?.Count ?? 0;
+                return $"{payload.CombatName} · {payload.Rounds} rounds · {count} combatants";
+            }
             else
             {
                 var payload = JsonSerializer.Deserialize<EncounterLogPayload>(e.PayloadJson);

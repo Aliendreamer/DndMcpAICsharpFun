@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DndMcpAICsharpFun.CompanionUI.Components;
 using DndMcpAICsharpFun.Features.Campaigns;
 using FluentAssertions;
 
@@ -23,5 +24,23 @@ public sealed class CombatLogPayloadTests
         back.Rounds.Should().Be(3);
         back.Combatants.Should().HaveCount(2);
         back.Combatants[0].Name.Should().Be("Aria");
+    }
+
+    [Fact]
+    public void FormatEntry_renders_a_combat_entry_with_name_round_and_count()
+    {
+        var payload = new CombatLogPayload("Goblin Ambush", "Edition2014", 3,
+            new[] { new CombatCombatantLog("Aria", true, 17, 5, 12), new CombatCombatantLog("Goblin 1", false, 14, 0, 7) });
+        var entry = new DndMcpAICsharpFun.Domain.CampaignLogEntry
+        {
+            Kind = DndMcpAICsharpFun.Domain.CampaignLogKind.Combat,
+            Label = "Goblin Ambush",
+            PayloadJson = System.Text.Json.JsonSerializer.Serialize(payload),
+        };
+
+        var line = CampaignLog.FormatEntry(entry);
+
+        line.Should().NotBeNull();
+        line.Should().Contain("Goblin Ambush").And.Contain("3 rounds").And.Contain("2 combatants");
     }
 }

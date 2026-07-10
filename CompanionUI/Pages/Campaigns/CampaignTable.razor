@@ -1,0 +1,62 @@
+@page "/campaigns/{Id:long}/table"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@using DndMcpAICsharpFun.Features.Campaigns
+@using DndMcpAICsharpFun.Features.Encounters
+@attribute [Authorize]
+@inject CampaignRepository CampaignRepo
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>@(_campaign?.Name ?? "Table") — Table</PageTitle>
+
+@if (_campaign is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="campaign-table">
+        <nav><a href="/campaigns/@Id">← @_campaign.Name</a></nav>
+        <h1>@_campaign.Name — Table</h1>
+
+        <DiceRollerPanel CampaignId="Id" UserId="_userId" OnLogged="RefreshLog" />
+
+        <EncounterPanel CampaignId="Id" UserId="_userId" OnSaved="RefreshLog" OnBuilt="OnEncounterBuilt" />
+
+        <InitiativeTracker @ref="_tracker" CampaignId="Id" UserId="_userId" />
+
+        <CampaignLog @ref="_log" CampaignId="Id" UserId="_userId" />
+    </div>
+}
+
+@code {
+    [Parameter] public long Id { get; set; }
+
+    private Campaign? _campaign;
+    private long _userId;
+    private CampaignLog? _log;
+    private InitiativeTracker? _tracker;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        _userId = long.Parse(state.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        _campaign = await CampaignRepo.GetByIdAsync(Id, _userId);
+        if (_campaign is null)
+            Nav.NavigateTo("/campaigns");
+    }
+
+    private async Task RefreshLog()
+    {
+        if (_log is not null)
+            await _log.RefreshAsync();
+    }
+
+    private async Task OnEncounterBuilt(BuiltEncounter built)
+    {
+        if (_tracker is not null)
+            await _tracker.AddMonstersAsync(built.Assessment.Monsters);
+    }
+}
