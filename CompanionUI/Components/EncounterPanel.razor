@@ -64,6 +64,7 @@
     [Parameter] public long CampaignId { get; set; }
     [Parameter] public long UserId { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback<BuiltEncounter> OnBuilt { get; set; }
 
     private Difficulty _difficulty = Difficulty.Medium;
     private DndVersion _edition = DndVersion.Edition2014;
@@ -88,6 +89,9 @@
                 crGte: null,
                 default);
             _error = null;
+
+            if (_built is not null)
+                await OnBuilt.InvokeAsync(_built);
         }
         catch (Exception ex)
         {
