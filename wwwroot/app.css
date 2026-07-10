@@ -317,11 +317,15 @@ input::placeholder, textarea::placeholder { color:var(--muted); }
     .sidebar {
         flex-direction: row;
         align-items: center;
+        flex-wrap: wrap;
+        column-gap: var(--s3);
+        row-gap: var(--s2);
         border-right: none;
         border-bottom: 1px solid var(--border);
         padding: var(--s3) var(--s4);
-        overflow-x: auto;
     }
+
+    .sidebar-username { display: none; }
 
     .sidebar-brand {
         border-bottom: none;
@@ -891,7 +895,7 @@ input::placeholder, textarea::placeholder { color:var(--muted); }
 .dice-adv-toggle button:disabled { opacity: .4; cursor: not-allowed; }
 
 .dice-expression-row { display: flex; gap: var(--s2); }
-.dice-expression-row input { flex: 1; font-family: var(--font-data); }
+.dice-expression-row input { flex: 1; min-width: 0; font-family: var(--font-data); }
 
 .dice-label-row { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .dice-label-row input { flex: 1; min-width: 140px; }
