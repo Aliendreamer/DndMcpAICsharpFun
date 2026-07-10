@@ -45,6 +45,7 @@ builder.Services.AddDice();
 // Companion UI: persistence, chat, auth, rate limiting, Blazor, and the loopback MCP client.
 builder.Services.AddAntiforgery();
 builder.Services.AddDatabase(builder.Configuration);
+builder.Services.AddCombat();
 builder.Services.AddDndChat(builder.Configuration);
 builder.Services.AddDndAuthentication();
 builder.Services.AddDndRateLimiting(builder.Configuration);

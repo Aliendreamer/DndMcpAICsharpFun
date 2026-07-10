@@ -290,4 +290,15 @@ internal static class ServiceCollectionExtensions
 
         return services;
     }
+
+
+    internal static IServiceCollection AddCombat(this IServiceCollection services)
+    {
+        // CombatService depends on the scoped DiceRoller, so pull AddDice in here (idempotent) and
+        // register the service scoped. CombatRepository, HeroRepository, and CampaignLogRepository
+        // come from AddDatabase (singletons over IDbContextFactory).
+        services.AddDice();
+        services.AddScoped<DndMcpAICsharpFun.Features.Combat.CombatService>();
+        return services;
+    }
 }

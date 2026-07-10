@@ -20,6 +20,7 @@ internal static class DatabaseExtensions
         services.AddSingleton<HeroRepository>();
         services.AddSingleton<NoteRepository>();
         services.AddSingleton<CampaignLogRepository>();
+        services.AddSingleton<DndMcpAICsharpFun.Features.Combat.CombatRepository>();
         services.AddSingleton<ChatRepository>();
         services.AddSingleton(new ChatRateLimiter(config.GetValue("RateLimit:MessagesPerMinute", 10)));
         return services;
