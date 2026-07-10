@@ -18,3 +18,12 @@ public sealed record EncounterLogPayload(
     IReadOnlyList<EncounterMonsterLog> Monsters,
     bool FullyMatched,
     string? Note);
+
+
+public sealed record CombatCombatantLog(string Name, bool IsPlayer, int? InitiativeRoll, int CurrentHp, int MaxHp);
+
+public sealed record CombatLogPayload(
+    string CombatName,
+    string Edition,
+    int Rounds,
+    IReadOnlyList<CombatCombatantLog> Combatants);

@@ -4,6 +4,7 @@ public enum CampaignLogKind
 {
     Roll,
     Encounter,
+    Combat,
 }
 
 public sealed class CampaignLogEntry
