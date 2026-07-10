@@ -110,6 +110,7 @@
 @code {
     [Parameter] public long CampaignId { get; set; }
     [Parameter] public long UserId { get; set; }
+    [Parameter] public EventCallback OnLogChanged { get; set; }
 
     private Combat? _combat;
     private IReadOnlyList<Combatant> _combatants = [];
@@ -249,5 +250,6 @@
         await CombatSvc.EndCombatAsync(_combat.Id, CampaignId, UserId, new Dictionary<long, int>(_approvedHp));
         _ending = false;
         await ReloadAsync();
+        await OnLogChanged.InvokeAsync();
     }
 }

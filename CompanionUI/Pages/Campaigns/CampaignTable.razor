@@ -25,7 +25,7 @@ else
 
         <EncounterPanel CampaignId="Id" UserId="_userId" OnSaved="RefreshLog" OnBuilt="OnEncounterBuilt" />
 
-        <InitiativeTracker @ref="_tracker" CampaignId="Id" UserId="_userId" />
+        <InitiativeTracker @ref="_tracker" CampaignId="Id" UserId="_userId" OnLogChanged="RefreshLog" />
 
         <CampaignLog @ref="_log" CampaignId="Id" UserId="_userId" />
     </div>
