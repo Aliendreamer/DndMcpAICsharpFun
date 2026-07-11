@@ -14,7 +14,7 @@ public sealed class LevelUpPlanner
         ["Eldritch Invocation", "Metamagic", "Maneuver", "Expertise", "Fighting Style"];
 
     public LevelUpDelta Plan(
-        CharacterSheet sheet, string targetClass, bool isNewClassDip,
+        CharacterSheet sheet, string targetClass,
         ClassFields classFields, SubclassFields? currentSubclassFields)
     {
         var before = sheet.Classes.Select(c => new ClassLevel { Class = c.Class, Subclass = c.Subclass, Level = c.Level }).ToList();

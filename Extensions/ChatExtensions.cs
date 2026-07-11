@@ -1,3 +1,4 @@
+using DndMcpAICsharpFun.Features.CharacterAdvice;
 using DndMcpAICsharpFun.Features.Chat;
 
 using Microsoft.Extensions.AI;
@@ -12,6 +13,7 @@ internal static class ChatExtensions
         // keeps that dependency self-contained regardless of composition order/omission
         // (idempotent — AddEncounters only registers services, no options validation side effects).
         services.AddEncounters();
+        services.AddCharacterAdvice();
 
         services.AddOptions<McpClientOptions>()
             .BindConfiguration("McpClient")

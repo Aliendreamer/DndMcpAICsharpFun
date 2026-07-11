@@ -34,7 +34,7 @@ public class LevelUpPlannerTests
     [Fact]
     public void Advancing_fighter_4to5_gainsHpPbAndExtraAttack()
     {
-        var delta = new LevelUpPlanner().Plan(FighterAt(4), "Fighter", false, FighterFields(), null);
+        var delta = new LevelUpPlanner().Plan(FighterAt(4), "Fighter", FighterFields(), null);
 
         delta.NewClassLevel.Should().Be(5);
         delta.NewTotalLevel.Should().Be(5);
@@ -47,14 +47,14 @@ public class LevelUpPlannerTests
     [Fact]
     public void Level4_opensAbilityScoreOrFeatChoice()
     {
-        var delta = new LevelUpPlanner().Plan(FighterAt(3), "Fighter", false, FighterFields(), null);
+        var delta = new LevelUpPlanner().Plan(FighterAt(3), "Fighter", FighterFields(), null);
         delta.OpenChoices.Select(c => c.Kind).Should().Contain(OpenChoiceKind.AbilityScoreOrFeat);
     }
 
     [Fact]
     public void Level3_opensSubclassSelection()
     {
-        var delta = new LevelUpPlanner().Plan(FighterAt(2), "Fighter", false, FighterFields(), null);
+        var delta = new LevelUpPlanner().Plan(FighterAt(2), "Fighter", FighterFields(), null);
         delta.IsSubclassSelectionLevel.Should().BeTrue();
         delta.OpenChoices.Select(c => c.Kind).Should().Contain(OpenChoiceKind.Subclass);
     }
@@ -62,7 +62,7 @@ public class LevelUpPlannerTests
     [Fact]
     public void NonCaster_hasNoSlotChange()
     {
-        var delta = new LevelUpPlanner().Plan(FighterAt(4), "Fighter", false, FighterFields(), null);
+        var delta = new LevelUpPlanner().Plan(FighterAt(4), "Fighter", FighterFields(), null);
         delta.SpellSlotsBefore.Should().OnlyContain(x => x == 0);
         delta.SpellSlotsAfter.Should().OnlyContain(x => x == 0);
     }
