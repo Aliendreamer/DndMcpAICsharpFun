@@ -270,13 +270,21 @@ The hard cap is the **8GB VRAM ceiling** (RTX 5070 Laptop), NOT latency.
   recommender** (text concept → class/subclass/feat/spell path from scratch); **C = build-critique** (review a sheet
   for strengths/gaps). Each is its own brainstorm→propose→plan→SDD slice reusing the level-up core (deterministic
   delta + cited option menus + ownership-gated per-user orchestrator + chat tool + HeroDetail surface).
-- **Level-up grounding coverage** (accepted limitation on the shipped level-up slice — user chose ship-as-is 2026-07-11):
-  the deterministic delta reads STRUCTURED class fields (`ClassFields.hd/classFeatures/subclassTitle`) which are THIN
-  corpus-wide (running Qdrant: only Bard/Ranger/Sorcerer/Warlock structured; canonical `books/canonical`: 413 Class
-  entities ~prose-only). Feature degrades honestly (grounds where data exists, skips where absent). DECISION when
-  revisited: **(a) enrich structured class entities** (backfill hd/classFeatures/subclasses for all 12 classes) vs
-  **(b) rethink level-up grounding toward PROSE** (canonicalText + LLM) — (b) is the north-star direction and folds
-  into the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`).
+- **Level-up grounding coverage** (accepted limitation on the shipped level-up slice — user chose ship-as-is 2026-07-11).
+  ROOT CAUSE diagnosed 2026-07-11: (1) all 12 PHB classes ARE in `books/canonical/phb14.json` (extraction discovered
+  them cleanly); (2) but the CURRENT content-first extraction emits classes as PROSE-ONLY (`fields:{entries:[...]}`,
+  no `hd`/`classFeatures`/`subclassTitle`) — the recent spell-recall re-extractions (`764a615`→`0c8e7bd`) regenerated
+  phb14.json prose-only; (3) Qdrant `dnd_entities` is STALE — it holds only 4 classes (Bard/Ranger/Sorcerer/Warlock)
+  carrying the FULL structured 5etools schema (`hd`/`classFeatures`/`classTableGroups`, `dataSource:llm`) from an OLD
+  structured extraction+ingestion never refreshed after the prose regen. So the other 8 classes were never indexed, and
+  the 4 that are, are stale-but-structured (why the Ranger live demo worked + Barbarian was absent).
+  **Re-running `ingest-entities` does NOT fix it** — it would index 12 PROSE classes with no hit die, which the feature
+  correctly skips. The structured class data the feature needs isn't in the current canonical at all. DECISION when
+  revisited: **(a) ENRICH** — supplement the 12 classes with structured `ClassFields` from 5etools (PHB is a 5etools
+  source; `POST /admin/5etools/import` supplements canonical entities with 5etools data — CONFIRM it covers the full
+  class schema hd/classFeatures, not just tags/SRD flags) — reuses existing machinery, grounds all 12 now; vs
+  **(b) RETHINK level-up grounding toward PROSE** (derive HP/features from class `entries` + LLM) — the north-star
+  direction, folds into the parked `prose-grounded-knowledge-model` (`mem:project_entity_extraction_rethink`).
 - **Level-up deferred Minors** (final-review, non-blocking): clamp HP gain to the D&D floor of 1 (very-low-CON edge);
   surface `DipValidity`'s failed-prereq reason instead of only excluding ineligible dips (spec's "identify the failed
   prerequisite" scenario is currently satisfied only by exclusion).
