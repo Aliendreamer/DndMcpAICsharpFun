@@ -184,4 +184,30 @@ public sealed class LevelUpAdviceServiceTests(PostgresFixture pg) : IAsyncLifeti
         advice.Candidates.Should().Contain(c => c.ClassName == "Barbarian" && c.IsNewClassDip
             && c.DipValidity != null && c.DipValidity.Allowed);
     }
+
+    [Fact]
+    public async Task ConsiderDip_targetClassSet_onlyThatClassDipIsCandidate()
+    {
+        // Str 15 makes Barbarian eligible; Cha 15 also makes Bard (and Sorcerer/Warlock) eligible.
+        // With targetClass="Barbarian" set, only the Barbarian dip should surface — targetClass
+        // scopes the dip search too, so it never balloons into a whole-roster suggestion list.
+        var sheet = new CharacterSheet
+        {
+            Classes = [new ClassLevel { Class = "Fighter", Subclass = "", Level = 3 }],
+            Strength = 15,
+            Constitution = 14,
+            Dexterity = 8,
+            Intelligence = 8,
+            Wisdom = 8,
+            Charisma = 15,
+        };
+        var (snapshotId, ownerUserId) = await SeedOwnedSnapshotAsync(sheet);
+        var service = BuildService(out _);
+
+        var advice = await service.PlanForUserAsync(
+            snapshotId, ownerUserId, targetClass: "Barbarian", considerDip: true, default);
+
+        advice.Candidates.Should().Contain(c => c.ClassName == "Barbarian" && c.IsNewClassDip);
+        advice.Candidates.Should().NotContain(c => c.ClassName == "Bard");
+    }
 }

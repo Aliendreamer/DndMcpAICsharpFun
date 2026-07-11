@@ -5,9 +5,10 @@ using DndMcpAICsharpFun.Features.Resolution;
 namespace DndMcpAICsharpFun.Features.CharacterAdvice;
 
 /// <summary>Pure, deterministic computation of "what changes at the next level" for advancing
-/// <c>targetClass</c> by one level (or taking its first level when <paramref name="isNewClassDip"/>
-/// via the ctor argument). No I/O; option menus (<see cref="OpenChoice.Options"/>) are left empty —
-/// they are filled by a later grounded-option-lookup step.</summary>
+/// <c>targetClass</c> by one level. Whether this is an existing-class advance or a new-class dip is
+/// derived from <paramref name="sheet"/> — <c>targetClass</c> is a dip if it is not already present
+/// in <c>sheet.Classes</c>, an advance otherwise. No I/O; option menus (<see cref="OpenChoice.Options"/>)
+/// are left empty — they are filled by a later grounded-option-lookup step.</summary>
 public sealed class LevelUpPlanner
 {
     private static readonly string[] ClassSpecificMarkers =

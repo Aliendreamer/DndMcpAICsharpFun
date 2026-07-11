@@ -49,6 +49,8 @@ public sealed class LevelUpAdviceService(
         {
             foreach (var known in MulticlassRules.KnownClasses)
             {
+                if (targetClass is not null && !string.Equals(known, targetClass, StringComparison.OrdinalIgnoreCase))
+                    continue; // targetClass scopes dip candidates too — no whole-roster ballooning
                 if (existingClassNames.Any(c => string.Equals(c, known, StringComparison.OrdinalIgnoreCase)))
                     continue;
                 if (!MulticlassRules.CanMulticlassInto(known, sheet).Allowed)

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 
 using DndMcpAICsharpFun.Domain;
+using DndMcpAICsharpFun.Features.CharacterAdvice;
 using DndMcpAICsharpFun.Features.Encounters;
 using DndMcpAICsharpFun.Features.Resolution;
 
@@ -16,7 +17,8 @@ public sealed class DndChatService(
     ChatRateLimiter rateLimiter,
     PersonaProvider personaProvider,
     CharacterResolutionService resolutionService,
-    EncounterDesignService encounterService)
+    EncounterDesignService encounterService,
+    LevelUpAdviceService levelUpService)
 {
     public List<ChatMessage> History { get; } = [];
 
@@ -110,6 +112,19 @@ public sealed class DndChatService(
                     "constrain the candidate monsters' CR range (e.g. \"nothing above CR 5\"); when " +
                     "omitted, a sensible CR ceiling/floor is derived automatically from the target " +
                     "difficulty band."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (long heroSnapshotId, string? targetClass, bool? considerDip, CancellationToken toolCt) =>
+                    levelUpService.PlanForUserAsync(
+                        heroSnapshotId, userId, targetClass, considerDip ?? false, toolCt),
+                name: "plan_level_up",
+                description: "Plan the next level-up for a hero snapshot the signed-in user owns. Returns, " +
+                    "for each way to advance (each existing class, plus legal new-class dips when considerDip " +
+                    "is true), the rule-grounded delta (HP, proficiency bonus, spell-slot change, features " +
+                    "gained) and the real cited options for each open choice (ability-score-or-feat, subclass, " +
+                    "new spells). RECOMMEND a specific pick with reasons that reference the character's own " +
+                    "sheet, but ONLY from the options returned here — never invent a feat, subclass, or spell. " +
+                    "targetClass (optional) limits advice to one class."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));

@@ -94,12 +94,30 @@ public sealed class DndChatServiceTests : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Builds a real <see cref="DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpAdviceService"/> over
+    /// <see cref="NoOpDbFactory"/>-backed repositories and a fake entity search — sealed/concrete, so it
+    /// cannot be substituted directly, but its own DB-touching dependencies can, keeping these chat-wiring
+    /// tests DB-free.
+    /// </summary>
+    private static DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpAdviceService BuildLevelUpAdviceService(
+        IEntityRetrievalService? search = null)
+    {
+        var retrieval = search ?? Substitute.For<IEntityRetrievalService>();
+        return new DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpAdviceService(
+            new DndMcpAICsharpFun.Features.Campaigns.HeroRepository(new NoOpDbFactory()),
+            retrieval,
+            new DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpPlanner(),
+            new DndMcpAICsharpFun.Features.CharacterAdvice.EntityOptionProvider(retrieval));
+    }
+
     private DndChatService CreateService(
         FakeChatClient client,
         IReadOnlyList<AITool>? tools = null,
         PersonaProvider? personaProvider = null,
         IHttpContextAccessor? httpContextAccessor = null,
-        EncounterDesignService? encounterService = null) =>
+        EncounterDesignService? encounterService = null,
+        DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpAdviceService? levelUpService = null) =>
         new(client,
             new FakeMcpToolsProvider(tools ?? []),
             new ChatRepository(new NoOpDbFactory()),
@@ -109,7 +127,8 @@ public sealed class DndChatServiceTests : IDisposable
             new DndMcpAICsharpFun.Features.Resolution.CharacterResolutionService(
                 new NoOpDbFactory(),
                 new DndMcpAICsharpFun.Features.Campaigns.HeroRepository(new NoOpDbFactory())),
-            encounterService ?? BuildEncounterDesignService());
+            encounterService ?? BuildEncounterDesignService(),
+            levelUpService ?? BuildLevelUpAdviceService());
 
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()
