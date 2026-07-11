@@ -333,4 +333,23 @@ public sealed class CombatRepositoryCombatantTests(PostgresFixture pg) : IAsyncL
 
         (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().Be(idB); // unchanged
     }
+
+
+    [Fact]
+    public async Task Move_at_the_edge_is_a_no_op()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 15));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 15)); // tie; order A,B
+
+        // Up on the TOP combatant (no neighbor above) → no change.
+        await _repo.MoveCombatantAsync(idA, combatId, campaignId, userId, up: true);
+        CombatantOrder.Sort(await _repo.GetCombatantsAsync(combatId, campaignId, userId))
+            .Select(c => c.Id).Should().Equal(idA, idB);
+
+        // Down on the BOTTOM combatant (no neighbor below) → no change.
+        await _repo.MoveCombatantAsync(idB, combatId, campaignId, userId, up: false);
+        CombatantOrder.Sort(await _repo.GetCombatantsAsync(combatId, campaignId, userId))
+            .Select(c => c.Id).Should().Equal(idA, idB);
+    }
 }
