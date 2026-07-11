@@ -45,9 +45,10 @@ button { font-family: var(--font-body); }
   border-radius:var(--r-md); padding:8px 14px; font-size:var(--fs-sm); font-weight:600; cursor:pointer;
   background:var(--surface-2); color:var(--text); transition:filter .12s ease, background .12s ease; }
 .btn:hover { filter:brightness(1.12); }
-.btn--primary { background:var(--ember); color:#221803; box-shadow:0 0 22px -8px rgba(232,182,90,.55); }
-.btn--ghost { background:transparent; color:var(--arcane); border-color:var(--border); }
-.btn--danger { background:transparent; color:var(--hp); border-color:var(--border); }
+/* modifiers use .btn.X (specificity 0,2,0) so they always win over the base .btn/button.btn (0,1,1) */
+.btn.btn--primary { background:var(--ember); color:#221803; box-shadow:0 0 22px -8px rgba(232,182,90,.55); }
+.btn.btn--ghost { background:transparent; color:var(--arcane); border-color:var(--border); }
+.btn.btn--danger { background:transparent; color:var(--hp); border-color:var(--border); }
 
 input[type=text], input[type=number], input[type=password], input:not([type]), select, textarea {
   font-family:var(--font-body); font-size:var(--fs-sm); color:var(--text);
