@@ -146,7 +146,10 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   changes verify via build+full-suite-green (behavior-neutral) + LIVE Playwright screenshots (desktop+mobile) +
   overflow check + class-resolution grep — unit tests can't see a pixel (this session's 5 real defects were all
   screenshot-only). Razor `text@id` email-heuristic gotcha (`d@die`→`d@(die)`) now a dev-flow red flag.
-  DEFERRED (minor): "Build" encounter button is neutral not gold; assistant chat bubble alignment.
+  FOLLOW-UP (fixed): "Build" button now gold — root cause was base `.btn, button.btn{}` (0,1,1) beating
+  `.btn--primary` (0,1,0); fixed by bumping modifiers to `.btn.btn--primary` (0,2,0) — hardens ALL primary
+  buttons. Chat bubble alignment was ALREADY correct (assistant left-aligned; the centered max-width column
+  fooled a screenshot read — verified via browser_evaluate rects). No open UI defects.
 
 ## TEST INFRA (confirmed present)
 Real Testcontainers in-repo: `Testcontainers.PostgreSql` 4.12.0 (`Persistence/PostgresFixture.cs`,
