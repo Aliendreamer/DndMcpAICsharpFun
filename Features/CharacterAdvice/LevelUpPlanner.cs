@@ -58,7 +58,7 @@ public sealed class LevelUpPlanner
             && classFeaturesAtLevel.Any(f => !string.IsNullOrWhiteSpace(subclassMarker)
                 && f.Name.Contains(subclassMarker!, StringComparison.OrdinalIgnoreCase));
         if (isSubclassSelectionLevel)
-            choices.Add(new OpenChoice(OpenChoiceKind.Subclass, $"Choose a {subclassMarker}", []));
+            choices.Add(new OpenChoice(OpenChoiceKind.Subclass, $"Choose your {subclassMarker}", []));
 
         // Caster gained access to a new highest spell level → a Spells choice (options filled by the provider).
         var newHighestBefore = HighestSlotLevel(slotsBefore);
