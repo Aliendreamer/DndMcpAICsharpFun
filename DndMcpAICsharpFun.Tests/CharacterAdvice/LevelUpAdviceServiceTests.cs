@@ -56,7 +56,7 @@ file sealed class FakeEntityRetrievalService : IEntityRetrievalService
             Type: EntityType.Class,
             Name: className,
             SourceBook: "PHB",
-            Edition: "2014",
+            Edition: "Edition2014",
             Page: 72,
             SettingTags: [],
             PointId: $"point-{slug}",
@@ -107,6 +107,81 @@ file sealed class FakeWrongClassEntityRetrievalService : IEntityRetrievalService
             Fields: doc.RootElement.Clone(),
             Score: 1.0f);
         return Task.FromResult<IList<EntityDiagnosticResult>>([result]);
+    }
+}
+
+
+/// <summary>
+/// Returns TWO same-named class entities for a Type=Class query: a wrong-edition Edition2024
+/// entity (hd d8) FIRST, and the correct Edition2014 entity (hd d10, matching the real PHB
+/// Fighter) second. Proves the edition pin in <see cref="LevelUpAdviceService"/> (the
+/// <c>LevelUpEdition = "Edition2014"</c> constant): the slot tables (<see cref="DndMcpAICsharpFun.Features.Resolution.MulticlassSlotTableSeeder"/>)
+/// and <see cref="DndMcpAICsharpFun.Features.Resolution.MulticlassRules"/> are PHB-2014-only, so a
+/// naive first-name-match (ignoring edition) would silently ground HP math on the wrong (2024)
+/// hit die. Putting the wrong edition first makes this test fail without the fix — a
+/// non-vacuous proof.
+/// </summary>
+file sealed class FakeMultiEditionClassRetrievalService : IEntityRetrievalService
+{
+    public Task<EntityFullResult?> GetByIdAsync(string id, CancellationToken ct) =>
+        Task.FromResult<EntityFullResult?>(null);
+
+    public Task<IList<EntitySearchResult>> SearchAsync(EntitySearchQuery query, CancellationToken ct) =>
+        Task.FromResult<IList<EntitySearchResult>>([]);
+
+    public Task<IList<EntityDiagnosticResult>> SearchDiagnosticAsync(EntitySearchQuery query, CancellationToken ct)
+    {
+        if (query.Type != EntityType.Class)
+            return Task.FromResult<IList<EntityDiagnosticResult>>([]);
+
+        var className = query.QueryText;
+        var slug = className.ToLowerInvariant();
+
+        using var doc2024 = JsonDocument.Parse("""
+            {
+              "hd": { "number": 1, "faces": 8 },
+              "classFeatures": [],
+              "subclassTitle": "Martial Archetype"
+            }
+            """);
+        using var doc2014 = JsonDocument.Parse($$"""
+            {
+              "hd": { "number": 1, "faces": 10 },
+              "classFeatures": [
+                "Fighting Style|{{className}}|PHB|1",
+                "Second Wind|{{className}}|PHB|1"
+              ],
+              "subclassTitle": "Martial Archetype"
+            }
+            """);
+
+        var wrongEdition = new EntityDiagnosticResult(
+            Id: $"phb24.class.{slug}",
+            Type: EntityType.Class,
+            Name: className,
+            SourceBook: "PHB",
+            Edition: "Edition2024",
+            Page: 72,
+            SettingTags: [],
+            PointId: $"point-2024-{slug}",
+            Fields: doc2024.RootElement.Clone(),
+            Score: 1.0f);
+
+        var correctEdition = new EntityDiagnosticResult(
+            Id: $"phb14.class.{slug}",
+            Type: EntityType.Class,
+            Name: className,
+            SourceBook: "PHB",
+            Edition: "Edition2014",
+            Page: 72,
+            SettingTags: [],
+            PointId: $"point-2014-{slug}",
+            Fields: doc2014.RootElement.Clone(),
+            Score: 1.0f);
+
+        // Wrong edition listed FIRST: a service that just took FirstOrDefault(name match) without
+        // filtering on edition would ground on the 2024 (d8) entity instead of the 2014 (d10) one.
+        return Task.FromResult<IList<EntityDiagnosticResult>>([wrongEdition, correctEdition]);
     }
 }
 
@@ -278,5 +353,26 @@ public sealed class LevelUpAdviceServiceTests(PostgresFixture pg) : IAsyncLifeti
         // not that the candidate list is empty for some unrelated reason.
         advice.Candidates.Should().BeEmpty();
         advice.Candidates.Should().NotContain(c => c.ClassName == "Barbarian");
+    }
+
+
+    [Fact]
+    public async Task PlanForUser_corpusHasBothEditions_groundsOnEdition2014NotEdition2024()
+    {
+        // The corpus returns a wrong-edition (Edition2024, d8 hit die) Fighter entity FIRST and
+        // the correct Edition2014 (d10 hit die) Fighter entity second, for the same name query.
+        // The slot tables (MulticlassSlotTableSeeder) and MulticlassRules are PHB-2014-only, so
+        // the service must pin the lookup to Edition2014 rather than taking whichever same-named
+        // entity comes first. If the edition pin were removed, this test would ground HP math on
+        // the 2024 (d8) entity and fail.
+        var (snapshotId, ownerUserId) = await SeedOwnedSnapshotAsync(FighterSheet());
+        var service = BuildService(out _, new FakeMultiEditionClassRetrievalService());
+
+        var advice = await service.PlanForUserAsync(snapshotId, ownerUserId, null, considerDip: false, default);
+
+        var fighter = advice.Candidates.Should().ContainSingle(c => c.ClassName == "Fighter" && !c.IsNewClassDip)
+            .Subject;
+        fighter.Delta.HpRollFormula.Should().Be("1d10",
+            "the grounded class entity must be the Edition2014 Fighter (d10 hit die), not the Edition2024 one (d8)");
     }
 }

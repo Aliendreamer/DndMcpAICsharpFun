@@ -24,6 +24,7 @@ public sealed class LevelUpAdviceService(
     EntityOptionProvider options)
 {
     private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
+    private const string LevelUpEdition = "Edition2014";  // PHB-2014 pin: the slot tables + multiclass rules are 2014-only, so class/subclass data must be 2014 too
 
     public async Task<LevelUpAdvice> PlanForUserAsync(
         long heroSnapshotId, long userId, string? targetClass, bool considerDip, CancellationToken ct)
@@ -69,7 +70,7 @@ public sealed class LevelUpAdviceService(
                     QueryText: className,
                     Type: EntityType.Class,
                     SourceBook: null,
-                    Edition: null,
+                    Edition: LevelUpEdition,
                     BookType: null,
                     SettingTag: null,
                     Keyword: null,
@@ -80,7 +81,8 @@ public sealed class LevelUpAdviceService(
                     TopK: 5),
                 ct);
             var classEntity = classResults.FirstOrDefault(
-                r => string.Equals(r.Name, className, StringComparison.OrdinalIgnoreCase));
+                r => string.Equals(r.Name, className, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(r.Edition, LevelUpEdition, StringComparison.OrdinalIgnoreCase));
             if (classEntity is null)
                 continue; // exact class not in corpus — skip rather than ground on a wrong class (grounding contract)
             var classFields = classEntity.Fields.Deserialize<ClassFields>(JsonOpts);
@@ -103,7 +105,7 @@ public sealed class LevelUpAdviceService(
                             QueryText: currentSubclass,
                             Type: EntityType.Subclass,
                             SourceBook: null,
-                            Edition: null,
+                            Edition: LevelUpEdition,
                             BookType: null,
                             SettingTag: null,
                             Keyword: null,
@@ -114,7 +116,8 @@ public sealed class LevelUpAdviceService(
                             TopK: 5),
                         ct);
                     var subclassEntity = subclassResults.FirstOrDefault(
-                        r => string.Equals(r.Name, currentSubclass, StringComparison.OrdinalIgnoreCase));
+                        r => string.Equals(r.Name, currentSubclass, StringComparison.OrdinalIgnoreCase)
+                            && string.Equals(r.Edition, LevelUpEdition, StringComparison.OrdinalIgnoreCase));
                     currentSubclassFields = subclassEntity?.Fields.Deserialize<SubclassFields>(JsonOpts);
                 }
             }
