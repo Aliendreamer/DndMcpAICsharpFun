@@ -63,8 +63,14 @@
                         <span class="c-conditions">
                             @foreach (var t in c.Conditions)
                             {
-                                <button type="button" class="chip cond-chip"
-                                        @onclick="() => ToggleConditionAsync(c, t.Condition)">@t.Condition ✕</button>
+                                <span class="chip cond-chip">
+                                    @t.Condition
+                                    <input type="number" class="cond-rounds" min="1" placeholder="∞"
+                                           value="@t.RoundsRemaining"
+                                           @onchange="e => SetConditionRoundsAsync(c, t.Condition, e.Value?.ToString())" />
+                                    <button type="button" class="cond-remove"
+                                            @onclick="() => ToggleConditionAsync(c, t.Condition)">✕</button>
+                                </span>
                             }
                             <button type="button" class="cond-menu-toggle"
                                     @onclick="() => ToggleConditionMenu(c.Id)">+</button>
@@ -262,6 +268,18 @@
         var existing = set.FirstOrDefault(t => t.Condition == cond);
         if (existing is not null) set.Remove(existing);
         else set.Add(new ConditionTimer(cond, null));
+        await CombatRepo.UpdateCombatantAsync(c.Id, _combat.Id, CampaignId, UserId,
+            c.CurrentHp, c.InitiativeRoll, c.InitiativeModifier, set);
+        await ReloadAsync();
+    }
+
+    private async Task SetConditionRoundsAsync(Combatant c, Condition cond, string? raw)
+    {
+        if (_combat is null) return;
+        int? rounds = int.TryParse(raw, out var n) && n > 0 ? n : null;
+        var set = c.Conditions
+            .Select(t => t.Condition == cond ? t with { RoundsRemaining = rounds } : t)
+            .ToList();
         await CombatRepo.UpdateCombatantAsync(c.Id, _combat.Id, CampaignId, UserId,
             c.CurrentHp, c.InitiativeRoll, c.InitiativeModifier, set);
         await ReloadAsync();
