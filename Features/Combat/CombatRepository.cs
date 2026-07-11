@@ -100,7 +100,9 @@ public sealed class CombatRepository(IDbContextFactory<AppDbContext> dbf)
         if (!owns) return 0;
 
         combatant.CombatId = combatId;
-        combatant.AddedOrder = await db.Combatants.CountAsync(x => x.CombatId == combatId);
+        combatant.AddedOrder = (await db.Combatants
+            .Where(x => x.CombatId == combatId)
+            .MaxAsync(x => (int?)x.AddedOrder) ?? -1) + 1;
         db.Combatants.Add(combatant);
         await db.SaveChangesAsync();
         return combatant.Id;

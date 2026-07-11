@@ -294,6 +294,23 @@ public sealed class CombatRepositoryCombatantTests(PostgresFixture pg) : IAsyncL
     }
 
     [Fact]
+    public async Task Reorder_still_works_after_a_remove_then_add()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 15));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 15));
+        await _repo.RemoveCombatantAsync(idB, combatId, campaignId, userId);
+        // Re-add a tied combatant; its AddedOrder must be DISTINCT from A's (max+1), not a Count collision.
+        var idC = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("C", 15));
+
+        // A then C (A added first). Move C up → they swap (would be a silent no-op if AddedOrder collided).
+        await _repo.MoveCombatantAsync(idC, combatId, campaignId, userId, up: true);
+
+        CombatantOrder.Sort(await _repo.GetCombatantsAsync(combatId, campaignId, userId))
+            .Select(c => c.Id).Should().Equal(idC, idA);
+    }
+
+    [Fact]
     public async Task Move_against_a_non_tied_neighbor_is_a_no_op()
     {
         var (userId, campaignId, combatId) = await SeedCombatAsync();
