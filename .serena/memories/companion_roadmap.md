@@ -151,7 +151,17 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   single atomic `SaveChangesAsync`. UI: each active chip has a small rounds field (empty = ∞). The retype
   (`Conditions`→timers across helper/UpdateCombatantAsync/razor) landed ATOMICALLY in Task 1 (behavior-preserving,
   green) then tick + UI on top — now a dev-flow gate. Live smoke: set Poisoned=2 → Round 2 ticks to 1 → Round 3
-  auto-expires. TABLE-PLAY v2 REMAINING: (c3) manual reorder for initiative ties, (d) a global non-campaign
+  auto-expires. TABLE-PLAY v2 REMAINING: (d) a global non-campaign scratch dice/encounter surface.
+- **`combat-tie-reorder`** ✅ DONE (archived `2026-07-11-combat-tie-reorder`; 6 commits `bffb29d..a00f2fc`;
+  build 0/0, full suite **1209/1209**; final opus review READY TO MERGE). Table-play v2 slice 3 = **manual
+  reorder for initiative ties**: ▲/▼ on a combatant row reorders it among others the sort treats as tied
+  (equal `InitiativeRoll`/`InitiativeModifier`/side) by SWAPPING their `AddedOrder` — reuses the existing
+  column, NO migration. `CombatantOrder.AreTied(a,b)` (the above-`AddedOrder` equality) gates BOTH the repo
+  swap and the UI enable/disable (a ▲/▼ is enabled iff the swap would reorder). `CombatRepository.MoveCombatantAsync`
+  (ownership-scoped, atomic one SaveChanges, no-op on edge/non-tie/foreign; current turn is identity-based →
+  untouched). Review-hardened: `AddedOrder` now assigned `max+1` (was `Count`) so it never collides after a
+  remove-then-add. Live smoke: two combatants tied at 19 → ▲/▼ enable exactly (A ▼-only, B ▲-only, Kobold both
+  off) → click swaps [A,B]→[B,A], non-tied Kobold unaffected. TABLE-PLAY v2 REMAINING: (d) global non-campaign
   scratch dice/encounter surface.
 
 ## UI / VISUAL DESIGN — SHIPPED (user-requested 2026-07-11)
@@ -233,14 +243,13 @@ Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**;
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
 (Item B), combat/initiative tracker + dedicated play page (Item C).** **UI fully restyled — `visual-design-system`
 SHIPPED (token-based "arcane console" dark theme across every surface; the app no longer looks unfinished).**
-**Table-play v2 SHIPPED so far: slice 1 (`combat-fight-fidelity`, monster auto-HP + damage/heal-by-N +
-remove-current), slice 2 (`combat-condition-durations`, conditions-with-duration).** Only active openspec change
-is the parked `prose-grounded-knowledge-model`. FULL suite **1201/1201**.
+**Table-play v2 SHIPPED so far: slice 1 (`combat-fight-fidelity`), slice 2 (`combat-condition-durations`),
+slice 3 (`combat-tie-reorder`, manual reorder for ties).** Only active openspec change is the parked
+`prose-grounded-knowledge-model`. FULL suite **1209/1209**.
 NEXT candidates (user's call):
 (1) more companion REASONING surfaces: **encounter-design v2 swarms** ("N goblins" — generator + monster
     source emit per-monster quantities), setting-aware lore synthesis, deeper character-build advice;
-(2) table-play v2 REMAINING slices: manual reorder for initiative ties, and a global (non-campaign)
-    scratch dice/encounter surface;
+(2) table-play v2 LAST remaining slice: a global (non-campaign) scratch dice/encounter surface;
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6), a foundational lever under all.
 Deferred operational: live-host smokes for Item 3 (reground, Ollama judge path), Item 4 (dedup endpoints),
