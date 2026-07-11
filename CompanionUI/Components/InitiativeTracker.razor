@@ -39,6 +39,7 @@
                 <input type="number" @bind="_manualHp" placeholder="HP" />
                 <label><input type="checkbox" @bind="_manualIsPlayer" /> Player</label>
                 <button @onclick="AddManualAsync">Add</button>
+                <label class="roll-hp-toggle"><input type="checkbox" @bind="_rollMonsterHp" /> 🎲 Roll monster HP</label>
             </div>
 
             <ol class="combatant-list">
@@ -53,9 +54,10 @@
                         </span>
                         <span class="c-name">@c.Name @(c.IsPlayer ? "" : "(NPC)")</span>
                         <span class="c-hp">
-                            <button @onclick="() => AdjustHpAsync(c, -1)">−</button>
+                            <button @onclick="() => AdjustHpAsync(c, -HpAmount(c))">−</button>
                             <span class="c-hp-numbers">@c.CurrentHp / <input type="number" class="c-maxhp" value="@c.MaxHp" @onchange="e => SetMaxHpAsync(c, e.Value?.ToString())" /></span>
-                            <button @onclick="() => AdjustHpAsync(c, +1)">+</button>
+                            <input type="number" class="c-hpamt" min="1" value="@HpAmount(c)" @onchange="e => SetHpAmount(c, e.Value?.ToString())" />
+                            <button @onclick="() => AdjustHpAsync(c, HpAmount(c))">+</button>
                             <span class="hp-bar"><span style="width:@(HpPercent(c))%;background:@(HpColor(c))"></span></span>
                         </span>
                         <span class="c-conditions">
@@ -140,6 +142,11 @@
     private bool _ending;
     private readonly Dictionary<long, int> _approvedHp = new();
 
+    private bool _rollMonsterHp;
+    private readonly Dictionary<long, int> _hpAmount = new();
+    private int HpAmount(Combatant c) => _hpAmount.TryGetValue(c.Id, out var n) ? n : 1;
+    private void SetHpAmount(Combatant c, string? raw) => _hpAmount[c.Id] = int.TryParse(raw, out var n) && n > 0 ? n : 1;
+
     /// <summary>View-state only: which combatant's full 15-condition picker is currently expanded (collapse UI, no logic change).</summary>
     private long? _conditionMenuFor;
 
@@ -164,7 +171,7 @@
         if (_combat is null) { _error = "Start a combat before adding monsters."; return; }
         try
         {
-            await CombatSvc.DraftMonstersAsync(_combat.Id, CampaignId, UserId, monsters, rollHp: false);
+            await CombatSvc.DraftMonstersAsync(_combat.Id, CampaignId, UserId, monsters, _rollMonsterHp);
             await ReloadAsync();
         }
         catch (Exception ex) { _error = ex.Message; }
