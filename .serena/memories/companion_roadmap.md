@@ -128,6 +128,22 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   STILL DEFERRED (minor UX): removing the CURRENT combatant leaves no highlight until the next advance (which
   re-anchors to top, not next-after-removed).
 
+## TABLE-PLAY v2 — slice 1 SHIPPED (user-requested 2026-07-11)
+- **`combat-fight-fidelity`** ✅ DONE (archived `2026-07-11-combat-fight-fidelity`; 6 commits `5ec4741..6ee7466`;
+  build 0/0, full suite **1196/1196**; final opus review READY TO MERGE, no findings). "Run a real fight" slice:
+  (a) **Monster auto-HP** — encounter-drafted monsters arrive with real MaxHp from the stat block (book average
+  by default, or app-rolled from `hp.formula` via a "🎲 Roll monster HP" toggle), the twin of the shipped monster-Dex
+  path: `MonsterRef` gained `AverageHp`/`HpFormula`, read via `MonsterHp.TryRead` at the 3 construction sites,
+  consumed by `DraftMonstersAsync(..., bool rollHp)`. (c1) **Damage/heal-by-N** — the combatant HP row's ±  buttons
+  apply a per-row N (default 1 = old behavior), reusing the clamped `AdjustHpAsync`. (c2) **Remove-current turn
+  fix** — `RemoveCombatantAsync` re-anchors `CurrentTurnCombatantId` to the next-in-order (wrap/null) when the
+  acting combatant is removed (was the deferred Item C bug); made ATOMIC via the execution-strategy transaction +
+  tracker-free ExecuteUpdate/ExecuteDelete (the review cited the existing dev-flow gate — it WORKED). Spec delta
+  also re-synced the stale `CurrentTurnIndex`→`CurrentTurnCombatantId` drift. NO migration/schema/http/mcp. Live
+  smoke: toggle renders, 11-damage-in-one-click, remove-current re-anchors + illuminates the next.
+  TABLE-PLAY v2 REMAINING (next slices): (b) conditions-with-duration (rounds-remaining, auto-expire),
+  (c3) manual reorder for initiative ties, (d) a global non-campaign scratch dice/encounter surface.
+
 ## UI / VISUAL DESIGN — SHIPPED (user-requested 2026-07-11)
 - **`visual-design-system`** ✅ DONE (archived `2026-07-10-visual-design-system`; 9 commits `d1e633c..fce1d3c`
   + archive `ec2b8e2`; build 0/0, full suite **1186/1186** unchanged = behavior-neutral; final opus review READY
@@ -207,13 +223,13 @@ Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**;
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
 (Item B), combat/initiative tracker + dedicated play page (Item C).** **UI fully restyled — `visual-design-system`
 SHIPPED (token-based "arcane console" dark theme across every surface; the app no longer looks unfinished).**
-Only active openspec change is the parked `prose-grounded-knowledge-model`. FULL suite **1186/1186**.
+**Table-play v2 slice 1 SHIPPED (`combat-fight-fidelity`): monster auto-HP + damage/heal-by-N + remove-current
+turn fix.** Only active openspec change is the parked `prose-grounded-knowledge-model`. FULL suite **1196/1196**.
 NEXT candidates (user's call):
 (1) more companion REASONING surfaces: **encounter-design v2 swarms** ("N goblins" — generator + monster
     source emit per-monster quantities), setting-aware lore synthesis, deeper character-build advice;
-(2) table-play polish REMAINING: dedicated play page + initiative tracker are DONE (Item C); left = an
-    initiative-tracker v2 (monster stat-block auto-HP/Dex from the entity store; sort/turn UX; conditions
-    with duration), and a global (non-campaign) scratch dice/encounter surface if wanted;
+(2) table-play v2 REMAINING slices: **conditions-with-duration** (rounds-remaining + auto-expire),
+    manual reorder for initiative ties, and a global (non-campaign) scratch dice/encounter surface;
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6), a foundational lever under all.
 Deferred operational: live-host smokes for Item 3 (reground, Ollama judge path), Item 4 (dedup endpoints),
