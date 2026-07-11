@@ -293,10 +293,17 @@ The hard cap is the **8GB VRAM ceiling** (RTX 5070 Laptop), NOT latency.
   ingest-entities / delete by dataSource). **OPEN DECISIONS:** (i) keep 5etools as the entity source of truth (path a) vs
   revert to extraction/prose (path b, north star); (ii) `ImportAll` is unscoped (all sources incl. 2024/XPHB) — a clean
   3-book re-ingest of PROSE entities AFTER this would clobber the structured classes (id collision), so ordering/id
-  namespaces must be reconciled. **REFINEMENT surfaced:** the level-up class lookup name-matches WITHOUT edition filter,
-  so with both 2014+2024 class entities now present a hero could get the wrong-edition class rules — pin the lookup to the
-  hero's edition. (b) RETHINK toward PROSE (HP/features from `entries` + LLM) remains the north-star alternative
+  namespaces must be reconciled. **REFINEMENT ✅ FIXED (commit 3747716):** the level-up class/subclass lookup now pins to
+  Edition2014 (`LevelUpEdition` const) — the slot tables + multiclass rules are 2014-only, so class data must be too;
+  non-vacuous test (wrong-edition entity first → 2014 still chosen), full suite 1228/1228, all 12 PHB classes confirmed
+  to have Edition2014 entities so coverage is unchanged. (b) RETHINK toward PROSE (HP/features from `entries` + LLM) remains the north-star alternative
   (`mem:project_entity_extraction_rethink`).
+- **⏸ DEFERRED DECISION (continue later) — entity source of truth: 5etools-import vs extraction/prose.** As of
+  2026-07-11 the local `dnd_entities` is in the **5etools-imported state** (9868 entities, `dataSource:5etools`,
+  path (a) — grounds level-up for all classes). OPEN: keep 5etools as the structured entity source of truth vs revert
+  toward extraction/PROSE (north star, `mem:project_entity_extraction_rethink`). If reverting/re-ingesting the 3 books'
+  PROSE entities later, they'd id-collide and clobber the structured classes — reconcile ordering/id-namespaces first.
+  Revert levers: re-run `ingest-entities` per book, or delete-by-`dataSource:5etools`. **User marked this to revisit later.**
 - **Level-up deferred Minors** (final-review, non-blocking): clamp HP gain to the D&D floor of 1 (very-low-CON edge);
   surface `DipValidity`'s failed-prereq reason instead of only excluding ineligible dips (spec's "identify the failed
   prerequisite" scenario is currently satisfied only by exclusion).
