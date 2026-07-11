@@ -128,7 +128,7 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   STILL DEFERRED (minor UX): removing the CURRENT combatant leaves no highlight until the next advance (which
   re-anchors to top, not next-after-removed).
 
-## TABLE-PLAY v2 — slice 1 SHIPPED (user-requested 2026-07-11)
+## TABLE-PLAY v2 — COMPLETE (all 4 slices SHIPPED, user-requested 2026-07-11)
 - **`combat-fight-fidelity`** ✅ DONE (archived `2026-07-11-combat-fight-fidelity`; 6 commits `5ec4741..6ee7466`;
   build 0/0, full suite **1196/1196**; final opus review READY TO MERGE, no findings). "Run a real fight" slice:
   (a) **Monster auto-HP** — encounter-drafted monsters arrive with real MaxHp from the stat block (book average
@@ -161,8 +161,28 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   (ownership-scoped, atomic one SaveChanges, no-op on edge/non-tie/foreign; current turn is identity-based →
   untouched). Review-hardened: `AddedOrder` now assigned `max+1` (was `Count`) so it never collides after a
   remove-then-add. Live smoke: two combatants tied at 19 → ▲/▼ enable exactly (A ▼-only, B ▲-only, Kobold both
-  off) → click swaps [A,B]→[B,A], non-tied Kobold unaffected. TABLE-PLAY v2 REMAINING: (d) global non-campaign
-  scratch dice/encounter surface.
+  off) → click swaps [A,B]→[B,A], non-tied Kobold unaffected.
+- **`scratch-surface`** ✅ DONE (archived `2026-07-11-scratch-surface`; 3 commits `59d95cb`(spec)/`90bdc3b`/`49ab672`
+  + archive `5a85b0e`; build 0/0, full suite **1209/1209** unchanged = behavior-neutral; final opus review READY
+  TO MERGE, no findings). Table-play v2 slice 4 (LAST) = **global non-campaign scratch dice/encounter surface**.
+  Pure Blazor wiring, NO new domain/persistence/migration/http/mcp. New `CompanionUI/Pages/Scratch.razor` at
+  `/scratch` (`[Authorize]`, InteractiveServer, `_userId` from NameIdentifier — copied from CampaignTable) +
+  a "🎲 Scratchpad" `MainLayout` NavLink (new `scratch-surface` capability spec + MODIFIED `sidebar-navigation`
+  delta enumerating the 4th link). REUSES two already-shipped+tested paths verbatim: `DiceRollerPanel CampaignId="0"`
+  (its `if(CampaignId>0)` auto-log guard = purely ephemeral off-campaign) and `EncounterDesignService.BuildForUserAsync`
+  explicit-`partyLevels` path (`ResolvePartyAsync` returns partyLevels when `Count>0`, never touching a campaign).
+  The page's ONLY new logic: a size/level party input to `_partyLevels = Enumerable.Repeat(Clamp(level,1,20),
+  Clamp(size,1,10)).ToList()` (clamp guarantees non-empty so the empty-party throw is unreachable). `EncounterPanel`
+  gained ONE optional `[Parameter] IReadOnlyList<int>? PartyLevels` (passed to the service instead of hard-coded null;
+  null = unchanged campaign behavior) + its save row wrapped in `@if (CampaignId > 0)` (hidden off-campaign) =
+  behavior-neutral for the campaign table page. SMOOTHEST slice yet: both tasks task-review-clean on FIRST try (no fix
+  loops). Live Playwright smoke PASSED (rebuilt stale 56min-old app image first, else it'd test old code): /scratch
+  renders dice+encounter only (no combat/log), Scratchpad nav active (others not), ephemeral d20 roll (no log write),
+  size/level build to Giant Spider 200XP with NO save row, no h-overflow desktop(2214)+mobile(375/390); REGRESSION probe =
+  Build on a 0-hero campaign table returned "Campaign has no heroes…" = POSITIVE proof the campaign party-path (not the
+  explicit-party path) is intact. **dev-flow tightening (skill-optimizer):** the UI validation gate now carries the
+  CONCRETE container-rebuild command (`docker compose build app && docker compose up -d app`) + the why (stale image
+  silently screenshots old markup). **TABLE-PLAY v2 COMPLETE — no remaining slices.**
 
 ## UI / VISUAL DESIGN — SHIPPED (user-requested 2026-07-11)
 - **`visual-design-system`** ✅ DONE (archived `2026-07-10-visual-design-system`; 9 commits `d1e633c..fce1d3c`
@@ -243,13 +263,14 @@ Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**;
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
 (Item B), combat/initiative tracker + dedicated play page (Item C).** **UI fully restyled — `visual-design-system`
 SHIPPED (token-based "arcane console" dark theme across every surface; the app no longer looks unfinished).**
-**Table-play v2 SHIPPED so far: slice 1 (`combat-fight-fidelity`), slice 2 (`combat-condition-durations`),
-slice 3 (`combat-tie-reorder`, manual reorder for ties).** Only active openspec change is the parked
+**Table-play v2 COMPLETE (all 4 slices SHIPPED + archived): slice 1 (`combat-fight-fidelity`), slice 2
+(`combat-condition-durations`), slice 3 (`combat-tie-reorder`, tie reorder), slice 4 (`scratch-surface`,
+global non-campaign dice/encounter page).** Only active openspec change is the parked
 `prose-grounded-knowledge-model`. FULL suite **1209/1209**.
 NEXT candidates (user's call):
 (1) more companion REASONING surfaces: **encounter-design v2 swarms** ("N goblins" — generator + monster
     source emit per-monster quantities), setting-aware lore synthesis, deeper character-build advice;
-(2) table-play v2 LAST remaining slice: a global (non-campaign) scratch dice/encounter surface;
+(2) [table-play v2 is now COMPLETE — no remaining slices];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6), a foundational lever under all.
 Deferred operational: live-host smokes for Item 3 (reground, Ollama judge path), Item 4 (dedup endpoints),
