@@ -4,7 +4,7 @@
 TBD - created by archiving change nav-active-highlight. Update Purpose after archive.
 ## Requirements
 ### Requirement: Sidebar highlights the active route
-The sidebar SHALL render navigation links for Chat, Campaigns, and Heroes, and SHALL visually highlight the link corresponding to the current route.
+The sidebar SHALL render navigation links for Chat, Campaigns, Heroes, and Scratchpad, and SHALL visually highlight the link corresponding to the current route.
 
 #### Scenario: Top-level route is highlighted
 - **WHEN** the user is on `/campaigns`
@@ -13,6 +13,10 @@ The sidebar SHALL render navigation links for Chat, Campaigns, and Heroes, and S
 #### Scenario: Chat link uses exact match
 - **WHEN** the user is on `/` (Chat)
 - **THEN** the Chat link is active and is not shown as active on other routes
+
+#### Scenario: Scratchpad link is highlighted on its route
+- **WHEN** the user is on `/scratch`
+- **THEN** the Scratchpad link is shown as active and the other links are not
 
 ### Requirement: Parent nav stays active on nested detail routes
 When the user navigates to a nested detail route under a top-level section, the sidebar SHALL keep that section's link highlighted.
