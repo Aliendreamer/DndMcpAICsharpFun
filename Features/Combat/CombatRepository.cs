@@ -244,4 +244,32 @@ public sealed class CombatRepository(IDbContextFactory<AppDbContext> dbf)
             .Where(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId)
             .ExecuteDeleteAsync();
     }
+
+
+    public async Task MoveCombatantAsync(long combatantId, long combatId, long campaignId, long userId, bool up)
+    {
+        await using var db = await dbf.CreateDbContextAsync();
+        var owns = await db.Combats
+            .AnyAsync(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId);
+        if (!owns) return;
+
+        var combatants = await db.Combatants.Where(x => x.CombatId == combatId).ToListAsync(); // tracked
+        var ordered = CombatantOrder.Sort(combatants);
+        var idx = -1;
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            if (ordered[i].Id == combatantId) { idx = i; break; }
+        }
+        if (idx < 0) return;
+
+        var neighborIdx = up ? idx - 1 : idx + 1;
+        if (neighborIdx < 0 || neighborIdx >= ordered.Count) return;
+
+        var target = ordered[idx];
+        var neighbor = ordered[neighborIdx];
+        if (!CombatantOrder.AreTied(target, neighbor)) return; // only genuine ties swap
+
+        (target.AddedOrder, neighbor.AddedOrder) = (neighbor.AddedOrder, target.AddedOrder);
+        await db.SaveChangesAsync(); // one atomic write on the two tracked entities
+    }
 }

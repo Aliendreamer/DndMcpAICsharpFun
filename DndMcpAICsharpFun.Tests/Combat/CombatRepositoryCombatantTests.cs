@@ -275,4 +275,62 @@ public sealed class CombatRepositoryCombatantTests(PostgresFixture pg) : IAsyncL
         (await _repo.GetCombatantsAsync(combatId, campaignId, userId)).Single(x => x.Id == idA).Conditions
             .Single(t => t.Condition == Condition.Poisoned).RoundsRemaining.Should().Be(3);
     }
+
+
+    [Fact]
+    public async Task Move_up_swaps_two_tied_combatants()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 15));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 15)); // tie: same roll/mod/side
+        // Initial order (tie broken by AddedOrder): A then B.
+        CombatantOrder.Sort(await _repo.GetCombatantsAsync(combatId, campaignId, userId))
+            .Select(c => c.Id).Should().Equal(idA, idB);
+
+        await _repo.MoveCombatantAsync(idB, combatId, campaignId, userId, up: true);
+
+        CombatantOrder.Sort(await _repo.GetCombatantsAsync(combatId, campaignId, userId))
+            .Select(c => c.Id).Should().Equal(idB, idA); // swapped
+    }
+
+    [Fact]
+    public async Task Move_against_a_non_tied_neighbor_is_a_no_op()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idHi = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("Hi", 20));
+        var idLo = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("Lo", 10));
+
+        await _repo.MoveCombatantAsync(idLo, combatId, campaignId, userId, up: true); // Lo(10) can't pass Hi(20)
+
+        CombatantOrder.Sort(await _repo.GetCombatantsAsync(combatId, campaignId, userId))
+            .Select(c => c.Id).Should().Equal(idHi, idLo); // unchanged
+    }
+
+    [Fact]
+    public async Task Move_on_a_foreign_users_combat_is_a_no_op()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 15));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 15));
+        var intruder = await _users.CreateAsync("intruder", "hash");
+
+        await _repo.MoveCombatantAsync(idB, combatId, campaignId, intruder, up: true);
+
+        CombatantOrder.Sort(await _repo.GetCombatantsAsync(combatId, campaignId, userId))
+            .Select(c => c.Id).Should().Equal(idA, idB); // unchanged
+    }
+
+    [Fact]
+    public async Task Reordering_does_not_change_the_current_turn()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 15));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 15));
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId); // current = B (top A → next B)
+        (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().Be(idB);
+
+        await _repo.MoveCombatantAsync(idB, combatId, campaignId, userId, up: true);
+
+        (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().Be(idB); // unchanged
+    }
 }
