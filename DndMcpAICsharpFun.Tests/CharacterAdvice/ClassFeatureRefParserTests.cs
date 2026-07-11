@@ -32,4 +32,19 @@ public class ClassFeatureRefParserTests
         var refs = Json("""[ "no-pipes-here", { "other": "x" }, 42 ]""");
         ClassFeatureRefParser.Parse(refs, "classFeature").Should().BeEmpty();
     }
+
+    [Fact]
+    public void ParsesSixPartSubclassFeatureRefs_LevelAndSourceFromLastTwoPositions()
+    {
+        var refs = Json("""
+            [ "Combat Superiority|Fighter|PHB|Battle Master|PHB|3",
+              { "subclassFeature": "Combat Superiority|Fighter|PHB|Battle Master|PHB|3" } ]
+            """);
+        var parsed = ClassFeatureRefParser.Parse(refs, "subclassFeature");
+        parsed.Should().BeEquivalentTo(new[]
+        {
+            new FeatureRef("Combat Superiority", "PHB", 3),
+            new FeatureRef("Combat Superiority", "PHB", 3),
+        });
+    }
 }

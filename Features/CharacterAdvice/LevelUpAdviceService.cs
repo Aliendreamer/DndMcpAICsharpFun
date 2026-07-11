@@ -86,6 +86,8 @@ public sealed class LevelUpAdviceService(
             var classFields = classEntity.Fields.Deserialize<ClassFields>(JsonOpts);
             if (classFields is null)
                 continue;
+            if (classFields.Hd is null)
+                continue; // no hit die in the entity — can't ground HP; skip rather than fabricate a die (grounding contract)
             var candidateEdition = classEntity.Edition;
 
             SubclassFields? currentSubclassFields = null;

@@ -24,10 +24,13 @@ public static class ClassFeatureRefParser
             if (raw is null) continue;
 
             var parts = raw.Split('|');
+            // 4-part classFeature refs: Name|Class|Source|Level
+            // 6-part subclassFeature refs: Name|ClassName|ClassSource|SubclassShortName|SubclassSource|Level
+            // Level is always the last part, Source is always the second-to-last part, for both arities.
             if (parts.Length < 4) continue;
-            if (!int.TryParse(parts[3].Trim(), out var level)) continue;
+            if (!int.TryParse(parts[^1].Trim(), out var level)) continue;
             var name = parts[0].Trim();
-            var source = parts[2].Trim();
+            var source = parts[^2].Trim();
             if (name.Length == 0) continue;
             result.Add(new FeatureRef(name, source, level));
         }
