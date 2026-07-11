@@ -17,4 +17,16 @@ public static class CombatantOrder
             .ThenBy(c => c.AddedOrder)
             .ThenBy(c => c.Id)
             .ToList();
+
+
+    /// <summary>
+    /// True when the sort cannot distinguish <paramref name="a"/> and <paramref name="b"/> by anything
+    /// above <see cref="Combatant.AddedOrder"/> — equal initiative roll (both unset counts as equal),
+    /// modifier, and side. This is exactly the condition under which swapping their AddedOrder reorders
+    /// them, so it gates both the manual-reorder swap and the UI's ▲/▼ enable state.
+    /// </summary>
+    public static bool AreTied(Combatant a, Combatant b) =>
+        a.InitiativeRoll == b.InitiativeRoll
+        && a.InitiativeModifier == b.InitiativeModifier
+        && a.IsPlayer == b.IsPlayer;
 }
