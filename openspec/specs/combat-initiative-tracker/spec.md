@@ -127,7 +127,12 @@ passes the end. When advancing rolls the round over (increments `Round`), every 
 conditions SHALL decrement by 1 and any that reach 0 SHALL be removed; indefinite conditions SHALL NOT
 change. Removing the combatant whose turn it currently is SHALL re-anchor the current turn to the next
 combatant in order (wrapping to the first if it was last, and clearing the current turn when it was
-the last remaining combatant), so the turn marker never points at a removed combatant.
+the last remaining combatant), so the turn marker never points at a removed combatant. The DM SHALL be
+able to manually reorder combatants the sort treats as tied — those equal on `InitiativeRoll`,
+`InitiativeModifier`, and side (player-before-monster) — by swapping their `AddedOrder`; such a reorder
+SHALL NOT change the relative order of combatants the sort can already distinguish, SHALL be a no-op
+when the combatant has no tied neighbor in the requested direction, and SHALL NOT change the current
+turn.
 
 #### Scenario: Advancing past the last combatant wraps and bumps the round
 
@@ -158,6 +163,16 @@ the last remaining combatant), so the turn marker never points at a removed comb
 
 - **WHEN** the turn advances without rolling the round over
 - **THEN** no condition's rounds-remaining SHALL change
+
+#### Scenario: Reordering swaps two tied combatants
+
+- **WHEN** the DM moves one of two combatants that are tied (equal initiative roll, modifier, and side) toward the other
+- **THEN** the two SHALL swap places in the order, and the current turn SHALL be unchanged
+
+#### Scenario: Reordering against a non-tied neighbor is a no-op
+
+- **WHEN** the DM moves a combatant toward a neighbor that the sort can already distinguish (e.g. a different initiative roll)
+- **THEN** the order SHALL be unchanged
 
 ### Requirement: Combatants carry a multi-select set of D&D conditions
 
