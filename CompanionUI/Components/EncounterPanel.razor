@@ -51,11 +51,14 @@
                 <p class="muted">@_built.Note</p>
             }
 
-            <div class="encounter-save-row">
-                <input type="text" @bind="_label" @bind:event="oninput" placeholder="Label (optional)" />
-                <label><input type="checkbox" @bind="_hidden" /> Hidden</label>
-                <button type="button" class="btn btn--primary" @onclick="SaveAsync">Save to log</button>
-            </div>
+            @if (CampaignId > 0)
+            {
+                <div class="encounter-save-row">
+                    <input type="text" @bind="_label" @bind:event="oninput" placeholder="Label (optional)" />
+                    <label><input type="checkbox" @bind="_hidden" /> Hidden</label>
+                    <button type="button" class="btn btn--primary" @onclick="SaveAsync">Save to log</button>
+                </div>
+            }
         </div>
     }
 </div>
@@ -65,6 +68,7 @@
     [Parameter] public long UserId { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback<BuiltEncounter> OnBuilt { get; set; }
+    [Parameter] public IReadOnlyList<int>? PartyLevels { get; set; }
 
     private Difficulty _difficulty = Difficulty.Medium;
     private DndVersion _edition = DndVersion.Edition2014;
@@ -81,7 +85,7 @@
             _built = await EncounterSvc.BuildForUserAsync(
                 UserId,
                 CampaignId,
-                partyLevels: null,
+                partyLevels: PartyLevels,
                 _difficulty,
                 _edition,
                 string.IsNullOrWhiteSpace(_theme) ? null : _theme,
