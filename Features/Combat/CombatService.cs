@@ -41,20 +41,32 @@ public sealed class CombatService(
     }
 
     public async Task DraftMonstersAsync(
-        long combatId, long campaignId, long userId, IReadOnlyList<MonsterRef> monsters)
+        long combatId, long campaignId, long userId, IReadOnlyList<MonsterRef> monsters, bool rollHp)
     {
         foreach (var monster in monsters)
         {
+            var maxHp = ResolveMonsterHp(monster, rollHp);
             await combats.AddCombatantAsync(combatId, campaignId, userId, new Combatant
             {
                 Name = monster.Name,
                 IsPlayer = false,
                 InitiativeModifier = monster.InitiativeModifier,
                 InitiativeRoll = RollInitiative(monster.InitiativeModifier),
-                MaxHp = 0,
-                CurrentHp = 0,
+                MaxHp = maxHp,
+                CurrentHp = maxHp,
             });
         }
+    }
+
+    // Rolled HP when requested and a formula parses; otherwise the book average (0 if the stat block had neither).
+    private int ResolveMonsterHp(MonsterRef monster, bool rollHp)
+    {
+        if (rollHp && !string.IsNullOrWhiteSpace(monster.HpFormula)
+            && DiceExpression.TryParse(monster.HpFormula.Replace(" ", ""), out var expr, out _))
+        {
+            return roller.Roll(expr).Total;
+        }
+        return monster.AverageHp;
     }
 
     public async Task AddManualAsync(

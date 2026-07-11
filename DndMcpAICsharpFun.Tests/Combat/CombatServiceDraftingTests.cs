@@ -61,7 +61,7 @@ public sealed class CombatServiceDraftingTests(PostgresFixture pg) : IAsyncLifet
         var combatId = (await _combats.StartAsync(userId, campaignId, "Fight", DndVersion.Edition2014))!.Value;
 
         await NewService().DraftMonstersAsync(combatId, campaignId, userId,
-            new[] { new MonsterRef("mm.monster.goblin", "Goblin", 0.25, 50) });
+            new[] { new MonsterRef("mm.monster.goblin", "Goblin", 0.25, 50) }, rollHp: false);
 
         var goblin = (await _combats.GetCombatantsAsync(combatId, campaignId, userId)).Single();
         goblin.IsPlayer.Should().BeFalse();
@@ -79,10 +79,54 @@ public sealed class CombatServiceDraftingTests(PostgresFixture pg) : IAsyncLifet
 
         // MonsterRef with InitiativeModifier +3; MinRandomSource → d20 = 1, so init = 1 + 3 = 4.
         await NewService().DraftMonstersAsync(combatId, campaignId, userId,
-            new[] { new MonsterRef("mm.monster.ogre", "Ogre", 2, 450, 3) });
+            new[] { new MonsterRef("mm.monster.ogre", "Ogre", 2, 450, 3) }, rollHp: false);
 
         var ogre = (await _combats.GetCombatantsAsync(combatId, campaignId, userId)).Single();
         ogre.InitiativeModifier.Should().Be(3);
         ogre.InitiativeRoll.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task Draft_monsters_uses_average_hp_when_roll_off()
+    {
+        var userId = await _users.CreateAsync("dm", "hash");
+        var campaignId = await _campaigns.CreateAsync(userId, "Camp", "");
+        var combatId = (await _combats.StartAsync(userId, campaignId, "Fight", DndVersion.Edition2014))!.Value;
+
+        await NewService().DraftMonstersAsync(combatId, campaignId, userId,
+            new[] { new MonsterRef("mm.monster.goblin", "Goblin", 0.25, 50, 0, 7, "2d6") }, rollHp: false);
+
+        var goblin = (await _combats.GetCombatantsAsync(combatId, campaignId, userId)).Single();
+        goblin.MaxHp.Should().Be(7);
+        goblin.CurrentHp.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task Draft_monsters_rolls_formula_when_roll_on()
+    {
+        var userId = await _users.CreateAsync("dm", "hash");
+        var campaignId = await _campaigns.CreateAsync(userId, "Camp", "");
+        var combatId = (await _combats.StartAsync(userId, campaignId, "Fight", DndVersion.Edition2014))!.Value;
+
+        // MinRandomSource → each d6 = 1, so "2d6" rolls 2. Distinct from the average (7).
+        await NewService().DraftMonstersAsync(combatId, campaignId, userId,
+            new[] { new MonsterRef("mm.monster.goblin", "Goblin", 0.25, 50, 0, 7, "2d6") }, rollHp: true);
+
+        var goblin = (await _combats.GetCombatantsAsync(combatId, campaignId, userId)).Single();
+        goblin.MaxHp.Should().Be(2);
+        goblin.CurrentHp.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Draft_monsters_falls_back_to_average_when_formula_missing()
+    {
+        var userId = await _users.CreateAsync("dm", "hash");
+        var campaignId = await _campaigns.CreateAsync(userId, "Camp", "");
+        var combatId = (await _combats.StartAsync(userId, campaignId, "Fight", DndVersion.Edition2014))!.Value;
+
+        await NewService().DraftMonstersAsync(combatId, campaignId, userId,
+            new[] { new MonsterRef("x", "Ogre", 2, 450, 0, 59, null) }, rollHp: true);
+
+        (await _combats.GetCombatantsAsync(combatId, campaignId, userId)).Single().MaxHp.Should().Be(59);
     }
 }

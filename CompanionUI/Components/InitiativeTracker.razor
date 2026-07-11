@@ -164,7 +164,7 @@
         if (_combat is null) { _error = "Start a combat before adding monsters."; return; }
         try
         {
-            await CombatSvc.DraftMonstersAsync(_combat.Id, CampaignId, UserId, monsters);
+            await CombatSvc.DraftMonstersAsync(_combat.Id, CampaignId, UserId, monsters, rollHp: false);
             await ReloadAsync();
         }
         catch (Exception ex) { _error = ex.Message; }
