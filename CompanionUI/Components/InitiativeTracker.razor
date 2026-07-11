@@ -43,11 +43,19 @@
             </div>
 
             <ol class="combatant-list">
-                @{ var ordered = CombatantOrder.Sort(_combatants); var currentTurnId = _combat.CurrentTurnCombatantId ?? ordered.FirstOrDefault()?.Id; }
+                @{ var ordered = CombatantOrder.Sort(_combatants); var currentTurnId = _combat.CurrentTurnCombatantId ?? ordered.FirstOrDefault()?.Id; var idx = 0; }
                 @foreach (var c in ordered)
                 {
                     var isCurrent = c.Id == currentTurnId;
+                    var canUp = idx > 0 && CombatantOrder.AreTied(c, ordered[idx - 1]);
+                    var canDown = idx < ordered.Count - 1 && CombatantOrder.AreTied(c, ordered[idx + 1]);
                     <li class="@(isCurrent ? "combatant current" : "combatant")">
+                        <span class="c-reorder">
+                            <button type="button" class="reorder-btn" disabled="@(!canUp)"
+                                    title="Move up (tie)" @onclick="() => MoveAsync(c, true)">▲</button>
+                            <button type="button" class="reorder-btn" disabled="@(!canDown)"
+                                    title="Move down (tie)" @onclick="() => MoveAsync(c, false)">▼</button>
+                        </span>
                         <span class="c-init">
                             <input type="number" value="@c.InitiativeRoll"
                                    @onchange="e => SetInitiativeAsync(c, e.Value?.ToString())" />
@@ -88,6 +96,7 @@
                         </span>
                         <button class="c-remove" @onclick="() => RemoveAsync(c)">✕</button>
                     </li>
+                    idx++;
                 }
                 @if (ordered.Count == 0)
                 {
@@ -289,6 +298,13 @@
     {
         if (_combat is null) return;
         await CombatRepo.RemoveCombatantAsync(c.Id, _combat.Id, CampaignId, UserId);
+        await ReloadAsync();
+    }
+
+    private async Task MoveAsync(Combatant c, bool up)
+    {
+        if (_combat is null) return;
+        await CombatRepo.MoveCombatantAsync(c.Id, _combat.Id, CampaignId, UserId, up);
         await ReloadAsync();
     }
 
