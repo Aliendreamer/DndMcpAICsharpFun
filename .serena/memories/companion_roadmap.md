@@ -61,6 +61,27 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   Dedup/*`. DEFERRED: live-host smoke of the two dedup admin endpoints.
 
 ## COMPANION REASONING — net-new surfaces (the north star, now BUILDING)
+- **Character level-up advice (character-coach slice 1)** ✅ DONE (archived `2026-07-11-character-level-up-advice`;
+  commits `5012e9b`(spec)..`a80be05`; build 0/0, full suite **1227/1227**; final opus review CHANGES-REQUESTED→both
+  findings fixed). SECOND companion-reasoning surface + slice 1 of a **"character coach"** (slices B concept-recommender
+  + C build-critique planned on the SAME shared core). `Features/CharacterAdvice/`: deterministic `LevelUpPlanner`
+  (HP from `ClassFields.Hd`, PB formula, spell-slot diff reusing `MulticlassSlotTableSeeder` PHB arrays +
+  `MulticlassSpellcasting.ResolveSlotSource`, features/choices by parsing 5etools `classFeatures`) + `EntityOptionProvider`
+  (cited subclass/feat/spell menus over `dnd_entities`) + ownership-gated `LevelUpAdviceService.PlanForUserAsync`
+  (resolve owned snapshot or throw; per-candidate delta+options; advance-EXISTING class AND eligible NEW-class dips via
+  `check_multiclass`/`ResolveMulticlassValidity`). Surfaces: `plan_level_up` per-user chat tool (closes over session
+  userId; recommend-from-cited-menu contract) + a HeroDetail display-only GROUNDED CARD + a `?prompt=` chat hand-off.
+  GROUNDING CONTRACT enforced: class/subclass resolved by EXACT name-match-or-SKIP (live Playwright smoke caught a
+  wrong-class fallback — a Barbarian dip mislabeled with Warlock's hit die/features — fixed `7004db0`); Hd-null → SKIP
+  not fabricate-d8 (final review, fixed `e9ad7c2`); 6-part subclassFeature ref parsing fixed too. **KNOWN LIMITATION
+  (accepted — user chose ship-as-is):** the delta grounds on the STRUCTURED entity layer (`ClassFields.hd/classFeatures/
+  subclassTitle`) which is THIN corpus-wide — running Qdrant has only 4 richly-structured classes (Bard/Ranger/Sorcerer/
+  Warlock; live-verified working), the canonical corpus (`books/canonical`, 413 Class entities) is ~prose-only (0 hd,
+  1 classFeatures, 0 Subclass entities). Feature degrades HONESTLY (grounds where structured data exists, skips where
+  absent — never fabricates). **FOLLOW-UP (tracked):** grow coverage — either ENRICH structured class entities OR
+  RETHINK level-up grounding toward PROSE (canonicalText + LLM), the north-star direction (`mem:project_entity_extraction_rethink`).
+  Deferred Minors: HP floor-of-1 clamp; DipValidity discards the prereq reason (only the exclusion path is used).
+  LESSON → dev-flow: a self-seeded integration test proves your CODE, not that the real corpus HAS the fields you consume.
 - **Encounter design (slice 1)** ✅ DONE (archived `encounter-design`, 2026-07-09; 12 code commits
   `983907e..99c9feb` + integration test `a97c57e`, base 45649f9; build 0/0, FULL suite **1117/1117**).
   FIRST shipped companion-reasoning surface. ONE deterministic math core shared by rate + build so they
@@ -266,13 +287,17 @@ SHIPPED (token-based "arcane console" dark theme across every surface; the app n
 **Table-play v2 COMPLETE (all 4 slices SHIPPED + archived): slice 1 (`combat-fight-fidelity`), slice 2
 (`combat-condition-durations`), slice 3 (`combat-tie-reorder`, tie reorder), slice 4 (`scratch-surface`,
 global non-campaign dice/encounter page).** Only active openspec change is the parked
-`prose-grounded-knowledge-model`. FULL suite **1209/1209**.
+`prose-grounded-knowledge-model`. **COMPANION REASONING now has 2 surfaces: encounter-design + character
+level-up advice (character-coach slice 1, shipped 2026-07-11).** FULL suite **1227/1227**.
 NEXT candidates (user's call):
-(1) more companion REASONING surfaces: **encounter-design v2 swarms** ("N goblins" — generator + monster
-    source emit per-monster quantities), setting-aware lore synthesis, deeper character-build advice;
-(2) [table-play v2 is now COMPLETE — no remaining slices];
+(1) **character-coach slices B (concept-to-build recommender) + C (build-critique)** on the shipped
+    `Features/CharacterAdvice/` core — the natural continuation of the level-up slice;
+(1b) other companion REASONING: **encounter-design v2 swarms** ("N goblins"), setting-aware lore synthesis;
+(2) **level-up grounding coverage FOLLOW-UP** — enrich structured class entities OR rethink level-up toward
+    PROSE grounding (ties into candidate 3; the structured layer the level-up delta reads is thin corpus-wide);
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
-(4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6), a foundational lever under all.
+(4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6) — user DEFERRED this 2026-07-11
+    ("leave moe for later"); a foundational lever under all when revisited.
 Deferred operational: live-host smokes for Item 3 (reground, Ollama judge path), Item 4 (dedup endpoints),
 encounter-design (chat build→rate), Item C (play page + tracker Playwright smoke). Table-play roll→log→reveal
 UI smoke DONE 2026-07-10 (see Item B). Relates to
