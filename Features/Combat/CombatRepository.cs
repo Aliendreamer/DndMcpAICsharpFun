@@ -146,13 +146,28 @@ public sealed class CombatRepository(IDbContextFactory<AppDbContext> dbf)
     public async Task RemoveCombatantAsync(long combatantId, long combatId, long campaignId, long userId)
     {
         await using var db = await dbf.CreateDbContextAsync();
-        var owns = await db.Combats
-            .AnyAsync(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId);
-        if (!owns) return;
+        var combat = await db.Combats
+            .FirstOrDefaultAsync(c => c.Id == combatId && c.CampaignId == campaignId && c.UserId == userId);
+        if (combat is null) return;
 
-        await db.Combatants
-            .Where(x => x.Id == combatantId && x.CombatId == combatId)
-            .ExecuteDeleteAsync();
+        // If the combatant being removed is the current turn, re-anchor to the next-in-order using the
+        // PRE-removal sorted order, so the turn marker never points at a removed combatant.
+        if (combat.CurrentTurnCombatantId == combatantId)
+        {
+            var combatants = await db.Combatants.Where(x => x.CombatId == combatId).ToListAsync();
+            var ordered = CombatantOrder.Sort(combatants);
+            var idx = -1;
+            for (var i = 0; i < ordered.Count; i++)
+            {
+                if (ordered[i].Id == combatantId) { idx = i; break; }
+            }
+            combat.CurrentTurnCombatantId = (idx >= 0 && ordered.Count > 1)
+                ? ordered[(idx + 1) % ordered.Count].Id   // next-in-order; wraps to first if it was last
+                : null;                                    // it was the only combatant
+        }
+
+        await db.Combatants.Where(x => x.Id == combatantId && x.CombatId == combatId).ExecuteDeleteAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task AdvanceTurnAsync(long combatId, long campaignId, long userId)

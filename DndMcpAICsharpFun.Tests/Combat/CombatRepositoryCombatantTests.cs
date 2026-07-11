@@ -172,4 +172,62 @@ public sealed class CombatRepositoryCombatantTests(PostgresFixture pg) : IAsyncL
         var goblin = (await _repo.GetCombatantsAsync(combatId, campaignId, userId)).Single();
         goblin.MaxHp.Should().Be(7); // Monster("Goblin", 12) helper seeds MaxHp 7, unchanged
     }
+
+
+    [Fact]
+    public async Task Removing_the_current_combatant_moves_the_turn_to_the_next_in_order()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 20));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 15));
+        var idC = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("C", 10));
+
+        // Advance to B (order A,B,C; null start = A is current, one advance → B).
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId);
+        (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().Be(idB);
+
+        await _repo.RemoveCombatantAsync(idB, combatId, campaignId, userId);
+
+        var combat = await _repo.GetByIdAsync(combatId, campaignId, userId);
+        combat!.CurrentTurnCombatantId.Should().Be(idC);   // next-in-order, NOT the top (idA)
+        combat.Round.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Removing_the_current_last_combatant_wraps_to_the_first()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 20));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 10));
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId); // A -> B (last)
+
+        await _repo.RemoveCombatantAsync(idB, combatId, campaignId, userId);
+
+        (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().Be(idA);
+    }
+
+    [Fact]
+    public async Task Removing_the_only_combatant_clears_the_current_turn()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 20));
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId); // 1 combatant: wraps, still A current
+
+        await _repo.RemoveCombatantAsync(idA, combatId, campaignId, userId);
+
+        (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Removing_a_non_current_combatant_leaves_the_turn_untouched()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 20));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 10));
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId); // current = B
+
+        await _repo.RemoveCombatantAsync(idA, combatId, campaignId, userId); // remove the NON-current A
+
+        (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().Be(idB);
+    }
 }
