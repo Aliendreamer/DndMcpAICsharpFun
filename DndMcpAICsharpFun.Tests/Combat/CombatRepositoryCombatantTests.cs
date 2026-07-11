@@ -230,4 +230,49 @@ public sealed class CombatRepositoryCombatantTests(PostgresFixture pg) : IAsyncL
 
         (await _repo.GetByIdAsync(combatId, campaignId, userId))!.CurrentTurnCombatantId.Should().Be(idB);
     }
+
+
+    private async Task SetConditionsAsync(long combatantId, long combatId, long campaignId, long userId,
+        params ConditionTimer[] timers)
+    {
+        var c = (await _repo.GetCombatantsAsync(combatId, campaignId, userId)).Single(x => x.Id == combatantId);
+        await _repo.UpdateCombatantAsync(combatantId, combatId, campaignId, userId,
+            c.CurrentHp, c.InitiativeRoll, c.InitiativeModifier, timers);
+    }
+
+    [Fact]
+    public async Task Round_rollover_ticks_and_expires_timed_conditions_for_all_combatants()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 20));
+        var idB = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 10));
+        await SetConditionsAsync(idA, combatId, campaignId, userId,
+            new ConditionTimer(Condition.Paralyzed, 2), new ConditionTimer(Condition.Prone, null));
+        await SetConditionsAsync(idB, combatId, campaignId, userId, new ConditionTimer(Condition.Poisoned, 1));
+
+        // 2 combatants: A(current)→B (round 1, no wrap), B→wrap A (round 2, tick).
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId);
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId);
+
+        var combatants = await _repo.GetCombatantsAsync(combatId, campaignId, userId);
+        var a = combatants.Single(x => x.Id == idA).Conditions;
+        a.Single(t => t.Condition == Condition.Paralyzed).RoundsRemaining.Should().Be(1); // 2 → 1
+        a.Should().Contain(t => t.Condition == Condition.Prone && t.RoundsRemaining == null); // untouched
+        combatants.Single(x => x.Id == idB).Conditions
+            .Should().NotContain(t => t.Condition == Condition.Poisoned); // 1 → 0 → expired
+    }
+
+    [Fact]
+    public async Task Advancing_within_a_round_does_not_tick_conditions()
+    {
+        var (userId, campaignId, combatId) = await SeedCombatAsync();
+        var idA = await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("A", 20));
+        await _repo.AddCombatantAsync(combatId, campaignId, userId, Monster("B", 10));
+        await SetConditionsAsync(idA, combatId, campaignId, userId, new ConditionTimer(Condition.Poisoned, 3));
+
+        await _repo.AdvanceTurnAsync(combatId, campaignId, userId); // A → B, round stays 1, no tick
+
+        (await _repo.GetCombatantsAsync(combatId, campaignId, userId)).Single(x => x.Id == idA).Conditions
+            .Single(t => t.Condition == Condition.Poisoned).RoundsRemaining.Should().Be(3);
+    }
 }

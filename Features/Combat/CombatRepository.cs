@@ -217,6 +217,18 @@ public sealed class CombatRepository(IDbContextFactory<AppDbContext> dbf)
         {
             next = 0;
             combat.Round += 1;
+
+            // Round rollover: tick timed conditions on every combatant; expire any reaching 0.
+            foreach (var cmb in combatants)
+            {
+                var timers = cmb.Conditions;
+                if (timers.Count == 0) continue;
+                var ticked = timers
+                    .Select(t => t.RoundsRemaining is int r ? t with { RoundsRemaining = r - 1 } : t)
+                    .Where(t => t.RoundsRemaining is null || t.RoundsRemaining > 0)
+                    .ToList();
+                cmb.Conditions = ticked; // writes ConditionsJson on the tracked entity
+            }
         }
 
         combat.CurrentTurnCombatantId = ordered[next].Id;
