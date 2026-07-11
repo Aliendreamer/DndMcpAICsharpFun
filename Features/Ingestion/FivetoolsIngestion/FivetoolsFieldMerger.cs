@@ -6,7 +6,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 /// <summary>Fill-missing-only merge of allowlisted 5etools fields onto one entity's Fields. Never
 /// overwrites an extraction/human field; re-derives previously-5etools-filled fields (deterministic);
 /// records provenance in a reserved <c>_fivetoolsFilledFields</c> array. Idempotent.</summary>
-public static class EntityFieldMerger
+public static class FivetoolsFieldMerger
 {
     private const string ProvenanceKey = "_fivetoolsFilledFields";
 

@@ -224,7 +224,7 @@ internal static class ServiceCollectionExtensions
         });
         services.AddSingleton<PartialJsonRecoverer>();
         services.AddSingleton<SemanticChunker>();
-        services.AddSingleton<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityFieldMerger>();
+        services.AddSingleton<EntityFieldMerger>();
         services.AddSingleton<EntityCandidateScanner>();
         services.AddSingleton<StatBlockScanner>();
         services.AddSingleton<CanonicalJsonWriter>();

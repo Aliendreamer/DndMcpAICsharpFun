@@ -5,7 +5,7 @@ using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Admin;
 
-public class EntityFieldMergerTests
+public class FivetoolsFieldMergerTests
 {
     private static JsonElement J(string json) => JsonDocument.Parse(json).RootElement.Clone();
     private static readonly IReadOnlySet<string> ClassAllow =
@@ -17,7 +17,7 @@ public class EntityFieldMergerTests
         var entity = J("""{ "entries": ["prose"] }""");
         var five = J("""{ "hd": {"faces":12}, "classFeatures": ["Rage"], "subclassTitle": "Path", "entries": ["5e prose"], "hasFluff": true }""");
 
-        var (merged, changed) = EntityFieldMerger.Merge(entity, ClassAllow, five);
+        var (merged, changed) = FivetoolsFieldMerger.Merge(entity, ClassAllow, five);
 
         changed.Should().BeTrue();
         merged.GetProperty("hd").GetProperty("faces").GetInt32().Should().Be(12);
@@ -33,7 +33,7 @@ public class EntityFieldMergerTests
     {
         var entity = J("""{ "hd": {"faces":10} }""");           // extraction already has hd, NOT provenance-marked
         var five = J("""{ "hd": {"faces":12} }""");
-        var (merged, changed) = EntityFieldMerger.Merge(entity, ClassAllow, five);
+        var (merged, changed) = FivetoolsFieldMerger.Merge(entity, ClassAllow, five);
         merged.GetProperty("hd").GetProperty("faces").GetInt32().Should().Be(10);   // extraction wins
     }
 
@@ -42,8 +42,8 @@ public class EntityFieldMergerTests
     {
         var entity = J("""{ "entries": ["p"] }""");
         var five = J("""{ "hd": {"faces":8}, "classFeatures": ["X"], "subclassTitle": "T" }""");
-        var (first, _) = EntityFieldMerger.Merge(entity, ClassAllow, five);
-        var (second, changed2) = EntityFieldMerger.Merge(first, ClassAllow, five);
+        var (first, _) = FivetoolsFieldMerger.Merge(entity, ClassAllow, five);
+        var (second, changed2) = FivetoolsFieldMerger.Merge(first, ClassAllow, five);
         second.GetRawText().Should().Be(first.GetRawText());
         changed2.Should().BeFalse();
     }
