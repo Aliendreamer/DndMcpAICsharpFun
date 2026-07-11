@@ -61,10 +61,10 @@
                             <span class="hp-bar"><span style="width:@(HpPercent(c))%;background:@(HpColor(c))"></span></span>
                         </span>
                         <span class="c-conditions">
-                            @foreach (var cond in c.Conditions)
+                            @foreach (var t in c.Conditions)
                             {
                                 <button type="button" class="chip cond-chip"
-                                        @onclick="() => ToggleConditionAsync(c, cond)">@cond ✕</button>
+                                        @onclick="() => ToggleConditionAsync(c, t.Condition)">@t.Condition ✕</button>
                             }
                             <button type="button" class="cond-menu-toggle"
                                     @onclick="() => ToggleConditionMenu(c.Id)">+</button>
@@ -73,7 +73,7 @@
                                 <div class="cond-menu">
                                     @foreach (var cond in Enum.GetValues<Condition>())
                                     {
-                                        var on = c.Conditions.Contains(cond);
+                                        var on = c.Conditions.Any(x => x.Condition == cond);
                                         <button type="button" class="@(on ? "cond on" : "cond")"
                                                 @onclick="() => ToggleConditionAsync(c, cond)">@cond</button>
                                     }
@@ -259,7 +259,9 @@
     {
         if (_combat is null) return;
         var set = c.Conditions.ToList();
-        if (!set.Remove(cond)) set.Add(cond);
+        var existing = set.FirstOrDefault(t => t.Condition == cond);
+        if (existing is not null) set.Remove(existing);
+        else set.Add(new ConditionTimer(cond, null));
         await CombatRepo.UpdateCombatantAsync(c.Id, _combat.Id, CampaignId, UserId,
             c.CurrentHp, c.InitiativeRoll, c.InitiativeModifier, set);
         await ReloadAsync();

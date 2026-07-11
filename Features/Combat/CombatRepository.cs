@@ -108,7 +108,7 @@ public sealed class CombatRepository(IDbContextFactory<AppDbContext> dbf)
 
     public async Task UpdateCombatantAsync(
         long combatantId, long combatId, long campaignId, long userId,
-        int currentHp, int? initiativeRoll, int initiativeModifier, IReadOnlyList<Condition> conditions)
+        int currentHp, int? initiativeRoll, int initiativeModifier, IReadOnlyList<ConditionTimer> conditions)
     {
         await using var db = await dbf.CreateDbContextAsync();
         var owns = await db.Combats

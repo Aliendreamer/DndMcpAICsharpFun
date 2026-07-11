@@ -36,13 +36,13 @@ public sealed class CombatRepositoryCombatantTests(PostgresFixture pg) : IAsyncL
 
         await _repo.UpdateCombatantAsync(id, combatId, campaignId, userId,
             currentHp: 2, initiativeRoll: 15, initiativeModifier: 2,
-            conditions: new[] { Condition.Poisoned, Condition.Prone });
+            conditions: new[] { new ConditionTimer(Condition.Poisoned), new ConditionTimer(Condition.Prone) });
 
         var combatants = await _repo.GetCombatantsAsync(combatId, campaignId, userId);
         var goblin = combatants.Single();
         goblin.CurrentHp.Should().Be(2);
         goblin.InitiativeRoll.Should().Be(15);
-        goblin.Conditions.Should().Equal(Condition.Poisoned, Condition.Prone);
+        goblin.Conditions.Select(t => t.Condition).Should().Equal(Condition.Poisoned, Condition.Prone);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public sealed class CombatRepositoryCombatantTests(PostgresFixture pg) : IAsyncL
 
         // Wrong user on every command → no effect.
         (await _repo.AddCombatantAsync(combatId, campaignId, intruder, Monster("X", 1))).Should().Be(0);
-        await _repo.UpdateCombatantAsync(combatantId, combatId, campaignId, intruder, 0, 1, 0, Array.Empty<Condition>());
+        await _repo.UpdateCombatantAsync(combatantId, combatId, campaignId, intruder, 0, 1, 0, Array.Empty<ConditionTimer>());
         await _repo.AdvanceTurnAsync(combatId, campaignId, intruder);
         await _repo.EndAsync(combatId, campaignId, intruder);
         await _repo.RemoveCombatantAsync(combatantId, combatId, campaignId, intruder);
