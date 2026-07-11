@@ -280,11 +280,23 @@ The hard cap is the **8GB VRAM ceiling** (RTX 5070 Laptop), NOT latency.
   the 4 that are, are stale-but-structured (why the Ranger live demo worked + Barbarian was absent).
   **Re-running `ingest-entities` does NOT fix it** — it would index 12 PROSE classes with no hit die, which the feature
   correctly skips. The structured class data the feature needs isn't in the current canonical at all. DECISION when
-  revisited: **(a) ENRICH** — supplement the 12 classes with structured `ClassFields` from 5etools (PHB is a 5etools
-  source; `POST /admin/5etools/import` supplements canonical entities with 5etools data — CONFIRM it covers the full
-  class schema hd/classFeatures, not just tags/SRD flags) — reuses existing machinery, grounds all 12 now; vs
-  **(b) RETHINK level-up grounding toward PROSE** (derive HP/features from class `entries` + LLM) — the north-star
-  direction, folds into the parked `prose-grounded-knowledge-model` (`mem:project_entity_extraction_rethink`).
+  revisited: **(a) ENRICH via 5etools** vs **(b) RETHINK toward PROSE**. **(a) VERIFIED END-TO-END 2026-07-11:**
+  `POST /admin/5etools/import` (`ImportAllAsync`) runs every mapper (`FivetoolsClassMapper`/`Subclass`/`Spell`/`Feat`/…)
+  over local `5etools/`, stores the FULL 5etools record as each entity's Fields (`BuildFields => entry.Clone()` →
+  hd/classFeatures/subclassTitle/classTableGroups), renders canonicalText (`dispatcher.Render`) so entities are
+  retrievable, skips `manual`-sourced entities, upserts to `dnd_entities` (`dataSource:"5etools"`). RAN IT: **9868
+  entities mapped+upserted in ~7 min (HTTP 200)**; the level-up card then grounded **all 11 eligible classes with correct
+  hit dice** (Ranger d10, Barbarian d12, Fighter/Paladin d10, Sorcerer d6, others d8; Wizard correctly excluded on INT<13)
+  — ZERO code changes. So (a) works for ALL classes in one endpoint call. **CURRENT INDEX STATE (2026-07-11):**
+  `dnd_entities` is now populated with the whole 5etools corpus (9868, `dataSource:5etools`), which UPSERT-OVERWROTE the
+  prior non-manual extraction entities by id (monsters/spells/etc. are now 5etools versions). Reversible (re-run
+  ingest-entities / delete by dataSource). **OPEN DECISIONS:** (i) keep 5etools as the entity source of truth (path a) vs
+  revert to extraction/prose (path b, north star); (ii) `ImportAll` is unscoped (all sources incl. 2024/XPHB) — a clean
+  3-book re-ingest of PROSE entities AFTER this would clobber the structured classes (id collision), so ordering/id
+  namespaces must be reconciled. **REFINEMENT surfaced:** the level-up class lookup name-matches WITHOUT edition filter,
+  so with both 2014+2024 class entities now present a hero could get the wrong-edition class rules — pin the lookup to the
+  hero's edition. (b) RETHINK toward PROSE (HP/features from `entries` + LLM) remains the north-star alternative
+  (`mem:project_entity_extraction_rethink`).
 - **Level-up deferred Minors** (final-review, non-blocking): clamp HP gain to the D&D floor of 1 (very-low-CON edge);
   surface `DipValidity`'s failed-prereq reason instead of only excluding ineligible dips (spec's "identify the failed
   prerequisite" scenario is currently satisfied only by exclusion).
