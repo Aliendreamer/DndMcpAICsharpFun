@@ -62,7 +62,8 @@ public sealed class EntitySearchMonsterSource(IEntityRetrievalService search) : 
             }
 
             var initMod = MonsterDex.TryReadModifier(hit.Fields, out var m) ? m : 0;
-            monsters.Add(new MonsterRef(hit.Id, hit.Name, cr, xp, initMod));
+            MonsterHp.TryRead(hit.Fields, out var avgHp, out var hpFormula);
+            monsters.Add(new MonsterRef(hit.Id, hit.Name, cr, xp, initMod, avgHp, hpFormula));
         }
 
         return monsters;
@@ -133,6 +134,26 @@ internal static class MonsterDex
         }
 
         modifier = (int)Math.Floor((dex - 10) / 2.0);
+        return true;
+    }
+}
+
+/// <summary>Reads a monster's HP from its entity fields (<c>MonsterFields.hp.average</c> + optional
+/// <c>hp.formula</c>). Returns false when no usable average is present (caller defaults to 0).</summary>
+internal static class MonsterHp
+{
+    public static bool TryRead(JsonElement fields, out int average, out string? formula)
+    {
+        average = 0;
+        formula = null;
+        if (fields.ValueKind != JsonValueKind.Object
+            || !fields.TryGetProperty("hp", out var hpEl) || hpEl.ValueKind != JsonValueKind.Object)
+            return false;
+        if (!hpEl.TryGetProperty("average", out var avgEl)
+            || avgEl.ValueKind != JsonValueKind.Number || !avgEl.TryGetInt32(out average))
+            return false;
+        if (hpEl.TryGetProperty("formula", out var fEl) && fEl.ValueKind == JsonValueKind.String)
+            formula = fEl.GetString();
         return true;
     }
 }
