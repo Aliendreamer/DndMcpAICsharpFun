@@ -5,11 +5,13 @@
 @using System.Text.Json
 @using DndMcpAICsharpFun.Features.Campaigns
 @using DndMcpAICsharpFun.Features.Resolution
+@using DndMcpAICsharpFun.Features.CharacterAdvice
 @attribute [Authorize]
 @inject HeroRepository HeroRepo
 @inject CampaignRepository CampaignRepo
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider Auth
+@inject DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpAdviceService LevelUpSvc
 
 <PageTitle>@(_hero?.Name ?? "Hero")</PageTitle>
 
@@ -29,6 +31,53 @@ else
                 <button @onclick="EnterEdit">Edit</button>
             }
         </div>
+
+        @if (!_editMode && _hero.LatestSnapshot is not null)
+        {
+            <div class="sheet-section levelup-section">
+                <h3>Level-Up Planner</h3>
+                <button class="btn btn--primary" @onclick="PlanLevelUpAsync">Plan level-up</button>
+                @if (_levelUpError is not null)
+                {
+                    <p class="error">@_levelUpError</p>
+                }
+                @if (_levelUp is not null)
+                {
+                    @foreach (var candidate in _levelUp.Candidates)
+                    {
+                        var delta = candidate.Delta;
+                        var slotSummary = SlotSummary(delta.SpellSlotsBefore, delta.SpellSlotsAfter);
+                        <div class="card levelup-candidate">
+                            <h4>@candidate.ClassName → level @delta.NewClassLevel @(candidate.IsNewClassDip ? "(dip)" : "")</h4>
+                            <p>+@delta.HpAverageGain HP (@delta.HpRollFormula)</p>
+                            <p>Proficiency bonus +@delta.ProficiencyBonusBefore → +@delta.ProficiencyBonusAfter</p>
+                            @if (!string.IsNullOrEmpty(slotSummary))
+                            {
+                                <p>Spell slots: @slotSummary</p>
+                            }
+                            @if (delta.FeaturesGained.Count > 0)
+                            {
+                                <p>Features gained: @string.Join(", ", delta.FeaturesGained.Select(f => f.Name))</p>
+                            }
+                            @foreach (var choice in delta.OpenChoices)
+                            {
+                                <div class="chip levelup-choice">
+                                    <b>@choice.Label</b>
+                                    @if (choice.Options.Count > 0)
+                                    {
+                                        <span>: @string.Join(", ", choice.Options.Select(o => $"{o.Name} ({o.Source})"))</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    <a class="btn btn--ghost"
+                       href="@($"/?prompt={Uri.EscapeDataString($"Plan my level-up for hero snapshot {_hero!.LatestSnapshot!.Id} ({_hero.Name}). Recommend a pick and explain why.")}")">
+                        Ask the assistant to recommend →
+                    </a>
+                }
+            </div>
+        }
 
         @{
             var sheet = _editMode ? _editSheet : (_viewingSnapshot?.Sheet ?? _hero.LatestSnapshot?.Sheet ?? new CharacterSheet());
@@ -327,8 +376,11 @@ else
     [Parameter] public long HeroId { get; set; }
 
     private Hero? _hero;
+    private long _userId;
     private List<HeroSnapshotMeta> _snapshots = [];
     private HeroSnapshot? _viewingSnapshot;
+    private LevelUpAdvice? _levelUp;
+    private string? _levelUpError;
 
     private bool _editMode;
     private CharacterSheet _editSheet = new();
@@ -348,7 +400,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         var state = await Auth.GetAuthenticationStateAsync();
-        var userId = long.Parse(state.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        _userId = long.Parse(state.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         _hero = await HeroRepo.GetByIdAsync(HeroId);
         if (_hero is null)
@@ -357,7 +409,7 @@ else
             return;
         }
 
-        var campaign = await CampaignRepo.GetByIdAsync(_hero.CampaignId, userId);
+        var campaign = await CampaignRepo.GetByIdAsync(_hero.CampaignId, _userId);
         if (campaign is null)
         {
             Nav.NavigateTo("/campaigns");
@@ -429,4 +481,29 @@ else
 
     private static List<string> Split(string text) =>
         text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+    private async Task PlanLevelUpAsync()
+    {
+        try
+        {
+            _levelUp = await LevelUpSvc.PlanForUserAsync(_hero!.LatestSnapshot!.Id, _userId, targetClass: null, considerDip: true, default);
+            _levelUpError = null;
+        }
+        catch (Exception ex)
+        {
+            _levelUpError = ex.Message;
+            _levelUp = null;
+        }
+    }
+
+    private static string SlotSummary(IReadOnlyList<int> before, IReadOnlyList<int> after)
+    {
+        var changes = new List<string>();
+        for (var i = 0; i < before.Count && i < after.Count; i++)
+        {
+            if (before[i] != after[i])
+                changes.Add($"Lv{i + 1} {before[i]}→{after[i]}");
+        }
+        return string.Join(", ", changes);
+    }
 }

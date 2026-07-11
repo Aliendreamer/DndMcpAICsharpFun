@@ -290,7 +290,7 @@ public sealed class DndChatServiceTests : IDisposable
         await svc.SendAsync("Rate my encounter", false, CancellationToken.None);
 
         var tools = client.LastOptions!.Tools!.OfType<AIFunction>()
-            .Where(t => t.Name is "rate_encounter" or "build_encounter");
+            .Where(t => t.Name is "rate_encounter" or "build_encounter" or "plan_level_up");
         foreach (var tool in tools)
         {
             var hasUserId = tool.JsonSchema.TryGetProperty("properties", out var props)

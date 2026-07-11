@@ -7,6 +7,7 @@
 @implements IAsyncDisposable
 @inject DndMcpAICsharpFun.Features.Chat.DndChatService ChatService
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <div class="chat-container">
     @if (_sendError is not null)
@@ -68,6 +69,10 @@
             ChatService.History.Add(new ChatMessage(
                 ChatRole.Assistant,
                 "Hello, adventurer! Ask me anything about D&D rules, spells, monsters, and lore."));
+
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(Nav.Uri).Query);
+        if (string.IsNullOrEmpty(_input) && query.TryGetValue("prompt", out var seeded))
+            _input = seeded.ToString();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
