@@ -79,11 +79,10 @@ public sealed class LevelUpAdviceService(
                     DamageType: null,
                     TopK: 5),
                 ct);
-            if (classResults.Count == 0)
-                continue; // can't ground this candidate — skip rather than fabricate a delta
-
             var classEntity = classResults.FirstOrDefault(
-                r => string.Equals(r.Name, className, StringComparison.OrdinalIgnoreCase)) ?? classResults[0];
+                r => string.Equals(r.Name, className, StringComparison.OrdinalIgnoreCase));
+            if (classEntity is null)
+                continue; // exact class not in corpus — skip rather than ground on a wrong class (grounding contract)
             var classFields = classEntity.Fields.Deserialize<ClassFields>(JsonOpts);
             if (classFields is null)
                 continue;
@@ -113,8 +112,7 @@ public sealed class LevelUpAdviceService(
                             TopK: 5),
                         ct);
                     var subclassEntity = subclassResults.FirstOrDefault(
-                        r => string.Equals(r.Name, currentSubclass, StringComparison.OrdinalIgnoreCase))
-                        ?? subclassResults.FirstOrDefault();
+                        r => string.Equals(r.Name, currentSubclass, StringComparison.OrdinalIgnoreCase));
                     currentSubclassFields = subclassEntity?.Fields.Deserialize<SubclassFields>(JsonOpts);
                 }
             }

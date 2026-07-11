@@ -37,25 +37,73 @@ file sealed class FakeEntityRetrievalService : IEntityRetrievalService
         if (query.Type != EntityType.Class)
             return Task.FromResult<IList<EntityDiagnosticResult>>([]);
 
-        using var doc = JsonDocument.Parse("""
+        // Echoes the queried class name back as the entity's Name, so every queried class is
+        // "in the corpus" under the stricter exact-name-match grounding rule.
+        var className = query.QueryText;
+        var slug = className.ToLowerInvariant();
+        using var doc = JsonDocument.Parse($$"""
             {
               "hd": { "number": 1, "faces": 10 },
               "classFeatures": [
-                "Fighting Style|Fighter|PHB|1",
-                "Second Wind|Fighter|PHB|1"
+                "Fighting Style|{{className}}|PHB|1",
+                "Second Wind|{{className}}|PHB|1"
               ],
               "subclassTitle": "Martial Archetype"
             }
             """);
         var result = new EntityDiagnosticResult(
-            Id: "phb14.class.fighter",
+            Id: $"phb14.class.{slug}",
             Type: EntityType.Class,
-            Name: "Fighter",
+            Name: className,
             SourceBook: "PHB",
             Edition: "2014",
             Page: 72,
             SettingTags: [],
-            PointId: "point-fighter",
+            PointId: $"point-{slug}",
+            Fields: doc.RootElement.Clone(),
+            Score: 1.0f);
+        return Task.FromResult<IList<EntityDiagnosticResult>>([result]);
+    }
+}
+
+/// <summary>
+/// Always returns a "Warlock" class entity regardless of the query — simulates the corpus
+/// containing some class but never the one actually requested (e.g. Barbarian/Fighter absent).
+/// Used to prove the exact-name-match-or-skip fix: the wrong-named candidate must never be
+/// silently used to ground advice.
+/// </summary>
+file sealed class FakeWrongClassEntityRetrievalService : IEntityRetrievalService
+{
+    public Task<EntityFullResult?> GetByIdAsync(string id, CancellationToken ct) =>
+        Task.FromResult<EntityFullResult?>(null);
+
+    public Task<IList<EntitySearchResult>> SearchAsync(EntitySearchQuery query, CancellationToken ct) =>
+        Task.FromResult<IList<EntitySearchResult>>([]);
+
+    public Task<IList<EntityDiagnosticResult>> SearchDiagnosticAsync(EntitySearchQuery query, CancellationToken ct)
+    {
+        if (query.Type != EntityType.Class)
+            return Task.FromResult<IList<EntityDiagnosticResult>>([]);
+
+        using var doc = JsonDocument.Parse("""
+            {
+              "hd": { "number": 1, "faces": 8 },
+              "classFeatures": [
+                "Otherworldly Patron|Warlock|PHB|1",
+                "Pact Magic|Warlock|PHB|1"
+              ],
+              "subclassTitle": "Otherworldly Patron"
+            }
+            """);
+        var result = new EntityDiagnosticResult(
+            Id: "phb14.class.warlock",
+            Type: EntityType.Class,
+            Name: "Warlock",
+            SourceBook: "PHB",
+            Edition: "2014",
+            Page: 106,
+            SettingTags: [],
+            PointId: "point-warlock",
             Fields: doc.RootElement.Clone(),
             Score: 1.0f);
         return Task.FromResult<IList<EntityDiagnosticResult>>([result]);
@@ -85,11 +133,11 @@ public sealed class LevelUpAdviceServiceTests(PostgresFixture pg) : IAsyncLifeti
         return sp.GetRequiredService<IDbContextFactory<AppDbContext>>();
     }
 
-    private LevelUpAdviceService BuildService(out HeroRepository heroes)
+    private LevelUpAdviceService BuildService(out HeroRepository heroes, IEntityRetrievalService? retrieval = null)
     {
         var dbf = DbFactory();
         heroes = new HeroRepository(dbf);
-        var retrieval = new FakeEntityRetrievalService();
+        retrieval ??= new FakeEntityRetrievalService();
         return new LevelUpAdviceService(heroes, retrieval, new LevelUpPlanner(), new EntityOptionProvider(retrieval));
     }
 
@@ -209,5 +257,26 @@ public sealed class LevelUpAdviceServiceTests(PostgresFixture pg) : IAsyncLifeti
 
         advice.Candidates.Should().Contain(c => c.ClassName == "Barbarian" && c.IsNewClassDip);
         advice.Candidates.Should().NotContain(c => c.ClassName == "Bard");
+    }
+
+    [Fact]
+    public async Task PlanForUser_classEntityNameMismatch_candidateIsSkipped_notGroundedOnWrongClass()
+    {
+        // The corpus only ever returns a "Warlock" class entity, never the requested "Barbarian".
+        // The old fallback (`?? classResults[0]`) would have grounded the advice on Warlock's
+        // hit die/features while mislabeling the candidate "Barbarian". The fix must skip the
+        // candidate entirely rather than ground it on the wrong class.
+        var (snapshotId, ownerUserId) = await SeedOwnedSnapshotAsync(FighterSheet());
+        var service = BuildService(out _, new FakeWrongClassEntityRetrievalService());
+
+        var advice = await service.PlanForUserAsync(
+            snapshotId, ownerUserId, targetClass: "Barbarian", considerDip: true, default);
+
+        // Non-vacuous: with targetClass="Barbarian" the only possible candidate is the Barbarian
+        // dip (Fighter is filtered out by targetClass, Warlock is never a requested class), so an
+        // empty result proves the mismatch was actually detected and the candidate was skipped —
+        // not that the candidate list is empty for some unrelated reason.
+        advice.Candidates.Should().BeEmpty();
+        advice.Candidates.Should().NotContain(c => c.ClassName == "Barbarian");
     }
 }
