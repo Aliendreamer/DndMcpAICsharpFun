@@ -91,4 +91,21 @@ public sealed class MulticlassSlotTableSeeder(IDbContextFactory<AppDbContext> db
         }
         await db.SaveChangesAsync(ct);
     }
+
+
+    /// <summary>Per-spell-level (1..9) slot counts for a resolved caster source, or all-zero
+    /// for a non-caster / out-of-range level. Reads the same PHB arrays this class seeds.</summary>
+    public static int[] SlotsForCasterLevel(MulticlassSpellcasting.SlotSource src)
+    {
+        var table = src.Kind switch
+        {
+            "half" => HalfCasterSlots,
+            "third" => ThirdCasterSlots,
+            "multiclass" => Slots,
+            _ => null,
+        };
+        if (table is null || src.Level < 1 || src.Level > table.Length)
+            return new int[9];
+        return (int[])table[src.Level - 1].Clone();
+    }
 }
