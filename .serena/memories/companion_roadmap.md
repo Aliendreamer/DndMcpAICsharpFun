@@ -264,7 +264,22 @@ The hard cap is the **8GB VRAM ceiling** (RTX 5070 Laptop), NOT latency.
 - **DMG Object residuals** (hand-correctable): tighten `StatBlockScanner` / `IsObjectStatBlock`.
 - **`dotnet format`** — a comprehensive `.editorconfig` ALREADY EXISTS (18KB, `dotnet_separate_import_directive_groups`, `dotnet_sort_system_directives_first`); the repo had just drifted from it. One-time normalization was applied 2026-07-09b (whitespace/finalnewline/imports; behavior-neutral, build 0/0). `dotnet format --verify-no-changes` clean going forward.
 - **Operational live-host smokes** (deferred, need app+Qdrant+Postgres+Ollama up): Item 3 reground
-  endpoint (fast pass + `?judge=true`); Item 4 dedup endpoints (duplicates report + compact apply).
+  endpoint (fast pass + `?judge=true`); Item 4 dedup endpoints (duplicates report + compact apply);
+  **encounter-design chat build→rate; character level-up chat-driven recommendation (needs Ollama).**
+- **Character-coach slices B + C** (planned, on the shipped `Features/CharacterAdvice/` core): **B = concept-to-build
+  recommender** (text concept → class/subclass/feat/spell path from scratch); **C = build-critique** (review a sheet
+  for strengths/gaps). Each is its own brainstorm→propose→plan→SDD slice reusing the level-up core (deterministic
+  delta + cited option menus + ownership-gated per-user orchestrator + chat tool + HeroDetail surface).
+- **Level-up grounding coverage** (accepted limitation on the shipped level-up slice — user chose ship-as-is 2026-07-11):
+  the deterministic delta reads STRUCTURED class fields (`ClassFields.hd/classFeatures/subclassTitle`) which are THIN
+  corpus-wide (running Qdrant: only Bard/Ranger/Sorcerer/Warlock structured; canonical `books/canonical`: 413 Class
+  entities ~prose-only). Feature degrades honestly (grounds where data exists, skips where absent). DECISION when
+  revisited: **(a) enrich structured class entities** (backfill hd/classFeatures/subclasses for all 12 classes) vs
+  **(b) rethink level-up grounding toward PROSE** (canonicalText + LLM) — (b) is the north-star direction and folds
+  into the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`).
+- **Level-up deferred Minors** (final-review, non-blocking): clamp HP gain to the D&D floor of 1 (very-low-CON edge);
+  surface `DipValidity`'s failed-prereq reason instead of only excluding ineligible dips (spec's "identify the failed
+  prerequisite" scenario is currently satisfied only by exclusion).
 
 ## How we progress (discipline — never skip)
 Each item: **superpowers:brainstorming** (full dialogue) → **opsx:propose** → **superpowers:writing-plans**
