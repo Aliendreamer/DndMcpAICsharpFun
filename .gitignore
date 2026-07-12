@@ -65,6 +65,9 @@ __pycache__/
 .claude/scheduled_tasks.lock
 # Playwright MCP writes snapshots/console/screenshots here — never commit
 .playwright-mcp/
+# Live-smoke screenshots saved to the repo root (transient UI-verification artifacts)
+/*-desktop-*.png
+/*-mobile-*.png
 
 # --- Logs ---
 *.log
