@@ -122,6 +122,9 @@ public sealed class EncounterGeneratorTests
     [Fact]
     public async Task BuildAsync_falls_back_to_the_closest_set_when_candidates_are_sparse()
     {
+        // Only a CR1/8 (25 XP) monster is available and Hard is unreachable for a 4×L5 party even at
+        // MaxMonsters. Re-selection fills with copies of that one monster up to the cap — the honest
+        // "best achievable" swarm — rather than stopping at a single under-budget monster.
         IReadOnlyList<MonsterRef> pool = [new MonsterRef("mm.monster.tiny", "Tiny Monster", 0.125, EncounterMath.CrToXp(0.125))];
         var source = new FakeMonsterSource(pool);
         var generator = new EncounterGenerator(source, new EncounterAssessor());
@@ -131,8 +134,78 @@ public sealed class EncounterGeneratorTests
 
         result.FullyMatched.Should().BeFalse();
         result.Note.Should().NotBeNullOrWhiteSpace();
-        result.Assessment.Monsters.Should().ContainSingle(m => m.Id == "mm.monster.tiny");
+        result.Assessment.Monsters.Should().HaveCount(15);                       // MaxMonsters cap
+        result.Assessment.Monsters.Should().OnlyContain(m => m.Id == "mm.monster.tiny");
         result.PartyLevels.Should().Equal(Party4L5);
+    }
+
+
+    [Fact]
+    public async Task BuildAsync_builds_a_swarm_of_cheaper_minions_under_a_single_anchor()
+    {
+        // 4×L5 (2014): Easy=1000, Medium=2000, Hard=3000, Deadly=4400.
+        // Anchor CR5 = 1800 XP. Minions CR1/4 = 50 XP each (strictly cheaper).
+        // 1 anchor alone: 1800 ×1.0 = 1800 → Medium (short of Hard=3000), so fill continues.
+        // The fill re-selects the cheap minion in multiples toward Hard.
+        IReadOnlyList<MonsterRef> pool =
+        [
+            new MonsterRef("mm.monster.boss", "Boss", 5, EncounterMath.CrToXp(5)),
+            new MonsterRef("mm.monster.minion", "Minion", 0.25, EncounterMath.CrToXp(0.25)),
+        ];
+        var assessor = new EncounterAssessor();
+        var generator = new EncounterGenerator(new FakeMonsterSource(pool), assessor);
+
+        var result = await generator.BuildAsync(
+            Party4L5, Difficulty.Hard, DndVersion.Edition2014, theme: null, crLte: null, crGte: null, CancellationToken.None);
+
+        // Exactly one anchor (the single most expensive selection) plus multiple cheaper minions.
+        result.Assessment.Monsters.Count(m => m.Id == "mm.monster.boss").Should().Be(1);
+        result.Assessment.Monsters.Count(m => m.Id == "mm.monster.minion").Should().BeGreaterThan(1);
+        // Build == rate for the repeated set.
+        assessor.Assess(Party4L5, result.Assessment.Monsters, DndVersion.Edition2014)
+            .Difficulty.Should().Be(result.Assessment.Difficulty);
+    }
+
+    [Fact]
+    public async Task BuildAsync_returns_a_solo_anchor_when_it_already_fills_the_band()
+    {
+        // 4×L5 Easy=1000. A single CR5 (1800 ×1.0) already lands at/above Medium — but for an Easy
+        // target the anchor pick is the highest-XP candidate that does NOT overshoot Easy.
+        // CR1 (200 ×1.0 = 200) is Trivial; CR2 (450) Trivial; only when a single pick reaches the
+        // band do we stop. Use a pool where one CR3 (700 ×1.0 = 700 < 1000 Easy) can't solo-fill, but
+        // a party where the anchor alone suffices: 4×L1 Easy=100, one CR1/2 (100 ×1.0 = 100) == Easy.
+        IReadOnlyList<int> party4L1 = [1, 1, 1, 1];
+        IReadOnlyList<MonsterRef> pool =
+        [
+            new MonsterRef("mm.monster.anchor", "Anchor", 0.5, EncounterMath.CrToXp(0.5)), // 100 XP
+            new MonsterRef("mm.monster.tiny", "Tiny", 0.125, EncounterMath.CrToXp(0.125)), // 25 XP
+        ];
+        var generator = new EncounterGenerator(new FakeMonsterSource(pool), new EncounterAssessor());
+
+        var result = await generator.BuildAsync(
+            party4L1, Difficulty.Easy, DndVersion.Edition2014, theme: null, crLte: null, crGte: null, CancellationToken.None);
+
+        result.Assessment.Difficulty.Should().Be(Difficulty.Easy);
+        result.FullyMatched.Should().BeTrue();
+        result.Assessment.Monsters.Should().ContainSingle(m => m.Id == "mm.monster.anchor");
+    }
+
+    [Fact]
+    public async Task BuildAsync_stacks_a_uniform_swarm_when_no_candidate_is_cheaper_than_the_anchor()
+    {
+        // Only one CR (all candidates same XP): there is no strictly-cheaper minion tier, so the fill
+        // must re-select the anchor tier itself rather than dead-ending at a solo anchor.
+        var source = new FakeMonsterSource(FiveCr3Monsters()); // all CR3 = 700 XP
+        var assessor = new EncounterAssessor();
+        var generator = new EncounterGenerator(source, assessor);
+
+        var result = await generator.BuildAsync(
+            Party4L5, Difficulty.Hard, DndVersion.Edition2014, theme: null, crLte: null, crGte: null, CancellationToken.None);
+
+        result.Assessment.Monsters.Count.Should().BeGreaterThan(1); // stacked, not a solo anchor
+        result.Assessment.Difficulty.Should().Be(Difficulty.Hard);
+        assessor.Assess(Party4L5, result.Assessment.Monsters, DndVersion.Edition2014)
+            .Difficulty.Should().Be(Difficulty.Hard);
     }
 
     [Fact]

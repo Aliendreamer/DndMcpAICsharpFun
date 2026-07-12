@@ -111,34 +111,44 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
         var candidates = await source.FindAsync(ed, effectiveCrGte, effectiveCrLte, theme, srdOnly: false, CandidateLimit, ct);
 
         var selected = new List<MonsterRef>();
-        var remaining = new List<MonsterRef>(candidates);
         var current = assessor.Assess(partyLevels, selected, ed);
 
-        // Tracks *why* the greedy loop stopped short of the target, so the fallback Note below
-        // can explain the real reason instead of always blaming candidate scarcity: either every
-        // remaining candidate was tried and rejected for overshooting past the target band, or
-        // the loop simply ran out of candidates (or hit MaxMonsters) without overshooting.
+        // The XP of the first successful pick — the anchor (boss). Until it is set, the anchor is
+        // still being chosen; after it is set, the fill phase prefers strictly-cheaper minions.
+        int? anchorXp = null;
+
+        // Tracks *why* the greedy loop stopped short of the target, so the fallback Note can explain
+        // the real reason: either every eligible candidate would overshoot the target band, or the
+        // pool was empty / the cap was hit without overshooting.
         var overshootBlocked = false;
         Difficulty? overshootBand = null;
 
-        // Bounded greedy: each iteration moves exactly one candidate from `remaining` into
-        // `selected` (or breaks), so this can never loop more than min(MaxMonsters,
-        // candidates.Count) times — no separate iteration counter is needed for termination.
-        while (current.Difficulty != effectiveTarget && selected.Count < MaxMonsters && remaining.Count > 0)
+        // Bounded greedy with re-selection (no candidate is removed, so the same monster can be
+        // picked multiple times → quantity). The loop still runs at most MaxMonsters times because
+        // each iteration either adds exactly one monster or breaks. Anchor-then-fill shape: the
+        // first pick is the single highest-XP candidate that does not overshoot (the boss); after
+        // that the eligible pool narrows to candidates strictly cheaper than the anchor (the
+        // minions), falling back to the full pool when nothing is cheaper so a same-CR pool still
+        // stacks into a uniform swarm.
+        while (current.Difficulty != effectiveTarget && selected.Count < MaxMonsters)
         {
+            IEnumerable<MonsterRef> eligible = anchorXp is null
+                ? candidates
+                : candidates.Any(c => c.Xp < anchorXp.Value)
+                    ? candidates.Where(c => c.Xp < anchorXp.Value)
+                    : candidates;
+
             MonsterRef? bestCandidate = null;
             EncounterAssessment? bestAssessment = null;
             Difficulty? roundOvershootBand = null;
 
-            foreach (var candidate in remaining)
+            foreach (var candidate in eligible)
             {
                 var trial = new List<MonsterRef>(selected) { candidate };
                 var trialAssessment = assessor.Assess(partyLevels, trial, ed);
 
                 if (trialAssessment.Difficulty > effectiveTarget)
                 {
-                    // Track the nearest band this (and other) rejected candidates would have
-                    // jumped to, so the fallback Note can name it if every candidate overshoots.
                     if (roundOvershootBand is null || trialAssessment.Difficulty < roundOvershootBand)
                     {
                         roundOvershootBand = trialAssessment.Difficulty;
@@ -156,16 +166,15 @@ public sealed class EncounterGenerator(IEncounterMonsterSource source, Encounter
 
             if (bestCandidate is null || bestAssessment is null)
             {
-                // remaining.Count > 0 here (the while guard ensures it), so every candidate this
-                // round was rejected by the overshoot guard above — this is never candidate
-                // scarcity.
-                overshootBlocked = true;
+                // No monster could be added this round. If there were candidates at all, every one
+                // would have overshot the target band; if the pool was empty, this is scarcity.
+                overshootBlocked = candidates.Count > 0;
                 overshootBand = roundOvershootBand;
-                break; // every remaining candidate would overshoot past the target band
+                break;
             }
 
             selected.Add(bestCandidate);
-            remaining.Remove(bestCandidate);
+            anchorXp ??= bestCandidate.Xp; // the first successful pick becomes the anchor
             current = bestAssessment;
         }
 
