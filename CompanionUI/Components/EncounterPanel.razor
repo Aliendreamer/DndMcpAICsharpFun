@@ -45,7 +45,7 @@
             <p>
                 <strong>@a.Difficulty</strong> · Total XP @a.TotalMonsterXp · Adjusted XP @a.AdjustedXp
             </p>
-            <p>Monsters: @string.Join(", ", a.Monsters.Select(m => m.Name))</p>
+            <p>Monsters: @MonsterGrouping.Describe(a.Monsters)</p>
             @if (!_built.FullyMatched && !string.IsNullOrWhiteSpace(_built.Note))
             {
                 <p class="muted">@_built.Note</p>
