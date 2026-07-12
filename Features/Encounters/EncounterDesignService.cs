@@ -19,11 +19,14 @@ public sealed class EncounterDesignService(
     CampaignRepository campaigns,
     IEntityRetrievalService search)
 {
+    /// <summary>Maximum copies a single quantity pair may contribute, so one pair can't balloon the rated set.</summary>
+    private const int MaxCopiesPerType = 100;
+
     public async Task<EncounterAssessment> RateForUserAsync(
         long userId,
         long? campaignId,
         IReadOnlyList<int>? partyLevels,
-        IReadOnlyList<string> monsters,
+        IReadOnlyList<MonsterQuantity> monsters,
         DndVersion ed,
         CancellationToken ct)
     {
@@ -31,10 +34,15 @@ public sealed class EncounterDesignService(
 
         var party = await ResolvePartyAsync(userId, campaignId, partyLevels, ct);
 
-        var monsterRefs = new List<MonsterRef>(monsters.Count);
-        foreach (var monster in monsters)
+        var monsterRefs = new List<MonsterRef>();
+        foreach (var pair in monsters)
         {
-            monsterRefs.Add(await ResolveMonsterAsync(monster, ct));
+            var resolved = await ResolveMonsterAsync(pair.Name, ct);
+            var copies = Math.Clamp(pair.Quantity, 1, MaxCopiesPerType);
+            for (var i = 0; i < copies; i++)
+            {
+                monsterRefs.Add(resolved);
+            }
         }
 
         return assessor.Assess(party, monsterRefs, ed);

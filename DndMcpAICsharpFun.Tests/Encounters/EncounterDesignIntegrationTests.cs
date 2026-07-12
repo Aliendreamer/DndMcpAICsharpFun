@@ -131,7 +131,7 @@ public sealed class EncounterDesignIntegrationTests : IAsyncLifetime
             userId: 1,
             campaignId: null,
             partyLevels,
-            monsters: built.Assessment.Monsters.Select(m => m.Id).ToList(),
+            monsters: built.Assessment.Monsters.Select(m => new MonsterQuantity(m.Id, 1)).ToList(),
             DndVersion.Edition2014,
             CancellationToken.None);
 

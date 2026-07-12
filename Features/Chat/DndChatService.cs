@@ -88,7 +88,7 @@ public sealed class DndChatService(
                     "grants. Works for any combination, caster or not."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (long? campaignId, int[]? partyLevels, string[] monsters, string edition, CancellationToken toolCt) =>
+                (long? campaignId, int[]? partyLevels, MonsterQuantity[] monsters, string edition, CancellationToken toolCt) =>
                     encounterService.RateForUserAsync(
                         userId, campaignId, partyLevels, monsters, ParseEdition(edition), toolCt),
                 name: "rate_encounter",

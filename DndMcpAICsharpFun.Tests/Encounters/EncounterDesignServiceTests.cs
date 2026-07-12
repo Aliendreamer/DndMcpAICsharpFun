@@ -269,7 +269,7 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var service = BuildService(search: search);
 
         var assessment = await service.RateForUserAsync(
-            1, campaignId: null, partyLevels: [5], monsters: ["mm.monster.ogre"], DndVersion.Edition2014, CancellationToken.None);
+            1, campaignId: null, partyLevels: [5], monsters: [new MonsterQuantity("mm.monster.ogre", 1)], DndVersion.Edition2014, CancellationToken.None);
 
         assessment.Monsters.Should().ContainSingle();
         assessment.Monsters[0].Xp.Should().Be(700); // EncounterMath.CrToXp(3) == 700
@@ -285,7 +285,7 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var service = BuildService(search: search);
 
         var act = () => service.RateForUserAsync(
-            1, campaignId: null, partyLevels: [5], monsters: ["nonexistent"], DndVersion.Edition2014, CancellationToken.None);
+            1, campaignId: null, partyLevels: [5], monsters: [new MonsterQuantity("nonexistent", 1)], DndVersion.Edition2014, CancellationToken.None);
 
         await act.Should().ThrowAsync<ArgumentException>();
     }
@@ -303,9 +303,57 @@ public sealed class EncounterDesignServiceTests(PostgresFixture pg) : IAsyncLife
         var service = BuildService(search: search);
 
         var act = () => service.RateForUserAsync(
-            1, campaignId: null, partyLevels: [5], monsters: ["mm.monster.off-table"], DndVersion.Edition2014, CancellationToken.None);
+            1, campaignId: null, partyLevels: [5], monsters: [new MonsterQuantity("mm.monster.off-table", 1)], DndVersion.Edition2014, CancellationToken.None);
 
         (await act.Should().ThrowAsync<ArgumentException>())
             .Which.Should().NotBeOfType<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public async Task RateForUserAsync_expands_a_quantity_pair_into_repeated_refs_with_one_lookup()
+    {
+        var search = Substitute.For<IEntityRetrievalService>();
+        search.GetByIdAsync("mm.monster.goblin", Arg.Any<CancellationToken>())
+            .Returns(FullResultWithCr("mm.monster.goblin", "Goblin", "1/4"));
+        var service = BuildService(search: search);
+
+        var assessment = await service.RateForUserAsync(
+            1, campaignId: null, partyLevels: [5],
+            monsters: [new MonsterQuantity("mm.monster.goblin", 8)], DndVersion.Edition2014, CancellationToken.None);
+
+        assessment.Monsters.Should().HaveCount(8);
+        assessment.Monsters.Should().OnlyContain(m => m.Id == "mm.monster.goblin");
+        // Resolved exactly once, then repeated — not looked up eight times.
+        await search.Received(1).GetByIdAsync("mm.monster.goblin", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RateForUserAsync_treats_a_non_positive_quantity_as_one()
+    {
+        var search = Substitute.For<IEntityRetrievalService>();
+        search.GetByIdAsync("mm.monster.ogre", Arg.Any<CancellationToken>())
+            .Returns(FullResultWithCr("mm.monster.ogre", "Ogre", "3"));
+        var service = BuildService(search: search);
+
+        var assessment = await service.RateForUserAsync(
+            1, campaignId: null, partyLevels: [5],
+            monsters: [new MonsterQuantity("mm.monster.ogre", 0)], DndVersion.Edition2014, CancellationToken.None);
+
+        assessment.Monsters.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task RateForUserAsync_clamps_an_excessive_quantity_to_the_safety_maximum()
+    {
+        var search = Substitute.For<IEntityRetrievalService>();
+        search.GetByIdAsync("mm.monster.rat", Arg.Any<CancellationToken>())
+            .Returns(FullResultWithCr("mm.monster.rat", "Rat", "0"));
+        var service = BuildService(search: search);
+
+        var assessment = await service.RateForUserAsync(
+            1, campaignId: null, partyLevels: [5],
+            monsters: [new MonsterQuantity("mm.monster.rat", 9999)], DndVersion.Edition2014, CancellationToken.None);
+
+        assessment.Monsters.Should().HaveCount(100); // MaxCopiesPerType
     }
 }
