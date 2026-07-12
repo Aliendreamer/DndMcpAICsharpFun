@@ -29,13 +29,20 @@ public sealed class CampaignRepository(IDbContextFactory<AppDbContext> dbf)
             .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
     }
 
-    public async Task<long> CreateAsync(long userId, string name, string description)
+    public async Task<long> CreateAsync(long userId, string name, string description, string? setting = null)
     {
         await using var db = await dbf.CreateDbContextAsync();
-        var campaign = new Campaign(0, userId, name, description, DateTime.UtcNow);
+        var campaign = new Campaign(0, userId, name, description, DateTime.UtcNow, setting);
         db.Campaigns.Add(campaign);
         await db.SaveChangesAsync();
         return campaign.Id;
+    }
+
+    public async Task SetSettingAsync(long id, long userId, string? setting)
+    {
+        await using var db = await dbf.CreateDbContextAsync();
+        await db.Campaigns.Where(c => c.Id == id && c.UserId == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.Setting, setting));
     }
 
     public async Task DeleteAsync(long id, long userId)
