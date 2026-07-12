@@ -281,6 +281,7 @@ public sealed class DndChatServiceTests : IDisposable
         var toolNames = client.LastOptions!.Tools!.OfType<AIFunction>().Select(t => t.Name).ToList();
         toolNames.Should().NotContain("rate_encounter");
         toolNames.Should().NotContain("build_encounter");
+        toolNames.Should().NotContain("recommend_build");
     }
 
     [Fact]
@@ -294,6 +295,7 @@ public sealed class DndChatServiceTests : IDisposable
         var toolNames = client.LastOptions!.Tools!.OfType<AIFunction>().Select(t => t.Name).ToList();
         toolNames.Should().Contain("rate_encounter");
         toolNames.Should().Contain("build_encounter");
+        toolNames.Should().Contain("recommend_build");
     }
 
     [Fact]
