@@ -101,6 +101,21 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   Normalize last-wins (pre-existing pattern); no cross-call write lock (deterministic→safe); FUTURE-LANDMINE — if the
   allowlist ever extends to shared-5etools-file types (Item/MagicItem, Race/Subrace) add a rarity/array-key split.
   Optional follow-up: `backfill-spells` (`data_source:5etools-backfill`) for any official spell GAPS extraction missed.
+- **Character build recommender (character-coach slice B)** ✅ DONE (archived `2026-07-12-character-build-recommender`;
+  7 commits `d918009`..`c44d6cb`, base d97784f; build 0/0, FULL suite **1244/1244**; final opus review READY TO MERGE).
+  Concept→build IDENTITY (class+subclass+key feats+signature spells+ability priorities) from a pure TEXT CONCEPT
+  (not ownership-gated) + optional targetLevel, on the shipped `Features/CharacterAdvice/` core. TWO-STAGE GROUNDING:
+  the LLM picks the class (concept→class judgment), `BuildRecommenderService` VALIDATES it exists (edition-pinned
+  Edition2014; not-found → `ClassInCorpus=false` + available class names → LLM re-picks), then the sub-picks
+  (subclass/feat/spell) are MENU-GROUNDED via `EntityOptionProvider` — feats/spells retrieved by the CONCEPT
+  (extended `FeatOptions`/`SpellOptions` with an optional trailing concept query, behavior-neutral for slice A);
+  spells bounded by targetLevel (range 1..clamp((L+1)/2,1,9)). Ability priorities deterministic from the class's
+  structured fields. `BuildRecommendation` = the grounded option PACKAGE (LLM composes the build; never invents).
+  `recommend_build(className, concept, targetLevel?)` per-user chat tool — NOT ownership-gated (no userId), in the
+  auth block, security-regression + presence tests guard it (dev-flow: new per-user tool needs BOTH guard tests).
+  SINGLE-CLASS (multiclass concept → primary class + note dip → level-up assistant). CHAT-TOOL-ONLY (no UI → no
+  Playwright gate; chat smoke deferred, needs Ollama). DEFERRED: UI entry (Scratchpad "build ideas" box); multiclass
+  build paths; half-caster spell-level exactness (full-caster approx). **Character-coach: A + B shipped; C (build-critique) is the last slice.**
 - **Encounter design (slice 1)** ✅ DONE (archived `encounter-design`, 2026-07-09; 12 code commits
   `983907e..99c9feb` + integration test `a97c57e`, base 45649f9; build 0/0, FULL suite **1117/1117**).
   FIRST shipped companion-reasoning surface. ONE deterministic math core shared by rate + build so they
@@ -358,14 +373,10 @@ global non-campaign dice/encounter page).** Only active openspec change is the p
 level-up advice (character-coach slice 1, shipped 2026-07-11).** **HYBRID entity model RESOLVED + shipped
 2026-07-12 (`fivetools-field-fill`): extraction owns all entities, 5etools field-fill patches missing structured
 fields; `dnd_entities` now 2307 extraction-only entities, level-up grounds all 12 classes from extraction+fill.**
-FULL suite **1239/1239**.
+**CHARACTER-COACH: A (level-up) + B (concept-to-build recommender, shipped 2026-07-12) DONE; C (build-critique) is the last slice.** FULL suite **1244/1244**.
 NEXT candidates (user's call):
-(1) **character-coach slices B (concept-to-build recommender) + C (build-critique)** on the shipped
-    `Features/CharacterAdvice/` core — the natural continuation of the level-up slice. **B IN DESIGN 2026-07-12:
-    concept→build IDENTITY (class+subclass+feats+spells+ability priorities), pure text concept (not ownership-gated),
-    single-class, two-stage grounding (LLM concept→class judged+validated / subclass+feat+spell menu-grounded via the
-    shipped EntityOptionProvider), CHAT-TOOL-ONLY. DEFERRED for a later refinement: a UI entry (e.g. a "build ideas"
-    box on Scratchpad) + multiclass build paths.**;
+(1) character-coach slice C (build-critique) — the LAST character-coach slice; slices A (level-up) + B
+    (concept-to-build recommender) are SHIPPED. **B SHIPPED 2026-07-12** (see COMPANION REASONING). NEXT = **C**;
 (1b) other companion REASONING: **encounter-design v2 swarms** ("N goblins"), setting-aware lore synthesis;
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
