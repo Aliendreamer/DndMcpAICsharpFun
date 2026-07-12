@@ -20,7 +20,8 @@ public sealed class DndChatService(
     EncounterDesignService encounterService,
     LevelUpAdviceService levelUpService,
     BuildRecommenderService buildRecommender,
-    BuildCritiqueService critiqueService)
+    BuildCritiqueService critiqueService,
+    DndMcpAICsharpFun.Features.Lore.SettingLoreService settingLoreService)
 {
     public List<ChatMessage> History { get; } = [];
 
@@ -160,6 +161,18 @@ public sealed class DndChatService(
                     "Frame these into a critique anchored to the findings; do NOT invent problems or free-judge. " +
                     "Where a finding suggests it, hand off: an untaken subclass/feature → suggest plan_level_up; " +
                     "an ability misalignment → suggest recommend_build."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (long campaignId, string question, string? edition, CancellationToken toolCt) =>
+                    settingLoreService.AskForUserAsync(
+                        userId, campaignId, question, ParseEdition(edition), toolCt),
+                name: "ask_setting_lore",
+                description: "Answer a lore/worldbuilding question for one of the signed-in user's own " +
+                    "campaigns, scoped to that campaign's SETTING sources. Pass the campaignId and the " +
+                    "question. Returns cited passages retrieved ONLY from the campaign's setting books " +
+                    "(plus core rules). Compose your answer STRICTLY from the returned passages and CITE " +
+                    "each (source book + section); if no passages are returned, say the campaign's setting " +
+                    "sources don't cover it — never invent world lore. edition is \"2014\" or \"2024\"."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));

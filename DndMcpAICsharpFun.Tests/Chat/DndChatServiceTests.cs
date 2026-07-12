@@ -2,8 +2,11 @@ using System.Security.Claims;
 using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain.Entities;
+using DndMcpAICsharpFun.Features.Campaigns;
 using DndMcpAICsharpFun.Features.Chat;
 using DndMcpAICsharpFun.Features.Encounters;
+using DndMcpAICsharpFun.Features.Lore;
+using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
 using DndMcpAICsharpFun.Tests.TestDoubles;
@@ -139,6 +142,18 @@ public sealed class DndChatServiceTests : IDisposable
             new DndMcpAICsharpFun.Features.Campaigns.HeroRepository(new NoOpDbFactory()),
             search ?? Substitute.For<IEntityRetrievalService>());
 
+
+    /// <summary>
+    /// Builds a real <see cref="SettingLoreService"/> over a <see cref="NoOpDbFactory"/>-backed
+    /// <c>CampaignRepository</c> and a substitute <see cref="IRagRetrievalService"/> — sealed/concrete,
+    /// so it cannot be substituted directly, but its own DB-touching/retrieval dependencies can,
+    /// keeping these chat-wiring tests DB-free.
+    /// </summary>
+    private static SettingLoreService BuildSettingLoreService(IRagRetrievalService? rag = null) =>
+        new(
+            new CampaignRepository(new NoOpDbFactory()),
+            rag ?? Substitute.For<IRagRetrievalService>());
+
     private DndChatService CreateService(
         FakeChatClient client,
         IReadOnlyList<AITool>? tools = null,
@@ -147,7 +162,8 @@ public sealed class DndChatServiceTests : IDisposable
         EncounterDesignService? encounterService = null,
         DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpAdviceService? levelUpService = null,
         DndMcpAICsharpFun.Features.CharacterAdvice.BuildRecommenderService? buildRecommenderService = null,
-        DndMcpAICsharpFun.Features.CharacterAdvice.BuildCritiqueService? critiqueService = null) =>
+        DndMcpAICsharpFun.Features.CharacterAdvice.BuildCritiqueService? critiqueService = null,
+        SettingLoreService? settingLoreService = null) =>
         new(client,
             new FakeMcpToolsProvider(tools ?? []),
             new ChatRepository(new NoOpDbFactory()),
@@ -160,7 +176,8 @@ public sealed class DndChatServiceTests : IDisposable
             encounterService ?? BuildEncounterDesignService(),
             levelUpService ?? BuildLevelUpAdviceService(),
             buildRecommenderService ?? BuildBuildRecommenderService(),
-            critiqueService ?? BuildBuildCritiqueService());
+            critiqueService ?? BuildBuildCritiqueService(),
+            settingLoreService ?? BuildSettingLoreService());
 
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()
@@ -298,6 +315,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().NotContain("build_encounter");
         toolNames.Should().NotContain("recommend_build");
         toolNames.Should().NotContain("critique_build");
+        toolNames.Should().NotContain("ask_setting_lore");
     }
 
     [Fact]
@@ -313,6 +331,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().Contain("build_encounter");
         toolNames.Should().Contain("recommend_build");
         toolNames.Should().Contain("critique_build");
+        toolNames.Should().Contain("ask_setting_lore");
     }
 
     [Fact]
@@ -327,7 +346,7 @@ public sealed class DndChatServiceTests : IDisposable
 
         var tools = client.LastOptions!.Tools!.OfType<AIFunction>()
             .Where(t => t.Name is "rate_encounter" or "build_encounter" or "plan_level_up" or "recommend_build"
-                or "critique_build");
+                or "critique_build" or "ask_setting_lore");
         foreach (var tool in tools)
         {
             var hasUserId = tool.JsonSchema.TryGetProperty("properties", out var props)
@@ -402,5 +421,28 @@ public sealed class DndChatServiceTests : IDisposable
             CancellationToken.None).AsTask();
 
         await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+
+    [Fact]
+    public async Task AskSettingLoreTool_routes_campaignId_into_SettingLoreService_and_reaches_ownership_check()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(42));
+
+        await svc.SendAsync("Tell me about Eberron", false, CancellationToken.None);
+
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "ask_setting_lore");
+
+        // BuildSettingLoreService wires a NoOpDbFactory-backed CampaignRepository (DB-free, mirroring
+        // BuildEncounterDesignService), so any real campaignId — foreign or absent — drives
+        // SettingLoreService.AskForUserAsync into CampaignRepository.GetByIdAsync, which then fails
+        // because there is no real database. That failure proves campaignId/userId were actually
+        // forwarded into the service's ownership check rather than the tool short-circuiting.
+        var act = () => tool.InvokeAsync(
+            ToArgs(new { campaignId = (long)999, question = "who holds power", edition = "2014" }),
+            CancellationToken.None).AsTask();
+
+        await act.Should().ThrowAsync<NotSupportedException>();
     }
 }
