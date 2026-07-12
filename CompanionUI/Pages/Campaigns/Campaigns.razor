@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
 @using DndMcpAICsharpFun.Features.Campaigns
+@using DndMcpAICsharpFun.Features.Lore
 @attribute [Authorize]
 @inject CampaignRepository CampaignRepo
 @inject NavigationManager Nav
@@ -57,6 +58,15 @@
             <h3>New Campaign</h3>
             <label>Name <input @bind="_newName" placeholder="e.g. Curse of Strahd" /></label>
             <label>Description <input @bind="_newDescription" placeholder="Optional" /></label>
+            <label>Setting
+                <select @bind="_newSetting">
+                    <option value="">Generic / none</option>
+                    @foreach (var s in SettingCatalog.KnownSettings)
+                    {
+                        <option value="@s">@s</option>
+                    }
+                </select>
+            </label>
             @if (!string.IsNullOrEmpty(_createError))
             {
                 <p class="error">@_createError</p>
@@ -79,6 +89,7 @@
     private bool _showCreateForm;
     private string _newName = "";
     private string _newDescription = "";
+    private string _newSetting = "";
     private string _createError = "";
     private long? _deleteConfirmId;
 
@@ -109,9 +120,11 @@
             _createError = "Name is required.";
             return;
         }
-        await CampaignRepo.CreateAsync(_userId, _newName.Trim(), _newDescription.Trim());
+        await CampaignRepo.CreateAsync(_userId, _newName.Trim(), _newDescription.Trim(),
+            string.IsNullOrWhiteSpace(_newSetting) ? null : _newSetting);
         _newName = "";
         _newDescription = "";
+        _newSetting = "";
         _createError = "";
         _showCreateForm = false;
         await LoadAsync();

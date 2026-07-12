@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
 @using DndMcpAICsharpFun.Features.Campaigns
+@using DndMcpAICsharpFun.Features.Lore
 @attribute [Authorize]
 @inject CampaignRepository CampaignRepo
 @inject HeroRepository HeroRepo
@@ -25,6 +26,16 @@ else
         {
             <p class="campaign-desc">@_campaign.Description</p>
         }
+
+        <label class="campaign-setting">Setting
+            <select value="@(_campaign.Setting ?? "")" @onchange="OnSettingChangedAsync">
+                <option value="">Generic / none</option>
+                @foreach (var s in SettingCatalog.KnownSettings)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+        </label>
 
         <h2>Party</h2>
         <div class="hero-roster">
@@ -153,6 +164,13 @@ else
     }
 
     private void GoToHero(long heroId) => Nav.NavigateTo($"/campaigns/{Id}/heroes/{heroId}");
+
+    private async Task OnSettingChangedAsync(ChangeEventArgs e)
+    {
+        var value = e.Value as string;
+        await CampaignRepo.SetSettingAsync(Id, _userId, string.IsNullOrWhiteSpace(value) ? null : value);
+        _campaign = await CampaignRepo.GetByIdAsync(Id, _userId);
+    }
 
     private void ShowAddHero() => _showAddHero = true;
     private void CancelAddHero() { _showAddHero = false; _addHeroError = ""; }
