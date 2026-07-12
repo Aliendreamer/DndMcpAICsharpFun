@@ -206,6 +206,7 @@ public sealed class EncounterGeneratorTests
         result.Assessment.Difficulty.Should().Be(Difficulty.Hard);
         assessor.Assess(Party4L5, result.Assessment.Monsters, DndVersion.Edition2014)
             .Difficulty.Should().Be(Difficulty.Hard);
+        result.Assessment.Monsters.Select(m => m.Id).Distinct().Should().ContainSingle(); // true repetition of one monster, not distinct picks
     }
 
     [Fact]
