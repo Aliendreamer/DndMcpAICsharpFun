@@ -9,13 +9,14 @@ namespace DndMcpAICsharpFun.Features.Lore;
 /// </summary>
 public static class SettingCatalog
 {
-    // NOTE: verify these strings equal the real dnd_blocks `source_book` values (see plan Task 6/7).
-    private static readonly string[] Core = ["PHB", "DMG", "MM"];
+    // VERIFIED (2026-07-12 live check against dnd_blocks): these are the real
+    // `dnd_blocks.source_book` display-name values, not 5etools short keys.
+    private static readonly string[] Core = ["PlayerHandbook 2014", "Dungeon Master's Guide 2014", "Monster Manual 2014"];
 
     private static readonly IReadOnlyDictionary<string, string[]> SettingBooks =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            ["Eberron"] = ["ERLW"],
+            ["Eberron"] = ["Eberron: Rising from the Last War"],
         };
 
     public static IReadOnlyList<string> KnownSettings => SettingBooks.Keys.ToList();

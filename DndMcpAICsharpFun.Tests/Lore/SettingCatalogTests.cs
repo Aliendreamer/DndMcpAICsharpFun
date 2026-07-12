@@ -11,8 +11,8 @@ public sealed class SettingCatalogTests
     {
         var books = SettingCatalog.Resolve("Eberron");
 
-        books.Should().Contain("ERLW");
-        books.Should().Contain(new[] { "PHB", "DMG", "MM" }); // core always included
+        books.Should().Contain("Eberron: Rising from the Last War");
+        books.Should().Contain(new[] { "PlayerHandbook 2014", "Dungeon Master's Guide 2014", "Monster Manual 2014" }); // core always included
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public sealed class SettingCatalogTests
     [Fact]
     public void Resolve_is_case_insensitive_on_the_setting_key()
     {
-        SettingCatalog.Resolve("eberron").Should().Contain("ERLW");
+        SettingCatalog.Resolve("eberron").Should().Contain("Eberron: Rising from the Last War");
     }
 
     [Fact]
