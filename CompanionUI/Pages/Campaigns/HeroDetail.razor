@@ -12,6 +12,7 @@
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider Auth
 @inject DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpAdviceService LevelUpSvc
+@inject DndMcpAICsharpFun.Features.CharacterAdvice.BuildCritiqueService CritiqueSvc
 
 <PageTitle>@(_hero?.Name ?? "Hero")</PageTitle>
 
@@ -74,6 +75,48 @@ else
                     <a class="btn btn--ghost"
                        href="@($"/?prompt={Uri.EscapeDataString($"Plan my level-up for hero snapshot {_hero!.LatestSnapshot!.Id} ({_hero.Name}). Recommend a pick and explain why.")}")">
                         Ask the assistant to recommend →
+                    </a>
+                }
+            </div>
+        }
+
+        @if (!_editMode && _hero.LatestSnapshot is not null)
+        {
+            <div class="sheet-section critique-section">
+                <h3>Build Critique</h3>
+                <button class="btn btn--primary" @onclick="ReviewBuildAsync">Review this build</button>
+                @if (_critiqueError is not null)
+                {
+                    <p class="error">@_critiqueError</p>
+                }
+                @if (_critique is not null)
+                {
+                    @if (_critique.Findings.Count == 0)
+                    {
+                        <p>No issues found — your build looks consistent.</p>
+                    }
+                    else
+                    {
+                        @foreach (var group in _critique.Findings.GroupBy(f => f.Kind))
+                        {
+                            <div class="card critique-group">
+                                <h4>@CritiqueKindLabel(group.Key)</h4>
+                                @foreach (var finding in group)
+                                {
+                                    <div class="chip critique-finding">
+                                        <p>@finding.Observation</p>
+                                        @if (finding.Cite is not null)
+                                        {
+                                            <span>@finding.Cite.Name (@finding.Cite.Source)</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                    <a class="btn btn--ghost"
+                       href="@($"/?prompt={Uri.EscapeDataString($"Critique my build for hero snapshot {_hero!.LatestSnapshot!.Id} ({_hero.Name}).")}")">
+                        Ask the assistant to critique →
                     </a>
                 }
             </div>
@@ -381,6 +424,8 @@ else
     private HeroSnapshot? _viewingSnapshot;
     private LevelUpAdvice? _levelUp;
     private string? _levelUpError;
+    private BuildCritique? _critique;
+    private string? _critiqueError;
 
     private bool _editMode;
     private CharacterSheet _editSheet = new();
@@ -495,6 +540,28 @@ else
             _levelUp = null;
         }
     }
+
+    private async Task ReviewBuildAsync()
+    {
+        try
+        {
+            _critique = await CritiqueSvc.CritiqueForUserAsync(_hero!.LatestSnapshot!.Id, _userId, default);
+            _critiqueError = null;
+        }
+        catch (Exception ex)
+        {
+            _critiqueError = ex.Message;
+            _critique = null;
+        }
+    }
+
+    private static string CritiqueKindLabel(CritiqueKind kind) => kind switch
+    {
+        CritiqueKind.UntakenChoice => "Untaken Choices",
+        CritiqueKind.StatConsistency => "Stat Consistency",
+        CritiqueKind.AbilityAlignment => "Ability Alignment",
+        _ => kind.ToString(),
+    };
 
     private static string SlotSummary(IReadOnlyList<int> before, IReadOnlyList<int> after)
     {
