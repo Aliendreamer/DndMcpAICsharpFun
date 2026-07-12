@@ -74,7 +74,7 @@ public sealed class BuildCritiqueService(HeroRepository heroes, IEntityRetrieval
         var have = sheet.Features.Select(f => EntityNameIndex.Normalize(f.Name)).ToHashSet(StringComparer.Ordinal);
         foreach (var f in feats.Where(f => f.Level <= cls.Level))
         {
-            if (title is not null && f.Name.Contains(title, StringComparison.OrdinalIgnoreCase)) continue; // the subclass slot itself
+            if (!string.IsNullOrEmpty(title) && f.Name.Contains(title, StringComparison.OrdinalIgnoreCase)) continue; // the subclass slot itself
             if (!have.Contains(EntityNameIndex.Normalize(f.Name)))
                 findings.Add(new(CritiqueKind.UntakenChoice,
                     $"A level-{f.Level} {cls.Class} gains \"{f.Name}\", which isn't recorded on your sheet.",
@@ -102,11 +102,19 @@ public sealed class BuildCritiqueService(HeroRepository heroes, IEntityRetrieval
                     $"Your recorded spell attack bonus is +{sheet.SpellAttackBonus}, but computes +{atk}.", null));
         }
 
-        var computedSlots = MulticlassSlotTableSeeder.SlotsForCasterLevel(
-            MulticlassSpellcasting.ResolveSlotSource(sheet.Classes));
-        if (!SlotsMatch(sheet.SpellSlots, computedSlots))
-            findings.Add(new(CritiqueKind.StatConsistency,
-                "Your recorded spell slots don't match your caster level's slots.", null));
+        // The standard multiclass slot table only models Full/Half/Third casters. A "none" slot source
+        // means either a genuine non-caster or a pure Pact caster (Warlock uses a separate slot mechanic
+        // the standard table doesn't represent) — comparing recorded slots against an all-zero standard
+        // table would be meaningless, so honest-degrade by skipping the check entirely (same pattern the
+        // DC/attack checks above use when the recorded value is unset).
+        var slotSource = MulticlassSpellcasting.ResolveSlotSource(sheet.Classes);
+        if (slotSource.Kind != "none")
+        {
+            var computedSlots = MulticlassSlotTableSeeder.SlotsForCasterLevel(slotSource);
+            if (!SlotsMatch(sheet.SpellSlots, computedSlots))
+                findings.Add(new(CritiqueKind.StatConsistency,
+                    "Your recorded spell slots don't match your caster level's slots.", null));
+        }
         return findings;
     }
 

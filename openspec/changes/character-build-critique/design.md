@@ -39,9 +39,18 @@ character's level, normalized-name-matched against `sheet.Features` names, minus
 normalization mirrors `EntityNameIndex.Normalize` (case/punctuation-insensitive) to avoid false "missing"
 on formatting differences.
 
-**Stat consistency reuses the shipped resolver.** Compute `"spell save dc"`, `"spell attack"`, and
-`"spell slots"` via `CharacterResolutionService.ResolveForSheetAsync(sheet, …)` and compare to the sheet's
-recorded `SpellSaveDC`/`SpellAttackBonus`/`SpellSlots`; a mismatch is a finding. No new math.
+**Stat consistency computes directly from shipped primitives.** `CharacterResolutionService.ResolveForSheetAsync`
+is private and string-returning (built for chat-tool prose, not structured comparison), so instead compute
+DC/attack/slots straight from the sheet using the same shipped building blocks it's built on:
+`CharacterSheet.Modifier`/`ProficiencyBonus` for `"spell save dc"` (`8 + proficiency + modifier`) and
+`"spell attack"` (`proficiency + modifier`), and `MulticlassSpellcasting.ResolveSlotSource` +
+`MulticlassSlotTableSeeder.SlotsForCasterLevel` for `"spell slots"`. Compare each to the sheet's recorded
+`SpellSaveDC`/`SpellAttackBonus`/`SpellSlots`; a mismatch is a finding. No new math — same source of truth,
+just invoked directly instead of through the resolver's string-formatting layer. One consequence of computing
+slots this way: `ResolveSlotSource` classifies Warlock as a separate Pact caster type (excluded from the
+standard Full/Half/Third set) and resolves to a "none" slot source for a pure Warlock (or any non-caster) —
+the slot-consistency comparison is skipped entirely in that case, since pact magic's slots aren't modeled by
+the standard multiclass table and comparing against an all-zero table would be meaningless.
 
 **Ability alignment from the structured field.** Read the class's `spellcastingAbility` from the class
 entity's `Fields`; if present and the character's highest ability score isn't that ability, that's a

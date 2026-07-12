@@ -222,6 +222,36 @@ public sealed class BuildCritiqueServiceTests(PostgresFixture pg) : IAsyncLifeti
         c.Findings.Should().Contain(f => f.Kind == CritiqueKind.StatConsistency);
     }
 
+
+    [Fact] // (B) I-1 regression: pact caster shouldn't get a false slot-mismatch finding
+    public async Task Warlock3_pactSlotsRecorded_noSlotMismatchFinding()
+    {
+        // PHB Pact Magic: Warlock 3 has 2 slots at 2nd level — a mechanic the standard multiclass
+        // slot table doesn't model. ResolveSlotSource classifies Warlock as Pact (excluded from the
+        // Full/Half/Third caster set), so it resolves to SlotSource("none", 0) for a pure Warlock.
+        // The slot-consistency check must be skipped entirely rather than comparing the recorded
+        // (non-zero) pact slots against the computed all-zero standard table.
+        var sheet = new CharacterSheet
+        {
+            Classes = [new ClassLevel { Class = "Warlock", Subclass = "", Level = 3 }],
+            Strength = 10,
+            Constitution = 12,
+            Dexterity = 10,
+            Intelligence = 10,
+            Wisdom = 10,
+            Charisma = 16,
+            SpellcastingAbility = "Charisma",
+            SpellSlots = [0, 2, 0, 0, 0, 0, 0, 0, 0],
+        };
+        var (snapshotId, ownerUserId) = await SeedOwnedSnapshotAsync(sheet);
+        var service = BuildService(out _);
+
+        var c = await service.CritiqueForUserAsync(snapshotId, ownerUserId, default);
+
+        c.Findings.Should().NotContain(f => f.Kind == CritiqueKind.StatConsistency
+            && f.Observation.Contains("spell slots"));
+    }
+
     [Fact] // (C) ability misalignment
     public async Task CasterHighestAbilityNotCastingAbility_isFlagged()
     {
@@ -242,6 +272,22 @@ public sealed class BuildCritiqueServiceTests(PostgresFixture pg) : IAsyncLifeti
         var c = await service.CritiqueForUserAsync(snapshotId, ownerUserId, default);
 
         c.Findings.Should().Contain(f => f.Kind == CritiqueKind.AbilityAlignment);
+    }
+
+
+    [Fact] // (C) M-3: non-spellcasting class produces no ability-alignment finding
+    public async Task NonCasterClass_hasNoAbilityAlignmentFinding()
+    {
+        // Fighter has no entry in MulticlassSpellcasting's ability map, so SpellcastingAbility
+        // returns null and the ability-alignment check is skipped for it — even though the
+        // sheet's highest ability (Strength) is not any casting ability.
+        var sheet = FighterSheet(3, "Champion", "Fighting Style", "Second Wind");
+        var (snapshotId, ownerUserId) = await SeedOwnedSnapshotAsync(sheet);
+        var service = BuildService(out _);
+
+        var c = await service.CritiqueForUserAsync(snapshotId, ownerUserId, default);
+
+        c.Findings.Should().NotContain(f => f.Kind == CritiqueKind.AbilityAlignment);
     }
 
     [Fact] // clean build → no findings
