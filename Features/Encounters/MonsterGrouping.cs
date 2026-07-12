@@ -40,3 +40,16 @@ public static class MonsterGrouping
     public static string Describe(IReadOnlyList<MonsterRef> monsters) =>
         string.Join(", ", Group(monsters).Select(g => $"{g.Count}× {g.Monster.Name}"));
 }
+
+/// <summary>
+/// The grouped, model-facing shape of a built encounter — the flat repeated monster list collapsed
+/// to per-monster counts so the chat tool echoes "8× Goblin" instead of eight separate entries.
+/// </summary>
+public sealed record BuiltEncounterView(
+    Difficulty Difficulty,
+    int TotalMonsterXp,
+    int AdjustedXp,
+    bool FullyMatched,
+    string? Note,
+    IReadOnlyList<int> PartyLevels,
+    IReadOnlyList<MonsterCount> Groups);

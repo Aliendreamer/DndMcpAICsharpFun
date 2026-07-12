@@ -96,24 +96,32 @@ public sealed class DndChatService(
                     "for the signed-in user's party. The party comes from the caller's own campaign " +
                     "(campaignId) or an explicit partyLevels list (one level per party member); " +
                     "campaignId wins ownership-checked access, partyLevels overrides it when supplied. " +
-                    "monsters is a list of entity ids or free-text names to look up. edition is " +
-                    "\"2014\" or \"2024\"."));
+                    "monsters is a list of {name, quantity} pairs — name is an entity id or free-text " +
+                    "name to look up, quantity is how many of it (e.g. eight goblins is one pair " +
+                    "{name:\"goblin\", quantity:8}). edition is \"2014\" or \"2024\"."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (long? campaignId, string difficulty, string edition, string? theme,
+                async (long? campaignId, string difficulty, string edition, string? theme,
                     double? maxCr, double? minCr, CancellationToken toolCt) =>
-                    encounterService.BuildForUserAsync(
+                {
+                    var built = await encounterService.BuildForUserAsync(
                         userId, campaignId, partyLevels: null, ParseDifficulty(difficulty),
-                        ParseEdition(edition), theme, crLte: maxCr, crGte: minCr, toolCt),
+                        ParseEdition(edition), theme, crLte: maxCr, crGte: minCr, toolCt);
+                    var a = built.Assessment;
+                    return new BuiltEncounterView(
+                        a.Difficulty, a.TotalMonsterXp, a.AdjustedXp, built.FullyMatched, built.Note,
+                        built.PartyLevels, MonsterGrouping.Group(a.Monsters));
+                },
                 name: "build_encounter",
                 description: "Build a combat encounter for a target difficulty " +
                     "(Trivial/Easy/Medium/Hard/Deadly) and optional theme, for the signed-in user's " +
-                    "party (from the caller's own campaignId). Rated by the same math as " +
-                    "rate_encounter, so a built encounter and a subsequent rate_encounter call agree " +
-                    "on its difficulty. edition is \"2014\" or \"2024\". Optional maxCr/minCr let a DM " +
-                    "constrain the candidate monsters' CR range (e.g. \"nothing above CR 5\"); when " +
-                    "omitted, a sensible CR ceiling/floor is derived automatically from the target " +
-                    "difficulty band."));
+                    "party (from the caller's own campaignId). Builds swarms — a strong anchor plus " +
+                    "multiples of cheaper monsters — returned grouped as {monster, count} (e.g. one " +
+                    "hobgoblin leading eight goblins). Rated by the same math as rate_encounter, so a " +
+                    "built encounter and a subsequent rate_encounter call agree on its difficulty. " +
+                    "edition is \"2014\" or \"2024\". Optional maxCr/minCr constrain the candidate " +
+                    "monsters' CR range; when omitted, a sensible CR ceiling/floor is derived from the " +
+                    "target difficulty band."));
 
             toolList.Add(AIFunctionFactory.Create(
                 (long heroSnapshotId, string? targetClass, bool? considerDip, CancellationToken toolCt) =>

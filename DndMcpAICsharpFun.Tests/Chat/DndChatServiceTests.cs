@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Chat;
 using DndMcpAICsharpFun.Features.Encounters;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
@@ -345,7 +346,7 @@ public sealed class DndChatServiceTests : IDisposable
 
         var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "rate_encounter");
         var result = await tool.InvokeAsync(
-            ToArgs(new { campaignId = (long?)null, partyLevels = new[] { 5 }, monsters = Array.Empty<string>(), edition = "2014" }),
+            ToArgs(new { campaignId = (long?)null, partyLevels = new[] { 5 }, monsters = Array.Empty<object>(), edition = "2014" }),
             CancellationToken.None);
 
         // AIFunction.InvokeAsync marshals the delegate's return value through the tool's
@@ -355,6 +356,31 @@ public sealed class DndChatServiceTests : IDisposable
         var assessment = ((JsonElement)result!).Deserialize<EncounterAssessment>(tool.JsonSerializerOptions);
         assessment.Should().NotBeNull();
         assessment!.Monsters.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RateEncounterTool_expands_quantity_pairs_into_repeated_monsters()
+    {
+        var search = Substitute.For<IEntityRetrievalService>();
+        search.GetByIdAsync("mm.monster.goblin", Arg.Any<CancellationToken>())
+            .Returns(new EntityFullResult(new EntityEnvelope(
+                "mm.monster.goblin", EntityType.Monster, "Goblin", "MM", "Edition2014", null,
+                new FirstAppearance("MM", "Edition2014"), Array.Empty<Revision>(), Array.Empty<string>(),
+                "", System.Text.Json.JsonDocument.Parse("""{"cr":"1/4"}""").RootElement)));
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(42),
+            encounterService: BuildEncounterDesignService(search: search));
+
+        await svc.SendAsync("Rate it", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "rate_encounter");
+
+        var result = await tool.InvokeAsync(
+            ToArgs(new { campaignId = (long?)null, partyLevels = new[] { 5 },
+                monsters = new[] { new { name = "mm.monster.goblin", quantity = 8 } }, edition = "2014" }),
+            CancellationToken.None);
+
+        var assessment = ((JsonElement)result!).Deserialize<EncounterAssessment>(tool.JsonSerializerOptions);
+        assessment!.Monsters.Should().HaveCount(8);
     }
 
     [Fact]
