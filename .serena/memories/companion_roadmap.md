@@ -361,7 +361,11 @@ fields; `dnd_entities` now 2307 extraction-only entities, level-up grounds all 1
 FULL suite **1239/1239**.
 NEXT candidates (user's call):
 (1) **character-coach slices B (concept-to-build recommender) + C (build-critique)** on the shipped
-    `Features/CharacterAdvice/` core — the natural continuation of the level-up slice;
+    `Features/CharacterAdvice/` core — the natural continuation of the level-up slice. **B IN DESIGN 2026-07-12:
+    concept→build IDENTITY (class+subclass+feats+spells+ability priorities), pure text concept (not ownership-gated),
+    single-class, two-stage grounding (LLM concept→class judged+validated / subclass+feat+spell menu-grounded via the
+    shipped EntityOptionProvider), CHAT-TOOL-ONLY. DEFERRED for a later refinement: a UI entry (e.g. a "build ideas"
+    box on Scratchpad) + multiclass build paths.**;
 (1b) other companion REASONING: **encounter-design v2 swarms** ("N goblins"), setting-aware lore synthesis;
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
