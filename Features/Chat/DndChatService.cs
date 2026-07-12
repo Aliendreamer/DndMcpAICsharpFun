@@ -165,7 +165,9 @@ public sealed class DndChatService(
             toolList.Add(AIFunctionFactory.Create(
                 (long campaignId, string question, string? edition, CancellationToken toolCt) =>
                     settingLoreService.AskForUserAsync(
-                        userId, campaignId, question, ParseEdition(edition), toolCt),
+                        userId, campaignId, question,
+                        string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
+                        toolCt),
                 name: "ask_setting_lore",
                 description: "Answer a lore/worldbuilding question for one of the signed-in user's own " +
                     "campaigns, scoped to that campaign's SETTING sources. Pass the campaignId and the " +
