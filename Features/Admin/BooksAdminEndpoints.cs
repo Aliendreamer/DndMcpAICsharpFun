@@ -30,6 +30,7 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/{id:int}/extract-entities", ExtractEntities).DisableAntiforgery();
         group.MapGet("/books/{id:int}/entity-recall", EntityRecall);
         group.MapPost("/books/{id:int}/backfill-entities", BackfillEntities).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/fill-fields", FillFields).DisableAntiforgery();
         group.MapPost("/books/{id:int}/flag-unknown-entities", FlagUnknownEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/project-structured", ProjectStructured).DisableAntiforgery();
         group.MapPost("/books/{id:int}/reground-entities", Reground).DisableAntiforgery();
@@ -233,6 +234,29 @@ public static partial class BooksAdminEndpoints
         {
             backfilled = result.ToAppend.Select(e => e.Name).ToList(),
             alreadyPresent = result.AlreadyPresent,
+        });
+    }
+
+
+    private static async Task<IResult> FillFields(
+        int id,
+        [FromServices] IIngestionTracker tracker,
+        [FromServices] EntityFieldFillService fill,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        var result = await fill.FillAsync(record, ct);
+        if (result.HasSourceKey && result.CanonicalPath is not null && !File.Exists(result.CanonicalPath))
+            return Results.Conflict($"No canonical file found for book {id}; run extraction first.");
+
+        return Results.Ok(new
+        {
+            hasSourceKey = result.HasSourceKey,
+            entitiesTouched = result.EntitiesTouched,
+            filledByType = result.FilledByType.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
         });
     }
 

@@ -352,6 +352,26 @@
       "authentication": {}
     },
     {
+      "_id": "req_books_fill_fields",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Fill missing structured fields from 5etools (official books only)",
+      "description": "Fill-missing-only merge via the allowlist onto existing canonical entities; never overwrites an extraction/human field and never touches a dataSource:\"manual\" entity. 409 if no canonical file exists yet for this book.",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/fill-fields",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_books_flag_unknown_entities",
       "_type": "request",
       "parentId": "fld_admin_books",

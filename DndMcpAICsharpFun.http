@@ -84,6 +84,10 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/backfill-entities?type=MagicItem
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Fill missing structured fields on existing canonical entities from 5etools (official books only; fill-missing-only merge via the allowlist, never overwrites an extraction/human field, skips dataSource:"manual" entities; 409 if no canonical file exists yet)
+POST {{baseUrl}}/admin/books/1/fill-fields
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Flag unknown extra entities for review (official books only; ?type=Monster|Spell|MagicItem|God; sets needsReview:true on canonical entities whose name matches no 5etools entity under any source — extraUnknown; never deletes, never touches extraOtherSource)
 POST {{baseUrl}}/admin/books/1/flag-unknown-entities?type=Monster
 X-Admin-Api-Key: {{adminKey}}
