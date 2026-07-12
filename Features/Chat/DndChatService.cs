@@ -19,7 +19,8 @@ public sealed class DndChatService(
     CharacterResolutionService resolutionService,
     EncounterDesignService encounterService,
     LevelUpAdviceService levelUpService,
-    BuildRecommenderService buildRecommender)
+    BuildRecommenderService buildRecommender,
+    BuildCritiqueService critiqueService)
 {
     public List<ChatMessage> History { get; } = [];
 
@@ -140,6 +141,17 @@ public sealed class DndChatService(
                     "ability, and explain why it fits the concept. Never invent a subclass, feat, or spell. " +
                     "Single-class only — if the concept implies multiclassing, recommend the primary class and " +
                     "note a dip direction."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (long heroSnapshotId, CancellationToken toolCt) =>
+                    critiqueService.CritiqueForUserAsync(heroSnapshotId, userId, toolCt),
+                name: "critique_build",
+                description: "Review a hero snapshot the signed-in user owns and critique the build. Returns " +
+                    "grounded findings — untaken choices (a subclass not chosen, class features not recorded), " +
+                    "stat inconsistencies (recorded save DC/attack/slots vs computed), and ability misalignment. " +
+                    "Frame these into a critique anchored to the findings; do NOT invent problems or free-judge. " +
+                    "Where a finding suggests it, hand off: an untaken subclass/feature → suggest plan_level_up; " +
+                    "an ability misalignment → suggest recommend_build."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));
