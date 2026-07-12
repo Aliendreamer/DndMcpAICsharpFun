@@ -24,6 +24,7 @@ public sealed class EntityExtractionOrchestrator(
     EntitySchemaProvider schemaProvider,
     ExtractionCheckpointStore checkpointStore,
     EntityExtractionRunner runner,
+    EntityFieldFillService fieldFill,
     IOptions<EntityExtractionOptions> options,
     ILogger<EntityExtractionOrchestrator> logger,
     EntityNameMatcher? matcher = null) : IEntityExtractionOrchestrator
@@ -79,6 +80,30 @@ public sealed class EntityExtractionOrchestrator(
                 await RunFullExtractionAsync(
                     bookId, record, bookSlug, candidates, schemas,
                     canonicalPath, errorsPath, warningsPath, ct);
+            }
+
+            // 6. Field-fill: enrich the just-written canonical with allowlisted 5etools fields
+            // before ingest-entities. Deterministic (fill-missing-only merge over the same
+            // 5etools roster), so a force re-extract re-derives the same fill. Extraction has
+            // already succeeded at this point, so a fill failure must be logged and swallowed —
+            // never allowed to fail the extraction.
+            try
+            {
+                var fillResult = await fieldFill.FillAsync(record, ct);
+                logger.LogInformation(
+                    "Entity field-fill after extraction: book {BookId}, hasSourceKey={HasSourceKey}, " +
+                    "entitiesTouched={EntitiesTouched}, filledByType={FilledByType}",
+                    bookId,
+                    fillResult.HasSourceKey,
+                    fillResult.EntitiesTouched,
+                    string.Join(", ", fillResult.FilledByType.Select(kv => $"{kv.Key}={kv.Value}")));
+            }
+            catch (Exception fillEx)
+            {
+                logger.LogError(
+                    fillEx,
+                    "Entity field-fill failed for book {BookId} after successful extraction; canonical is unfilled but extraction succeeded",
+                    bookId);
             }
         }
         catch (Exception ex)

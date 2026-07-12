@@ -101,6 +101,11 @@ public class EntityExtractionOrchestratorTests
                     logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
                     cascade: GroundingCascadeTestFactory.Inert(),
                     matcher: sharedMatcher),
+                fieldFill: new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.EntityFieldFillService(
+                    new DndMcpAICsharpFun.Features.Entities.CanonicalJsonLoader(),
+                    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+                    canonicalDir,
+                    Path.Combine(Path.GetTempPath(), "__nonexistent_5etools_fill__")),
                 options: opts,
                 logger: NullLogger<EntityExtractionOrchestrator>.Instance,
                 matcher: sharedMatcher);
@@ -209,7 +214,8 @@ public class EntityExtractionOrchestratorTests
         DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry? registry = null,
         DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher? matcher = null,
         ILogger<EntityExtractionOrchestrator>? orchestratorLogger = null,
-        ILogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>? builderLogger = null)
+        ILogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>? builderLogger = null,
+        DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.EntityFieldFillService? fieldFill = null)
     {
         var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
         {
@@ -225,6 +231,14 @@ public class EntityExtractionOrchestratorTests
             ?? new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
                    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
                        Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__")));
+        // No-op field-fill (no 5etools fixture data) when caller does not supply one — a no-op is safe
+        // for tests whose IngestionRecord has no FivetoolsSourceKey (FillAsync short-circuits on that).
+        var effectiveFieldFill = fieldFill
+            ?? new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.EntityFieldFillService(
+                   new DndMcpAICsharpFun.Features.Entities.CanonicalJsonLoader(),
+                   new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+                   canonicalDir,
+                   Path.Combine(Path.GetTempPath(), "__nonexistent_5etools_fill__"));
 
         return new EntityExtractionOrchestrator(
             tracker: tracker,
@@ -249,6 +263,7 @@ public class EntityExtractionOrchestratorTests
                 logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
                 cascade: GroundingCascadeTestFactory.Inert(),
                 matcher: effectiveMatcher),
+            fieldFill: effectiveFieldFill,
             options: opts,
             logger: orchestratorLogger ?? NullLogger<EntityExtractionOrchestrator>.Instance,
             matcher: effectiveMatcher);
@@ -758,6 +773,11 @@ public class EntityExtractionOrchestratorTests
                     logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
                     cascade: GroundingCascadeTestFactory.Inert(),
                     matcher: sharedMatcher),
+                fieldFill: new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.EntityFieldFillService(
+                    new DndMcpAICsharpFun.Features.Entities.CanonicalJsonLoader(),
+                    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+                    canonicalDir,
+                    Path.Combine(Path.GetTempPath(), "__nonexistent_5etools_fill__")),
                 options: opts,
                 logger: NullLogger<EntityExtractionOrchestrator>.Instance,
                 matcher: sharedMatcher);
@@ -1830,6 +1850,165 @@ public class EntityExtractionOrchestratorTests
         {
             try { Directory.Delete(canonicalDir, true); } catch { }
             try { Directory.Delete(schemasDir, true); } catch { }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Task 4 — auto field-fill after extraction
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ExtractAsync_AutoFillsCanonical_AndReExtractionIsDeterministic()
+    {
+        // Arrange — use the real books.json (MM: Monster Manual → Edition2014, slug "mm14").
+        var booksJsonPath = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "../../../../5etools/books.json"));
+        var registry = new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(booksJsonPath);
+        registry.TryGetBook("MM").Should().NotBeNull("MM must be in 5etools/books.json for this test to be meaningful");
+
+        const int bookId = 300;
+        const string displayName = "Monster Manual";
+
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var fillFivetoolsDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+        Directory.CreateDirectory(Path.Combine(fillFivetoolsDir, "bestiary"));
+
+        // Write a minimal Monster schema so the LLM is invoked.
+        File.WriteAllText(
+            Path.Combine(schemasDir, "MonsterFields.schema.json"),
+            "{ \"type\": \"object\" }");
+
+        // Field-fill fixture: 5etools bestiary roster (source "MM") carrying allowlisted Monster fields
+        // for "Aboleth". Placed at the SAME relative path ("bestiary/bestiary-mm.json") that the real
+        // repo's 5etools/bestiary/bestiary-mm.json file occupies, so FivetoolsSourceRegistry.AllEntries
+        // (built once from the real "5etools" dir) has a matching entry whose content EntityFieldFillService
+        // resolves onto this custom fixture directory instead (mirrors EntityFieldFillServiceTests).
+        File.WriteAllText(Path.Combine(fillFivetoolsDir, "bestiary", "bestiary-mm.json"), """
+        {
+          "monster": [
+            {
+              "name": "Aboleth",
+              "source": "MM",
+              "environment": [ "underdark" ],
+              "traitTags": [ "Amphibious" ],
+              "senseTags": [ "SD" ],
+              "languageTags": [ "TP" ]
+            }
+          ]
+        }
+        """);
+
+        try
+        {
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+            {
+                Id = bookId,
+                FilePath = "/dev/null",
+                FileName = "mm.pdf",
+                FileHash = "mmhash",
+                Version = "5e",
+                DisplayName = displayName,
+                FivetoolsSourceKey = "MM",
+            };
+
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+            // One monster candidate so LLM is called once.
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+                "doc",
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+                {
+                    new("heading", "Aboleth", 1, null),
+                    new("text",    "Aboleth — a slimy aberration.", 1, null),
+                });
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
+
+            var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+            bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+                new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark>
+                {
+                    new("Monsters", 1),
+                });
+
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+            using var fields = System.Text.Json.JsonDocument.Parse("{}");
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                   Success: true,
+                   ToolInput: fields.RootElement.Clone(),
+                   StopReason: "tool_use",
+                   InputTokens: 0,
+                   OutputTokens: 0,
+                   ErrorMessage: null,
+                   RawJson: null));
+
+            // Real 5etools index — loads "Aboleth" as a Monster from the repo's 5etools/ directory, so the
+            // allowlist gate accepts it (official + real 5etools match). Independent of the field-fill
+            // fixture above, which is only consulted by EntityFieldFillService via fillFivetoolsDir.
+            var realMatcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                    TestPaths.RepoFile("5etools")));
+
+            var fieldFill = new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.EntityFieldFillService(
+                new DndMcpAICsharpFun.Features.Entities.CanonicalJsonLoader(),
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+                canonicalDir,
+                fillFivetoolsDir);
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm, registry,
+                matcher: realMatcher, fieldFill: fieldFill);
+
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(record.FivetoolsSourceKey!, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+            bookSlug.Should().Be("mm14", "MM must slug to mm14 for this test to exercise the real fixture file name");
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+
+            // Act 1 — extraction, followed automatically by field-fill (this task's behaviour).
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Assert: the extracted Monster entity already carries the allowlisted 5etools fields —
+            // proving EntityFieldFillService.FillAsync ran after the write, with no separate call needed.
+            File.Exists(canonicalPath).Should().BeTrue("canonical JSON must be written");
+            var firstRunJson = await File.ReadAllTextAsync(canonicalPath);
+            var firstRunCanonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(
+                firstRunJson,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                });
+
+            firstRunCanonical.Should().NotBeNull();
+            firstRunCanonical!.Entities.Should().HaveCount(1, "one monster candidate was successfully extracted");
+            var aboleth = firstRunCanonical.Entities.Single(e => e.Name == "Aboleth");
+            aboleth.Fields.TryGetProperty("environment", out _).Should().BeTrue(
+                "the field-fill must run automatically right after extraction, before ingest-entities");
+            aboleth.Fields.TryGetProperty("traitTags", out _).Should().BeTrue();
+            aboleth.Fields.TryGetProperty("senseTags", out _).Should().BeTrue();
+            aboleth.Fields.TryGetProperty("languageTags", out _).Should().BeTrue();
+
+            // Act 2 — force re-extraction. Deterministic: the same LLM output + the same field-fill
+            // roster must re-derive byte-identical canonical JSON.
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+            var secondRunJson = await File.ReadAllTextAsync(canonicalPath);
+
+            secondRunJson.Should().Be(firstRunJson,
+                "a force re-extract must re-derive the identical field-filled canonical (deterministic fill-missing-only merge)");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
+            try { Directory.Delete(fillFivetoolsDir, true); } catch { }
         }
     }
 }
