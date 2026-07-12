@@ -159,8 +159,18 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   override; empty-campaign = explicit error). Two per-user chat tools `rate_encounter`/`build_encounter`
   (SEC-08 closure, not on shared-key surface, no HTTP route). `AddDndChat` pulls in `AddEncounters` so
   the DI dep is self-contained. Real-Qdrant integration test proves build==rate end-to-end.
-  DEFERRED: **v2 monster-quantity/"N goblins" swarms** (own spec — generator selects each candidate once,
-  source maps 1 entity→1 MonsterRef); non-5etools "5e"-versioned content won't match the edition filter
+  ✅ SHIPPED **v2 monster-quantity/"N goblins" swarms** (archived `2026-07-12-encounter-swarms`;
+  7 commits `1eaae47..9d1827a`, base 09d0175; build 0/0, FULL suite **1265/1265**; final opus review READY TO
+  MERGE; live UI smoke passed). Anchor-then-fill boss+minions build via candidate RE-SELECTION (was: select each
+  once): first pick = highest-XP-under-target anchor, then fill from candidates `Xp < anchorXp` (falls back to the
+  anchor tier for a uniform swarm when none cheaper); flat `IReadOnlyList<MonsterRef>` with REPEATS = quantity (math
+  + combat tracker unchanged, each swarm member = its own combatant); `MonsterQuantity(Name,Quantity)` input +
+  `MonsterGrouping.Group/Describe` + `BuiltEncounterView` display-only. Rate takes structured `{name,quantity}`
+  pairs (resolve once → repeat `Clamp(q,1,100)`); `rate_encounter` param reshaped + `build_encounter` echoes grouped
+  counts; `EncounterPanel` renders "N× Name" (chat-tools only — no HTTP/.http/migration). Real-Qdrant swarm
+  build==rate integration test (Deadly forces a genuine repeat, `Group…Count>1` gate). STILL DEFERRED: multiple
+  co-equal anchors ("3 dragons"/"multiple gods"); a `maxMonsters`/`variety` knob; the source still maps 1 entity→1
+  MonsterRef. Corpus note: non-5etools "5e"-versioned content won't match the edition filter
   (corpus-data); live chat-driven smoke needs Ollama.
 
 ## COMPANION UX / TABLE-PLAY — all SHIPPED (user-requested 2026-07-09/10)
@@ -320,6 +330,9 @@ The hard cap is the **8GB VRAM ceiling** (RTX 5070 Laptop), NOT latency.
   tasks first (coding/agentic benchmarks ≠ rules reasoning). STATUS: research only, user's call.
 
 ## LOOSE ENDS / follow-ups
+- **markitdown parser candidate** (user-requested 2026-07-12) — evaluate Microsoft `markitdown`
+  (https://github.com/microsoft/markitdown) as a PDF→Markdown parser vs Marker/MinerU for the ingestion/extraction
+  pipeline; research spike, not a committed slice (`mem:project_markitdown_parser_candidate`, `mem:project/parser_upgrade_mineru`).
 - **Published-container Blazor static assets** ✅ FIXED (`8139397`).
 - **Qdrant scalar int8 quantization:** shipped + archived. Closed.
 - **`extraction-think-mode` spec** ✅ CLOSED — deleted 2026-07-09b (superseded by shipped `/no_think` `803da7b`; the A/B toggle it proposed is moot now the decision is made).
@@ -401,9 +414,12 @@ global non-campaign dice/encounter page).** Only active openspec change is the p
 (level-up + concept-to-build recommender + build-critique, all shipped 2026-07-12).** **HYBRID entity model RESOLVED + shipped
 2026-07-12 (`fivetools-field-fill`): extraction owns all entities, 5etools field-fill patches missing structured
 fields; `dnd_entities` now 2307 extraction-only entities, level-up grounds all 12 classes from extraction+fill.**
-**CHARACTER-COACH COMPLETE — A (level-up) + B (concept-to-build recommender) + C (build-critique) all shipped 2026-07-12.** FULL suite **1253/1253**.
+**CHARACTER-COACH COMPLETE — A (level-up) + B (concept-to-build recommender) + C (build-critique) all shipped 2026-07-12.** **Encounter-design v2 swarms ALSO shipped + archived 2026-07-12
+(`2026-07-12-encounter-swarms`): boss+minions anchor-then-fill build + structured `{name,quantity}` rate,
+flat-list-with-repeats representation, grouped display; final opus review READY TO MERGE, live UI smoke passed.**
+FULL suite **1265/1265**.
 NEXT candidates (user's call):
-(1) companion REASONING frontier (character-coach is DONE): **encounter-design v2 swarms** ("N goblins"),
+(1) companion REASONING frontier (character-coach + **encounter-design v2 swarms** both DONE):
     **setting-aware lore synthesis**, or a fresh companion-reasoning brainstorm — the next un-named surface;
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
