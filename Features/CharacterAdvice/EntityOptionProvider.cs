@@ -53,10 +53,10 @@ public sealed class EntityOptionProvider(IEntityRetrievalService retrieval)
     }
 
     /// <summary>Feat options for an edition — a top-K sample of Type=Feat entities.</summary>
-    public async Task<IReadOnlyList<CitedOption>> FeatOptions(string edition, CancellationToken ct)
+    public async Task<IReadOnlyList<CitedOption>> FeatOptions(string edition, CancellationToken ct, string? concept = null)
     {
         var query = new EntitySearchQuery(
-            QueryText: "feat",
+            QueryText: string.IsNullOrWhiteSpace(concept) ? "feat" : concept,
             Type: EntityType.Feat,
             SourceBook: null,
             Edition: edition,
@@ -79,10 +79,10 @@ public sealed class EntityOptionProvider(IEntityRetrievalService retrieval)
     /// with the class name only as query text; a class-list post-filter is a later refinement.
     /// </summary>
     public async Task<IReadOnlyList<CitedOption>> SpellOptions(
-        string className, int spellLevel, string edition, CancellationToken ct)
+        string className, int spellLevel, string edition, CancellationToken ct, string? concept = null)
     {
         var query = new EntitySearchQuery(
-            QueryText: className,
+            QueryText: string.IsNullOrWhiteSpace(concept) ? className : concept,
             Type: EntityType.Spell,
             SourceBook: null,
             Edition: edition,
