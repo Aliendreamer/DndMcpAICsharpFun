@@ -149,6 +149,52 @@ public sealed class EncounterDesignIntegrationTests : IAsyncLifetime
         built.FullyMatched.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task Swarm_build_and_rate_agree_over_real_qdrant_retrieval()
+    {
+        IReadOnlyList<int> partyLevels = [5, 5, 5, 5];
+
+        // Deadly (not Hard) is the target here on purpose: with this seed (4x CR-3 bandits @
+        // 700xp, 1x CR-5 ogre-boss @ 1800xp) and this party (4x level-5, 2014 budget
+        // [1000, 2000, 3000, 4400]), a Hard target already fully matches with the ogre anchor
+        // plus a single bandit (2 distinct monsters, no repeats — see the test above). Deadly
+        // requires one more monster: ogre(1800) + 1 bandit(700) = 2500 raw, ×1.5 (2-monster
+        // multiplier) = 3750 adjusted → only Hard. Reaching Deadly (>= 4400) needs a THIRD
+        // monster: ogre(1800) + 2 bandits(700 each) = 3200 raw, ×2.0 (3-monster multiplier) =
+        // 6400 adjusted → Deadly. Since the CR-3 bandits are seeded as four distinct ids but all
+        // tie on CR/XP, and EncounterGenerator's greedy loop never removes a candidate and only
+        // replaces its running best on a STRICT improvement, the same tied bandit id wins the
+        // "cheaper than anchor" round every time — so the second monster needed here is a second
+        // COPY of that same bandit id, not a fourth distinct monster. That is a genuine swarm:
+        // the built encounter groups down to 2 distinct monsters (ogre ×1, bandit ×2) from 3
+        // total monsters.
+        var built = await _sut.BuildForUserAsync(
+            userId: 1, campaignId: null, partyLevels, Difficulty.Deadly, DndVersion.Edition2014,
+            theme: null, crLte: null, crGte: null, CancellationToken.None);
+
+        built.Assessment.Monsters.Should().NotBeEmpty();
+        built.Assessment.Monsters.Should().OnlyContain(m => m.Id.StartsWith("test.monster.", StringComparison.Ordinal));
+
+        // Rate the exact built set back as quantity pairs (grouped by id) — build == rate must
+        // hold even when the built encounter contains repeated monsters (a swarm).
+        var pairs = MonsterGrouping.Group(built.Assessment.Monsters)
+            .Select(g => new MonsterQuantity(g.Monster.Id, g.Count))
+            .ToList();
+
+        var rated = await _sut.RateForUserAsync(
+            userId: 1, campaignId: null, partyLevels, pairs, DndVersion.Edition2014, CancellationToken.None);
+
+        rated.Difficulty.Should().Be(built.Assessment.Difficulty);
+        rated.Monsters.Should().HaveCount(built.Assessment.Monsters.Count); // pairs expanded back 1:1
+
+        // Non-vacuity for the swarm claim itself: assert the build genuinely required multiples
+        // of at least one monster id (not just 2+ distinct monsters), so this test would actually
+        // fail loudly if a future change to the greedy generator stopped reusing tied candidates.
+        built.FullyMatched.Should().BeTrue();
+        built.Assessment.Difficulty.Should().Be(Difficulty.Deadly);
+        MonsterGrouping.Group(built.Assessment.Monsters).Should().Contain(g => g.Count > 1);
+    }
+
     private async Task SeedMonstersAsync(QdrantEntityVectorStore store)
     {
         var points = new List<EntityPoint>
