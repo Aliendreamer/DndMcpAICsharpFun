@@ -145,7 +145,8 @@ public sealed class BuildCritiqueServiceTests(PostgresFixture pg) : IAsyncLifeti
         var service = BuildService(out _);
 
         await FluentActions.Awaiting(() => service.CritiqueForUserAsync(snapshotId, otherUserId, default))
-            .Should().ThrowAsync<UnauthorizedAccessException>();
+            .Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("Hero snapshot not found or not owned by the caller.");
     }
 
     [Fact] // (A) missing feature
@@ -159,6 +160,11 @@ public sealed class BuildCritiqueServiceTests(PostgresFixture pg) : IAsyncLifeti
 
         c.Findings.Should().Contain(f => f.Kind == CritiqueKind.UntakenChoice
             && f.Observation.Contains("Extra Attack"));
+
+        var finding = c.Findings.First(f => f.Kind == CritiqueKind.UntakenChoice
+            && f.Observation.Contains("Extra Attack"));
+        finding.Cite.Should().NotBeNull();
+        finding.Cite!.Name.Should().Be("Fighter");
     }
 
     [Fact] // (A) subclass not chosen

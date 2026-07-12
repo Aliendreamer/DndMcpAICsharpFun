@@ -122,7 +122,7 @@ public sealed class BuildCritiqueService(HeroRepository heroes, IEntityRetrieval
             if (!string.Equals(castAbility, highName, StringComparison.OrdinalIgnoreCase)
                 && AbilityScore(sheet, castAbility) is int cs && cs < highScore)
                 findings.Add(new(CritiqueKind.AbilityAlignment,
-                    $"Your {cls.Class}'s spellcasting ability is {castAbility} ({AbilityScore(sheet, castAbility)}), but your highest score is {highName} ({highScore}).", null));
+                    $"Your {cls.Class}'s spellcasting ability is {castAbility} ({cs}), but your highest score is {highName} ({highScore}).", null));
         }
         return findings;
     }
