@@ -111,13 +111,29 @@ public sealed class DndChatServiceTests : IDisposable
             new DndMcpAICsharpFun.Features.CharacterAdvice.EntityOptionProvider(retrieval));
     }
 
+    /// <summary>
+    /// Builds a real <see cref="DndMcpAICsharpFun.Features.CharacterAdvice.BuildRecommenderService"/> over
+    /// a fake entity search and the real <see cref="DndMcpAICsharpFun.Features.CharacterAdvice.EntityOptionProvider"/>
+    /// — sealed/concrete, so it cannot be substituted directly, but its own retrieval dependency can,
+    /// keeping these chat-wiring tests DB-free.
+    /// </summary>
+    private static DndMcpAICsharpFun.Features.CharacterAdvice.BuildRecommenderService BuildBuildRecommenderService(
+        IEntityRetrievalService? search = null)
+    {
+        var retrieval = search ?? Substitute.For<IEntityRetrievalService>();
+        return new DndMcpAICsharpFun.Features.CharacterAdvice.BuildRecommenderService(
+            retrieval,
+            new DndMcpAICsharpFun.Features.CharacterAdvice.EntityOptionProvider(retrieval));
+    }
+
     private DndChatService CreateService(
         FakeChatClient client,
         IReadOnlyList<AITool>? tools = null,
         PersonaProvider? personaProvider = null,
         IHttpContextAccessor? httpContextAccessor = null,
         EncounterDesignService? encounterService = null,
-        DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpAdviceService? levelUpService = null) =>
+        DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpAdviceService? levelUpService = null,
+        DndMcpAICsharpFun.Features.CharacterAdvice.BuildRecommenderService? buildRecommenderService = null) =>
         new(client,
             new FakeMcpToolsProvider(tools ?? []),
             new ChatRepository(new NoOpDbFactory()),
@@ -128,7 +144,8 @@ public sealed class DndChatServiceTests : IDisposable
                 new NoOpDbFactory(),
                 new DndMcpAICsharpFun.Features.Campaigns.HeroRepository(new NoOpDbFactory())),
             encounterService ?? BuildEncounterDesignService(),
-            levelUpService ?? BuildLevelUpAdviceService());
+            levelUpService ?? BuildLevelUpAdviceService(),
+            buildRecommenderService ?? BuildBuildRecommenderService());
 
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()
@@ -290,7 +307,7 @@ public sealed class DndChatServiceTests : IDisposable
         await svc.SendAsync("Rate my encounter", false, CancellationToken.None);
 
         var tools = client.LastOptions!.Tools!.OfType<AIFunction>()
-            .Where(t => t.Name is "rate_encounter" or "build_encounter" or "plan_level_up");
+            .Where(t => t.Name is "rate_encounter" or "build_encounter" or "plan_level_up" or "recommend_build");
         foreach (var tool in tools)
         {
             var hasUserId = tool.JsonSchema.TryGetProperty("properties", out var props)

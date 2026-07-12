@@ -18,7 +18,8 @@ public sealed class DndChatService(
     PersonaProvider personaProvider,
     CharacterResolutionService resolutionService,
     EncounterDesignService encounterService,
-    LevelUpAdviceService levelUpService)
+    LevelUpAdviceService levelUpService,
+    BuildRecommenderService buildRecommender)
 {
     public List<ChatMessage> History { get; } = [];
 
@@ -125,6 +126,20 @@ public sealed class DndChatService(
                     "new spells). RECOMMEND a specific pick with reasons that reference the character's own " +
                     "sheet, but ONLY from the options returned here — never invent a feat, subclass, or spell. " +
                     "targetClass (optional) limits advice to one class."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (string className, string concept, int? targetLevel, CancellationToken toolCt) =>
+                    buildRecommender.RecommendBuildOptionsAsync(className, concept, targetLevel, toolCt),
+                name: "recommend_build",
+                description: "Recommend a single-class D&D character build for a text concept (e.g. 'a tanky " +
+                    "dwarf who controls the battlefield'). YOU pick the class that best fits the concept and " +
+                    "pass it as className plus the concept; if the result says the class is not in the corpus " +
+                    "(ClassInCorpus false), pick a different class from its availableClasses list and call again. " +
+                    "Then recommend a subclass, key feats, and signature spells STRICTLY from the returned cited " +
+                    "options, plus ability-score priorities from the returned save proficiencies / spellcasting " +
+                    "ability, and explain why it fits the concept. Never invent a subclass, feat, or spell. " +
+                    "Single-class only — if the concept implies multiclassing, recommend the primary class and " +
+                    "note a dip direction."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));
