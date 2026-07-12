@@ -1,4 +1,4 @@
-# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-11)
+# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-12)
 
 **North star:** a companion agent that REASONS (character build / encounter design / setting-aware
 lore), not just retrieves. RAG + extraction are the *means*, and that foundation is built —
@@ -115,7 +115,35 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   auth block, security-regression + presence tests guard it (dev-flow: new per-user tool needs BOTH guard tests).
   SINGLE-CLASS (multiclass concept → primary class + note dip → level-up assistant). CHAT-TOOL-ONLY (no UI → no
   Playwright gate; chat smoke deferred, needs Ollama). DEFERRED: UI entry (Scratchpad "build ideas" box); multiclass
-  build paths; half-caster spell-level exactness (full-caster approx). **Character-coach: A + B shipped; C (build-critique) is the last slice.**
+  build paths; half-caster spell-level exactness (full-caster approx).
+- **Character build critique (character-coach slice C — the LAST)** ✅ DONE (archived `2026-07-12-character-build-critique`;
+  5 code commits `a5b5412`..`ac8eda1` (spec base `4999f18`) + plan/gitignore `2025cc4` + archive; build 0/0, FULL suite
+  **1253/1253**; final opus review CHANGES-REQUESTED→fixed in-loop→READY). Reviews an OWNED hero and emits DETERMINISTIC
+  GROUNDED FINDINGS the LLM frames (never free-judges). `Features/CharacterAdvice/`: `BuildCritique`(HeroSnapshotId,
+  Findings, Strengths) + `CritiqueFinding`(Kind{UntakenChoice|StatConsistency|AbilityAlignment}, Observation, Cite?) +
+  ownership-gated `BuildCritiqueService.CritiqueForUserAsync(snapshotId, userId, ct)` (resolve owned snapshot or throw —
+  verbatim message, ship-blocker negative test). THREE findings: **(A) untaken choices** — edition-pinned (Edition2014)
+  class-entity lookup (mirrors LevelUpAdviceService) + `ClassFeatureRefParser`: subclass-not-chosen (earliest level a
+  classFeature name contains `SubclassTitle` passed + Subclass empty) + missing features up to class level,
+  `EntityNameIndex.Normalize`-matched vs sheet.Features, each CITED to the real class rule; **(B) stat consistency** —
+  computed DIRECTLY from sheet+primitives (DC=8+PB+castMod, attack=PB+castMod, slots via
+  `MulticlassSlotTableSeeder.SlotsForCasterLevel(MulticlassSpellcasting.ResolveSlotSource(classes))`) vs recorded
+  SpellSaveDC/SpellAttackBonus/SpellSlots — NOT the private string-returning `ResolveForSheetAsync`; **(C) ability
+  alignment** — `MulticlassSpellcasting.SpellcastingAbility(class)` vs highest ability (non-casters skipped). Surfaces:
+  `critique_build(heroSnapshotId)` per-user chat tool (ownership-gated, closes over session userId, BOTH guard tests) +
+  HeroDetail "Review this build" card + `?prompt=` chat hand-off. NO http/mcp/migration → no `.http`/`.insomnia`.
+  **LIVE PLAYWRIGHT PASSED** (app image rebuilt): Bruenor (Ranger 4, owned by `test`) → grounded level-accurate critique
+  (subclass-not-chosen Ranger Archetype due L3 + missing Favored Enemy/Natural Explorer L1, Fighting Style/Spellcasting L2,
+  Primeval Awareness L3, ASI L4 all cited "Ranger (PHB)"; correctly OMITS Extra Attack L5 + TCE variants; NO stat finding =
+  DC/atk/slots matched = not over-firing) + ability alignment (Wisdom 14 not highest, Dex 15); no h-overflow desktop 1280 +
+  mobile 390; hand-off routes to chat with prompt prefilled. **FINAL-REVIEW BUG (fixed in-loop `ac8eda1`):** single-class
+  Warlock recorded pact slots → false "slots don't match" because `ResolveSlotSource` excludes Warlock/pact from the
+  standard slot table (all-zero computed) → now SKIP the slot finding when slot source is "none"/pact (+ Warlock regression
+  test). Root pattern → dev-flow: a NEW computation branching on a domain classification ships its excluded branch untested
+  because the single-fixture smoke walks one branch (twice-confirmed: slice-A d8-fabrication + this) — new gate + red flag
+  added. Deferred Minors: unfilled-caster all-zero slots fires (ACCEPTED — truthful); Strengths unrendered (future);
+  inline hand-off-link dup (mirror-by-instruction). **CHARACTER-COACH COMPLETE — A (level-up) + B (concept-recommender) +
+  C (build-critique) all shipped; no remaining slices.**
 - **Encounter design (slice 1)** ✅ DONE (archived `encounter-design`, 2026-07-09; 12 code commits
   `983907e..99c9feb` + integration test `a97c57e`, base 45649f9; build 0/0, FULL suite **1117/1117**).
   FIRST shipped companion-reasoning surface. ONE deterministic math core shared by rate + build so they
@@ -369,15 +397,14 @@ SHIPPED (token-based "arcane console" dark theme across every surface; the app n
 **Table-play v2 COMPLETE (all 4 slices SHIPPED + archived): slice 1 (`combat-fight-fidelity`), slice 2
 (`combat-condition-durations`), slice 3 (`combat-tie-reorder`, tie reorder), slice 4 (`scratch-surface`,
 global non-campaign dice/encounter page).** Only active openspec change is the parked
-`prose-grounded-knowledge-model`. **COMPANION REASONING now has 2 surfaces: encounter-design + character
-level-up advice (character-coach slice 1, shipped 2026-07-11).** **HYBRID entity model RESOLVED + shipped
+`prose-grounded-knowledge-model`. **COMPANION REASONING surfaces: encounter-design + the COMPLETE character coach
+(level-up + concept-to-build recommender + build-critique, all shipped 2026-07-12).** **HYBRID entity model RESOLVED + shipped
 2026-07-12 (`fivetools-field-fill`): extraction owns all entities, 5etools field-fill patches missing structured
 fields; `dnd_entities` now 2307 extraction-only entities, level-up grounds all 12 classes from extraction+fill.**
-**CHARACTER-COACH: A (level-up) + B (concept-to-build recommender, shipped 2026-07-12) DONE; C (build-critique) is the last slice.** FULL suite **1244/1244**.
+**CHARACTER-COACH COMPLETE — A (level-up) + B (concept-to-build recommender) + C (build-critique) all shipped 2026-07-12.** FULL suite **1253/1253**.
 NEXT candidates (user's call):
-(1) character-coach slice C (build-critique) — the LAST character-coach slice; slices A (level-up) + B
-    (concept-to-build recommender) are SHIPPED. **B SHIPPED 2026-07-12** (see COMPANION REASONING). NEXT = **C**;
-(1b) other companion REASONING: **encounter-design v2 swarms** ("N goblins"), setting-aware lore synthesis;
+(1) companion REASONING frontier (character-coach is DONE): **encounter-design v2 swarms** ("N goblins"),
+    **setting-aware lore synthesis**, or a fresh companion-reasoning brainstorm — the next un-named surface;
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6) — user DEFERRED this 2026-07-11
