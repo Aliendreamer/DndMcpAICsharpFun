@@ -9,4 +9,5 @@ public sealed record RetrievalQuery(
     string? SourceBook = null,
     string? EntityName = null,
     BookType? BookType = null,
-    int TopK = 5);
+    int TopK = 5,
+    IReadOnlyCollection<string>? SourceBooks = null);
