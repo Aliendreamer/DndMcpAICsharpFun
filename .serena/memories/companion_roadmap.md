@@ -82,6 +82,25 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   RETHINK level-up grounding toward PROSE (canonicalText + LLM), the north-star direction (`mem:project_entity_extraction_rethink`).
   Deferred Minors: HP floor-of-1 clamp; DipValidity discards the prereq reason (only the exclusion path is used).
   LESSON → dev-flow: a self-seeded integration test proves your CODE, not that the real corpus HAS the fields you consume.
+- **`fivetools-field-fill` (the hybrid — extraction-favored)** ✅ DONE (archived `2026-07-12-fivetools-field-fill`;
+  code commits `161b388`(+rename `a37a130`)/`e820058`/`41897c6`/`856a4b9`, base 94cc643; build 0/0, FULL suite
+  **1239/1239**; final opus review READY TO MERGE, no findings). Restores the intended hybrid that the level-up
+  grounding gap exposed: **extraction is the source of truth for ALL entities (99% on core books); 5etools ONLY
+  patches missing STRUCTURED fields**, merged, never overwriting extraction/`entries`. `Features/Ingestion/
+  FivetoolsIngestion/`: `FivetoolsFieldMerger` (pure fill-missing-only merge; per-field rule absent→fill /
+  present&provenance-listed→re-derive / present&unlisted→untouch; provenance in reserved `_fivetoolsFilledFields`
+  inside `Fields` — no schema change; idempotent byte-identical re-run) + `FieldFillAllowlist` (per-type structured
+  allowlist, NEVER `entries`) + `EntityFieldFillService.FillAsync` (per-book: index the 5etools roster by
+  Normalize(name)+source via `FivetoolsSourceRegistry`+`FivetoolsMapperRegistry`, merge each canonical entity, atomic
+  write; skips `manual`; no-source-key no-op). `POST /admin/books/{id}/fill-fields` + auto-run wired into
+  `EntityExtractionOrchestrator.ExtractAsync` (deterministic since 5etools static → can't decay). OPERATIONAL cleanup
+  live-run 2026-07-12: filled PHB(12 classes+324 spells)/MM(446 monsters)/DMG(3), re-ingested, deleted 8593
+  `data_source:5etools` strays → `dnd_entities` = 2307 extraction entities only; level-up grounds all 12 classes from
+  extraction+fill (live-verified). Filled canonicals committed `6d57961`. DEFERRED (final-review Minors): doc-only spec
+  touch-up (`_fivetoolsFilledFields` vs design's `fivetoolsFilledFields`; allowlist uses real 5etools field names);
+  Normalize last-wins (pre-existing pattern); no cross-call write lock (deterministic→safe); FUTURE-LANDMINE — if the
+  allowlist ever extends to shared-5etools-file types (Item/MagicItem, Race/Subrace) add a rarity/array-key split.
+  Optional follow-up: `backfill-spells` (`data_source:5etools-backfill`) for any official spell GAPS extraction missed.
 - **Encounter design (slice 1)** ✅ DONE (archived `encounter-design`, 2026-07-09; 12 code commits
   `983907e..99c9feb` + integration test `a97c57e`, base 45649f9; build 0/0, FULL suite **1117/1117**).
   FIRST shipped companion-reasoning surface. ONE deterministic math core shared by rate + build so they
@@ -270,7 +289,10 @@ The hard cap is the **8GB VRAM ceiling** (RTX 5070 Laptop), NOT latency.
   recommender** (text concept → class/subclass/feat/spell path from scratch); **C = build-critique** (review a sheet
   for strengths/gaps). Each is its own brainstorm→propose→plan→SDD slice reusing the level-up core (deterministic
   delta + cited option menus + ownership-gated per-user orchestrator + chat tool + HeroDetail surface).
-- **Level-up grounding coverage** (accepted limitation on the shipped level-up slice — user chose ship-as-is 2026-07-11).
+- **Level-up grounding coverage — ✅ RESOLVED 2026-07-12 by `fivetools-field-fill`** (see COMPANION REASONING section;
+  the 5etools `ImportAll` "path (a)" proof below was UNDONE and replaced by the durable extraction-favored field-fill
+  hybrid). Historical diagnosis kept for context:
+  (accepted limitation on the shipped level-up slice — user chose ship-as-is 2026-07-11).
   ROOT CAUSE diagnosed 2026-07-11: (1) all 12 PHB classes ARE in `books/canonical/phb14.json` (extraction discovered
   them cleanly); (2) but the CURRENT content-first extraction emits classes as PROSE-ONLY (`fields:{entries:[...]}`,
   no `hd`/`classFeatures`/`subclassTitle`) — the recent spell-recall re-extractions (`764a615`→`0c8e7bd`) regenerated
@@ -298,12 +320,15 @@ The hard cap is the **8GB VRAM ceiling** (RTX 5070 Laptop), NOT latency.
   non-vacuous test (wrong-edition entity first → 2014 still chosen), full suite 1228/1228, all 12 PHB classes confirmed
   to have Edition2014 entities so coverage is unchanged. (b) RETHINK toward PROSE (HP/features from `entries` + LLM) remains the north-star alternative
   (`mem:project_entity_extraction_rethink`).
-- **⏸ DEFERRED DECISION (continue later) — entity source of truth: 5etools-import vs extraction/prose.** As of
-  2026-07-11 the local `dnd_entities` is in the **5etools-imported state** (9868 entities, `dataSource:5etools`,
-  path (a) — grounds level-up for all classes). OPEN: keep 5etools as the structured entity source of truth vs revert
-  toward extraction/PROSE (north star, `mem:project_entity_extraction_rethink`). If reverting/re-ingesting the 3 books'
-  PROSE entities later, they'd id-collide and clobber the structured classes — reconcile ordering/id-namespaces first.
-  Revert levers: re-run `ingest-entities` per book, or delete-by-`dataSource:5etools`. **User marked this to revisit later.**
+- **✅ RESOLVED (2026-07-12) — entity source of truth = EXTRACTION; 5etools patches holes.** The
+  `fivetools-field-fill` feature SHIPPED the hybrid: extraction owns every entity (99% on core books), and a
+  field-level 5etools gap-fill merges ONLY missing allowlisted STRUCTURED fields (Class hd/classFeatures/subclassTitle
+  etc.; Spell level/school/range; Monster tags) — never overwriting extraction/`entries`, auto-run after
+  extract-entities (deterministic → can't decay), provenance in a reserved `_fivetoolsFilledFields` key. The blunt
+  2026-07-11 `POST /admin/5etools/import` (9868 wholesale, `dataSource:5etools`) was UNDONE: filled the 3 books,
+  re-ingested, deleted the 8593 `data_source:5etools` strays. `dnd_entities` is now **2307 extraction entities
+  (`data_source:llm`) only**, all 12 classes grounded from extraction+fill, Aboleth reads as the extraction version.
+  See the shipped feature below (COMPANION REASONING section) and `mem:reference_build_env_gotchas` (Qdrant payload keys).
 - **Level-up deferred Minors** (final-review, non-blocking): clamp HP gain to the D&D floor of 1 (very-low-CON edge);
   surface `DipValidity`'s failed-prereq reason instead of only excluding ineligible dips (spec's "identify the failed
   prerequisite" scenario is currently satisfied only by exclusion).
@@ -321,7 +346,7 @@ NOT excluded from `dnd_entities` — spanned 3 write paths — until final revie
 mislabeled real entities). Cross-path invariants must be traced across ALL paths at final review; inject
 INTERFACES not concrete types — both now in dev-flow SKILL.
 
-## Current position (2026-07-11)
+## Current position (2026-07-12)
 Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**; **companion reasoning +
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
 (Item B), combat/initiative tracker + dedicated play page (Item C).** **UI fully restyled — `visual-design-system`
@@ -330,13 +355,15 @@ SHIPPED (token-based "arcane console" dark theme across every surface; the app n
 (`combat-condition-durations`), slice 3 (`combat-tie-reorder`, tie reorder), slice 4 (`scratch-surface`,
 global non-campaign dice/encounter page).** Only active openspec change is the parked
 `prose-grounded-knowledge-model`. **COMPANION REASONING now has 2 surfaces: encounter-design + character
-level-up advice (character-coach slice 1, shipped 2026-07-11).** FULL suite **1227/1227**.
+level-up advice (character-coach slice 1, shipped 2026-07-11).** **HYBRID entity model RESOLVED + shipped
+2026-07-12 (`fivetools-field-fill`): extraction owns all entities, 5etools field-fill patches missing structured
+fields; `dnd_entities` now 2307 extraction-only entities, level-up grounds all 12 classes from extraction+fill.**
+FULL suite **1239/1239**.
 NEXT candidates (user's call):
 (1) **character-coach slices B (concept-to-build recommender) + C (build-critique)** on the shipped
     `Features/CharacterAdvice/` core — the natural continuation of the level-up slice;
 (1b) other companion REASONING: **encounter-design v2 swarms** ("N goblins"), setting-aware lore synthesis;
-(2) **level-up grounding coverage FOLLOW-UP** — enrich structured class entities OR rethink level-up toward
-    PROSE grounding (ties into candidate 3; the structured layer the level-up delta reads is thin corpus-wide);
+(2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6) — user DEFERRED this 2026-07-11
     ("leave moe for later"); a foundational lever under all when revisited.
