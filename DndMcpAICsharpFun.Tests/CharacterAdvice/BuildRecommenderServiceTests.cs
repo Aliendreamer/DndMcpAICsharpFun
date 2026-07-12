@@ -198,4 +198,52 @@ public sealed class BuildRecommenderServiceTests
         fake.LastQueryByType[EntityType.Spell].QueryText.Should().Be(concept);
         fake.LastQueryByType[EntityType.Feat].QueryText.Should().Be(concept);
     }
+
+
+    [Theory]
+    [InlineData(5, new[] { 1, 2, 3 })]
+    [InlineData(null, new[] { 1 })]
+    public async Task CasterClass_TargetLevelBoundsReachableSpellLevels(int? targetLevel, int[] expectedLevels)
+    {
+        const string concept = "a battlefield controller who locks down enemies";
+        var spellLevelsQueried = new HashSet<int>();
+        var fake = new FakeEntityRetrievalService
+        {
+            DiagnosticResponder = query => query.Type switch
+            {
+                EntityType.Class =>
+                [
+                    MakeClassResult(
+                        "Wizard", "Edition2014",
+                        """{"hd":{"number":1,"faces":6},"proficiency":["int","wis"],"subclassTitle":"Arcane Tradition","spellcastingAbility":"int"}""")
+                ],
+                EntityType.Subclass => [MakeSubclassResult("Evocation", "Wizard", "Edition2014")],
+                _ => []
+            },
+            SearchResponder = query =>
+            {
+                if (query.Type == EntityType.Spell && query.SpellLevel is { } level)
+                {
+                    spellLevelsQueried.Add(level);
+                    return [MakeSearchResult(EntityType.Spell, $"Spell{level}", "Edition2014")];
+                }
+                return query.Type switch
+                {
+                    EntityType.Feat => [MakeSearchResult(EntityType.Feat, "War Caster", "Edition2014")],
+                    _ => []
+                };
+            }
+        };
+        var options = new EntityOptionProvider(fake);
+        var sut = new BuildRecommenderService(fake, options);
+
+        var rec = await sut.RecommendBuildOptionsAsync("Wizard", concept, targetLevel, default);
+
+        rec.ClassInCorpus.Should().BeTrue();
+        spellLevelsQueried.Should().BeEquivalentTo(expectedLevels);
+        rec.Spells.Should().HaveCount(expectedLevels.Length);
+        rec.Spells.Select(s => s.Id).Should().OnlyHaveUniqueItems();
+        fake.LastQueryByType[EntityType.Spell].QueryText.Should().Be(concept);
+        fake.LastQueryByType[EntityType.Feat].QueryText.Should().Be(concept);
+    }
 }

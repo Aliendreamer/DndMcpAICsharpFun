@@ -8,9 +8,11 @@ namespace DndMcpAICsharpFun.Features.CharacterAdvice;
 
 /// <summary>
 /// Validates a class exists (edition-pinned) and assembles cited build-option menus (subclasses,
-/// feats, and — for casters only — level-1 spells) for a concept. Mirrors the class-lookup pattern
-/// in <see cref="LevelUpAdviceService"/>: exact name + edition match only, never a fuzzy first-hit
-/// (grounding contract — the service never invents options, only surfaces cited retrieval results).
+/// feats, and — for casters only — spells bounded by the reachable spell level derived from
+/// <c>targetLevel</c>, a full-caster approximation clamped to 1st level when no target is given)
+/// for a concept. Mirrors the class-lookup pattern in <see cref="LevelUpAdviceService"/>: exact
+/// name + edition match only, never a fuzzy first-hit (grounding contract — the service never
+/// invents options, only surfaces cited retrieval results).
 /// </summary>
 public sealed class BuildRecommenderService(IEntityRetrievalService retrieval, EntityOptionProvider options)
 {
@@ -79,9 +81,17 @@ public sealed class BuildRecommenderService(IEntityRetrievalService retrieval, E
 
         var subclasses = await options.SubclassOptions(className, BuildEdition, ct);
         var feats = await options.FeatOptions(BuildEdition, ct, concept);
-        var spells = spellAbility is null
-            ? (IReadOnlyList<CitedOption>)[]
-            : await options.SpellOptions(className, spellLevel: 1, BuildEdition, ct, concept);
+
+        IReadOnlyList<CitedOption> spells = [];
+        if (spellAbility is not null)
+        {
+            // Full-caster approximation, clamped 1..9: a null targetLevel means a starting build.
+            var maxSpellLevel = targetLevel is int lvl ? Math.Clamp((lvl + 1) / 2, 1, 9) : 1;
+            var collected = new List<CitedOption>();
+            for (var level = 1; level <= maxSpellLevel; level++)
+                collected.AddRange(await options.SpellOptions(className, level, BuildEdition, ct, concept));
+            spells = collected.DistinctBy(o => o.Id).Take(25).ToList();
+        }
 
         return new BuildRecommendation(
             true, classEntity.Name, hitDie, spellAbility, saves, subclassTitle,
