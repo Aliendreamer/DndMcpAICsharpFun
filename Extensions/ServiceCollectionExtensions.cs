@@ -255,6 +255,14 @@ internal static class ServiceCollectionExtensions
                 { new MonsterBackfillProvider(), new SpellBackfillProvider(), new MagicItemBackfillProvider(), new GodBackfillProvider() };
             return providers.ToDictionary(p => p.Type, p => new EntityBackfillService(p, registry, loader, canonicalDir, fivetoolsDir));
         });
+        services.AddSingleton(sp =>
+        {
+            var loader = sp.GetRequiredService<CanonicalJsonLoader>();
+            var writer = sp.GetRequiredService<CanonicalJsonWriter>();
+            var canonicalDir = sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value.CanonicalDirectory;
+            var fivetoolsDir = configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools";
+            return new EntityFieldFillService(loader, writer, canonicalDir, fivetoolsDir);
+        });
         services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
         services.AddSingleton<DndMcpAICsharpFun.Features.Admin.CanonicalValidationService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalTypeFixerService>();
