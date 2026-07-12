@@ -9,6 +9,7 @@ internal static class CharacterAdviceServiceCollectionExtensions
         services.AddScoped<LevelUpPlanner>();
         services.AddScoped<EntityOptionProvider>();
         services.AddScoped<LevelUpAdviceService>();
+        services.AddScoped<BuildRecommenderService>();
         return services;
     }
 }
