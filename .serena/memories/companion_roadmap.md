@@ -241,9 +241,17 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
 ## COMPANION REASONING — QUEUED surfaces (user-requested 2026-07-13, on the fresh-brainstorm menu)
 Explicitly queued next surfaces (each its own brainstorm→propose→plan→SDD slice, reusing the retrieve→
 cited→persona-synthesize pattern):
-- **NPC / statblock generation** — generate an NPC for a scene GROUNDED by anchoring to a REAL corpus stat
-  block (reskin a Guard/Spy/Noble/Commoner from MM) + setting-flavored name/personality; never invent numbers.
-  Reuses entity search + (optionally) setting-aware lore. Grounding trick = pick-real-block-and-reskin.
+- **NPC / statblock generation** — 🔄 IN PROGRESS 2026-07-13 (user picked next; chose OPTION 1). Generate an NPC
+  GROUNDED by anchoring to a REAL corpus stat block. FEASIBILITY CONFIRMED: the MM NPC roster exists as Monster
+  entities (Guard/Spy/Noble/Commoner/Bandit/Cultist/Priest/Mage/Veteran/Thug/Acolyte/Bandit Captain/Knight/Scout/
+  Assassin, all real stats). NOTE: `dnd_entities.sourceBook` = 5etools KEY ("MM"/"PHB"), UNLIKE `dnd_blocks` display
+  names. **DESIGN (chosen):** mirrors `recommend_build` — `generate_npc(concept, archetype, maxCr?)` (NOT
+  ownership-gated): the LLM picks the stat-block archetype fitting the concept; the service VALIDATES it exists as a
+  Monster entity + returns its REAL stat block (numbers cited); not-found → available NPC archetypes → LLM re-picks;
+  the PERSONA composes the reskin (name/personality/appearance/hook) around the grounded stats — mechanical numbers
+  REAL, only flavor invented. Standalone, SINGLE NPC per call. DEFERRED (v2): setting-aware (draw names/hooks from
+  the campaign's setting lore via `ask_setting_lore`); tool-assembles-full-structured-NPC; party/group of NPCs;
+  these feed the session-prep composition surface.
 - **Session prep** — COMPOSE the already-shipped surfaces: an encounter (`build_encounter`) + a themed NPC +
   setting lore hooks (`ask_setting_lore`) into one grounded prep packet for a campaign. Highest DM value,
   broadest scope (orchestration layer); best once NPC-gen exists.
