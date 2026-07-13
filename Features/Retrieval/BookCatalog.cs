@@ -23,4 +23,9 @@ public static class BookCatalog
         All.ToDictionary(b => b.DisplayName, b => b.Key, StringComparer.Ordinal);
     public static IReadOnlyDictionary<string,string> KeyToDisplayName { get; } =
         All.ToDictionary(b => b.Key, b => b.DisplayName, StringComparer.Ordinal);
+
+    /// <summary>Maps stable source keys to their display names for citation/presentation. An unknown
+    /// key passes through unchanged (defensive — a scoped key should always be a catalog member).</summary>
+    public static IReadOnlyList<string> ToDisplayNames(IEnumerable<string> keys) =>
+        keys.Select(k => KeyToDisplayName.TryGetValue(k, out var name) ? name : k).ToList();
 }

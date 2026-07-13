@@ -31,6 +31,6 @@ public sealed class SettingLoreService(CampaignRepository campaigns, IRagRetriev
             r.Metadata.SectionTitle ?? r.Metadata.Chapter,
             r.Score)).ToList();
 
-        return new SettingLoreResult(campaign.Setting, books.ToList(), passages);
+        return new SettingLoreResult(campaign.Setting, DndMcpAICsharpFun.Features.Retrieval.BookCatalog.ToDisplayNames(books), passages);
     }
 }

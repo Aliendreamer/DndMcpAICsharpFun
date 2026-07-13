@@ -18,6 +18,6 @@ public sealed class DowntimeService(IRagRetrievalService rag)
         var results = await rag.SearchAsync(query, ct);
         var passages = results.Select(r => new CitedPassage(
             r.Text, r.Metadata.SourceBook, r.Metadata.SectionTitle ?? r.Metadata.Chapter, r.Score)).ToList();
-        return new DowntimePlanResult(passages, DowntimeSources.Keys);
+        return new DowntimePlanResult(passages, DndMcpAICsharpFun.Features.Retrieval.BookCatalog.ToDisplayNames(DowntimeSources.Keys));
     }
 }

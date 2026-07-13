@@ -18,7 +18,7 @@ public sealed class RulesAdjudicationService(IRagRetrievalService rag)
         if (ruleTopics is not { Count: > 0 })
         {
             var single = await RetrieveAsync(question, edition, RuleSources.TopK, ct);
-            return new RulesRulingResult(single, RuleSources.Keys, []);
+            return new RulesRulingResult(single, DndMcpAICsharpFun.Features.Retrieval.BookCatalog.ToDisplayNames(RuleSources.Keys), []);
         }
 
         // Multi-hop: ground each named rule with its own scoped retrieval.
@@ -37,7 +37,7 @@ public sealed class RulesAdjudicationService(IRagRetrievalService rag)
             .Select(grp => grp.OrderByDescending(p => p.Score).First())
             .ToList();
 
-        return new RulesRulingResult(merged, RuleSources.Keys, topicGroups);
+        return new RulesRulingResult(merged, DndMcpAICsharpFun.Features.Retrieval.BookCatalog.ToDisplayNames(RuleSources.Keys), topicGroups);
     }
 
     private async Task<IReadOnlyList<CitedPassage>> RetrieveAsync(
