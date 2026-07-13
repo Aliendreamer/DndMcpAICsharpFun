@@ -218,6 +218,20 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   prone?" → grounded ruling NAMING Prone + Grappling, CITED to PHB (Appendix A Conditions, "Making an Attack"),
   flagging "the rules do not explicitly prohibit" (RAW). NO UI/http/mcp/migration. First shipped surface of the
   "fresh companion-reasoning brainstorm" menu (NPC gen / session prep / rules / downtime — user picked rules).
+  **✅ V2 MULTI-HOP SHIPPED (archived `2026-07-13-rules-adjudication-multihop`; commits `2fe6b5a`/`a11f955`/
+  `f6f2de5`, base 06ec307; build 0/0, FULL suite **1289/1289**; final opus review READY TO MERGE, no findings;
+  LIVE SMOKE PASSED — demonstrably deeper).** `ask_rules(question, ruleTopics?, edition?)` gained optional
+  multi-hop: the chat LLM names the distinct rules and passes `ruleTopics`; the service runs ONE scoped
+  retrieval PER topic at `RuleSources.TopicTopK=5` → per-topic `RuleTopicPassages` groups + a deduped flat
+  `Passages` union (dedup by (Text,SourceBook,Section) max Score; groups retain each passage). Additive result
+  shape (`RulesRulingResult.Topics`); single-shot (no topics) = byte-equivalent v1. No new LLM call (the chat
+  LLM decomposes). Real-Qdrant multi-hop non-vacuity test (grappling+prone blocks + off-scope MM, identical
+  vectors → only the SourceBooks filter excludes MM). Live smoke: "prone then grappled → stand up?" → the LLM
+  decomposed into Prone Condition + Grappled Condition + action economy + Mobile feat, each PHB-cited (p.201,
+  p.164), GROUNDING the Grappled-condition movement rule that v1 single-shot missed. **Multi-CATEGORY scoping
+  REJECTED** by live probe: `category=Rule` returns Monster Manual "Swallow" abilities (noisy tagging); only
+  Combat/Condition are clean and each rule maps to a different category, so category-filtering would risk
+  DROPPING a rule — multi-hop over the reliable source-book scope is the robust win.
   **REGRESSION LESSON:** the setting-aware DATA-INVARIANT catalog fix (`1c6904a`) had broken 2 SettingLore
   tests asserting old `ERLW`/`PHB` values — missed because the finish-step ran only the `SettingCatalogTests`
   filter, not the full suite; caught by this feature's Task-2 full run, fixed `29624cb`. New dev-flow red flag:
@@ -236,9 +250,10 @@ cited→persona-synthesize pattern):
 - **Downtime / crafting** — plan downtime activities grounded in the rules. FEASIBILITY: the rich downtime/
   crafting rules live in **XGE (Xanathar's), which is NOT ingested** — only DMG basic downtime is in the corpus;
   needs an XGE Phase-1 ingest first (register + ingest-blocks, like ERLW) to be more than thin.
-- **Rules-adjudication v2** — multi-hop rule decomposition and/or multi-CATEGORY filter (`{Rule,Combat,
-  Condition,Adventuring}`) for finer precision than the v1 source-book scoping. **(IN PROGRESS 2026-07-13 —
-  user picked this next.)**
+- **Rules-adjudication v2** — ✅ SHIPPED 2026-07-13 (`2026-07-13-rules-adjudication-multihop`): multi-hop
+  per-topic grounding via `ruleTopics`. Multi-CATEGORY filter REJECTED (category tagging noisy — `category=Rule`
+  returns monster prose). See the rules-adjudication entry above. Remaining queued surfaces: NPC-gen,
+  session-prep, downtime/crafting (XGE ingest first).
 
 ## COMPANION UX / TABLE-PLAY — all SHIPPED (user-requested 2026-07-09/10)
 - **Item A — Dice roller** ✅ DONE (archived `dice-roller`, 2026-07-09; commits `4c25566..623b9a7`; full
@@ -489,8 +504,10 @@ flat-list-with-repeats representation, grouped display; final opus review READY 
 LIVE SMOKE PASSED (Dragonmarked Houses answered + ERLW-cited) — the FIRST live-passing chat-driven tool smoke.**
 **RULES ADJUDICATION (`ask_rules`) shipped + archived 2026-07-13 (`2026-07-13-rules-adjudication`): grounded
 CITED rulings scoped to the core rulebooks, ownership-free; LIVE SMOKE PASSED (grapple-while-prone → ruling
-naming Prone+Grappling, PHB-cited, RAW-flagged).**
-FULL suite **1285/1285**.
+naming Prone+Grappling, PHB-cited, RAW-flagged). + V2 MULTI-HOP shipped (`2026-07-13-rules-adjudication-multihop`):
+`ruleTopics` per-rule grounding; live smoke deeper (prone+grappled+action-economy+Mobile, each PHB-cited);
+multi-category REJECTED (noisy tagging).**
+FULL suite **1289/1289**.
 NEXT candidates (user's call):
 (1) companion REASONING frontier (character-coach + **encounter-design v2 swarms** + **setting-aware lore** +
     **rules adjudication** ALL DONE): the remaining fresh-brainstorm surfaces — **NPC/statblock generation**
