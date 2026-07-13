@@ -172,6 +172,11 @@ internal static class ServiceCollectionExtensions
             sp.GetRequiredService<ILogger<CrossEncoderReranker>>()));
         services.AddSingleton<IReranker>(static sp => sp.GetRequiredService<CrossEncoderReranker>());
 
+        // Registered after AddIngestionPipeline's QdrantCollectionInitializer (Program.cs and
+        // FullContainerScopeValidationTests both call AddIngestionPipeline() before AddRetrieval())
+        // so hosted-service start order guarantees the collection exists before this guard queries it.
+        services.AddHostedService<DndMcpAICsharpFun.Features.Retrieval.ScopeHealthCheck>();
+
         return services;
     }
 

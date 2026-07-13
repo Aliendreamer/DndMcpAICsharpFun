@@ -19,6 +19,12 @@ public static class SettingCatalog
 
     public static IReadOnlyList<string> KnownSettings => SettingBooks.Keys.ToList();
 
+    /// <summary>Every key the setting-lore scope can ever resolve to: Core ∪ all per-setting book
+    /// keys. Used by startup health checks to enumerate every setting-scoped key, independent of
+    /// which setting a given campaign picks.</summary>
+    public static IReadOnlySet<string> AllScopeKeys { get; } =
+        new HashSet<string>(Core.Concat(SettingBooks.Values.SelectMany(v => v)), StringComparer.OrdinalIgnoreCase);
+
     public static IReadOnlySet<string> Resolve(string? setting)
     {
         if (string.IsNullOrWhiteSpace(setting) || !SettingBooks.TryGetValue(setting, out var books))
