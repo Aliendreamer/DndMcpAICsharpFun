@@ -64,7 +64,8 @@ public sealed class SessionPrepServiceTests(PostgresFixture pg) : IAsyncLifetime
         packet.Theme.Should().Be("Sharn intrigue");
         packet.Encounter.Should().NotBeNull();
         packet.Encounter.Assessment.Monsters.Should().NotBeEmpty();     // built from the pool
-        packet.Npc.Should().NotBeNull();                                // GeneratedNpc (archetype not in the substitute → not-in-corpus, still present)
+        packet.Npc.Archetype.Should().Be("Spy");                        // GeneratedNpc reflects the requested archetype
+        packet.Npc.Concept.Should().Be("Sharn intrigue");               // and the theme passed through as its concept
         packet.LoreHooks.Should().NotBeNull();
         // lore question derived from the theme
         await rag.Received().SearchAsync(

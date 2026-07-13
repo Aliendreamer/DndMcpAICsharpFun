@@ -23,7 +23,8 @@ public sealed class DndChatService(
     BuildCritiqueService critiqueService,
     DndMcpAICsharpFun.Features.Lore.SettingLoreService settingLoreService,
     DndMcpAICsharpFun.Features.Rules.RulesAdjudicationService rulesAdjudicationService,
-    DndMcpAICsharpFun.Features.Npc.NpcGenerationService npcGenerationService)
+    DndMcpAICsharpFun.Features.Npc.NpcGenerationService npcGenerationService,
+    DndMcpAICsharpFun.Features.SessionPrep.SessionPrepService sessionPrepService)
 {
     public List<ChatMessage> History { get; } = [];
 
@@ -210,6 +211,21 @@ public sealed class DndChatService(
                     "result says the archetype is not in the corpus (archetypeInCorpus false), pick a different " +
                     "one from availableArchetypes and call again. Optional maxCr caps the archetype's power. " +
                     "Not tied to any campaign or character."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (long campaignId, string theme, string? difficulty, string npcArchetype, CancellationToken toolCt) =>
+                    sessionPrepService.PrepForUserAsync(
+                        userId, campaignId, theme, ParseDifficulty(difficulty), npcArchetype,
+                        DndVersion.Edition2014, toolCt),
+                name: "prep_session",
+                description: "Prep a game session for the signed-in user's OWN campaign (campaignId). Pass a " +
+                    "theme (e.g. 'Sharn intrigue'), an optional difficulty (Trivial/Easy/Medium/Hard/Deadly), " +
+                    "and the NPC stat-block archetype you pick to fit the theme (e.g. Spy, Guard, Cult Fanatic). " +
+                    "Returns a cohesive packet: an encounter built for the campaign's party, a grounded NPC, and " +
+                    "setting lore hooks scoped to the campaign's world. Compose a session outline STRICTLY from " +
+                    "the returned pieces — cite the encounter's monsters, the NPC's real stat block, and the " +
+                    "lore hooks; if the NPC archetype isn't in the corpus (npc.archetypeInCorpus false), re-pick " +
+                    "from npc.availableArchetypes. Never invent stat numbers or world lore."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));
