@@ -303,9 +303,11 @@ cited→persona-synthesize pattern):
   `DowntimeService` scopes retrieval to `{XGE, DMG}` (Xanathar's detailed downtime + DMG basics) via the shipped
   SourceBooks OR filter at higher topK, returns cited passages, persona composes a grounded plan (activity/time/cost/
   outcome) citing the rule; honest-empty if uncovered. Covers ALL downtime activities (crafting, training, carousing,
-  business, scribing scrolls, research…). **PARKED v2 (user):** a DETERMINISTIC crafting CALCULATOR (mundane:
-  materials=½ market value, progress=5×PB gp/day; magic items: XGE rarity→workweeks+cost table) — an EncounterMath-style
-  precise crafting math, added only if the persona's from-the-rule math proves unreliable. DATA INVARIANT: XGE
+  business, scribing scrolls, research…). **✅ V2 CRAFTING CALCULATOR — SHIPPED 2026-07-13** (archived `2026-07-13-crafting-calculator`): the DETERMINISTIC
+  EncounterMath-style crafting math (the downtime smoke's fabricated "30 days/1200gp" proved the case). `Features/Crafting/CraftingMath`:
+  `CraftNonmagical(marketValue)` = materials value/2, workweeks value/50, days ×5, ÷crafters (plate 1500gp→750gp/30wk/150d);
+  `CraftMagicItem(Rarity)` = XGE table Common 1wk/50gp · Uncommon 2/200 · Rare 10/2000 · VeryRare 25/20000 · Legendary 50/100000.
+  Ownership-free `calculate_crafting(marketValue?,rarity?,crafters?)` chat tool. Live smoke PASSED both branches end-to-end. DATA INVARIANT: XGE
   source_book value (displayName "Xanathar's Guide to Everything") to verify post-ingest before finalizing the scope.
 - **Rules-adjudication v2** — ✅ SHIPPED 2026-07-13 (`2026-07-13-rules-adjudication-multihop`): multi-hop
   per-topic grounding via `ruleTopics`. Multi-CATEGORY filter REJECTED (category tagging noisy — `category=Rule`
@@ -572,15 +574,17 @@ composes encounter + NPC + setting-lore into one grounded packet; live smoke fou
 (f04af71); chat-driven invocation deferred (qwen3 4-param tool-call flaky).**
 **DOWNTIME/CRAFTING (`plan_downtime`) shipped + archived 2026-07-13 (`2026-07-13-downtime-advisor`): XGE ingested
 (2138 blocks); grounded downtime advisor scoped to XGE+DMG; live smoke passed (crafting plan cited to XGE p.84);
-deterministic calculator PARKED v2.**
-FULL suite **1304/1304**.
+deterministic calculator ✅ SHIPPED (`2026-07-13-crafting-calculator`).**
+**CRAFTING CALCULATOR (`calculate_crafting`) shipped + archived 2026-07-13: deterministic CraftingMath (nonmagical value/2 materials + value/50 workweeks; magic-item XGE rarity table). The live smoke exposed + FIXED two chat-quality bugs: (a) MEAI BINDING — optional tool params need a C# `= null` default, else AIFunctionFactory marks them `required` and the LLM omitting a key throws "missing required parameter" → the model narrates a vague "function error" and FABRICATES the math; the passing unit tests masked it by passing every key as explicit null, so added regression tests that OMIT keys (dev-flow SKILL.md). (b) PERSONA ROUTING — qwen3 defaulted to retrieval + fabricated math until companion.md was tuned to REQUIRE the calculator tools for numeric questions + harden prose-over-lists. Also swapped the native confirm() clear-chat popup for an inline styled confirm. qwen3 STILL mildly mis-narrates the numbers in prose (calls 750 the "market value") — a model-adherence wobble that STRENGTHENS the case for the deferred local MoE upgrade.**
+FULL suite **1323/1323** (crafting-calculator).
 NEXT candidates (user's call):
 (1) companion REASONING frontier — the full atomic-surfaces + CAPSTONE set is now BUILT (character-coach + encounter
-    swarms + setting-aware lore + rules-adjudication (+v2) + NPC generation + **session prep** ALL DONE): remaining
-    QUEUED — **downtime/crafting** (needs an XGE ingest first, like ERLW); OR NPC-gen v2 (setting-aware names/hooks,
-    party of NPCs); OR session-prep v2 (party of NPCs, multiple encounters); OR grow the setting catalog (ingest more
-    setting books); OR the deferred local MoE upgrade (Item 5/6) — a foundational lever, esp. given qwen3's tool-call
-    flakiness on multi-param tools that session-prep surfaced;
+    swarms + setting-aware lore + rules-adjudication (+v2) + NPC generation + **session prep** ALL DONE): **downtime/crafting DONE** (`plan_downtime` + deterministic `calculate_crafting`, both archived 2026-07-13). Remaining
+    QUEUED — **the deferred local MoE upgrade (Item 5/6) is now the STRONGEST-argued next lever**: qwen3:8b's weaknesses have
+    compounded across surfaces — 4-param tool-call binding flakiness (session-prep), retrieval-over-calculator misrouting +
+    fabricated math + prose-rule disobedience (crafting-calculator, only partly fixable by persona) — a better local model
+    fixes tool-selection, arg-binding, and instruction-adherence at the source. OR NPC-gen v2 (setting-aware names/hooks,
+    party of NPCs); OR session-prep v2 (party of NPCs, multiple encounters); OR grow the setting catalog (ingest more setting books);
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6) — user DEFERRED this 2026-07-11
