@@ -91,7 +91,8 @@ public sealed partial class BlockIngestionOrchestrator(
                         PageNumber: block.PageNumber,
                         BlockOrder: block.Order,
                         GlobalIndex: globalIndex++,
-                        BookType: record.BookType);
+                        BookType: record.BookType,
+                        SourceKey: record.FivetoolsSourceKey);
                     chunks.Add(new BlockChunk(splitText, meta));
                 }
             }

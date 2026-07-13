@@ -17,4 +17,5 @@ public static class QdrantPayloadFields
     public const string BlockOrder = "block_order";
     public const string BookType = "book_type";
     public const string FileHash = "file_hash";
+    public const string SourceKey = "source_key";
 }

@@ -84,6 +84,8 @@ public sealed partial class QdrantVectorStoreService(
         point.Payload[QdrantPayloadFields.ChunkIndex] = (long)meta.GlobalIndex;
         point.Payload[QdrantPayloadFields.BookType] = meta.BookType.ToString();
         point.Payload[QdrantPayloadFields.FileHash] = fileHash;
+        if (meta.SourceKey is not null)
+            point.Payload[QdrantPayloadFields.SourceKey] = meta.SourceKey;
         return point;
     }
 

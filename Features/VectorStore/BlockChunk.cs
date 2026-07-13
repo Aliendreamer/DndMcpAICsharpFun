@@ -14,4 +14,5 @@ public sealed record BlockMetadata(
     int PageNumber,
     int BlockOrder,
     int GlobalIndex,
-    BookType BookType = BookType.Unknown);
+    BookType BookType = BookType.Unknown,
+    string? SourceKey = null);
