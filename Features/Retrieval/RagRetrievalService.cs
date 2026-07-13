@@ -109,14 +109,14 @@ public sealed class RagRetrievalService(
         if (!string.IsNullOrWhiteSpace(query.SourceBook))
             conditions.Add(KeywordCondition(QdrantPayloadFields.SourceBook, query.SourceBook));
 
-        if (query.SourceBooks is { Count: > 0 })
+        if (query.SourceKeys is { Count: > 0 })
         {
             // A setting maps to several books — match ANY of them (OR) as a single Must condition,
             // so the set composes with the other filters via AND.
             var anyBook = new Filter();
-            foreach (var book in query.SourceBooks)
+            foreach (var key in query.SourceKeys)
             {
-                anyBook.Should.Add(KeywordCondition(QdrantPayloadFields.SourceBook, book));
+                anyBook.Should.Add(KeywordCondition(QdrantPayloadFields.SourceKey, key));
             }
 
             conditions.Add(new Condition { Filter = anyBook });

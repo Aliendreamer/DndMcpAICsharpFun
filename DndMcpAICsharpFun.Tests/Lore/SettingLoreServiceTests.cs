@@ -44,8 +44,8 @@ public sealed class SettingLoreServiceTests(PostgresFixture pg) : IAsyncLifetime
         await svc.AskForUserAsync(1, id, "Dragonmarked Houses", version: null, CancellationToken.None);
 
         await rag.Received().SearchAsync(
-            Arg.Is<RetrievalQuery>(q => q.SourceBooks != null
-                && q.SourceBooks.Contains("Eberron: Rising from the Last War") && q.SourceBooks.Contains("PlayerHandbook 2014")),
+            Arg.Is<RetrievalQuery>(q => q.SourceKeys != null
+                && q.SourceKeys.Contains("ERLW") && q.SourceKeys.Contains("PHB")),
             Arg.Any<CancellationToken>());
     }
 
@@ -61,7 +61,7 @@ public sealed class SettingLoreServiceTests(PostgresFixture pg) : IAsyncLifetime
         await svc.AskForUserAsync(1, id, "fireball", version: null, CancellationToken.None);
 
         await rag.Received().SearchAsync(
-            Arg.Is<RetrievalQuery>(q => q.SourceBooks == null || q.SourceBooks.Count == 0),
+            Arg.Is<RetrievalQuery>(q => q.SourceKeys == null || q.SourceKeys.Count == 0),
             Arg.Any<CancellationToken>());
     }
 

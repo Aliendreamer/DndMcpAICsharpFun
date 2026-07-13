@@ -21,7 +21,7 @@ public sealed class SettingLoreService(CampaignRepository campaigns, IRagRetriev
         var books = SettingCatalog.Resolve(campaign.Setting);
         var query = new RetrievalQuery(
             question, Version: version,
-            SourceBooks: books.Count > 0 ? books.ToArray() : null);
+            SourceKeys: books.Count > 0 ? books.ToArray() : null);
 
         var results = await rag.SearchAsync(query, ct);
 

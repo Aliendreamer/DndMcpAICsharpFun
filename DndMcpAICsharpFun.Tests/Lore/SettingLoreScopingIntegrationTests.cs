@@ -18,15 +18,18 @@ namespace DndMcpAICsharpFun.Tests.Lore;
 
 /// <summary>
 /// Integration test proving the setting-scoping OR-filter (<c>SettingCatalog.Resolve</c> ->
-/// <c>RetrievalQuery.SourceBooks</c> -> <c>RagRetrievalService</c>'s <c>anyBook</c> filter) is REAL
+/// <c>RetrievalQuery.SourceKeys</c> -> <c>RagRetrievalService</c>'s <c>anyBook</c> filter) is REAL
 /// against a genuine Qdrant <c>dnd_blocks</c> collection (Testcontainers) — not merely that a
 /// <see cref="Filter"/> object is constructed correctly (that is already covered by the fake-based
 /// <see cref="SettingLoreServiceTests"/>). Both seeded blocks are given the IDENTICAL embedding
-/// vector, so vector similarity alone would rank them equally and return both; only the SourceBooks
-/// scoping filter can exclude the off-setting (VGM) block. This is the discrimination gate for the
-/// whole scoping mechanism: if the filter were ever accidentally dropped, this test would go red by
-/// picking up the VGM passage. Docker is required for both the Qdrant and Postgres
-/// (<see cref="CampaignRepository"/> ownership check) Testcontainers.
+/// vector, so vector similarity alone would rank them equally and return both; only the SourceKeys
+/// scoping filter (matched against the stable <c>source_key</c> payload, not the display-name
+/// <c>source_book</c> payload) can exclude the off-setting (VGM) block. This is the discrimination
+/// gate for the whole scoping mechanism: if the filter were ever accidentally reverted to match on
+/// <c>source_book</c> instead of <c>source_key</c>, this test would go red by picking up the VGM
+/// passage (seeded blocks carry a real <c>source_book</c> display name but scoping must ignore it).
+/// Docker is required for both the Qdrant and Postgres (<see cref="CampaignRepository"/> ownership
+/// check) Testcontainers.
 /// </summary>
 public sealed class SettingLoreScopingIntegrationTests :
     IClassFixture<QdrantFixture>, IClassFixture<PostgresFixture>, IAsyncLifetime
@@ -55,7 +58,7 @@ public sealed class SettingLoreScopingIntegrationTests :
         await _client.CreateCollectionAsync(
             _collectionName,
             new VectorParams { Size = VectorSize, Distance = Distance.Cosine });
-        await _client.CreatePayloadIndexAsync(_collectionName, QdrantPayloadFields.SourceBook, PayloadSchemaType.Keyword);
+        await _client.CreatePayloadIndexAsync(_collectionName, QdrantPayloadFields.SourceKey, PayloadSchemaType.Keyword);
     }
 
     public async Task DisposeAsync()
@@ -64,14 +67,17 @@ public sealed class SettingLoreScopingIntegrationTests :
         _client.Dispose();
     }
 
-    private async Task SeedBlockAsync(string text, string sourceBook)
+    private async Task SeedBlockAsync(string text, string sourceKey)
     {
         // Every seeded block shares SharedVector, so the ONLY thing that can distinguish them at
-        // query time is the SourceBooks scoping filter — proving the filter, not vector ranking,
-        // is what keeps the off-setting block out.
+        // query time is the SourceKeys scoping filter — proving the filter, not vector ranking,
+        // is what keeps the off-setting block out. source_book is also populated (a real display
+        // name where one exists) to prove scoping does NOT accidentally key off it.
+        var displayName = BookCatalog.KeyToDisplayName.GetValueOrDefault(sourceKey, sourceKey);
         var point = new PointStruct { Id = Guid.NewGuid(), Vectors = SharedVector };
         point.Payload[QdrantPayloadFields.Text] = text;
-        point.Payload[QdrantPayloadFields.SourceBook] = sourceBook;
+        point.Payload[QdrantPayloadFields.SourceBook] = displayName;
+        point.Payload[QdrantPayloadFields.SourceKey] = sourceKey;
         point.Payload[QdrantPayloadFields.Version] = DndVersion.Edition2014.ToString();
         point.Payload[QdrantPayloadFields.Category] = ContentCategory.Lore.ToString();
         point.Payload[QdrantPayloadFields.Chapter] = "Chapter 1";
@@ -84,7 +90,7 @@ public sealed class SettingLoreScopingIntegrationTests :
     [Fact]
     public async Task Scoping_returns_in_setting_blocks_and_excludes_off_setting_blocks()
     {
-        await SeedBlockAsync("The Dragonmarked Houses rule commerce.", "Eberron: Rising from the Last War");   // in-setting: Eberron -> ERLW
+        await SeedBlockAsync("The Dragonmarked Houses rule commerce.", "ERLW");   // in-setting: Eberron -> ERLW
         await SeedBlockAsync("Volo describes the beholder.", "VGM");              // off-setting: must be excluded
 
         var campaigns = new CampaignRepository(new TestDb(_pgFixture));

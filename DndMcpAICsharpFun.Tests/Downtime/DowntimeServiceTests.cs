@@ -37,9 +37,9 @@ public sealed class DowntimeServiceTests
         await svc.PlanAsync("craft plate armor", edition: null, CancellationToken.None);
 
         await rag.Received().SearchAsync(
-            Arg.Is<RetrievalQuery>(q => q.SourceBooks != null
-                && q.SourceBooks.Contains("Xanathar's Guide to Everything")
-                && q.SourceBooks.Contains("Dungeon Master's Guide 2014")
+            Arg.Is<RetrievalQuery>(q => q.SourceKeys != null
+                && q.SourceKeys.Contains("XGE")
+                && q.SourceKeys.Contains("DMG")
                 && q.TopK == DowntimeSources.TopK),
             Arg.Any<CancellationToken>());
     }

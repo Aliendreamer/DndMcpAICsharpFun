@@ -8,7 +8,7 @@ using Qdrant.Client.Grpc;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;
 
-public sealed class RagRetrievalServiceSourceBooksFilterTests
+public sealed class RagRetrievalServiceSourceKeysFilterTests
 {
     private readonly IQdrantSearchClient _qdrant = Substitute.For<IQdrantSearchClient>();
     private readonly IEmbeddingService _embedding = Substitute.For<IEmbeddingService>();
@@ -32,7 +32,7 @@ public sealed class RagRetrievalServiceSourceBooksFilterTests
             .Returns(Task.FromResult<IList<float[]>>([new float[] { 0.1f, 0.2f }]));
 
     [Fact]
-    public async Task SourceBooks_set_builds_an_or_condition_over_the_books()
+    public async Task SourceKeys_set_builds_an_or_condition_over_the_source_key_field()
     {
         SetupEmbed();
         Filter? captured = null;
@@ -43,17 +43,20 @@ public sealed class RagRetrievalServiceSourceBooksFilterTests
             .Returns(Task.FromResult<IReadOnlyList<ScoredPoint>>([]));
         var sut = BuildSut();
 
-        await sut.SearchAsync(new RetrievalQuery("who rules Sharn", SourceBooks: new[] { "ERLW", "PHB" }));
+        await sut.SearchAsync(new RetrievalQuery("who rules Sharn", SourceKeys: new[] { "ERLW", "PHB" }));
 
         captured.Should().NotBeNull();
         var orCondition = captured!.Must.Single(c => c.Filter is not null);
+        // Discriminator: the OR conditions must target the stable source_key payload field, not
+        // source_book — this is what proves scoping switched from display-name to key filtering.
+        orCondition.Filter.Should.Should().OnlyContain(s => s.Field.Key == QdrantPayloadFields.SourceKey);
         var shouldKeywords = orCondition.Filter.Should
             .Select(s => s.Field.Match.Keyword).ToList();
         shouldKeywords.Should().BeEquivalentTo(new[] { "ERLW", "PHB" });
     }
 
     [Fact]
-    public async Task Empty_source_books_adds_no_source_book_restriction()
+    public async Task Empty_source_keys_adds_no_source_key_restriction()
     {
         SetupEmbed();
         Filter? captured = null;
@@ -64,7 +67,7 @@ public sealed class RagRetrievalServiceSourceBooksFilterTests
             .Returns(Task.FromResult<IReadOnlyList<ScoredPoint>>([]));
         var sut = BuildSut();
 
-        await sut.SearchAsync(new RetrievalQuery("q", SourceBooks: Array.Empty<string>()));
+        await sut.SearchAsync(new RetrievalQuery("q", SourceKeys: Array.Empty<string>()));
 
         (captured?.Must.Any(c => c.Filter is not null) ?? false).Should().BeFalse();
     }

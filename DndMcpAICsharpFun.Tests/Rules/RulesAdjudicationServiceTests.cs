@@ -38,9 +38,9 @@ public sealed class RulesAdjudicationServiceTests
 
         await rag.Received().SearchAsync(
             Arg.Is<RetrievalQuery>(q =>
-                q.SourceBooks != null
-                && q.SourceBooks.Contains("PlayerHandbook 2014")
-                && q.SourceBooks.Contains("Dungeon Master's Guide 2014")
+                q.SourceKeys != null
+                && q.SourceKeys.Contains("PHB")
+                && q.SourceKeys.Contains("DMG")
                 && q.TopK == RuleSources.TopK),
             Arg.Any<CancellationToken>());
     }
@@ -88,7 +88,7 @@ public sealed class RulesAdjudicationServiceTests
         // exactly one retrieval per topic, each scoped to the rulebooks at TopicTopK
         await rag.Received(1).SearchAsync(
             Arg.Is<RetrievalQuery>(q => q.QueryText == "grappling"
-                && q.SourceBooks!.Contains("PlayerHandbook 2014") && q.TopK == RuleSources.TopicTopK),
+                && q.SourceKeys!.Contains("PHB") && q.TopK == RuleSources.TopicTopK),
             Arg.Any<CancellationToken>());
         await rag.Received(1).SearchAsync(
             Arg.Is<RetrievalQuery>(q => q.QueryText == "prone condition" && q.TopK == RuleSources.TopicTopK),
