@@ -366,6 +366,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().NotContain("ask_setting_lore");
         toolNames.Should().NotContain("ask_rules");
         toolNames.Should().NotContain("plan_downtime");
+        toolNames.Should().NotContain("calculate_crafting");
         toolNames.Should().NotContain("generate_npc");
         toolNames.Should().NotContain("prep_session");
     }
@@ -386,6 +387,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().Contain("ask_setting_lore");
         toolNames.Should().Contain("ask_rules");
         toolNames.Should().Contain("plan_downtime");
+        toolNames.Should().Contain("calculate_crafting");
         toolNames.Should().Contain("generate_npc");
         toolNames.Should().Contain("prep_session");
     }
@@ -402,8 +404,8 @@ public sealed class DndChatServiceTests : IDisposable
 
         var tools = client.LastOptions!.Tools!.OfType<AIFunction>()
             .Where(t => t.Name is "rate_encounter" or "build_encounter" or "plan_level_up" or "recommend_build"
-                or "critique_build" or "ask_setting_lore" or "ask_rules" or "plan_downtime" or "generate_npc"
-                or "prep_session");
+                or "critique_build" or "ask_setting_lore" or "ask_rules" or "plan_downtime" or "calculate_crafting"
+                or "generate_npc" or "prep_session");
         foreach (var tool in tools)
         {
             var hasUserId = tool.JsonSchema.TryGetProperty("properties", out var props)
@@ -552,6 +554,107 @@ public sealed class DndChatServiceTests : IDisposable
         var result = await tool.InvokeAsync(ToArgs(new { activity = "craft plate armor", edition = (string?)null }), CancellationToken.None);
         var plan = ((JsonElement)result!).Deserialize<DowntimePlanResult>(tool.JsonSerializerOptions);
         plan!.Passages.Should().BeEmpty(); // reached the service (empty rag → empty passages)
+    }
+
+    [Fact]
+    public async Task CalculateCraftingTool_exposes_no_user_or_campaign_id()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(11));
+
+        await svc.SendAsync("crafting", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "calculate_crafting");
+
+        tool.JsonSchema.TryGetProperty("properties", out var props);
+        props.TryGetProperty("userId", out _).Should().BeFalse();
+        props.TryGetProperty("campaignId", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CalculateCraftingTool_guards_when_both_marketValue_and_rarity_supplied()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(11));
+
+        await svc.SendAsync("crafting", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "calculate_crafting");
+
+        var result = await tool.InvokeAsync(
+            ToArgs(new { marketValue = (int?)1500, rarity = "rare", crafters = (int?)null }),
+            CancellationToken.None);
+        var error = ((JsonElement)result!).GetProperty("error").GetString();
+        error.Should().Contain("exactly ONE");
+    }
+
+    [Fact]
+    public async Task CalculateCraftingTool_guards_when_neither_marketValue_nor_rarity_supplied()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(11));
+
+        await svc.SendAsync("crafting", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "calculate_crafting");
+
+        var result = await tool.InvokeAsync(
+            ToArgs(new { marketValue = (int?)null, rarity = (string?)null, crafters = (int?)null }),
+            CancellationToken.None);
+        var error = ((JsonElement)result!).GetProperty("error").GetString();
+        error.Should().Contain("exactly ONE");
+    }
+
+    [Fact]
+    public async Task CalculateCraftingTool_computes_nonmagical_numbers_and_citation()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(11));
+
+        await svc.SendAsync("crafting", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "calculate_crafting");
+
+        var result = await tool.InvokeAsync(
+            ToArgs(new { marketValue = (int?)1500, rarity = (string?)null, crafters = (int?)null }),
+            CancellationToken.None);
+        var json = (JsonElement)result!;
+        json.GetProperty("kind").GetString().Should().Be("nonmagical");
+        json.GetProperty("materialsGp").GetInt32().Should().Be(750);
+        json.GetProperty("totalWorkweeks").GetDouble().Should().Be(30);
+        json.GetProperty("days").GetInt32().Should().Be(150);
+        json.GetProperty("citation").GetString().Should().Contain("Crafting");
+    }
+
+    [Fact]
+    public async Task CalculateCraftingTool_computes_magic_item_numbers_and_citation()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(11));
+
+        await svc.SendAsync("crafting", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "calculate_crafting");
+
+        var result = await tool.InvokeAsync(
+            ToArgs(new { marketValue = (int?)null, rarity = "rare", crafters = (int?)null }),
+            CancellationToken.None);
+        var json = (JsonElement)result!;
+        json.GetProperty("kind").GetString().Should().Be("magic-item");
+        json.GetProperty("workweeks").GetInt32().Should().Be(10);
+        json.GetProperty("goldCostGp").GetInt32().Should().Be(2000);
+        json.GetProperty("citation").GetString().Should().Contain("Crafting Magic Items");
+    }
+
+    [Fact]
+    public async Task CalculateCraftingTool_guards_on_unknown_rarity()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(11));
+
+        await svc.SendAsync("crafting", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "calculate_crafting");
+
+        var result = await tool.InvokeAsync(
+            ToArgs(new { marketValue = (int?)null, rarity = "bogus", crafters = (int?)null }),
+            CancellationToken.None);
+        var error = ((JsonElement)result!).GetProperty("error").GetString();
+        error.Should().Contain("Unknown rarity");
     }
 
     [Fact]

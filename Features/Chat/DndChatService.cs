@@ -2,6 +2,7 @@ using System.Security.Claims;
 
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.CharacterAdvice;
+using DndMcpAICsharpFun.Features.Crafting;
 using DndMcpAICsharpFun.Features.Downtime;
 using DndMcpAICsharpFun.Features.Encounters;
 using DndMcpAICsharpFun.Features.Resolution;
@@ -215,6 +216,59 @@ public sealed class DndChatService(
                     "invent times or costs. Not tied to any campaign or character. edition is optional (\"2014\"/\"2024\")."));
 
             toolList.Add(AIFunctionFactory.Create(
+                (int? marketValue, string? rarity, int? crafters) =>
+                {
+                    var hasValue = marketValue.HasValue;
+                    var hasRarity = !string.IsNullOrWhiteSpace(rarity);
+                    if (hasValue == hasRarity)
+                    {
+                        return (object)new { error = "Supply exactly ONE of marketValue (nonmagical item) or rarity (magic item)." };
+                    }
+
+                    if (hasValue)
+                    {
+                        if (marketValue!.Value <= 0)
+                        {
+                            return new { error = "marketValue must be a positive gold amount." };
+                        }
+                        var n = CraftingMath.CraftNonmagical(marketValue.Value, crafters ?? 1);
+                        return new
+                        {
+                            kind = "nonmagical",
+                            materialsGp = n.MaterialsGp,
+                            totalWorkweeks = n.TotalWorkweeks,
+                            perCrafterWorkweeks = n.PerCrafterWorkweeks,
+                            days = n.Days,
+                            crafters = Math.Max(1, crafters ?? 1),
+                            citation = "Xanathar's Guide to Everything / PHB — Crafting (downtime)"
+                        };
+                    }
+
+                    var parsed = ParseRarity(rarity);
+                    if (parsed is null)
+                    {
+                        return new { error = "Unknown rarity. Use common, uncommon, rare, very rare, or legendary." };
+                    }
+                    var m = CraftingMath.CraftMagicItem(parsed.Value);
+                    return new
+                    {
+                        kind = "magic-item",
+                        rarity = m.Rarity.ToString(),
+                        workweeks = m.Workweeks,
+                        goldCostGp = m.GoldCostGp,
+                        citation = "Xanathar's Guide to Everything — Crafting Magic Items"
+                    };
+                },
+                name: "calculate_crafting",
+                description: "Calculate the EXACT time and cost to CRAFT an item. For a NONMAGICAL item pass its " +
+                    "marketValue (gold) and optionally crafters; for a MAGIC item pass its rarity (common/uncommon/" +
+                    "rare/very rare/legendary). Supply exactly ONE of marketValue or rarity. If you don't know the " +
+                    "item's price or rarity, look it up with search_entities FIRST. Returns deterministic numbers " +
+                    "(materials/gold cost, workweeks, days) and a rule citation — report these numbers and the " +
+                    "citation EXACTLY as returned; never re-derive the arithmetic or invent numbers. Not tied to any " +
+                    "campaign or character."));
+
+            toolList.Add(AIFunctionFactory.Create(
                 (string concept, string archetype, double? maxCr, CancellationToken toolCt) =>
                     npcGenerationService.GenerateAsync(concept, archetype, maxCr, toolCt),
                 name: "generate_npc",
@@ -334,5 +388,20 @@ public sealed class DndChatService(
         "hard" => Difficulty.Hard,
         "deadly" => Difficulty.Deadly,
         _ => Difficulty.Medium,
+    };
+
+    /// <summary>
+    /// Parses a caller-supplied rarity string (case-insensitive) into a <see cref="Rarity"/>.
+    /// Returns null for unknown/blank input so callers can distinguish "not supplied/unrecognized"
+    /// from a valid rarity (unlike ParseEdition/ParseDifficulty, which default rather than fail).
+    /// </summary>
+    private static Rarity? ParseRarity(string? rarity) => rarity?.Trim().ToLowerInvariant() switch
+    {
+        "common" => Rarity.Common,
+        "uncommon" => Rarity.Uncommon,
+        "rare" => Rarity.Rare,
+        "very rare" or "veryrare" or "very-rare" => Rarity.VeryRare,
+        "legendary" => Rarity.Legendary,
+        _ => null
     };
 }
