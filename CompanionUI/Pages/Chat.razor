@@ -52,7 +52,7 @@
         <div class="clear-confirm" role="alertdialog" aria-label="Clear conversation confirmation">
             <span>Clear conversation? This permanently deletes all messages.</span>
             <span class="clear-confirm-actions">
-                <button class="btn-danger" @onclick="ClearConversation">Clear</button>
+                <button class="btn-danger" @onclick="ClearConversation" disabled="@_loading">Clear</button>
                 <button class="btn-cancel" @onclick="() => _confirmingClear = false">Cancel</button>
             </span>
         </div>
@@ -102,6 +102,7 @@
         if (string.IsNullOrEmpty(msg) || _loading) return;
 
         _sendError = null;
+        _confirmingClear = false;
         _input = "";
         _loading = true;
         _scrollRequired = true;
