@@ -2,6 +2,7 @@ using System.Security.Claims;
 
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.CharacterAdvice;
+using DndMcpAICsharpFun.Features.Downtime;
 using DndMcpAICsharpFun.Features.Encounters;
 using DndMcpAICsharpFun.Features.Resolution;
 
@@ -23,6 +24,7 @@ public sealed class DndChatService(
     BuildCritiqueService critiqueService,
     DndMcpAICsharpFun.Features.Lore.SettingLoreService settingLoreService,
     DndMcpAICsharpFun.Features.Rules.RulesAdjudicationService rulesAdjudicationService,
+    DowntimeService downtimeService,
     DndMcpAICsharpFun.Features.Npc.NpcGenerationService npcGenerationService,
     DndMcpAICsharpFun.Features.SessionPrep.SessionPrepService sessionPrepService)
 {
@@ -197,6 +199,20 @@ public sealed class DndChatService(
                     "interaction, say so and distinguish rules-as-written from a DM ruling; if no passages are " +
                     "returned, say the rules don't directly cover it — never invent a rule. Not tied to any " +
                     "campaign or character. edition is optional (\"2014\"/\"2024\"); omit to search all editions."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (string activity, string? edition, CancellationToken toolCt) =>
+                    downtimeService.PlanAsync(
+                        activity, string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
+                        toolCt),
+                name: "plan_downtime",
+                description: "Plan a D&D DOWNTIME activity (crafting an item, training, carousing, running a " +
+                    "business, scribing a spell scroll, research, etc.). Pass the activity as free text (e.g. " +
+                    "'craft plate armor', 'run a tavern for a month'). Returns cited rule passages retrieved ONLY " +
+                    "from the downtime rulebooks (Xanathar's + DMG). Compose a downtime plan STRICTLY from the " +
+                    "returned passages — the activity's TIME cost, GOLD cost, and outcome — and CITE each (source " +
+                    "book + section); if no passages are returned, say the rules don't detail this activity — never " +
+                    "invent times or costs. Not tied to any campaign or character. edition is optional (\"2014\"/\"2024\")."));
 
             toolList.Add(AIFunctionFactory.Create(
                 (string concept, string archetype, double? maxCr, CancellationToken toolCt) =>

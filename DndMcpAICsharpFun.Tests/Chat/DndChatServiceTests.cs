@@ -4,6 +4,7 @@ using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Campaigns;
 using DndMcpAICsharpFun.Features.Chat;
+using DndMcpAICsharpFun.Features.Downtime;
 using DndMcpAICsharpFun.Features.Encounters;
 using DndMcpAICsharpFun.Features.Lore;
 using DndMcpAICsharpFun.Features.Npc;
@@ -167,6 +168,9 @@ public sealed class DndChatServiceTests : IDisposable
     private static RulesAdjudicationService BuildRulesAdjudicationService(IRagRetrievalService? rag = null) =>
         new(rag ?? Substitute.For<IRagRetrievalService>());
 
+    private static DowntimeService BuildDowntimeService(IRagRetrievalService? rag = null) =>
+        new(rag ?? Substitute.For<IRagRetrievalService>());
+
     /// <summary>
     /// Builds a real <see cref="NpcGenerationService"/> over a substitute <see cref="IEntityRetrievalService"/>
     /// — sealed/concrete, so it cannot be substituted directly, but its own retrieval dependency can, keeping
@@ -201,6 +205,7 @@ public sealed class DndChatServiceTests : IDisposable
         DndMcpAICsharpFun.Features.CharacterAdvice.BuildCritiqueService? critiqueService = null,
         SettingLoreService? settingLoreService = null,
         RulesAdjudicationService? rulesAdjudicationService = null,
+        DowntimeService? downtimeService = null,
         NpcGenerationService? npcGenerationService = null,
         SessionPrepService? sessionPrepService = null) =>
         new(client,
@@ -218,6 +223,7 @@ public sealed class DndChatServiceTests : IDisposable
             critiqueService ?? BuildBuildCritiqueService(),
             settingLoreService ?? BuildSettingLoreService(),
             rulesAdjudicationService ?? BuildRulesAdjudicationService(),
+            downtimeService ?? BuildDowntimeService(),
             npcGenerationService ?? BuildNpcGenerationService(),
             sessionPrepService ?? BuildSessionPrepService());
 
@@ -359,6 +365,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().NotContain("critique_build");
         toolNames.Should().NotContain("ask_setting_lore");
         toolNames.Should().NotContain("ask_rules");
+        toolNames.Should().NotContain("plan_downtime");
         toolNames.Should().NotContain("generate_npc");
         toolNames.Should().NotContain("prep_session");
     }
@@ -378,6 +385,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().Contain("critique_build");
         toolNames.Should().Contain("ask_setting_lore");
         toolNames.Should().Contain("ask_rules");
+        toolNames.Should().Contain("plan_downtime");
         toolNames.Should().Contain("generate_npc");
         toolNames.Should().Contain("prep_session");
     }
@@ -394,7 +402,8 @@ public sealed class DndChatServiceTests : IDisposable
 
         var tools = client.LastOptions!.Tools!.OfType<AIFunction>()
             .Where(t => t.Name is "rate_encounter" or "build_encounter" or "plan_level_up" or "recommend_build"
-                or "critique_build" or "ask_setting_lore" or "ask_rules" or "generate_npc" or "prep_session");
+                or "critique_build" or "ask_setting_lore" or "ask_rules" or "plan_downtime" or "generate_npc"
+                or "prep_session");
         foreach (var tool in tools)
         {
             var hasUserId = tool.JsonSchema.TryGetProperty("properties", out var props)
@@ -522,6 +531,27 @@ public sealed class DndChatServiceTests : IDisposable
         var ruling = ((JsonElement)result!).Deserialize<RulesRulingResult>(tool.JsonSerializerOptions);
         ruling!.Passages.Should().BeEmpty(); // reached the service (empty rag → empty passages)
         ruling.Topics.Should().HaveCount(2); // two topics were retrieved (each empty) — proves ruleTopics routed
+    }
+
+
+    [Fact]
+    public async Task PlanDowntimeTool_exposes_no_user_or_campaign_id_and_reaches_the_service()
+    {
+        var rag = Substitute.For<IRagRetrievalService>();
+        rag.SearchAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>()).Returns(new List<RetrievalResult>());
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(11), downtimeService: BuildDowntimeService(rag));
+
+        await svc.SendAsync("downtime", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "plan_downtime");
+
+        tool.JsonSchema.TryGetProperty("properties", out var props);
+        props.TryGetProperty("userId", out _).Should().BeFalse();
+        props.TryGetProperty("campaignId", out _).Should().BeFalse();
+
+        var result = await tool.InvokeAsync(ToArgs(new { activity = "craft plate armor", edition = (string?)null }), CancellationToken.None);
+        var plan = ((JsonElement)result!).Deserialize<DowntimePlanResult>(tool.JsonSerializerOptions);
+        plan!.Passages.Should().BeEmpty(); // reached the service (empty rag → empty passages)
     }
 
     [Fact]
