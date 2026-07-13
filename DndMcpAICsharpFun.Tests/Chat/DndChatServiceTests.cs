@@ -8,6 +8,7 @@ using DndMcpAICsharpFun.Features.Encounters;
 using DndMcpAICsharpFun.Features.Lore;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
+using DndMcpAICsharpFun.Features.Rules;
 using DndMcpAICsharpFun.Infrastructure.Persistence;
 using DndMcpAICsharpFun.Tests.TestDoubles;
 
@@ -154,6 +155,16 @@ public sealed class DndChatServiceTests : IDisposable
             new CampaignRepository(new NoOpDbFactory()),
             rag ?? Substitute.For<IRagRetrievalService>());
 
+    /// <summary>
+    /// Builds a real <see cref="RulesAdjudicationService"/> over a substitute
+    /// <see cref="IRagRetrievalService"/> — sealed/concrete, so it cannot be substituted directly,
+    /// but its own retrieval dependency can, keeping these chat-wiring tests DB-free. Unlike
+    /// <see cref="BuildSettingLoreService"/>, there is no repository at all — rules adjudication
+    /// is ownership-free.
+    /// </summary>
+    private static RulesAdjudicationService BuildRulesAdjudicationService(IRagRetrievalService? rag = null) =>
+        new(rag ?? Substitute.For<IRagRetrievalService>());
+
     private DndChatService CreateService(
         FakeChatClient client,
         IReadOnlyList<AITool>? tools = null,
@@ -163,7 +174,8 @@ public sealed class DndChatServiceTests : IDisposable
         DndMcpAICsharpFun.Features.CharacterAdvice.LevelUpAdviceService? levelUpService = null,
         DndMcpAICsharpFun.Features.CharacterAdvice.BuildRecommenderService? buildRecommenderService = null,
         DndMcpAICsharpFun.Features.CharacterAdvice.BuildCritiqueService? critiqueService = null,
-        SettingLoreService? settingLoreService = null) =>
+        SettingLoreService? settingLoreService = null,
+        RulesAdjudicationService? rulesAdjudicationService = null) =>
         new(client,
             new FakeMcpToolsProvider(tools ?? []),
             new ChatRepository(new NoOpDbFactory()),
@@ -177,7 +189,8 @@ public sealed class DndChatServiceTests : IDisposable
             levelUpService ?? BuildLevelUpAdviceService(),
             buildRecommenderService ?? BuildBuildRecommenderService(),
             critiqueService ?? BuildBuildCritiqueService(),
-            settingLoreService ?? BuildSettingLoreService());
+            settingLoreService ?? BuildSettingLoreService(),
+            rulesAdjudicationService ?? BuildRulesAdjudicationService());
 
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()
@@ -316,6 +329,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().NotContain("recommend_build");
         toolNames.Should().NotContain("critique_build");
         toolNames.Should().NotContain("ask_setting_lore");
+        toolNames.Should().NotContain("ask_rules");
     }
 
     [Fact]
@@ -332,6 +346,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().Contain("recommend_build");
         toolNames.Should().Contain("critique_build");
         toolNames.Should().Contain("ask_setting_lore");
+        toolNames.Should().Contain("ask_rules");
     }
 
     [Fact]
@@ -346,7 +361,7 @@ public sealed class DndChatServiceTests : IDisposable
 
         var tools = client.LastOptions!.Tools!.OfType<AIFunction>()
             .Where(t => t.Name is "rate_encounter" or "build_encounter" or "plan_level_up" or "recommend_build"
-                or "critique_build" or "ask_setting_lore");
+                or "critique_build" or "ask_setting_lore" or "ask_rules");
         foreach (var tool in tools)
         {
             var hasUserId = tool.JsonSchema.TryGetProperty("properties", out var props)
@@ -444,5 +459,28 @@ public sealed class DndChatServiceTests : IDisposable
             CancellationToken.None).AsTask();
 
         await act.Should().ThrowAsync<NotSupportedException>();
+    }
+
+    [Fact]
+    public async Task AskRulesTool_exposes_no_user_or_campaign_id_and_reaches_the_service()
+    {
+        var rag = Substitute.For<IRagRetrievalService>();
+        rag.SearchAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>())
+            .Returns(new List<RetrievalResult>());
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(42),
+            rulesAdjudicationService: BuildRulesAdjudicationService(rag));
+
+        await svc.SendAsync("rules?", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "ask_rules");
+
+        tool.JsonSchema.TryGetProperty("properties", out var props);
+        props.TryGetProperty("userId", out _).Should().BeFalse();
+        props.TryGetProperty("campaignId", out _).Should().BeFalse();
+
+        var result = await tool.InvokeAsync(
+            ToArgs(new { question = "grapple while prone", edition = (string?)null }), CancellationToken.None);
+        var ruling = ((JsonElement)result!).Deserialize<RulesRulingResult>(tool.JsonSerializerOptions);
+        ruling!.Passages.Should().BeEmpty(); // reached the service (empty rag → empty passages)
     }
 }

@@ -21,7 +21,8 @@ public sealed class DndChatService(
     LevelUpAdviceService levelUpService,
     BuildRecommenderService buildRecommender,
     BuildCritiqueService critiqueService,
-    DndMcpAICsharpFun.Features.Lore.SettingLoreService settingLoreService)
+    DndMcpAICsharpFun.Features.Lore.SettingLoreService settingLoreService,
+    DndMcpAICsharpFun.Features.Rules.RulesAdjudicationService rulesAdjudicationService)
 {
     public List<ChatMessage> History { get; } = [];
 
@@ -175,6 +176,22 @@ public sealed class DndChatService(
                     "(plus core rules). Compose your answer STRICTLY from the returned passages and CITE " +
                     "each (source book + section); if no passages are returned, say the campaign's setting " +
                     "sources don't cover it — never invent world lore. edition is \"2014\" or \"2024\"."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (string question, string? edition, CancellationToken toolCt) =>
+                    rulesAdjudicationService.AskAsync(
+                        question,
+                        string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
+                        toolCt),
+                name: "ask_rules",
+                description: "Answer a D&D RULES question (including multi-rule interactions like " +
+                    "'can I grapple a creature that's already prone?'). Returns cited rule passages " +
+                    "retrieved ONLY from the core rulebooks. Compose your ruling STRICTLY from the " +
+                    "returned passages: NAME each rule you combine and CITE it (source book + section); " +
+                    "where the rules don't explicitly resolve an interaction, say so and distinguish " +
+                    "rules-as-written from a DM ruling; if no passages are returned, say the rules don't " +
+                    "directly cover it — never invent a rule. Not tied to any campaign or character. " +
+                    "edition is optional (\"2014\"/\"2024\"); omit it to search all editions."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));
