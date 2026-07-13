@@ -84,7 +84,7 @@ public sealed class SettingLoreScopingIntegrationTests :
     [Fact]
     public async Task Scoping_returns_in_setting_blocks_and_excludes_off_setting_blocks()
     {
-        await SeedBlockAsync("The Dragonmarked Houses rule commerce.", "ERLW");   // in-setting: Eberron -> ERLW
+        await SeedBlockAsync("The Dragonmarked Houses rule commerce.", "Eberron: Rising from the Last War");   // in-setting: Eberron -> ERLW
         await SeedBlockAsync("Volo describes the beholder.", "VGM");              // off-setting: must be excluded
 
         var campaigns = new CampaignRepository(new TestDb(_pgFixture));
@@ -116,7 +116,7 @@ public sealed class SettingLoreScopingIntegrationTests :
 
         var result = await svc.AskForUserAsync(1, campaignId, "who holds power", version: null, CancellationToken.None);
 
-        result.Passages.Select(p => p.SourceBook).Should().Contain("ERLW");
+        result.Passages.Select(p => p.SourceBook).Should().Contain("Eberron: Rising from the Last War");
         result.Passages.Select(p => p.SourceBook).Should().NotContain("VGM"); // non-vacuity: scoping is real
     }
 }

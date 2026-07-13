@@ -45,7 +45,7 @@ public sealed class SettingLoreServiceTests(PostgresFixture pg) : IAsyncLifetime
 
         await rag.Received().SearchAsync(
             Arg.Is<RetrievalQuery>(q => q.SourceBooks != null
-                && q.SourceBooks.Contains("ERLW") && q.SourceBooks.Contains("PHB")),
+                && q.SourceBooks.Contains("Eberron: Rising from the Last War") && q.SourceBooks.Contains("PlayerHandbook 2014")),
             Arg.Any<CancellationToken>());
     }
 
