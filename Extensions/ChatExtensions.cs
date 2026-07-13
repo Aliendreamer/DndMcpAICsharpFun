@@ -3,6 +3,7 @@ using DndMcpAICsharpFun.Features.Chat;
 using DndMcpAICsharpFun.Features.Lore;
 using DndMcpAICsharpFun.Features.Npc;
 using DndMcpAICsharpFun.Features.Rules;
+using DndMcpAICsharpFun.Features.SessionPrep;
 
 using Microsoft.Extensions.AI;
 
@@ -21,6 +22,7 @@ internal static class ChatExtensions
         services.AddLore();
         services.AddRules();
         services.AddNpc();
+        services.AddSessionPrep();
 
         services.AddOptions<McpClientOptions>()
             .BindConfiguration("McpClient")
