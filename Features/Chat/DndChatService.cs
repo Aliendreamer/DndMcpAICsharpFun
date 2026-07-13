@@ -216,7 +216,7 @@ public sealed class DndChatService(
                     "invent times or costs. Not tied to any campaign or character. edition is optional (\"2014\"/\"2024\")."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (int? marketValue, string? rarity, int? crafters) =>
+                (int? marketValue = null, string? rarity = null, int? crafters = null) =>
                 {
                     var hasValue = marketValue.HasValue;
                     var hasRarity = !string.IsNullOrWhiteSpace(rarity);

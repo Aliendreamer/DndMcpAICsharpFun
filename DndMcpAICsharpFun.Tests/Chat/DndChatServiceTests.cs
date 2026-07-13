@@ -623,6 +623,47 @@ public sealed class DndChatServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CalculateCraftingTool_binds_when_optional_keys_are_omitted()
+    {
+        // Regression: the LLM sends only { "marketValue": 1500 } and omits the rarity/crafters
+        // keys entirely. If those parameters lack C# defaults, AIFunctionFactory marks them
+        // required and the omission fails argument binding (the "function error" the model then
+        // narrates around while fabricating math). The other CalculateCrafting tests pass every
+        // key explicitly, so they never exercise this path.
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(11));
+
+        await svc.SendAsync("crafting", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "calculate_crafting");
+
+        // Only the marketValue key is present — exactly what qwen3:8b emits for a nonmagical item.
+        var result = await tool.InvokeAsync(ToArgs(new { marketValue = 1500 }), CancellationToken.None);
+        var json = (JsonElement)result!;
+        json.GetProperty("kind").GetString().Should().Be("nonmagical");
+        json.GetProperty("materialsGp").GetInt32().Should().Be(750);
+        json.GetProperty("totalWorkweeks").GetDouble().Should().Be(30);
+        json.GetProperty("days").GetInt32().Should().Be(150);
+    }
+
+    [Fact]
+    public async Task CalculateCraftingTool_binds_when_only_rarity_key_is_present()
+    {
+        // Companion to the omission regression: the magic-item branch when the model sends only
+        // { "rarity": "rare" } and omits marketValue/crafters.
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(11));
+
+        await svc.SendAsync("crafting", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "calculate_crafting");
+
+        var result = await tool.InvokeAsync(ToArgs(new { rarity = "rare" }), CancellationToken.None);
+        var json = (JsonElement)result!;
+        json.GetProperty("kind").GetString().Should().Be("magic-item");
+        json.GetProperty("workweeks").GetInt32().Should().Be(10);
+        json.GetProperty("goldCostGp").GetInt32().Should().Be(2000);
+    }
+
+    [Fact]
     public async Task CalculateCraftingTool_computes_magic_item_numbers_and_citation()
     {
         var client = new FakeChatClient();
