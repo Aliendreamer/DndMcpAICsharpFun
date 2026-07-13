@@ -1,5 +1,6 @@
 using DndMcpAICsharpFun.Features.CharacterAdvice;
 using DndMcpAICsharpFun.Features.Chat;
+using DndMcpAICsharpFun.Features.Downtime;
 using DndMcpAICsharpFun.Features.Lore;
 using DndMcpAICsharpFun.Features.Npc;
 using DndMcpAICsharpFun.Features.Rules;
@@ -21,6 +22,7 @@ internal static class ChatExtensions
         services.AddCharacterAdvice();
         services.AddLore();
         services.AddRules();
+        services.AddDowntime();
         services.AddNpc();
         services.AddSessionPrep();
 
