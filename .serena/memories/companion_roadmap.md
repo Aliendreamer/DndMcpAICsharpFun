@@ -224,6 +224,22 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   re-run the FULL suite after ANY value/constant-changing fix. DEFERRED (v2): multi-hop rule decomposition;
   multi-CATEGORY filter (`{Rule,Combat,Condition,Adventuring}`) for finer precision than source-book scoping.
 
+## COMPANION REASONING — QUEUED surfaces (user-requested 2026-07-13, on the fresh-brainstorm menu)
+Explicitly queued next surfaces (each its own brainstorm→propose→plan→SDD slice, reusing the retrieve→
+cited→persona-synthesize pattern):
+- **NPC / statblock generation** — generate an NPC for a scene GROUNDED by anchoring to a REAL corpus stat
+  block (reskin a Guard/Spy/Noble/Commoner from MM) + setting-flavored name/personality; never invent numbers.
+  Reuses entity search + (optionally) setting-aware lore. Grounding trick = pick-real-block-and-reskin.
+- **Session prep** — COMPOSE the already-shipped surfaces: an encounter (`build_encounter`) + a themed NPC +
+  setting lore hooks (`ask_setting_lore`) into one grounded prep packet for a campaign. Highest DM value,
+  broadest scope (orchestration layer); best once NPC-gen exists.
+- **Downtime / crafting** — plan downtime activities grounded in the rules. FEASIBILITY: the rich downtime/
+  crafting rules live in **XGE (Xanathar's), which is NOT ingested** — only DMG basic downtime is in the corpus;
+  needs an XGE Phase-1 ingest first (register + ingest-blocks, like ERLW) to be more than thin.
+- **Rules-adjudication v2** — multi-hop rule decomposition and/or multi-CATEGORY filter (`{Rule,Combat,
+  Condition,Adventuring}`) for finer precision than the v1 source-book scoping. **(IN PROGRESS 2026-07-13 —
+  user picked this next.)**
+
 ## COMPANION UX / TABLE-PLAY — all SHIPPED (user-requested 2026-07-09/10)
 - **Item A — Dice roller** ✅ DONE (archived `dice-roller`, 2026-07-09; commits `4c25566..623b9a7`; full
   suite 1143/1143). `Features/Dice/`: `DiceExpression.TryParse/Parse` (NdX±K, all 7 dice, d20-only adv/dis;
