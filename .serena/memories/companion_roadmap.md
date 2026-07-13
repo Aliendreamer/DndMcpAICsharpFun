@@ -267,9 +267,22 @@ cited→persona-synthesize pattern):
   REAL, only flavor invented. Standalone, SINGLE NPC per call. DEFERRED (v2): setting-aware (draw names/hooks from
   the campaign's setting lore via `ask_setting_lore`); tool-assembles-full-structured-NPC; party/group of NPCs;
   these feed the session-prep composition surface.
-- **Session prep** — COMPOSE the already-shipped surfaces: an encounter (`build_encounter`) + a themed NPC +
-  setting lore hooks (`ask_setting_lore`) into one grounded prep packet for a campaign. Highest DM value,
-  broadest scope (orchestration layer); best once NPC-gen exists.
+- **Session prep** — ✅ SHIPPED 2026-07-13 (archived `2026-07-13-session-prep`; commits `3ac1c32`/`0720761`/
+  `f04af71`, base 5f74a66; build 0/0, FULL suite **1299/1299**; final opus review READY TO MERGE, 1 doc-only
+  Minor). The ORCHESTRATION CAPSTONE: `SessionPrepService(EncounterDesignService, NpcGenerationService,
+  SettingLoreService)` composes the three shipped grounded surfaces into one `SessionPrepPacket(Theme, Encounter,
+  Npc, LoreHooks)` (reuses the sub-result types verbatim; NO new grounding/LLM call). Encounter build runs FIRST
+  = ownership gate (foreign campaign throws before NPC/lore). Lore question derived from theme
+  (`"factions, locations, and plot hooks related to {theme}"`). `prep_session(campaignId, theme, difficulty?,
+  npcArchetype)` per-user chat tool (no userId arg). `Features/SessionPrep/`. NO migration/http/mcp. Tests: real
+  Postgres (mirrors EncounterDesignServiceTests) for ownership+composition. **LIVE-SMOKE FOUND+FIXED a real bug
+  (`f04af71`): the tool passed the narrative `theme` to the encounter, whose `theme` is a MONSTER-KEYWORD filter
+  → narrative themes match 0 monsters → empty encounter → LLM hallucinated fake monsters. FIX: encounter uses
+  theme:null (party-appropriate baseline via the proven build_encounter path); theme still drives NPC concept +
+  lore. New dev-flow lesson: composition-param SEMANTICS across sub-services.** CHAT-DRIVEN SMOKE otherwise
+  DEFERRED: qwen3:8b unreliably emits a valid 4-param prep_session tool call (args fail MEAI binding before the
+  delegate runs — no sub-service activity, no exception; tool binds fine with valid args per routing test). DEFERRED
+  (v2): party of NPCs; multiple encounters; setting-aware NPC directly; a fully tool-authored narrative.
 - **Downtime / crafting** — plan downtime activities grounded in the rules. FEASIBILITY: the rich downtime/
   crafting rules live in **XGE (Xanathar's), which is NOT ingested** — only DMG basic downtime is in the corpus;
   needs an XGE Phase-1 ingest first (register + ingest-blocks, like ERLW) to be more than thin.
@@ -507,7 +520,7 @@ NOT excluded from `dnd_entities` — spanned 3 write paths — until final revie
 mislabeled real entities). Cross-path invariants must be traced across ALL paths at final review; inject
 INTERFACES not concrete types — both now in dev-flow SKILL.
 
-## Current position (2026-07-13c)
+## Current position (2026-07-13d)
 Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**; **companion reasoning +
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
 (Item B), combat/initiative tracker + dedicated play page (Item C).** **UI fully restyled — `visual-design-system`
@@ -533,13 +546,17 @@ multi-category REJECTED (noisy tagging).**
 **NPC/STATBLOCK GENERATION shipped + archived 2026-07-13 (`2026-07-13-npc-generation`): `generate_npc` anchors to a
 REAL corpus stat block (anti-fuzzy exact-name), persona invents only flavour; LIVE SMOKE PASSED (dockworker → real
 Commoner stats + invented Sharn hook).**
-FULL suite **1296/1296**.
+**SESSION PREP (the orchestration CAPSTONE) shipped + archived 2026-07-13 (`2026-07-13-session-prep`): `prep_session`
+composes encounter + NPC + setting-lore into one grounded packet; live smoke found+fixed a theme-over-filter bug
+(f04af71); chat-driven invocation deferred (qwen3 4-param tool-call flaky).**
+FULL suite **1299/1299**.
 NEXT candidates (user's call):
-(1) companion REASONING frontier (character-coach + encounter-swarms + setting-aware lore + rules-adjudication (+v2)
-    + **NPC generation** ALL DONE): the remaining QUEUED fresh-brainstorm surfaces — **session prep** (compose
-    encounter+NPC+lore hooks — the orchestration capstone, now that its atomic pieces exist), or **downtime/crafting**
-    (needs an XGE ingest first, like ERLW); OR NPC-gen v2 (setting-aware names/hooks, party of NPCs); OR grow the
-    setting catalog (ingest more setting books);
+(1) companion REASONING frontier — the full atomic-surfaces + CAPSTONE set is now BUILT (character-coach + encounter
+    swarms + setting-aware lore + rules-adjudication (+v2) + NPC generation + **session prep** ALL DONE): remaining
+    QUEUED — **downtime/crafting** (needs an XGE ingest first, like ERLW); OR NPC-gen v2 (setting-aware names/hooks,
+    party of NPCs); OR session-prep v2 (party of NPCs, multiple encounters); OR grow the setting catalog (ingest more
+    setting books); OR the deferred local MoE upgrade (Item 5/6) — a foundational lever, esp. given qwen3's tool-call
+    flakiness on multi-param tools that session-prep surfaced;
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6) — user DEFERRED this 2026-07-11
