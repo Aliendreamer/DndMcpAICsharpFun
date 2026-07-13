@@ -108,7 +108,7 @@ public sealed class RulesScopingIntegrationTests : IClassFixture<QdrantFixture>,
 
         var svc = new RulesAdjudicationService(rag);
 
-        var result = await svc.AskAsync("grappling", edition: null, CancellationToken.None);
+        var result = await svc.AskAsync("grappling", ruleTopics: null, edition: null, CancellationToken.None);
 
         result.Passages.Select(p => p.SourceBook).Should().Contain("PlayerHandbook 2014");
         result.Passages.Select(p => p.SourceBook).Should().NotContain("Monster Manual 2014"); // scoping is real

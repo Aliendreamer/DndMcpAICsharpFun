@@ -181,6 +181,7 @@ public sealed class DndChatService(
                 (string question, string? edition, CancellationToken toolCt) =>
                     rulesAdjudicationService.AskAsync(
                         question,
+                        ruleTopics: null,
                         string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
                         toolCt),
                 name: "ask_rules",

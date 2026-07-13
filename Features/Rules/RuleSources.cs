@@ -13,4 +13,7 @@ public static class RuleSources
 
     /// <summary>Higher than the default so a multi-rule question (grapple + prone) can surface each rule.</summary>
     public const int TopK = 10;
+
+    /// <summary>Per-topic result cap for multi-hop retrieval, so N topics don't balloon the passage count.</summary>
+    public const int TopicTopK = 5;
 }

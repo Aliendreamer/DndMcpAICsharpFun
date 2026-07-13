@@ -11,19 +11,41 @@ namespace DndMcpAICsharpFun.Features.Rules;
 /// </summary>
 public sealed class RulesAdjudicationService(IRagRetrievalService rag)
 {
-    public async Task<RulesRulingResult> AskAsync(string question, DndVersion? edition, CancellationToken ct)
+    public async Task<RulesRulingResult> AskAsync(
+        string question, IReadOnlyList<string>? ruleTopics, DndVersion? edition, CancellationToken ct)
     {
-        var query = new RetrievalQuery(
-            question, Version: edition, TopK: RuleSources.TopK, SourceBooks: RuleSources.Books);
+        // Single-shot (v1) when the caller didn't decompose the question.
+        if (ruleTopics is not { Count: > 0 })
+        {
+            var single = await RetrieveAsync(question, edition, RuleSources.TopK, ct);
+            return new RulesRulingResult(single, RuleSources.Books, []);
+        }
 
-        var results = await rag.SearchAsync(query, ct);
+        // Multi-hop: ground each named rule with its own scoped retrieval.
+        var topicGroups = new List<RuleTopicPassages>(ruleTopics.Count);
+        foreach (var topic in ruleTopics)
+        {
+            var topicPassages = await RetrieveAsync(topic, edition, RuleSources.TopicTopK, ct);
+            topicGroups.Add(new RuleTopicPassages(topic, topicPassages));
+        }
 
-        var passages = results.Select(r => new CitedPassage(
-            r.Text,
-            r.Metadata.SourceBook,
-            r.Metadata.SectionTitle ?? r.Metadata.Chapter,
-            r.Score)).ToList();
+        // Flat union de-duped by citation identity, keeping the highest-scoring copy; the per-topic
+        // groups above still retain each passage under every rule it grounded.
+        var merged = topicGroups
+            .SelectMany(g => g.Passages)
+            .GroupBy(p => (p.Text, p.SourceBook, p.Section))
+            .Select(grp => grp.OrderByDescending(p => p.Score).First())
+            .ToList();
 
-        return new RulesRulingResult(passages, RuleSources.Books);
+        return new RulesRulingResult(merged, RuleSources.Books, topicGroups);
+    }
+
+    private async Task<IReadOnlyList<CitedPassage>> RetrieveAsync(
+        string query, DndVersion? edition, int topK, CancellationToken ct)
+    {
+        var q = new RetrievalQuery(query, Version: edition, TopK: topK, SourceBooks: RuleSources.Books);
+        var results = await rag.SearchAsync(q, ct);
+        return results.Select(r => new CitedPassage(
+            r.Text, r.Metadata.SourceBook, r.Metadata.SectionTitle ?? r.Metadata.Chapter, r.Score)).ToList();
     }
 }
