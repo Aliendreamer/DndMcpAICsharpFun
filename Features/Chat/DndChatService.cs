@@ -22,7 +22,8 @@ public sealed class DndChatService(
     BuildRecommenderService buildRecommender,
     BuildCritiqueService critiqueService,
     DndMcpAICsharpFun.Features.Lore.SettingLoreService settingLoreService,
-    DndMcpAICsharpFun.Features.Rules.RulesAdjudicationService rulesAdjudicationService)
+    DndMcpAICsharpFun.Features.Rules.RulesAdjudicationService rulesAdjudicationService,
+    DndMcpAICsharpFun.Features.Npc.NpcGenerationService npcGenerationService)
 {
     public List<ChatMessage> History { get; } = [];
 
@@ -195,6 +196,20 @@ public sealed class DndChatService(
                     "interaction, say so and distinguish rules-as-written from a DM ruling; if no passages are " +
                     "returned, say the rules don't directly cover it — never invent a rule. Not tied to any " +
                     "campaign or character. edition is optional (\"2014\"/\"2024\"); omit to search all editions."));
+
+            toolList.Add(AIFunctionFactory.Create(
+                (string concept, string archetype, double? maxCr, CancellationToken toolCt) =>
+                    npcGenerationService.GenerateAsync(concept, archetype, maxCr, toolCt),
+                name: "generate_npc",
+                description: "Generate an NPC for a scene from a concept (e.g. 'a shifty Sharn dockworker'). " +
+                    "YOU pick the stat-block archetype that best fits the concept and pass it as archetype " +
+                    "(e.g. Spy, Commoner, Guard, Bandit Captain, Veteran); the tool returns that archetype's " +
+                    "REAL stat block (CR/HP/ability scores + the rendered block). Compose the NPC's name, " +
+                    "personality, appearance, and a hook to fit the concept, but take ALL mechanical stats " +
+                    "from the returned block and CITE it (source book) — NEVER invent stat numbers. If the " +
+                    "result says the archetype is not in the corpus (archetypeInCorpus false), pick a different " +
+                    "one from availableArchetypes and call again. Optional maxCr caps the archetype's power. " +
+                    "Not tied to any campaign or character."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));

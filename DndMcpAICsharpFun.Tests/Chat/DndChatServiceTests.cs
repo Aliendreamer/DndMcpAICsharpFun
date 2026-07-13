@@ -6,6 +6,7 @@ using DndMcpAICsharpFun.Features.Campaigns;
 using DndMcpAICsharpFun.Features.Chat;
 using DndMcpAICsharpFun.Features.Encounters;
 using DndMcpAICsharpFun.Features.Lore;
+using DndMcpAICsharpFun.Features.Npc;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Features.Rules;
@@ -165,6 +166,14 @@ public sealed class DndChatServiceTests : IDisposable
     private static RulesAdjudicationService BuildRulesAdjudicationService(IRagRetrievalService? rag = null) =>
         new(rag ?? Substitute.For<IRagRetrievalService>());
 
+    /// <summary>
+    /// Builds a real <see cref="NpcGenerationService"/> over a substitute <see cref="IEntityRetrievalService"/>
+    /// — sealed/concrete, so it cannot be substituted directly, but its own retrieval dependency can, keeping
+    /// these chat-wiring tests DB-free. Not ownership-gated, like <see cref="BuildRulesAdjudicationService"/>.
+    /// </summary>
+    private static NpcGenerationService BuildNpcGenerationService(IEntityRetrievalService? search = null) =>
+        new(search ?? Substitute.For<IEntityRetrievalService>());
+
     private DndChatService CreateService(
         FakeChatClient client,
         IReadOnlyList<AITool>? tools = null,
@@ -175,7 +184,8 @@ public sealed class DndChatServiceTests : IDisposable
         DndMcpAICsharpFun.Features.CharacterAdvice.BuildRecommenderService? buildRecommenderService = null,
         DndMcpAICsharpFun.Features.CharacterAdvice.BuildCritiqueService? critiqueService = null,
         SettingLoreService? settingLoreService = null,
-        RulesAdjudicationService? rulesAdjudicationService = null) =>
+        RulesAdjudicationService? rulesAdjudicationService = null,
+        NpcGenerationService? npcGenerationService = null) =>
         new(client,
             new FakeMcpToolsProvider(tools ?? []),
             new ChatRepository(new NoOpDbFactory()),
@@ -190,7 +200,8 @@ public sealed class DndChatServiceTests : IDisposable
             buildRecommenderService ?? BuildBuildRecommenderService(),
             critiqueService ?? BuildBuildCritiqueService(),
             settingLoreService ?? BuildSettingLoreService(),
-            rulesAdjudicationService ?? BuildRulesAdjudicationService());
+            rulesAdjudicationService ?? BuildRulesAdjudicationService(),
+            npcGenerationService ?? BuildNpcGenerationService());
 
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()
@@ -330,6 +341,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().NotContain("critique_build");
         toolNames.Should().NotContain("ask_setting_lore");
         toolNames.Should().NotContain("ask_rules");
+        toolNames.Should().NotContain("generate_npc");
     }
 
     [Fact]
@@ -347,6 +359,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().Contain("critique_build");
         toolNames.Should().Contain("ask_setting_lore");
         toolNames.Should().Contain("ask_rules");
+        toolNames.Should().Contain("generate_npc");
     }
 
     [Fact]
@@ -361,7 +374,7 @@ public sealed class DndChatServiceTests : IDisposable
 
         var tools = client.LastOptions!.Tools!.OfType<AIFunction>()
             .Where(t => t.Name is "rate_encounter" or "build_encounter" or "plan_level_up" or "recommend_build"
-                or "critique_build" or "ask_setting_lore" or "ask_rules");
+                or "critique_build" or "ask_setting_lore" or "ask_rules" or "generate_npc");
         foreach (var tool in tools)
         {
             var hasUserId = tool.JsonSchema.TryGetProperty("properties", out var props)
@@ -489,5 +502,30 @@ public sealed class DndChatServiceTests : IDisposable
         var ruling = ((JsonElement)result!).Deserialize<RulesRulingResult>(tool.JsonSerializerOptions);
         ruling!.Passages.Should().BeEmpty(); // reached the service (empty rag → empty passages)
         ruling.Topics.Should().HaveCount(2); // two topics were retrieved (each empty) — proves ruleTopics routed
+    }
+
+    [Fact]
+    public async Task GenerateNpcTool_exposes_no_user_or_campaign_id_and_reaches_the_service()
+    {
+        var search = Substitute.For<IEntityRetrievalService>();
+        search.SearchDiagnosticAsync(Arg.Any<EntitySearchQuery>(), Arg.Any<CancellationToken>())
+            .Returns(new List<EntityDiagnosticResult>()); // no hit → not-in-corpus
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(9),
+            npcGenerationService: BuildNpcGenerationService(search));
+
+        await svc.SendAsync("npc", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "generate_npc");
+
+        tool.JsonSchema.TryGetProperty("properties", out var props);
+        props.TryGetProperty("userId", out _).Should().BeFalse();
+        props.TryGetProperty("campaignId", out _).Should().BeFalse();
+
+        var result = await tool.InvokeAsync(
+            ToArgs(new { concept = "a shifty dockworker", archetype = "Spy", maxCr = (double?)null }),
+            CancellationToken.None);
+        var npc = ((JsonElement)result!).Deserialize<GeneratedNpc>(tool.JsonSerializerOptions);
+        npc!.ArchetypeInCorpus.Should().BeFalse();            // empty search → not-in-corpus (reached the service)
+        npc.AvailableArchetypes.Should().NotBeEmpty();
     }
 }
