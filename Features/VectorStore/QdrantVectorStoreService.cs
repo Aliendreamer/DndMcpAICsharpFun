@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 
+using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
 
 using Microsoft.Extensions.Options;
@@ -38,16 +39,61 @@ public sealed partial class QdrantVectorStoreService(
 
     public async Task DeleteBlocksByHashAsync(string fileHash, CancellationToken ct = default)
     {
+        await client.DeleteAsync(_blocksCollectionName, MatchKeyword(QdrantPayloadFields.FileHash, fileHash), cancellationToken: ct);
+    }
+
+    public async Task<IReadOnlyDictionary<string, long>> GetSourceKeyCountsAsync(CancellationToken ct = default)
+    {
+        var result = new Dictionary<string, long>(StringComparer.Ordinal);
+        foreach (var book in BookCatalog.All)
+        {
+            var count = await client.CountAsync(
+                _blocksCollectionName,
+                filter: MatchKeyword(QdrantPayloadFields.SourceKey, book.Key),
+                cancellationToken: ct);
+            result[book.Key] = (long)count;
+        }
+        return result;
+    }
+
+    public async Task<IReadOnlyDictionary<string, long>> GetSourceBookCountsAsync(CancellationToken ct = default)
+    {
+        var result = new Dictionary<string, long>(StringComparer.Ordinal);
+        foreach (var book in BookCatalog.All)
+        {
+            var count = await client.CountAsync(
+                _blocksCollectionName,
+                filter: MatchKeyword(QdrantPayloadFields.SourceBook, book.DisplayName),
+                cancellationToken: ct);
+            result[book.DisplayName] = (long)count;
+        }
+        return result;
+    }
+
+    public async Task<long> SetSourceKeyForBookAsync(string displayName, string key, CancellationToken ct = default)
+    {
+        var filter = MatchKeyword(QdrantPayloadFields.SourceBook, displayName);
+        await client.SetPayloadAsync(
+            _blocksCollectionName,
+            new Dictionary<string, Value> { [QdrantPayloadFields.SourceKey] = key },
+            filter,
+            cancellationToken: ct);
+        var count = await client.CountAsync(_blocksCollectionName, filter: filter, cancellationToken: ct);
+        return (long)count;
+    }
+
+    private static Filter MatchKeyword(string field, string value)
+    {
         var filter = new Filter();
         filter.Must.Add(new Condition
         {
             Field = new FieldCondition
             {
-                Key = QdrantPayloadFields.FileHash,
-                Match = new Match { Keyword = fileHash }
+                Key = field,
+                Match = new Match { Keyword = value }
             }
         });
-        await client.DeleteAsync(_blocksCollectionName, filter, cancellationToken: ct);
+        return filter;
     }
 
     private static PointStruct BuildBlockPoint(
