@@ -479,8 +479,15 @@ public sealed class DndChatServiceTests : IDisposable
         props.TryGetProperty("campaignId", out _).Should().BeFalse();
 
         var result = await tool.InvokeAsync(
-            ToArgs(new { question = "grapple while prone", edition = (string?)null }), CancellationToken.None);
+            ToArgs(new
+            {
+                question = "grapple while prone",
+                ruleTopics = new[] { "grappling", "prone condition" },
+                edition = (string?)null,
+            }),
+            CancellationToken.None);
         var ruling = ((JsonElement)result!).Deserialize<RulesRulingResult>(tool.JsonSerializerOptions);
         ruling!.Passages.Should().BeEmpty(); // reached the service (empty rag → empty passages)
+        ruling.Topics.Should().HaveCount(2); // two topics were retrieved (each empty) — proves ruleTopics routed
     }
 }

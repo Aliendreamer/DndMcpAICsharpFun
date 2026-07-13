@@ -178,21 +178,23 @@ public sealed class DndChatService(
                     "sources don't cover it — never invent world lore. edition is \"2014\" or \"2024\"."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (string question, string? edition, CancellationToken toolCt) =>
+                (string question, string[]? ruleTopics, string? edition, CancellationToken toolCt) =>
                     rulesAdjudicationService.AskAsync(
                         question,
-                        ruleTopics: null,
+                        ruleTopics,
                         string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
                         toolCt),
                 name: "ask_rules",
                 description: "Answer a D&D RULES question (including multi-rule interactions like " +
-                    "'can I grapple a creature that's already prone?'). Returns cited rule passages " +
-                    "retrieved ONLY from the core rulebooks. Compose your ruling STRICTLY from the " +
-                    "returned passages: NAME each rule you combine and CITE it (source book + section); " +
-                    "where the rules don't explicitly resolve an interaction, say so and distinguish " +
-                    "rules-as-written from a DM ruling; if no passages are returned, say the rules don't " +
-                    "directly cover it — never invent a rule. Not tied to any campaign or character. " +
-                    "edition is optional (\"2014\"/\"2024\"); omit it to search all editions."));
+                    "'can I grapple a creature that's already prone?'). Identify the DISTINCT rules the " +
+                    "question involves and pass them as ruleTopics (e.g. [\"grappling\", \"prone condition\"]) " +
+                    "so each rule is grounded on its own retrieval; omit ruleTopics for a simple single-rule " +
+                    "question. Returns cited rule passages retrieved ONLY from the core rulebooks, grouped by " +
+                    "topic. Compose your ruling STRICTLY from the returned passages: NAME each rule you " +
+                    "combine and CITE it (source book + section); where the rules don't explicitly resolve an " +
+                    "interaction, say so and distinguish rules-as-written from a DM ruling; if no passages are " +
+                    "returned, say the rules don't directly cover it — never invent a rule. Not tied to any " +
+                    "campaign or character. edition is optional (\"2014\"/\"2024\"); omit to search all editions."));
         }
 
         History.Add(new ChatMessage(ChatRole.User, userMessage));

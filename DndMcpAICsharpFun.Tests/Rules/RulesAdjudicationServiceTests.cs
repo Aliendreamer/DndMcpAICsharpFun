@@ -85,12 +85,12 @@ public sealed class RulesAdjudicationServiceTests
         var result = await svc.AskAsync("grapple while prone",
             ruleTopics: ["grappling", "prone condition"], edition: null, CancellationToken.None);
 
-        // one retrieval per topic, each scoped to the rulebooks at TopicTopK
-        await rag.Received().SearchAsync(
+        // exactly one retrieval per topic, each scoped to the rulebooks at TopicTopK
+        await rag.Received(1).SearchAsync(
             Arg.Is<RetrievalQuery>(q => q.QueryText == "grappling"
                 && q.SourceBooks!.Contains("PlayerHandbook 2014") && q.TopK == RuleSources.TopicTopK),
             Arg.Any<CancellationToken>());
-        await rag.Received().SearchAsync(
+        await rag.Received(1).SearchAsync(
             Arg.Is<RetrievalQuery>(q => q.QueryText == "prone condition" && q.TopK == RuleSources.TopicTopK),
             Arg.Any<CancellationToken>());
         result.Topics.Select(t => t.Topic).Should().Equal("grappling", "prone condition");
