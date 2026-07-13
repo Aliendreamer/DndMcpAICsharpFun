@@ -22,6 +22,14 @@ public static class RetrievalAdminEndpoints
             EntityDuplicateService svc, bool apply = false, CancellationToken ct = default) =>
                 Results.Ok(await svc.CompactAsync(apply, ct)));
 
+        group.MapPost("/retrieval/backfill-source-keys", async (
+            RetrievalBackfillService svc, CancellationToken ct) =>
+        {
+            var perBook = await svc.BackfillAsync(ct);
+            var total = perBook.Values.Sum();
+            return Results.Ok(new { perBook, total });
+        });
+
         return group;
     }
 }

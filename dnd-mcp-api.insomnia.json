@@ -601,6 +601,25 @@
       "authentication": {}
     },
     {
+      "_id": "req_retrieval_backfill_source_keys",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Backfill source_key onto existing dnd_blocks (one-time migration, idempotent)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/retrieval/backfill-source-keys",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_5etools_import",
       "_type": "request",
       "parentId": "fld_admin_books",

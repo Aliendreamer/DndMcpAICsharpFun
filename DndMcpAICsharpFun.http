@@ -183,6 +183,11 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/retrieval/entities/compact?apply=true
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin — One-time backfill: stamp source_key onto existing dnd_blocks (stable source_key migration)
+# Idempotent — safe to re-run. Response: { perBook: { "PHB": n, "MM": n, ... }, total }
+POST {{baseUrl}}/admin/retrieval/backfill-source-keys
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Delete a book record and all associated data
 DELETE {{baseUrl}}/admin/books/1
 X-Admin-Api-Key: {{adminKey}}
