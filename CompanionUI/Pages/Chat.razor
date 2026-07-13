@@ -44,8 +44,19 @@
             Search web
         </label>
         <button @onclick="Send" disabled="@_loading">Send</button>
-        <button class="clear-conversation" @onclick="ClearConversation" disabled="@_loading" title="Clear conversation">Clear</button>
+        <button class="clear-conversation" @onclick="() => _confirmingClear = true" disabled="@_loading" title="Clear conversation">Clear</button>
     </div>
+
+    @if (_confirmingClear)
+    {
+        <div class="clear-confirm" role="alertdialog" aria-label="Clear conversation confirmation">
+            <span>Clear conversation? This permanently deletes all messages.</span>
+            <span class="clear-confirm-actions">
+                <button class="btn-danger" @onclick="ClearConversation">Clear</button>
+                <button class="btn-cancel" @onclick="() => _confirmingClear = false">Cancel</button>
+            </span>
+        </div>
+    }
 </div>
 
 @code {
@@ -53,6 +64,7 @@
     private string? _sendError;
     private bool _loading;
     private bool _webSearchEnabled;
+    private bool _confirmingClear;
     private bool _scrollRequired;
     private CancellationTokenSource _cts = new();
 
@@ -108,10 +120,7 @@
 
     private async Task ClearConversation()
     {
-        var confirmed = await JS.InvokeAsync<bool>(
-            "confirm", "Clear conversation? This permanently deletes all messages.");
-        if (!confirmed) return;
-
+        _confirmingClear = false;
         await ChatService.ClearAsync();
         _sendError = null;
         ChatService.History.Add(new ChatMessage(

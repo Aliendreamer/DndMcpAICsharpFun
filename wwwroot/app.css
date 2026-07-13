@@ -194,6 +194,41 @@ input::placeholder, textarea::placeholder { color:var(--muted); }
     line-height: 1;
 }
 
+.clear-confirm {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--s3);
+    background: rgba(229, 72, 77, .1);
+    color: var(--text);
+    border: 1px solid rgba(229, 72, 77, .35);
+    border-radius: var(--r-sm);
+    padding: var(--s2) var(--s3);
+    margin-bottom: var(--s2);
+    font-size: var(--fs-sm);
+}
+.clear-confirm-actions { display: flex; gap: var(--s2); flex-shrink: 0; }
+.clear-confirm button {
+    border-radius: var(--r-md);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: filter .12s ease;
+}
+.clear-confirm .btn-danger {
+    background: var(--hp);
+    border: 1px solid var(--hp);
+    color: #fff;
+}
+.clear-confirm .btn-danger:hover { filter: brightness(1.1); }
+.clear-confirm .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+.clear-confirm .btn-cancel:hover:not(:disabled) { border-color: var(--muted); }
+
 .input-row textarea {
     flex: 1;
     background: var(--surface-2);
