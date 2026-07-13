@@ -18,8 +18,11 @@ public sealed class SessionPrepService(
         DndVersion edition, CancellationToken ct)
     {
         // First — its ownership check (foreign/empty campaign → throws) gates the whole prep.
+        // Encounter is a party-appropriate baseline (theme: null) — filtering monsters by the
+        // narrative theme's keyword tends to match zero monsters (e.g. "Sharn intrigue"); the
+        // persona re-skins/re-themes the baseline encounter to fit the session's narrative theme.
         var encounter = await encounters.BuildForUserAsync(
-            userId, campaignId, partyLevels: null, difficulty, edition, theme,
+            userId, campaignId, partyLevels: null, difficulty, edition, theme: null,
             crLte: null, crGte: null, ct);
 
         var npc = await npcs.GenerateAsync(concept: theme, archetype: npcArchetype, maxCr: null, ct);

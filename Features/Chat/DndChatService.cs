@@ -222,7 +222,10 @@ public sealed class DndChatService(
                     "theme (e.g. 'Sharn intrigue'), an optional difficulty (Trivial/Easy/Medium/Hard/Deadly), " +
                     "and the NPC stat-block archetype you pick to fit the theme (e.g. Spy, Guard, Cult Fanatic). " +
                     "Returns a cohesive packet: an encounter built for the campaign's party, a grounded NPC, and " +
-                    "setting lore hooks scoped to the campaign's world. Compose a session outline STRICTLY from " +
+                    "setting lore hooks scoped to the campaign's world. The encounter is a party-appropriate " +
+                    "baseline (built for the party's power level, not filtered by the narrative theme) — RE-SKIN " +
+                    "it in your session outline to fit the theme (reflavor the monsters' names/descriptions), " +
+                    "but keep their real stat blocks. Compose a session outline STRICTLY from " +
                     "the returned pieces — cite the encounter's monsters, the NPC's real stat block, and the " +
                     "lore hooks; if the NPC archetype isn't in the corpus (npc.archetypeInCorpus false), re-pick " +
                     "from npc.availableArchetypes. Never invent stat numbers or world lore."));
