@@ -173,6 +173,33 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   MonsterRef. Corpus note: non-5etools "5e"-versioned content won't match the edition filter
   (corpus-data); live chat-driven smoke needs Ollama.
 
+- **Setting-aware lore synthesis** ✅ DONE (archived `2026-07-13-setting-aware-lore`; code commits
+  `829849e..1c6904a` incl. edition-default fix `eb9a65f` + DATA-INVARIANT catalog fix `1c6904a`, base 02485db;
+  build 0/0, FULL suite **1280/1280**; final opus review READY TO MERGE, one Minor grounding fix in-loop; **LIVE
+  SMOKE PASSED with real Eberron lore**). FIRST setting-aware surface — a campaign IS set in a world; lore answers
+  scope to that world's SOURCE BOOKS. `Features/Lore/`: `SettingCatalog` (setting→source-book set ∪ core; generic/
+  unknown→empty=unscoped; KEYS are the real `dnd_blocks.source_book` DISPLAY NAMES not 5etools keys — DATA
+  INVARIANT below) + `SettingLoreService.AskForUserAsync` (ownership-gated `GetByIdAsync(id,userId)`→throw-BEFORE-
+  retrieval; resolve setting→`RetrievalQuery.SourceBooks`; cited passages / explicit-empty; NO LLM call — persona
+  synthesizes) + `SettingLoreResult`/`CitedPassage`. `Campaign.Setting` nullable (additive migration
+  `AddCampaignSetting`) + setting `<select>` on create form AND CampaignDetail (`SetSettingAsync` ownership-scoped).
+  `RagRetrievalService` gained a MULTI-SOURCE-BOOK OR filter (`RetrievalQuery.SourceBooks`→Qdrant `should`; single/
+  empty back-compat; MODIFIED `rag-retrieval` spec). `ask_setting_lore(campaignId,question,edition?)` per-user chat
+  tool (session-userId closure; BOTH guard families; edition defaults NULL=no filter, mirrors search_lore).
+  Real-Qdrant non-vacuity scoping test (seed ERLW + off-setting VGM, identical embedding vectors → only the filter
+  excludes VGM; mutation-verified RED). **PHASE 1 (data, live 2026-07-13):** registered + ingest-blocks ERLW
+  (`Eberron: Rising from the Last War`, book id=4, Setting) → 4322 chunks; admin key sourced from the running
+  container UNPRINTED. **DATA INVARIANT CAUGHT+FIXED:** `dnd_blocks.source_book` = book DISPLAY NAMES
+  (`Monster Manual 2014`, `Eberron: Rising from the Last War`) NOT 5etools keys — `sourceBook=MM` matched 0; catalog
+  fixed to real displaynames (`1c6904a`), verified live (new dev-flow lesson: value-filter constants must equal the
+  real corpus payload — a self-seeded test passes with the EXPECTED value even when prod stores a DIFFERENT one).
+  **LIVE SMOKE:** Eberron campaign (id 3) setting persists (create+detail); chat "Dragonmarked Houses" →
+  `ask_setting_lore` → grounded answer CITED to ERLW (Welcome to Eberron p.22, Ch.1 p.42, Ch.4 p.64; House Jorasco
+  Mark of Healing, House Lyrandar Mark of Storms = real ERLW content); no h-overflow desktop+mobile. **FIRST
+  LIVE-PASSING chat-driven tool smoke** (prior chat-tool smokes were deferred for Ollama). DEFERRED: lore-answer UI
+  panel (chat-only); entity-side setting scoping; catalog grows per ingested setting book (only Eberron today);
+  ingest-blocks is ASYNC (HTTP 202 → poll status; do NOT restart app mid-job).
+
 ## COMPANION UX / TABLE-PLAY — all SHIPPED (user-requested 2026-07-09/10)
 - **Item A — Dice roller** ✅ DONE (archived `dice-roller`, 2026-07-09; commits `4c25566..623b9a7`; full
   suite 1143/1143). `Features/Dice/`: `DiceExpression.TryParse/Parse` (NdX±K, all 7 dice, d20-only adv/dis;
@@ -402,7 +429,7 @@ NOT excluded from `dnd_entities` — spanned 3 write paths — until final revie
 mislabeled real entities). Cross-path invariants must be traced across ALL paths at final review; inject
 INTERFACES not concrete types — both now in dev-flow SKILL.
 
-## Current position (2026-07-12)
+## Current position (2026-07-13)
 Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**; **companion reasoning +
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
 (Item B), combat/initiative tracker + dedicated play page (Item C).** **UI fully restyled — `visual-design-system`
@@ -417,10 +444,14 @@ fields; `dnd_entities` now 2307 extraction-only entities, level-up grounds all 1
 **CHARACTER-COACH COMPLETE — A (level-up) + B (concept-to-build recommender) + C (build-critique) all shipped 2026-07-12.** **Encounter-design v2 swarms ALSO shipped + archived 2026-07-12
 (`2026-07-12-encounter-swarms`): boss+minions anchor-then-fill build + structured `{name,quantity}` rate,
 flat-list-with-repeats representation, grouped display; final opus review READY TO MERGE, live UI smoke passed.**
-FULL suite **1265/1265**.
+**SETTING-AWARE LORE SYNTHESIS shipped + archived 2026-07-13 (`2026-07-13-setting-aware-lore`): per-campaign
+`Campaign.Setting` → source-book-scoped grounded cited `ask_setting_lore` tool; ERLW ingested (4322 chunks);
+LIVE SMOKE PASSED (Dragonmarked Houses answered + ERLW-cited) — the FIRST live-passing chat-driven tool smoke.**
+FULL suite **1280/1280**.
 NEXT candidates (user's call):
-(1) companion REASONING frontier (character-coach + **encounter-design v2 swarms** both DONE):
-    **setting-aware lore synthesis**, or a fresh companion-reasoning brainstorm — the next un-named surface;
+(1) companion REASONING frontier (character-coach + **encounter-design v2 swarms** + **setting-aware lore** ALL DONE):
+    a fresh companion-reasoning brainstorm — the next un-named surface (NPC/statblock gen, session prep,
+    rules adjudication, downtime/crafting…), OR grow the setting catalog (ingest more setting books);
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6) — user DEFERRED this 2026-07-11
