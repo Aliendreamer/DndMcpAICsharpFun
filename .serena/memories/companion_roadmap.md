@@ -283,9 +283,17 @@ cited→persona-synthesize pattern):
   DEFERRED: qwen3:8b unreliably emits a valid 4-param prep_session tool call (args fail MEAI binding before the
   delegate runs — no sub-service activity, no exception; tool binds fine with valid args per routing test). DEFERRED
   (v2): party of NPCs; multiple encounters; setting-aware NPC directly; a fully tool-authored narrative.
-- **Downtime / crafting** — plan downtime activities grounded in the rules. FEASIBILITY: the rich downtime/
-  crafting rules live in **XGE (Xanathar's), which is NOT ingested** — only DMG basic downtime is in the corpus;
-  needs an XGE Phase-1 ingest first (register + ingest-blocks, like ERLW) to be more than thin.
+- **Downtime / crafting** — 🔄 IN PROGRESS 2026-07-13 (user chose OPTION 1 = retrieval-only). Plan downtime
+  activities grounded in the rules. XGE (Xanathar's) PHASE-1 INGEST STARTED 2026-07-13 (user dropped the XGE PDF;
+  registered book id=5, `fivetoolsSourceKey=XGE`, displayName "Xanathar's Guide to Everything", ingest-blocks async
+  running). **DESIGN (chosen):** mirrors `ask_rules` — `plan_downtime(activity, edition?)` ownership-free chat tool;
+  `DowntimeService` scopes retrieval to `{XGE, DMG}` (Xanathar's detailed downtime + DMG basics) via the shipped
+  SourceBooks OR filter at higher topK, returns cited passages, persona composes a grounded plan (activity/time/cost/
+  outcome) citing the rule; honest-empty if uncovered. Covers ALL downtime activities (crafting, training, carousing,
+  business, scribing scrolls, research…). **PARKED v2 (user):** a DETERMINISTIC crafting CALCULATOR (mundane:
+  materials=½ market value, progress=5×PB gp/day; magic items: XGE rarity→workweeks+cost table) — an EncounterMath-style
+  precise crafting math, added only if the persona's from-the-rule math proves unreliable. DATA INVARIANT: XGE
+  source_book value (displayName "Xanathar's Guide to Everything") to verify post-ingest before finalizing the scope.
 - **Rules-adjudication v2** — ✅ SHIPPED 2026-07-13 (`2026-07-13-rules-adjudication-multihop`): multi-hop
   per-topic grounding via `ruleTopics`. Multi-CATEGORY filter REJECTED (category tagging noisy — `category=Rule`
   returns monster prose). See the rules-adjudication entry above. Remaining queued surfaces: NPC-gen,
