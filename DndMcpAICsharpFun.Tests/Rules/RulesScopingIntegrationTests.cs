@@ -113,4 +113,58 @@ public sealed class RulesScopingIntegrationTests : IClassFixture<QdrantFixture>,
         result.Passages.Select(p => p.SourceBook).Should().Contain("PlayerHandbook 2014");
         result.Passages.Select(p => p.SourceBook).Should().NotContain("Monster Manual 2014"); // scoping is real
     }
+
+
+    /// <summary>
+    /// Multi-hop grounding: when the caller decomposes a compound question into per-rule topics
+    /// (grapple + prone), each topic gets its own scoped retrieval against the REAL Qdrant
+    /// collection. All three seeded blocks share the IDENTICAL embedding vector, so — just like the
+    /// single-shot test above — only the SourceBooks scoping filter (not vector similarity) can be
+    /// keeping the off-scope Monster Manual block out of every topic's results. This proves the
+    /// multi-hop path grounds EACH named rule (non-vacuity) while still respecting scope.
+    /// </summary>
+    [Fact]
+    public async Task Multi_hop_grounds_each_topic_and_excludes_off_scope_blocks()
+    {
+        await SeedBlockAsync(
+            "Grappling: a creature can use the Attack action to grapple a target within its reach.",
+            "PlayerHandbook 2014"); // in-scope: PHB is in RuleSources.Books
+        await SeedBlockAsync(
+            "Prone: a prone creature's only movement option is to crawl, and attack rolls against it have disadvantage while melee attack rolls against it have advantage.",
+            "PlayerHandbook 2014"); // in-scope: PHB is in RuleSources.Books
+        await SeedBlockAsync(
+            "Yuan-ti Anathema. Huge monstrosity, lawful evil. Armor Class 16, Hit Points 154.",
+            "Monster Manual 2014"); // off-scope: MM is NOT in RuleSources.Books, must be excluded
+
+        var qdrantOptions = Options.Create(new QdrantOptions
+        {
+            BlocksCollectionName = _collectionName,
+            VectorSize = VectorSize,
+            Quantization = new QdrantQuantizationOptions { Enabled = false },
+        });
+        var embeddings = new StubEmbeddingService(VectorSize, _ => SharedVector);
+        var searchClient = new QdrantSearchClientAdapter(_client, qdrantOptions);
+        var reranker = Substitute.For<IReranker>();
+        reranker.Enabled.Returns(false);
+        var rerankerOptions = Options.Create(new RerankerOptions { Enabled = false });
+        var rerankingService = new RerankingService(reranker, rerankerOptions);
+
+        var rag = new RagRetrievalService(
+            searchClient,
+            embeddings,
+            qdrantOptions,
+            Options.Create(new RetrievalOptions()),
+            new QdrantSparseState { SparseSupported = false },
+            rerankingService,
+            rerankerOptions);
+
+        var svc = new RulesAdjudicationService(rag);
+
+        var result = await svc.AskAsync(
+            "grapple while prone", ruleTopics: ["grappling", "prone"], edition: null, CancellationToken.None);
+
+        result.Passages.Select(p => p.SourceBook).Should().NotContain("Monster Manual 2014"); // scope holds per topic
+        result.Topics.Select(t => t.Topic).Should().Equal("grappling", "prone");
+        result.Topics.Should().OnlyContain(t => t.Passages.Count > 0); // each rule grounded
+    }
 }
