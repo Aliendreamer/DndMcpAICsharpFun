@@ -241,7 +241,22 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
 ## COMPANION REASONING — QUEUED surfaces (user-requested 2026-07-13, on the fresh-brainstorm menu)
 Explicitly queued next surfaces (each its own brainstorm→propose→plan→SDD slice, reusing the retrieve→
 cited→persona-synthesize pattern):
-- **NPC / statblock generation** — 🔄 IN PROGRESS 2026-07-13 (user picked next; chose OPTION 1). Generate an NPC
+- **NPC / statblock generation** — ✅ SHIPPED 2026-07-13 (archived `2026-07-13-npc-generation`; commits
+  `09f7d65`/`8bdb9f1`/`3ca28b4`, base 3caf153; build 0/0, FULL suite **1296/1296**; final opus review READY TO
+  MERGE, 3 accepted Minors; LIVE SMOKE PASSED). `generate_npc(concept, archetype, maxCr?)` ownership-free chat
+  tool: the LLM picks the archetype, `NpcGenerationService` resolves it by EXACT name (anti-fuzzy — a non-matching
+  top hit is rejected, tested adversarially with Giant-Spider-vs-Spy) + gates by maxCr, returns a grounded
+  `NpcStatBlock` (Cr via `MonsterCr`, Hp/abilities via `MonsterFields` JsonSerializerDefaults.Web, + `CanonicalText`
+  via `GetByIdAsync` as the authoritative base), miss/over-CR → `ArchetypeInCorpus=false` + `NpcArchetypes.Common`
+  roster → LLM re-picks. Mirrors `BuildRecommenderService`. `Features/Npc/`. NO LLM call, NO ownership/migration/
+  http/mcp. Real-Qdrant grounding integration test (seeded Spy → grounded; bogus → roster; anti-fuzzy genuinely
+  exercised end-to-end via same-vector stub). LIVE SMOKE: "shifty Sharn dockworker" → LLM picked **Commoner** →
+  tool returned REAL stats (CR 0, HP 4, AC 10, all-10 abilities, club 1d4) → persona invented name (Jaren)/
+  personality/Sharn-Merchant-Guild hook. **Grounding contract CONFIRMED: mechanical stats REAL, only flavour
+  invented.** NOTE: `dnd_entities.sourceBook` = 5etools key ("MM"), cited as-is. Accepted Minors: maxCr fails-open
+  on unparseable CR (theoretical); TopK:1+exact-match recall tradeoff (by design); empty base if GetByIdAsync
+  misses (low risk). DEFERRED (v2, feeds session-prep): setting-aware NPC names/hooks (via `ask_setting_lore`);
+  tool-assembles-full-NPC; party/group of NPCs. HISTORICAL: Generate an NPC
   GROUNDED by anchoring to a REAL corpus stat block. FEASIBILITY CONFIRMED: the MM NPC roster exists as Monster
   entities (Guard/Spy/Noble/Commoner/Bandit/Cultist/Priest/Mage/Veteran/Thug/Acolyte/Bandit Captain/Knight/Scout/
   Assassin, all real stats). NOTE: `dnd_entities.sourceBook` = 5etools KEY ("MM"/"PHB"), UNLIKE `dnd_blocks` display
@@ -492,7 +507,7 @@ NOT excluded from `dnd_entities` — spanned 3 write paths — until final revie
 mislabeled real entities). Cross-path invariants must be traced across ALL paths at final review; inject
 INTERFACES not concrete types — both now in dev-flow SKILL.
 
-## Current position (2026-07-13b)
+## Current position (2026-07-13c)
 Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**; **companion reasoning +
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
 (Item B), combat/initiative tracker + dedicated play page (Item C).** **UI fully restyled — `visual-design-system`
@@ -515,12 +530,15 @@ CITED rulings scoped to the core rulebooks, ownership-free; LIVE SMOKE PASSED (g
 naming Prone+Grappling, PHB-cited, RAW-flagged). + V2 MULTI-HOP shipped (`2026-07-13-rules-adjudication-multihop`):
 `ruleTopics` per-rule grounding; live smoke deeper (prone+grappled+action-economy+Mobile, each PHB-cited);
 multi-category REJECTED (noisy tagging).**
-FULL suite **1289/1289**.
+**NPC/STATBLOCK GENERATION shipped + archived 2026-07-13 (`2026-07-13-npc-generation`): `generate_npc` anchors to a
+REAL corpus stat block (anti-fuzzy exact-name), persona invents only flavour; LIVE SMOKE PASSED (dockworker → real
+Commoner stats + invented Sharn hook).**
+FULL suite **1296/1296**.
 NEXT candidates (user's call):
-(1) companion REASONING frontier (character-coach + **encounter-design v2 swarms** + **setting-aware lore** +
-    **rules adjudication** ALL DONE): the remaining fresh-brainstorm surfaces — **NPC/statblock generation**
-    (anchor-to-real-block + reskin), **session prep** (compose encounter+NPC+lore hooks), or **downtime/crafting**
-    (needs an XGE ingest first, like ERLW); OR rules-adjudication v2 (multi-hop / multi-category); OR grow the
+(1) companion REASONING frontier (character-coach + encounter-swarms + setting-aware lore + rules-adjudication (+v2)
+    + **NPC generation** ALL DONE): the remaining QUEUED fresh-brainstorm surfaces — **session prep** (compose
+    encounter+NPC+lore hooks — the orchestration capstone, now that its atomic pieces exist), or **downtime/crafting**
+    (needs an XGE ingest first, like ERLW); OR NPC-gen v2 (setting-aware names/hooks, party of NPCs); OR grow the
     setting catalog (ingest more setting books);
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
