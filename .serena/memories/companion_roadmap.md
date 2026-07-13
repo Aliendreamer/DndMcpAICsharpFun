@@ -283,7 +283,20 @@ cited→persona-synthesize pattern):
   DEFERRED: qwen3:8b unreliably emits a valid 4-param prep_session tool call (args fail MEAI binding before the
   delegate runs — no sub-service activity, no exception; tool binds fine with valid args per routing test). DEFERRED
   (v2): party of NPCs; multiple encounters; setting-aware NPC directly; a fully tool-authored narrative.
-- **Downtime / crafting** — 🔄 IN PROGRESS 2026-07-13 (user chose OPTION 1 = retrieval-only). Plan downtime
+- **Downtime / crafting (`plan_downtime`)** — ✅ SHIPPED 2026-07-13 (archived `2026-07-13-downtime-advisor`;
+  commits `aa85140`/`1e725ce`/`3aa555e`, base f1db9ef; build 0/0, FULL suite **1304/1304**; final opus review
+  READY TO MERGE, 2 cosmetic Minors; LIVE SMOKE PASSED — plan_downtime CITED XGE p.84). Mirrors `ask_rules`
+  verbatim minus scope: `DowntimeService.PlanAsync(activity, edition?, ct)` scopes prose retrieval to
+  `DowntimeSources={"Xanathar's Guide to Everything","Dungeon Master's Guide 2014"}` via the shipped SourceBooks
+  OR filter at TopK 10 → cited passages → `DowntimePlanResult`; ownership-free; no LLM call. `plan_downtime(activity,
+  edition?)` per-user chat tool (no userId/campaignId). Real-Qdrant non-vacuity test (XGE + off-scope MM, identical
+  vectors → only filter excludes MM; mutation-verified). **PHASE 1: XGE INGESTED** (book id=5, 2138 blocks;
+  DATA-INVARIANT verified EARLY — XGE source_book="Xanathar's Guide to Everything"). **LIVE SMOKE:** "craft plate
+  armor downtime → how long/how much?" → plan_downtime invoked (single-param = reliable, unlike 4-param prep_session)
+  → grounded crafting plan cited to XGE p.84. Numbers imperfect (qwen3 synthesis) = validates the PARKED calculator;
+  PHB citation = out-of-scope LLM embellishment. **PARKED v2 (user):** deterministic crafting CALCULATOR (materials=½
+  market value; magic-item rarity→workweeks+cost table) — add if the persona's from-the-rule math proves unreliable
+  (the imperfect smoke numbers argue for it). HISTORICAL: Plan downtime
   activities grounded in the rules. XGE (Xanathar's) PHASE-1 INGEST STARTED 2026-07-13 (user dropped the XGE PDF;
   registered book id=5, `fivetoolsSourceKey=XGE`, displayName "Xanathar's Guide to Everything", ingest-blocks async
   running). **DESIGN (chosen):** mirrors `ask_rules` — `plan_downtime(activity, edition?)` ownership-free chat tool;
@@ -528,7 +541,7 @@ NOT excluded from `dnd_entities` — spanned 3 write paths — until final revie
 mislabeled real entities). Cross-path invariants must be traced across ALL paths at final review; inject
 INTERFACES not concrete types — both now in dev-flow SKILL.
 
-## Current position (2026-07-13d)
+## Current position (2026-07-13e)
 Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**; **companion reasoning +
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
 (Item B), combat/initiative tracker + dedicated play page (Item C).** **UI fully restyled — `visual-design-system`
@@ -557,7 +570,10 @@ Commoner stats + invented Sharn hook).**
 **SESSION PREP (the orchestration CAPSTONE) shipped + archived 2026-07-13 (`2026-07-13-session-prep`): `prep_session`
 composes encounter + NPC + setting-lore into one grounded packet; live smoke found+fixed a theme-over-filter bug
 (f04af71); chat-driven invocation deferred (qwen3 4-param tool-call flaky).**
-FULL suite **1299/1299**.
+**DOWNTIME/CRAFTING (`plan_downtime`) shipped + archived 2026-07-13 (`2026-07-13-downtime-advisor`): XGE ingested
+(2138 blocks); grounded downtime advisor scoped to XGE+DMG; live smoke passed (crafting plan cited to XGE p.84);
+deterministic calculator PARKED v2.**
+FULL suite **1304/1304**.
 NEXT candidates (user's call):
 (1) companion REASONING frontier — the full atomic-surfaces + CAPSTONE set is now BUILT (character-coach + encounter
     swarms + setting-aware lore + rules-adjudication (+v2) + NPC generation + **session prep** ALL DONE): remaining
