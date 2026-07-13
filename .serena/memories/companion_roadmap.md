@@ -200,6 +200,30 @@ Everything below shipped and is archived — do NOT re-plan it, just build on it
   panel (chat-only); entity-side setting scoping; catalog grows per ingested setting book (only Eberron today);
   ingest-blocks is ASYNC (HTTP 202 → poll status; do NOT restart app mid-job).
 
+- **Rules adjudication (`ask_rules`)** ✅ DONE (archived `2026-07-13-rules-adjudication`; code commits
+  `a715674`/`88c3bdd`/`7e4847a` + incidental setting-aware test fix `29624cb`, base 01115cf; build 0/0,
+  FULL suite **1285/1285**; final opus review READY TO MERGE, no findings; **LIVE SMOKE PASSED with real
+  rules**). Answers rules questions (incl. multi-rule interactions) with a grounded CITED ruling. Mirrors
+  the setting-aware `SettingLoreService` pattern MINUS OWNERSHIP: `Features/Rules/` — `RuleSources`
+  (fixed core-rulebook display-name set `{"PlayerHandbook 2014","Dungeon Master's Guide 2014"}` + `TopK=10`
+  so both sides of an interaction land) + `RulesAdjudicationService.AskAsync(question, edition?, ct)` (NO
+  campaignId/userId; scope via the shipped `RetrievalQuery.SourceBooks` OR filter → cited passages → NO LLM
+  call) + `RulesRulingResult` (reuses `Features/Lore.CitedPassage`). `ask_rules(question, edition?)` per-session
+  chat tool — OWNERSHIP-FREE (guard test asserts schema exposes NEITHER userId NOR campaignId), edition
+  defaults null. Contract: compose only from returned passages, NAME+CITE each rule, flag RAW-vs-DM-call,
+  honest "rules don't cover it" on empty — never invent. Real-Qdrant non-vacuity test (seed PHB rule +
+  off-scope Monster Manual block, identical embedding vectors → only the source-book filter excludes MM;
+  mutation-verified RED). DATA INVARIANT verified live (grappling/prone/cover rules ARE `PlayerHandbook 2014` =
+  in `RuleSources`; no fix needed this time). **LIVE SMOKE:** chat "can I grapple a creature that's already
+  prone?" → grounded ruling NAMING Prone + Grappling, CITED to PHB (Appendix A Conditions, "Making an Attack"),
+  flagging "the rules do not explicitly prohibit" (RAW). NO UI/http/mcp/migration. First shipped surface of the
+  "fresh companion-reasoning brainstorm" menu (NPC gen / session prep / rules / downtime — user picked rules).
+  **REGRESSION LESSON:** the setting-aware DATA-INVARIANT catalog fix (`1c6904a`) had broken 2 SettingLore
+  tests asserting old `ERLW`/`PHB` values — missed because the finish-step ran only the `SettingCatalogTests`
+  filter, not the full suite; caught by this feature's Task-2 full run, fixed `29624cb`. New dev-flow red flag:
+  re-run the FULL suite after ANY value/constant-changing fix. DEFERRED (v2): multi-hop rule decomposition;
+  multi-CATEGORY filter (`{Rule,Combat,Condition,Adventuring}`) for finer precision than source-book scoping.
+
 ## COMPANION UX / TABLE-PLAY — all SHIPPED (user-requested 2026-07-09/10)
 - **Item A — Dice roller** ✅ DONE (archived `dice-roller`, 2026-07-09; commits `4c25566..623b9a7`; full
   suite 1143/1143). `Features/Dice/`: `DiceExpression.TryParse/Parse` (NdX±K, all 7 dice, d20-only adv/dis;
@@ -429,7 +453,7 @@ NOT excluded from `dnd_entities` — spanned 3 write paths — until final revie
 mislabeled real entities). Cross-path invariants must be traced across ALL paths at final review; inject
 INTERFACES not concrete types — both now in dev-flow SKILL.
 
-## Current position (2026-07-13)
+## Current position (2026-07-13b)
 Extraction/retrieval FOUNDATION + **ALL named reasoning items (2,3,4) SHIPPED**; **companion reasoning +
 table-play all SHIPPED + archived: encounter-design (slice 1), dice roller (Item A), campaign log history
 (Item B), combat/initiative tracker + dedicated play page (Item C).** **UI fully restyled — `visual-design-system`
@@ -447,11 +471,16 @@ flat-list-with-repeats representation, grouped display; final opus review READY 
 **SETTING-AWARE LORE SYNTHESIS shipped + archived 2026-07-13 (`2026-07-13-setting-aware-lore`): per-campaign
 `Campaign.Setting` → source-book-scoped grounded cited `ask_setting_lore` tool; ERLW ingested (4322 chunks);
 LIVE SMOKE PASSED (Dragonmarked Houses answered + ERLW-cited) — the FIRST live-passing chat-driven tool smoke.**
-FULL suite **1280/1280**.
+**RULES ADJUDICATION (`ask_rules`) shipped + archived 2026-07-13 (`2026-07-13-rules-adjudication`): grounded
+CITED rulings scoped to the core rulebooks, ownership-free; LIVE SMOKE PASSED (grapple-while-prone → ruling
+naming Prone+Grappling, PHB-cited, RAW-flagged).**
+FULL suite **1285/1285**.
 NEXT candidates (user's call):
-(1) companion REASONING frontier (character-coach + **encounter-design v2 swarms** + **setting-aware lore** ALL DONE):
-    a fresh companion-reasoning brainstorm — the next un-named surface (NPC/statblock gen, session prep,
-    rules adjudication, downtime/crafting…), OR grow the setting catalog (ingest more setting books);
+(1) companion REASONING frontier (character-coach + **encounter-design v2 swarms** + **setting-aware lore** +
+    **rules adjudication** ALL DONE): the remaining fresh-brainstorm surfaces — **NPC/statblock generation**
+    (anchor-to-real-block + reskin), **session prep** (compose encounter+NPC+lore hooks), or **downtime/crafting**
+    (needs an XGE ingest first, like ERLW); OR rules-adjudication v2 (multi-hop / multi-category); OR grow the
+    setting catalog (ingest more setting books);
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6) — user DEFERRED this 2026-07-11
