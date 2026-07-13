@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Features.CharacterAdvice;
 using DndMcpAICsharpFun.Features.Chat;
 using DndMcpAICsharpFun.Features.Lore;
+using DndMcpAICsharpFun.Features.Rules;
 
 using Microsoft.Extensions.AI;
 
@@ -10,13 +11,14 @@ internal static class ChatExtensions
 {
     internal static IServiceCollection AddDndChat(this IServiceCollection services, IConfiguration config)
     {
-        // DndChatService depends on EncounterDesignService (and now SettingLoreService); pulling
-        // AddEncounters()/AddLore() in here keeps those dependencies self-contained regardless of
-        // composition order/omission (idempotent — these only register services, no options
-        // validation side effects).
+        // DndChatService depends on EncounterDesignService (and now SettingLoreService and
+        // RulesAdjudicationService); pulling AddEncounters()/AddLore()/AddRules() in here keeps those
+        // dependencies self-contained regardless of composition order/omission (idempotent — these
+        // only register services, no options validation side effects).
         services.AddEncounters();
         services.AddCharacterAdvice();
         services.AddLore();
+        services.AddRules();
 
         services.AddOptions<McpClientOptions>()
             .BindConfiguration("McpClient")
