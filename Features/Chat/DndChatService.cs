@@ -131,7 +131,7 @@ public sealed class DndChatService(
                     "target difficulty band."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (long heroSnapshotId, string? targetClass, bool? considerDip, CancellationToken toolCt) =>
+                (long heroSnapshotId, string? targetClass = null, bool? considerDip = null, CancellationToken toolCt = default) =>
                     levelUpService.PlanForUserAsync(
                         heroSnapshotId, userId, targetClass, considerDip ?? false, toolCt),
                 name: "plan_level_up",
@@ -144,7 +144,7 @@ public sealed class DndChatService(
                     "targetClass (optional) limits advice to one class."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (string className, string concept, int? targetLevel, CancellationToken toolCt) =>
+                (string className, string concept, int? targetLevel = null, CancellationToken toolCt = default) =>
                     buildRecommender.RecommendBuildOptionsAsync(className, concept, targetLevel, toolCt),
                 name: "recommend_build",
                 description: "Recommend a single-class D&D character build for a text concept (e.g. 'a tanky " +
@@ -169,7 +169,7 @@ public sealed class DndChatService(
                     "an ability misalignment → suggest recommend_build."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (long campaignId, string question, string? edition, CancellationToken toolCt) =>
+                (long campaignId, string question, string? edition = null, CancellationToken toolCt = default) =>
                     settingLoreService.AskForUserAsync(
                         userId, campaignId, question,
                         string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
@@ -183,7 +183,7 @@ public sealed class DndChatService(
                     "sources don't cover it — never invent world lore. edition is \"2014\" or \"2024\"."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (string question, string[]? ruleTopics, string? edition, CancellationToken toolCt) =>
+                (string question, string[]? ruleTopics = null, string? edition = null, CancellationToken toolCt = default) =>
                     rulesAdjudicationService.AskAsync(
                         question,
                         ruleTopics,
@@ -202,7 +202,7 @@ public sealed class DndChatService(
                     "campaign or character. edition is optional (\"2014\"/\"2024\"); omit to search all editions."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (string activity, string? edition, CancellationToken toolCt) =>
+                (string activity, string? edition = null, CancellationToken toolCt = default) =>
                     downtimeService.PlanAsync(
                         activity, string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
                         toolCt),
@@ -269,7 +269,7 @@ public sealed class DndChatService(
                     "campaign or character."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (string concept, string archetype, double? maxCr, CancellationToken toolCt) =>
+                (string concept, string archetype, double? maxCr = null, CancellationToken toolCt = default) =>
                     npcGenerationService.GenerateAsync(concept, archetype, maxCr, toolCt),
                 name: "generate_npc",
                 description: "Generate an NPC for a scene from a concept (e.g. 'a shifty Sharn dockworker'). " +

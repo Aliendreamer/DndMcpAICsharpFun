@@ -797,4 +797,38 @@ public sealed class DndChatServiceTests : IDisposable
             CancellationToken.None).AsTask();
         await act.Should().ThrowAsync<Exception>();
     }
+
+
+    public static IEnumerable<object[]> NoReorderOptionalParams() =>
+    [
+        ["plan_level_up", "targetClass"],
+        ["plan_level_up", "considerDip"],
+        ["ask_setting_lore", "edition"],
+        ["ask_rules", "ruleTopics"],
+        ["ask_rules", "edition"],
+        ["plan_downtime", "edition"],
+        ["generate_npc", "maxCr"],
+        ["recommend_build", "targetLevel"],
+    ];
+
+    [Theory]
+    [MemberData(nameof(NoReorderOptionalParams))]
+    public async Task Optional_chat_tool_param_is_not_in_the_schema_required_set(
+        string toolName, string paramName)
+    {
+        // AIFunctionFactory marks a parameter required unless it has a C# default value; a nullable
+        // type is NOT enough. These params are documented-optional, so the model must be able to omit
+        // them — i.e. they must be absent from the tool schema's `required` array.
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(42));
+
+        await svc.SendAsync("hello", false, CancellationToken.None);
+
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == toolName);
+        var required = tool.JsonSchema.TryGetProperty("required", out var req)
+            ? req.EnumerateArray().Select(e => e.GetString()).ToArray()
+            : Array.Empty<string?>();
+        required.Should().NotContain(paramName,
+            $"{toolName}.{paramName} is optional and the model must be able to omit it");
+    }
 }
