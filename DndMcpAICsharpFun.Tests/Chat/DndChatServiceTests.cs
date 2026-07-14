@@ -831,4 +831,52 @@ public sealed class DndChatServiceTests : IDisposable
         required.Should().NotContain(paramName,
             $"{toolName}.{paramName} is optional and the model must be able to omit it");
     }
+
+    public static IEnumerable<object[]> ReorderOptionalParams() =>
+    [
+        ["build_encounter", "campaignId"],
+        ["build_encounter", "theme"],
+        ["build_encounter", "maxCr"],
+        ["build_encounter", "minCr"],
+        ["prep_session", "difficulty"],
+        ["rate_encounter", "campaignId"],
+        ["rate_encounter", "partyLevels"],
+    ];
+
+    [Theory]
+    [MemberData(nameof(ReorderOptionalParams))]
+    public async Task Reordered_optional_chat_tool_param_is_not_in_the_schema_required_set(
+        string toolName, string paramName)
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(42));
+
+        await svc.SendAsync("hello", false, CancellationToken.None);
+
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == toolName);
+        var required = tool.JsonSchema.TryGetProperty("required", out var req)
+            ? req.EnumerateArray().Select(e => e.GetString()).ToArray()
+            : Array.Empty<string?>();
+        required.Should().NotContain(paramName);
+    }
+
+    [Fact]
+    public async Task BuildEncounterTool_binds_when_the_model_omits_all_optional_params()
+    {
+        // Regression for the required-param binding bug: the model calls build_encounter with only the
+        // required difficulty/edition and OMITS campaignId/theme/maxCr/minCr. Binding must succeed and
+        // reach EncounterDesignService's party-resolution guard (proving the tool ran), rather than
+        // throwing a MEAI "missing required parameter" binding error.
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(42));
+
+        await svc.SendAsync("Build it", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "build_encounter");
+
+        var act = () => tool.InvokeAsync(
+            ToArgs(new { difficulty = "Hard", edition = "2024" }), CancellationToken.None).AsTask();
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*supply campaignId or partyLevels*");
+    }
 }

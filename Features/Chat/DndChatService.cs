@@ -95,7 +95,8 @@ public sealed class DndChatService(
                     "grants. Works for any combination, caster or not."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (long? campaignId, int[]? partyLevels, MonsterQuantity[] monsters, string edition, CancellationToken toolCt) =>
+                (MonsterQuantity[] monsters, string edition, long? campaignId = null, int[]? partyLevels = null,
+                    CancellationToken toolCt = default) =>
                     encounterService.RateForUserAsync(
                         userId, campaignId, partyLevels, monsters, ParseEdition(edition), toolCt),
                 name: "rate_encounter",
@@ -108,8 +109,8 @@ public sealed class DndChatService(
                     "{name:\"goblin\", quantity:8}). edition is \"2014\" or \"2024\"."));
 
             toolList.Add(AIFunctionFactory.Create(
-                async (long? campaignId, string difficulty, string edition, string? theme,
-                    double? maxCr, double? minCr, CancellationToken toolCt) =>
+                async (string difficulty, string edition, long? campaignId = null, string? theme = null,
+                    double? maxCr = null, double? minCr = null, CancellationToken toolCt = default) =>
                 {
                     var built = await encounterService.BuildForUserAsync(
                         userId, campaignId, partyLevels: null, ParseDifficulty(difficulty),
@@ -295,7 +296,8 @@ public sealed class DndChatService(
                     "campaign or character."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (long campaignId, string theme, string? difficulty, string npcArchetype, CancellationToken toolCt) =>
+                (long campaignId, string theme, string npcArchetype, string? difficulty = null,
+                    CancellationToken toolCt = default) =>
                     sessionPrepService.PrepForUserAsync(
                         userId, campaignId, theme, ParseDifficulty(difficulty), npcArchetype,
                         DndVersion.Edition2014, toolCt),
