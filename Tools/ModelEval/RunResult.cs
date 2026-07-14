@@ -1,0 +1,8 @@
+namespace DndMcpAICsharpFun.Tools.ModelEval;
+
+internal sealed record RunResult(
+    string? SelectedTool,
+    bool BindOk,
+    bool Adhered,
+    long WallMs,
+    long? FirstToolCallMs);
