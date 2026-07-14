@@ -8,6 +8,8 @@ using DndMcpAICsharpFun.Features.SessionPrep;
 
 using Microsoft.Extensions.AI;
 
+using OllamaSharp;
+
 namespace DndMcpAICsharpFun.Extensions;
 
 internal static class ChatExtensions
@@ -40,7 +42,10 @@ internal static class ChatExtensions
         services.AddSingleton<IMcpToolsProvider>(sp => sp.GetRequiredService<McpToolsProvider>());
         services.AddTransient<IChatClient>(_ =>
         {
-            IChatClient inner = new OllamaChatClient(new Uri(baseUrl), chatModel);
+            // OllamaSharp's OllamaApiClient (NOT MEAI.Ollama's OllamaChatClient) — only it can send
+            // the top-level `think` field that DndChatService uses to run qwen3 think-off. It
+            // implements MEAI IChatClient, so the FunctionInvocation stack wraps it identically.
+            IChatClient inner = new OllamaApiClient(new Uri(baseUrl), chatModel);
             return inner.AsBuilder().UseFunctionInvocation().Build();
         });
         services.AddScoped<DndChatService>();

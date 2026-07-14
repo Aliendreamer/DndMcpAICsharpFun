@@ -327,7 +327,16 @@ public sealed class DndChatService(
 
             var response = await chatClient.GetResponseAsync(
                 messages,
-                new ChatOptions { Tools = [.. toolList] },
+                new ChatOptions
+                {
+                    Tools = [.. toolList],
+                    // qwen3 think OFF: OllamaSharp's AbstractionMapper copies this template's
+                    // Think=false into the outgoing request's top-level `think` field. Bench
+                    // (model-eval-harness): think-off wins selection/binding/adherence AND is
+                    // 4-8x faster. Requires the OllamaApiClient chat client wired in AddDndChat —
+                    // MEAI.Ollama's OllamaChatClient cannot send this field.
+                    RawRepresentationFactory = _ => new OllamaSharp.Models.Chat.ChatRequest { Think = false },
+                },
                 ct);
             var reply = response.Text ?? string.Empty;
             History.Add(new ChatMessage(ChatRole.Assistant, reply));

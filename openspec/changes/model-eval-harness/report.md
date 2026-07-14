@@ -90,6 +90,32 @@ Both implement `IChatClient` and the chat-wiring tests mock `IChatClient`, so re
 unaffected; needs a full `dotnet test` + a live chat smoke. **Gated on explicit user sign-off** (a
 production chat-client swap, bigger than the design's assumed one-liner).
 
+### LANDED (2026-07-14) — user signed off
+
+Applied both edits:
+
+- `Extensions/ChatExtensions.cs` — chat `IChatClient` now `new OllamaApiClient(...)` (OllamaSharp)
+  instead of `new OllamaChatClient(...)` (MEAI.Ollama). The extraction-path `IChatClient` in
+  `Extensions/ServiceCollectionExtensions.cs` (`AddEntityExtraction`) was deliberately left on
+  `OllamaChatClient` — extraction is out of scope.
+- `Features/Chat/DndChatService.cs` — the per-request `ChatOptions` now sets
+  `RawRepresentationFactory = _ => new OllamaSharp.Models.Chat.ChatRequest { Think = false }`.
+  (Blanket `using OllamaSharp.Models.Chat;` was avoided — its `ChatRole` collides with MEAI's — so
+  `ChatRequest` is fully qualified inline.)
+
+**Verification:**
+
+- `dotnet build` clean; **full suite 1344/1344 green** (chat-wiring tests mock `IChatClient`, unaffected).
+- Rebuilt the app image (`docker compose up -d --build app`) and ran a **live chat smoke** through the
+  real Blazor UI (logged in as the seeded `test` user): "how many workweeks / how much gold for a
+  **Very Rare** magic item?" → the model selected `calculate_crafting`, bound `rarity=Very Rare`
+  cleanly (no MEAI binding exception), and the reply reported the exact deterministic numbers
+  **25 workweeks / 20,000 gp**, cited to XGE. No `<think>` block leaked into the reply; zero app-log
+  errors during the exchange. Latency was not cleanly isolated in-browser (the smoke tool forces a
+  fixed wait), but the harness bench already established think-off p50 = 1–5 s vs 8–27 s think-on.
+
+Task 5 complete; the harness change is done.
+
 ## Bonus findings (surfaced by the harness — OUT of this spec's scope, for a follow-up)
 
 The harness did its job and exposed two real production issues, both independent of the think setting:
