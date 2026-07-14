@@ -87,4 +87,8 @@ its keep either way).
 - **[Harness needs Ollama + pulled models]** → it's a bench, run on demand with `dangerouslyDisableSandbox`
   + Docker up; never in CI.
 - **[Same-size swaps may show no winner]** → that IS a result: it says the local ceiling is
-  qwen3+think-off, and a real jump needs going off-GPU (lever E) — a separate, bigger decision.
+  qwen3+think-off. **Local-only is a HARD constraint (user decision): off-GPU / remote models (lever E)
+  are OUT of scope** — the offline/on-this-laptop stance stands. So if no local same-size model beats
+  qwen3+think-off, the fallback is to accept that ceiling and invest in harness-level reliability
+  (retry-on-binding-fail, constrained tool-calls — lever B), NOT to reach for a bigger remote model.
+  The harness therefore only ever compares models that fit the 8 GB budget.
