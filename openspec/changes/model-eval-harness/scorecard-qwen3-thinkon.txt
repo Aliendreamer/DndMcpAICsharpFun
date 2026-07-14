@@ -1,0 +1,16 @@
+
+=== Scorecard — model=qwen3:8b think=on runs=5 ===
+scenario           expect               sel    bind   adhere  p50ms    p95ms   
+craft-nonmagical   calculate_crafting   5/5    5/5    5/5     13212    15888   
+craft-magic        calculate_crafting   5/5    5/5    3/5     8424     8798    
+npc-party          generate_npc_party   5/5    5/5    5/5     10009    10191   
+npc-single         generate_npc         1/5    1/5    1/5     21908    29430   
+rules-grapple      ask_rules            5/5    1/5    5/5     21205    26066   
+downtime-craft     plan_downtime        0/5    0/5    0/5     8679     11766   
+encounter-build    build_encounter      5/5    0/5    0/5     16289    31226   
+setting-lore       ask_setting_lore     4/5    2/5    3/5     26923    53690   
+rules-empty        ask_rules            5/5    4/5    1/5     21111    28866   
+no-tool            (none)               5/5    5/5    5/5     3021     3605    
+----------------------------------------------------------------------
+TOTAL                                   40/50  28/50  28/50  
+
