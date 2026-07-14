@@ -53,6 +53,19 @@ public sealed class NpcGenerationService(IEntityRetrievalService retrieval)
             ArchetypeInCorpus: true, AvailableArchetypes: []);
     }
 
+
+    public async Task<GeneratedNpcParty> GeneratePartyAsync(string theme, CancellationToken ct)
+    {
+        var (templateName, roster) = NpcPartyTemplates.Resolve(theme);
+        var members = new List<NpcPartyMember>(roster.Count);
+        foreach (var (role, archetype) in roster)
+        {
+            var npc = await GenerateAsync(concept: role, archetype: archetype, maxCr: null, ct);
+            members.Add(new NpcPartyMember(role, npc));
+        }
+        return new GeneratedNpcParty(theme, templateName, members);
+    }
+
     private static MonsterFields? TryDeserialize(JsonElement fields)
     {
         try { return fields.Deserialize<MonsterFields>(JsonOpts); }
