@@ -60,8 +60,49 @@ var options = new ChatOptions
   built in `DndChatService.SendAsync` — gated on the bench result AND on explicit user sign-off
   (bigger than the design's "one-line change"; needs full `dotnet test` + a live chat smoke).
 
-### Decision inputs still to gather (Task 4 bench)
+## Task 4 — Bench results (N=5) & the think decision
 
-Three scorecards: `qwen3:8b think-on` (baseline), `qwen3:8b think-off` (lever A), and one same-size
-alternative if pulled. The `think:false` latency win is already visually enormous (12 vs 388 tokens);
-the bench confirms it does not regress selection/binding/adherence before we touch production.
+Scorecards saved: `scorecard-qwen3-thinkon.txt`, `scorecard-qwen3-thinkoff.txt` (commit 34e4018).
+Same binary for both (fair latency); reached the shared Ollama at `http://172.18.0.10:11434`.
+
+| Dimension (/50) | think ON | think OFF | delta |
+|---|---:|---:|---:|
+| Selection | 40 | **45** | +5 |
+| Binding | 28 | **38** | +10 |
+| Adherence | 28 | **33** | +5 |
+| p50 latency | 8–27 s | **1–5 s** | ~4–8× faster |
+
+**Verdict: LAND lever A (think-off).** Think-off wins on *every* quality dimension AND is 4–8×
+faster — think-on actively *derails* qwen3's tool use (e.g. `npc-single` selection 1/5 → 5/5,
+`downtime-craft` 0/5 → 5/5 with think off; the reasoning block appears to crowd out clean tool-call
+emission). No same-size alternative was needed to decide — think-off is the clear local ceiling win.
+
+### Production landing (Task 5) — mechanism & gate
+
+Landing requires the spike-confirmed client swap (MEAI.Ollama `OllamaChatClient` cannot send `think`):
+
+- `Extensions/ChatExtensions.cs`: `new OllamaChatClient(...)` → `new OllamaApiClient(...)` (OllamaSharp,
+  implements MEAI `IChatClient`).
+- `Features/Chat/DndChatService.cs`: add `RawRepresentationFactory = _ => new ChatRequest { Think = false }`
+  to the `ChatOptions` passed to `GetResponseAsync`.
+
+Both implement `IChatClient` and the chat-wiring tests mock `IChatClient`, so registration/tests are
+unaffected; needs a full `dotnet test` + a live chat smoke. **Gated on explicit user sign-off** (a
+production chat-client swap, bigger than the design's assumed one-liner).
+
+## Bonus findings (surfaced by the harness — OUT of this spec's scope, for a follow-up)
+
+The harness did its job and exposed two real production issues, both independent of the think setting:
+
+1. **Latent required-param binding bug on 6 chat tools.** `ask_rules`, `plan_downtime`,
+   `build_encounter`, `ask_setting_lore`, `generate_npc`, `plan_level_up` declare optional params
+   WITHOUT a C# `= null` default, so AIFunctionFactory marks them *required*; when qwen3 omits one,
+   MEAI binding throws and the tool never runs. `build_encounter` binds **0/5 even with think-off**
+   (it has three such params: theme/maxCr/minCr). This is the SAME bug class the `calculate_crafting`
+   fix resolved — the fix generalizes: add `= null` defaults to those params in `DndChatService`.
+2. **`craft-magic` adherence 0/5.** The model calls `calculate_crafting` but the final text never
+   contains the stub's `2000` — likely calling with `marketValue` instead of `rarity`, or reporting a
+   fabricated/re-derived number. Worth a closer look (persona hardening or the same binding issue).
+
+Recommend a follow-up change (`chat-tool-binding-fixes` or similar) to apply the `= null`
+generalization and investigate #2; this spec stays scoped to the harness + the think decision.
