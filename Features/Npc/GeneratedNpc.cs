@@ -10,3 +10,10 @@ public sealed record NpcStatBlock(
 public sealed record GeneratedNpc(
     string Concept, string Archetype, NpcStatBlock? StatBlock,
     bool ArchetypeInCorpus, IReadOnlyList<string> AvailableArchetypes);
+
+
+/// <summary>One member of a generated NPC ensemble: its role plus the grounded NPC.</summary>
+public sealed record NpcPartyMember(string Role, GeneratedNpc Npc);
+
+/// <summary>A themed ensemble of grounded NPCs (leader first) resolved from a party template.</summary>
+public sealed record GeneratedNpcParty(string Theme, string Template, IReadOnlyList<NpcPartyMember> Members);
