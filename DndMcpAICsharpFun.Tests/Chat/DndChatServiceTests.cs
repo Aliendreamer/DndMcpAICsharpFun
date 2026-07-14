@@ -179,6 +179,34 @@ public sealed class DndChatServiceTests : IDisposable
     private static NpcGenerationService BuildNpcGenerationService(IEntityRetrievalService? search = null) =>
         new(search ?? Substitute.For<IEntityRetrievalService>());
 
+    // A fake that grounds ANY queried archetype: the returned hit is named after the query text.
+    // Mirrors NpcGenerationServicePartyTests.EchoSearch so GeneratePartyAsync resolves a real ensemble
+    // through the chat tool delegate, not just an empty not-in-corpus stub.
+    private static IEntityRetrievalService EchoNpcSearch()
+    {
+        var s = Substitute.For<IEntityRetrievalService>();
+        s.SearchDiagnosticAsync(Arg.Any<EntitySearchQuery>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                var name = ci.Arg<EntitySearchQuery>().QueryText;
+                var id = "mm.monster." + name.ToLowerInvariant().Replace(' ', '-');
+                return new List<EntityDiagnosticResult> { new(id, EntityType.Monster, name, "MM",
+                    "Edition2014", null, [], "pt",
+                    JsonDocument.Parse("""{"cr":"1","hp":{"average":11},"dex":14}""").RootElement, 0.9f) };
+            });
+        s.GetByIdAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                var id = ci.Arg<string>();
+                var name = id.Replace("mm.monster.", "").Replace('-', ' ');
+                return new EntityFullResult(new EntityEnvelope(id, EntityType.Monster, name, "MM",
+                    "Edition2014", null, new FirstAppearance("MM", "Edition2014"), [], [],
+                    $"{name}\nAC 12\nHP 27\nSTR 10 DEX 15",
+                    JsonDocument.Parse("""{"cr":"1","hp":{"average":27},"str":10,"dex":15,"con":10,"int":12,"wis":14,"cha":16}""").RootElement));
+            });
+        return s;
+    }
+
     /// <summary>
     /// Builds a real <see cref="SessionPrepService"/> over the DB-free
     /// <see cref="EncounterDesignService"/>/<see cref="NpcGenerationService"/>/<see cref="SettingLoreService"/>
@@ -368,6 +396,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().NotContain("plan_downtime");
         toolNames.Should().NotContain("calculate_crafting");
         toolNames.Should().NotContain("generate_npc");
+        toolNames.Should().NotContain("generate_npc_party");
         toolNames.Should().NotContain("prep_session");
     }
 
@@ -389,6 +418,7 @@ public sealed class DndChatServiceTests : IDisposable
         toolNames.Should().Contain("plan_downtime");
         toolNames.Should().Contain("calculate_crafting");
         toolNames.Should().Contain("generate_npc");
+        toolNames.Should().Contain("generate_npc_party");
         toolNames.Should().Contain("prep_session");
     }
 
@@ -405,7 +435,7 @@ public sealed class DndChatServiceTests : IDisposable
         var tools = client.LastOptions!.Tools!.OfType<AIFunction>()
             .Where(t => t.Name is "rate_encounter" or "build_encounter" or "plan_level_up" or "recommend_build"
                 or "critique_build" or "ask_setting_lore" or "ask_rules" or "plan_downtime" or "calculate_crafting"
-                or "generate_npc" or "prep_session");
+                or "generate_npc" or "generate_npc_party" or "prep_session");
         foreach (var tool in tools)
         {
             var hasUserId = tool.JsonSchema.TryGetProperty("properties", out var props)
@@ -721,6 +751,32 @@ public sealed class DndChatServiceTests : IDisposable
         var npc = ((JsonElement)result!).Deserialize<GeneratedNpc>(tool.JsonSerializerOptions);
         npc!.ArchetypeInCorpus.Should().BeFalse();            // empty search → not-in-corpus (reached the service)
         npc.AvailableArchetypes.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task GenerateNpcPartyTool_exposes_a_single_theme_param_and_returns_a_grounded_ensemble()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(9),
+            npcGenerationService: BuildNpcGenerationService(EchoNpcSearch()));
+
+        await svc.SendAsync("npc party", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "generate_npc_party");
+
+        tool.JsonSchema.TryGetProperty("properties", out var props);
+        props.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("theme");
+        props.TryGetProperty("theme", out var themeSchema).Should().BeTrue();
+        themeSchema.GetProperty("type").GetString().Should().Be("string");
+        props.TryGetProperty("userId", out _).Should().BeFalse();
+
+        var result = await tool.InvokeAsync(
+            ToArgs(new { theme = "temple cult" }),
+            CancellationToken.None);
+        var party = ((JsonElement)result!).Deserialize<GeneratedNpcParty>(tool.JsonSerializerOptions);
+        party!.Template.Should().Be("cult");
+        party.Members[0].Role.Should().Be("high priest");
+        party.Members[0].Npc.StatBlock!.Name.Should().Be("Cult Fanatic");
+        party.Members.Should().OnlyContain(m => m.Npc.ArchetypeInCorpus);
     }
 
     [Fact]

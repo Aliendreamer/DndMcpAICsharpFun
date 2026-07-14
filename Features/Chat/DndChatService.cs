@@ -283,6 +283,18 @@ public sealed class DndChatService(
                     "Not tied to any campaign or character."));
 
             toolList.Add(AIFunctionFactory.Create(
+                (string theme, CancellationToken toolCt) =>
+                    npcGenerationService.GeneratePartyAsync(theme, toolCt),
+                name: "generate_npc_party",
+                description: "Generate a themed CAST of NPCs for a scene from a single theme string (e.g. " +
+                    "'a Sharn heist crew', 'a temple cult', 'the city watch'). Returns an ENSEMBLE — a leader plus " +
+                    "supporting members — each anchored to a REAL Monster stat block (CR/HP/abilities + rendered " +
+                    "block). Compose each member's name, personality, and hook to fit the theme, but take ALL " +
+                    "mechanical stats from the returned blocks and CITE them (source book); NEVER invent stat " +
+                    "numbers. If a member says archetypeInCorpus false, drop or replace it. Not tied to any " +
+                    "campaign or character."));
+
+            toolList.Add(AIFunctionFactory.Create(
                 (long campaignId, string theme, string? difficulty, string npcArchetype, CancellationToken toolCt) =>
                     sessionPrepService.PrepForUserAsync(
                         userId, campaignId, theme, ParseDifficulty(difficulty), npcArchetype,
