@@ -1,4 +1,8 @@
-# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-12)
+# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-14)
+
+**LATEST (2026-07-14) — STABLE-BOOK-KEY-RETRIEVAL SHIPPED** (archived `2026-07-14-stable-book-key-retrieval`; suite 1338/1338, opus whole-branch review MERGE-READY). Fixed the DMG-ingest gap AND the root fragility behind it: block retrieval scoped `dnd_blocks` by the free-text `source_book` DISPLAY NAME (apostrophe/spacing drift → silent-empty; the DMG had never been block-ingested at all). Now blocks carry a stable `source_key` (from `IngestionRecord.FivetoolsSourceKey`), retrieval filters by key (aligning blocks with `dnd_entities`, already keyed), `BookCatalog` is the single key↔display-name source of truth (display name kept only for citations). One-time backfill keyed all 16,698 existing blocks via Qdrant set-payload (no re-embed); **DMG ingested = 3,770 blocks (`source_key=DMG`, exact "Dungeon Master's Guide 2014")** via its already-cached MinerU conversion. Added a startup scope-health guard (WARN non-fatal if any scope key has 0 blocks — fired for all 5 pre-backfill, silent after) + a metadata-only `POST /admin/books/reconcile`. Live-validated at the retrieval layer (chat UI smoke was flaky — qwen3 latency + Playwright circuit drops; `GET /retrieval/search` scoped to DMG returned the verbatim "no more than three attuned items" rule instead — see dev-flow lesson). NOTE: `git worktree` isolation is UNUSABLE while git-crypt is active (smudge fails on fresh worktree) → subagents ran sequentially. Corpus now: PHB 5243, MM 4995, ERLW 4322, DMG 3770, XGE 2138 — all keyed.
+
+# (prior header) D&D Companion — Roadmap & Progress (living; refreshed 2026-07-12)
 
 **North star:** a companion agent that REASONS (character build / encounter design / setting-aware
 lore), not just retrieves. RAG + extraction are the *means*, and that foundation is built —
