@@ -30,6 +30,9 @@ internal static class ScenarioRunner
             sw.Stop();
 
             // Selection: the model's chosen tool, read pre-binding from the round-trip messages.
+            // Known limitation (v1): FirstOrDefault anchors to the FIRST call/result only. If the model
+            // fails a bind then self-corrects and retries successfully in the same round-trip, this run
+            // is still scored bind-fail — a successful mid-loop retry is not credited.
             var call = response.Messages
                 .SelectMany(m => m.Contents)
                 .OfType<FunctionCallContent>()
@@ -52,10 +55,13 @@ internal static class ScenarioRunner
                 ? selected is null                                  // negative case: adhered == picked no tool
                 : selected == s.ExpectedTool && s.AdherenceCheck(response.Text ?? string.Empty);
         }
-        catch (Exception) // MEAI binder throw (e.g. missing required arg) → bind-fail for this run
+        catch (Exception ex) // MEAI binder throw (e.g. missing required arg) → bind-fail for this run
         {
             sw.Stop();
-            // selected may have been captured pre-throw in a fuller impl; v1 records it as a bind failure.
+            // A throw here is scored as a bind failure. Surface it on stderr so an operator can tell a
+            // genuine model/binder failure from infra trouble (Ollama down, timeout) — the scorecard
+            // (stdout) cannot distinguish them.
+            Console.Error.WriteLine($"[{s.Name}] exception (scored bind-fail): {ex.Message}");
         }
 
         return new RunResult(selected, bindOk, adhered, sw.ElapsedMilliseconds, firstToolMs);
