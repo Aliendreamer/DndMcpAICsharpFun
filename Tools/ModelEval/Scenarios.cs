@@ -24,7 +24,8 @@ internal static class Scenarios
         new("setting-lore", "Who rules the city of Sharn in my Eberron campaign?",
             "ask_setting_lore", false, t => Has(t, "Lord Mayor") || Has(t, "council")),
         new("rules-empty", "What are the exact rules for holding your breath while swimming in lava?",
-            "ask_rules", true, t => Has(t, "not") || Has(t, "don't cover") || Has(t, "no ") || Has(t, "isn't")),
+            "ask_rules", true, t => Has(t, "don't cover") || Has(t, "doesn't cover") || Has(t, "not covered") ||
+                Has(t, "don't directly") || Has(t, "no passages") || Has(t, "no rules") || Has(t, "isn't covered") || Has(t, "aren't covered")),
         new("no-tool", "Hi there, how's it going today?",
             null, false, _ => true),
     ];
