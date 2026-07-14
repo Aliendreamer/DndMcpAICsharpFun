@@ -271,7 +271,15 @@ internal static class StubState
 
 - [ ] **Step 2: Write `StubTools.cs`**
 
-Create `Tools/ModelEval/StubTools.cs` — 8 stubs, signatures matching production (names/params/`= null` defaults verbatim; CancellationToken dropped):
+> **CORRECTION (shipped as fix `0ede031`):** the code block below mistakenly adds `= null` defaults to
+> 6 tools' optional params. Production `DndChatService` does NOT have those defaults, and a
+> nullable-without-default param is marked *required* by AIFunctionFactory — so verbatim parity means
+> **remove `= null` from `generate_npc.maxCr`, `ask_rules.{ruleTopics,edition}`, `plan_downtime.edition`,
+> `build_encounter.{theme,maxCr,minCr}`, `ask_setting_lore.edition`, `plan_level_up.{targetClass,considerDip}`**.
+> Only `calculate_crafting` keeps its `= null` defaults (production has them). This makes the harness
+> faithfully reproduce production's binder — and likely exposes a latent binding bug on those 6 tools.
+
+Create `Tools/ModelEval/StubTools.cs` — 8 stubs, signatures matching production verbatim (names/params/CancellationToken dropped; `= null` ONLY where production has it, i.e. `calculate_crafting`):
 ```csharp
 using Microsoft.Extensions.AI;
 
