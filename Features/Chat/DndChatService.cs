@@ -332,12 +332,12 @@ public sealed class DndChatService(
                 new ChatOptions
                 {
                     Tools = [.. toolList],
-                    // qwen3 think OFF: OllamaSharp's AbstractionMapper copies this template's
-                    // Think=false into the outgoing request's top-level `think` field. Bench
-                    // (model-eval-harness): think-off wins selection/binding/adherence AND is
-                    // 4-8x faster. Requires the OllamaApiClient chat client wired in AddDndChat —
-                    // MEAI.Ollama's OllamaChatClient cannot send this field.
-                    RawRepresentationFactory = _ => new OllamaSharp.Models.Chat.ChatRequest { Think = false },
+                    // qwen3 think ON (default): reasoning is required for multi-rule questions to
+                    // come out correct. Bench (model-eval-harness): tool selection/binding is a
+                    // 36/36 tie between think-on and think-off, so there is no accuracy cost to
+                    // leaving it on. qwen3 reasons by default when no RawRepresentationFactory
+                    // overrides the outgoing request's `think` field; OllamaSharp surfaces the
+                    // model's reasoning in a separate field, so response.Text stays answer-only.
                 },
                 ct);
             var reply = response.Text ?? string.Empty;

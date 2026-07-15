@@ -272,6 +272,28 @@ public sealed class DndChatServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SendAsync_does_not_force_think_mode_off()
+    {
+        // Guard: qwen3 reasons by default when RawRepresentationFactory is omitted. If a
+        // Think=false override is ever re-added, the factory below will yield a ChatRequest
+        // with Think explicitly false, and this assertion fails.
+        var client = new FakeChatClient();
+        var svc = CreateService(client);
+
+        await svc.SendAsync("What does fireball do?", false, CancellationToken.None);
+
+        var factory = client.LastOptions!.RawRepresentationFactory;
+        if (factory is not null)
+        {
+            var raw = factory(client) as OllamaSharp.Models.Chat.ChatRequest;
+            // ChatRequest.Think is OllamaSharp.Models.Chat.ThinkValue? (not plain bool?); convert via
+            // ToBoolean() to compare — a raw `raw?.Think.Should().NotBe(false)` would trivially never
+            // fail, since ThinkValue.Equals(object) returns false for a non-ThinkValue boxed bool.
+            raw?.Think?.ToBoolean().Should().NotBe(false);
+        }
+    }
+
+    [Fact]
     public async Task SendAsync_returns_false_and_adds_no_assistant_message_when_unreachable()
     {
         var client = new FakeChatClient { ShouldThrow = true };
