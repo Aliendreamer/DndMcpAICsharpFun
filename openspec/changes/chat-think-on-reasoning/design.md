@@ -23,6 +23,8 @@ think-on path is simply the *absence* of the `RawRepresentationFactory` (“qwen
   correct grounded answers instead of think-off fabrications.
 - The model's internal reasoning trace is never shown to the user.
 - Guard the mode in a test so it cannot silently revert to think-off.
+- Keep think-on latency bounded regardless of conversation length by sending only a recent history
+  window to the model.
 
 **Non-Goals:**
 
@@ -48,13 +50,21 @@ think-on path is simply the *absence* of the `RawRepresentationFactory` (“qwen
    this separation; the guard/live check confirms no reasoning text reaches the user.
 4. **Guard test asserts the mode.** A `DndChatService` test asserts the per-request `ChatOptions` does
    not force `Think=false` (the override is gone), so a future edit can't silently restore think-off.
+5. **Bound the model's history window to the last N=12 messages.** Think-on cost grows with prompt size;
+   the live smoke proved this is severe — a fresh chat answers in ~45 s but a 40-turn chat (the full
+   `LoadHistoryAsync(maxTurns=40)` load, all sent via `messages.AddRange(History)`) exceeded 10 min and
+   the SignalR circuit dropped. Fix: send only `History.TakeLast(12)` to the model (system persona still
+   prepended); keep loading/displaying/persisting the full conversation. A message-count window (not a
+   token budget) is chosen for simplicity and predictability; N=12 (≈6 exchanges) preserves follow-up
+   coherence while keeping latency near the fresh-conversation cost regardless of chat length.
 
 ## Risks / Trade-offs
 
-- **Latency (~2.5–4×).** p50 rises to ~16 s on tool answers in the rig; real answers with live retrieval
-  likely 20–40 s; casual ~1.6 s→3.5 s. Accepted for correctness. Consequence: slower answers raise the
-  chance the Blazor SignalR circuit drops mid-answer (already observed on qwen3 latency) — real but
-  out of scope; noted for a follow-up UX hardening.
+- **Latency.** Think-on answers run ~45 s on a fresh conversation (live-measured), vs ~4–5 s think-off.
+  Without the history cap this grew unboundedly with chat length (40 turns → >10 min → dropped circuit);
+  the N=12 window (Decision 5) bounds it back to roughly the fresh-conversation cost. ~45 s/answer is
+  still slow and raises the chance the Blazor SignalR circuit drops mid-answer on the browser — real but
+  a separate UX hardening (circuit-timeout / streaming), out of scope here.
 - **Rig adherence dipped slightly** (32→29) under think-on, but that metric is stub-prose format
   checks, not reasoning; the reasoning win (the actual goal) is not something the current rig measures —
   it is validated by the grounding probe + the live smoke.

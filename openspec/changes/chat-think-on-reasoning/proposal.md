@@ -20,6 +20,10 @@ the reasoning wall at no selection cost, and a same-hardware reasoning-model ben
   rig-measured tie) so the rationale doesn't silently rot back to think-off.
 - Add a guard test that the chat's per-request `ChatOptions` does NOT force `Think=false`, preventing a
   silent revert.
+- **Bound the history window sent to the model** to the last N=12 messages (a `const`), because think-on
+  reasoning cost grows with prompt size — a live smoke showed a fresh chat answers in ~45 s but a
+  40-turn chat exceeded 10 min and dropped the request. The full conversation is still loaded, displayed,
+  and persisted; only the model input is windowed, so latency stays bounded regardless of chat length.
 
 ## Capabilities
 
@@ -44,4 +48,4 @@ the reasoning wall at no selection cost, and a same-hardware reasoning-model ben
   circuit times out mid-answer — flagged as a separate UX hardening, out of scope here.
 - **Out of scope (separate follow-ups):** multi-hop `ask_rules` retrieval (so a multi-rule question
   always fetches every rule set); split think-mode (unjustified — selection is a tie); circuit-timeout
-  hardening.
+  hardening; token-based (vs message-count) history budgeting.

@@ -33,3 +33,23 @@ assistant turn.
 - **WHEN** the chat composes an answer with reasoning enabled
 - **THEN** the assistant text added to history, persisted, and shown to the user SHALL be the answer
   content only, with no reasoning-trace markup (e.g. no `<think>…</think>` block)
+
+### Requirement: The chat sends only a bounded recent window of history to the model
+
+Because think-on reasoning cost grows with prompt size, `DndChatService` SHALL send at most the most
+recent N conversation messages (a fixed constant window, N = 12) to the chat model on each request, in
+addition to the single system persona message. The full conversation MAY still be loaded, displayed, and
+persisted — only the messages passed to the model are windowed — so latency stays bounded regardless of
+how long the conversation grows.
+
+#### Scenario: History longer than the window is truncated for the model
+
+- **WHEN** the in-memory conversation history contains more than N messages and a request is sent
+- **THEN** the messages passed to the chat model SHALL be exactly one system persona message followed by
+  the last N history messages (the current user message included), and SHALL NOT contain older messages
+
+#### Scenario: Short history is sent in full
+
+- **WHEN** the in-memory conversation history contains N or fewer messages
+- **THEN** the messages passed to the chat model SHALL be the system persona message followed by the
+  entire history
