@@ -23,6 +23,8 @@ internal static class ScenarioRunner
         var bindOk = false;
         var adhered = false;
         long? firstToolMs = null;
+        bool? noListOk = null;
+        bool? numberLabelOk = null;
 
         try
         {
@@ -51,9 +53,17 @@ internal static class ScenarioRunner
             if (selected is not null)
                 firstToolMs = sw.ElapsedMilliseconds; // whole round-trip incl. tool call; finer split not needed v1
 
+            var text = response.Text ?? string.Empty;
+
             adhered = s.ExpectedTool is null
                 ? selected is null                                  // negative case: adhered == picked no tool
-                : selected == s.ExpectedTool && s.AdherenceCheck(response.Text ?? string.Empty);
+                : selected == s.ExpectedTool && s.AdherenceCheck(text);
+
+            // Extra per-run symptom tallies (do not affect selection/binding/adherence scoring above).
+            if (s.NoListCheck is not null)
+                noListOk = s.NoListCheck(text);
+            if (s.NumberLabelCheck is not null)
+                numberLabelOk = s.NumberLabelCheck(text);
         }
         catch (Exception ex) // MEAI binder throw (e.g. missing required arg) → bind-fail for this run
         {
@@ -64,6 +74,6 @@ internal static class ScenarioRunner
             Console.Error.WriteLine($"[{s.Name}] exception (scored bind-fail): {ex.Message}");
         }
 
-        return new RunResult(selected, bindOk, adhered, sw.ElapsedMilliseconds, firstToolMs);
+        return new RunResult(selected, bindOk, adhered, sw.ElapsedMilliseconds, firstToolMs, noListOk, numberLabelOk);
     }
 }

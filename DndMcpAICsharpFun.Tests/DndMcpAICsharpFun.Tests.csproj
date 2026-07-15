@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DndMcpAICsharpFun.csproj" />
+    <ProjectReference Include="..\Tools\ModelEval\ModelEval.csproj" />
   </ItemGroup>
 
   <ItemGroup>

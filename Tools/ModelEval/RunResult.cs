@@ -5,4 +5,6 @@ internal sealed record RunResult(
     bool BindOk,
     bool Adhered,
     long WallMs,
-    long? FirstToolCallMs);
+    long? FirstToolCallMs,
+    bool? NoListOk = null,
+    bool? NumberLabelOk = null);

@@ -6,4 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\DndMcpAICsharpFun.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="DndMcpAICsharpFun.Tests" />
+  </ItemGroup>
 </Project>
