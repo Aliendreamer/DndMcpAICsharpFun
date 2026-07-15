@@ -29,10 +29,16 @@ public sealed class RulesAdjudicationService(IRagRetrievalService rag)
             topicGroups.Add(new RuleTopicPassages(topic, topicPassages));
         }
 
+        // Deterministic safety net: `ruleTopics` decomposition is only ~80% reliable (the model can
+        // drop a topic), so also retrieve on the whole question and fold it into the combined list
+        // (not into topicGroups) so a dropped topic's rule can still surface.
+        var whole = await RetrieveAsync(question, edition, RuleSources.TopK, ct);
+
         // Flat union de-duped by citation identity, keeping the highest-scoring copy; the per-topic
         // groups above still retain each passage under every rule it grounded.
         var merged = topicGroups
             .SelectMany(g => g.Passages)
+            .Concat(whole)
             .GroupBy(p => (p.Text, p.SourceBook, p.Section))
             .Select(grp => grp.OrderByDescending(p => p.Score).First())
             .ToList();

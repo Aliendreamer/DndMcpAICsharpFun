@@ -75,7 +75,8 @@ public sealed class RulesAdjudicationServiceTests
     {
         var rag = Substitute.For<IRagRetrievalService>();
         rag.SearchAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>())
-            .Returns(ci => {
+            .Returns(ci =>
+            {
                 var q = ci.Arg<RetrievalQuery>();
                 // return one passage naming the topic's book, so we can see per-topic grouping
                 return (IList<RetrievalResult>)Results((q.QueryText + " rule", "PlayerHandbook 2014"));
@@ -128,5 +129,46 @@ public sealed class RulesAdjudicationServiceTests
         await rag.Received(1).SearchAsync(
             Arg.Is<RetrievalQuery>(q => q.QueryText == "grappling" && q.TopK == RuleSources.TopK),
             Arg.Any<CancellationToken>());
+    }
+
+
+    [Fact]
+    public async Task Multihop_includes_whole_question_retrieval_as_deterministic_safety_net()
+    {
+        var rag = Substitute.For<IRagRetrievalService>();
+        rag.SearchAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                var q = ci.Arg<RetrievalQuery>();
+                return q.QueryText switch
+                {
+                    "grapple while prone" => (IList<RetrievalResult>)Results(
+                        ("whole-question-only rule", "DungeonMastersGuide 2014"),
+                        ("grappling rule", "PlayerHandbook 2014")), // also returned by the "grappling" topic query
+                    "grappling" => (IList<RetrievalResult>)Results(("grappling rule", "PlayerHandbook 2014")),
+                    "prone condition" => (IList<RetrievalResult>)Results(("prone condition rule", "PlayerHandbook 2014")),
+                    _ => (IList<RetrievalResult>)new List<RetrievalResult>(),
+                };
+            });
+        var svc = new RulesAdjudicationService(rag);
+
+        var result = await svc.AskAsync("grapple while prone",
+            ruleTopics: ["grappling", "prone condition"], edition: null, CancellationToken.None);
+
+        // the whole-question-only passage (not returned by any topic query) surfaces in the combined list
+        result.Passages.Should().Contain(p =>
+            p.Text == "whole-question-only rule" && p.SourceBook == "DungeonMastersGuide 2014");
+
+        // per-topic groups are unaffected by the whole-question retrieval
+        result.Topics.Should().OnlyContain(t => t.Passages.All(p => p.Text != "whole-question-only rule"));
+        result.Topics.Single(t => t.Topic == "grappling").Passages
+            .Should().OnlyContain(p => p.Text == "grappling rule");
+        result.Topics.Single(t => t.Topic == "prone condition").Passages
+            .Should().OnlyContain(p => p.Text == "prone condition rule");
+
+        // dedup holds: the passage returned by both the "grappling" topic query and the whole-question
+        // query appears exactly once in the combined list
+        result.Passages.Count(p => p.Text == "grappling rule" && p.SourceBook == "PlayerHandbook 2014")
+            .Should().Be(1);
     }
 }
