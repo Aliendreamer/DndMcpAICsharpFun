@@ -15,30 +15,30 @@
 
 ## 2. Bound the history window sent to the model (TDD)
 
-- [ ] 2.1 Add a guard test in `DndMcpAICsharpFun.Tests/Chat/DndChatServiceTests.cs`: seed a
+- [x] 2.1 Add a guard test in `DndMcpAICsharpFun.Tests/Chat/DndChatServiceTests.cs`: seed a
   `DndChatService` `History` with MORE than N (=12) messages (e.g. via `LoadHistoryAsync` against a
   fake repo, or by adding turns), send a request through a `FakeChatClient`, and assert
   `client.LastMessages` is exactly `[system persona] + History.TakeLast(12)` — one system message then
   the last 12 history messages, no older ones. Add a second test: with ≤12 history messages, the full
   history is sent. Confirm the first test FAILS against the current `messages.AddRange(History)` (RED).
-- [ ] 2.2 In `DndChatService.SendAsync`, replace `messages.AddRange(History)` with a bounded window:
+- [x] 2.2 In `DndChatService.SendAsync`, replace `messages.AddRange(History)` with a bounded window:
   send the last `MaxModelHistoryMessages` (a `const int = 12`) history messages
   (`messages.AddRange(History.TakeLast(MaxModelHistoryMessages))`). The single system persona message is
   still prepended; full history is still loaded/displayed/persisted — only the model input is windowed.
   Add a brief comment (why: think-on cost grows with prompt size; bound latency regardless of chat
   length). Tests GREEN.
-- [ ] 2.3 `dotnet build` 0/0; `--filter ~DndChatService` green; FULL `dotnet test` green. Commit.
+- [x] 2.3 `dotnet build` 0/0; `--filter ~DndChatService` green; FULL `dotnet test` green. Commit.
 
 ## 3. Live validation + report
 
-- [ ] 3.1 Rebuild the app image (`docker compose up -d --build app`), wait healthy. Live smoke:
+- [x] 3.1 Rebuild the app image (`docker compose up -d --build app`), wait healthy. Live smoke:
   (a) a SINGLE-rule question whose single-shot retrieval returns the rule ("How does the Dodge action
   work in combat? Cite the rule.") → confirm a correct, PHB-cited answer with NO `<think>` markup in the
   persisted `ChatTurns` row; (b) THE KEY REGRESSION CHECK — after a LONG conversation (>12 turns), a new
   question still returns within a bounded time (~fresh-conversation latency, not minutes) because only the
   last 12 turns are sent. Validate via the persisted assistant turn + timing from the DB (per dev-flow
   flaky-smoke guidance; the browser circuit drops on long think-on waits).
-- [ ] 3.2 Write the change report (`report.md`): the mode switch, both guard tests, the live-smoke result
+- [x] 3.2 Write the change report (`report.md`): the mode switch, both guard tests, the live-smoke result
   (correct cited answer + no `<think>` leak + bounded latency after the history cap), and the honest
   caveats (list-iness unchanged; multi-rule questions still await the deferred multi-hop retrieval;
   think-on is ~45 s/answer even bounded). Commit.
