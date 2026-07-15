@@ -22,7 +22,7 @@ internal static class StubTools
             description: "Calculate the EXACT time and cost to CRAFT an item. For a NONMAGICAL item pass its marketValue (gold) and optionally crafters; for a MAGIC item pass its rarity (common/uncommon/rare/very rare/legendary). Supply exactly ONE of marketValue or rarity. Report the returned numbers EXACTLY; never re-derive."),
 
         AIFunctionFactory.Create(
-            (string concept, string archetype, double? maxCr) =>
+            (string concept, string archetype, double? maxCr = null) =>
             {
                 StubState.InvokedTools.Add("generate_npc");
                 return (object)new { name = "Garret Vosk", archetype, archetypeInCorpus = true, cr = "1", hp = 27, source = "Monster Manual", block = "Spy (CR 1): AC 12, HP 27, ..." };
@@ -49,7 +49,7 @@ internal static class StubTools
             description: "Generate a themed CAST of NPCs from a single theme string (e.g. 'a Sharn heist crew'). Returns an ENSEMBLE — a leader plus supporting members — each anchored to a REAL stat block. CITE each block's source; never invent stat numbers."),
 
         AIFunctionFactory.Create(
-            (string question, string[]? ruleTopics, string? edition) =>
+            (string question, string[]? ruleTopics = null, string? edition = null) =>
             {
                 StubState.InvokedTools.Add("ask_rules");
                 if (StubState.AskRulesReturnsEmpty)
@@ -60,7 +60,7 @@ internal static class StubTools
             description: "Answer a D&D RULES question (including multi-rule interactions). Identify the DISTINCT rules and pass them as ruleTopics (e.g. [\"grappling\", \"prone condition\"]); omit for a simple single-rule question. Returns cited rule passages from the core rulebooks. Compose STRICTLY from the returned passages and CITE each; if no passages are returned, say the rules don't cover it — never invent a rule."),
 
         AIFunctionFactory.Create(
-            (string activity, string? edition) =>
+            (string activity, string? edition = null) =>
             {
                 StubState.InvokedTools.Add("plan_downtime");
                 return (object)new { passages = new[] { new { text = "Crafting a nonmagical item costs workweeks equal to its value / 50 gp.", source = "Xanathar's Guide to Everything", section = "Downtime" } } };
@@ -69,7 +69,7 @@ internal static class StubTools
             description: "Plan a D&D DOWNTIME activity (crafting, training, carousing, research, etc.). Pass the activity as free text. Returns cited rule passages from the downtime rulebooks (Xanathar's + DMG). Compose STRICTLY from the returned passages and CITE each; never invent times or costs."),
 
         AIFunctionFactory.Create(
-            (long? campaignId, string difficulty, string edition, string? theme, double? maxCr, double? minCr) =>
+            (string difficulty, string edition, long? campaignId = null, string? theme = null, double? maxCr = null, double? minCr = null) =>
             {
                 StubState.InvokedTools.Add("build_encounter");
                 return (object)new { difficulty, monsters = new[] { new { name = "Hobgoblin", count = 1, cr = "0.5", source = "Monster Manual" }, new { name = "Goblin", count = 6, cr = "0.25", source = "Monster Manual" } } };
@@ -78,7 +78,7 @@ internal static class StubTools
             description: "Build a combat encounter for a target difficulty (Trivial/Easy/Medium/Hard/Deadly) and optional theme, for the signed-in user's party (campaignId). Builds swarms — a strong anchor plus multiples of cheaper monsters — returned grouped as {monster, count}. edition is \"2014\" or \"2024\"."),
 
         AIFunctionFactory.Create(
-            (long campaignId, string question, string? edition) =>
+            (long campaignId, string question, string? edition = null) =>
             {
                 StubState.InvokedTools.Add("ask_setting_lore");
                 return (object)new { passages = new[] { new { text = "Sharn, the City of Towers, is governed by a Lord Mayor and city council.", source = "Eberron: Rising from the Last War", section = "Sharn" } } };
@@ -87,7 +87,7 @@ internal static class StubTools
             description: "Answer a lore/worldbuilding question for one of the signed-in user's own campaigns, scoped to that campaign's SETTING sources. Pass campaignId and the question. Returns cited passages from the campaign's setting books. Compose STRICTLY from the returned passages and CITE each; never invent world lore."),
 
         AIFunctionFactory.Create(
-            (long heroSnapshotId, string? targetClass, bool? considerDip) =>
+            (long heroSnapshotId, string? targetClass = null, bool? considerDip = null) =>
             {
                 StubState.InvokedTools.Add("plan_level_up");
                 return (object)new { className = "Fighter", nextLevel = 5, hpDelta = 7, features = new[] { "Extra Attack" }, source = "Player's Handbook" };
