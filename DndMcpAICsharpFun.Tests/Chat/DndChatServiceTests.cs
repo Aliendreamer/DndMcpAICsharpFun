@@ -374,6 +374,64 @@ public sealed class DndChatServiceTests : IDisposable
         client.LastMessages![1].Text.Should().Be("What is a paladin?");
     }
 
+
+    [Fact]
+    public async Task SendAsync_bounds_history_sent_to_model_to_last_12_messages()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client);
+
+        // Seed 14 history messages (well over the 12-message model window).
+        for (var i = 0; i < 7; i++)
+        {
+            svc.History.Add(new ChatMessage(ChatRole.User, $"user turn {i}"));
+            svc.History.Add(new ChatMessage(ChatRole.Assistant, $"assistant turn {i}"));
+        }
+
+        await svc.SendAsync("final question", false, CancellationToken.None);
+
+        // SendAsync appends the new user message AND the assistant reply to History; the
+        // reply is added only after the model call, so it was never part of what was sent.
+        // Drop it to reconstruct the History snapshot that was actually sent to the model.
+        var preResponseHistory = svc.History.Take(svc.History.Count - 1).ToList();
+        var expected = preResponseHistory.TakeLast(12).ToList();
+        client.LastMessages.Should().HaveCount(13);
+        client.LastMessages![0].Role.Should().Be(ChatRole.System);
+        for (var i = 0; i < expected.Count; i++)
+        {
+            client.LastMessages![i + 1].Role.Should().Be(expected[i].Role);
+            client.LastMessages![i + 1].Text.Should().Be(expected[i].Text);
+        }
+    }
+
+    [Fact]
+    public async Task SendAsync_sends_entire_history_when_12_or_fewer_messages()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client);
+
+        // Seed 10 history messages (under the 12-message model window).
+        for (var i = 0; i < 5; i++)
+        {
+            svc.History.Add(new ChatMessage(ChatRole.User, $"user turn {i}"));
+            svc.History.Add(new ChatMessage(ChatRole.Assistant, $"assistant turn {i}"));
+        }
+
+        await svc.SendAsync("final question", false, CancellationToken.None);
+
+        // SendAsync appends the new user message AND the assistant reply to History; the
+        // reply is added only after the model call, so it was never part of what was sent.
+        // Drop it to reconstruct the History snapshot that was actually sent to the model.
+        var preResponseHistory = svc.History.Take(svc.History.Count - 1).ToList();
+        client.LastMessages.Should().HaveCount(preResponseHistory.Count + 1);
+        client.LastMessages![0].Role.Should().Be(ChatRole.System);
+        for (var i = 0; i < preResponseHistory.Count; i++)
+        {
+            client.LastMessages![i + 1].Role.Should().Be(preResponseHistory[i].Role);
+            client.LastMessages![i + 1].Text.Should().Be(preResponseHistory[i].Text);
+        }
+    }
+
     [Fact]
     public async Task SendAsync_does_not_add_system_message_to_History()
     {

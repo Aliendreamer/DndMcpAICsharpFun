@@ -29,6 +29,10 @@ public sealed class DndChatService(
     DndMcpAICsharpFun.Features.Npc.NpcGenerationService npcGenerationService,
     DndMcpAICsharpFun.Features.SessionPrep.SessionPrepService sessionPrepService)
 {
+    // think-on reasoning cost grows with prompt size, so only the most recent window of
+    // History is sent to the model; the full conversation is still loaded/displayed/persisted.
+    private const int MaxModelHistoryMessages = 12;
+
     public List<ChatMessage> History { get; } = [];
 
     /// <summary>
@@ -325,7 +329,9 @@ public sealed class DndChatService(
             {
                 new(ChatRole.System, personaProvider.GetPersonaText()),
             };
-            messages.AddRange(History);
+            // think-on reasoning cost grows with prompt size, so only the most recent window
+            // is sent to the model; full history is still loaded/displayed/persisted.
+            messages.AddRange(History.TakeLast(MaxModelHistoryMessages));
 
             var response = await chatClient.GetResponseAsync(
                 messages,
