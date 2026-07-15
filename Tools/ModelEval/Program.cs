@@ -9,6 +9,9 @@ const string persona =
 var a = EvalArgs.Parse(args);
 var client = ModelClientFactory.Build(a);
 
+var systemPersona = a.PersonaPath is { } p ? await File.ReadAllTextAsync(p) : persona;
+Console.Error.WriteLine($"[persona] {(a.PersonaPath ?? "<default>")}");
+
 var results = new List<(Scenario, IReadOnlyList<RunResult>)>();
 foreach (var scenario in Scenarios.All)
 {
@@ -16,7 +19,7 @@ foreach (var scenario in Scenarios.All)
     for (var i = 0; i < a.Runs; i++)
     {
         Console.Error.WriteLine($"[{scenario.Name}] run {i + 1}/{a.Runs}...");
-        runs.Add(await ScenarioRunner.RunOnceAsync(client, scenario, a.ThinkOn, persona));
+        runs.Add(await ScenarioRunner.RunOnceAsync(client, scenario, a.ThinkOn, systemPersona));
     }
     results.Add((scenario, runs));
 }

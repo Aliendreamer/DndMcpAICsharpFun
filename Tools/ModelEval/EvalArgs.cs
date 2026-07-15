@@ -1,6 +1,6 @@
 namespace DndMcpAICsharpFun.Tools.ModelEval;
 
-internal sealed record EvalArgs(string Model, bool ThinkOn, int Runs, string BaseUrl)
+internal sealed record EvalArgs(string Model, bool ThinkOn, int Runs, string BaseUrl, string? PersonaPath)
 {
     public static EvalArgs Parse(string[] args)
     {
@@ -8,6 +8,7 @@ internal sealed record EvalArgs(string Model, bool ThinkOn, int Runs, string Bas
         var thinkOn = true;
         var runs = 5;
         var baseUrl = "http://localhost:11434";
+        var personaPath = (string?)null;
 
         for (var i = 0; i < args.Length - 1; i++)
         {
@@ -17,9 +18,10 @@ internal sealed record EvalArgs(string Model, bool ThinkOn, int Runs, string Bas
                 case "--think": thinkOn = !string.Equals(args[++i], "off", StringComparison.OrdinalIgnoreCase); break;
                 case "--runs": runs = int.Parse(args[++i]); break;
                 case "--base-url": baseUrl = args[++i]; break;
+                case "--persona": personaPath = args[++i]; break;
             }
         }
 
-        return new EvalArgs(model, thinkOn, runs, baseUrl);
+        return new EvalArgs(model, thinkOn, runs, baseUrl, personaPath);
     }
 }
