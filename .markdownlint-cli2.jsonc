@@ -10,6 +10,7 @@
     ".claude/**",
     ".agents/**",
     ".superpowers/**",
+    ".moe-bench/**",
     ".serena/**",
     ".mineru-spike/**",
     "books/**",
