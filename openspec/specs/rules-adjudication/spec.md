@@ -36,8 +36,12 @@ The tool SHALL support multi-hop retrieval via an optional `ruleTopics` list: wh
 the distinct rules a question involves, the system SHALL run one scoped retrieval per topic (each
 scoped to the core rulebooks) so that every named rule is grounded independently of the others'
 ranking, and SHALL return both a per-topic grouping of the retrieved passages and a de-duplicated
-combined passage list. When `ruleTopics` is absent or empty, the system SHALL perform a single-shot
-retrieval on the question (the default, unchanged behaviour) and the per-topic grouping SHALL be empty.
+combined passage list. In multi-hop mode the system SHALL ALSO run one single-shot retrieval on the
+whole question (scoped to the core rulebooks) and include its passages in the de-duplicated combined
+list, as a deterministic safety net so that a rule the caller omitted from `ruleTopics` can still
+surface; this whole-question retrieval SHALL NOT alter the per-topic grouping. When `ruleTopics` is
+absent or empty, the system SHALL perform a single-shot retrieval on the question (the default,
+unchanged behaviour) and the per-topic grouping SHALL be empty.
 
 #### Scenario: Rules question returns cited rulebook passages
 
@@ -68,6 +72,11 @@ retrieval on the question (the default, unchanged behaviour) and the per-topic g
 
 - **WHEN** multi-hop retrieval returns overlapping passages across topics
 - **THEN** the combined passage list SHALL be de-duplicated while the per-topic grouping SHALL retain each passage under every topic it was retrieved for
+
+#### Scenario: Multi-hop includes a whole-question safety-net retrieval
+
+- **WHEN** `ask_rules` is called with a non-empty `ruleTopics` list
+- **THEN** the system SHALL additionally run a single-shot retrieval on the whole question and include its passages in the de-duplicated combined list, so a passage relevant to the question but not returned by any named topic still appears in the combined list, while the per-topic grouping continues to hold only each topic's own passages
 
 #### Scenario: Absent topics fall back to single-shot
 
