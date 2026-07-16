@@ -18,14 +18,14 @@
 
 ### Requirement: A book-derived IsRealEntity predicate SHALL gate gated-prior no-match candidates in both official and keyless books
 
-The system SHALL provide a deterministic `IsRealEntity` predicate over a candidate, defined as: a structural signature (a complete stat block, a spell signature, a magic-item signature, or a **subclass-feature-progression** signature — two or more level-gated feature grants) OR (an entity-like name AND a substantial, non-tabular body). For a gated-prior candidate with no 5etools match, the predicate SHALL govern admission: when `IsRealEntity` is true the candidate is admitted to content-first extraction grounded by its own prose (fields validated by the grounding cascade); when false it is declined as noise. This SHALL apply to keyless books as well as official books — a keyless book's gated-prior candidates that fail the predicate SHALL be declined rather than extracted.
+The system SHALL provide a deterministic `IsRealEntity` predicate over a candidate, defined as a **structural signature**: a complete stat block, a magic-item signature, or a **subclass-feature-progression** signature (two or more level-gated feature grants). For a gated-prior candidate with no 5etools match, the predicate SHALL govern admission: when `IsRealEntity` is true the candidate is admitted to content-first extraction grounded by its own prose (fields validated by the grounding cascade); when false it is declined as noise. This SHALL apply to keyless books as well as official books — a keyless book's gated-prior candidates that fail the predicate SHALL be declined rather than extracted. The predicate SHALL NOT admit a candidate on prose alone (an entity-like name plus a substantial body); live validation showed a prose-admission branch floods class-feature and lore sub-sections into `Class`/`Race` junk while adding no real entity (genuine prose entities arrive via 5etools matches). Prose homebrew entities that lack a 5etools match are deferred to the Tier-3 web referee, not admitted here.
 
-#### Scenario: A real unindexed entity is admitted, not declined
-- **WHEN** an official book yields a gated-prior candidate with no 5etools match that satisfies `IsRealEntity` (e.g. a subclass-feature progression, or a prose Background with an entity-like name and substantial body)
+#### Scenario: A real unindexed structural entity is admitted, not declined
+- **WHEN** an official book yields a gated-prior candidate with no 5etools match that satisfies `IsRealEntity` (a stat block, magic item, or subclass-feature progression)
 - **THEN** it is admitted to grounded extraction and NOT written to `.declined.json`
 
-#### Scenario: A no-signature chapter-body heading is declined
-- **WHEN** a gated-prior candidate with no 5etools match fails `IsRealEntity` (e.g. "Ability Score Increase", a "d6 Resource" table, a "CONTENTS" heading)
+#### Scenario: A no-structural-signature heading is declined
+- **WHEN** a gated-prior candidate with no 5etools match fails `IsRealEntity` (e.g. "Ability Score Increase", a class-feature sub-section, a race-lore section, a "d6 Resource" table, a "CONTENTS" heading)
 - **THEN** it is declined and NOT emitted as an entity
 
 #### Scenario: An empty base-class shell is dropped

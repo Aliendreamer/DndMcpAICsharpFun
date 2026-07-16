@@ -5,8 +5,8 @@
 The system SHALL decline a candidate, with reason `no_5etools_match` and without making an extraction
 LLM call, when the candidate does not match the 5etools index, the candidate's PRIMARY prior type (the
 first, bookmark-derived entry of its prior list) is in the gated set, **and the candidate fails the
-`IsRealEntity` predicate** (no structural signature — stat block / spell / magic item /
-subclass-feature-progression — and not an entity-like name with a substantial non-tabular body). A
+`IsRealEntity` predicate** (no structural signature — stat block / magic item /
+subclass-feature-progression). A
 declined candidate SHALL NOT be emitted as an entity. When a non-matching gated candidate DOES satisfy
 `IsRealEntity`, the system SHALL NOT decline it: it SHALL fall through to content-first extraction
 grounded by the book's own prose, its fields validated by the grounding cascade (an official such
