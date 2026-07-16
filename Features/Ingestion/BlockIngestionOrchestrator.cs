@@ -21,9 +21,6 @@ public sealed partial class BlockIngestionOrchestrator(
     IBm25CorpusStats bm25Stats,
     ILogger<BlockIngestionOrchestrator> logger) : IBlockIngestionOrchestrator
 {
-    private const string NoBookmarksError =
-        "PDF has no embedded bookmarks; bookmark-driven block ingestion requires them.";
-
     private const int EmbedBatchSize = 32;
     private const int MinBlockChars = 40;
     private const int MaxBlockChars = 800;
@@ -47,26 +44,30 @@ public sealed partial class BlockIngestionOrchestrator(
                 : record.FileHash;
             await tracker.MarkHashAsync(recordId, hash, cancellationToken);
 
+            var extraction = await blockExtractor.ExtractBlocksAsync(record.FilePath, cancellationToken);
+
             var bookmarks = bookmarkReader.ReadBookmarks(record.FilePath);
-            if (bookmarks.Count == 0)
+            TocCategoryMap tocMap;
+            if (bookmarks.Count > 0)
             {
-                LogNoBookmarks(logger, record.DisplayName, recordId);
-                await tracker.MarkFailedAsync(recordId, NoBookmarksError, CancellationToken.None);
-                return;
+                tocMap = new TocCategoryMap(BookmarkTocMapper.Map(bookmarks));
+            }
+            else
+            {
+                LogHeadingFallback(logger, record.DisplayName, recordId, extraction.Headings.Count);
+                tocMap = new TocCategoryMap(
+                    FullCoverageHeadingTocMapper.Map(extraction.Headings, record.DisplayName));
             }
 
             if (record.ChunkCount.HasValue)
                 await vectorStore.DeleteBlocksByHashAsync(hash, cancellationToken);
-
-            var tocEntries = BookmarkTocMapper.Map(bookmarks);
-            var tocMap = new TocCategoryMap(tocEntries);
 
             var version = Enum.TryParse<DndVersion>(record.Version, ignoreCase: true, out var v)
                 ? v : DndVersion.Edition2014;
 
             var chunks = new List<BlockChunk>();
             var globalIndex = 0;
-            foreach (var block in await blockExtractor.ExtractBlocksAsync(record.FilePath, cancellationToken))
+            foreach (var block in extraction.Blocks)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -101,7 +102,8 @@ public sealed partial class BlockIngestionOrchestrator(
             {
                 LogNoBlocksMatched(logger, record.DisplayName, recordId);
                 await tracker.MarkFailedAsync(recordId,
-                    "No blocks fell within any bookmark section.", CancellationToken.None);
+                    "No ingestable content found: the PDF produced no prose blocks in any section.",
+                    CancellationToken.None);
                 return;
             }
 
@@ -210,8 +212,9 @@ public sealed partial class BlockIngestionOrchestrator(
     [LoggerMessage(Level = LogLevel.Information, Message = "Starting block ingestion for {DisplayName} (id={Id})")]
     private static partial void LogStarting(ILogger logger, string displayName, int id);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "No bookmarks for {DisplayName} (id={Id}) — block ingestion aborted")]
-    private static partial void LogNoBookmarks(ILogger logger, string displayName, int id);
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "No bookmarks for {DisplayName} (id={Id}) — using heading-derived full-coverage TOC from {HeadingCount} headings")]
+    private static partial void LogHeadingFallback(ILogger logger, string displayName, int id, int headingCount);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "No blocks matched any section for {DisplayName} (id={Id})")]
     private static partial void LogNoBlocksMatched(ILogger logger, string displayName, int id);

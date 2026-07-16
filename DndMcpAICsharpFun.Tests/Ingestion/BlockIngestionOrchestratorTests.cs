@@ -39,7 +39,7 @@ public sealed class BlockIngestionOrchestratorTests
         var blockExtractor = Substitute.For<IPdfBlockExtractor>();
         blockExtractor
             .ExtractBlocksAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromException<IReadOnlyList<PdfBlock>>(
+            .Returns(Task.FromException<PdfExtraction>(
                 new HttpRequestException("Connection refused to http://mineru:8000")));
 
         // Bookmarks must be non-empty so we get past the bookmark guard.
@@ -98,6 +98,60 @@ public sealed class BlockIngestionOrchestratorTests
     /// synthetic block that clears every guard (bookmarks present, block long enough, TOC match),
     /// and captures the chunks handed to <see cref="IVectorStoreService.UpsertBlocksAsync"/>.
     /// </summary>
+    /// <summary>
+    /// When a PDF has no embedded bookmarks, the orchestrator must not abort — it should fall
+    /// back to a full-coverage TOC built from MinerU's extracted headings
+    /// (<see cref="FullCoverageHeadingTocMapper"/>) and still ingest the book's blocks.
+    /// </summary>
+    [Fact]
+    public async Task IngestBlocksAsync_NoBookmarks_UsesHeadingFallbackAndIngests()
+    {
+        const int bookId = 42;
+        var record = new IngestionRecord
+        {
+            Id = bookId, FilePath = "/books/x.pdf", FileName = "x.pdf",
+            FileHash = "hash42", DisplayName = "No-Bookmark Book", Version = "5e",
+        };
+
+        var tracker = Substitute.For<IIngestionTracker>();
+        tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+        // Long enough to clear MinBlockChars (40); one section header + one prose block on page 1.
+        var blocks = new List<PdfBlock>
+        {
+            new(new string('a', 60), PageNumber: 1, Order: 1),
+        };
+        var headings = new List<PdfStructureItem> { new("section_header", "Monsters", 1, 1) };
+        var blockExtractor = Substitute.For<IPdfBlockExtractor>();
+        blockExtractor.ExtractBlocksAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new PdfExtraction(blocks, headings)));
+
+        // No bookmarks — the fallback must engage instead of aborting.
+        var bookmarkReader = Substitute.For<IPdfBookmarkReader>();
+        bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(new List<PdfBookmark>());
+
+        var embedding = Substitute.For<IEmbeddingService>();
+        embedding.EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Task.FromResult<IList<float[]>>(
+                ((IList<string>)ci[0]).Select(_ => new float[] { 0.1f }).ToList()));
+
+        // Configured so Bm25Vectorizer.ComputeDocVectors doesn't NRE on an unconfigured (null) result.
+        var bm25Stats = Substitute.For<IBm25CorpusStats>();
+        bm25Stats.ReadAsync(Arg.Any<CancellationToken>())
+            .Returns(new Bm25GlobalStats(1, 1, new Dictionary<string, long>()));
+
+        var sut = new BlockIngestionOrchestrator(
+            tracker, bookmarkReader, blockExtractor, embedding,
+            Substitute.For<IVectorStoreService>(), bm25Stats,
+            NullLogger<BlockIngestionOrchestrator>.Instance);
+
+        await sut.IngestBlocksAsync(bookId);
+
+        // Ingested via the fallback (not marked failed with the old bookmark error).
+        await tracker.Received(1).MarkJsonIngestedAsync(bookId, Arg.Is<int>(n => n >= 1), Arg.Any<CancellationToken>());
+        await tracker.DidNotReceive().MarkFailedAsync(bookId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
     private static async Task<IList<(BlockChunk Chunk, float[] Vector, SparseVector Sparse, string FileHash)>>
         RunIngestAndCaptureChunksAsync(string? fivetoolsSourceKey)
     {
@@ -123,10 +177,12 @@ public sealed class BlockIngestionOrchestratorTests
 
         var blockExtractor = Substitute.For<IPdfBlockExtractor>();
         blockExtractor.ExtractBlocksAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new List<PdfBlock>
-            {
-                new("This is a sufficiently long synthetic block of prose for the ingestion pipeline.", 1, 0),
-            });
+            .Returns(new PdfExtraction(
+                new List<PdfBlock>
+                {
+                    new("This is a sufficiently long synthetic block of prose for the ingestion pipeline.", 1, 0),
+                },
+                new List<PdfStructureItem>()));
 
         var embedding = Substitute.For<IEmbeddingService>();
         embedding.EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>())
