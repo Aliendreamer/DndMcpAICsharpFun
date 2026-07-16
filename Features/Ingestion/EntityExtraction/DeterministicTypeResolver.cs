@@ -81,13 +81,17 @@ public static class DeterministicTypeResolver
             return TypeResolution.Defer;
 
         // Book-derived existence gate: decline a gated-prior, no-5etools-match candidate UNLESS its
-        // own text/name prove it's a real entity (IsRealEntity — a structural signature, or an
-        // entity-like name with a substantial non-tabular body). This applies to BOTH official and
-        // keyless books: previously only official books were gated here and a keyless book fell
-        // through unconditionally, extracting every gated-prior candidate with no noise filter at
-        // all. `isOfficial` is retained on the signature (callers still pass it; Tier 3 labeling
-        // reads it) but no longer participates in this decision — a real entity in a keyless book
-        // is admitted exactly like a real entity in an official book, and noise is declined in both.
+        // own text proves it's a real entity via IsRealEntity — a STRUCTURAL signature only (complete
+        // stat block, object stat block, magic item, or subclass-feature progression). Prose alone,
+        // however entity-like the name or substantial the body, is no longer sufficient (live
+        // validation showed the prior prose-OR branch over-admitted class-feature/lore junk); a real
+        // prose-only entity (Background/Feat/Race/God) is admitted via the 5etools match in Step 1
+        // instead. This applies to BOTH official and keyless books: previously only official books
+        // were gated here and a keyless book fell through unconditionally, extracting every
+        // gated-prior candidate with no noise filter at all. `isOfficial` is retained on the
+        // signature (callers still pass it; Tier 3 labeling reads it) but no longer participates in
+        // this decision — a real entity in a keyless book is admitted exactly like a real entity in
+        // an official book, and noise is declined in both.
         if (match is null
             && prior is { } pd
             && GatedTypes.Contains(pd)   // PRIMARY prior only (floor always adds Item)

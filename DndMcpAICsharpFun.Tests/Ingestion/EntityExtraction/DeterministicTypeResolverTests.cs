@@ -59,16 +59,17 @@ public sealed class DeterministicTypeResolverTests
     }
 
     [Fact]
-    public void Unmatched_entity_like_candidate_defers()
+    public void Unmatched_entity_like_candidate_with_prose_only_declines()
     {
-        // Name is entity-like but not in 5etools; text has no stat-block/magic-item signature but IS
-        // a substantial prose description — satisfies IsRealEntity via the prose branch, so it defers
-        // to the content-first union regardless of book kind (the default 2-arg call is keyless).
+        // Name is entity-like but not in 5etools; text has no stat-block/magic-item/subclass-progression
+        // structural signature — prose alone (however substantial) no longer satisfies IsRealEntity
+        // (structural-signature-only), so a gated-prior candidate like this Declines regardless of
+        // book kind (the default 2-arg call is keyless).
         var r = DeterministicTypeResolver.Resolve(C("Xyzmorphic Wisp",
             "A creature that dwells in the ethereal plane, drifting between shadow and dreams. It preys " +
             "on unwary travelers who linger too long at the boundary of waking and sleep, drawing strength " +
             "from their fading memories."), Matcher);
-        r.Outcome.Should().Be(DeterministicOutcome.Defer);
+        r.Outcome.Should().Be(DeterministicOutcome.Decline);
     }
 
     // ── Task 5: 5etools match as step 1 ──────────────────────────────────────────────
@@ -297,12 +298,14 @@ public sealed class DeterministicTypeResolverTests
             .Outcome.Should().Be(DeterministicOutcome.Defer);
     }
 
-    [Fact] // official + gated prior + no match + entity-like name with substantial prose -> Defer
-    public void Official_gated_nonmatch_prose_background_defers()
+    [Fact] // official + gated prior + no match + entity-like name with substantial PROSE ONLY (no
+    // structural signature) -> Decline (structural-signature-only; a real Background matches 5etools
+    // and is Forced via Step 1 instead, so this path is unaffected in practice).
+    public void Official_gated_nonmatch_prose_background_declines()
     {
         var c = Candidate("Charlatan", ProseBackgroundText, prior: EntityType.Background);
         DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
-            .Outcome.Should().Be(DeterministicOutcome.Defer);
+            .Outcome.Should().Be(DeterministicOutcome.Decline);
     }
 
     [Fact] // official + gated prior + no match + thin generic body -> Decline ("Ability Score Increase")
@@ -348,12 +351,12 @@ public sealed class DeterministicTypeResolverTests
             .Outcome.Should().Be(DeterministicOutcome.Defer);
     }
 
-    [Fact] // keyless + gated prior + no match + real prose entity -> Defer
-    public void Keyless_gated_nonmatch_prose_background_defers()
+    [Fact] // keyless + gated prior + no match + prose-only body (no structural signature) -> Decline
+    public void Keyless_gated_nonmatch_prose_background_declines()
     {
         var c = Candidate("Charlatan", ProseBackgroundText, prior: EntityType.Background);
         DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: false)
-            .Outcome.Should().Be(DeterministicOutcome.Defer);
+            .Outcome.Should().Be(DeterministicOutcome.Decline);
     }
 
     [Fact] // keyless + gated prior + no match + noise (dice table) -> Decline (NEW: keyless previously
