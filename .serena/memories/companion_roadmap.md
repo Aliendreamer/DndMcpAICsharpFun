@@ -1,4 +1,7 @@
-# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-15)
+# D&D Companion — Roadmap & Progress (living; refreshed 2026-07-16)
+
+**DECISION (2026-07-16) — LOCAL-MODEL UPGRADE RULED OUT.** User confirmed the local MoE/bigger-model upgrade does NOT work at the current VRAM ceiling (8 GB) — qwen3:8b is the BEST option we can run for now. So STOP proposing the local-model upgrade as a lever. The grounding/reasoning ceiling qwen3:8b imposes is a FIXED constraint, not a to-do — design around it (retrieval RANKING/reranking, section-scoping, deterministic tools, persona hardening) rather than trying to swap the model. Revisit only if the VRAM ceiling itself changes.
+
 
 **LATEST (2026-07-15) — ROBUST-MULTIHOP-ASK-RULES SHIPPED** (archived `2026-07-15-robust-multihop-ask-rules`; full suite **1386/1386**). Hardened `ask_rules` multi-hop against an incomplete `ruleTopics` set. Context: after `chat-think-on-reasoning`, think-on makes qwen3 TRIGGER multi-hop reliably (grapple → grounded+cited end-to-end, 39 s), but a probe showed its `ruleTopics` set is ~80% complete (drops a topic — e.g. "saving throws" 2/3 on paralyzed-saves-crits; occasionally emits no tool). Multi-hop only retrieved per named topic, so a DROPPED topic's rule was never fetched. **Fix (LLM-free, deterministic):** in `RulesAdjudicationService.AskAsync` multi-hop branch, ALSO run one whole-question retrieval (`RetrieveAsync(question, RuleSources.TopK)`) and `.Concat(whole)` it into the combined de-duped list — per-topic groups + single-shot path UNTOUCHED; purely additive (can only help). 4 tests (whole-question passage surfaces, groups isolated, dedup, single-shot regression); reviewer verified non-vacuity/isolation/dedup-key by hand.
 
