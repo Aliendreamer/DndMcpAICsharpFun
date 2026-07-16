@@ -2,9 +2,9 @@
 
 ## 1. Tier 1 — Index the 5etools subclass roster
 
-- [ ] 1.1 In `EntityNameIndex`, add a load of the `subclass[]` array from `5etools/class/class-*.json` (index each subclass `name` AND `shortName` → `EntityType.Subclass`), keeping the base-class `class[]` load ordered first so a base name still wins.
-- [ ] 1.2 Unit tests: "Path of the Battlerager" matches → `Force(Subclass)`; bare "Mastermind" matches on `shortName`; "Barbarian" still resolves to `Class`; a base-name/subclass-name collision resolves to the base class.
-- [ ] 1.3 Confirm the end-to-end path: a matched subclass candidate flows through `DeterministicTypeResolver` `Force(Subclass)` → `FivetoolsSubclassMapper` → a grounded `Subclass` entity with the 5etools canonical name/slug (extend an existing extraction test).
+- [x] 1.1 In `EntityNameIndex`, add a load of the `subclass[]` array from `5etools/class/class-*.json` (index each subclass `name` AND `shortName` → `EntityType.Subclass`), keeping the base-class `class[]` load ordered first so a base name still wins.
+- [x] 1.2 Unit tests: "Path of the Battlerager" matches → `Force(Subclass)`; bare "Mastermind" matches on `shortName`; "Barbarian" still resolves to `Class`; a base-name/subclass-name collision resolves to the base class.
+- [x] 1.3 Confirm the end-to-end path: a matched subclass candidate flows through `DeterministicTypeResolver` `Force(Subclass)` → `FivetoolsSubclassMapper` → a grounded `Subclass` entity with the 5etools canonical name/slug (extend an existing extraction test).
 
 ## 2. Tier 2 — Book-derived entity-signature gate (relax the official decline)
 
