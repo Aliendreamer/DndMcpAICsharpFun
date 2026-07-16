@@ -216,13 +216,19 @@ internal static class ServiceCollectionExtensions
             .ValidateOnStart();
         services.Configure<GroundingOptions>(configuration.GetSection("Grounding"));
         services.AddScoped<ITier1Grounding, Tier1EmbeddingGrounding>();
-        services.AddSingleton<IChatClient>(sp =>
-        {
-            var opts = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
-            return new OllamaChatClient(new Uri(opts.BaseUrl), opts.ChatModel);
-        });
-        services.AddSingleton<IEntityExtractionLlmClient, OllamaEntityExtractionClient>();
-        services.AddScoped<IGroundingJudge, QwenGroundingJudge>();
+        // Extraction and grounding drive qwen3 through the infinite-timeout OllamaApiClient registered
+        // above (line ~59): a single extraction candidate — and model cold-start more so — can exceed
+        // the default 100 s HttpClient timeout and would otherwise fail the whole run before any
+        // checkpoint. Per-call CancellationToken governs cancellation instead of the socket timeout.
+        // The ambient IChatClient is the chat-UI transient (ChatExtensions, default 100 s) because it
+        // is registered last and wins, so these two consumers take the long-timeout client EXPLICITLY.
+        services.AddSingleton<IChatClient>(sp => sp.GetRequiredService<OllamaApiClient>());
+        services.AddSingleton<IEntityExtractionLlmClient>(sp =>
+            ActivatorUtilities.CreateInstance<OllamaEntityExtractionClient>(
+                sp, sp.GetRequiredService<OllamaApiClient>()));
+        services.AddScoped<IGroundingJudge>(sp =>
+            ActivatorUtilities.CreateInstance<QwenGroundingJudge>(
+                sp, sp.GetRequiredService<OllamaApiClient>()));
         services.AddScoped<IGroundingCascade, GroundingCascade>();
         services.AddSingleton(sp =>
         {
