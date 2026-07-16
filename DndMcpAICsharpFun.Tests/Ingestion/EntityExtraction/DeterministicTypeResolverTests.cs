@@ -61,8 +61,13 @@ public sealed class DeterministicTypeResolverTests
     [Fact]
     public void Unmatched_entity_like_candidate_defers()
     {
-        // Name is entity-like but not in 5etools; text has no stat-block or magic-item signature.
-        var r = DeterministicTypeResolver.Resolve(C("Xyzmorphic Wisp", "A creature that dwells in the ethereal plane."), Matcher);
+        // Name is entity-like but not in 5etools; text has no stat-block/magic-item signature but IS
+        // a substantial prose description — satisfies IsRealEntity via the prose branch, so it defers
+        // to the content-first union regardless of book kind (the default 2-arg call is keyless).
+        var r = DeterministicTypeResolver.Resolve(C("Xyzmorphic Wisp",
+            "A creature that dwells in the ethereal plane, drifting between shadow and dreams. It preys " +
+            "on unwary travelers who linger too long at the boundary of waking and sleep, drawing strength " +
+            "from their fading memories."), Matcher);
         r.Outcome.Should().Be(DeterministicOutcome.Defer);
     }
 
@@ -148,12 +153,14 @@ public sealed class DeterministicTypeResolverTests
         r.DeclineReason.Should().Be("no_5etools_match");
     }
 
-    [Fact] // homebrew -> Defer (gate never fires)
-    public void Homebrew_gated_nonmatch_defers()
+    [Fact] // keyless (isOfficial:false) NOISE now declines too — the IsRealEntity gate applies to
+    // both official and keyless books; a thin/empty gated-prior body is noise regardless of book kind.
+    public void Homebrew_gated_nonmatch_noise_declines()
     {
         var c = Candidate("Rage", text: "", prior: EntityType.Class);
-        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: false)
-            .Outcome.Should().Be(DeterministicOutcome.Defer);
+        var r = DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: false);
+        r.Outcome.Should().Be(DeterministicOutcome.Decline);
+        r.DeclineReason.Should().Be("no_5etools_match");
     }
 
     [Fact] // official + ungated primary (Item first) -> Defer (gate only checks TypePrior[0])
@@ -256,5 +263,116 @@ public sealed class DeterministicTypeResolverTests
         r.Outcome.Should().Be(DeterministicOutcome.ForceType);
         r.ForcedType.Should().Be(EntityType.Spell);
         r.CanonicalName.Should().Be("Fireball");
+    }
+
+
+    // ── Tier 2: book-derived IsRealEntity gate (official + keyless) ───────────────────
+
+    private const string SubclassProgressionText =
+        "Starting at 3rd level, you gain dark power against your foes. " +
+        "At 6th level, you can smite a foe with unholy force. " +
+        "At 10th level, your resistance to necrotic and radiant damage grows stronger. " +
+        "At 14th level, you become the veritable avatar of subjugation.";
+
+    private const string ProseBackgroundText =
+        "You have always been able to talk your way out of trouble and into places you shouldn't. " +
+        "You know a con man's tricks, and you're always ready to make a quick buck through a card game, " +
+        "a rigged wager, or a fake potion recipe that doesn't work as advertised.";
+
+    private const string DiceTableText =
+        "d6 Personality Trait  1  I idolize a particular hero and constantly refer to their deeds.  " +
+        "2  I've been quietly gathering coin for a rainy day.  3  I am always calm, no matter what.  " +
+        "4  I once ran away from home and I dream of doing so again.  5  I am a wanderer at heart.  " +
+        "6  I am utterly loyal to my god above all else.";
+
+    private const string TocText =
+        "Chapter 1: Races and Classes ..... 9\nChapter 2: Character Options ..... 33\n" +
+        "Chapter 3: Spells and Magic ..... 105\nChapter 4: Monsters and Foes ..... 220\n";
+
+    [Fact] // official + gated prior + no match + subclass-feature progression -> Defer (IsRealEntity)
+    public void Official_gated_nonmatch_subclass_progression_defers()
+    {
+        var c = Candidate("Oathbreaker", SubclassProgressionText, prior: EntityType.Class);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // official + gated prior + no match + entity-like name with substantial prose -> Defer
+    public void Official_gated_nonmatch_prose_background_defers()
+    {
+        var c = Candidate("Charlatan", ProseBackgroundText, prior: EntityType.Background);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // official + gated prior + no match + thin generic body -> Decline ("Ability Score Increase")
+    public void Official_gated_nonmatch_thin_body_declines()
+    {
+        var c = Candidate("Ability Score Increase",
+            "Increase one ability score of your choice by 2, or two scores by 1 each.", prior: EntityType.Race);
+        var r = DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true);
+        r.Outcome.Should().Be(DeterministicOutcome.Decline);
+        r.DeclineReason.Should().Be("no_5etools_match");
+    }
+
+    [Fact] // official + gated prior + no match + flattened d6 table body -> Decline
+    public void Official_gated_nonmatch_dice_table_declines()
+    {
+        var c = Candidate("Personality Trait", DiceTableText, prior: EntityType.Background);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Decline);
+    }
+
+    [Fact] // official + gated prior + no match + table-of-contents body -> Decline
+    public void Official_gated_nonmatch_toc_declines()
+    {
+        var c = Candidate("CONTENTS", TocText, prior: EntityType.Background);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Decline);
+    }
+
+    [Fact] // official + gated prior + no match + empty base-class shell -> Decline
+    public void Official_gated_nonmatch_empty_baseclass_shell_declines()
+    {
+        var c = Candidate("Barbarian", "", prior: EntityType.Class);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: true)
+            .Outcome.Should().Be(DeterministicOutcome.Decline);
+    }
+
+    [Fact] // keyless + gated prior + no match + REAL entity (subclass progression) -> Defer (NEW: the
+    // predicate now admits real keyless entities exactly like official ones).
+    public void Keyless_gated_nonmatch_subclass_progression_defers()
+    {
+        var c = Candidate("Oathbreaker", SubclassProgressionText, prior: EntityType.Class);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: false)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // keyless + gated prior + no match + real prose entity -> Defer
+    public void Keyless_gated_nonmatch_prose_background_defers()
+    {
+        var c = Candidate("Charlatan", ProseBackgroundText, prior: EntityType.Background);
+        DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: false)
+            .Outcome.Should().Be(DeterministicOutcome.Defer);
+    }
+
+    [Fact] // keyless + gated prior + no match + noise (dice table) -> Decline (NEW: keyless previously
+    // fell through unconditionally and extracted every gated candidate with no noise filter at all).
+    public void Keyless_gated_nonmatch_dice_table_declines()
+    {
+        var c = Candidate("Personality Trait", DiceTableText, prior: EntityType.Background);
+        var r = DeterministicTypeResolver.Resolve(c, matcher: null, isOfficial: false);
+        r.Outcome.Should().Be(DeterministicOutcome.Decline);
+        r.DeclineReason.Should().Be("no_5etools_match");
+    }
+
+    [Fact] // 5etools match still Forces regardless of the IsRealEntity gate (match wins outright).
+    public void Fivetools_match_still_forces_even_with_gated_prior()
+    {
+        var r = DeterministicTypeResolver.Resolve(
+            Candidate("Fireball", "A bright streak flashes into flame.", EntityType.Spell),
+            Matcher, isOfficial: true);
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Spell);
     }
 }

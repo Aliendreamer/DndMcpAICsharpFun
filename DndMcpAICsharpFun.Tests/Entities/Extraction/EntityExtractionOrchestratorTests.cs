@@ -53,7 +53,11 @@ public class EntityExtractionOrchestratorTests
                 "# Aboleth\nA monster.",
                 new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
                 {
-                    new("text", "Aboleth — a slimy aberration.", 1, null),
+                    // Substantial prose so the keyless gated-prior no-5etools-match candidate
+                    // satisfies IsRealEntity (prose branch) and defers instead of being declined.
+                    new("text", "Aboleth — a slimy aberration that lurks in sunless seas, hoarding the " +
+                                 "memories of ages past and using its mind-warping gaze to enslave the " +
+                                 "unwary who stray too close to its lair.", 1, null),
                 });
             converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
 
@@ -185,9 +189,16 @@ public class EntityExtractionOrchestratorTests
             new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
             {
                 new("heading", "Aboleth", 1, null),
-                new("text",    "Aboleth — a slimy aberration.", 1, null),
+                // Substantial prose (not a bare stat-block fragment) so the keyless gated-prior
+                // no-5etools-match candidate satisfies IsRealEntity via the prose branch and defers
+                // to the content-first union instead of being declined as noise.
+                new("text",    "Aboleth — a slimy aberration that lurks in sunless seas, hoarding the " +
+                                "memories of ages past and using its mind-warping gaze to enslave the " +
+                                "unwary who stray too close to its lair.", 1, null),
                 new("heading", "Beholder", 2, null),
-                new("text",    "Beholder — a tyrant.", 2, null),
+                new("text",    "Beholder — a floating tyrant covered in eyes, each one capable of " +
+                                "unleashing a different deadly ray, that rules its domain from a cavern " +
+                                "lair through paranoia and naked cruelty.", 2, null),
             });
         converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
 

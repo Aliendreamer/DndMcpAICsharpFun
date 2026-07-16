@@ -22,8 +22,9 @@ public readonly record struct TypeResolution(DeterministicOutcome Outcome, Entit
 /// One deterministic per-candidate type decision, applied before the content-first union:
 /// drop non-entity-named candidates → force Monster on a complete stat block (the name is already
 /// entity-like, so the drop step is the override misfire guard) → force MagicItem on a magic-item
-/// signature → for an official book, decline when the primary prior type is gated and unmatched;
-/// otherwise defer to the content-first union.
+/// signature → decline when the primary prior type is gated, unmatched, AND the candidate fails the
+/// book-derived `IsRealEntity` predicate (applies to both official and keyless books); otherwise
+/// defer to the content-first union.
 /// </summary>
 public static class DeterministicTypeResolver
 {
@@ -79,12 +80,18 @@ public static class DeterministicTypeResolver
         if (match is null && candidate.TypePrior.Contains(EntityType.Object))
             return TypeResolution.Defer;
 
-        // Official-book gate: decline only when the primary prior is gated AND there was no
-        // 5etools match at all (a cross-type match above is content, not grounds to decline).
-        if (isOfficial
-            && match is null
+        // Book-derived existence gate: decline a gated-prior, no-5etools-match candidate UNLESS its
+        // own text/name prove it's a real entity (IsRealEntity — a structural signature, or an
+        // entity-like name with a substantial non-tabular body). This applies to BOTH official and
+        // keyless books: previously only official books were gated here and a keyless book fell
+        // through unconditionally, extracting every gated-prior candidate with no noise filter at
+        // all. `isOfficial` is retained on the signature (callers still pass it; Tier 3 labeling
+        // reads it) but no longer participates in this decision — a real entity in a keyless book
+        // is admitted exactly like a real entity in an official book, and noise is declined in both.
+        if (match is null
             && prior is { } pd
-            && GatedTypes.Contains(pd))   // PRIMARY prior only (floor always adds Item)
+            && GatedTypes.Contains(pd)   // PRIMARY prior only (floor always adds Item)
+            && !ExtractionSignatures.IsRealEntity(candidate))
             return TypeResolution.Decline("no_5etools_match");
 
         return TypeResolution.Defer;

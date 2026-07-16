@@ -8,11 +8,11 @@
 
 ## 2. Tier 2 — Book-derived `IsRealEntity` predicate (official + keyless)
 
-- [ ] 2.1 Add a subclass-feature-progression signature to `ExtractionSignatures` (≥2 level-gated grants — match "Starting at Nth level", "At Nth level", "Nth-level" patterns), plus a `HasSubstantialProseBody` helper (min length, not mostly-tabular/fragment). Reuse the existing stat-block / spell / magic-item signatures.
-- [ ] 2.2 Add `IsRealEntity(candidate)` = structural signature OR (`IsEntityLikeName` AND substantial non-tabular body) to `ExtractionSignatures`/`DeterministicTypeResolver`.
-- [ ] 2.3 In `DeterministicTypeResolver.Resolve`, replace the official-only `no_5etools_match` decline with a predicate gate applied to BOTH official and keyless gated-prior no-match candidates: `IsRealEntity` → `Defer`; else → `Decline`. (Keyless previously fell through unconditionally — this adds its noise filter.)
-- [ ] 2.4 Unit tests: subclass-feature-progression → `Defer`; prose Background/Feat (entity-like name + body) → `Defer`; "Ability Score Increase" / "d6 Resource" / "CONTENTS" → `Decline`; empty "Barbarian" base-class shell → `Decline`/drop; a 5etools match still `Force`s; a keyless real entity `Defer`s while keyless noise `Decline`s.
-- [ ] 2.5 Label a deferred official no-match entity `canon-unindexed` (feeds group 3); confirm ungrounded fields on an admitted candidate are still rejected by the grounding cascade (regression).
+- [x] 2.1 Add a subclass-feature-progression signature to `ExtractionSignatures` (≥2 level-gated grants — match "Starting at Nth level", "At Nth level", "Nth-level" patterns), plus a `HasSubstantialProseBody` helper (min length, not mostly-tabular/fragment). Reuse the existing stat-block / spell / magic-item signatures.
+- [x] 2.2 Add `IsRealEntity(candidate)` = structural signature OR (`IsEntityLikeName` AND substantial non-tabular body) to `ExtractionSignatures`/`DeterministicTypeResolver`.
+- [x] 2.3 In `DeterministicTypeResolver.Resolve`, replace the official-only `no_5etools_match` decline with a predicate gate applied to BOTH official and keyless gated-prior no-match candidates: `IsRealEntity` → `Defer`; else → `Decline`. (Keyless previously fell through unconditionally — this adds its noise filter.)
+- [x] 2.4 Unit tests: subclass-feature-progression → `Defer`; prose Background/Feat (entity-like name + body) → `Defer`; "Ability Score Increase" / "d6 Resource" / "CONTENTS" → `Decline`; empty "Barbarian" base-class shell → `Decline`/drop; a 5etools match still `Force`s; a keyless real entity `Defer`s while keyless noise `Decline`s.
+- [ ] 2.5 (Tier 3, not done here) Label a deferred official no-match entity `canon-unindexed` (feeds group 3). The regression half — ungrounded fields on an admitted candidate still rejected by the grounding cascade — is confirmed: the cascade itself is untouched and the full suite (1426/1426) passes unchanged.
 
 ## 3. Tier 3 — Web authority referee + authority labels
 
