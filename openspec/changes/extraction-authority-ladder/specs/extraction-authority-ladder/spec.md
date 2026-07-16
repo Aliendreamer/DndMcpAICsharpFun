@@ -16,17 +16,25 @@
 - **WHEN** a candidate "Barbarian" matches the base-class `class[]` entry
 - **THEN** it resolves to `EntityType.Class` (base classes are indexed before subclasses so the base name wins)
 
-### Requirement: Existence of an official gated candidate SHALL be proven by the book, not by a 5etools match
+### Requirement: A book-derived IsRealEntity predicate SHALL gate gated-prior no-match candidates in both official and keyless books
 
-For an official book, a gated-prior candidate that does not match the 5etools index SHALL be admitted to grounded extraction — rather than declined — WHEN it carries a book-derived entity signature: a complete stat block, a spell signature, an item signature, or a subclass-feature-progression signature. Such an admitted candidate SHALL be extracted from its own source prose and its fields validated by the grounding cascade. A candidate that carries no entity signature SHALL still be declined (it is chapter-body noise, not an entity).
+The system SHALL provide a deterministic `IsRealEntity` predicate over a candidate, defined as: a structural signature (a complete stat block, a spell signature, a magic-item signature, or a **subclass-feature-progression** signature — two or more level-gated feature grants) OR (an entity-like name AND a substantial, non-tabular body). For a gated-prior candidate with no 5etools match, the predicate SHALL govern admission: when `IsRealEntity` is true the candidate is admitted to content-first extraction grounded by its own prose (fields validated by the grounding cascade); when false it is declined as noise. This SHALL apply to keyless books as well as official books — a keyless book's gated-prior candidates that fail the predicate SHALL be declined rather than extracted.
 
-#### Scenario: A real unindexed entity with a signature is admitted, not declined
-- **WHEN** an official book yields a gated-prior candidate with no 5etools match but a book-derived entity signature (e.g. a subclass-feature progression)
+#### Scenario: A real unindexed entity is admitted, not declined
+- **WHEN** an official book yields a gated-prior candidate with no 5etools match that satisfies `IsRealEntity` (e.g. a subclass-feature progression, or a prose Background with an entity-like name and substantial body)
 - **THEN** it is admitted to grounded extraction and NOT written to `.declined.json`
 
-#### Scenario: A no-signature chapter-body heading is still declined
-- **WHEN** an official book yields a gated-prior candidate with no 5etools match and no entity signature (e.g. "Ability Score Increase")
+#### Scenario: A no-signature chapter-body heading is declined
+- **WHEN** a gated-prior candidate with no 5etools match fails `IsRealEntity` (e.g. "Ability Score Increase", a "d6 Resource" table, a "CONTENTS" heading)
 - **THEN** it is declined and NOT emitted as an entity
+
+#### Scenario: An empty base-class shell is dropped
+- **WHEN** an official book yields a `Class`-prior candidate that is a bare base-class header with no structural signature and no substantial body (e.g. an empty "Barbarian" section header)
+- **THEN** it fails `IsRealEntity` and is not emitted as an entity
+
+#### Scenario: Keyless-book noise is now filtered
+- **WHEN** a keyless book yields a gated-prior candidate that fails `IsRealEntity` (table/TOC/fragment noise)
+- **THEN** it is declined instead of extracted (keyless books previously extracted all such candidates)
 
 #### Scenario: Ungrounded fields on an admitted candidate are rejected
 - **WHEN** an admitted no-match candidate is extracted but its emitted fields fail the grounding cascade
