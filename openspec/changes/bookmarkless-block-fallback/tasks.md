@@ -21,4 +21,4 @@
 
 - [x] 4.1 `dotnet build` clean (warnings-as-errors) and `dotnet test` green for the touched projects.
 - [x] 4.2 Confirm no other consumers of `IPdfBlockExtractor.ExtractBlocksAsync` remain uncompiled (DI registration at `Extensions/ServiceCollectionExtensions.cs` still resolves).
-- [ ] 4.3 (Deferred, operational — not a code task) Re-ingest MPMM (id 8) and, pending its source-key decision, EEPC (id 9) to exercise the fallback live; then flag the BM25 corpus-consistency re-ingest.
+- [x] 4.3 Live-validated: MPMM (id 8) re-ingested via the fallback = 3505 blocks (log: "heading-derived full-coverage TOC from 1065 headings"). EEPC (id 9) re-ingest still pending its source-key decision (separate). BM25 corpus-consistency re-ingest flagged as a follow-up.
