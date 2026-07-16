@@ -244,8 +244,6 @@ Expected: build FAILS — `FullCoverageHeadingTocMapper` does not exist.
 `Features/Ingestion/Pdf/FullCoverageHeadingTocMapper.cs`:
 
 ```csharp
-using System.Collections.Frozen;
-
 using DndMcpAICsharpFun.Domain;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
@@ -253,23 +251,18 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 /// <summary>
 /// Builds a FULL-COVERAGE table of contents from MinerU section-header items for the
 /// block-ingestion fallback: every heading becomes a titled section boundary, categories
-/// carry forward from the last confident heading, and catch-all entries guarantee that —
-/// once assembled into a TocCategoryMap — every page from 1 onward resolves to a section
-/// (no block is dropped).
+/// carry forward from the last typed heading, and catch-all entries guarantee that — once
+/// assembled into a TocCategoryMap — every page from 1 onward resolves to a section (no
+/// block is dropped).
 ///
 /// Deliberately distinct from <see cref="HeadingTocMapper"/>, which is sparse/confident-only
 /// for entity extraction (dropped headings there are correct; here they would lose content).
-/// The confident-category set mirrors HeadingTocMapper.Confident — keep the two in sync.
+/// A heading "anchors" the carry-forward category when the classifier gives any typed result
+/// (i.e. not the <see cref="ContentCategory.Rule"/> fallback); unlike the extraction path this
+/// keeps the broader block-useful categories (Combat, Lore, Adventuring, Encounter, Trait).
 /// </summary>
 public static class FullCoverageHeadingTocMapper
 {
-    private static readonly FrozenSet<ContentCategory> Confident = new HashSet<ContentCategory>
-    {
-        ContentCategory.Spell, ContentCategory.Monster, ContentCategory.Class, ContentCategory.Race,
-        ContentCategory.Background, ContentCategory.Item, ContentCategory.Condition, ContentCategory.God,
-        ContentCategory.Plane, ContentCategory.Treasure, ContentCategory.Trap,
-    }.ToFrozenSet();
-
     public static IReadOnlyList<TocSectionEntry> Map(
         IReadOnlyList<PdfStructureItem> headings, string bookTitle)
     {
@@ -285,19 +278,19 @@ public static class FullCoverageHeadingTocMapper
         if (named[0].PageNumber > 1)
             entries.Add(new TocSectionEntry("Front Matter", ContentCategory.Rule, 1));
 
-        ContentCategory? lastConfident = null;
+        ContentCategory? lastTyped = null;
         foreach (var h in named)
         {
             var guessed = HeadingCategoryClassifier.Guess(h.Text);
             ContentCategory category;
-            if (Confident.Contains(guessed))
+            if (guessed != ContentCategory.Rule)
             {
-                category = guessed;
-                lastConfident = guessed;
+                category = guessed;   // a typed heading anchors the carry-forward
+                lastTyped = guessed;
             }
             else
             {
-                category = lastConfident ?? ContentCategory.Rule;
+                category = lastTyped ?? ContentCategory.Rule;  // inherit, else default
             }
 
             entries.Add(new TocSectionEntry(h.Text.Trim(), category, h.PageNumber));
