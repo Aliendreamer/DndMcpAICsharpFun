@@ -22,18 +22,24 @@ public sealed class StructureBlockExtractorTests
             .Returns(Task.FromResult(SampleDoc));
         var sut = new StructureBlockExtractor(converter, NullLogger<StructureBlockExtractor>.Instance);
 
-        var result = (await sut.ExtractBlocksAsync("/tmp/fake.pdf")).ToList();
+        var result = await sut.ExtractBlocksAsync("/tmp/fake.pdf");
+        var blocks = result.Blocks.ToList();
 
-        Assert.Equal(4, result.Count);
-        Assert.Equal("Wizard", result[0].Text);
-        Assert.Equal(112, result[0].PageNumber);
-        Assert.Equal(0, result[0].Order);
-        Assert.Equal(112, result[1].PageNumber);
-        Assert.Equal(1, result[1].Order);
-        Assert.Equal(113, result[2].PageNumber);
-        Assert.Equal(0, result[2].Order);  // per-page order resets
-        Assert.Equal(113, result[3].PageNumber);
-        Assert.Equal(1, result[3].Order);
+        Assert.Equal(4, blocks.Count);
+        Assert.Equal("Wizard", blocks[0].Text);
+        Assert.Equal(112, blocks[0].PageNumber);
+        Assert.Equal(0, blocks[0].Order);
+        Assert.Equal(112, blocks[1].PageNumber);
+        Assert.Equal(1, blocks[1].Order);
+        Assert.Equal(113, blocks[2].PageNumber);
+        Assert.Equal(0, blocks[2].Order);  // per-page order resets
+        Assert.Equal(113, blocks[3].PageNumber);
+        Assert.Equal(1, blocks[3].Order);
+
+        // the section_header item is surfaced in Headings
+        Assert.Single(result.Headings);
+        Assert.Equal("Wizard", result.Headings[0].Text);
+        Assert.Equal(112, result.Headings[0].PageNumber);
     }
 
     [Fact]
@@ -50,10 +56,12 @@ public sealed class StructureBlockExtractorTests
             .Returns(Task.FromResult(doc));
         var sut = new StructureBlockExtractor(converter, NullLogger<StructureBlockExtractor>.Instance);
 
-        var result = (await sut.ExtractBlocksAsync("/tmp/x.pdf")).ToList();
+        var result = await sut.ExtractBlocksAsync("/tmp/x.pdf");
+        var blocks = result.Blocks.ToList();
 
-        Assert.Equal(2, result.Count);
-        Assert.Equal("real", result[0].Text);
-        Assert.Equal("real 2", result[1].Text);
+        Assert.Equal(2, blocks.Count);
+        Assert.Equal("real", blocks[0].Text);
+        Assert.Equal("real 2", blocks[1].Text);
+        Assert.Empty(result.Headings);  // no section_header items → empty (not null)
     }
 }
