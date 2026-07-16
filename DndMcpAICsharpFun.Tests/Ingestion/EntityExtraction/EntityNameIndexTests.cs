@@ -39,4 +39,32 @@ public sealed class EntityNameIndexTests
     [Fact]
     public void Does_not_contain_archery() =>
         Index.Entries.Should().NotContainKey(EntityNameIndex.Normalize("Archery"));
+
+    // ── Subclass roster (extraction-authority-ladder Tier 1) ─────────────────────────
+
+    // "Path of the Battlerager" is a subclass[] entry in class-barbarian.json (source SCAG).
+    [Fact]
+    public void Loads_path_of_the_battlerager_as_subclass() =>
+        Index.Entries[EntityNameIndex.Normalize("Path of the Battlerager")]
+            .Should().Be(("Path of the Battlerager", EntityType.Subclass));
+
+    // Bare shortName "Battlerager" (distinct from the full name) must also resolve, grounding
+    // to the subclass's canonical (full) name.
+    [Fact]
+    public void Loads_battlerager_shortname_as_subclass() =>
+        Index.Entries[EntityNameIndex.Normalize("Battlerager")]
+            .Should().Be(("Path of the Battlerager", EntityType.Subclass));
+
+    // "Mastermind" (class-rogue.json) is a subclass whose shortName equals its full name.
+    [Fact]
+    public void Loads_mastermind_shortname_as_subclass() =>
+        Index.Entries[EntityNameIndex.Normalize("Mastermind")]
+            .Should().Be(("Mastermind", EntityType.Subclass));
+
+    // Base classes are loaded before subclasses, so a name collision (none expected today, but
+    // this locks the ordering guarantee) resolves to Class.
+    [Fact]
+    public void Loads_barbarian_as_class_not_subclass() =>
+        Index.Entries[EntityNameIndex.Normalize("Barbarian")]
+            .Should().Be(("Barbarian", EntityType.Class));
 }

@@ -99,4 +99,20 @@ public sealed class EntityNameMatcherTests
     public void MatchOfType_animated_armor_statline_resolves_to_clean_name() =>
         Matcher.MatchOfType("ANIMATED ARMOR Medium construct, unaligned", EntityType.Monster)
             .Should().Be(("Animated Armor", EntityType.Monster));
+
+    // ── Subclass roster (extraction-authority-ladder Tier 1) ─────────────────────────
+
+    [Fact]
+    public void Match_path_of_the_battlerager_returns_subclass() =>
+        Matcher.Match("Path of the Battlerager").Should().Be(("Path of the Battlerager", EntityType.Subclass));
+
+    // Bare shortName header (e.g. how a chapter subsection might be titled) still resolves.
+    [Fact]
+    public void Match_mastermind_shortname_returns_subclass() =>
+        Matcher.Match("Mastermind").Should().Be(("Mastermind", EntityType.Subclass));
+
+    // Base-class name wins over any subclass on a collision.
+    [Fact]
+    public void Match_barbarian_returns_class_not_subclass() =>
+        Matcher.Match("Barbarian").Should().Be(("Barbarian", EntityType.Class));
 }

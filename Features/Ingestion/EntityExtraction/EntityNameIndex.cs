@@ -34,6 +34,13 @@ public sealed class EntityNameIndex
         LoadGlob(entries, byName, Path.Combine(fivetoolsDir, "class"), "class-*.json", "class",
             _ => EntityType.Class);
 
+        // subclasses — same files' subclass[] array; indexed by name AND shortName (e.g.
+        // "Battlerager" for "Path of the Battlerager"), both grounding to the full canonical
+        // name. Loaded after base classes so a colliding name resolves to Class first.
+        LoadGlob(entries, byName, Path.Combine(fivetoolsDir, "class"), "class-*.json", "subclass",
+            _ => EntityType.Subclass,
+            aliasSelector: e => e.TryGetProperty("shortName", out var sn) ? sn.GetString() : null);
+
         // monsters (all bestiary source files)
         LoadGlob(entries, byName, Path.Combine(fivetoolsDir, "bestiary"), "bestiary-*.json", "monster",
             _ => EntityType.Monster);
@@ -79,7 +86,8 @@ public sealed class EntityNameIndex
         string pattern,
         string arrayKey,
         Func<JsonElement, EntityType> typeSelector,
-        Func<JsonElement, bool>? include = null)
+        Func<JsonElement, bool>? include = null,
+        Func<JsonElement, string?>? aliasSelector = null)
     {
         if (!Directory.Exists(directory)) return;
 
@@ -99,19 +107,35 @@ public sealed class EntityNameIndex
                     var name = nameProp.GetString();
                     if (string.IsNullOrEmpty(name)) continue;
 
-                    var norm = Normalize(name);
                     var type = typeSelector(elem);
+                    Add(entries, byName, name, name, type);
 
-                    // first-wins: keep the entry already in the dictionary if present
-                    entries.TryAdd(norm, (name, type));
-
-                    // Multimap: retain every distinct type a name maps to (first-wins per type).
-                    if (!byName.TryGetValue(norm, out var list))
-                        byName[norm] = list = new List<(string Canonical, EntityType Type)>();
-                    if (list.TrueForAll(e => e.Type != type))
-                        list.Add((name, type));
+                    // Optional alias (e.g. a subclass's shortName) — indexed under its own
+                    // normalized key but grounding to the primary entry's canonical name.
+                    var alias = aliasSelector?.Invoke(elem);
+                    if (!string.IsNullOrEmpty(alias) && alias != name)
+                        Add(entries, byName, alias, name, type);
                 }
             }
         }
+    }
+
+    private static void Add(
+        Dictionary<string, (string Canonical, EntityType Type)> entries,
+        Dictionary<string, List<(string Canonical, EntityType Type)>> byName,
+        string keyName,
+        string canonical,
+        EntityType type)
+    {
+        var norm = Normalize(keyName);
+
+        // first-wins: keep the entry already in the dictionary if present
+        entries.TryAdd(norm, (canonical, type));
+
+        // Multimap: retain every distinct type a name maps to (first-wins per type).
+        if (!byName.TryGetValue(norm, out var list))
+            byName[norm] = list = new List<(string Canonical, EntityType Type)>();
+        if (list.TrueForAll(e => e.Type != type))
+            list.Add((canonical, type));
     }
 }
