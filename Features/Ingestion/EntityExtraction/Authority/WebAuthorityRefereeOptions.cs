@@ -19,11 +19,18 @@ public sealed class WebAuthorityRefereeOptions
 
     /// <summary>The authoritative domains a confirming hit must come from. A web result on any
     /// other domain is ignored by the refute-biased confirm test. Matched on host suffix, so
-    /// "5e.tools" also matches "www.5e.tools".</summary>
+    /// "5esrd.com" also matches "www.5esrd.com".
+    /// Tuned from a live SearXNG probe (T3 task 4.3): the shared engine (DuckDuckGo-backed) actually
+    /// surfaces 5e.tools, 5esrd.com, and the D&D Fandom/wikidot wikis for real entities, while
+    /// dndbeyond.com / roll20.net rarely appear (they block scrapers) — so those are kept only as
+    /// harmless extras. Override the whole list per-deployment via config.</summary>
     public string[] AuthoritativeDomains { get; init; } =
     [
         "5e.tools",
+        "5esrd.com",
         "dnd5e.wikidot.com",
+        "forgottenrealms.fandom.com",
+        "dnd-5e.fandom.com",
         "roll20.net",
         "dndbeyond.com",
     ];
