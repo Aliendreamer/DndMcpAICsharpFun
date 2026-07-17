@@ -10,10 +10,17 @@ public readonly record struct TypeResolution(DeterministicOutcome Outcome, Entit
 {
     public string? CanonicalName { get; init; }
     public string? DeclineReason { get; init; }
+
+    // True only when this resolution was reached via an actual 5etools index match (Step 1's
+    // same-prior match, or the cross-type match below) — never for a structural-signature-only
+    // force (stat block / object / magic item), which is a book-derived rescue, not a 5etools hit.
+    // This is the authority-ladder's "matched5etools" signal (see extraction-authority-ladder).
+    public bool Matched5Etools { get; init; }
+
     public static readonly TypeResolution Drop = new(DeterministicOutcome.Drop, default);
     public static readonly TypeResolution Defer = new(DeterministicOutcome.Defer, default);
     public static TypeResolution Force(EntityType type, string? canonicalName = null) =>
-        new(DeterministicOutcome.ForceType, type) { CanonicalName = canonicalName };
+        new(DeterministicOutcome.ForceType, type) { CanonicalName = canonicalName, Matched5Etools = canonicalName is not null };
     public static TypeResolution Decline(string reason) =>
         new(DeterministicOutcome.Decline, default) { DeclineReason = reason };
 }

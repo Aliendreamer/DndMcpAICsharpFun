@@ -84,7 +84,7 @@ public sealed class EntityExtractionRunner(
 
             var forcedConfidence = forcedFields.Value.TryGetProperty("confidence", out var fcp) ? fcp.GetString() : null;
             var forcedClean = CandidateExtractor.StripConfidence(forcedFields.Value);
-            return (await BuildTypedEnvelope(id, resolution.ForcedType, displayName, sourceBook, edition, candidate, forcedClean, forcedConfidence, ct), null);
+            return (await BuildTypedEnvelope(id, resolution.ForcedType, displayName, sourceBook, edition, candidate, forcedClean, forcedConfidence, resolution.Matched5Etools, isOfficial, ct), null);
         }
 
         var result = await candidateExtractor.ExtractUnionAsync(record, candidate, availablePrior, schemas, ct);
@@ -115,7 +115,7 @@ public sealed class EntityExtractionRunner(
                     Detail: result.DeclineReason ?? "model declined (entityType:none)"));
 
             default:
-                return (await BuildTypedEnvelope(id, result.Type, displayName, sourceBook, edition, candidate, result.Fields, result.Confidence, ct), null);
+                return (await BuildTypedEnvelope(id, result.Type, displayName, sourceBook, edition, candidate, result.Fields, result.Confidence, resolution.Matched5Etools, isOfficial, ct), null);
         }
     }
 
@@ -125,8 +125,16 @@ public sealed class EntityExtractionRunner(
     // the authoritative type is the Type field.
     private async Task<EntityEnvelope> BuildTypedEnvelope(
         string id, EntityType type, string displayName, string sourceBook, string edition,
-        EntityCandidate candidate, JsonElement fields, string? confidence, CancellationToken ct)
+        EntityCandidate candidate, JsonElement fields, string? confidence,
+        bool matched5etools, bool isOfficial, CancellationToken ct)
     {
+        // Deterministic authority label (extraction-authority-ladder T3 chunk A — no web calls):
+        //   matched the 5etools index                -> canon
+        //   official book, no match (book-admitted)   -> canon-unindexed
+        //   keyless book, no match (book-admitted)     -> homebrew (default; the T3 web referee
+        //                                                 upgrades this to verified-thirdparty later)
+        var authority = matched5etools ? "canon" : isOfficial ? "canon-unindexed" : "homebrew";
+
         var provisional = new EntityEnvelope(
             Id: id,
             Type: type,
@@ -139,6 +147,7 @@ public sealed class EntityExtractionRunner(
             SettingTags: Array.Empty<string>(),
             CanonicalText: string.Empty,
             Fields: fields,
+            Authority: authority,
             NeedsReview: false,
             Disposition: EntityDisposition.Accepted);
 

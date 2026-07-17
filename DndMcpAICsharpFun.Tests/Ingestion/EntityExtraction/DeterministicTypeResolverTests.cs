@@ -84,6 +84,20 @@ public sealed class DeterministicTypeResolverTests
         r.Outcome.Should().Be(DeterministicOutcome.ForceType);
         r.ForcedType.Should().Be(EntityType.Spell);
         r.CanonicalName.Should().Be("Fireball");
+        r.Matched5Etools.Should().BeTrue("a real 5etools index hit is the authority-ladder's canon signal");
+    }
+
+    [Fact]
+    public void Non_5etools_creature_stat_block_rescue_is_not_a_5etools_match()
+    {
+        // The stat-block rescue forces Monster from the candidate's own text, not from a 5etools
+        // hit — Matched5Etools must stay false so the authority label falls to canon-unindexed /
+        // homebrew rather than canon.
+        var r = DeterministicTypeResolver.Resolve(
+            C("Xyzgoblin Elder", "Armor Class 14 Hit Points 30 Challenge 1 (200 XP)"), Matcher);
+        r.Outcome.Should().Be(DeterministicOutcome.ForceType);
+        r.ForcedType.Should().Be(EntityType.Monster);
+        r.Matched5Etools.Should().BeFalse();
     }
 
     [Fact]

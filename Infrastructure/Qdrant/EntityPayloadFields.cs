@@ -20,6 +20,7 @@ public static class EntityPayloadFields
     public const string FieldsJson = "fields_json";
     public const string FileHash = "file_hash";
     public const string DataSource = "data_source";
+    public const string Authority = "authority";
     public const string Srd = "srd";
     public const string Srd52 = "srd52";
     public const string BasicRules2024 = "basic_rules_2024";

@@ -3,6 +3,7 @@ using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
+using DndMcpAICsharpFun.Tests;
 using DndMcpAICsharpFun.Tests.TestDoubles;
 
 using FluentAssertions;
@@ -16,7 +17,8 @@ namespace DndMcpAICsharpFun.Tests.Entities.Extraction;
 
 public sealed class EntityExtractionRunnerDeclineTests
 {
-    private static EntityExtractionRunner BuildRunner(IEntityExtractionLlmClient llm, GroundingCascade? cascade = null) =>
+    private static EntityExtractionRunner BuildRunner(
+        IEntityExtractionLlmClient llm, GroundingCascade? cascade = null, EntityNameMatcher? matcher = null) =>
         new(
             candidateExtractor: new CandidateExtractor(
                 llm: llm,
@@ -28,7 +30,8 @@ public sealed class EntityExtractionRunnerDeclineTests
                 ollamaOpts: Options.Create(new OllamaOptions()),
                 logger: NullLogger<CandidateExtractor>.Instance),
             logger: NullLogger<EntityExtractionRunner>.Instance,
-            cascade: cascade ?? GroundingCascadeTestFactory.Inert());
+            cascade: cascade ?? GroundingCascadeTestFactory.Inert(),
+            matcher: matcher);
 
     private static DndMcpAICsharpFun.Domain.IngestionRecord Record() => new()
     {
@@ -99,6 +102,59 @@ public sealed class EntityExtractionRunnerDeclineTests
         // preserves the pre-cascade behavior for a Tier-0-grounded, confident, clean-named entity.
         envelope.Disposition.Should().Be(EntityDisposition.Accepted);
         envelope.NeedsReview.Should().BeFalse();
+
+        // extraction-authority-ladder T3 chunk A: no matcher, isOfficial defaults false ->
+        // a keyless-book admitted entity is labeled homebrew (the default until the Tier-3 web
+        // referee, a later chunk, upgrades it to verified-thirdparty on a confirming hit).
+        envelope.Authority.Should().Be("homebrew");
+    }
+
+    [Fact]
+    public async Task Official_book_admitted_nonmatch_entity_has_canon_unindexed_authority()
+    {
+        // Same shape as the keyless case above, but isOfficial:true and no 5etools match ->
+        // canon-unindexed (an official book's own book-derived admission, not a 5etools hit).
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        ReturnsToolInput(llm,
+            """{"entityType":"Object","ac":[15],"hp":{"average":50,"formula":"unbroken"}}""");
+
+        var candidate = new EntityCandidate(
+            Type: EntityType.Object, DisplayName: "Ballista", Text: "A Large object. Armor Class 15. Hit Points 50.",
+            Page: 1, TypePrior: new[] { EntityType.Object });
+        var schemas = new Dictionary<EntityType, JsonElement> { [EntityType.Object] = JsonDocument.Parse("{}").RootElement.Clone() };
+
+        var (envelope, error) = await BuildRunner(llm).ExtractOneAsync(
+            Record(), candidate, id: "test.object.ballista", sourceBook: "Test", edition: "5e",
+            schemas: schemas, ct: CancellationToken.None, isOfficial: true);
+
+        error.Should().BeNull();
+        envelope.Should().NotBeNull();
+        envelope!.Authority.Should().Be("canon-unindexed");
+    }
+
+    [Fact]
+    public async Task Fivetools_matched_entity_has_canon_authority()
+    {
+        // A real matcher (the actual 5etools index) resolves "Fireball" + Spell prior to a
+        // same-prior Force with a canonical name -> Matched5Etools -> Authority "canon", regardless
+        // of isOfficial (a genuine 5etools hit is canon whether the source book is official or not).
+        var matcher = new EntityNameMatcher(new EntityNameIndex(TestPaths.RepoFile("5etools")));
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        ReturnsToolInput(llm, """{"level":3}""");
+
+        var candidate = new EntityCandidate(
+            Type: EntityType.Spell, DisplayName: "Fireball",
+            Text: "A bright streak flashes to a point you choose, then blossoms into flame.",
+            Page: 1, TypePrior: new[] { EntityType.Spell });
+        var schemas = new Dictionary<EntityType, JsonElement> { [EntityType.Spell] = JsonDocument.Parse("{}").RootElement.Clone() };
+
+        var (envelope, error) = await BuildRunner(llm, matcher: matcher).ExtractOneAsync(
+            Record(), candidate, id: "test.spell.fireball", sourceBook: "Test", edition: "5e",
+            schemas: schemas, ct: CancellationToken.None);
+
+        error.Should().BeNull();
+        envelope.Should().NotBeNull();
+        envelope!.Authority.Should().Be("canon");
     }
 
     [Fact]

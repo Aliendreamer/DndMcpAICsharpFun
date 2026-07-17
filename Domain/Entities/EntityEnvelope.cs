@@ -15,6 +15,7 @@ public sealed record EntityEnvelope(
     string CanonicalText,
     JsonElement Fields,
     string DataSource = "",
+    string Authority = "",
     bool Srd = false,
     bool Srd52 = false,
     bool BasicRules2024 = false,
