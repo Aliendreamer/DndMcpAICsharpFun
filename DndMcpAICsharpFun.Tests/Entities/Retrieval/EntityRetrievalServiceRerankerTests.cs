@@ -179,4 +179,26 @@ public sealed class EntityRetrievalServiceRerankerTests
         await store.Received(1).SearchAsync(
             Arg.Any<float[]>(), Arg.Any<EntityFilters>(), 30, Arg.Any<CancellationToken>());
     }
+
+    // ── extraction-authority-ladder T3 (3.5): the authority label is surfaced on results ──
+
+    [Fact]
+    public async Task SearchAsync_SurfacesTheAuthorityLabelFromTheEnvelope()
+    {
+        var store = Substitute.For<IEntityVectorStore>();
+        var hit = new EntitySearchHit(
+            MakeEnvelope("e1", "flumph text") with { Authority = "verified-thirdparty" }, 0.9f, "e1-point");
+        store.SearchAsync(Arg.Any<float[]>(), Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+             .Returns(Task.FromResult<IList<EntitySearchHit>>([hit]));
+
+        // Reranking off → the plain vector path preserves the envelope, so we assert on surfacing.
+        var sut = BuildSut(store, Substitute.For<IReranker>(), globalEnabled: false);
+        var query = new EntitySearchQuery("flumph", null, null, null, null, null, null,
+            null, null, null, null, TopK: 10);
+
+        var results = await sut.SearchAsync(query, CancellationToken.None);
+
+        results.Should().ContainSingle();
+        results[0].Authority.Should().Be("verified-thirdparty");
+    }
 }

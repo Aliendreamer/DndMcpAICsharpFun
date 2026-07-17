@@ -8,6 +8,7 @@ using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.Authority;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 using DndMcpAICsharpFun.Features.Ingestion.Pdf;
@@ -253,6 +254,15 @@ internal static class ServiceCollectionExtensions
                 configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools"));
         services.AddSingleton<EntityNameMatcher>();
         services.AddSingleton<EntityCandidateBuilder>();
+        // Tier-3 web authority referee (extraction-authority-ladder). OFF by default; the options
+        // bind from the "WebAuthorityReferee" section (or WebAuthorityReferee__* env overrides).
+        // Scoped so its by-name verdict cache lives for one extraction run — long enough to dedup a
+        // re-extract of the same book, short enough not to pin a typed HttpClient for the process
+        // lifetime. It flows into EntityExtractionRunner via that runner's optional ctor parameter.
+        services.AddOptions<WebAuthorityRefereeOptions>()
+            .BindConfiguration("WebAuthorityReferee")
+            .ValidateOnStart();
+        services.AddScoped<IWebAuthorityReferee, WebAuthorityReferee>();
         // Scoped, not Singleton: EntityExtractionRunner now depends on IGroundingCascade, which is
         // Scoped (it in turn depends on the Scoped ITier1Grounding/IGroundingJudge). A Singleton
         // cannot consume a Scoped service without becoming a captive dependency. Its only consumer,

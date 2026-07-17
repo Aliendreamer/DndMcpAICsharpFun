@@ -11,7 +11,10 @@ public sealed record EntitySearchResult(
     int? Page,
     IReadOnlyList<string> SettingTags,
     string Snippet,
-    float Score);
+    float Score,
+    // Authority label (extraction-authority-ladder T3): canon / canon-unindexed /
+    // verified-thirdparty / homebrew. Surfaced so consumers can down-weight or filter on provenance.
+    string Authority = "");
 
 public sealed record EntityDiagnosticResult(
     string Id,
@@ -23,4 +26,5 @@ public sealed record EntityDiagnosticResult(
     IReadOnlyList<string> SettingTags,
     string PointId,
     System.Text.Json.JsonElement Fields,
-    float Score);
+    float Score,
+    string Authority = "");

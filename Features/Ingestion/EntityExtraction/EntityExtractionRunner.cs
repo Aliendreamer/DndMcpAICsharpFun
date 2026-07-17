@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain.Entities;
+using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.Authority;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
@@ -14,9 +15,11 @@ public sealed class EntityExtractionRunner(
     CandidateExtractor candidateExtractor,
     ILogger<EntityExtractionRunner> logger,
     IGroundingCascade cascade,
-    EntityNameMatcher? matcher = null)
+    EntityNameMatcher? matcher = null,
+    IWebAuthorityReferee? referee = null)
 {
     private readonly EntityNameMatcher? _matcher = matcher;
+    private readonly IWebAuthorityReferee? _referee = referee;
 
     /// <summary>
     /// Shared per-candidate extraction pipeline used by both full and errors-only run modes.
@@ -128,12 +131,30 @@ public sealed class EntityExtractionRunner(
         EntityCandidate candidate, JsonElement fields, string? confidence,
         bool matched5etools, bool isOfficial, CancellationToken ct)
     {
-        // Deterministic authority label (extraction-authority-ladder T3 chunk A — no web calls):
-        //   matched the 5etools index                -> canon
-        //   official book, no match (book-admitted)   -> canon-unindexed
-        //   keyless book, no match (book-admitted)     -> homebrew (default; the T3 web referee
-        //                                                 upgrades this to verified-thirdparty later)
-        var authority = matched5etools ? "canon" : isOfficial ? "canon-unindexed" : "homebrew";
+        // Authority label (extraction-authority-ladder T3):
+        //   matched the 5etools index               -> canon
+        //   official book, no match (book-admitted)  -> canon-unindexed
+        //   keyless book, no match (book-admitted)   -> the refute-biased web referee decides:
+        //                                               verified-thirdparty on a confirming
+        //                                               authoritative hit, else homebrew. The
+        //                                               referee makes no web call when its toggle
+        //                                               is off (→ homebrew) and NEVER drops the
+        //                                               entity — a miss is a label, not a removal.
+        string authority;
+        if (matched5etools)
+        {
+            authority = "canon";
+        }
+        else if (isOfficial)
+        {
+            authority = "canon-unindexed";
+        }
+        else
+        {
+            var verified = _referee is not null
+                && await _referee.IsAuthoritativeAsync(displayName, type, ct);
+            authority = verified ? "verified-thirdparty" : "homebrew";
+        }
 
         var provisional = new EntityEnvelope(
             Id: id,

@@ -28,7 +28,8 @@ public sealed class EntityRetrievalService(
         return hits.Select(h => new EntitySearchResult(
             h.Envelope.Id, h.Envelope.Type, h.Envelope.Name,
             h.Envelope.SourceBook, h.Envelope.Edition, h.Envelope.Page,
-            h.Envelope.SettingTags, Truncate(h.Envelope.CanonicalText, 240), h.Score
+            h.Envelope.SettingTags, Truncate(h.Envelope.CanonicalText, 240), h.Score,
+            Authority: h.Envelope.Authority
         )).ToList();
     }
 
@@ -38,7 +39,8 @@ public sealed class EntityRetrievalService(
         return hits.Select(h => new EntityDiagnosticResult(
             h.Envelope.Id, h.Envelope.Type, h.Envelope.Name,
             h.Envelope.SourceBook, h.Envelope.Edition, h.Envelope.Page,
-            h.Envelope.SettingTags, h.PointId, h.Envelope.Fields, h.Score
+            h.Envelope.SettingTags, h.PointId, h.Envelope.Fields, h.Score,
+            Authority: h.Envelope.Authority
         )).ToList();
     }
 

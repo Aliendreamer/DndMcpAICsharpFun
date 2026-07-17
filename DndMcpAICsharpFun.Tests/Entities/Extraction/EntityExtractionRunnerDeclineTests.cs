@@ -2,6 +2,7 @@ using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.Authority;
 using DndMcpAICsharpFun.Infrastructure.Ollama;
 using DndMcpAICsharpFun.Tests;
 using DndMcpAICsharpFun.Tests.TestDoubles;
@@ -18,7 +19,8 @@ namespace DndMcpAICsharpFun.Tests.Entities.Extraction;
 public sealed class EntityExtractionRunnerDeclineTests
 {
     private static EntityExtractionRunner BuildRunner(
-        IEntityExtractionLlmClient llm, GroundingCascade? cascade = null, EntityNameMatcher? matcher = null) =>
+        IEntityExtractionLlmClient llm, GroundingCascade? cascade = null, EntityNameMatcher? matcher = null,
+        IWebAuthorityReferee? referee = null) =>
         new(
             candidateExtractor: new CandidateExtractor(
                 llm: llm,
@@ -31,7 +33,8 @@ public sealed class EntityExtractionRunnerDeclineTests
                 logger: NullLogger<CandidateExtractor>.Instance),
             logger: NullLogger<EntityExtractionRunner>.Instance,
             cascade: cascade ?? GroundingCascadeTestFactory.Inert(),
-            matcher: matcher);
+            matcher: matcher,
+            referee: referee);
 
     private static DndMcpAICsharpFun.Domain.IngestionRecord Record() => new()
     {
@@ -155,6 +158,60 @@ public sealed class EntityExtractionRunnerDeclineTests
         error.Should().BeNull();
         envelope.Should().NotBeNull();
         envelope!.Authority.Should().Be("canon");
+    }
+
+    [Fact]
+    public async Task Keyless_admitted_entity_confirmed_by_referee_is_verified_thirdparty()
+    {
+        // extraction-authority-ladder T3 chunk B: a keyless-book admitted entity (no 5etools match,
+        // not official) whose name the web referee confirms on an authoritative hit is upgraded from
+        // the homebrew default to verified-thirdparty. The entity is kept either way (never dropped).
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        ReturnsToolInput(llm,
+            """{"entityType":"Object","ac":[15],"hp":{"average":50,"formula":"unbroken"}}""");
+
+        var referee = Substitute.For<IWebAuthorityReferee>();
+        referee.IsAuthoritativeAsync(Arg.Any<string>(), Arg.Any<EntityType>(), Arg.Any<CancellationToken>())
+               .Returns(true);
+
+        var candidate = new EntityCandidate(
+            Type: EntityType.Object, DisplayName: "Ballista", Text: "A Large object. Armor Class 15. Hit Points 50.",
+            Page: 1, TypePrior: new[] { EntityType.Object });
+        var schemas = new Dictionary<EntityType, JsonElement> { [EntityType.Object] = JsonDocument.Parse("{}").RootElement.Clone() };
+
+        var (envelope, error) = await BuildRunner(llm, referee: referee).ExtractOneAsync(
+            Record(), candidate, id: "test.object.ballista", sourceBook: "Test", edition: "5e",
+            schemas: schemas, ct: CancellationToken.None);
+
+        error.Should().BeNull();
+        envelope.Should().NotBeNull("a confirmed keyless entity is kept");
+        envelope!.Authority.Should().Be("verified-thirdparty");
+    }
+
+    [Fact]
+    public async Task Keyless_admitted_entity_missed_by_referee_stays_homebrew_and_is_kept()
+    {
+        // A referee miss NEVER drops the entity — it just leaves the homebrew label.
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        ReturnsToolInput(llm,
+            """{"entityType":"Object","ac":[15],"hp":{"average":50,"formula":"unbroken"}}""");
+
+        var referee = Substitute.For<IWebAuthorityReferee>();
+        referee.IsAuthoritativeAsync(Arg.Any<string>(), Arg.Any<EntityType>(), Arg.Any<CancellationToken>())
+               .Returns(false);
+
+        var candidate = new EntityCandidate(
+            Type: EntityType.Object, DisplayName: "Ballista", Text: "A Large object. Armor Class 15. Hit Points 50.",
+            Page: 1, TypePrior: new[] { EntityType.Object });
+        var schemas = new Dictionary<EntityType, JsonElement> { [EntityType.Object] = JsonDocument.Parse("{}").RootElement.Clone() };
+
+        var (envelope, error) = await BuildRunner(llm, referee: referee).ExtractOneAsync(
+            Record(), candidate, id: "test.object.ballista", sourceBook: "Test", edition: "5e",
+            schemas: schemas, ct: CancellationToken.None);
+
+        error.Should().BeNull();
+        envelope.Should().NotBeNull("a referee miss labels, it does not drop");
+        envelope!.Authority.Should().Be("homebrew");
     }
 
     [Fact]
