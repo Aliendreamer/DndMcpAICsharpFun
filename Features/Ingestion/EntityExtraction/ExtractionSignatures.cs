@@ -44,9 +44,15 @@ public static partial class ExtractionSignatures
         if (StepHeading().IsMatch(n)) return false;
         if (ChallengeFragment().IsMatch(n)) return false;
         if (SectionHeading().IsMatch(n)) return false;
+        // extraction-noise-name-gate: a stat-block field-label line ("Armor Class …", "Damage
+        // Immunities …", "Hit Points …") or an optional-rule sidebar ("Effects of …", "Variant: …")
+        // mis-picked as a candidate header is not an entity, whatever its surrounding text signature.
+        if (StatBlockFieldLabel().IsMatch(n)) return false;
+        if (SidebarHeading().IsMatch(n)) return false;
         if (n.StartsWith("Appendix", StringComparison.OrdinalIgnoreCase)) return false;
         if (StructuralHeaders.Contains(n)) return false;
-        if (LairHeading().IsMatch(n) && n.StartsWith("A ", StringComparison.OrdinalIgnoreCase)) return false;
+        // Any "<X> LAIR" heading (was limited to the "A "-prefixed form, so "AN ANARCH's LAIR" leaked).
+        if (LairHeading().IsMatch(n)) return false;
         return true;
     }
 
@@ -100,8 +106,21 @@ public static partial class ExtractionSignatures
     private static partial Regex SectionHeading();
     private static readonly FrozenSet<string> StructuralHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         { "ACTIONS", "REACTIONS", "TRAITS", "BONUS ACTIONS", "LEGENDARY ACTIONS", "LAIR ACTIONS", "REGIONAL EFFECTS" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
-    [GeneratedRegex(@"\blair\b", RegexOptions.IgnoreCase)]
+    // A "<X> LAIR" heading (ends with the word "lair"): "A RED DRAGON'S LAIR", "AN ANARCH's LAIR".
+    // End-anchored so a real entity that merely contains "lair" mid-name is not rejected.
+    [GeneratedRegex(@"\blair\s*$", RegexOptions.IgnoreCase)]
     private static partial Regex LairHeading();
+
+    // Stat-block field-label lines mis-picked as candidate names (extraction-noise-name-gate).
+    // Anchored on a LEADING field label, not a substring, so "Constrictor Snake" (Con…) is untouched.
+    [GeneratedRegex(
+        @"^(armou?r\s+class|hit\s+points|speed|saving\s+throws|skills|senses|languages|damage\s+(immunities|resistances|vulnerabilities)|condition\s+immunities)\b",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex StatBlockFieldLabel();
+
+    // Optional-rule sidebar headings mis-picked as candidate names (extraction-noise-name-gate).
+    [GeneratedRegex(@"^(effects\s+of\b|variant\b)", RegexOptions.IgnoreCase)]
+    private static partial Regex SidebarHeading();
 
     [GeneratedRegex(@"\b(tiny|small|medium|large|huge|gargantuan)\s+object\b", RegexOptions.IgnoreCase)]
     private static partial Regex ObjectSizeType();

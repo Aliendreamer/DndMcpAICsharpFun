@@ -53,6 +53,23 @@ public sealed class ExtractionSignaturesTests
     [InlineData("Creating a Monster", false)]
     [InlineData("CREATING A MONSTER", false)]
     [InlineData("Special Features", false)]
+    // extraction-noise-name-gate: stat-block field-label names (leaked as Monster entities)
+    [InlineData("Damage Immunities poison", false)]
+    [InlineData("Armor Class 14 (natural armor) Hit Points 71 (13d8 + 13) Speed 30 ft.", false)]
+    [InlineData("Hit Points 71 (13d8 + 13)", false)]
+    [InlineData("Saving Throws Dex +5, Con +7", false)]
+    [InlineData("Condition Immunities charmed, frightened", false)]
+    // extraction-noise-name-gate: sidebar / lair headings
+    [InlineData("AN ANARCH's LAIR", false)]
+    [InlineData("Effects of the Mold", false)]
+    [InlineData("Variant: Chromatic Drakes", false)]
+    // known-good entities must STILL admit (no recall regression)
+    [InlineData("Tortle", true)]
+    [InlineData("Babau", true)]
+    [InlineData("Archdruid", true)]
+    [InlineData("Deep Gnome", true)]
+    [InlineData("Path of the Battlerager", true)]
+    [InlineData("Constrictor Snake", true)] // starts with "Con" but is NOT the field label "Condition…"
     [InlineData("", false)]
     [InlineData(null, false)]
     public void IsEntityLikeName_rejects_headings_and_fragments(string? name, bool expected) =>
