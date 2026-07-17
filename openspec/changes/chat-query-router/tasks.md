@@ -1,28 +1,28 @@
 ## 1. Tool-group model + options
 
-- [ ] 1.1 Add `Features/Chat/Routing/ToolGroup.cs` — the group enum/consts (`retrieval-lore`, `structured-lookup`, `character-resolution`, `calculators`, `generation`) and a static tool-name → group map. Unmapped tool names resolve to "always-offered".
-- [ ] 1.2 Add `QueryRouterOptions` (bound from a `ChatQueryRouter` config section): `Threshold` (double, default ~0.45), `AlwaysSafeToolNames` (default = the fused prose-search tool name), per-group `Exemplars` (string phrases, code defaults). Register with `.BindConfiguration` + code defaults (appsettings git-crypt-masked; env overrides live).
+- [x] 1.1 `Features/Chat/Routing/ToolGroups.cs` — group consts (`retrieval-lore`, `structured-lookup`, `character-resolution`, `calculators`, `generation`) + static tool-name → group map (all real tool names mapped: search_lore/search_dnd/ask_setting_lore/ask_rules; search_entities/get_entity; resolve_character_feature/check_multiclass; calculate_crafting; generate_npc/party/prep_session/plan_downtime/plan_level_up/recommend_build/critique_build/rate_encounter/build_encounter). Unmapped → always-offered.
+- [x] 1.2 `QueryRouterOptions` (binds `ChatQueryRouter`): `Enabled` (true), `Threshold` (0.45), `AlwaysSafeToolNames` (`["search_lore"]`), per-group `Exemplars`. Registered `.BindConfiguration`; code defaults authoritative (appsettings git-crypt-masked, env overrides live).
 
 ## 2. The hybrid classifier
 
-- [ ] 2.1 Add `QuerySignals` — deterministic high-precision regex/keyword pass: possessive/character-referential → `character-resolution`; set/quantifier → `structured-lookup`; imperative-create → `generation`. Returns `(group, confidence=1.0)` on a hit, else none.
-- [ ] 2.2 Add `ExemplarIndex` — precompute (once, cached) per-group exemplar centroids via `IEmbeddingService`; `Classify(queryVector)` → `(group, maxCosine)`.
-- [ ] 2.3 Add `QueryRouter` — orchestrates: signal pass → else embed query + `ExemplarIndex` → apply threshold → return the narrowed tool list (`groupTools ∪ alwaysSafeCore`) or the full list. Emit the routing-decision log/metric (`{group, confidence, path, offeredCount, totalCount}`).
+- [x] 2.1 `QuerySignals` — deterministic high-precision regex pass (generation / character-resolution / structured-lookup). Fires ONLY when exactly one family matches (0 or ≥2 → null → embedding backstop), keeping the fast path precise.
+- [x] 2.2 `ExemplarIndex` (+ `IExemplarIndex`) — per-group exemplar centroids via `IEmbeddingService`, computed once (singleton; resolves the scoped embedding service through `IServiceScopeFactory` to avoid a captive dependency), L2-normalized; `ClassifyAsync(queryVector)` → argmax-cosine `(group, confidence)`.
+- [x] 2.3 `QueryRouter` — signal pass → else embed query + `IExemplarIndex` → threshold → narrowed list (`groupTools ∪ alwaysSafeCore ∪ unmapped`) or full list. Logs the decision `{path, group, confidence, offered/total}`.
 
 ## 3. Wire into chat
 
-- [ ] 3.1 In `DndChatService`, call `QueryRouter.Route(latestUserMessage, toolList)` immediately before building `ChatOptions.Tools`; feed its result into `Tools`. No other change to the turn/streaming/execution.
-- [ ] 3.2 Register `QueryRouter` + `QueryRouterOptions` + `ExemplarIndex` in DI (scoped/singleton as lifetime dictates; `ExemplarIndex` singleton so centroids compute once).
+- [x] 3.1 `DndChatService` calls `queryRouter.RouteAsync(userMessage, toolList, ct)` immediately before `ChatOptions.Tools`; `Tools = [.. offeredTools]`. Turn/streaming/execution unchanged.
+- [x] 3.2 DI (`ChatExtensions`): `QueryRouterOptions` bound; `IExemplarIndex → ExemplarIndex` singleton; `QueryRouter` scoped. Container scope-validation test green.
 
 ## 4. Tests
 
-- [ ] 4.1 Signal cases: representative queries per signal → asserted group at confidence 1.0.
-- [ ] 4.2 Embedding cases: a fake `IEmbeddingService` returning controlled vectors → asserted argmax group + confidence; a below-threshold vector → full-set fallback.
-- [ ] 4.3 Safety: always-safe core present in EVERY narrowed set; unmapped tool always offered; empty/low-confidence → full set (== pre-router list).
-- [ ] 4.4 Per-group representative query fixture (a handful each) → asserted routed group.
-- [ ] 4.5 `DndChatService` test: the narrowed `Tools` list reaches the `ChatOptions` used for the LLM turn (mock the chat client, assert the tool names offered).
+- [x] 4.1 Signal cases: per-family queries → asserted group; ambiguous/absent → null (`QueryRouterTests`).
+- [x] 4.2 Embedding cases: fake `IEmbeddingService` + real `ExemplarIndex` (scoped fake via `ServiceCollection`) → asserted argmax group + confidence; below-threshold → full-set fallback.
+- [x] 4.3 Safety: always-safe core in EVERY narrowed set; unmapped tool always offered; low-confidence/disabled → full set.
+- [x] 4.4 Per-group representative query fixtures (signal theory).
+- [x] 4.5 `DndChatService` integration: enabled router + "what is my breath weapon" → `client.LastOptions.Tools` narrowed to `resolve_character_feature` + `search_lore`, excludes `search_entities` (asserts the narrowed set reaches the LLM turn).
 
 ## 5. Verify
 
-- [ ] 5.1 `dotnet build` clean (warnings-as-errors) + full `dotnet test` green.
-- [ ] 5.2 (Optional, manual) Live chat smoke: a character-resolution query, a structured-lookup query, and a narrative query each route to the expected group (check the routing-decision log); confirm no regression when confidence is low (full set offered).
+- [x] 5.1 `dotnet build` clean (0 warn/0 err) + full `dotnet test` green: **1464/1464** (+17 cases).
+- [ ] 5.2 (Optional, manual) Live chat smoke: a character-resolution query, a structured-lookup query, and a narrative query each route to the expected group (check the routing-decision log); confirm no regression when confidence is low. Not run — the unit + `DndChatService` integration tests cover the contract; live smoke is optional confirmation.

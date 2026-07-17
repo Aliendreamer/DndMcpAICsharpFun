@@ -27,7 +27,8 @@ public sealed class DndChatService(
     DndMcpAICsharpFun.Features.Rules.RulesAdjudicationService rulesAdjudicationService,
     DowntimeService downtimeService,
     DndMcpAICsharpFun.Features.Npc.NpcGenerationService npcGenerationService,
-    DndMcpAICsharpFun.Features.SessionPrep.SessionPrepService sessionPrepService)
+    DndMcpAICsharpFun.Features.SessionPrep.SessionPrepService sessionPrepService,
+    Routing.QueryRouter queryRouter)
 {
     // think-on reasoning cost grows with prompt size, so only the most recent window of
     // History is sent to the model; the full conversation is still loaded/displayed/persisted.
@@ -333,11 +334,15 @@ public sealed class DndChatService(
             // is sent to the model; full history is still loaded/displayed/persisted.
             messages.AddRange(History.TakeLast(MaxModelHistoryMessages));
 
+            // chat-query-router: narrow the offered tools to the query's tool group (safe full-set
+            // fallback on low confidence), so the model chooses over a smaller, on-topic surface.
+            var offeredTools = await queryRouter.RouteAsync(userMessage, toolList, ct);
+
             var response = await chatClient.GetResponseAsync(
                 messages,
                 new ChatOptions
                 {
-                    Tools = [.. toolList],
+                    Tools = [.. offeredTools],
                     // qwen3 think ON (default): reasoning is required for multi-rule questions to
                     // come out correct. Bench (model-eval-harness): tool selection/binding is a
                     // 36/36 tie between think-on and think-off, so there is no accuracy cost to

@@ -48,6 +48,13 @@ internal static class ChatExtensions
             IChatClient inner = new OllamaApiClient(new Uri(baseUrl), chatModel);
             return inner.AsBuilder().UseFunctionInvocation().Build();
         });
+        // chat-query-router: pre-LLM tool-set narrowing. Options bind from "ChatQueryRouter"
+        // (env overrides live; appsettings git-crypt-masked). ExemplarIndex is a singleton so the
+        // per-group exemplar centroids are embedded exactly once for the process.
+        services.AddOptions<Features.Chat.Routing.QueryRouterOptions>()
+            .BindConfiguration("ChatQueryRouter");
+        services.AddSingleton<Features.Chat.Routing.IExemplarIndex, Features.Chat.Routing.ExemplarIndex>();
+        services.AddScoped<Features.Chat.Routing.QueryRouter>();
         services.AddScoped<DndChatService>();
         return services;
     }

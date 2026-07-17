@@ -235,7 +235,8 @@ public sealed class DndChatServiceTests : IDisposable
         RulesAdjudicationService? rulesAdjudicationService = null,
         DowntimeService? downtimeService = null,
         NpcGenerationService? npcGenerationService = null,
-        SessionPrepService? sessionPrepService = null) =>
+        SessionPrepService? sessionPrepService = null,
+        DndMcpAICsharpFun.Features.Chat.Routing.QueryRouter? queryRouter = null) =>
         new(client,
             new FakeMcpToolsProvider(tools ?? []),
             new ChatRepository(new NoOpDbFactory()),
@@ -253,7 +254,28 @@ public sealed class DndChatServiceTests : IDisposable
             rulesAdjudicationService ?? BuildRulesAdjudicationService(),
             downtimeService ?? BuildDowntimeService(),
             npcGenerationService ?? BuildNpcGenerationService(),
-            sessionPrepService ?? BuildSessionPrepService());
+            sessionPrepService ?? BuildSessionPrepService(),
+            queryRouter ?? BuildQueryRouter(enabled: false));
+
+    private sealed class RouterNullEmbedding : DndMcpAICsharpFun.Features.Embedding.IEmbeddingService
+    {
+        public Task<IList<float[]>> EmbedAsync(IList<string> texts, CancellationToken ct = default) =>
+            Task.FromResult<IList<float[]>>(texts.Select(_ => new float[] { 0f }).ToList());
+    }
+
+    private sealed class RouterNullIndex : DndMcpAICsharpFun.Features.Chat.Routing.IExemplarIndex
+    {
+        public Task<(string? Group, double Confidence)> ClassifyAsync(float[] q, CancellationToken ct) =>
+            Task.FromResult(((string?)null, 0d));
+    }
+
+    // A router whose deterministic signal pass is always active; the embedding path is a no-op stub
+    // (unused for signal queries). Disabled by default so existing chat-wiring tests see the full set.
+    private static DndMcpAICsharpFun.Features.Chat.Routing.QueryRouter BuildQueryRouter(bool enabled) =>
+        new(new RouterNullEmbedding(), new RouterNullIndex(),
+            Microsoft.Extensions.Options.Options.Create(
+                new DndMcpAICsharpFun.Features.Chat.Routing.QueryRouterOptions { Enabled = enabled }),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<DndMcpAICsharpFun.Features.Chat.Routing.QueryRouter>.Instance);
 
     [Fact]
     public async Task SendAsync_appends_user_and_assistant_messages_to_history()
@@ -323,6 +345,28 @@ public sealed class DndChatServiceTests : IDisposable
             .Should().ContainSingle(t => t.Name == "search_lore");
         activeTools.OfType<AIFunction>()
             .Should().NotContain(t => t.Name == "search_web");
+    }
+
+    [Fact]
+    public async Task SendAsync_offers_the_query_router_narrowed_tools_to_the_llm_turn()
+    {
+        // chat-query-router (task 4.5): an ENABLED router + a character-referential query ("my ...")
+        // narrows the offered Tools to the character-resolution group + the always-safe core.
+        var client = new FakeChatClient();
+        var tools = new[]
+        {
+            AIFunctionFactory.Create(() => "", "search_lore"),               // always-safe core
+            AIFunctionFactory.Create(() => "", "search_entities"),           // structured-lookup group
+            AIFunctionFactory.Create(() => "", "resolve_character_feature"), // character-resolution group
+        };
+        var svc = CreateService(client, tools, queryRouter: BuildQueryRouter(enabled: true));
+
+        await svc.SendAsync("what is my breath weapon", allowWebSearch: false, CancellationToken.None);
+
+        var offered = client.LastOptions!.Tools!.OfType<AIFunction>().Select(t => t.Name).ToList();
+        offered.Should().Contain("resolve_character_feature")
+            .And.Contain("search_lore")               // safe core always present
+            .And.NotContain("search_entities");       // a different group → narrowed out
     }
 
     [Fact]
