@@ -19,10 +19,12 @@ public sealed class WebAuthorityRefereeTests
         : HttpMessageHandler
     {
         public int Calls { get; private set; }
+        public List<string> Queries { get; } = [];
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             Calls++;
+            Queries.Add(request.RequestUri?.Query ?? "");
             ct.ThrowIfCancellationRequested();
             return Task.FromResult(new HttpResponseMessage(status)
             {
@@ -121,5 +123,44 @@ public sealed class WebAuthorityRefereeTests
         (await referee.IsAuthoritativeAsync("  flumph ", EntityType.Monster, CancellationToken.None)).Should().BeTrue();
 
         handler.Calls.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Round_robins_one_engine_per_query_over_the_configured_pool()
+    {
+        // Default pool is [duckduckgo, presearch]; distinct names avoid the cache so each is a web
+        // call. Engines must alternate one-per-query so neither upstream engine is bursted.
+        var (referee, handler) = Build(Json(
+            ("Flumph", "https://5e.tools/bestiary.html#flumph", "The flumph is an aberration")));
+
+        foreach (var name in new[] { "AlphaBeast", "BetaBeast", "GammaBeast", "DeltaBeast" })
+            await referee.IsAuthoritativeAsync(name, EntityType.Monster, CancellationToken.None);
+
+        handler.Calls.Should().Be(4);
+        handler.Queries.Should().HaveCount(4);
+        handler.Queries[0].Should().Contain("engines=duckduckgo");
+        handler.Queries[1].Should().Contain("engines=presearch");
+        handler.Queries[2].Should().Contain("engines=duckduckgo");
+        handler.Queries[3].Should().Contain("engines=presearch");
+    }
+
+    [Fact]
+    public async Task Empty_engine_pool_pins_nothing_and_queries_all_default_engines()
+    {
+        var handler = new CountingHandler(Json(("Flumph", "https://5e.tools/x#flumph", "flumph")));
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://searxng:8080") };
+        var searxng = new SearXNGClient(
+            http,
+            Options.Create(new SearXNGOptions { Url = "http://searxng:8080", MaxResults = 10, AllowedDomains = [] }),
+            NullLogger<SearXNGClient>.Instance);
+        var referee = new WebAuthorityReferee(
+            searxng,
+            Options.Create(new WebAuthorityRefereeOptions { Enabled = true, Engines = [] }),
+            NullLogger<WebAuthorityReferee>.Instance);
+
+        await referee.IsAuthoritativeAsync("Flumph", EntityType.Monster, CancellationToken.None);
+
+        handler.Queries.Should().ContainSingle();
+        handler.Queries[0].Should().NotContain("engines=");
     }
 }

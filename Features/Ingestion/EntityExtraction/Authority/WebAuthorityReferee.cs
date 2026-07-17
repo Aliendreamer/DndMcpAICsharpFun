@@ -23,6 +23,7 @@ public sealed class WebAuthorityReferee(
 {
     private readonly WebAuthorityRefereeOptions _opts = options.Value;
     private readonly ConcurrentDictionary<string, bool> _cache = new(StringComparer.Ordinal);
+    private int _engineCursor = -1;
 
     public async Task<bool> IsAuthoritativeAsync(string entityName, EntityType type, CancellationToken ct)
     {
@@ -47,7 +48,7 @@ public sealed class WebAuthorityReferee(
         var query = $"\"{entityName}\" D&D 5e {type}";
         try
         {
-            var results = await client.SearchAsync(query, timeoutCts.Token);
+            var results = await client.SearchAsync(query, timeoutCts.Token, NextEngine());
             var wanted = NormalizeAlnum(entityName);
             var authoritativeHits = results.Count(r =>
                 IsAuthoritativeDomain(r.Url) &&
@@ -72,6 +73,15 @@ public sealed class WebAuthorityReferee(
         return _opts.AuthoritativeDomains.Any(d =>
             uri.Host.Equals(d, StringComparison.OrdinalIgnoreCase) ||
             uri.Host.EndsWith("." + d, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // Round-robin ONE engine per query over the configured pool so no single upstream engine is
+    // bursted into rate-limiting. Returns null (query all default engines) when the pool is empty.
+    private string? NextEngine()
+    {
+        if (_opts.Engines.Length == 0) return null;
+        var i = Interlocked.Increment(ref _engineCursor) & int.MaxValue;
+        return _opts.Engines[i % _opts.Engines.Length];
     }
 
     // Reduce to lowercase alphanumerics so "Path of the Battlerager" matches "path-of-the-battlerager"

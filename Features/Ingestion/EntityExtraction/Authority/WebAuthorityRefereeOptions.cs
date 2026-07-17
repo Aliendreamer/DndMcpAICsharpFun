@@ -38,4 +38,11 @@ public sealed class WebAuthorityRefereeOptions
     /// <summary>Refute threshold: the minimum number of authoritative, name-matching hits required
     /// to confirm an entity as <c>verified-thirdparty</c>. Higher = stricter (more refute-biased).</summary>
     public int MinAuthoritativeHits { get; init; } = 1;
+
+    /// <summary>SearXNG engines the referee rotates over, ONE per query in round-robin order, so no
+    /// single upstream engine is bursted into rate-limiting (the `403 suspended` noise seen in T3
+    /// live validation). A live probe found only these two return useful D&D results — google /
+    /// startpage / brave / bing block SearXNG's datacenter-IP scraping and return empty or junk.
+    /// Empty = don't pin (query SearXNG's full default engine set, the pre-tuning behavior).</summary>
+    public string[] Engines { get; init; } = ["duckduckgo", "presearch"];
 }

@@ -12,12 +12,17 @@ public sealed class SearXNGClient(
 {
     private readonly SearXNGOptions _opts = options.Value;
 
-    public async Task<IReadOnlyList<SearXNGResult>> SearchAsync(string query, CancellationToken ct)
+    public async Task<IReadOnlyList<SearXNGResult>> SearchAsync(
+        string query, CancellationToken ct, string? engines = null)
     {
         try
         {
             var encoded = Uri.EscapeDataString(query);
             var url = $"/search?q={encoded}&format=json&language=en";
+            // Optional per-call engine restriction (e.g. the referee pins to a low-noise engine).
+            // Omitted by default so existing callers query SearXNG's full default engine set.
+            if (!string.IsNullOrWhiteSpace(engines))
+                url += $"&engines={Uri.EscapeDataString(engines)}";
             var response = await httpClient.GetFromJsonAsync<SearXNGResponse>(url, ct);
             if (response?.Results is null) return [];
 
