@@ -1,4 +1,16 @@
-> **STATUS: PARKED INVESTIGATION (2026-06-17).** This change captures findings + agreed direction from the SRD investigation. It is intentionally at the proposal/design stage — `specs/` and `tasks/` are deferred until we resume and do the query-catalog brainstorming. Do NOT implement from this yet.
+> **STATUS: SUPERSEDED / DELIVERED (2026-07-17).** This investigation's agreed direction was implemented piecemeal by later shipped changes — it never needed its own `specs/`/`tasks/`. Closing as delivered, not implementing.
+>
+> **Where each piece landed:**
+> - **Milestone 1 (§D–G) — content-first honesty:** shipped as `content-first-extraction`, `discriminated-union-extraction-decoding` (the `oneOf` C2 union), `entity-grounding-cascade` + `extraction-grounding-gate` (the tiered cascade §G), `extraction-disposition` (the disposition enum §E), `deterministic-type-resolution` (classifier-as-prior §F). Further hardened by `extraction-authority-ladder` (subclass roster, `IsRealEntity`, authority labels) and `extraction-noise-name-gate`.
+> - **Store (§C/§I) — structured facts in Postgres:** `Domain/StructuredFacts.cs` (`StructuredTable`/`StructuredTableRow`/`ChoiceSetRow`) + migration (`structured-knowledge-store`).
+> - **Read/engine (§H/§I) — deterministic resolution + provenance:** `Features/Resolution/CharacterResolutionService.cs` (`ResolvedComponent` carries `ProvenanceRef`) exposed via MCP (`character-fact-resolution`).
+> - **Slice 1 (Dragonborn breath weapon) — the canonical proof:** `ResolveBreathWeaponAsync` (ancestry choice → structured table → cited fact). DONE.
+> - **Slice 2 (§J multiclass composition):** per-class `ClassLevel` + multiclass validity + forked caster spell-slot resolution (`multiclass-character`, `hero-multiclass-editing`, `character-*` coach suite).
+>
+> Any *breadth* beyond the two proof slices (full corpus-wide prose-grounded re-extraction, a complete Bin-A/B/C query router) was intentionally NOT part of this change's mission ("prove one vertical slice first") and would be separate follow-on work if ever wanted.
+>
+> ---
+> _Original parked note (2026-06-17): captured findings + agreed direction from the SRD investigation; deferred `specs/`/`tasks/` pending the query-catalog brainstorming._
 
 ## Why
 
