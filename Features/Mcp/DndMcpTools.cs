@@ -108,6 +108,64 @@ public sealed class DndMcpTools(
     }
 
     [McpServerTool, Description(
+        "List the COMPLETE set of structured D&D entities matching filters — deterministic, not " +
+        "similarity-ranked. Use for \"all/every/how many\" questions (e.g. all CR-5 monsters, all " +
+        "level-3 fire spells). Returns compact rows {id,name,type,...} and the TRUE total (rows are " +
+        "capped, with a truncation notice when there are more). For a semantic \"find me a ...\" use " +
+        "search_entities; drill into any row's full detail with get_entity.")]
+    public async Task<string> list_entities(
+        [Description("Entity type: Spell, Monster, Class, Subclass, Race, Background, Feat, Item, " +
+                     "MagicItem, Condition, God, and more")] string? type = null,
+        [Description("Minimum challenge rating inclusive (for monsters)")] double? crMin = null,
+        [Description("Maximum challenge rating inclusive (for monsters)")] double? crMax = null,
+        [Description("Spell level 0–9 (for spells)")] int? spellLevel = null,
+        [Description("Damage type e.g. fire, cold, acid")] string? damageType = null,
+        [Description("Trait tag keyword e.g. Amphibious, Flying, Pack Tactics")] string? keyword = null,
+        [Description("Source book key e.g. PHB, MM, XGE")] string? sourceBook = null,
+        [Description("Restrict to SRD 5.1 entities only")] bool? srd = null,
+        [Description("Max rows to return (default 50)")] int limit = 50,
+        CancellationToken ct = default)
+    {
+        var entityType = Enum.TryParse<EntityType>(type, out var t) ? t : (EntityType?)null;
+        var result = await entityService.ListAsync(
+            new EntitySearchQuery(
+                QueryText: string.Empty,
+                Type: entityType,
+                SourceBook: sourceBook,
+                Edition: null,
+                BookType: null,
+                SettingTag: null,
+                Keyword: keyword,
+                CrNumericLte: crMax,
+                CrNumericGte: crMin,
+                SpellLevel: spellLevel,
+                DamageType: damageType,
+                TopK: limit,
+                Srd: srd), limit, ct);
+
+        return JsonSerializer.Serialize(new
+        {
+            total = result.Total,
+            returned = result.Returned,
+            truncated = result.Total > result.Returned,
+            note = result.Total > result.Returned
+                ? $"{result.Total} match; showing {result.Returned}. Add filters to narrow the set."
+                : null,
+            rows = result.Rows.Select(r => new
+            {
+                id = r.Id,
+                name = r.Name,
+                type = r.Type.ToString(),
+                sourceBook = r.SourceBook,
+                page = r.Page,
+                cr = r.Cr,
+                spellLevel = r.SpellLevel,
+                damageType = r.DamageType,
+            }),
+        }, _json);
+    }
+
+    [McpServerTool, Description(
         "Fetch a single D&D entity by its canonical ID (e.g. 'phb.spell.fireball', " +
         "'tce.subclass.circle-of-spores'). Use after search_entities to get full details.")]
     public async Task<string> get_entity(

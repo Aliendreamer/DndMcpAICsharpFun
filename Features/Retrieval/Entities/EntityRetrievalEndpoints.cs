@@ -11,6 +11,7 @@ public static class EntityRetrievalEndpoints
     {
         app.MapGet("/retrieval/entities/{id}", GetById).RequireRateLimiting("retrieval");
         app.MapGet("/retrieval/entities/search", SearchPublic).RequireRateLimiting("retrieval");
+        app.MapGet("/retrieval/entities/list", ListPublic).RequireRateLimiting("retrieval");
         app.MapGroup("/admin").MapGet("/retrieval/entities/search", SearchDiagnostic);
         return app;
     }
@@ -53,6 +54,19 @@ public static class EntityRetrievalEndpoints
             ? (object)await svc.SearchDiagnosticAsync(query, ct)
             : await svc.SearchAsync(query, ct);
         return Results.Ok(results);
+    }
+
+    // entity-set-query: complete deterministic filter-set (not similarity top-K). No `q` — filters only.
+    private static async Task<IResult> ListPublic(
+        string? type, string? sourceBook, string? edition, string? bookType,
+        string? settingTag, string? keyword, double? crNumeric_lte, double? crNumeric_gte,
+        int? spellLevel, string? damageType, bool? srd, bool? srd52, bool? basicRules2024,
+        IEntityRetrievalService svc, CancellationToken ct, int limit = 50)
+    {
+        var query = BuildQuery(string.Empty, type, sourceBook, edition, bookType, settingTag, keyword,
+            crNumeric_lte, crNumeric_gte, spellLevel, damageType, limit, srd, srd52, basicRules2024);
+        var result = await svc.ListAsync(query, limit, ct);
+        return Results.Ok(result);
     }
 
     private static EntitySearchQuery BuildQuery(

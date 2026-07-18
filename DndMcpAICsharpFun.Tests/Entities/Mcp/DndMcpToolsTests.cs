@@ -24,7 +24,9 @@ file sealed class FakeEntityService : IEntityRetrievalService
     public EntityFullResult? GetResult { get; set; }
     public IList<EntitySearchResult> SearchResults { get; set; } = [];
     public Task<EntityFullResult?> GetByIdAsync(string id, CancellationToken ct) => Task.FromResult(GetResult);
+    public EntitySetResult SetResult { get; set; } = new(0, 0, []);
     public Task<IList<EntitySearchResult>> SearchAsync(EntitySearchQuery query, CancellationToken ct) => Task.FromResult(SearchResults);
+    public Task<EntitySetResult> ListAsync(EntitySearchQuery query, int cap, CancellationToken ct) => Task.FromResult(SetResult);
     public Task<IList<EntityDiagnosticResult>> SearchDiagnosticAsync(EntitySearchQuery query, CancellationToken ct) => Task.FromResult<IList<EntityDiagnosticResult>>([]);
 }
 
@@ -120,6 +122,33 @@ public class DndMcpToolsTests
         var result = await tools.search_entities("fireball", type: "NotARealType");
 
         result.Should().Be("No entities found.");
+    }
+
+    [Fact]
+    public async Task list_entities_returns_complete_set_with_total_and_truncation_note()
+    {
+        var entity = new FakeEntityService
+        {
+            SetResult = new EntitySetResult(
+                Total: 137, Returned: 2,
+                Rows:
+                [
+                    new EntitySetRow("mm.monster.a", EntityType.Monster, "A", "MM", 10, "5", null, null),
+                    new EntitySetRow("mm.monster.b", EntityType.Monster, "B", "MM", 12, "5", null, null),
+                ]),
+        };
+        var tools = MakeTools(entity: entity);
+
+        var json = await tools.list_entities(type: "Monster", crMin: 5, crMax: 5, limit: 2);
+
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        root.GetProperty("total").GetInt32().Should().Be(137);
+        root.GetProperty("returned").GetInt32().Should().Be(2);
+        root.GetProperty("truncated").GetBoolean().Should().BeTrue();      // total > returned
+        root.GetProperty("rows").GetArrayLength().Should().Be(2);
+        root.GetProperty("rows")[0].GetProperty("id").GetString().Should().Be("mm.monster.a");
+        root.GetProperty("rows")[0].GetProperty("type").GetString().Should().Be("Monster");
     }
 
     [Fact]

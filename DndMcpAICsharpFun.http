@@ -250,6 +250,12 @@ GET {{baseUrl}}/retrieval/entities/search?q=swashbuckler&type=Subclass
 ### Retrieval — Search monsters by CR range and keyword (keywords come from 5etools traitTags e.g. Amphibious, Pack Tactics)
 GET {{baseUrl}}/retrieval/entities/search?q=swamp&type=Monster&crNumeric_lte=2&keyword=Amphibious&topK=5
 
+### Retrieval — Complete filter-SET (entity-set-query): all matches, deterministic, compact rows + honest total (no query text)
+GET {{baseUrl}}/retrieval/entities/list?type=Monster&crNumeric_gte=5&crNumeric_lte=5&keyword=Flying&limit=50
+
+### Retrieval — Filter-set of all level-3 fire spells (complete, not similarity-ranked)
+GET {{baseUrl}}/retrieval/entities/list?type=Spell&spellLevel=3&damageType=fire&limit=50
+
 ### Retrieval — Admin diagnostic entity search (full fields + pointId)
 GET {{baseUrl}}/admin/retrieval/entities/search?q=fireball&type=Spell&spellLevel=3
 X-Admin-Api-Key: {{adminKey}}

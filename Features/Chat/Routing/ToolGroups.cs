@@ -24,6 +24,7 @@ public static class ToolGroups
             ["ask_rules"] = RetrievalLore,
             // filter / lookup over structured entities
             ["search_entities"] = StructuredLookup,
+            ["list_entities"] = StructuredLookup,
             ["get_entity"] = StructuredLookup,
             // deterministic character-resolution engine
             ["resolve_character_feature"] = CharacterResolution,

@@ -91,6 +91,10 @@ public sealed class RecordingEntityVectorStore : IEntityVectorStore
         => Task.FromResult<IReadOnlyList<EntitySearchHit>>(
             _store.Select(kv => new EntitySearchHit(kv.Value.Env, 0f, "pt-" + kv.Key)).ToList());
 
+    public Task<(int Total, IReadOnlyList<EntitySearchHit> Rows)> ListByFilterAsync(
+        EntityFilters filters, int cap, CancellationToken ct = default) =>
+        Task.FromResult((0, (IReadOnlyList<EntitySearchHit>)[]));
+
     public Task DeleteByIdsAsync(IReadOnlyCollection<string> entityIds, CancellationToken ct = default)
     {
         DeleteByIdsCalls.Add(entityIds);

@@ -129,6 +129,28 @@ public sealed class QdrantEntityVectorStore(
         return result;
     }
 
+    public async Task<(int Total, IReadOnlyList<EntitySearchHit> Rows)> ListByFilterAsync(
+        EntityFilters filters, int cap, CancellationToken ct = default)
+    {
+        var filter = BuildFilter(filters);
+        // Exact match count from the index (not a full scan); the returned rows are capped separately.
+        var total = await client.CountAsync(_collection, filter, cancellationToken: ct);
+
+        var rows = new List<EntitySearchHit>();
+        if (cap > 0)
+        {
+            var page = await client.ScrollAsync(
+                _collection, filter, limit: (uint)cap, payloadSelector: true, cancellationToken: ct);
+            foreach (var p in page.Result)
+            {
+                var env = ToEnvelope(p.Payload);
+                if (env is not null) rows.Add(new EntitySearchHit(env, 0f, p.Id.Uuid));
+            }
+        }
+
+        return ((int)total, rows);
+    }
+
     public async Task DeleteByIdsAsync(IReadOnlyCollection<string> entityIds, CancellationToken ct = default)
     {
         if (entityIds.Count == 0) return;

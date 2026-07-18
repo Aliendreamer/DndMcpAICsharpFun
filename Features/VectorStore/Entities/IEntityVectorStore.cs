@@ -33,4 +33,12 @@ public interface IEntityVectorStore
 
     Task<IReadOnlyList<EntitySearchHit>> ScrollAllAsync(CancellationToken ct = default);
     Task DeleteByIdsAsync(IReadOnlyCollection<string> entityIds, CancellationToken ct = default);
+
+    /// <summary>
+    /// Complete, deterministic filter-only retrieval (entity-set-query): the EXACT total count of
+    /// entities matching <paramref name="filters"/> plus up to <paramref name="cap"/> of them, in
+    /// scroll order (no vector, no similarity ranking). For "all/every/how many" set queries.
+    /// </summary>
+    Task<(int Total, IReadOnlyList<EntitySearchHit> Rows)> ListByFilterAsync(
+        EntityFilters filters, int cap, CancellationToken ct = default);
 }

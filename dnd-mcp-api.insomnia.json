@@ -922,6 +922,41 @@
       "authentication": {}
     },
     {
+      "_id": "req_retrieval_entities_list",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "Complete filter-set (entity-set-query) — all matches, compact rows + total",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/retrieval/entities/list",
+      "headers": [],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "type",
+          "value": "Monster"
+        },
+        {
+          "name": "crNumeric_gte",
+          "value": "5"
+        },
+        {
+          "name": "crNumeric_lte",
+          "value": "5"
+        },
+        {
+          "name": "keyword",
+          "value": "Flying"
+        },
+        {
+          "name": "limit",
+          "value": "50"
+        }
+      ],
+      "authentication": {}
+    },
+    {
       "_id": "req_retrieval_entities_admin",
       "_type": "request",
       "parentId": "fld_retrieval",

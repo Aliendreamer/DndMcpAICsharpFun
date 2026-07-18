@@ -32,6 +32,10 @@ file sealed class FakeEntityRetrievalService : IEntityRetrievalService
         return Task.FromResult(SearchResponder(query));
     }
 
+    public Task<DndMcpAICsharpFun.Features.Retrieval.Entities.EntitySetResult> ListAsync(
+        EntitySearchQuery query, int cap, CancellationToken ct) =>
+        Task.FromResult(new DndMcpAICsharpFun.Features.Retrieval.Entities.EntitySetResult(0, 0, []));
+
     public Task<IList<EntityDiagnosticResult>> SearchDiagnosticAsync(EntitySearchQuery query, CancellationToken ct)
     {
         if (query.Type is { } t) LastQueryByType[t] = query;

@@ -25,6 +25,10 @@ public sealed class QueryRouterTests
     public void Signals_detect_unambiguous_intent(string query, string expected) =>
         QuerySignals.Detect(query).Should().Be(expected);
 
+    [Fact]
+    public void ToolGroups_maps_list_entities_to_structured_lookup() =>
+        ToolGroups.Map["list_entities"].Should().Be(ToolGroups.StructuredLookup);
+
     [Theory]
     [InlineData("describe the city of Waterdeep")] // no signal → embedding backstop
     [InlineData("list all my spells")]             // ambiguous: structured + resolution → defer

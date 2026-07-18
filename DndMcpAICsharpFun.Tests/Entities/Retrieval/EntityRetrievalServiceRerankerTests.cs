@@ -201,4 +201,27 @@ public sealed class EntityRetrievalServiceRerankerTests
         results.Should().ContainSingle();
         results[0].Authority.Should().Be("verified-thirdparty");
     }
+
+    // ── entity-set-query: complete filter-set (ListAsync) ────────────────────
+
+    [Fact]
+    public async Task ListAsync_returns_complete_set_with_honest_total_and_compact_rows()
+    {
+        var store = Substitute.For<IEntityVectorStore>();
+        IReadOnlyList<EntitySearchHit> hits = [MakeHit("mm.monster.a", "txt", 0f), MakeHit("mm.monster.b", "txt", 0f)];
+        store.ListByFilterAsync(Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+             .Returns(Task.FromResult((137, hits)));
+
+        var sut = BuildSut(store, Substitute.For<IReranker>());
+        var q = new EntitySearchQuery("", EntityType.Monster, null, null, null, null, null,
+            null, null, null, null, TopK: 2);
+
+        var result = await sut.ListAsync(q, cap: 2, CancellationToken.None);
+
+        result.Total.Should().Be(137);          // the TRUE match count
+        result.Returned.Should().Be(2);         // capped rows
+        (result.Total > result.Returned).Should().BeTrue(); // truncation signal
+        result.Rows.Should().HaveCount(2);
+        result.Rows[0].Id.Should().Be("mm.monster.a");
+    }
 }
