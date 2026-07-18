@@ -123,6 +123,8 @@ public sealed class DndMcpTools(
         [Description("Trait tag keyword e.g. Amphibious, Flying, Pack Tactics")] string? keyword = null,
         [Description("Source book key e.g. PHB, MM, XGE")] string? sourceBook = null,
         [Description("Restrict to SRD 5.1 entities only")] bool? srd = null,
+        [Description("Only spells this class can learn, e.g. Wizard (forces type=Spell; combine with spellLevel)")]
+        string? castableByClass = null,
         [Description("Max rows to return (default 50)")] int limit = 50,
         CancellationToken ct = default)
     {
@@ -141,7 +143,8 @@ public sealed class DndMcpTools(
                 SpellLevel: spellLevel,
                 DamageType: damageType,
                 TopK: limit,
-                Srd: srd), limit, ct);
+                Srd: srd,
+                CastableByClass: castableByClass), limit, ct);
 
         return JsonSerializer.Serialize(new
         {

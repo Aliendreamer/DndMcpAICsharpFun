@@ -256,6 +256,9 @@ GET {{baseUrl}}/retrieval/entities/list?type=Monster&crNumeric_gte=5&crNumeric_l
 ### Retrieval — Filter-set of all level-3 fire spells (complete, not similarity-ranked)
 GET {{baseUrl}}/retrieval/entities/list?type=Spell&spellLevel=3&damageType=fire&limit=50
 
+### Retrieval — Spell↔class join (spell-class-join): all level-3 spells a Wizard can learn (via 5etools sources.json)
+GET {{baseUrl}}/retrieval/entities/list?castableByClass=Wizard&spellLevel=3&limit=50
+
 ### Retrieval — Admin diagnostic entity search (full fields + pointId)
 GET {{baseUrl}}/admin/retrieval/entities/search?q=fireball&type=Spell&spellLevel=3
 X-Admin-Api-Key: {{adminKey}}

@@ -957,6 +957,33 @@
       "authentication": {}
     },
     {
+      "_id": "req_retrieval_entities_castable",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "Spell-class join (spell-class-join) — spells a class can learn",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/retrieval/entities/list",
+      "headers": [],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "castableByClass",
+          "value": "Wizard"
+        },
+        {
+          "name": "spellLevel",
+          "value": "3"
+        },
+        {
+          "name": "limit",
+          "value": "50"
+        }
+      ],
+      "authentication": {}
+    },
+    {
       "_id": "req_retrieval_entities_admin",
       "_type": "request",
       "parentId": "fld_retrieval",

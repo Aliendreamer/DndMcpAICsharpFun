@@ -36,7 +36,8 @@ public sealed class EntityRetrievalServiceRerankerTests
         bool globalEnabled = true,
         bool rerankEntities = true,
         int candidatePoolSize = 20,
-        int maxTopK = 50)
+        int maxTopK = 50,
+        SpellClassIndex? spellClassIndex = null)
     {
         var rerankOpts = new RerankerOptions
         {
@@ -50,7 +51,8 @@ public sealed class EntityRetrievalServiceRerankerTests
             store,
             Options.Create(new RetrievalOptions { MaxTopK = maxTopK }),
             rerankSvc,
-            Options.Create(rerankOpts));
+            Options.Create(rerankOpts),
+            spellClassIndex ?? new SpellClassIndex("__no_5etools_dir__"));
     }
 
     // ── Task 3.1 / Spec: "Entity search returns reranked results" ────────────
@@ -223,5 +225,53 @@ public sealed class EntityRetrievalServiceRerankerTests
         (result.Total > result.Returned).Should().BeTrue(); // truncation signal
         result.Rows.Should().HaveCount(2);
         result.Rows[0].Id.Should().Be("mm.monster.a");
+    }
+
+    // ── spell-class-join: castableByClass ────────────────────────────────────
+
+    private static EntitySearchHit MakeSpellHit(string id, string name, string source) =>
+        new(new EntityEnvelope(id, EntityType.Spell, name, source, "Edition2014", null,
+            new FirstAppearance(source, "Edition2014"), [], [], "", default), 0f, id + "-pt");
+
+    private static string WriteSpellSources()
+    {
+        var dir = Directory.CreateTempSubdirectory("scix");
+        Directory.CreateDirectory(Path.Combine(dir.FullName, "spells"));
+        File.WriteAllText(Path.Combine(dir.FullName, "spells", "sources.json"), """
+        { "PHB": {
+            "Fireball":    { "class": [ { "name": "Wizard" } ] },
+            "Mage Armor":  { "class": [ { "name": "Wizard" } ] },
+            "Cure Wounds": { "class": [ { "name": "Cleric" } ] }
+        } }
+        """);
+        return dir.FullName;
+    }
+
+    [Fact]
+    public async Task ListAsync_castableByClass_returns_only_that_class_spells_with_class_filtered_total()
+    {
+        var store = Substitute.For<IEntityVectorStore>();
+        IReadOnlyList<EntitySearchHit> spells =
+        [
+            MakeSpellHit("phb.spell.fireball", "Fireball", "PHB"),
+            MakeSpellHit("phb.spell.cure-wounds", "Cure Wounds", "PHB"),
+            MakeSpellHit("phb.spell.mage-armor", "Mage Armor", "PHB"),
+        ];
+        store.ListByFilterAsync(Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+             .Returns(Task.FromResult((3, spells)));
+
+        var dir = WriteSpellSources();
+        try
+        {
+            var sut = BuildSut(store, Substitute.For<IReranker>(), spellClassIndex: new SpellClassIndex(dir));
+            var q = new EntitySearchQuery("", EntityType.Spell, null, null, null, null, null,
+                null, null, null, null, TopK: 50, CastableByClass: "Wizard");
+
+            var result = await sut.ListAsync(q, 50, CancellationToken.None);
+
+            result.Total.Should().Be(2); // class-filtered count, NOT the 3 scrolled spells
+            result.Rows.Select(r => r.Name).Should().BeEquivalentTo("Fireball", "Mage Armor");
+        }
+        finally { Directory.Delete(dir, recursive: true); }
     }
 }

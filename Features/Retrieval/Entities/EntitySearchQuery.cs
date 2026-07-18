@@ -17,4 +17,6 @@ public sealed record EntitySearchQuery(
     int TopK,
     bool? Srd = null,
     bool? Srd52 = null,
-    bool? BasicRules2024 = null);
+    bool? BasicRules2024 = null,
+    // spell-class-join: restrict to spells this class can cast (resolved via SpellClassIndex).
+    string? CastableByClass = null);

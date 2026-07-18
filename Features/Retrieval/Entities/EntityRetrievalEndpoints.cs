@@ -61,10 +61,12 @@ public static class EntityRetrievalEndpoints
         string? type, string? sourceBook, string? edition, string? bookType,
         string? settingTag, string? keyword, double? crNumeric_lte, double? crNumeric_gte,
         int? spellLevel, string? damageType, bool? srd, bool? srd52, bool? basicRules2024,
+        string? castableByClass,
         IEntityRetrievalService svc, CancellationToken ct, int limit = 50)
     {
         var query = BuildQuery(string.Empty, type, sourceBook, edition, bookType, settingTag, keyword,
-            crNumeric_lte, crNumeric_gte, spellLevel, damageType, limit, srd, srd52, basicRules2024);
+            crNumeric_lte, crNumeric_gte, spellLevel, damageType, limit, srd, srd52, basicRules2024)
+            with { CastableByClass = castableByClass };
         var result = await svc.ListAsync(query, limit, ct);
         return Results.Ok(result);
     }

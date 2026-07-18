@@ -77,7 +77,8 @@ public sealed class EntityOptionProviderIntegrationTests : IAsyncLifetime
         var retrievalOptions = Options.Create(new RetrievalOptions { MaxTopK = 50 });
 
         IEntityRetrievalService retrieval = new EntityRetrievalService(
-            embeddings, store, retrievalOptions, rerankingService, rerankerOptions);
+            embeddings, store, retrievalOptions, rerankingService, rerankerOptions,
+            new DndMcpAICsharpFun.Features.Retrieval.Entities.SpellClassIndex("__no_5etools_dir__"));
 
         _sut = new EntityOptionProvider(retrieval);
     }

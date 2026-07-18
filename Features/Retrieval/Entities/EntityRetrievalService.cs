@@ -14,7 +14,8 @@ public sealed class EntityRetrievalService(
     IEntityVectorStore store,
     IOptions<RetrievalOptions> retrievalOptions,
     RerankingService rerankingService,
-    IOptions<RerankerOptions> rerankerOptions) : IEntityRetrievalService
+    IOptions<RerankerOptions> rerankerOptions,
+    SpellClassIndex spellClassIndex) : IEntityRetrievalService
 {
     private readonly RetrievalOptions _retrieval = retrievalOptions.Value;
     private readonly RerankerOptions _rerankerOpts = rerankerOptions.Value;
@@ -39,12 +40,33 @@ public sealed class EntityRetrievalService(
     private const int DefaultSetCap = 50;
     private const int MaxSetCap = 200;
 
+    // Upper bound on the spell set scanned for a castable-by-class join (spells are ~700 corpus-wide).
+    private const int SpellClassMaxScan = 3000;
+
     public async Task<EntitySetResult> ListAsync(EntitySearchQuery q, int cap, CancellationToken ct)
     {
         var clamped = Math.Clamp(cap <= 0 ? DefaultSetCap : cap, 1, MaxSetCap);
+
+        // spell-class-join: a castable-by-class query needs a scroll-all-then-filter — the class
+        // relationship isn't a payload field, so Qdrant can't filter it; total must be the
+        // class-filtered count, not the raw spell count.
+        if (!string.IsNullOrWhiteSpace(q.CastableByClass))
+            return await ListSpellsByClassAsync(q, clamped, ct);
+
         var (total, hits) = await store.ListByFilterAsync(BuildFilters(q), clamped, ct);
         var rows = hits.Select(h => ToRow(h.Envelope)).ToList();
         return new EntitySetResult(total, rows.Count, rows);
+    }
+
+    private async Task<EntitySetResult> ListSpellsByClassAsync(EntitySearchQuery q, int cap, CancellationToken ct)
+    {
+        var spellFilters = BuildFilters(q) with { Type = EntityType.Spell };
+        var (_, hits) = await store.ListByFilterAsync(spellFilters, SpellClassMaxScan, ct);
+        var matched = hits
+            .Where(h => spellClassIndex.CanCast(q.CastableByClass!, h.Envelope.Name, h.Envelope.SourceBook))
+            .ToList();
+        var rows = matched.Take(cap).Select(h => ToRow(h.Envelope)).ToList();
+        return new EntitySetResult(matched.Count, rows.Count, rows);
     }
 
     private static EntityFilters BuildFilters(EntitySearchQuery q) => new(
