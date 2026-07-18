@@ -106,6 +106,34 @@ public class MinerUPdfConverterTests
     }
 
     [Fact]
+    public async Task Preserves_a_table_block_that_has_table_body_as_a_table_item_with_html()
+    {
+        // mineru-table-extraction: a table WITH table_body is preserved (a table WITHOUT one is still
+        // dropped, as the test above asserts).
+        const string contentList = """
+        [
+          {"type":"text","text":"DRAGONBORN","text_level":2,"page_idx":33},
+          {"type":"table","table_caption":["Draconic Ancestry"],
+           "table_body":"<table><tr><td>Dragon</td><td>Damage Type</td></tr><tr><td>Black</td><td>Acid</td></tr></table>",
+           "page_idx":33}
+        ]
+        """;
+
+        var (sut, _) = BuildSut(FileParseResponse(contentList));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            var doc = await sut.ConvertAsync(pdfPath);
+
+            var table = doc.Items.Should().ContainSingle(i => i.Type == "table").Subject;
+            table.Text.Should().Be("Draconic Ancestry"); // caption
+            table.PageNumber.Should().Be(34);             // page_idx 33 -> page 34
+            table.Html.Should().Contain("<td>Black</td>");
+        }
+        finally { File.Delete(pdfPath); }
+    }
+
+    [Fact]
     public async Task Throws_when_service_returns_non_success_status()
     {
         var (sut, _) = BuildSut(FileParseResponse("[]", HttpStatusCode.InternalServerError));

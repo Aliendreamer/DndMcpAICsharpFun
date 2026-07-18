@@ -7,4 +7,5 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 /// </summary>
 public sealed record PdfStructureDocument(string Markdown, IReadOnlyList<PdfStructureItem> Items);
 
-public sealed record PdfStructureItem(string Type, string Text, int PageNumber, int? Level);
+// Html is populated only for Type == "table" (mineru-table-extraction): the MinerU table_body HTML.
+public sealed record PdfStructureItem(string Type, string Text, int PageNumber, int? Level, string? Html = null);

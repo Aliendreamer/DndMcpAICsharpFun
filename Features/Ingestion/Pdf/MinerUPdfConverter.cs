@@ -14,7 +14,8 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Pdf;
 /// <list type="bullet">
 ///   <item>a block carrying a <c>text_level</c> becomes a <c>section_header</c> item (heading candidate);</item>
 ///   <item>a plain <c>text</c> block becomes a <c>text</c> item;</item>
-///   <item>headers / footers / page numbers / images / tables / equations are dropped.</item>
+///   <item>a <c>table</c> block is preserved as a <c>table</c> item carrying its MinerU HTML (mineru-table-extraction);</item>
+///   <item>headers / footers / page numbers / images / equations are dropped.</item>
 /// </list>
 /// MinerU page indices are 0-based; they are shifted to 1-based to align with the bookmark TOC.
 /// </summary>
@@ -90,6 +91,19 @@ public sealed partial class MinerUPdfConverter(
         {
             var b = blocks[i];
             var text = b.Text?.Trim();
+
+            // mineru-table-extraction: a table block carries its content in table_body (its text is
+            // empty), so preserve it here BEFORE the empty-text skip below drops it.
+            if (string.Equals(b.Type, "table", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(b.TableBody))
+            {
+                var tableCaption = b.TableCaption is { Length: > 0 }
+                    ? string.Join(" ", b.TableCaption).Trim()
+                    : string.Empty;
+                items.Add(new PdfStructureItem("table", tableCaption, b.PageIdx + 1, null, Html: b.TableBody));
+                continue;
+            }
+
             if (string.IsNullOrEmpty(text)) continue;
 
             var page = b.PageIdx + 1; // MinerU page_idx is 0-based
@@ -212,7 +226,8 @@ public sealed partial class MinerUPdfConverter(
 
                 items.Add(new PdfStructureItem("text", text, page, null));
             }
-            // image / table / header / footer / page_number / equation are intentionally dropped
+            // table blocks are handled at the top of the loop (before the empty-text skip);
+            // image / equation / header / footer / page_number are intentionally dropped
         }
 
         logger.LogInformation(
@@ -314,5 +329,7 @@ public sealed partial class MinerUPdfConverter(
         [property: JsonPropertyName("type")] string? Type,
         [property: JsonPropertyName("text")] string? Text,
         [property: JsonPropertyName("text_level")] int? TextLevel,
-        [property: JsonPropertyName("page_idx")] int PageIdx);
+        [property: JsonPropertyName("page_idx")] int PageIdx,
+        [property: JsonPropertyName("table_body")] string? TableBody = null,
+        [property: JsonPropertyName("table_caption")] string[]? TableCaption = null);
 }

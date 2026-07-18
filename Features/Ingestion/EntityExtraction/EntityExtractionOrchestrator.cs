@@ -68,6 +68,12 @@ public sealed class EntityExtractionOrchestrator(
             // 4. Load schemas keyed by EntityType.
             var schemas = schemaProvider.LoadSchemas();
 
+            // 4b. mineru-table-extraction: parse MinerU-preserved tables into CanonicalTables
+            // (deterministic; independent of the LLM entity path). Errors-only reuses the existing
+            // canonical file, so only the full path re-writes Tables.
+            var tables = MinerUTableCollector.Collect(
+                doc, bookSlug, record.FivetoolsSourceKey ?? record.DisplayName);
+
             // 5. Dispatch to either errors-only or full extraction path.
             if (errorsOnly)
             {
@@ -79,7 +85,7 @@ public sealed class EntityExtractionOrchestrator(
             {
                 await RunFullExtractionAsync(
                     bookId, record, bookSlug, candidates, schemas,
-                    canonicalPath, errorsPath, warningsPath, ct);
+                    canonicalPath, errorsPath, warningsPath, tables, ct);
             }
 
             // 6. Field-fill: enrich the just-written canonical with allowlisted 5etools fields
@@ -130,6 +136,7 @@ public sealed class EntityExtractionOrchestrator(
         string canonicalPath,
         string errorsPath,
         string warningsPath,
+        IReadOnlyList<CanonicalTable> tables,
         CancellationToken ct)
     {
         var checkpointPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".progress.json");
@@ -240,7 +247,8 @@ public sealed class EntityExtractionOrchestrator(
                 Edition: edition,
                 FileHash: record.FileHash,
                 DisplayName: record.DisplayName),
-            Entities: extracted);
+            Entities: extracted,
+            Tables: tables);
 
         await writer.WriteAsync(canonicalPath, canonicalFile, ct);
         await errorsFile.WriteAsync(errorsPath, extractionErrors, ct);
