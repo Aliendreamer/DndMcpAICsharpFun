@@ -16,6 +16,11 @@ public sealed class MinerUOptions
     /// <summary>Parse method passed to MinerU (e.g. <c>ocr</c>).</summary>
     public string Method { get; set; } = "ocr";
 
+    /// <summary>Request MinerU's table-structure recognition (mineru-table-extraction). Off by default
+    /// in MinerU, so a book's grid tables come back as <c>text</c>/<c>image</c> unless we ask for it —
+    /// verified: with this on, MinerU emits a <c>table</c> block with clean <c>table_body</c> HTML.</summary>
+    public bool TableEnable { get; set; } = true;
+
     /// <summary>HTTP timeout, in minutes, for a single conversion request (OCR is slow on large books).</summary>
     public int ConversionTimeoutMinutes { get; set; } = 120;
 }

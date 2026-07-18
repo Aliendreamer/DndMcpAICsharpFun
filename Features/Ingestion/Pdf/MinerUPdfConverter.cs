@@ -44,6 +44,9 @@ public sealed partial class MinerUPdfConverter(
         form.Add(pdfContent, "files", fileName);
         form.Add(new StringContent(opts.Backend), "backend");
         form.Add(new StringContent(opts.Method), "parse_method");
+        // mineru-table-extraction: request table-structure recognition (off by default in MinerU),
+        // so grid tables come back as `table` blocks with table_body HTML instead of text/image.
+        form.Add(new StringContent(opts.TableEnable ? "true" : "false"), "table_enable");
         form.Add(new StringContent("true"), "return_content_list");
         form.Add(new StringContent("false"), "return_md");
 

@@ -19,12 +19,15 @@ public class MinerUPdfConverterTests
     private sealed class StubHandler(HttpResponseMessage response) : HttpMessageHandler
     {
         public HttpRequestMessage? Captured { get; private set; }
+        public string? CapturedBody { get; private set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Captured = request;
-            return Task.FromResult(response);
+            if (request.Content is not null)
+                CapturedBody = await request.Content.ReadAsStringAsync(cancellationToken);
+            return response;
         }
     }
 
@@ -103,6 +106,23 @@ public class MinerUPdfConverterTests
         {
             File.Delete(pdfPath);
         }
+    }
+
+    [Fact]
+    public async Task Requests_table_structure_recognition_from_mineru()
+    {
+        // mineru-table-extraction: MinerU only emits table blocks when asked; verified live that
+        // table_enable=true makes it return a table block with clean table_body HTML.
+        var (sut, handler) = BuildSut(FileParseResponse("[]"));
+        var pdfPath = await WriteTempPdfAsync();
+        try
+        {
+            await sut.ConvertAsync(pdfPath);
+            handler.CapturedBody.Should().NotBeNull();
+            handler.CapturedBody!.Should().Contain("table_enable");
+            handler.CapturedBody.Should().MatchRegex(@"table_enable[\s\S]{0,80}true");
+        }
+        finally { File.Delete(pdfPath); }
     }
 
     [Fact]
