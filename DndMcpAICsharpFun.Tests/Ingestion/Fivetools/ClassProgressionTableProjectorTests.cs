@@ -59,4 +59,28 @@ public class ClassProgressionTableProjectorTests
         // level 3: 2nd-level slots appear (2)
         t.Rows[2].Cells[5].Value.Should().Be("2");
     }
+
+
+    private const string FighterCrossSourceFeature = """
+    {"name":"Fighter","source":"PHB","hd":{"number":1,"faces":10},
+     "classFeatures":["Fighting Style|Fighter||1","Second Wind|Fighter||1",
+                      "Ability Score Improvement|Fighter||3",
+                      "Foreign Feature|Fighter||3|TCE",
+                      "Bonus Feature|Fighter||2|5"]}
+    """;
+
+    [Fact]
+    public void Cross_source_feature_excluded_and_level_read_from_schema_position()
+    {
+        using var doc = JsonDocument.Parse(FighterCrossSourceFeature);
+        var t = ClassProgressionTableProjector.Project(doc.RootElement, "PHB");
+        // level 3: normal 4-part entry included, 5-part cross-source entry ("...|TCE") excluded
+        t.Rows[2].Cells[2].Value.Should().Be("Ability Score Improvement");
+        // "Bonus Feature|Fighter||2|5" has true level 2 (parts[3]) but a non-empty 5th
+        // segment ("5"), so it's a cross-source addition and must be excluded entirely --
+        // including from level 5, which is where the old parts[^1] logic would have
+        // wrongly placed it (misreading the FeatureSource segment as the level).
+        t.Rows[1].Cells[2].Value.Should().Be("");
+        t.Rows[4].Cells[2].Value.Should().Be("");
+    }
 }

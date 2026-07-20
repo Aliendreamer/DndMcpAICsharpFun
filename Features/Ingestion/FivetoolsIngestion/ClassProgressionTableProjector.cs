@@ -77,7 +77,11 @@ public static class ClassProgressionTableProjector
                      : e.TryGetProperty("classFeature", out var s) ? s.GetString() : null;
             if (spec is null) continue;
             var parts = spec.Split('|');
-            if (parts.Length < 2 || !int.TryParse(parts[^1], out var level)) continue;
+            // 5etools classFeature: "Name|ClassName|ClassSource|Level[|FeatureSource]".
+            if (parts.Length < 4 || !int.TryParse(parts[3], out var level)) continue;
+            // Skip cross-source additions (e.g. Tasha's options grafted onto a PHB class) —
+            // a per-book printed progression table lists only that book's own features.
+            if (parts.Length >= 5 && !string.IsNullOrEmpty(parts[4])) continue;
             (map.TryGetValue(level, out var list) ? list : map[level] = new List<string>()).Add(parts[0]);
         }
         return map;
