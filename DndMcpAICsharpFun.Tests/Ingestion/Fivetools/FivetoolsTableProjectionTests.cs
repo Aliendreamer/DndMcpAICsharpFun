@@ -37,4 +37,25 @@ public class FivetoolsTableProjectionTests
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
+
+
+    [Fact]
+    public void Builds_captioned_tables_from_variantrules_json()
+    {
+        var dir = WriteFixture();
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "variantrules.json"), """
+            {"variantrule":[{"name":"Multiclass Spellcaster: Spell Slots per Spell Level","source":"PHB","page":164,"entries":[
+              {"type":"table","caption":"Multiclass Spellcaster: Spell Slots per Spell Level","colLabels":["Lvl.","1st"],"rows":[["1","2"]]}]}]}
+            """);
+
+            var tables = new FivetoolsTableProjection().BuildForBook(dir, "PHB");
+            var ids = tables.Select(t => t.Id).ToList();
+            ids.Should().Contain("phb14.table.multiclass-spellcaster-spell-slots-per-spell-level");
+            tables.Single(t => t.Id == "phb14.table.multiclass-spellcaster-spell-slots-per-spell-level")
+                .Name.Should().Be("Multiclass Spellcaster: Spell Slots per Spell Level");
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
 }

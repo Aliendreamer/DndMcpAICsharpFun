@@ -10,6 +10,7 @@ public sealed class FivetoolsTableProjection
     [
         ("races.json", "race"), ("feats.json", "feat"), ("backgrounds.json", "background"),
         ("optionalfeatures.json", "optionalfeature"), ("charcreationoptions.json", "charcreationoption"),
+        ("items-base.json", "baseitem"), ("items.json", "item"), ("variantrules.json", "variantrule"),
     ];
 
     public IReadOnlyList<CanonicalTable> BuildForBook(string fivetoolsDir, string sourceKey)
