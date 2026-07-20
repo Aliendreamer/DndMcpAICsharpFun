@@ -28,5 +28,32 @@ public class ClassProgressionTableProjectorTests
         t.Rows[0].Cells[2].Value.Should().Be("Fighting Style, Second Wind");
         t.Rows[4].Cells[1].Value.Should().Be("+3"); // level 5
         t.Rows[4].Cells[2].Value.Should().Be("Extra Attack");
+        t.Rows[2].Cells[2].Value.Should().Be("Martial Archetype"); // level 3, object-form classFeature
+        t.Rows[5].Cells[2].Value.Should().Be(""); // level 6 has no features
+    }
+
+    private const string Wizard = """
+    {"name":"Wizard","source":"PHB","hd":{"number":1,"faces":6},
+     "classFeatures":["Spellcasting|Wizard||1","Arcane Recovery|Wizard||1"],
+     "classTableGroups":[
+       {"colLabels":["{@filter Cantrips Known|spells|level=0|class=Wizard}"],
+        "rows":[[3],[3],[3],[4],[4]]},
+       {"title":"Spell Slots per Spell Level",
+        "colLabels":["{@filter 1st|spells|level=1|class=Wizard}","{@filter 2nd|spells|level=2|class=Wizard}"],
+        "rowsSpellProgression":[[2,0],[3,0],[4,2],[4,3],[4,3]]}]}
+    """;
+
+    [Fact]
+    public void Caster_appends_group_columns_stripped_and_expanded()
+    {
+        using var doc = JsonDocument.Parse(Wizard);
+        var t = ClassProgressionTableProjector.Project(doc.RootElement, "PHB");
+        t.Columns.Should().Equal("Level", "Proficiency Bonus", "Features", "Cantrips Known", "1st", "2nd");
+        // level 1: cantrips 3, 1st-slot 2, 2nd-slot blank
+        t.Rows[0].Cells[3].Value.Should().Be("3");
+        t.Rows[0].Cells[4].Value.Should().Be("2");
+        t.Rows[0].Cells[5].Value.Should().Be("");
+        // level 3: 2nd-level slots appear (2)
+        t.Rows[2].Cells[5].Value.Should().Be("2");
     }
 }
