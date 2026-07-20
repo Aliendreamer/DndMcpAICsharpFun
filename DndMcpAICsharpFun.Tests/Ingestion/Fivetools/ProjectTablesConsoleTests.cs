@@ -23,6 +23,7 @@ public class ProjectTablesConsoleTests
             var reloaded = await new CanonicalJsonLoader().LoadAsync(canon, default);
             var ids = reloaded.Tables.Select(t => t.Id).ToList();
             ids.Should().Contain("phb14.table.draconic-ancestry").And.Contain("phb14.table.breath-damage-by-tier").And.OnlyHaveUniqueItems();
+            ids.Should().Contain("phb14.table.life-domain-spells");
 
             // Resolution owns draconic-ancestry: it carries the NORMALIZED columns, not the generic 5etools shape.
             var draconic = reloaded.Tables.Single(t => t.Id == "phb14.table.draconic-ancestry");
@@ -78,6 +79,10 @@ public class ProjectTablesConsoleTests
             """);
             File.WriteAllText(Path.Combine(fiveDir, "class", "class-fighter.json"), """
             {"class":[{"name":"Fighter","source":"PHB","classFeatures":["Second Wind|Fighter||1"]}]}
+            """);
+            File.WriteAllText(Path.Combine(fiveDir, "class", "class-cleric.json"), """
+            {"subclass":[{"name":"Life Domain","className":"Cleric","source":"PHB",
+              "additionalSpells":[{"prepared":{"1":["bless","cure wounds"]}}]}]}
             """);
 
             var canon = Path.Combine(dir, "canonical.json");

@@ -32,7 +32,11 @@ public static class ProjectTablesRunner
         // Resolution owns its table ids (e.g. phb14.table.draconic-ancestry in normalized shape) — drop the
         // generic same-id tables so the resolver's expected shape wins.
         var ownedIds = resolution.Tables.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
-        var tables = generic.Where(t => !ownedIds.Contains(t.Id)).Concat(resolution.Tables).ToList();
+        var subclassSpells = SubclassSpellsProjector.Project(fivetoolsDir, key);
+        var tables = generic.Where(t => !ownedIds.Contains(t.Id))
+            .Concat(resolution.Tables)
+            .Concat(subclassSpells)
+            .ToList();
 
         // Never wipe a book's tables to empty: if we have nothing to offer (e.g. a monster/reference
         // book with no scannable 5etools captioned tables and no classes), leave the canonical untouched.
