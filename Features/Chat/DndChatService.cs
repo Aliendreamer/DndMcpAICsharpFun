@@ -86,8 +86,10 @@ public sealed class DndChatService(
                     "signed-in user owns. Supported features: \"breath weapon\", \"spell slots\" " +
                     "(multiclass-aware combined caster level; Warlock pact reported separately), " +
                     "\"spell save dc\" (one value per caster class), \"spell attack\" (spell attack " +
-                    "bonus per caster class). Returns the value plus the rule components and their " +
-                    "source provenance."));
+                    "bonus per caster class), \"class features\" (base-class features by level + " +
+                    "proficiency bonus, per class), \"subclass spells\" (spells a spellcasting " +
+                    "subclass grants, up to the character's level). Returns the value plus the rule " +
+                    "components and their source provenance."));
 
             toolList.Add(AIFunctionFactory.Create(
                 (long heroSnapshotId, string targetClass, CancellationToken toolCt) =>

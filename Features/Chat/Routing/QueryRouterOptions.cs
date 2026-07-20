@@ -46,6 +46,8 @@ public sealed class QueryRouterOptions
             "can I cast counterspell",
             "what is my spell save DC",
             "how many spell slots do I have",
+            "what are my class features",
+            "what spells does my subclass give me",
         ],
         [ToolGroups.Calculators] =
         [
