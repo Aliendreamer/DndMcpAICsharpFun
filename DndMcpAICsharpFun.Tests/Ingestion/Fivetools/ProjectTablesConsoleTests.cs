@@ -9,15 +9,23 @@ namespace DndMcpAICsharpFun.Tests.Ingestion.Fivetools;
 public class ProjectTablesConsoleTests
 {
     [Fact]
-    public async Task Official_book_replaces_tables_and_round_trips()
+    public async Task Official_book_gets_normalized_resolution_artifacts_and_round_trips()
     {
         var (dir, fiveDir, canon) = Fixtures.OfficialBook("PHB");
         try
         {
             var res = await ProjectTablesRunner.RunOneAsync(canon, fiveDir, new CanonicalJsonLoader(), new CanonicalJsonWriter(), default);
             res.Skipped.Should().BeFalse();
+
             var reloaded = await new CanonicalJsonLoader().LoadAsync(canon, default);
-            reloaded.Tables.Select(t => t.Id).Should().Contain("phb14.table.draconic-ancestry").And.OnlyHaveUniqueItems();
+            var ids = reloaded.Tables.Select(t => t.Id).ToList();
+            ids.Should().Contain("phb14.table.draconic-ancestry").And.Contain("phb14.table.breath-damage-by-tier").And.OnlyHaveUniqueItems();
+
+            // Resolution owns draconic-ancestry: it carries the NORMALIZED columns, not the generic 5etools shape.
+            var draconic = reloaded.Tables.Single(t => t.Id == "phb14.table.draconic-ancestry");
+            draconic.Columns.Should().Equal("ancestry", "damageType", "breathArea", "saveAbility");
+
+            reloaded.ChoiceSets.Select(c => c.Id).Should().Contain("phb14.choiceset.draconic-ancestry");
         }
         finally { Directory.Delete(dir, true); }
     }
@@ -45,7 +53,8 @@ public class ProjectTablesConsoleTests
             Directory.CreateDirectory(Path.Combine(fiveDir, "class"));
             File.WriteAllText(Path.Combine(fiveDir, "races.json"), """
             {"race":[{"name":"Dragonborn","source":"PHB","page":34,"entries":[
-              {"type":"table","caption":"Draconic Ancestry","colLabels":["Dragon","Damage Type"],"rows":[["Black","Acid"]]}]}]}
+              {"type":"table","caption":"Draconic Ancestry","colLabels":["Dragon","Damage Type","Breath Weapon"],
+               "rows":[["Black","Acid","5 by 30 ft. line (Dex. save)"]]}]}]}
             """);
             File.WriteAllText(Path.Combine(fiveDir, "class", "class-fighter.json"), """
             {"class":[{"name":"Fighter","source":"PHB","classFeatures":["Second Wind|Fighter||1"]}]}
