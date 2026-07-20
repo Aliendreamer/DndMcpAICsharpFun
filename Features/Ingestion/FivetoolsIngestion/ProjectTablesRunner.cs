@@ -32,16 +32,24 @@ public static class ProjectTablesRunner
         // Resolution owns its table ids (e.g. phb14.table.draconic-ancestry in normalized shape) — drop the
         // generic same-id tables so the resolver's expected shape wins.
         var ownedIds = resolution.Tables.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
+        var cleanReplacement = generic.Where(t => !ownedIds.Contains(t.Id)).Concat(resolution.Tables).ToList();
         var subclassSpells = SubclassSpellsProjector.Project(fivetoolsDir, key);
-        var tables = generic.Where(t => !ownedIds.Contains(t.Id))
-            .Concat(resolution.Tables)
-            .Concat(subclassSpells)
-            .ToList();
 
-        // Never wipe a book's tables to empty: if we have nothing to offer (e.g. a monster/reference
-        // book with no scannable 5etools captioned tables and no classes), leave the canonical untouched.
-        if (tables.Count == 0)
+        // Never wipe a book's tables to empty: if we have nothing to offer at all (e.g. a monster/reference
+        // book with no scannable 5etools captioned tables, no classes, and no subclass spells), leave the
+        // canonical untouched. This mirrors the pre-refactor guard (cleanReplacement + subclassSpells is
+        // exactly the old combined "tables" list) and must be checked BEFORE the existing-tables fallback
+        // below, otherwise a book that already has tables would never be reported as skipped.
+        if (cleanReplacement.Count == 0 && subclassSpells.Count == 0)
             return new ProjectResult(Skipped: true, SkipReason: "no projectable tables", TableCount: 0);
+
+        // Wholesale-replace MinerU only when we have a clean 5etools reference set to replace it with.
+        // Otherwise keep the book's existing tables (dropping any prior-run subclass-spells so re-runs stay
+        // idempotent + fresh) and just augment with subclass-spells — never drop healthy data as a side effect.
+        var baseTables = cleanReplacement.Count > 0
+            ? cleanReplacement
+            : file.Tables.Where(t => !t.Id.EndsWith("-spells", StringComparison.Ordinal)).ToList();
+        var tables = baseTables.Concat(subclassSpells).ToList();
 
         // Author resolution choiceSets when present; otherwise keep any existing choiceSets untouched.
         var choiceSets = resolution.ChoiceSets.Count > 0 ? resolution.ChoiceSets : file.ChoiceSets;

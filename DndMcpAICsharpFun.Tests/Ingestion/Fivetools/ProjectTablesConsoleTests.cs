@@ -65,6 +65,22 @@ public class ProjectTablesConsoleTests
         finally { Directory.Delete(dir, true); }
     }
 
+    [Fact]
+    public async Task Book_with_only_subclass_spells_keeps_existing_tables_and_adds_spells()
+    {
+        var (dir, fiveDir, canon) = Fixtures.OfficialBookOnlySubclassSpells();
+        try
+        {
+            var res = await ProjectTablesRunner.RunOneAsync(canon, fiveDir, new CanonicalJsonLoader(), new CanonicalJsonWriter(), default);
+            res.Skipped.Should().BeFalse();
+            var reloaded = await new CanonicalJsonLoader().LoadAsync(canon, default);
+            var ids = reloaded.Tables.Select(t => t.Id).ToList();
+            ids.Should().Contain("scag.table.existing-minerU", "existing tables are preserved, not wiped");
+            ids.Should().Contain("scag.table.storm-sorcery-spells", "subclass-spells are added");
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
     private static class Fixtures
     {
         public static (string Dir, string FiveDir, string CanonicalPath) OfficialBook(string sourceKey)
@@ -114,6 +130,23 @@ public class ProjectTablesConsoleTests
             var canon = Path.Combine(dir, "canonical.json");
             File.WriteAllText(canon, $$"""
             {"schemaVersion":"1","book":{"sourceBook":"{{sourceKey}}","edition":"Edition2014","fileHash":"x","displayName":"Some Book"},"entities":[],"tables":[{"id":"{{EntityIdSlug.BookSlug(sourceKey)}}.table.existing","name":"Existing","columns":["a","b"],"rows":[]}]}
+            """);
+            return (dir, fiveDir, canon);
+        }
+
+        public static (string Dir, string FiveDir, string CanonicalPath) OfficialBookOnlySubclassSpells()
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "pt-" + Guid.NewGuid().ToString("N"));
+            var fiveDir = Path.Combine(dir, "5etools");
+            Directory.CreateDirectory(Path.Combine(fiveDir, "class"));
+            File.WriteAllText(Path.Combine(fiveDir, "class", "class-sorcerer.json"), """
+            {"subclass":[{"name":"Storm Sorcery","className":"Sorcerer","source":"SCAG",
+              "additionalSpells":[{"known":{"1":["fog cloud"]}}]}]}
+            """);
+            var canon = Path.Combine(dir, "canonical.json");
+            File.WriteAllText(canon, """
+            {"schemaVersion":"1","book":{"sourceBook":"SCAG","edition":"Edition2014","fileHash":"x","displayName":"Sword Coast Adventurer's Guide"},
+             "entities":[],"tables":[{"id":"scag.table.existing-minerU","name":"Existing","columns":["a","b"],"rows":[]}]}
             """);
             return (dir, fiveDir, canon);
         }
