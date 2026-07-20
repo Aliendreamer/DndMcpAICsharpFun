@@ -44,4 +44,44 @@ public sealed class MinerUTableCollectorTests
 
         MinerUTableCollector.Collect(doc, "phb14", "PHB").Should().BeEmpty();
     }
+
+    [Fact]
+    public void Uncaptioned_table_takes_preceding_section_header_name()
+    {
+        var html = "<table><tr><td>Black</td><td>Acid</td></tr></table>";
+        var doc = new PdfStructureDocument("md", new List<PdfStructureItem>
+        {
+            new("section_header", "Draconic Ancestry", 34, 2),
+            new("text", "Your draconic ancestry determines...", 34, null),
+            new("table", "", 34, null, html),
+        });
+        var tables = MinerUTableCollector.Collect(doc, "phb14", "PHB");
+        tables.Should().ContainSingle();
+        tables[0].Name.Should().Be("Draconic Ancestry");
+        tables[0].Id.Should().StartWith("phb14.table.draconic-ancestry");
+    }
+
+    [Fact]
+    public void Captioned_table_keeps_its_caption()
+    {
+        var html = "<table><tr><td>x</td><td>y</td></tr></table>";
+        var doc = new PdfStructureDocument("md", new List<PdfStructureItem>
+        {
+            new("section_header", "Some Section", 1, 2),
+            new("table", "Real Caption", 1, null, html),
+        });
+        var tables = MinerUTableCollector.Collect(doc, "phb14", "PHB");
+        tables[0].Name.Should().Be("Real Caption");
+    }
+
+    [Fact]
+    public void Uncaptioned_table_with_no_nearby_heading_falls_back_to_positional()
+    {
+        var html = "<table><tr><td>x</td><td>y</td></tr></table>";
+        var items = new List<PdfStructureItem> { new("section_header", "Far Away", 1, 2) };
+        for (var i = 0; i < 15; i++) items.Add(new("text", $"para {i}", 1, null)); // push heading out of the window
+        items.Add(new("table", "", 1, null, html));
+        var tables = MinerUTableCollector.Collect(new PdfStructureDocument("md", items), "phb14", "PHB");
+        tables[0].Name.Should().Be("Table 1");
+    }
 }
