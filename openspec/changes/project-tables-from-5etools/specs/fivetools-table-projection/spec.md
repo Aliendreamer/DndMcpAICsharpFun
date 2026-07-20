@@ -35,7 +35,7 @@ The console SHALL rebuild and REPLACE the canonical `tables[]` wholesale for a b
 #### Scenario: Official book tables replaced
 
 - **WHEN** the console runs for an official book whose canonical previously held MinerU tables
-- **THEN** the written `tables[]` contains only tables tagged `dataSource:"5etools-table-projection"` and no MinerU-origin tables remain
+- **THEN** the written `tables[]` contains only 5etools-projected tables (every cell's `ProvenanceRef.BlockId` is `<slug>.5etools`, distinguishing them from MinerU `blockId` provenance) and no MinerU-origin tables remain
 
 #### Scenario: Homebrew book skipped
 
