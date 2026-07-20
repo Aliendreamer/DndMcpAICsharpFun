@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
@@ -25,8 +26,12 @@ public static partial class DraconicAncestryResolutionProjector
     private static readonly IReadOnlyDictionary<string, string> Ability =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["Str"] = "Strength", ["Dex"] = "Dexterity", ["Con"] = "Constitution",
-            ["Int"] = "Intelligence", ["Wis"] = "Wisdom", ["Cha"] = "Charisma",
+            ["Str"] = "Strength",
+            ["Dex"] = "Dexterity",
+            ["Con"] = "Constitution",
+            ["Int"] = "Intelligence",
+            ["Wis"] = "Wisdom",
+            ["Cha"] = "Charisma",
         };
 
     public static ResolutionArtifacts Project(string fivetoolsDir, string sourceKey)
