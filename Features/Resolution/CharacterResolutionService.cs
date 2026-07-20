@@ -74,6 +74,8 @@ public sealed class CharacterResolutionService(
             return ResolveSpellAttackAsync(sheet, ct);
         if (feature.Equals("class features", StringComparison.OrdinalIgnoreCase))
             return ResolveClassFeaturesAsync(sheet, ct);
+        if (feature.Equals("subclass spells", StringComparison.OrdinalIgnoreCase))
+            return ResolveSubclassSpellsAsync(sheet, ct);
 
         throw new NotSupportedException($"feature not supported: {feature}");
     }
@@ -341,6 +343,45 @@ public sealed class CharacterResolutionService(
         if (components.Count == 0)
             return new ResolvedFact("class features", "no classes", [], "needsReview");
         return new ResolvedFact("class features", string.Join(" | ", rendered), components, confidence);
+    }
+
+
+    private async Task<ResolvedFact> ResolveSubclassSpellsAsync(CharacterSheet sheet, CancellationToken ct)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        var components = new List<ResolvedComponent>();
+        var confidence = "ok";
+
+        foreach (var c in sheet.Classes)
+        {
+            if (string.IsNullOrWhiteSpace(c.Subclass)) continue;
+            var suffix = $".table.{EntityIdSlug.Slug(c.Subclass)}-spells";
+            var table = await db.StructuredTables.FirstOrDefaultAsync(t => t.CanonicalId.EndsWith(suffix), ct);
+            if (table is null)
+            {
+                confidence = "needsReview";
+                components.Add(new ResolvedComponent(c.Subclass, "[subclass spells table not found]", null));
+                continue;
+            }
+            var rows = await db.StructuredTableRows
+                .Where(r => r.TableId == table.Id).OrderBy(r => r.RowIndex).ToListAsync(ct);
+            ProvenanceRef? prov = null;
+            var spells = new List<string>();
+            foreach (var r in rows)
+            {
+                var cells = JsonSerializer.Deserialize<List<CanonicalCell>>(r.CellsJson, JsonOpts) ?? [];
+                if (cells.Count < 2 || !int.TryParse(cells[0].Value, out var lvl) || lvl > c.Level) continue;
+                prov ??= cells[1].Provenance;
+                spells.AddRange(cells[1].Value.Split(", ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            }
+            var val = spells.Count > 0 ? string.Join(", ", spells.Distinct()) : "none";
+            components.Add(new ResolvedComponent(c.Subclass, val, prov));
+        }
+
+        if (components.Count == 0)
+            return new ResolvedFact("subclass spells", "no subclass", [], "needsReview");
+        var value = string.Join(" | ", components.Select(x => $"{x.Label}: {x.Value}"));
+        return new ResolvedFact("subclass spells", value, components, confidence);
     }
 
     /// <summary>
