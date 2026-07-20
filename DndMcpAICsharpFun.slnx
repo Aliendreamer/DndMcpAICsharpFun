@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Tools/">
     <Project Path="Tools/CanonicalNameCleanup/CanonicalNameCleanup.csproj" />
+    <Project Path="Tools/ProjectTables/ProjectTables.csproj" />
     <Project Path="Tools/SchemaGenerator/SchemaGenerator.csproj" />
   </Folder>
   <Project Path="DndMcpAICsharpFun.csproj" />
