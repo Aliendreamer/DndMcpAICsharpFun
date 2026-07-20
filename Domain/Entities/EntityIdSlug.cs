@@ -59,6 +59,10 @@ public static class EntityIdSlug
         return $"{bookSlug}.table.{SlugifyName(name)}";
     }
 
+
+    /// <summary>The bare name-slug (e.g. "Life Domain" → "life-domain"), for building/matching table id suffixes.</summary>
+    public static string Slug(string name) => SlugifyName(name);
+
     private static string SlugifyBook(string book) => SlugifyName(book);
 
     private static string SlugifyName(string text)
