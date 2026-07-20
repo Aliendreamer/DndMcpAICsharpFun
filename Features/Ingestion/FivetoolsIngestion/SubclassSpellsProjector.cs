@@ -51,12 +51,14 @@ public static partial class SubclassSpellsProjector
 
                 var page = sc.TryGetProperty("page", out var p) && p.ValueKind == JsonValueKind.Number ? p.GetInt32() : (int?)null;
                 var prov = new ProvenanceRef($"{bookSlug}.5etools", sourceKey, page);
-                var rows = byLevel.Select(kv => new CanonicalTableRow(
+                var rows = byLevel.Where(kv => kv.Value.Count > 0).Select(kv => new CanonicalTableRow(
                     new List<CanonicalCell>
                     {
                         new(kv.Key.ToString(), prov),
                         new(string.Join(", ", kv.Value.Distinct()), prov),
                     })).ToList();
+                if (rows.Count == 0) continue; // subclass with only choose-blocks → no table
+
                 var id = $"{bookSlug}.table.{EntityIdSlug.Slug(nm.GetString()!)}-spells";
                 tables.Add(new CanonicalTable(id, $"{nm.GetString()} Spells", new List<string> { "level", "spells" }, rows));
             }

@@ -48,4 +48,29 @@ public class SubclassSpellsProjectorTests
         }
         finally { Directory.Delete(dir, true); }
     }
+
+
+    [Fact]
+    public void Skips_choose_block_only_levels_and_omits_table_when_all_choose()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "5scs-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(dir, "class"));
+        File.WriteAllText(Path.Combine(dir, "class", "class-bard.json"), """
+        {"subclass":[{"name":"College of Lore","className":"Bard","source":"PHB","page":54,
+          "additionalSpells":[{"prepared":{"1":["dissonant whispers"],"6":[{"choose":"level=0;1;2"}]}}]},
+          {"name":"Arcana Domain","className":"Cleric","source":"SCAG",
+          "additionalSpells":[{"prepared":{"17":[{"choose":"level=6;7;8;9"}]}}]}]}
+        """);
+        try
+        {
+            var phbTables = SubclassSpellsProjector.Project(dir, "PHB");
+            var lore = phbTables.Single(t => t.Id == "phb14.table.college-of-lore-spells");
+            lore.Rows.Should().ContainSingle(); // level "6" holds only a choose-block → no row emitted for it
+            lore.Rows[0].Cells[0].Value.Should().Be("1");
+
+            var scagTables = SubclassSpellsProjector.Project(dir, "SCAG");
+            scagTables.Should().NotContain(t => t.Id.Contains("arcana-domain")); // all grants are choose-blocks → no table at all
+        }
+        finally { Directory.Delete(dir, true); }
+    }
 }
