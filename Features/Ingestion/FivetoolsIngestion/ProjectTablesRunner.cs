@@ -34,6 +34,11 @@ public static class ProjectTablesRunner
         var ownedIds = resolution.Tables.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
         var tables = generic.Where(t => !ownedIds.Contains(t.Id)).Concat(resolution.Tables).ToList();
 
+        // Never wipe a book's tables to empty: if we have nothing to offer (e.g. a monster/reference
+        // book with no scannable 5etools captioned tables and no classes), leave the canonical untouched.
+        if (tables.Count == 0)
+            return new ProjectResult(Skipped: true, SkipReason: "no projectable tables", TableCount: 0);
+
         // Author resolution choiceSets when present; otherwise keep any existing choiceSets untouched.
         var choiceSets = resolution.ChoiceSets.Count > 0 ? resolution.ChoiceSets : file.ChoiceSets;
 

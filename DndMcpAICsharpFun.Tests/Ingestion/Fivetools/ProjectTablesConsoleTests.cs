@@ -1,3 +1,4 @@
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
@@ -44,6 +45,23 @@ public class ProjectTablesConsoleTests
         finally { Directory.Delete(dir, true); }
     }
 
+
+    [Fact]
+    public async Task Official_book_with_no_projectable_tables_is_skipped_and_untouched()
+    {
+        // A monster/reference book whose 5etools content yields 0 tables must NOT have its
+        // existing tables wiped to empty — the projection only replaces when it has tables to offer.
+        var (dir, fiveDir, canon) = Fixtures.OfficialBookEmptyData("MM");
+        try
+        {
+            var before = await File.ReadAllTextAsync(canon);
+            var res = await ProjectTablesRunner.RunOneAsync(canon, fiveDir, new CanonicalJsonLoader(), new CanonicalJsonWriter(), default);
+            res.Skipped.Should().BeTrue();
+            (await File.ReadAllTextAsync(canon)).Should().Be(before);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
     private static class Fixtures
     {
         public static (string Dir, string FiveDir, string CanonicalPath) OfficialBook(string sourceKey)
@@ -76,6 +94,19 @@ public class ProjectTablesConsoleTests
             var canon = Path.Combine(dir, "canonical.json");
             File.WriteAllText(canon, """
             {"schemaVersion":"1","book":{"sourceBook":"","edition":"Edition2014","fileHash":"x","displayName":"Homebrew Book"},"entities":[],"tables":[]}
+            """);
+            return (dir, fiveDir, canon);
+        }
+
+
+        public static (string Dir, string FiveDir, string CanonicalPath) OfficialBookEmptyData(string sourceKey)
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "pt-" + Guid.NewGuid().ToString("N"));
+            var fiveDir = Path.Combine(dir, "5etools");
+            Directory.CreateDirectory(fiveDir); // no races/class/etc. -> projection yields 0 tables
+            var canon = Path.Combine(dir, "canonical.json");
+            File.WriteAllText(canon, $$"""
+            {"schemaVersion":"1","book":{"sourceBook":"{{sourceKey}}","edition":"Edition2014","fileHash":"x","displayName":"Some Book"},"entities":[],"tables":[{"id":"{{EntityIdSlug.BookSlug(sourceKey)}}.table.existing","name":"Existing","columns":["a","b"],"rows":[]}]}
             """);
             return (dir, fiveDir, canon);
         }

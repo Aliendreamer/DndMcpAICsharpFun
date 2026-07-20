@@ -26,7 +26,9 @@ public static class Program
 
         var slugs = args[0] == "--all"
             ? Directory.EnumerateFiles(canonicalDir, "*.json")
-                .Where(p => !p.Contains(".errors.") && !p.Contains(".declined.") && !p.Contains(".warnings.") && !p.Contains(".progress"))
+                .Where(p => !p.Contains(".errors.") && !p.Contains(".declined.") && !p.Contains(".warnings.") && !p.Contains(".progress")
+                            // dragonborn-slice.json is a hand-authored resolution TEST fixture (sourceBook "PHB"), not a corpus book.
+                            && !Path.GetFileNameWithoutExtension(p)!.Equals("dragonborn-slice", StringComparison.Ordinal))
                 .Select(p => Path.GetFileNameWithoutExtension(p)!).ToList()
             : new List<string> { args[0] };
 
