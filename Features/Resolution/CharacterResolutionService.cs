@@ -72,6 +72,8 @@ public sealed class CharacterResolutionService(
             return ResolveSpellSaveDcAsync(sheet, ct);
         if (feature.Equals("spell attack", StringComparison.OrdinalIgnoreCase))
             return ResolveSpellAttackAsync(sheet, ct);
+        if (feature.Equals("class features", StringComparison.OrdinalIgnoreCase))
+            return ResolveClassFeaturesAsync(sheet, ct);
 
         throw new NotSupportedException($"feature not supported: {feature}");
     }
@@ -296,6 +298,50 @@ public sealed class CharacterResolutionService(
     private Task<ResolvedFact> ResolveSpellAttackAsync(CharacterSheet sheet, CancellationToken ct)
         => Task.FromResult(PerCasterClass(
             sheet, "spell attack", "spell attack", (pb, mod) => pb + mod, v => $"+{v}"));
+
+
+    private async Task<ResolvedFact> ResolveClassFeaturesAsync(CharacterSheet sheet, CancellationToken ct)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        var components = new List<ResolvedComponent>();
+        var rendered = new List<string>();
+        var confidence = "ok";
+
+        foreach (var c in sheet.Classes)
+        {
+            if (string.IsNullOrWhiteSpace(c.Class)) continue;
+            var suffix = $".table.{EntityIdSlug.Slug(c.Class)}";
+            var table = await db.StructuredTables.FirstOrDefaultAsync(t => t.CanonicalId.EndsWith(suffix), ct);
+            if (table is null)
+            {
+                confidence = "needsReview";
+                components.Add(new ResolvedComponent(c.Class, "[class table not found]", null));
+                continue;
+            }
+            var rows = await db.StructuredTableRows
+                .Where(r => r.TableId == table.Id && r.RowIndex < c.Level)
+                .OrderBy(r => r.RowIndex).ToListAsync(ct);
+            ProvenanceRef? prov = null;
+            var byLevel = new List<string>();
+            string prof = "";
+            foreach (var r in rows)
+            {
+                var cells = JsonSerializer.Deserialize<List<CanonicalCell>>(r.CellsJson, JsonOpts) ?? [];
+                prov ??= cells.Count > 0 ? cells[0].Provenance : null;
+                var feats = cells.Count > 2 ? cells[2].Value : "";
+                if (!string.IsNullOrWhiteSpace(feats)) byLevel.Add($"L{r.RowIndex + 1}: {feats}");
+                if (r.RowIndex == c.Level - 1 && cells.Count > 1) prof = cells[1].Value;
+            }
+            var summary = byLevel.Count > 0 ? string.Join("; ", byLevel) : "no features";
+            var val = string.IsNullOrWhiteSpace(prof) ? summary : $"{summary} (proficiency bonus {prof})";
+            components.Add(new ResolvedComponent(c.Class, val, prov));
+            rendered.Add($"{c.Class}: {val}");
+        }
+
+        if (components.Count == 0)
+            return new ResolvedFact("class features", "no classes", [], "needsReview");
+        return new ResolvedFact("class features", string.Join(" | ", rendered), components, confidence);
+    }
 
     /// <summary>
     /// Deterministic multiclass-validity answer for a target class: prerequisite check + reduced
