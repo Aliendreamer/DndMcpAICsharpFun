@@ -52,6 +52,13 @@ public static class EntityIdSlug
     /// <summary>The book-slug prefix for an ingestion record: its 5etools source key when present, else its display name.</summary>
     public static string BookSlug(IngestionRecord record) => BookSlug(record.FivetoolsSourceKey ?? record.DisplayName);
 
+    /// <summary>The canonical id for a projected table: "&lt;book-slug&gt;.table.&lt;name-slug&gt;".</summary>
+    public static string Table(string bookKey, string name)
+    {
+        var bookSlug = BookOverrides.TryGetValue(bookKey, out var s) ? s : SlugifyBook(bookKey);
+        return $"{bookSlug}.table.{SlugifyName(name)}";
+    }
+
     private static string SlugifyBook(string book) => SlugifyName(book);
 
     private static string SlugifyName(string text)
