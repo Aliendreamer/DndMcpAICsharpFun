@@ -49,4 +49,33 @@ public sealed class ClassFeaturesResolutionIntegrationTests(PostgresFixture pg) 
         fact.Value.Should().Contain("+3"); // L6 proficiency bonus
         fact.Components.Should().ContainSingle(c => c.Label == "Fighter");
     }
+
+
+    [Fact]
+    public async Task Class_features_ambiguous_across_books_resolves_needsReview()
+    {
+        // Two books both project a table ending in ".table.fighter" — the resolver must not
+        // silently pick either one.
+        var dbf = DbFactory();
+        var classTables = new FivetoolsTableProjection().BuildForBook(TestPaths.RepoFile("5etools"), "PHB");
+        var fighter = classTables.Single(t => t.Id == "phb14.table.fighter");
+        var phbFile = new CanonicalJsonFile("1", new CanonicalBookMetadata("PHB", "Edition2014", "x", "PHB"), [], new[] { fighter }, []);
+        await new StructuredFactProjector(dbf).ProjectAsync(phbFile, CancellationToken.None);
+
+        var homebrewFighter = fighter with { Id = "homebrew1.table.fighter" };
+        var homebrewFile = new CanonicalJsonFile("1", new CanonicalBookMetadata("HOMEBREW1", "Edition2014", "y", "Homebrew One"), [], new[] { homebrewFighter }, []);
+        await new StructuredFactProjector(dbf).ProjectAsync(homebrewFile, CancellationToken.None);
+
+        var sheet = new CharacterSheet { Classes = [new ClassLevel { Class = "Fighter", Level = 6 }] };
+        await using var db = pg.NewContext();
+        db.HeroSnapshots.Add(new HeroSnapshot(0, 10, 1, "F6Ambiguous", 6, DateTime.UtcNow, sheet));
+        await db.SaveChangesAsync();
+        var snapId = await db.HeroSnapshots.Where(s => s.HeroId == 10).Select(s => s.Id).FirstAsync();
+
+        var svc = new CharacterResolutionService(dbf, new HeroRepository(dbf));
+        var fact = await svc.ResolveAsync(snapId, "class features");
+
+        fact.Confidence.Should().Be("needsReview");
+        fact.Components.Should().ContainSingle(c => c.Label == "Fighter" && c.Value.Contains("ambiguous"));
+    }
 }

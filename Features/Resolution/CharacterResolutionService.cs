@@ -313,13 +313,20 @@ public sealed class CharacterResolutionService(
         {
             if (string.IsNullOrWhiteSpace(c.Class)) continue;
             var suffix = $".table.{EntityIdSlug.Slug(c.Class)}";
-            var table = await db.StructuredTables.FirstOrDefaultAsync(t => t.CanonicalId.EndsWith(suffix), ct);
-            if (table is null)
+            var tables = await db.StructuredTables.Where(t => t.CanonicalId.EndsWith(suffix)).Take(2).ToListAsync(ct);
+            if (tables.Count == 0)
             {
                 confidence = "needsReview";
                 components.Add(new ResolvedComponent(c.Class, "[class table not found]", null));
                 continue;
             }
+            if (tables.Count > 1)
+            {
+                confidence = "needsReview";
+                components.Add(new ResolvedComponent(c.Class, $"[ambiguous: multiple books define {suffix}]", null));
+                continue;
+            }
+            var table = tables[0];
             var rows = await db.StructuredTableRows
                 .Where(r => r.TableId == table.Id && r.RowIndex < c.Level)
                 .OrderBy(r => r.RowIndex).ToListAsync(ct);
@@ -356,13 +363,20 @@ public sealed class CharacterResolutionService(
         {
             if (string.IsNullOrWhiteSpace(c.Subclass)) continue;
             var suffix = $".table.{EntityIdSlug.Slug(c.Subclass)}-spells";
-            var table = await db.StructuredTables.FirstOrDefaultAsync(t => t.CanonicalId.EndsWith(suffix), ct);
-            if (table is null)
+            var tables = await db.StructuredTables.Where(t => t.CanonicalId.EndsWith(suffix)).Take(2).ToListAsync(ct);
+            if (tables.Count == 0)
             {
                 confidence = "needsReview";
                 components.Add(new ResolvedComponent(c.Subclass, "[subclass spells table not found]", null));
                 continue;
             }
+            if (tables.Count > 1)
+            {
+                confidence = "needsReview";
+                components.Add(new ResolvedComponent(c.Subclass, $"[ambiguous: multiple books define {suffix}]", null));
+                continue;
+            }
+            var table = tables[0];
             var rows = await db.StructuredTableRows
                 .Where(r => r.TableId == table.Id).OrderBy(r => r.RowIndex).ToListAsync(ct);
             ProvenanceRef? prov = null;

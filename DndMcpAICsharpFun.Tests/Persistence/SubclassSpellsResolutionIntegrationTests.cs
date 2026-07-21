@@ -48,4 +48,33 @@ public sealed class SubclassSpellsResolutionIntegrationTests(PostgresFixture pg)
             .And.Contain("lesser restoration").And.Contain("beacon of hope").And.Contain("revivify");
         fact.Value.Should().NotContain("death ward"); // L7 grant, excluded at L5
     }
+
+
+    [Fact]
+    public async Task Subclass_spells_ambiguous_across_books_resolves_needsReview()
+    {
+        // Two books both project a table ending in ".table.life-domain-spells" — the resolver
+        // must not silently pick either one.
+        var dbf = DbFactory();
+        var scTables = SubclassSpellsProjector.Project(TestPaths.RepoFile("5etools"), "PHB");
+        var life = scTables.Single(t => t.Id == "phb14.table.life-domain-spells");
+        var phbFile = new CanonicalJsonFile("1", new CanonicalBookMetadata("PHB", "Edition2014", "x", "PHB"), [], new[] { life }, []);
+        await new StructuredFactProjector(dbf).ProjectAsync(phbFile, CancellationToken.None);
+
+        var homebrewLife = life with { Id = "homebrew1.table.life-domain-spells" };
+        var homebrewFile = new CanonicalJsonFile("1", new CanonicalBookMetadata("HOMEBREW1", "Edition2014", "y", "Homebrew One"), [], new[] { homebrewLife }, []);
+        await new StructuredFactProjector(dbf).ProjectAsync(homebrewFile, CancellationToken.None);
+
+        var sheet = new CharacterSheet { Classes = [new ClassLevel { Class = "Cleric", Subclass = "Life Domain", Level = 5 }] };
+        await using var db = pg.NewContext();
+        db.HeroSnapshots.Add(new HeroSnapshot(0, 20, 1, "Life5Ambiguous", 5, DateTime.UtcNow, sheet));
+        await db.SaveChangesAsync();
+        var snapId = await db.HeroSnapshots.Where(s => s.HeroId == 20).Select(s => s.Id).FirstAsync();
+
+        var svc = new CharacterResolutionService(dbf, new HeroRepository(dbf));
+        var fact = await svc.ResolveAsync(snapId, "subclass spells");
+
+        fact.Confidence.Should().Be("needsReview");
+        fact.Components.Should().ContainSingle(c => c.Label == "Life Domain" && c.Value.Contains("ambiguous"));
+    }
 }
