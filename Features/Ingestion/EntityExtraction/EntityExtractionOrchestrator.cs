@@ -171,9 +171,14 @@ public sealed class EntityExtractionOrchestrator(
             var declineRes = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
             if (declineRes.Outcome == DeterministicOutcome.Decline)
             {
-                var rawId = EntityIdSlug.For(ExtractionEntityIds.BookKey(record), candidate.TypePrior.FirstOrDefault(), candidate.DisplayName);
-                declined.Add(new DeclinedEntry(rawId, candidate.DisplayName, candidate.TypePrior.FirstOrDefault(), declineRes.DeclineReason ?? "no_5etools_match"));
-                continue;
+                var rescued = RescueAsRuleOrNull(candidate, declineRes.Outcome);
+                if (rescued is null)
+                {
+                    var rawId = EntityIdSlug.For(ExtractionEntityIds.BookKey(record), candidate.TypePrior.FirstOrDefault(), candidate.DisplayName);
+                    declined.Add(new DeclinedEntry(rawId, candidate.DisplayName, candidate.TypePrior.FirstOrDefault(), declineRes.DeclineReason ?? "no_5etools_match"));
+                    continue;
+                }
+                candidate = rescued;
             }
 
             var id = ExtractionEntityIds.RecordedEntityId(record, candidate, _matcher, isOfficial);
@@ -332,8 +337,13 @@ public sealed class EntityExtractionOrchestrator(
             var candidate = candidates[i];
 
             // If the candidate is now declined (e.g. allowlist updated since full run), skip silently.
-            if (DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial).Outcome == DeterministicOutcome.Decline)
-                continue;
+            var errDecline = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
+            if (errDecline.Outcome == DeterministicOutcome.Decline)
+            {
+                var rescued = RescueAsRuleOrNull(candidate, errDecline.Outcome);
+                if (rescued is null) continue;
+                candidate = rescued;
+            }
 
             var id = ExtractionEntityIds.RecordedEntityId(record, candidate, _matcher, isOfficial);
 
@@ -404,6 +414,16 @@ public sealed class EntityExtractionOrchestrator(
 
         await tracker.MarkEntitiesExtractedAsync(bookId, mergedEntities.Count, ct);
     }
+
+    // Rescue a would-be-declined candidate that reads as a rule: re-offer it as Rule-or-none
+    // (TypePrior swapped to [Rule] only — the failed gated type is NOT re-offered, so the LLM
+    // cannot fabricate an ungrounded canon entity). Returns the rebound candidate, or null to decline.
+    // internal (not private) so DndMcpAICsharpFun.Tests can exercise this pure logic directly
+    // (InternalsVisibleTo is already configured).
+    internal static EntityCandidate? RescueAsRuleOrNull(EntityCandidate candidate, DeterministicOutcome outcome) =>
+        outcome == DeterministicOutcome.Decline && ExtractionSignatures.RuleSignature(candidate)
+            ? candidate with { TypePrior = new[] { EntityType.Rule } }
+            : null;
 
     private (string SourceBook, string Edition) DeriveSourceAndEdition(DndMcpAICsharpFun.Domain.IngestionRecord record)
     {

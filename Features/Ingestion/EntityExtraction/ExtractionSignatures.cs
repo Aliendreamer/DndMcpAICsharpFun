@@ -92,6 +92,17 @@ public static partial class ExtractionSignatures
         || IsMagicItem(candidate.Text)
         || HasSubclassFeatureProgression(candidate.Text);
 
+    /// <summary>
+    /// A decline-bound candidate that is worth rescuing as a Rule: it has substantial prose.
+    /// Name-shape / fragment / TOC filtering already happened upstream (EntityCandidateBuilder's
+    /// Drop-filter via IsEntityLikeName), so by the time a candidate reaches the orchestrator's
+    /// decline branch it is not a bare heading — this only adds a prose-substance floor so a thin
+    /// declined stub does not become a Rule. Start permissive; the LLM's Rule-vs-none pick is the
+    /// real gate (extraction-content-classification, Phase 1).
+    /// </summary>
+    public static bool RuleSignature(EntityCandidate candidate) =>
+        (candidate.Text?.Trim().Length ?? 0) >= 200;
+
     [GeneratedRegex(
         @"\b(weapon|armou?r|ring|rod|staff|wand|potion|scroll|wondrous)\b[^.\n]{0,40}?,\s*(common|uncommon|rare|very rare|legendary|artifact)\b",
         RegexOptions.IgnoreCase)]
