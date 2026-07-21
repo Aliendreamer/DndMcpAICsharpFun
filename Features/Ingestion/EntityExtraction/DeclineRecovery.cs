@@ -34,10 +34,13 @@ public sealed class DeclineRecovery(
         var (envelope, _) = await runner.ExtractOneAsync(
             record, rebound, id, sourceBook, edition, schemas, ct, isOfficial: true, systemPromptOverride: prompt);
 
-        // A non-null envelope means the runner's deterministic resolution + union call landed on
-        // Rule or Lore AND the entity survived the grounding cascade + disposition — a genuine
-        // recovery. A null result (none pick, extraction failure, or model decline) means the
-        // candidate stays declined; the caller keeps it in the declined roster.
-        return envelope is null ? null : envelope with { DataSource = RecoveryDataSource };
+        // Only an ACCEPTED envelope is a genuine recovery. The runner's grounding cascade runs with
+        // the judge disabled during extraction, so an ungrounded pick's fields yield Uncertain, not
+        // a drop — which ExtractionDispositionPolicy maps to NeedsReview, not Accepted. A non-Accepted
+        // envelope (NeedsReview, Ungrounded, Declined, Failed) must NOT be admitted here: the candidate
+        // stays declined, exactly as an ungrounded pick should (anti-fabrication contract).
+        return envelope is not null && envelope.Disposition == EntityDisposition.Accepted
+            ? envelope with { DataSource = RecoveryDataSource }
+            : null;
     }
 }

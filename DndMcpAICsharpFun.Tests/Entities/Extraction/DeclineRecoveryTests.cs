@@ -69,7 +69,7 @@ public sealed class DeclineRecoveryTests
     public async Task Recovery_pick_of_rule_that_grounds_returns_envelope_marked_decline_recovery()
     {
         var llm = Substitute.For<IEntityExtractionLlmClient>();
-        ReturnsToolInput(llm, """{"entityType":"Rule","name":"Grappling"}""");
+        ReturnsToolInput(llm, """{"entityType":"Rule","name":"Grapple"}""");
 
         var recovery = new DeclineRecovery(BuildRunner(llm), new ExtractionPromptBuilder(), matcher: null);
 
@@ -98,21 +98,23 @@ public sealed class DeclineRecoveryTests
     [Fact]
     public async Task Recovery_pick_with_ungrounded_fields_stays_declined()
     {
-        // The runner's grounding cascade rejects a pick whose fields have no support in the source
-        // text and the extraction judge is off, which currently yields NeedsReview, not a drop —
-        // but a candidate whose model response fails outright (extraction_failure) must also yield
-        // null from TryRecoverAsync (stays declined), never throw.
+        // A genuine Rule/Lore pick (Success:true, entityType:Rule) whose only field value
+        // ("Grappling") has no OCR-fuzzy support anywhere in the candidate's source text (which only
+        // contains "grapple"/"grapple check" - Levenshtein distance 3, over the OCR-tolerance
+        // threshold of 1). Tier 0 field-grounding therefore fails; with the extraction judge always
+        // off (judgeEnabled: false in EntityExtractionRunner.BuildTypedEnvelope), the cascade can only
+        // yield Uncertain, which ExtractionDispositionPolicy maps to NeedsReview - never Accepted.
+        // Recovery must not admit this pick: an ungrounded recovery stays declined.
         var llm = Substitute.For<IEntityExtractionLlmClient>();
-        llm.ExtractAsync(Arg.Any<ExtractionRequest>(), Arg.Any<CancellationToken>())
-           .Returns(new ExtractionResponse(
-               Success: false, ToolInput: default, StopReason: "error",
-               InputTokens: 0, OutputTokens: 0, ErrorMessage: "boom", RawJson: null));
+        ReturnsToolInput(llm, """{"entityType":"Rule","name":"Grappling"}""");
 
         var recovery = new DeclineRecovery(BuildRunner(llm), new ExtractionPromptBuilder(), matcher: null);
 
         var envelope = await recovery.TryRecoverAsync(
             Record(), DeclinedCandidate(), sourceBook: "Test", edition: "5e", schemas: Schemas(), ct: CancellationToken.None);
 
-        envelope.Should().BeNull("an extraction failure must not throw and must leave the candidate declined");
+        envelope.Should().BeNull(
+            "an ungrounded pick (fields not supported by the source text) must not be admitted, " +
+            "even though the model returned a valid, successful Rule/Lore branch");
     }
 }
