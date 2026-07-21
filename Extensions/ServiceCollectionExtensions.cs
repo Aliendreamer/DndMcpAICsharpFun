@@ -272,6 +272,10 @@ internal static class ServiceCollectionExtensions
         // cannot consume a Scoped service without becoming a captive dependency. Its only consumer,
         // IEntityExtractionOrchestrator, is already Scoped, so this is a safe lifetime change.
         services.AddScoped<EntityExtractionRunner>();
+        // The post-loop decline-recovery phase (official books only) — rebinds a declined
+        // candidate to the Rule/Lore union via the same runner, gated by the same grounding
+        // cascade. Scoped because it depends on the Scoped EntityExtractionRunner.
+        services.AddScoped<DeclineRecovery>();
         services.AddSingleton<IReadOnlyDictionary<EntityType, EntityBackfillService>>(sp =>
         {
             var registry = sp.GetRequiredService<BookSourceRegistry>();

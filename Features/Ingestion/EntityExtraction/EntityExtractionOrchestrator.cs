@@ -27,7 +27,8 @@ public sealed class EntityExtractionOrchestrator(
     EntityFieldFillService fieldFill,
     IOptions<EntityExtractionOptions> options,
     ILogger<EntityExtractionOrchestrator> logger,
-    EntityNameMatcher? matcher = null) : IEntityExtractionOrchestrator
+    EntityNameMatcher? matcher = null,
+    DeclineRecovery? declineRecovery = null) : IEntityExtractionOrchestrator
 {
     private readonly EntityExtractionOptions _opts = options.Value;
     private readonly EntityNameMatcher? _matcher = matcher;
@@ -153,6 +154,9 @@ public sealed class EntityExtractionOrchestrator(
         var (sourceBook, edition) = DeriveSourceAndEdition(record);
         bool isOfficial = !string.IsNullOrWhiteSpace(record.FivetoolsSourceKey);
         var declined = new List<DeclinedEntry>();
+        // Candidates declined either deterministically (below) or by the LLM's "none" union pick
+        // (extraction_declined) — replayed post-loop through DeclineRecovery for official books.
+        var declinedCandidates = new List<EntityCandidate>();
         var declinedPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".declined.json");
 
         int success = extracted.Count;
@@ -177,6 +181,7 @@ public sealed class EntityExtractionOrchestrator(
                 {
                     var rawId = EntityIdSlug.For(ExtractionEntityIds.BookKey(record), candidate.TypePrior.FirstOrDefault(), candidate.DisplayName);
                     declined.Add(new DeclinedEntry(rawId, candidate.DisplayName, candidate.TypePrior.FirstOrDefault(), declineRes.DeclineReason ?? "no_5etools_match"));
+                    declinedCandidates.Add(candidate);
                     continue;
                 }
                 candidate = rescued;
@@ -193,6 +198,8 @@ public sealed class EntityExtractionOrchestrator(
             {
                 extractionErrors.Add(error);
                 failed++;
+                if (error.ErrorKind == "extraction_declined")
+                    declinedCandidates.Add(candidate);
             }
             else
             {
@@ -213,6 +220,28 @@ public sealed class EntityExtractionOrchestrator(
                     success + failed, candidates.Count, success, failed);
                 lastLog = sw.Elapsed;
             }
+        }
+
+        // Automatic decline-recovery (official books only): replay every candidate declined above —
+        // deterministically or via the LLM's "none" pick — rebound to the Rule/Lore union. Only a
+        // grounded Accepted pick is admitted; everything else stays declined (anti-fabrication).
+        // Runs BEFORE reference resolution so a recovered entity's refs are checked like any other.
+        if (isOfficial && declineRecovery is not null)
+        {
+            var recoveredCount = 0;
+            foreach (var declinedCandidate in declinedCandidates)
+            {
+                var rec = await declineRecovery.TryRecoverAsync(record, declinedCandidate, sourceBook, edition, schemas, ct);
+                if (rec is null) continue;
+
+                extracted.Add(rec);
+                recoveredCount++;
+                declined.RemoveAll(d => d.Id == rec.Id);
+                extractionErrors.RemoveAll(e => e.ErrorKind == "extraction_declined" && e.SourceEntityId == rec.Id);
+            }
+
+            if (recoveredCount > 0)
+                logger.LogInformation("Decline-recovery admitted {Recovered} Rule/Lore entities", recoveredCount);
         }
 
         // Resolve references; classify intra vs inter book.

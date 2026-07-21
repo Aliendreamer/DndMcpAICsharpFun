@@ -231,7 +231,8 @@ public class EntityExtractionOrchestratorTests
         DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher? matcher = null,
         ILogger<EntityExtractionOrchestrator>? orchestratorLogger = null,
         ILogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>? builderLogger = null,
-        DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.EntityFieldFillService? fieldFill = null)
+        DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.EntityFieldFillService? fieldFill = null,
+        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.DeclineRecovery? declineRecovery = null)
     {
         var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
         {
@@ -282,7 +283,8 @@ public class EntityExtractionOrchestratorTests
             fieldFill: effectiveFieldFill,
             options: opts,
             logger: orchestratorLogger ?? NullLogger<EntityExtractionOrchestrator>.Instance,
-            matcher: effectiveMatcher);
+            matcher: effectiveMatcher,
+            declineRecovery: declineRecovery);
     }
 
     private static DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CandidateExtractor BuildCandidateExtractor(
@@ -2025,6 +2027,232 @@ public class EntityExtractionOrchestratorTests
             try { Directory.Delete(canonicalDir, true); } catch { }
             try { Directory.Delete(schemasDir, true); } catch { }
             try { Directory.Delete(fillFivetoolsDir, true); } catch { }
+        }
+    }
+
+    // ── Decline-recovery orchestration (automatic-decline-recovery, Task 3) ─────────────────
+    //
+    // Shared harness for both recovery tests below: a single official-book candidate whose
+    // PRIMARY prior type is Class (gated) — mirrors Official_gated_noise_is_declined_... above,
+    // reduced to one candidate — declined deterministically with reason "no_5etools_match".
+    // The candidate's text is the exact grounding-friendly text used by DeclineRecoveryTests'
+    // DeclinedCandidate() (a "grapple" rules paragraph), so a rebound Rule pick named "Grapple"
+    // grounds via Tier 0 field-text match and is Accepted.
+    private static (
+        string canonicalDir,
+        string schemasDir,
+        DndMcpAICsharpFun.Domain.IngestionRecord record,
+        DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker tracker,
+        DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter converter,
+        DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader bookmarkReader,
+        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm,
+        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher matcher)
+        BuildDeclineRecoveryHarness(int bookId, string displayName, string? fivetoolsSourceKey)
+    {
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+
+        // Rule + Lore schemas so the recovery union (TypePrior=[Rule, Lore]) is offered to the
+        // model — no schema for Class is needed, since the candidate never reaches the LLM under
+        // its original (gated, declined) type.
+        File.WriteAllText(Path.Combine(schemasDir, "RuleFields.schema.json"), "{ \"type\": \"object\" }");
+        File.WriteAllText(Path.Combine(schemasDir, "LoreFields.schema.json"), "{ \"type\": \"object\" }");
+
+        var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+        {
+            Id = bookId,
+            FilePath = "/dev/null",
+            FileName = "test.pdf",
+            FileHash = "decline-recovery-hash",
+            Version = "5e",
+            DisplayName = displayName,
+            FivetoolsSourceKey = fivetoolsSourceKey,
+        };
+
+        var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+        tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+        // One "Grappling Rules" heading, mapped to Class via the "Barbarian" bookmark (same
+        // heading→category path as Official_gated_noise_is_declined_not_extracted_and_recorded),
+        // with plain prose (no stat-block cues) so it is genuinely non-Monster/non-Item noise.
+        var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+        var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+            "doc",
+            new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+            {
+                new("section_header", "Grappling Rules", 1, null),
+                new("text",
+                    "When you attempt to grapple a creature, you use your action and one of your " +
+                    "free hands to make a grapple check contested by the target's ability check.",
+                    1, null),
+            });
+        converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
+
+        var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+        bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+            new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark> { new("Barbarian", 1) });
+
+        // Empty 5etools index (no real match for "Grappling Rules" or "Grapple") — deterministic,
+        // independent of the real 5etools data set.
+        var matcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__")));
+
+        var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+
+        return (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm, matcher);
+    }
+
+    [Fact]
+    public async Task Official_book_decline_recovery_admits_rule_and_reconciles_declined_audit()
+    {
+        const int bookId = 700;
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm, matcher) =
+            BuildDeclineRecoveryHarness(bookId, "Player's Handbook", fivetoolsSourceKey: "PHB");
+
+        try
+        {
+            // The ONLY LLM call in this run is the post-loop recovery attempt (the original
+            // Class-typed candidate is declined deterministically, with no LLM call at all).
+            // A grounded Rule pick named "Grapple" — the term appears verbatim in the candidate
+            // text — must be Accepted by the (judge-disabled) grounding cascade.
+            using var toolInput = System.Text.Json.JsonDocument.Parse(
+                """{"entityType":"Rule","name":"Grapple"}""");
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                   Success: true, ToolInput: toolInput.RootElement.Clone(), StopReason: "tool_use",
+                   InputTokens: 0, OutputTokens: 0, ErrorMessage: null, RawJson: null));
+
+            var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
+            {
+                CanonicalDirectory = canonicalDir,
+                SchemasDirectory = schemasDir,
+            });
+            var declineRecovery = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.DeclineRecovery(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
+                    candidateExtractor: BuildCandidateExtractor(llm, opts),
+                    logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                    cascade: GroundingCascadeTestFactory.Inert(),
+                    matcher: matcher),
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
+                matcher: matcher);
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                matcher: matcher, declineRecovery: declineRecovery);
+
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            await llm.Received(1).ExtractAsync(
+                Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                Arg.Any<CancellationToken>());
+
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(record.FivetoolsSourceKey!, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+            var canonicalJson = await File.ReadAllTextAsync(canonicalPath);
+            var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(
+                canonicalJson,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+                });
+
+            canonical.Should().NotBeNull();
+            canonical!.Entities.Should().ContainSingle(
+                e => e.Type == DndMcpAICsharpFun.Domain.Entities.EntityType.Rule
+                  && e.DataSource == "decline-recovery",
+                "the recovered Rule pick must be written into the canonical entities, " +
+                "tagged with the decline-recovery data source");
+
+            // The decline audit must no longer carry the recovered candidate — SidecarJsonFileWriter
+            // deletes the file entirely once the declined list is empty.
+            var declinedPath = Path.Combine(canonicalDir, bookSlug + ".declined.json");
+            File.Exists(declinedPath).Should().BeFalse(
+                "the recovered candidate must be reconciled out of the decline audit");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task NonOfficial_book_skips_decline_recovery_declines_unchanged()
+    {
+        const int bookId = 701;
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm, matcher) =
+            BuildDeclineRecoveryHarness(bookId, "Homebrew Compendium", fivetoolsSourceKey: null);
+
+        try
+        {
+            var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
+            {
+                CanonicalDirectory = canonicalDir,
+                SchemasDirectory = schemasDir,
+            });
+            var declineRecovery = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.DeclineRecovery(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
+                    candidateExtractor: BuildCandidateExtractor(llm, opts),
+                    logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                    cascade: GroundingCascadeTestFactory.Inert(),
+                    matcher: matcher),
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
+                matcher: matcher);
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                matcher: matcher, declineRecovery: declineRecovery);
+
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Recovery must never be invoked for a non-official book — no LLM call at all, since
+            // the sole candidate is declined deterministically and recovery is official-only.
+            await llm.DidNotReceive().ExtractAsync(
+                Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                Arg.Any<CancellationToken>());
+
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(record.DisplayName, DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x")
+                .Split('.')[0];
+
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+            var canonicalJson = await File.ReadAllTextAsync(canonicalPath);
+            var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(
+                canonicalJson,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+                });
+            canonical.Should().NotBeNull();
+            canonical!.Entities.Should().BeEmpty("the declined candidate must not be recovered for a non-official book");
+
+            var declinedPath = Path.Combine(canonicalDir, bookSlug + ".declined.json");
+            File.Exists(declinedPath).Should().BeTrue(
+                "the decline audit must be left unchanged when recovery does not run");
+
+            var declinedJson = await File.ReadAllTextAsync(declinedPath);
+            var declined = System.Text.Json.JsonSerializer.Deserialize<
+                List<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.DeclinedEntry>>(
+                declinedJson,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+                });
+            declined.Should().ContainSingle(d => d.Name == "Grappling Rules");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
 }
