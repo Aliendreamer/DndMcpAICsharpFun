@@ -268,4 +268,61 @@ public sealed class CandidateExtractorTests
         capturedPrompts[0].Should().NotContain("UNIQUE_TAIL_MARKER",
             "text beyond MaxTypeDecisionChars must be excluded from the type-decision call");
     }
+
+
+    [Fact]
+    public async Task ExtractUnionAsync_systemPromptOverride_replaces_the_default_union_prompt()
+    {
+        // automatic-decline-recovery Task 1: an optional trailing systemPromptOverride lets a later
+        // recovery pass re-classify declines with different framing, without changing any existing
+        // caller (default null preserves BuildUnionSystemPrompt as before).
+        var capturedSystemPrompts = new List<string>();
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        using var resp = JsonDocument.Parse("""{"entityType":"Rule","name":"Grappling"}""");
+        llm.ExtractAsync(Arg.Any<ExtractionRequest>(), Arg.Any<CancellationToken>())
+           .Returns(ci =>
+           {
+               capturedSystemPrompts.Add(ci.Arg<ExtractionRequest>().SystemPrompt);
+               return new ExtractionResponse(
+                   Success: true, ToolInput: resp.RootElement.Clone(), StopReason: "tool_use",
+                   InputTokens: 0, OutputTokens: 0, ErrorMessage: null, RawJson: null);
+           });
+
+        var opts = Options.Create(new EntityExtractionOptions { MaxOutputTokensPerEntity = 4096 });
+        var ollamaOpts = Options.Create(new DndMcpAICsharpFun.Infrastructure.Ollama.OllamaOptions());
+        var extractor = new CandidateExtractor(
+            llm: llm, promptBuilder: new ExtractionPromptBuilder(), chunker: new SemanticChunker(),
+            merger: new EntityFieldMerger(), retry: new ExtractionRetryPolicy { MaxAttempts = 1 },
+            options: opts, ollamaOpts: ollamaOpts, logger: NullLogger<CandidateExtractor>.Instance);
+
+        var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+        {
+            Id = 1,
+            FilePath = "/dev/null",
+            FileName = "dmg.pdf",
+            FileHash = "h",
+            Version = "5e",
+            DisplayName = "Dungeon Master's Guide",
+        };
+        var schemas = new Dictionary<DndMcpAICsharpFun.Domain.Entities.EntityType, JsonElement>
+        {
+            [DndMcpAICsharpFun.Domain.Entities.EntityType.Rule] =
+                JsonDocument.Parse("""{"type":"object","properties":{"name":{"type":"string"}}}""").RootElement.Clone(),
+        };
+        var candidate = new EntityCandidate(
+            Type: DndMcpAICsharpFun.Domain.Entities.EntityType.Rule,
+            DisplayName: "Grappling",
+            Text: "Grappling rules text.",
+            Page: 1,
+            TypePrior: new[] { DndMcpAICsharpFun.Domain.Entities.EntityType.Rule });
+
+        const string overridePrompt = "RECOVERY_OVERRIDE_MARKER: classify as Rule or Lore.";
+
+        var result = await extractor.ExtractUnionAsync(
+            record, candidate, candidate.TypePrior, schemas, CancellationToken.None,
+            systemPromptOverride: overridePrompt);
+
+        result.Outcome.Should().Be(UnionOutcome.Typed);
+        capturedSystemPrompts.Should().ContainSingle().Which.Should().Be(overridePrompt);
+    }
 }

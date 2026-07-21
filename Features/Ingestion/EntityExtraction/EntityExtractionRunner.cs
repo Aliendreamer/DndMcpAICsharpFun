@@ -36,7 +36,8 @@ public sealed class EntityExtractionRunner(
         string edition,
         Dictionary<EntityType, JsonElement> schemas,
         CancellationToken ct,
-        bool isOfficial = false)
+        bool isOfficial = false,
+        string? systemPromptOverride = null)
     {
         // Offer only prior types that actually have a schema. If none do, it is a configuration
         // problem (no_schema), recorded without an LLM call.
@@ -90,7 +91,7 @@ public sealed class EntityExtractionRunner(
             return (await BuildTypedEnvelope(id, resolution.ForcedType, displayName, sourceBook, edition, candidate, forcedClean, forcedConfidence, resolution.Matched5Etools, isOfficial, ct), null);
         }
 
-        var result = await candidateExtractor.ExtractUnionAsync(record, candidate, availablePrior, schemas, ct);
+        var result = await candidateExtractor.ExtractUnionAsync(record, candidate, availablePrior, schemas, ct, systemPromptOverride);
 
         switch (result.Outcome)
         {

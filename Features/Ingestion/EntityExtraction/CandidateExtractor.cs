@@ -88,7 +88,8 @@ public sealed class CandidateExtractor(
         EntityCandidate candidate,
         IReadOnlyList<EntityType> prior,
         IReadOnlyDictionary<EntityType, JsonElement> schemas,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? systemPromptOverride = null)
     {
         var union = ExtractionUnionSchemaBuilder.Build(prior, schemas);
         var chunks = chunker.Split(candidate.Text, _opts.MaxTokensPerChunk);
@@ -102,7 +103,7 @@ public sealed class CandidateExtractor(
             ? candidate.Text[.._opts.MaxTypeDecisionChars]
             : candidate.Text;
         var firstResp = await CallAsync(
-            promptBuilder.BuildUnionSystemPrompt(record.DisplayName, record.Version),
+            systemPromptOverride ?? promptBuilder.BuildUnionSystemPrompt(record.DisplayName, record.Version),
             candidate with { Text = typeDecisionText },
             "emit_entity", "Emit one entity branch or decline via entityType:none.",
             union, ct);

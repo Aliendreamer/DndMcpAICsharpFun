@@ -131,4 +131,22 @@ public class ExtractionPromptBuilderTests
 
         prompt.Should().NotContain("Example output:");
     }
+
+
+    [Fact]
+    public void BuildRecoverySystemPrompt_frames_content_as_real_and_offers_rule_or_lore_classification()
+    {
+        // Recovery-pass framing (automatic-decline-recovery Task 1): distinct from the
+        // entity-hunting union prompt that over-declines real rules/lore.
+        var b = new ExtractionPromptBuilder();
+        var prompt = b.BuildRecoverySystemPrompt("Dungeon Master's Guide", "Edition2014");
+
+        prompt.Should().NotBeNullOrWhiteSpace();
+        prompt.Should().Contain("Dungeon Master's Guide").And.Contain("Edition2014");
+        prompt.Should().Contain("real");
+        prompt.Should().Contain("official");
+        prompt.Should().Contain("Rule");
+        prompt.Should().Contain("Lore");
+        prompt.Should().Contain("entityType:none");
+    }
 }

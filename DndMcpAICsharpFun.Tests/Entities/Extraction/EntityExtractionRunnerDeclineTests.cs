@@ -239,4 +239,42 @@ public sealed class EntityExtractionRunnerDeclineTests
         envelope!.Disposition.Should().Be(EntityDisposition.NeedsReview);
         envelope.NeedsReview.Should().BeTrue();
     }
+
+
+    [Fact]
+    public async Task ExtractOneAsync_systemPromptOverride_threads_through_to_the_union_call()
+    {
+        // automatic-decline-recovery Task 1: ExtractOneAsync's optional trailing systemPromptOverride
+        // must reach CandidateExtractor.ExtractUnionAsync's system prompt unchanged. Rule prior (not
+        // gated, no object/monster/magic-item text signature) so DeterministicTypeResolver defers to
+        // the content-first union call instead of a ForceType shortcut.
+        var capturedSystemPrompts = new List<string>();
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        using var resp = JsonDocument.Parse("""{"entityType":"Rule","name":"Grappling"}""");
+        llm.ExtractAsync(Arg.Any<ExtractionRequest>(), Arg.Any<CancellationToken>())
+           .Returns(ci =>
+           {
+               capturedSystemPrompts.Add(ci.Arg<ExtractionRequest>().SystemPrompt);
+               return new ExtractionResponse(
+                   Success: true, ToolInput: resp.RootElement.Clone(), StopReason: "tool_use",
+                   InputTokens: 0, OutputTokens: 0, ErrorMessage: null, RawJson: null);
+           });
+
+        var candidate = new EntityCandidate(
+            Type: EntityType.Rule, DisplayName: "Grappling",
+            Text: "When you attempt to grapple a creature, you use your action and one of your free " +
+                  "hands to make a grapple check contested by the target's ability check.",
+            Page: 1, TypePrior: new[] { EntityType.Rule });
+        var schemas = new Dictionary<EntityType, JsonElement> { [EntityType.Rule] = JsonDocument.Parse("{}").RootElement.Clone() };
+
+        const string overridePrompt = "RECOVERY_OVERRIDE_MARKER: classify as Rule or Lore.";
+
+        var (envelope, error) = await BuildRunner(llm).ExtractOneAsync(
+            Record(), candidate, id: "test.rule.grappling", sourceBook: "Test", edition: "5e",
+            schemas: schemas, ct: CancellationToken.None, systemPromptOverride: overridePrompt);
+
+        error.Should().BeNull();
+        envelope.Should().NotBeNull();
+        capturedSystemPrompts.Should().ContainSingle().Which.Should().Be(overridePrompt);
+    }
 }

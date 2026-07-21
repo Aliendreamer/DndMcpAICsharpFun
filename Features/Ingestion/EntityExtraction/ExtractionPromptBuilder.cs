@@ -169,6 +169,24 @@ public sealed class ExtractionPromptBuilder(
         return sb.ToString();
     }
 
+    /// <summary>
+    /// System prompt for the decline-recovery pass: the content is real, official book text (NOT
+    /// fabricated); classify it as a Rule (mechanical) or Lore (worldbuilding/setting), or decline
+    /// via entityType:none ONLY for a pure heading / table-of-contents / fragment. Recovery framing —
+    /// distinct from the entity-hunting union prompt (<see cref="BuildUnionSystemPrompt"/>) that
+    /// over-declines real rules/lore.
+    /// </summary>
+    public string BuildRecoverySystemPrompt(string sourceBook, string edition)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"You are recovering real, official content from {sourceBook} ({edition}).");
+        sb.AppendLine("This text is genuine published D&D material — it is NOT fabricated.");
+        sb.AppendLine("Classify it as a \"Rule\" (a mechanical rule, procedure, or option) or \"Lore\" (worldbuilding, setting, cosmology, or narrative flavor).");
+        sb.AppendLine("Choose entityType:none ONLY if it is a pure chapter heading, table-of-contents entry, or a truncated fragment with no real content.");
+        sb.AppendLine("Do not invent details not present in the text.");
+        return sb.ToString();
+    }
+
     public string BuildUserPrompt(EntityCandidate candidate)
     {
         var pageNote = candidate.Page is { } p ? $" (page {p})" : "";
