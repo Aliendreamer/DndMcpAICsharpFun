@@ -236,8 +236,19 @@ public sealed class EntityExtractionOrchestrator(
 
                 extracted.Add(rec);
                 recoveredCount++;
-                declined.RemoveAll(d => d.Id == rec.Id);
-                extractionErrors.RemoveAll(e => e.ErrorKind == "extraction_declined" && e.SourceEntityId == rec.Id);
+                var removedFromDeclined = declined.RemoveAll(d => d.Id == rec.Id);
+                var removedFromErrors = extractionErrors.RemoveAll(e => e.ErrorKind == "extraction_declined" && e.SourceEntityId == rec.Id);
+
+                // A recovered entity should reconcile out of exactly one audit trail: the declined
+                // list (deterministic decline) or the errors sidecar (LLM "none" decline) — never
+                // neither. Zero on BOTH means rec.Id didn't match the id the candidate was originally
+                // recorded under, which would silently leave a stale declined/error entry alongside
+                // the now-admitted entity (e.g. if a future candidate breaks the TypePrior[0]==Type
+                // identity convention that RecordedEntityId relies on).
+                if (removedFromDeclined == 0 && removedFromErrors == 0)
+                    logger.LogWarning(
+                        "Decline-recovery admitted entity {Id} but reconciled no declined-audit or error entry for it",
+                        rec.Id);
             }
 
             if (recoveredCount > 0)

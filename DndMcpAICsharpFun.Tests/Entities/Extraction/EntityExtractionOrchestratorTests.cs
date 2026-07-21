@@ -2255,4 +2255,169 @@ public class EntityExtractionOrchestratorTests
             try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
+
+
+    private static (
+        string canonicalDir,
+        string schemasDir,
+        DndMcpAICsharpFun.Domain.IngestionRecord record,
+        DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker tracker,
+        DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter converter,
+        DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader bookmarkReader,
+        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient llm,
+        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher matcher)
+        BuildLlmDeclineRecoveryHarness(int bookId, string displayName, string? fivetoolsSourceKey)
+    {
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var schemasDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        Directory.CreateDirectory(schemasDir);
+
+        // Item schema so the candidate (bookmarked "Equipment" -> Item category, a NON-gated
+        // primary prior) actually reaches the LLM's main union call instead of short-circuiting as
+        // no_schema. Rule + Lore schemas so the recovery union (TypePrior=[Rule, Lore]) is offered
+        // to the model for the post-loop recovery pass.
+        File.WriteAllText(Path.Combine(schemasDir, "ItemFields.schema.json"), "{ \"type\": \"object\" }");
+        File.WriteAllText(Path.Combine(schemasDir, "RuleFields.schema.json"), "{ \"type\": \"object\" }");
+        File.WriteAllText(Path.Combine(schemasDir, "LoreFields.schema.json"), "{ \"type\": \"object\" }");
+
+        var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+        {
+            Id = bookId,
+            FilePath = "/dev/null",
+            FileName = "test.pdf",
+            FileHash = "llm-decline-recovery-hash",
+            Version = "5e",
+            DisplayName = displayName,
+            FivetoolsSourceKey = fivetoolsSourceKey,
+        };
+
+        var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+        tracker.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(record);
+
+        // One "Encumbrance" heading, mapped to Item (NOT a gated type, per
+        // DeterministicTypeResolver.GatedTypes) via the "Equipment" bookmark, with plain prose that
+        // mentions "encumbrance" so a recovered Rule named "Encumbrance" is grounded verbatim in the
+        // text. Because Item is not gated, this candidate is NEVER deterministically declined — it
+        // is offered to the LLM's main union call, which is the only way to reach an LLM-side
+        // ("none") decline for the recovery phase to replay.
+        var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+        var converterDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+            "doc",
+            new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>
+            {
+                new("section_header", "Encumbrance", 1, null),
+                new("text",
+                    "Encumbrance determines how much gear a character can carry without penalty. A " +
+                    "character can carry a number of pounds equal to 15 times their Strength score " +
+                    "before suffering encumbrance penalties to speed and stealth checks under this " +
+                    "encumbrance variant rule.",
+                    1, null),
+            });
+        converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(converterDoc);
+
+        var bookmarkReader = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>();
+        bookmarkReader.ReadBookmarks(Arg.Any<string>()).Returns(
+            new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfBookmark> { new("Equipment", 1) });
+
+        // Empty 5etools index (no real match for "Encumbrance") — deterministic, independent of the
+        // real 5etools data set.
+        var matcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+            new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__")));
+
+        var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+
+        return (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm, matcher);
+    }
+
+    [Fact]
+    public async Task Official_book_recovers_an_LLM_declined_candidate_and_reconciles_errors()
+    {
+        const int bookId = 702;
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm, matcher) =
+            BuildLlmDeclineRecoveryHarness(bookId, "Player's Handbook", fivetoolsSourceKey: "PHB");
+
+        try
+        {
+            // Call 1 (main extraction, Item branch offered): the model picks the implicit "none"
+            // branch. The candidate was NOT deterministically declined (Item is not gated), so this
+            // is a genuine LLM-side decline (extraction_declined) — collected into
+            // declinedCandidates and recorded as an extractionErrors entry.
+            using var noneInput = System.Text.Json.JsonDocument.Parse(
+                """{"entityType":"none","reason":"reads as a rules passage, not a discrete item"}""");
+            // Call 2 (post-loop recovery, Rule/Lore branch offered): a grounded Rule pick named
+            // "Encumbrance" — the term appears verbatim in the candidate text — must be Accepted by
+            // the (judge-disabled) grounding cascade.
+            using var ruleInput = System.Text.Json.JsonDocument.Parse(
+                """{"entityType":"Rule","name":"Encumbrance"}""");
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(
+                   new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                       Success: true, ToolInput: noneInput.RootElement.Clone(), StopReason: "tool_use",
+                       InputTokens: 0, OutputTokens: 0, ErrorMessage: null, RawJson: null),
+                   new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                       Success: true, ToolInput: ruleInput.RootElement.Clone(), StopReason: "tool_use",
+                       InputTokens: 0, OutputTokens: 0, ErrorMessage: null, RawJson: null));
+
+            var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
+            {
+                CanonicalDirectory = canonicalDir,
+                SchemasDirectory = schemasDir,
+            });
+            var declineRecovery = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.DeclineRecovery(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
+                    candidateExtractor: BuildCandidateExtractor(llm, opts),
+                    logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                    cascade: GroundingCascadeTestFactory.Inert(),
+                    matcher: matcher),
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
+                matcher: matcher);
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                matcher: matcher, declineRecovery: declineRecovery);
+
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Both the main union call (which declined) and the recovery call (which admitted) fired.
+            await llm.Received(2).ExtractAsync(
+                Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                Arg.Any<CancellationToken>());
+
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(record.FivetoolsSourceKey!, DndMcpAICsharpFun.Domain.Entities.EntityType.Item, "x")
+                .Split('.')[0];
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+            var canonicalJson = await File.ReadAllTextAsync(canonicalPath);
+            var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(
+                canonicalJson,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+                });
+
+            canonical.Should().NotBeNull();
+            canonical!.Entities.Should().ContainSingle(
+                e => e.Type == DndMcpAICsharpFun.Domain.Entities.EntityType.Rule
+                  && e.DataSource == "decline-recovery",
+                "the LLM-declined candidate, once recovered, must be written into the canonical " +
+                "entities and tagged with the decline-recovery data source");
+
+            // The extraction_declined error recorded when the LLM originally declined this candidate
+            // must be reconciled out of the errors sidecar by the 2-field (ErrorKind, SourceEntityId)
+            // match — SidecarJsonFileWriter deletes the file entirely once the errors list is empty.
+            var errorsPath = Path.Combine(canonicalDir, bookSlug + ".errors.json");
+            File.Exists(errorsPath).Should().BeFalse(
+                "the recovered candidate's extraction_declined error must be reconciled out of the errors sidecar");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
+        }
+    }
 }
