@@ -1,40 +1,28 @@
 ## Context
 
-Extraction is content-first with a classifier-as-prior union (`deterministic-type-resolution`, §F of the archived prose-grounded design): a candidate's keyword-derived prior is demoted to a hint; the model is offered a pruned type-union `{frequency-floor: Monster/Spell/Item/Class} ∪ {guess + empirical confusion set} ∪ {none}` and either picks a type or declines (`extraction-disposition`). The gate's purpose is anti-fabrication — it must never invent an entity. Observed side effect: a real thing mis-prior'd as `Monster` can be **declined** rather than **re-typed**, because the model judges "this isn't a monster" and picks `none` instead of the correct type.
-
-Observed (PHB corpus re-extraction, 2026-07-18):
-- `phb14.monster.light-armor` → declined; but Light Armor is an **Item/Armor**.
-- `phb14.class.spellcasting` → declined "not a discrete game entity"; it is a **Rule** (the app has a `Rule` type + the `ask_rules` tool).
+Captured from a 2026-07-18 observation (`monster.light-armor` declined instead of typed Item; `class.spellcasting` declined as a rule). Since then: (a) the **rules-policy half shipped in `extraction-content-classification` Phase 1** — decline-bound + rule-signature candidates are now rescued as `EntityType.Rule` via `EntityExtractionOrchestrator.RescueAsRuleOrNull`; and (b) an **investigation of the live decline piles** shows the item-retyping premise is largely moot on the current corpus: every "item/armor/weapon"-keyword decline is actually a RULE/feature (`unarmored-defense`, `great-weapon-fighting`, `casting-in-armor`, `switching-weapons`) — correctly captured as `Rule` by (a) — and no genuine armor/weapon *instances* are in the decline pile (PHB has 2 Item entities; mundane weapons/armor live in 5etools, not the PDF entity layer). So there is currently nothing real for an item-rescue to recover.
 
 ## Goals / Non-Goals
 
-**Goals:**
+**Goals:** add a **minimal, defensive item-rescue** mirroring the Rule rescue — a decline-bound candidate with a SPECIFIC mundane weapon/armor stat signature is admitted as `Item` — checked BEFORE the Rule rescue so a genuine item is never mis-typed as `Rule`. The signature must be specific enough that a rules passage (which has no damage-type/armor-stat line) is never grabbed as an Item. **Non-Goals:** value on the current corpus (there are no real item declines — this is forward/defensive machinery, validated by synthetic unit tests + a deterministic harness confirming it fires ~0 and never on rules); a new type (`Item` exists, non-gated); re-admitting category headers or noise; touching the Rule rescue's behavior.
 
-- A mis-prior'd candidate with clear signals for a different *real* type is admitted under that type, not declined.
-- An explicit, consistently-applied policy for whether rules content is a `Rule` entity or prose-only.
-- Preserve the anti-fabrication guarantee — re-typing is still grounded by the cascade; a re-typed candidate whose fields don't ground is still rejected.
+## Decisions
 
-**Non-Goals:**
-
-- Re-admitting genuine noise (chapter headings, TOC). The fix is *re-type real content*, not *lower the bar*.
-- Building a new entity type. `Item` and `Rule` already exist.
-- Changing the tables work (separate, shipped).
-
-## Decisions (to refine on implementation — investigation-gated)
-
-**D1 — Investigate the actual union first.** Before widening anything, log/inspect the exact type-union offered for `light-armor`/`spellcasting`-shaped candidates and the model's reason. The frequency floor already includes `Item`, so the gap may be (a) the model preferring `none` over `Item` for a *category/table* candidate (Light Armor is the armor-category intro, not a specific armor like "Leather"), or (b) an over-narrow prune dropping the right type. The fix differs per cause; measure before changing.
-
-**D2 — Cross-type re-typing via the confusion set.** If the union lacks the right type for a signalled candidate, extend the empirical confusion set (grounded in the real §A misclassifications) so, e.g., an armor/weapon/item-signal candidate with a `Monster` prior offers `Item`, and a rules-signal candidate offers `Rule`. Keep `none` always offered (a bad widen degrades to a false-decline, never a fabrication — the §F safety property).
-
-**D3 — Rules policy (the modeling decision).** Two options, pick one and apply consistently:
-- **(a) Rules stay prose-only** (current): rules like Spellcasting are answered by `ask_rules` over `dnd_blocks`; the decline of a rules candidate is *correct*, and we only fix the item/entity mis-types (D2). Simpler; no new `Rule` entities.
-- **(b) Rules become `Rule` entities**: a rules-section candidate is admitted as a `Rule` entity (name + prose fields + provenance), making rules structurally listable/filterable alongside prose retrieval. More coverage; risks flooding `Rule` with every procedural paragraph unless gated by a rules-section signature.
-- Recommendation to validate: **(a) for procedural/multi-paragraph rules** (Spellcasting, multiclassing) — prose + `ask_rules` already serve these well; **plus D2** so category *items* (armor, weapons) are captured as `Item`. Revisit (b) only if a concrete query needs rules as a filterable set.
-
-**D4 — Category vs instance.** "Light Armor" is a category header; the queryable items are the specific armors (Leather, Chain Mail…). Part of D1's investigation: are the *individual* armors extracted as `Item`s (and only the category header declined, which is fine), or are the armors themselves also being lost? The fix targets whichever is actually dropping real instances.
+- **D1 — `ItemSignature` is a SPECIFIC mundane-item stat marker, not a keyword.** TRUE only when the candidate text carries a mundane weapon-damage token (e.g. `\d*d\d+ (slashing|piercing|bludgeoning)`) OR an armor stat line (an "Armor Class"/"AC" figure paired with a `gp`/`sp` cost). Rules passages (`switching-weapons`, `casting-in-armor`) lack these, so they are never item-rescued — they fall through to the Rule rescue. Deliberately narrow to avoid the "mis-grab a rule as Item" risk the investigation flagged.
+- **D2 — Item rescue is checked BEFORE the Rule rescue.** In each decline point, `RescueAsItemOrNull(candidate, outcome)` runs first (item is the more specific classification); only if it returns null does `RescueAsRuleOrNull` run; only if both return null is the candidate declined. Rescue rebinds `TypePrior = [EntityType.Item]` (single element — the failed gated type is not re-offered), exactly like the Rule rescue; the union then offers Item-or-none and a pick is `Accepted`/`canon-unindexed` (Item is non-gated).
+- **D3 — Rules policy is DONE (option b, shipped in #2).** No further rules-policy work here; the `Rule` rescue is the applied policy. `switching-weapons` etc. correctly land as `Rule`, audited when they don't ground.
 
 ## Risks / Trade-offs
 
-- **Widening re-admits noise** → Mitigation: re-type only on a *positive signal* for the new type (item/armor/weapon markers; rules-section markers), keep `none`, and let the grounding cascade reject ungrounded fields. Measure decline/junk deltas on the corpus (offline) before shipping.
-- **Rule-entity flooding** (if D3b) → Mitigation: a rules-section signature gate; default to D3a until a query justifies it.
-- **Interaction with the running corpus re-extraction** → none; this is a captured follow-up, implemented after the table run, then a targeted re-extract validates the recovered types.
+- **Mis-grabbing a rule as Item** → mitigated by D1 (a stat-marker signature, not a keyword) + D2 ordering (item is checked first BUT only fires on the stat marker, which rules lack); unit-tested with a real rule's text (`switching-weapons`) asserting it is NOT item-rescued.
+- **Zero current value** → acknowledged; this is defensive machinery for future books that DO extract mundane items as candidates. The deterministic harness documents that it fires ~0 on the current corpus and never on the rule declines — safe, not harmful.
+- **Interaction with #2** → item-before-rule ordering guarantees an item is never mis-rescued as Rule; a rule is never item-rescued (D1). Validated jointly by the DMG live re-extract.
+
+## Migration Plan
+1. Add `ItemSignature` + `RescueAsItemOrNull`; wire it before `RescueAsRuleOrNull` at both decline points (unit-green).
+2. Deterministic harness: on real DMG/PHB candidates, assert `ItemSignature` fires on 0 (or few) declines and NEVER on a rule decline (`switching-weapons` stays Rule-eligible, not item).
+3. Validated jointly with #2 by the DMG live re-extract (no separate live run).
+4. Rollback = revert code.
+
+## Open Questions
+- None. If a future book extracts mundane weapons/armor as declined candidates, this rescue captures them as `Item`; until then it is dormant-but-safe.

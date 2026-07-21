@@ -1,25 +1,20 @@
 ## ADDED Requirements
 
-### Requirement: A mis-typed gated-prior candidate SHALL be admitted under its correct type when signalled
+### Requirement: A decline-bound candidate with a mundane-item signature SHALL be admitted as an Item, before the Rule rescue
 
-When a gated-prior candidate carries clear signals for a different *real* entity type than its (mis-derived) prior — e.g. armor/weapon/item markers on a `Monster`-prior candidate — the extraction SHALL admit it under the correct type rather than decline it, provided its fields ground against the source. The anti-fabrication guarantee is preserved: `none` remains offered and the grounding cascade still rejects ungrounded fields, so a re-type never fabricates.
+The extraction pipeline SHALL offer the `Item` branch to a decline-bound candidate (one the `DeterministicTypeResolver` would decline) when it carries a SPECIFIC mundane-item stat signature — a weapon damage-type token (e.g. `1d8 slashing`) or an armor stat line (an AC figure paired with a `gp`/`sp` cost) — and this check SHALL run BEFORE the Rule rescue so a genuine item is never mis-typed as `Rule`. The item rescue rebinds `TypePrior = [EntityType.Item]` (the failed gated type is not re-offered); an `Item` pick is `Accepted` (non-gated, grounded by prose). A candidate WITHOUT the mundane-item signature SHALL NOT be item-rescued — in particular a rules passage falls through to the Rule rescue.
 
-#### Scenario: An armor item mis-prior'd as Monster is admitted as an Item
-- **WHEN** a candidate like "Light Armor" / a specific armor is derived with a `Monster` prior but its text carries item/armor signals
-- **THEN** it is admitted as an `Item` (not declined as "not a monster"), and its fields are grounded by the cascade
+#### Scenario: A weapon/armor-stat candidate is admitted as Item
 
-#### Scenario: Genuine noise is still declined
-- **WHEN** a mis-prior'd candidate has no positive signal for any real type (a chapter heading, TOC entry)
-- **THEN** it is still declined — the recovery re-types real content, it does not lower the noise bar
+- **WHEN** a decline-bound candidate carries a mundane weapon-damage token or an armor AC+cost stat line
+- **THEN** it is offered the `Item` branch (Item-or-none) and an `Item` pick is `Accepted`, not declined and not typed `Rule`
 
-### Requirement: The rules-content policy SHALL be explicit and consistent
+#### Scenario: A rule is never item-rescued
 
-The system SHALL apply one explicit policy for rules-section content (e.g. Spellcasting, multiclassing procedures): either kept as prose-only (answered via `ask_rules` over `dnd_blocks`) or admitted as `Rule` entities. The chosen policy SHALL be applied consistently in the decline gate so identical rules content is not sometimes declined and sometimes kept.
+- **WHEN** a decline-bound candidate is a rules passage (e.g. "Switching Weapons") with no damage-type/armor-stat line
+- **THEN** the item signature is false, it is NOT item-rescued, and it falls through to the Rule rescue (typed `Rule`, not `Item`)
 
-#### Scenario: Rules content is handled by the chosen policy
-- **WHEN** a rules-section candidate (e.g. "Spellcasting") is extracted
-- **THEN** it is handled per the documented policy — declined-to-prose OR admitted as a `Rule` entity — consistently, not ad hoc
+#### Scenario: A real entity is never item-rescued
 
-#### Scenario: The decline audit records the reason
-- **WHEN** a rules candidate is declined under the prose-only policy
-- **THEN** the decline is recorded in `.declined.json` with a reason, so the choice is auditable
+- **WHEN** a candidate resolves to a real entity type (not a Decline)
+- **THEN** the item rescue does not run for it (the decline-only gate), and its extraction is unchanged
