@@ -27,8 +27,8 @@ internal static class ExtractionEntityIds
         bool isOfficial = false)
     {
         var resolution = DeterministicTypeResolver.Resolve(candidate, matcher, isOfficial);
-        return resolution.Outcome == DeterministicOutcome.ForceType && resolution.CanonicalName is { } cn
-            ? EntityIdSlug.For(BookKey(record), resolution.ForcedType, cn)
+        return resolution.Outcome == DeterministicOutcome.ForceType
+            ? EntityIdSlug.For(BookKey(record), resolution.ForcedType, resolution.CanonicalName ?? candidate.DisplayName)
             : EntityIdSlug.For(BookKey(record), candidate.Type, candidate.DisplayName);
     }
 }
