@@ -109,10 +109,18 @@ public sealed class RuleRescueHarnessTests
             }
         }
 
+        // The anti-rescue check above is only meaningful if there are real ForceType entities to
+        // check against — if `forced` were ever empty (e.g. a resolver regression), the loop
+        // would silently pass without exercising the property at all.
+        forced.Should().NotBeEmpty(
+            "real ForceType entities must exist for the anti-rescue check to be non-vacuous");
+
+        var forcedWithRuleSignature = forced.Count(c => ExtractionSignatures.RuleSignature(c));
         _output.WriteLine($"Total candidates: {candidates.Count}");
         _output.WriteLine($"Declines: {declines.Count}");
         _output.WriteLine($"Rescued-as-Rule (of declines): {rescuedAsRule.Count}");
         _output.WriteLine($"ForceType (real entities): {forced.Count}");
+        _output.WriteLine($"ForceType with Rule signature (would-be-rescued if the outcome==Decline gate were removed): {forcedWithRuleSignature}");
 
         // The rescue pile must be non-empty — rules ARE being recovered, not just theoretically
         // reachable. If this were zero, the harness would have picked a book with no declined
