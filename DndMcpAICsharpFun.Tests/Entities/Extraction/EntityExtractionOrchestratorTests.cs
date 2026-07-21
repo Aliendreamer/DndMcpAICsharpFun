@@ -2420,4 +2420,123 @@ public class EntityExtractionOrchestratorTests
             try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
+
+
+    [Fact]
+    public async Task Resume_recovers_LLM_declined_candidate_whose_error_was_already_checkpointed()
+    {
+        // Simulates a crash/resume: a candidate was LLM-declined ("none") in a PRIOR (crashed)
+        // session — its extraction_declined error is already checkpointed, so its recorded id is
+        // already in doneIds when THIS run starts. The fresh per-candidate loop's
+        // `if (doneIds.Contains(id)) continue;` therefore skips it before it can be (re-)collected
+        // into declinedCandidates — the only path that, pre-fix, feeds decline-recovery. Without D1
+        // (deriving recovery input from the AUDITS — the `declined` list and extraction_declined
+        // error entries — not only the freshly-looped declinedCandidates), this candidate is
+        // silently dropped from decline-recovery for the rest of the run, with no warning logged.
+        const int bookId = 703;
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm, matcher) =
+            BuildLlmDeclineRecoveryHarness(bookId, "Player's Handbook", fivetoolsSourceKey: "PHB");
+
+        try
+        {
+            // The candidate's recorded id under its ORIGINAL (Item) type — computed the same way
+            // ExtractionEntityIds.RecordedEntityId would (no 5etools match, Item is not gated/forced)
+            // — matches what a prior (crashed) session would have recorded in the checkpoint.
+            var originalId = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug.For(
+                record.FivetoolsSourceKey!, DndMcpAICsharpFun.Domain.Entities.EntityType.Item, "Encumbrance");
+
+            var bookSlug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For(record.FivetoolsSourceKey!, DndMcpAICsharpFun.Domain.Entities.EntityType.Item, "x")
+                .Split('.')[0];
+
+            var checkpointOpts = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+            {
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            };
+            var checkpointPath = Path.Combine(canonicalDir, bookSlug + ".progress.json");
+            var checkpointErrorsPath = Path.Combine(canonicalDir, bookSlug + ".progress.errors.json");
+
+            // Pre-seed the checkpoint as if a prior (crashed) session already ran the main union
+            // call for this candidate, got "none", and recorded the extraction_declined error —
+            // then crashed before decline-recovery ran.
+            await File.WriteAllTextAsync(checkpointPath,
+                System.Text.Json.JsonSerializer.Serialize(
+                    new List<DndMcpAICsharpFun.Domain.Entities.EntityEnvelope>(), checkpointOpts));
+            await File.WriteAllTextAsync(checkpointErrorsPath,
+                System.Text.Json.JsonSerializer.Serialize(
+                    new List<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorEntry>
+                    {
+                        new(
+                            SourceEntityId: originalId,
+                            FieldPath: "entityType",
+                            MissingTargetId: "none",
+                            ErrorKind: "extraction_declined",
+                            Detail: "reads as a rules passage, not a discrete item"),
+                    },
+                    checkpointOpts));
+
+            // Only ONE LLM call should happen this run: doneIds already contains originalId, so the
+            // main union call for this candidate is skipped entirely (never re-asked this run) — the
+            // recovery call (Rule/Lore union) is the only one that should fire.
+            using var ruleInput = System.Text.Json.JsonDocument.Parse(
+                """{"entityType":"Rule","name":"Encumbrance"}""");
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+               .Returns(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                   Success: true, ToolInput: ruleInput.RootElement.Clone(), StopReason: "tool_use",
+                   InputTokens: 0, OutputTokens: 0, ErrorMessage: null, RawJson: null));
+
+            var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
+            {
+                CanonicalDirectory = canonicalDir,
+                SchemasDirectory = schemasDir,
+            });
+            var declineRecovery = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.DeclineRecovery(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
+                    candidateExtractor: BuildCandidateExtractor(llm, opts),
+                    logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                    cascade: GroundingCascadeTestFactory.Inert(),
+                    matcher: matcher),
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionPromptBuilder(),
+                matcher: matcher);
+
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                matcher: matcher, declineRecovery: declineRecovery);
+
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Only the recovery call fired — the main union call was skipped via doneIds (the
+            // candidate was already "processed" in the simulated prior session).
+            await llm.Received(1).ExtractAsync(
+                Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                Arg.Any<CancellationToken>());
+
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+            var canonicalJson = await File.ReadAllTextAsync(canonicalPath);
+            var canonical = System.Text.Json.JsonSerializer.Deserialize<
+                DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile>(canonicalJson, checkpointOpts);
+
+            canonical.Should().NotBeNull();
+            canonical!.Entities.Should().ContainSingle(
+                e => e.Type == DndMcpAICsharpFun.Domain.Entities.EntityType.Rule
+                  && e.DataSource == "decline-recovery",
+                "a candidate LLM-declined in a prior (crashed) session — whose extraction_declined " +
+                "error is already in the checkpoint — must still be recovered on resume, not silently " +
+                "dropped from the decline-recovery phase");
+
+            // The pre-seeded extraction_declined error must be reconciled out of the errors sidecar,
+            // exactly as a fresh-run LLM decline would be.
+            var errorsPath = Path.Combine(canonicalDir, bookSlug + ".errors.json");
+            File.Exists(errorsPath).Should().BeFalse(
+                "the recovered candidate's pre-existing (checkpointed) extraction_declined error must " +
+                "be reconciled out of the errors sidecar");
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
+        }
+    }
 }

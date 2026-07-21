@@ -228,16 +228,53 @@ public sealed class EntityExtractionOrchestrator(
         // Runs BEFORE reference resolution so a recovered entity's refs are checked like any other.
         if (isOfficial && declineRecovery is not null)
         {
+            // Derive the recovery input from the AUDITS — the `declined` list and any
+            // extraction_declined error entries — not only the freshly-looped declinedCandidates.
+            // On a RESUMED run, a candidate LLM-declined in a prior (crashed) session already has its
+            // recorded id in doneIds, so the loop's `if (doneIds.Contains(id)) continue;` above fires
+            // before that candidate can be (re-)collected into declinedCandidates this run — it would
+            // otherwise be silently dropped from recovery for the rest of the run's lifetime, with no
+            // warning logged. Computing each candidate's recorded id ONCE here (rather than per audit
+            // entry) keeps this cheap and makes fresh and resumed runs behave uniformly. Candidates
+            // are read from the ORIGINAL `candidates` list (never mutated by the rescue reassignment
+            // inside the loop above), so ids are computed against the true original candidate.
+            var recordedIds = new Dictionary<string, EntityCandidate>(StringComparer.Ordinal);
+            foreach (var c in candidates)
+                recordedIds.TryAdd(ExtractionEntityIds.RecordedEntityId(record, c, _matcher, isOfficial: true), c);
+
+            var seenRecoveryIds = new HashSet<string>(StringComparer.Ordinal);
+            var recoveryCandidates = new List<(EntityCandidate Candidate, string OriginalId)>();
+
+            void AddRecoveryCandidate(string originalId, EntityCandidate? candidate)
+            {
+                if (candidate is not null && seenRecoveryIds.Add(originalId))
+                    recoveryCandidates.Add((candidate, originalId));
+            }
+
+            // Already collected fresh in this run's loop (cheap; keep first — dedupe below is a no-op
+            // for these, since nothing has been added to seenRecoveryIds yet).
+            foreach (var c in declinedCandidates)
+                AddRecoveryCandidate(ExtractionEntityIds.RecordedEntityId(record, c, _matcher, isOfficial: true), c);
+
+            // From the declined-audit (covers deterministic declines; also a resumed run's
+            // deterministic declines, which are recomputed every run before the doneIds check above
+            // and so are already in declinedCandidates too — included here for symmetry with errors).
+            foreach (var d in declined)
+                AddRecoveryCandidate(d.Id, recordedIds.GetValueOrDefault(d.Id));
+
+            // From the errors-audit (covers LLM "none" declines, including ones recorded in a PRIOR,
+            // crashed session and loaded back via the checkpoint — this is the resume-safety fix).
+            foreach (var e in extractionErrors)
+                if (e.ErrorKind == "extraction_declined")
+                    AddRecoveryCandidate(e.SourceEntityId, recordedIds.GetValueOrDefault(e.SourceEntityId));
+
             var recoveredCount = 0;
-            foreach (var declinedCandidate in declinedCandidates)
+            foreach (var (declinedCandidate, originalId) in recoveryCandidates)
             {
                 // The recovered envelope's Id is honest (derived from its ACTUAL disposed type, e.g.
                 // Rule/Lore — see DeclineRecovery.TryRecoverAsync), so it no longer matches the id the
                 // candidate was ORIGINALLY declined/errored under (its pre-recovery, original-type
-                // id). Reconciliation must therefore match on that original id, computed here from the
-                // still-original-typed candidate, before recovery rebinds it.
-                var originalId = ExtractionEntityIds.RecordedEntityId(record, declinedCandidate, _matcher, isOfficial: true);
-
+                // id — already computed above as originalId). Reconciliation matches on that id.
                 var rec = await declineRecovery.TryRecoverAsync(record, declinedCandidate, sourceBook, edition, schemas, ct);
                 if (rec is null) continue;
 
