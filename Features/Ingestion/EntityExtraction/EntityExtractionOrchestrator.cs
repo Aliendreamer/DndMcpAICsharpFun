@@ -417,9 +417,6 @@ public sealed class EntityExtractionOrchestrator(
         await tracker.MarkEntitiesExtractedAsync(bookId, mergedEntities.Count, ct);
     }
 
-    // Rescue a would-be-declined candidate that reads as a rule: re-offer it as Rule-or-none
-    // (TypePrior swapped to [Rule] only — the failed gated type is NOT re-offered, so the LLM
-    // cannot fabricate an ungrounded canon entity). Returns the rebound candidate, or null to decline.
     // internal (not private) so DndMcpAICsharpFun.Tests can exercise this pure logic directly
     // (InternalsVisibleTo is already configured).
     // Rescue a would-be-declined candidate that carries a mundane weapon/armor stat signature as an
@@ -430,6 +427,9 @@ public sealed class EntityExtractionOrchestrator(
             ? candidate with { TypePrior = new[] { EntityType.Item } }
             : null;
 
+    // Rescue a would-be-declined candidate that reads as a rule: re-offer it as Rule-or-none
+    // (TypePrior swapped to [Rule] only — the failed gated type is NOT re-offered, so the LLM
+    // cannot fabricate an ungrounded canon entity). Returns the rebound candidate, or null to decline.
     internal static EntityCandidate? RescueAsRuleOrNull(EntityCandidate candidate, DeterministicOutcome outcome) =>
         outcome == DeterministicOutcome.Decline && ExtractionSignatures.RuleSignature(candidate)
             ? candidate with { TypePrior = new[] { EntityType.Rule } }

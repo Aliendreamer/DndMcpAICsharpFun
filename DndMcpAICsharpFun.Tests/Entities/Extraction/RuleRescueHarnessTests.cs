@@ -129,4 +129,64 @@ public sealed class RuleRescueHarnessTests
             "DMG is rules-heavy; the decline pile must contain at least one substantial-prose " +
             "rule candidate that gets rescued, or the anti-flooding claim is untested");
     }
+
+    // extraction-cross-type-recovery Task 2: a companion deterministic-path harness proving the
+    // Item rescue (Task 1's RescueAsItemOrNull) is dormant-but-safe on the same real DMG decline
+    // pile. It is NOT exactly dormant (~0) on this corpus — DAERN's Instant Fortress, a magic rod,
+    // a legendary sword, dynamite, and grenades are genuine mundane/magic items that were mis-typed
+    // upstream (their PRIMARY prior type failed a 5etools match) and get correctly recovered here.
+    // The harness therefore asserts a SMALL, human-eyeballable bounded count (logged in full) rather
+    // than a blanket "never touches a rule" claim — RuleSignature is a bare >=200-char prose-length
+    // floor, not a rule classifier, so it cannot soundly prove disjointness against ItemSignature.
+    [Fact]
+    public void Item_rescue_is_dormant_but_safe_on_real_DMG_declines()
+    {
+        var candidates = LoadRealDmgCandidates();
+        candidates.Should().NotBeEmpty(
+            "the real DMG conversion cache must yield candidates for this harness to mean anything");
+
+        var declines = new List<EntityCandidate>();
+        var itemSignatureDeclines = new List<EntityCandidate>();
+        var ruleSignatureDeclines = new List<EntityCandidate>();
+
+        foreach (var candidate in candidates)
+        {
+            var outcome = DeterministicTypeResolver.Resolve(candidate, Matcher, isOfficial: true).Outcome;
+            if (outcome != DeterministicOutcome.Decline)
+                continue;
+
+            declines.Add(candidate);
+            if (ExtractionSignatures.ItemSignature(candidate))
+                itemSignatureDeclines.Add(candidate);
+            if (ExtractionSignatures.RuleSignature(candidate))
+                ruleSignatureDeclines.Add(candidate);
+        }
+
+        _output.WriteLine($"Total declines: {declines.Count}");
+        _output.WriteLine($"Item-signature declines: {itemSignatureDeclines.Count}");
+        _output.WriteLine($"Rule-signature declines: {ruleSignatureDeclines.Count}");
+        foreach (var c in itemSignatureDeclines)
+            _output.WriteLine($"  item-signature decline: '{c.DisplayName}'");
+
+        // The specific known rule decline, if present in this build of the candidate list, must
+        // NEVER carry the Item signature — RescueAsItemOrNull is checked before RescueAsRuleOrNull,
+        // so a false Item grab here would silently steal a real rule before the Rule rescue ever
+        // sees it. (Not present in the DMG build of this candidate list — see report — so this
+        // branch documents intent for whichever book does surface it.)
+        var switchingWeapons = declines.FirstOrDefault(c =>
+            c.DisplayName.Contains("switching weapons", StringComparison.OrdinalIgnoreCase)
+            || c.DisplayName.Contains("switching-weapons", StringComparison.OrdinalIgnoreCase));
+        if (switchingWeapons is not null)
+        {
+            ExtractionSignatures.ItemSignature(switchingWeapons).Should().BeFalse(
+                "'switching weapons' is a rule, not a mundane item, and must not be grabbed by the Item rescue");
+        }
+
+        // Fallback/general property requested by the task brief when 'switching-weapons' isn't in
+        // the built candidate list: the Item rescue must stay small enough on real declines that
+        // every hit can be eyeballed by hand (logged above), not silently flood the decline pile.
+        itemSignatureDeclines.Count.Should().BeLessOrEqualTo(10,
+            "the Item rescue is expected to be dormant-but-safe on this corpus — a small, " +
+            "human-eyeballable count, not a flood of false item grabs");
+    }
 }
