@@ -79,6 +79,11 @@ public sealed class DeclineRecoveryTests
         envelope.Should().NotBeNull("a Rule pick that grounds must be recovered, not left declined");
         envelope!.Type.Should().Be(EntityType.Rule);
         envelope.DataSource.Should().Be("decline-recovery");
+        envelope.Id.Should().Be(
+            "test-book.rule.grappling-rules",
+            "the recovered entity's id must be derived from its ACTUAL disposed type (Rule), not " +
+            "the original declined type (Item) it was recorded under - test-book.item.grappling-rules " +
+            "would be dishonest and could collide with a real Item entity of the same slug");
     }
 
     [Fact]

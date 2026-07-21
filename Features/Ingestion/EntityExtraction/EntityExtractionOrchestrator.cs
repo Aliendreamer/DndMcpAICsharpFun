@@ -231,24 +231,31 @@ public sealed class EntityExtractionOrchestrator(
             var recoveredCount = 0;
             foreach (var declinedCandidate in declinedCandidates)
             {
+                // The recovered envelope's Id is honest (derived from its ACTUAL disposed type, e.g.
+                // Rule/Lore — see DeclineRecovery.TryRecoverAsync), so it no longer matches the id the
+                // candidate was ORIGINALLY declined/errored under (its pre-recovery, original-type
+                // id). Reconciliation must therefore match on that original id, computed here from the
+                // still-original-typed candidate, before recovery rebinds it.
+                var originalId = ExtractionEntityIds.RecordedEntityId(record, declinedCandidate, _matcher, isOfficial: true);
+
                 var rec = await declineRecovery.TryRecoverAsync(record, declinedCandidate, sourceBook, edition, schemas, ct);
                 if (rec is null) continue;
 
                 extracted.Add(rec);
                 recoveredCount++;
-                var removedFromDeclined = declined.RemoveAll(d => d.Id == rec.Id);
-                var removedFromErrors = extractionErrors.RemoveAll(e => e.ErrorKind == "extraction_declined" && e.SourceEntityId == rec.Id);
+                var removedFromDeclined = declined.RemoveAll(d => d.Id == originalId);
+                var removedFromErrors = extractionErrors.RemoveAll(e => e.ErrorKind == "extraction_declined" && e.SourceEntityId == originalId);
 
                 // A recovered entity should reconcile out of exactly one audit trail: the declined
                 // list (deterministic decline) or the errors sidecar (LLM "none" decline) — never
-                // neither. Zero on BOTH means rec.Id didn't match the id the candidate was originally
-                // recorded under, which would silently leave a stale declined/error entry alongside
-                // the now-admitted entity (e.g. if a future candidate breaks the TypePrior[0]==Type
-                // identity convention that RecordedEntityId relies on).
+                // neither. Zero on BOTH means originalId didn't match the id the candidate was
+                // originally recorded under, which would silently leave a stale declined/error entry
+                // alongside the now-admitted entity (e.g. if a future candidate breaks the
+                // TypePrior[0]==Type identity convention that RecordedEntityId relies on).
                 if (removedFromDeclined == 0 && removedFromErrors == 0)
                     logger.LogWarning(
-                        "Decline-recovery admitted entity {Id} but reconciled no declined-audit or error entry for it",
-                        rec.Id);
+                        "Decline-recovery admitted entity {Id} (original id {OriginalId}) but reconciled no declined-audit or error entry for it",
+                        rec.Id, originalId);
             }
 
             if (recoveredCount > 0)

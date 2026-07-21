@@ -39,8 +39,16 @@ public sealed class DeclineRecovery(
         // a drop — which ExtractionDispositionPolicy maps to NeedsReview, not Accepted. A non-Accepted
         // envelope (NeedsReview, Ungrounded, Declined, Failed) must NOT be admitted here: the candidate
         // stays declined, exactly as an ungrounded pick should (anti-fabrication contract).
-        return envelope is not null && envelope.Disposition == EntityDisposition.Accepted
-            ? envelope with { DataSource = RecoveryDataSource }
-            : null;
+        if (envelope is null || envelope.Disposition != EntityDisposition.Accepted)
+            return null;
+
+        // The recovered entity must get an HONEST id derived from its ACTUAL disposed type (e.g.
+        // Rule/Lore), never the id computed above from the pre-recovery rebind (which is only used
+        // to drive the runner's extraction/grounding machinery). Reusing that id would tag a Rule
+        // entity with a type-mismatched id (or worse, collide with an unrelated entity that happens
+        // to share the slug under its own real type). The caller reconciles the declined-audit and
+        // error sidecar separately, keyed on the ORIGINAL (pre-recovery) candidate id — not this one.
+        var honestId = EntityIdSlug.For(ExtractionEntityIds.BookKey(record), envelope.Type, envelope.Name);
+        return envelope with { Id = honestId, DataSource = RecoveryDataSource };
     }
 }
