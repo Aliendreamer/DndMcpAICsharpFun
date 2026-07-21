@@ -171,7 +171,8 @@ public sealed class EntityExtractionOrchestrator(
             var declineRes = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
             if (declineRes.Outcome == DeterministicOutcome.Decline)
             {
-                var rescued = RescueAsRuleOrNull(candidate, declineRes.Outcome);
+                var rescued = RescueAsItemOrNull(candidate, declineRes.Outcome)
+                           ?? RescueAsRuleOrNull(candidate, declineRes.Outcome);
                 if (rescued is null)
                 {
                     var rawId = EntityIdSlug.For(ExtractionEntityIds.BookKey(record), candidate.TypePrior.FirstOrDefault(), candidate.DisplayName);
@@ -340,7 +341,8 @@ public sealed class EntityExtractionOrchestrator(
             var errDecline = DeterministicTypeResolver.Resolve(candidate, _matcher, isOfficial);
             if (errDecline.Outcome == DeterministicOutcome.Decline)
             {
-                var rescued = RescueAsRuleOrNull(candidate, errDecline.Outcome);
+                var rescued = RescueAsItemOrNull(candidate, errDecline.Outcome)
+                           ?? RescueAsRuleOrNull(candidate, errDecline.Outcome);
                 if (rescued is null) continue;
                 candidate = rescued;
             }
@@ -420,6 +422,14 @@ public sealed class EntityExtractionOrchestrator(
     // cannot fabricate an ungrounded canon entity). Returns the rebound candidate, or null to decline.
     // internal (not private) so DndMcpAICsharpFun.Tests can exercise this pure logic directly
     // (InternalsVisibleTo is already configured).
+    // Rescue a would-be-declined candidate that carries a mundane weapon/armor stat signature as an
+    // Item — checked BEFORE the Rule rescue so a genuine item is never mis-typed Rule. TypePrior is
+    // replaced with [Item] only (the failed gated type is not re-offered).
+    internal static EntityCandidate? RescueAsItemOrNull(EntityCandidate candidate, DeterministicOutcome outcome) =>
+        outcome == DeterministicOutcome.Decline && ExtractionSignatures.ItemSignature(candidate)
+            ? candidate with { TypePrior = new[] { EntityType.Item } }
+            : null;
+
     internal static EntityCandidate? RescueAsRuleOrNull(EntityCandidate candidate, DeterministicOutcome outcome) =>
         outcome == DeterministicOutcome.Decline && ExtractionSignatures.RuleSignature(candidate)
             ? candidate with { TypePrior = new[] { EntityType.Rule } }

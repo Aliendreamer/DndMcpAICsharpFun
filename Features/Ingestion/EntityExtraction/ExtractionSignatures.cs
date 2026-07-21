@@ -103,6 +103,29 @@ public static partial class ExtractionSignatures
     public static bool RuleSignature(EntityCandidate candidate) =>
         (candidate.Text?.Trim().Length ?? 0) >= 200;
 
+    /// <summary>
+    /// A SPECIFIC mundane-item stat signature: a weapon damage-type token or an armor AC+cost stat
+    /// line — markers a rules passage lacks. Used to rescue a decline-bound candidate as an Item
+    /// BEFORE the Rule rescue, so a genuine item is never mis-typed Rule and a rule is never grabbed
+    /// as Item (extraction-cross-type-recovery). Deliberately narrow.
+    /// </summary>
+    public static bool ItemSignature(EntityCandidate candidate)
+    {
+        var t = candidate.Text;
+        if (string.IsNullOrWhiteSpace(t)) return false;
+        // weapon: "1d8 slashing" / "2d6 piercing" / "d4 bludgeoning"
+        if (WeaponDamage().IsMatch(t)) return true;
+        // armor: an AC figure paired with a gp/sp cost
+        if (HasArmorClass(t) && Cost().IsMatch(t)) return true;
+        return false;
+    }
+
+    [GeneratedRegex(@"\d*d\d+\s+(slashing|piercing|bludgeoning)", RegexOptions.IgnoreCase)]
+    private static partial Regex WeaponDamage();
+
+    [GeneratedRegex(@"\b\d+\s?(gp|sp)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex Cost();
+
     [GeneratedRegex(
         @"\b(weapon|armou?r|ring|rod|staff|wand|potion|scroll|wondrous)\b[^.\n]{0,40}?,\s*(common|uncommon|rare|very rare|legendary|artifact)\b",
         RegexOptions.IgnoreCase)]
