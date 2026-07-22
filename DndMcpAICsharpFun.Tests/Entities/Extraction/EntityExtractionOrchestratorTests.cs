@@ -232,12 +232,14 @@ public class EntityExtractionOrchestratorTests
         ILogger<EntityExtractionOrchestrator>? orchestratorLogger = null,
         ILogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>? builderLogger = null,
         DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.EntityFieldFillService? fieldFill = null,
-        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.DeclineRecovery? declineRecovery = null)
+        DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.DeclineRecovery? declineRecovery = null,
+        int checkpointIntervalCandidates = 100)
     {
         var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
         {
             CanonicalDirectory = canonicalDir,
             SchemasDirectory = schemasDir,
+            CheckpointIntervalCandidates = checkpointIntervalCandidates,
         });
         // Use an empty registry (no books.json) when caller does not supply one.
         var effectiveRegistry = registry
@@ -2594,6 +2596,86 @@ public class EntityExtractionOrchestratorTests
             // The canonical itself must now be the freshly-written (different) content.
             var newJson = await File.ReadAllTextAsync(canonicalPath);
             newJson.Should().NotBe(priorJson);
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
+        }
+    }
+
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Task 4.4 (audit P3) — cancellation mid-loop: checkpoint at the last
+    //  completed interval, status transition to Failed, no further attempts.
+    //  Mirrors RegroundServiceTests' crash-mid-flush pattern for a sibling feature.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task RunFullExtraction_CancelledMidLoop_WritesCheckpointAtLastIntervalAndMarksFailed()
+    {
+        const int bookId = 900;
+        const string displayName = "Test Book";
+
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm)
+            = BuildTwoMonsterHarness(bookId, displayName);
+
+        try
+        {
+            using var cts = new CancellationTokenSource();
+            using var fields = System.Text.Json.JsonDocument.Parse("{}");
+            var callCount = 0;
+
+            // The fake LLM client cancels the token as a side effect of completing the FIRST candidate's
+            // (Aboleth's) extraction call. Cancellation therefore lands between the two candidates: the
+            // loop's `ct.ThrowIfCancellationRequested()` at the top of the NEXT iteration (Beholder) is
+            // what actually throws — Aboleth itself completes and gets checkpointed.
+            llm.ExtractAsync(
+                    Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                    Arg.Any<CancellationToken>())
+                .Returns(_ =>
+                {
+                    callCount++;
+                    if (callCount == 1) cts.Cancel();
+                    return Task.FromResult(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                        Success: true,
+                        ToolInput: fields.RootElement.Clone(),
+                        StopReason: "tool_use",
+                        InputTokens: 0,
+                        OutputTokens: 0,
+                        ErrorMessage: null,
+                        RawJson: null));
+                });
+
+            // Checkpoint after every 1 processed candidate, so Aboleth's completion checkpoints
+            // immediately — proving "checkpoint written at the last interval" without needing 100 candidates.
+            var orchestrator = BuildOrchestrator(
+                canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm,
+                checkpointIntervalCandidates: 1);
+
+            var act = async () => await orchestrator.ExtractAsync(
+                bookId, force: false, errorsOnly: false, ct: cts.Token);
+
+            await act.Should().ThrowAsync<OperationCanceledException>();
+
+            // Only 1 of the 2 candidates was ever sent to the LLM — the loop aborted before Beholder.
+            callCount.Should().Be(1);
+
+            // A checkpoint was written at the last completed interval (after Aboleth), not lost.
+            var progressFiles = Directory.GetFiles(canonicalDir, "*.progress.json");
+            progressFiles.Should().ContainSingle(
+                "a checkpoint must have been written for the completed candidate before cancellation aborted the run");
+            var checkpointJson = await File.ReadAllTextAsync(progressFiles[0]);
+            checkpointJson.Should().Contain("Aboleth", "the completed candidate must be checkpointed");
+            checkpointJson.Should().NotContain("Beholder", "the loop must abort before the 2nd candidate is processed");
+
+            // Status transition per current design: MarkEntitiesExtractingAsync at the start, then the
+            // broad catch in ExtractAsync treats an unhandled OperationCanceledException like any other
+            // failure — MarkEntitiesFailedAsync, then rethrow. No success transition is ever reached.
+            await tracker.Received(1).MarkEntitiesExtractingAsync(bookId, Arg.Any<CancellationToken>());
+            await tracker.Received(1).MarkEntitiesFailedAsync(bookId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+            await tracker.DidNotReceive().MarkEntitiesExtractedAsync(
+                Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
         }
         finally
         {
