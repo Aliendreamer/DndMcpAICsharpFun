@@ -34,6 +34,10 @@ builder.Services.AddOptions<McpOptions>()
     .ValidateOnStart();
 
 // builder.Services.AddAntiforgery();
+// Global exception handler (see app.UseExceptionHandler below): unhandled endpoint exceptions get
+// a generic ProblemDetails 500 with no exception detail, instead of the ASP.NET Core default bare
+// response falling through past all middleware.
+builder.Services.AddProblemDetails();
 builder.Services.AddInfrastructureClients(builder.Configuration);
 builder.Services.AddIngestionPipeline();
 builder.Services.AddRetrieval();
@@ -80,6 +84,10 @@ await app.Services.GetRequiredService<CrossEncoderReranker>().InitializeAsync();
 await app.MigrateDatabaseAsync();
 await app.InitializeDatabaseAsync();
 app.ValidateStartupConfiguration();
+// Front of the pipeline so it catches exceptions thrown by any downstream middleware/endpoint.
+// AddProblemDetails() above makes the parameterless overload write a generic ProblemDetails body
+// (status + generic title only — no exception message/stack trace) instead of leaking detail.
+app.UseExceptionHandler();
 app.UseSerilogRequestLogging(o =>
     o.GetLevel = (ctx, _, ex) =>
         ex is not null ? LogEventLevel.Error :
@@ -103,8 +111,8 @@ app.MapHealthChecks("/health");
 app.MapHealthChecks("/ready");
 app.MapHealthChecks("/health/ready");
 
-// Admin routes
-var admin = app.MapGroup("/admin");
+// Admin routes — generous secondary throttle behind the admin-key gate (see RateLimitExtensions).
+var admin = app.MapGroup("/admin").RequireRateLimiting("adminMcp");
 admin.MapBooksAdmin();
 admin.MapFivetoolsAdmin();
 admin.MapNeedsReview();
@@ -116,7 +124,7 @@ app.MapRetrievalEndpoints();
 app.MapEntityRetrievalEndpoints();
 app.MapCanonicalTypeFixerEndpoints();
 app.MapCanonicalNameNormalizerEndpoints();
-app.MapMcp("/mcp");
+app.MapMcp("/mcp").RequireRateLimiting("adminMcp");
 
 // Static web assets (app.css, app.js, _framework/blazor.web.js) served from the publish
 // endpoints manifest — required because the .NET SDK no longer copies them into a physical

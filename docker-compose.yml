@@ -44,6 +44,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    # Docker's default 10s SIGKILL grace period undercuts the app's own graceful-shutdown path
+    # (extraction cancellation + checkpoint) during a multi-hour extraction run — give it room.
+    stop_grace_period: 90s
     networks:
       - shared
     restart: unless-stopped

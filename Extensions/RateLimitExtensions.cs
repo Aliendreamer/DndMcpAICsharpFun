@@ -39,6 +39,20 @@ internal static class RateLimitExtensions
                     QueueLimit = 0,
                 }));
 
+            // Admin + MCP surface: key-gated already (AdminApiKeyMiddleware / McpAuthMiddleware), so
+            // this is a generous secondary throttle against a leaked key driving runaway automated
+            // calls to expensive endpoints (extract-entities, ingest-blocks) — not a primary control.
+            var adminMcpPerMinute = config.GetValue("RateLimit:AdminMcpRequestsPerMinute", 120);
+            options.AddPolicy("adminMcp", context => RateLimitPartition.GetFixedWindowLimiter(
+                PartitionKey(context),
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = adminMcpPerMinute,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                }));
+
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
         });
         return services;
