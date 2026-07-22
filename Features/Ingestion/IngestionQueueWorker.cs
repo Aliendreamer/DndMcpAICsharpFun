@@ -10,7 +10,20 @@ public sealed partial class IngestionQueueWorker(
     private readonly Channel<IngestionWorkItem> _channel =
         Channel.CreateUnbounded<IngestionWorkItem>(new UnboundedChannelOptions { SingleReader = true });
 
-    public bool TryEnqueue(IngestionWorkItem item) => _channel.Writer.TryWrite(item);
+    // Book ids currently enqueued or in-flight — guards against a double-click/retry race
+    // enqueueing the same book twice before the first item is dequeued (TOCTOU: IngestionStatus
+    // only flips to a "processing" value AFTER the worker dequeues, not at enqueue time).
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, byte> _inFlight = new();
+
+    public bool TryEnqueue(IngestionWorkItem item)
+    {
+        if (!_inFlight.TryAdd(item.BookId, 0)) return false;
+
+        if (_channel.Writer.TryWrite(item)) return true;
+
+        _inFlight.TryRemove(item.BookId, out _);
+        return false;
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -50,6 +63,12 @@ public sealed partial class IngestionQueueWorker(
             catch (Exception ex)
             {
                 LogUnhandledError(logger, ex, item.Type, item.BookId);
+            }
+            finally
+            {
+                // Job is no longer in-flight whether it succeeded, failed, or was cancelled —
+                // release the book id so a follow-up request (e.g. a retry) can be enqueued.
+                _inFlight.TryRemove(item.BookId, out _);
             }
         }
     }

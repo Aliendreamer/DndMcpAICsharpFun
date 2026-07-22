@@ -261,12 +261,25 @@ public sealed class BooksAdminEndpointsTests : IDisposable
     {
         var (client, tracker, queue, _) = await BuildClientAsync();
         tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(MakeRecord(1));
+        queue.TryEnqueue(Arg.Any<IngestionWorkItem>()).Returns(true);
 
         var response = await client.PostAsync("/admin/books/1/ingest-blocks", null);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         queue.Received(1).TryEnqueue(Arg.Is<IngestionWorkItem>(w =>
             w.Type == IngestionWorkType.IngestBlocks && w.BookId == 1));
+    }
+
+    [Fact]
+    public async Task IngestBlocks_QueueRejectsDuplicate_Returns409()
+    {
+        var (client, tracker, queue, _) = await BuildClientAsync();
+        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(MakeRecord(1));
+        queue.TryEnqueue(Arg.Any<IngestionWorkItem>()).Returns(false);
+
+        var response = await client.PostAsync("/admin/books/1/ingest-blocks", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
     // POST /admin/books/register — fivetoolsSourceKey tests

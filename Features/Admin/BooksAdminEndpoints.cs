@@ -95,7 +95,9 @@ public static partial class BooksAdminEndpoints
             or IngestionStatus.EntitiesIngesting)
             return Results.Conflict("Book is currently processing.");
 
-        queue.TryEnqueue(new IngestionWorkItem(workType, id));
+        if (!queue.TryEnqueue(new IngestionWorkItem(workType, id)))
+            return Results.Conflict("Book is already queued for processing.");
+
         return Results.Accepted($"/admin/books/{id}");
     }
 
@@ -143,9 +145,11 @@ public static partial class BooksAdminEndpoints
                 return Results.Conflict($"Canonical file already exists at {canonicalPath}. Use ?force=true to overwrite.");
         }
 
-        queue.TryEnqueue(new IngestionWorkItem(
-            IngestionWorkType.ExtractEntities, id,
-            Force: forceFlag, ErrorsOnly: errorsOnlyFlag));
+        if (!queue.TryEnqueue(new IngestionWorkItem(
+                IngestionWorkType.ExtractEntities, id,
+                Force: forceFlag, ErrorsOnly: errorsOnlyFlag)))
+            return Results.Conflict("Book is already queued for processing.");
+
         return Results.Accepted($"/admin/books/{id}");
     }
 

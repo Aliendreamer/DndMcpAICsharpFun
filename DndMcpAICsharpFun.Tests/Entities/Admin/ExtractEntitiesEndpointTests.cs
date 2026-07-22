@@ -191,6 +191,20 @@ public sealed class ExtractEntitiesEndpointTests
     }
 
     [Fact]
+    public async Task ExtractEntities_QueueRejectsDuplicate_Returns409()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var (client, tracker, queue) = await BuildClientAsync(tempDir);
+        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>())
+            .Returns(MakeRecord(1));
+        queue.TryEnqueue(Arg.Any<IngestionWorkItem>()).Returns(false);
+
+        var response = await client.PostAsync("/admin/books/1/extract-entities", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
     public async Task ExtractEntities_ErrorsOnlyTrue_WithoutCanonical_Returns409()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());

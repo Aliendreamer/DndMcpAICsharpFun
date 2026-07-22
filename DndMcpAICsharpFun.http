@@ -15,6 +15,8 @@ GET {{baseUrl}}/health/ready
 
 # ── Admin — Books ────────────────────────────────────────────────────────────
 # All admin requests require X-Admin-Api-Key header.
+# All /admin/* routes also carry a generous secondary fixed-window rate limit (default 120
+# req/min per caller; RateLimit:AdminMcpRequestsPerMinute) — 429 if exceeded.
 # Lifecycle: register (multipart upload) → ingest-blocks (no-LLM end-to-end) → optional delete.
 
 ### Admin Books — Register a PDF (stays Pending; call /ingest-blocks to process)
@@ -52,11 +54,11 @@ GET {{baseUrl}}/admin/books
 X-Admin-Api-Key: {{adminKey}}
 
 # Block extraction is performed by the MinerU service (layout-aware, multi-column-correct).
-### Admin Books — Ingest blocks (layout-aware PDF extraction via MinerU + bookmark metadata, embed direct to dnd_blocks)
+### Admin Books — Ingest blocks (layout-aware PDF extraction via MinerU + bookmark metadata, embed direct to dnd_blocks; 409 if the book is already queued/processing, incl. a duplicate enqueue race)
 POST {{baseUrl}}/admin/books/1/ingest-blocks
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Ingest entities (reads books/canonical/<book>.json and persists structured entities)
+### Admin Books — Ingest entities (reads books/canonical/<book>.json and persists structured entities; 409 if the book is already queued/processing, incl. a duplicate enqueue race)
 POST {{baseUrl}}/admin/books/1/ingest-entities
 X-Admin-Api-Key: {{adminKey}}
 
@@ -64,7 +66,7 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/project-structured
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Extract entities (LLM-driven; writes books/canonical/<book>.json). Initial run only.
+### Admin Books — Extract entities (LLM-driven; writes books/canonical/<book>.json). Initial run only. 409 if the book is already queued/processing, incl. a duplicate enqueue race.
 POST {{baseUrl}}/admin/books/1/extract-entities
 X-Admin-Api-Key: {{adminKey}}
 
@@ -283,6 +285,8 @@ Accept: application/json
 #   URL:    http://localhost:5101/mcp
 #   Header: X-Mcp-Api-Key: devMcpKey
 # Available tools: search_lore, search_entities, list_entities, get_entity, search_dnd
+# /mcp also carries the same generous secondary fixed-window rate limit as /admin (default 120
+# req/min per caller; RateLimit:AdminMcpRequestsPerMinute) — 429 if exceeded.
 #
 # Verify the endpoint is alive (returns 405 Method Not Allowed for GET — that is correct):
 GET {{baseUrl}}/mcp

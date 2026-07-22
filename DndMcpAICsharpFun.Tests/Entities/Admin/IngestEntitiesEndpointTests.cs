@@ -82,11 +82,24 @@ public sealed class IngestEntitiesEndpointTests
     {
         var (client, tracker, queue) = await BuildClientAsync();
         tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(MakeRecord(1));
+        queue.TryEnqueue(Arg.Any<IngestionWorkItem>()).Returns(true);
 
         var response = await client.PostAsync("/admin/books/1/ingest-entities", null);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         queue.Received(1).TryEnqueue(Arg.Is<IngestionWorkItem>(w =>
             w.Type == IngestionWorkType.IngestEntities && w.BookId == 1));
+    }
+
+    [Fact]
+    public async Task IngestEntities_QueueRejectsDuplicate_Returns409()
+    {
+        var (client, tracker, queue) = await BuildClientAsync();
+        tracker.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns(MakeRecord(1));
+        queue.TryEnqueue(Arg.Any<IngestionWorkItem>()).Returns(false);
+
+        var response = await client.PostAsync("/admin/books/1/ingest-entities", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 }

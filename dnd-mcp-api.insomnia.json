@@ -35,7 +35,8 @@
       "_id": "fld_admin_books",
       "_type": "request_group",
       "parentId": "wrk_dnd_mcp",
-      "name": "Admin \u2014 Books"
+      "name": "Admin — Books",
+      "description": "All /admin/* routes carry a generous secondary fixed-window rate limit (default 120 req/min per caller; RateLimit:AdminMcpRequestsPerMinute) on top of the X-Admin-Api-Key gate — 429 if exceeded."
     },
     {
       "_id": "fld_qdrant",
@@ -54,7 +55,7 @@
       "_type": "request_group",
       "parentId": "wrk_dnd_mcp",
       "name": "MCP Server",
-      "description": "Available tools: search_lore, search_entities, list_entities, get_entity, search_dnd"
+      "description": "Available tools: search_lore, search_entities, list_entities, get_entity, search_dnd. /mcp also carries the same generous secondary fixed-window rate limit as /admin (default 120 req/min per caller; RateLimit:AdminMcpRequestsPerMinute) — 429 if exceeded."
     },
     {
       "_id": "req_mcp_check",
@@ -206,6 +207,7 @@
         "mimeType": ""
       },
       "parameters": [],
+      "description": "409 if the book is already queued/processing, including a duplicate enqueue race.",
       "authentication": {}
     },
     {
@@ -225,6 +227,7 @@
         "mimeType": ""
       },
       "parameters": [],
+      "description": "409 if the book is already queued/processing, including a duplicate enqueue race.",
       "authentication": {}
     },
     {
@@ -263,6 +266,7 @@
         "mimeType": ""
       },
       "parameters": [],
+      "description": "409 if the book is already queued/processing, including a duplicate enqueue race.",
       "authentication": {}
     },
     {
