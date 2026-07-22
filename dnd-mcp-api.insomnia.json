@@ -53,7 +53,8 @@
       "_id": "fld_mcp",
       "_type": "request_group",
       "parentId": "wrk_dnd_mcp",
-      "name": "MCP Server"
+      "name": "MCP Server",
+      "description": "Available tools: search_lore, search_entities, list_entities, get_entity, search_dnd"
     },
     {
       "_id": "req_mcp_check",

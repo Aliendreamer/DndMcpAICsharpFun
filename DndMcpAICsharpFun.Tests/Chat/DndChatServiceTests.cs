@@ -557,7 +557,8 @@ public sealed class DndChatServiceTests : IDisposable
         await svc.SendAsync("Rate my encounter", false, CancellationToken.None);
 
         var tools = client.LastOptions!.Tools!.OfType<AIFunction>()
-            .Where(t => t.Name is "rate_encounter" or "build_encounter" or "plan_level_up" or "recommend_build"
+            .Where(t => t.Name is "resolve_character_feature" or "check_multiclass"
+                or "rate_encounter" or "build_encounter" or "plan_level_up" or "recommend_build"
                 or "critique_build" or "ask_setting_lore" or "ask_rules" or "plan_downtime" or "calculate_crafting"
                 or "generate_npc" or "generate_npc_party" or "prep_session");
         foreach (var tool in tools)
@@ -607,8 +608,13 @@ public sealed class DndChatServiceTests : IDisposable
         var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "rate_encounter");
 
         var result = await tool.InvokeAsync(
-            ToArgs(new { campaignId = (long?)null, partyLevels = new[] { 5 },
-                monsters = new[] { new { name = "mm.monster.goblin", quantity = 8 } }, edition = "2014" }),
+            ToArgs(new
+            {
+                campaignId = (long?)null,
+                partyLevels = new[] { 5 },
+                monsters = new[] { new { name = "mm.monster.goblin", quantity = 8 } },
+                edition = "2014"
+            }),
             CancellationToken.None);
 
         var assessment = ((JsonElement)result!).Deserialize<EncounterAssessment>(tool.JsonSerializerOptions);

@@ -282,7 +282,7 @@ Accept: application/json
 # Configure AI clients with:
 #   URL:    http://localhost:5101/mcp
 #   Header: X-Mcp-Api-Key: devMcpKey
-# Available tools: search_lore, search_entities, get_entity
+# Available tools: search_lore, search_entities, list_entities, get_entity, search_dnd
 #
 # Verify the endpoint is alive (returns 405 Method Not Allowed for GET — that is correct):
 GET {{baseUrl}}/mcp
