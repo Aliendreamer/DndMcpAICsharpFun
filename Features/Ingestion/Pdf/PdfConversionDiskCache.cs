@@ -22,6 +22,15 @@ public sealed class PdfConversionDiskCache(
     /// </summary>
     private const string CacheSuffix = ".mineru.json";
 
+    /// <summary>
+    /// Bump whenever <see cref="MinerUPdfConverter"/>'s conversion/splitter/scanner logic changes
+    /// in a way that would make previously-cached documents stale. Folded into the cache filename
+    /// (<c>&lt;hash&gt;-v{ConverterVersion}.mineru.json</c>) so a bump automatically invalidates
+    /// every prior-version cache entry by construction — no one has to remember to
+    /// <c>rm books/conversion-cache/*.mineru.json</c> by hand.
+    /// </summary>
+    private const int ConverterVersion = 2;
+
     private static readonly JsonSerializerOptions CacheJsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = false,
@@ -31,7 +40,8 @@ public sealed class PdfConversionDiskCache(
     public async Task<PdfStructureDocument> ConvertAsync(string filePath, CancellationToken ct = default)
     {
         var hash = ComputeFileHash(filePath);
-        var cachePath = Path.Combine(options.Value.ConversionCacheDirectory, hash + CacheSuffix);
+        var cachePath = Path.Combine(
+            options.Value.ConversionCacheDirectory, $"{hash}-v{ConverterVersion}{CacheSuffix}");
 
         try
         {

@@ -11,6 +11,8 @@
 # Transient entity-extraction checkpoints (deleted on success)
 books/canonical/*.progress.json
 books/canonical/*.progress.errors.json
+# Rolling pre-overwrite backup written by force=true re-extraction ("oops" escape hatch)
+books/canonical/*.bak
 # Parser output (PDF -> MinerU/Marker JSON): tracked (git-crypted) so an ingest is durable
 # and re-runnable without hours of re-conversion. Regenerable in principle, but expensive.
 !/books/conversion-cache/

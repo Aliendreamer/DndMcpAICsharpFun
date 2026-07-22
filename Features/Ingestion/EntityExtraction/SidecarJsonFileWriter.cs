@@ -23,7 +23,20 @@ internal static class SidecarJsonFileWriter
 
         var dir = Path.GetDirectoryName(path) ?? ".";
         Directory.CreateDirectory(dir);
-        await using var stream = File.Create(path);
-        await JsonSerializer.SerializeAsync(stream, items, options, ct);
+        var tmp = Path.Combine(dir, $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            await using (var stream = File.Create(tmp))
+            {
+                await JsonSerializer.SerializeAsync(stream, items, options, ct);
+            }
+            File.Move(tmp, path, overwrite: true);
+        }
+        catch
+        {
+            try { if (File.Exists(tmp)) File.Delete(tmp); } catch { /* swallow cleanup */ }
+            throw;
+        }
     }
 }

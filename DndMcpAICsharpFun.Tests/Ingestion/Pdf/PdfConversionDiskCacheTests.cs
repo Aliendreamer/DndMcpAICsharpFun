@@ -13,6 +13,13 @@ public sealed class PdfConversionDiskCacheTests
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
+    // Mirrors PdfConversionDiskCache's private ConverterVersion const — kept in sync manually
+    // (a compile-time constant, not worth exposing just for tests).
+    private const int ConverterVersion = 2;
+
+    private static string VersionedCacheFile(byte[] pdfBytes) =>
+        $"{HexHash(pdfBytes)}-v{ConverterVersion}.mineru.json";
+
     [Fact]
     public async Task CacheMiss_CallsInner_AndWritesCacheFile()
     {
@@ -37,7 +44,7 @@ public sealed class PdfConversionDiskCacheTests
             Assert.Single(result.Items);
             await inner.Received(1).ConvertAsync(pdfPath, Arg.Any<CancellationToken>());
 
-            var cacheFile = Path.Combine(dir, HexHash(pdfBytes) + ".mineru.json");
+            var cacheFile = Path.Combine(dir, VersionedCacheFile(pdfBytes));
             Assert.True(File.Exists(cacheFile));
         }
         finally { Directory.Delete(dir, true); }
@@ -81,8 +88,8 @@ public sealed class PdfConversionDiskCacheTests
             var pdfPath = Path.Combine(dir, "test.pdf");
             await File.WriteAllBytesAsync(pdfPath, pdfBytes);
 
-            // Pre-create a corrupt cache file with the correct hash name
-            var corruptPath = Path.Combine(dir, HexHash(pdfBytes) + ".mineru.json");
+            // Pre-create a corrupt cache file with the correct (versioned) hash name
+            var corruptPath = Path.Combine(dir, VersionedCacheFile(pdfBytes));
             await File.WriteAllTextAsync(corruptPath, "NOT VALID JSON {{{{");
 
             var expected = new PdfStructureDocument("# Hello", []);
@@ -140,7 +147,7 @@ public sealed class PdfConversionDiskCacheTests
     [Fact]
     public async Task MinerUSuffix_CacheFileWrittenWithMinerUJson()
     {
-        // Verifies that the cache is written as <hash>.mineru.json, not <hash>.json.
+        // Verifies that the cache is written as <hash>-v{ConverterVersion}.mineru.json, not <hash>.json.
         var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(dir);
         try
@@ -158,10 +165,10 @@ public sealed class PdfConversionDiskCacheTests
 
             await cache.ConvertAsync(pdfPath);
 
-            var minerUCacheFile = Path.Combine(dir, HexHash(pdfBytes) + ".mineru.json");
+            var minerUCacheFile = Path.Combine(dir, VersionedCacheFile(pdfBytes));
             var legacyCacheFile = Path.Combine(dir, HexHash(pdfBytes) + ".json");
 
-            Assert.True(File.Exists(minerUCacheFile), ".mineru.json cache file must exist");
+            Assert.True(File.Exists(minerUCacheFile), $"-v{ConverterVersion}.mineru.json cache file must exist");
             Assert.False(File.Exists(legacyCacheFile), "Legacy .json cache file must NOT be written");
         }
         finally { Directory.Delete(dir, true); }
@@ -199,6 +206,44 @@ public sealed class PdfConversionDiskCacheTests
             // Must return fresh result (from inner), not the legacy cached value.
             Assert.Equal("# Fresh", result.Markdown);
             await inner.Received(1).ConvertAsync(pdfPath, Arg.Any<CancellationToken>());
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public async Task PreVersionMinerUCacheFile_IsIgnored_InnerConverterCalledAgain()
+    {
+        // A pre-ConverterVersion cache file (<hash>.mineru.json, no "-vN" segment — the format
+        // written before this const existed) must be treated as a miss: the converter-logic
+        // version discriminator only trusts filenames carrying the current version.
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+            var pdfPath = Path.Combine(dir, "test.pdf");
+            await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+
+            var staleDoc = new PdfStructureDocument("# Stale", [new PdfStructureItem("text", "Stale", 1, null)]);
+            var staleJson = System.Text.Json.JsonSerializer.Serialize(staleDoc,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+            var unversionedCachePath = Path.Combine(dir, HexHash(pdfBytes) + ".mineru.json");
+            await File.WriteAllTextAsync(unversionedCachePath, staleJson);
+
+            var fresh = new PdfStructureDocument("# Fresh", []);
+            var inner = Substitute.For<IPdfStructureConverter>();
+            inner.ConvertAsync(pdfPath, Arg.Any<CancellationToken>()).Returns(fresh);
+
+            var opts = Options.Create(new EntityExtractionOptions { ConversionCacheDirectory = dir });
+            var cache = new PdfConversionDiskCache(inner, opts, NullLogger<PdfConversionDiskCache>.Instance);
+
+            var result = await cache.ConvertAsync(pdfPath);
+
+            Assert.Equal("# Fresh", result.Markdown);
+            await inner.Received(1).ConvertAsync(pdfPath, Arg.Any<CancellationToken>());
+
+            // The new, versioned cache file must now exist alongside the untouched stale one.
+            Assert.True(File.Exists(Path.Combine(dir, VersionedCacheFile(pdfBytes))));
         }
         finally { Directory.Delete(dir, true); }
     }

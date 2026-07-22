@@ -2539,4 +2539,66 @@ public class EntityExtractionOrchestratorTests
             try { Directory.Delete(schemasDir, true); } catch { }
         }
     }
+
+    [Fact]
+    public async Task ForceTrue_WithExistingCanonical_CreatesBakBackup_WithPriorContent()
+    {
+        const int bookId = 200;
+        const string displayName = "Test Book";
+
+        var (canonicalDir, schemasDir, record, tracker, converter, bookmarkReader, llm)
+            = BuildTwoMonsterHarness(bookId, displayName);
+
+        try
+        {
+            var bookSlug = "test-book";
+            var canonicalPath = Path.Combine(canonicalDir, bookSlug + ".json");
+            var bakPath = canonicalPath + ".bak";
+
+            var existing = new DndMcpAICsharpFun.Domain.Entities.CanonicalJsonFile(
+                SchemaVersion: DndMcpAICsharpFun.Domain.Entities.CanonicalJsonSchema.CurrentVersion,
+                Book: new DndMcpAICsharpFun.Domain.Entities.CanonicalBookMetadata(
+                    SourceBook: displayName, Edition: "5e", FileHash: "abc123", DisplayName: displayName),
+                Entities: new List<DndMcpAICsharpFun.Domain.Entities.EntityEnvelope>());
+
+            var priorJson = System.Text.Json.JsonSerializer.Serialize(existing,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+                {
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                });
+            await File.WriteAllTextAsync(canonicalPath, priorJson);
+
+            using var fields = System.Text.Json.JsonDocument.Parse("{}");
+            llm.ExtractAsync(Arg.Any<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionRequest>(),
+                             Arg.Any<CancellationToken>())
+               .Returns(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionResponse(
+                   Success: true,
+                   ToolInput: fields.RootElement.Clone(),
+                   StopReason: "tool_use",
+                   InputTokens: 0,
+                   OutputTokens: 0,
+                   ErrorMessage: null,
+                   RawJson: null));
+
+            var orchestrator = BuildOrchestrator(canonicalDir, schemasDir, tracker, converter, bookmarkReader, llm);
+
+            // Act — force=true overwrites the pre-existing canonical.
+            await orchestrator.ExtractAsync(bookId, force: true, errorsOnly: false, ct: CancellationToken.None);
+
+            // Assert: a .bak sibling was created BEFORE the overwrite, carrying the prior content.
+            File.Exists(bakPath).Should().BeTrue(
+                "force=true overwriting an existing canonical must leave an 'oops' backup");
+            var bakJson = await File.ReadAllTextAsync(bakPath);
+            bakJson.Should().Be(priorJson);
+
+            // The canonical itself must now be the freshly-written (different) content.
+            var newJson = await File.ReadAllTextAsync(canonicalPath);
+            newJson.Should().NotBe(priorJson);
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+            try { Directory.Delete(schemasDir, true); } catch { }
+        }
+    }
 }

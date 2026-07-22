@@ -52,6 +52,12 @@ public sealed class EntityExtractionOrchestrator(
             throw new InvalidOperationException(
                 $"Canonical JSON already exists at {canonicalPath}; pass force=true to overwrite.");
 
+        // force=true is about to overwrite a canonical file that may carry hand-authored,
+        // 5etools-backfilled, or field-filled content with no other restore path than git history.
+        // Take a rolling on-disk backup first (cheap, git-ignored) as an "oops" escape hatch.
+        if (!errorsOnly && force && File.Exists(canonicalPath))
+            File.Copy(canonicalPath, canonicalPath + ".bak", overwrite: true);
+
         await tracker.MarkEntitiesExtractingAsync(bookId, ct);
 
         try
