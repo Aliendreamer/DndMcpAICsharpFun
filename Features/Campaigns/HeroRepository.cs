@@ -87,9 +87,19 @@ public sealed class HeroRepository(IDbContextFactory<AppDbContext> dbf)
         await db.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(long id)
+    /// <summary>Deletes a hero (and its snapshots) only if it belongs to a campaign owned by
+    /// <paramref name="userId"/> — mirrors <see cref="CampaignRepository.DeleteAsync"/>'s ownership
+    /// scoping so this method is safe to wire up to a future "delete hero" endpoint (audit P3: this
+    /// used to take a bare hero id with no ownership check).</summary>
+    public async Task DeleteAsync(long id, long userId)
     {
         await using var db = await dbf.CreateDbContextAsync();
+        var owned = await (
+            from h in db.Heroes
+            join c in db.Campaigns on h.CampaignId equals c.Id
+            where h.Id == id && c.UserId == userId
+            select h.Id).AnyAsync();
+        if (!owned) return;
         // Wrap the multi-statement delete in the retrying execution strategy: the context is configured
         // with EnableRetryOnFailure, which forbids a raw user-initiated BeginTransactionAsync.
         var strategy = db.Database.CreateExecutionStrategy();

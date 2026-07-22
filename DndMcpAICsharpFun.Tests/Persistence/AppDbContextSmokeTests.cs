@@ -42,4 +42,27 @@ public sealed class AppDbContextSmokeTests(PostgresFixture pg) : IAsyncLifetime
             snap.Sheet.Class.Should().Be("Cleric");
         }
     }
+
+
+    // Task 4.3 (audit P3): a corrupted/truncated CharacterJson row must not throw out of EF's
+    // materialization (AttachLatestSnapshotsAsync batches ALL heroes' latest snapshots in one query, so
+    // an unguarded JsonException would take down an entire campaign's hero list for one bad row).
+    [Fact]
+    public async Task HeroSnapshot_CorruptedCharacterJson_MaterializesAsAnEmptySheet_InsteadOfThrowing()
+    {
+        await using (var db = pg.NewContext())
+        {
+            await db.Database.ExecuteSqlAsync(
+                $"""
+                INSERT INTO "HeroSnapshots" ("HeroId", "SessionNumber", "SessionLabel", "Level", "CreatedAt", "CharacterJson")
+                VALUES ({1L}, {1}, {"S1"}, {1}, {DateTime.UtcNow}, {"{not valid json"})
+                """);
+        }
+
+        await using var read = pg.NewContext();
+        var act = async () => await read.HeroSnapshots.SingleAsync();
+
+        var result = await act.Should().NotThrowAsync();
+        result.Subject.Sheet.Should().BeEquivalentTo(new CharacterSheet());
+    }
 }

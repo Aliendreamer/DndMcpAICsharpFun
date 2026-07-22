@@ -51,18 +51,29 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.HasIndex(u => u.Username).IsUnique();
         });
 
-        modelBuilder.Entity<Campaign>();
+        modelBuilder.Entity<Campaign>(e =>
+        {
+            // FK-shaped column with no navigation property (plain record), so EF never auto-detects it
+            // as a relationship/shadow-FK — the index must be declared explicitly (audit P3).
+            e.HasIndex(c => c.UserId);
+        });
 
-        modelBuilder.Entity<Hero>(e => e.Ignore(h => h.LatestSnapshot));
+        modelBuilder.Entity<Hero>(e =>
+        {
+            e.Ignore(h => h.LatestSnapshot);
+            e.HasIndex(h => h.CampaignId);
+        });
 
         modelBuilder.Entity<HeroSnapshot>(e =>
         {
+            e.HasIndex(s => s.HeroId);
+
             // CharacterSheet is stored as a JSON string column (matches the legacy CharacterJson column).
             e.Property(s => s.Sheet)
                 .HasColumnName("CharacterJson")
                 .HasConversion(
                     v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-                    v => JsonSerializer.Deserialize<CharacterSheet>(v, (JsonSerializerOptions?)null)!);
+                    v => DeserializeCharacterSheet(v));
         });
 
         modelBuilder.Entity<ChatTurn>(e =>
@@ -157,5 +168,21 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasForeignKey(x => x.CombatId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+    }
+
+    // Contains corrupted/truncated CharacterJson to the single affected row instead of throwing out of
+    // EF's materialization — AttachLatestSnapshotsAsync batches ALL heroes' latest snapshots in one query,
+    // so an unguarded throw here would take down an entire campaign's hero list for one bad row (audit P3,
+    // persistence.md §7). A malformed row surfaces as an empty CharacterSheet rather than an exception.
+    private static CharacterSheet DeserializeCharacterSheet(string v)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<CharacterSheet>(v, (JsonSerializerOptions?)null) ?? new CharacterSheet();
+        }
+        catch (JsonException)
+        {
+            return new CharacterSheet();
+        }
     }
 }

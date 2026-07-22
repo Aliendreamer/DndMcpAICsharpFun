@@ -97,12 +97,26 @@ public sealed class HeroRepositoryTests(PostgresFixture pg) : IAsyncLifetime
         var id = await _repo.CreateAsync(_campaignId, "Boromir");
         await _repo.SaveSnapshotAsync(id, 1, "S1", new CharacterSheet());
 
-        await _repo.DeleteAsync(id);
+        await _repo.DeleteAsync(id, 1);
 
         var hero = await _repo.GetByIdAsync(id);
         hero.Should().BeNull();
 
         var snapshots = await _repo.GetSnapshotsAsync(id);
         snapshots.Should().BeEmpty();
+    }
+
+
+    // Task 4.3 (audit P3): DeleteAsync now takes an owning userId scope (mirrors
+    // CampaignRepository.DeleteAsync) instead of deleting by bare hero id.
+    [Fact]
+    public async Task DeleteAsync_ForAnotherUser_IsNoOp()
+    {
+        var id = await _repo.CreateAsync(_campaignId, "Samwise");
+
+        await _repo.DeleteAsync(id, userId: 999);
+
+        var hero = await _repo.GetByIdAsync(id);
+        hero.Should().NotBeNull("a non-owning userId must not be able to delete another user's hero");
     }
 }
