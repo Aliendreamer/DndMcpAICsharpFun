@@ -49,14 +49,15 @@ public sealed class FusedRetrievalServiceTests
         return new EntitySearchHit(envelope, score, id + "-pt");
     }
 
-    private FusedRetrievalService BuildSut(IReranker reranker, bool globalEnabled = true)
+    private FusedRetrievalService BuildSut(
+        IReranker reranker, bool globalEnabled = true, bool rerankBlocks = true, bool rerankEntities = true)
     {
         var rerankOpts = new RerankerOptions
         {
             Enabled = globalEnabled,
             CandidatePoolSize = 20,
-            RerankBlocks = true,
-            RerankEntities = true,
+            RerankBlocks = rerankBlocks,
+            RerankEntities = rerankEntities,
         };
         var rerankSvc = new RerankingService(reranker, Options.Create(rerankOpts));
         return new FusedRetrievalService(
@@ -213,5 +214,79 @@ public sealed class FusedRetrievalServiceTests
 
         // Embedding called exactly once for the query
         await _embedding.Received(1).EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>());
+    }
+
+
+    // ── Task 4.2 / audit P3: FusedRetrievalService honors RerankBlocks/RerankEntities ─────
+
+    [Fact]
+    public async Task SearchAsync_BothRerankFlagsFalse_SkipsRerankingAndReturnsFetchOrder()
+    {
+        SetupEmbed();
+
+        _qdrant.SearchAsync(
+                Arg.Any<string>(), Arg.Any<ReadOnlyMemory<float>>(),
+                Arg.Any<Filter?>(), Arg.Any<ulong>(),
+                Arg.Any<float?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<ScoredPoint>>(
+            [
+                MakePoint("prose one", "Ch", 0.9f, "p1"),
+            ]));
+
+        _entityStore.SearchAsync(
+                Arg.Any<float[]>(), Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IList<EntitySearchHit>>(
+            [
+                MakeEntityHit("ent-1", "Entity One", "entity text one", 0.8f),
+            ]));
+
+        var mockReranker = Substitute.For<IReranker>();
+        mockReranker.Enabled.Returns(true);
+
+        var sut = BuildSut(mockReranker, rerankBlocks: false, rerankEntities: false);
+
+        var results = await sut.SearchAsync("query", topK: 5, CancellationToken.None);
+
+        await mockReranker.DidNotReceive()
+            .RerankAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+
+        results.Should().HaveCount(2);
+        results[0].Source.Should().Be("prose");
+        results[1].Source.Should().Be("entity");
+    }
+
+    [Fact]
+    public async Task SearchAsync_OnlyOneRerankFlagTrue_StillInvokesTheJointRerank()
+    {
+        SetupEmbed();
+
+        _qdrant.SearchAsync(
+                Arg.Any<string>(), Arg.Any<ReadOnlyMemory<float>>(),
+                Arg.Any<Filter?>(), Arg.Any<ulong>(),
+                Arg.Any<float?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<ScoredPoint>>(
+            [
+                MakePoint("prose one", "Ch", 0.9f, "p1"),
+            ]));
+
+        _entityStore.SearchAsync(
+                Arg.Any<float[]>(), Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IList<EntitySearchHit>>(
+            [
+                MakeEntityHit("ent-1", "Entity One", "entity text one", 0.8f),
+            ]));
+
+        var mockReranker = Substitute.For<IReranker>();
+        mockReranker.Enabled.Returns(true);
+        mockReranker
+            .RerankAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new float[] { 0.1f, 0.9f }));
+
+        var sut = BuildSut(mockReranker, rerankBlocks: false, rerankEntities: true);
+
+        await sut.SearchAsync("query", topK: 5, CancellationToken.None);
+
+        await mockReranker.Received(1)
+            .RerankAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
     }
 }

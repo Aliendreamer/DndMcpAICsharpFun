@@ -60,6 +60,17 @@ public sealed class FusedRetrievalService(
         if (all.Count == 0)
             return [];
 
+        // Fused candidates are jointly reranked in one cross-encoder pass (prose + entity together,
+        // not per-channel), so "honoring" RerankBlocks/RerankEntities here means: skip the joint rerank
+        // only when BOTH channels have opted out; if either channel still wants reranking, the joint
+        // pass still runs (there's no sound way to rerank one channel's slice in isolation and merge
+        // its cross-encoder scores back against the other channel's un-reranked vector scores). This
+        // mirrors the same Enabled-then-flag check RagRetrievalService/EntityRetrievalService use
+        // per-channel (audit P3, retrieval-qdrant.md finding 3).
+        var shouldRerank = _reranker.Enabled && (_reranker.RerankBlocks || _reranker.RerankEntities);
+        if (!shouldRerank)
+            return all.Take(topK).ToList();
+
         // Rerank the union
         var reranked = await rerankingService.RerankAsync(
             query,
