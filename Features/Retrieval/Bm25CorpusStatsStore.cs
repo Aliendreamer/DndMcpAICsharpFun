@@ -91,11 +91,13 @@ public sealed class Bm25CorpusStatsStore(IDbContextFactory<AppDbContext> dbf) : 
             termDeltas[term] = termDeltas.GetValueOrDefault(term) + df;
         }
 
+        var termsWithDelta = termDeltas.Where(kv => kv.Value != 0).Select(kv => kv.Key).ToList();
+        var existingStats = await LoadTermStatsAsync(db, termsWithDelta, ct);
+
         foreach (var (term, delta) in termDeltas)
         {
             if (delta == 0) continue;
-            var stat = await db.Bm25TermStats.FirstOrDefaultAsync(t => t.Term == term, ct);
-            if (stat is null)
+            if (!existingStats.TryGetValue(term, out var stat))
             {
                 if (delta > 0)
                 {
@@ -208,11 +210,13 @@ public sealed class Bm25CorpusStatsStore(IDbContextFactory<AppDbContext> dbf) : 
     private static async Task SubtractTermsAsync(
         AppDbContext db, IReadOnlyDictionary<string, int> termDf, CancellationToken ct)
     {
+        var termsWithDf = termDf.Where(kv => kv.Value != 0).Select(kv => kv.Key).ToList();
+        var existingStats = await LoadTermStatsAsync(db, termsWithDf, ct);
+
         foreach (var (term, df) in termDf)
         {
             if (df == 0) continue;
-            var stat = await db.Bm25TermStats.FirstOrDefaultAsync(t => t.Term == term, ct);
-            if (stat is null) continue;
+            if (!existingStats.TryGetValue(term, out var stat)) continue;
             stat.DocumentFrequency -= df;
             // Never let df go negative; drop the row once no book references the term.
             if (stat.DocumentFrequency <= 0)
@@ -220,6 +224,28 @@ public sealed class Bm25CorpusStatsStore(IDbContextFactory<AppDbContext> dbf) : 
                 db.Bm25TermStats.Remove(stat);
             }
         }
+    }
+
+    // Batched term-stat lookup: chunked `WHERE Term IN (...)` loads instead of one FirstOrDefaultAsync
+    // per term (audit P3, persistence.md finding 4 — a book's vocabulary can run into the thousands of
+    // unique terms, and per-term round trips serialize into seconds-to-tens-of-seconds at ingest time).
+    // Rows come back tracked (no AsNoTracking) so the caller's in-place mutations are picked up by the
+    // change tracker exactly as the old per-term FirstOrDefaultAsync path did.
+    private const int TermLookupChunkSize = 500;
+
+    private static async Task<Dictionary<string, Bm25TermStat>> LoadTermStatsAsync(
+        AppDbContext db, IReadOnlyList<string> terms, CancellationToken ct)
+    {
+        var result = new Dictionary<string, Bm25TermStat>();
+        foreach (var chunk in terms.Chunk(TermLookupChunkSize))
+        {
+            var rows = await db.Bm25TermStats.Where(t => chunk.Contains(t.Term)).ToListAsync(ct);
+            foreach (var row in rows)
+            {
+                result[row.Term] = row;
+            }
+        }
+        return result;
     }
 
     private static async Task AdjustCorpusAsync(

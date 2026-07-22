@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain.Entities;
@@ -13,8 +14,17 @@ public sealed class CanonicalJsonLoader
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
     };
 
+    // Canonical JSON files run 2-3.5 MB and are re-parsed on every admin-path call; writers use an
+    // atomic tmp+rename so the file's mtime changes on every real write, making it a safe cache-validity
+    // key (audit P3). Keyed by path (not resolved/full path) — callers are expected to pass a stable path.
+    private static readonly ConcurrentDictionary<string, (DateTime MtimeUtc, CanonicalJsonFile File)> Cache = new();
+
     public async Task<CanonicalJsonFile> LoadAsync(string path, CancellationToken ct)
     {
+        var mtimeUtc = File.GetLastWriteTimeUtc(path);
+        if (Cache.TryGetValue(path, out var cached) && cached.MtimeUtc == mtimeUtc)
+            return cached.File;
+
         await using var stream = File.OpenRead(path);
         var file = await JsonSerializer.DeserializeAsync<CanonicalJsonFile>(stream, JsonOptions, ct)
                    ?? throw new CanonicalJsonSchemaException($"Failed to deserialise canonical JSON at {path}");
@@ -57,7 +67,9 @@ public sealed class CanonicalJsonLoader
         }
 
         var promoted = file.Entities.Select(PromoteKeywords).ToList();
-        return file with { Entities = promoted };
+        var result = file with { Entities = promoted };
+        Cache[path] = (mtimeUtc, result);
+        return result;
     }
 
     private static EntityEnvelope PromoteKeywords(EntityEnvelope entity)

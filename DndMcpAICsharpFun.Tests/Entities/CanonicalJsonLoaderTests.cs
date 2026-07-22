@@ -110,4 +110,37 @@ public class CanonicalJsonLoaderTests
         }
         finally { File.Delete(tmp); }
     }
+
+
+    // Task 4.1 (audit P3): mtime-keyed cache — a second load with an unchanged mtime must return the
+    // exact cached instance (no re-parse), and a rewrite (which bumps mtime, matching the atomic
+    // tmp+rename writers use) must trigger a reload.
+    [Fact]
+    public async Task LoadAsync_SecondLoadWithUnchangedMtime_ReturnsCachedInstance_ThenReloadsAfterRewrite()
+    {
+        var tmp = Path.GetTempFileName();
+        await File.WriteAllTextAsync(tmp, MakeMinimalCanonicalJson("x", "h1"));
+        try
+        {
+            var loader = new CanonicalJsonLoader();
+            var first = await loader.LoadAsync(tmp, CancellationToken.None);
+            var second = await loader.LoadAsync(tmp, CancellationToken.None);
+
+            ReferenceEquals(first, second).Should().BeTrue("unchanged mtime must return the cached instance");
+
+            // Simulate a real writer's rewrite: content changes and mtime bumps (atomic tmp+rename writers
+            // always change mtime on every write, per the writer contract this cache relies on).
+            await File.WriteAllTextAsync(tmp, MakeMinimalCanonicalJson("y", "h2"));
+            File.SetLastWriteTimeUtc(tmp, DateTime.UtcNow.AddSeconds(10));
+
+            var third = await loader.LoadAsync(tmp, CancellationToken.None);
+
+            ReferenceEquals(first, third).Should().BeFalse("a changed mtime must trigger a reload");
+            third.Book.SourceBook.Should().Be("y");
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    private static string MakeMinimalCanonicalJson(string sourceBook, string fileHash) =>
+        $$"""{"schemaVersion":"1","book":{"sourceBook":"{{sourceBook}}","edition":"e","fileHash":"{{fileHash}}","displayName":"{{sourceBook}}"},"entities":[]}""";
 }

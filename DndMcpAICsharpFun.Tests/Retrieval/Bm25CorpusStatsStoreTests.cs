@@ -158,6 +158,32 @@ public sealed class Bm25CorpusStatsStoreTests(PostgresFixture pg) : IAsyncLifeti
         (await store.ReadAsync()).DocumentCount.Should().Be(0);
     }
 
+
+    // Task 4.1 (audit P3): the term-stat lookup batches into chunks of ~500 terms (`WHERE Term IN (...)`)
+    // instead of one round trip per term. None of the tests above exercise more than a handful of terms,
+    // so this pins correctness across a chunk boundary (750 terms > the 500-term chunk size) for both the
+    // apply and remove paths.
+    [Fact]
+    public async Task ApplyAndRemove_WithMoreTermsThanOneChunk_AppliesAllTermsCorrectly()
+    {
+        const int termCount = 750;
+        var df = Enumerable.Range(0, termCount).ToDictionary(i => $"term-{i}", _ => 1);
+
+        await _store.ApplyBookAsync("hashChunked", df, documentCount: termCount, totalTokenLength: termCount * 10);
+
+        var afterApply = await _store.ReadAsync();
+        afterApply.DocFrequencies.Should().HaveCount(termCount);
+        afterApply.DocFrequencies["term-0"].Should().Be(1);
+        afterApply.DocFrequencies["term-499"].Should().Be(1, "the last term in the first 500-term chunk");
+        afterApply.DocFrequencies["term-500"].Should().Be(1, "the first term in the second chunk");
+        afterApply.DocFrequencies["term-749"].Should().Be(1, "the last term overall");
+
+        await _store.RemoveBookAsync("hashChunked");
+
+        var afterRemove = await _store.ReadAsync();
+        afterRemove.DocFrequencies.Should().BeEmpty("every term's df drops to 0 and the row is pruned");
+    }
+
     /// <summary>A context factory that mirrors production's <c>EnableRetryOnFailure</c> configuration,
     /// so transactional store methods are exercised under the retrying execution strategy.</summary>
     private sealed class RetryingTestDb(PostgresFixture pg) : IDbContextFactory<AppDbContext>
