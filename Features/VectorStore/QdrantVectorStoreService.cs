@@ -82,6 +82,19 @@ public sealed partial class QdrantVectorStoreService(
         return (long)count;
     }
 
+    public async Task<long> GetUnknownSourceKeyCountAsync(CancellationToken ct = default)
+    {
+        var filter = new Filter();
+        var known = new Match { Keywords = new RepeatedStrings() };
+        known.Keywords.Strings.AddRange(BookCatalog.Keys);
+        filter.MustNot.Add(new Condition
+        {
+            Field = new FieldCondition { Key = QdrantPayloadFields.SourceKey, Match = known }
+        });
+        var count = await client.CountAsync(_blocksCollectionName, filter: filter, cancellationToken: ct);
+        return (long)count;
+    }
+
     private static Filter MatchKeyword(string field, string value)
     {
         var filter = new Filter();

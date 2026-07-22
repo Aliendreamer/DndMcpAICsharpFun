@@ -35,6 +35,9 @@ public sealed partial class ScopeHealthCheck(
                 .ToHashSet(StringComparer.Ordinal);
 
             WarnOnZeroCounts(scopeKeys, counts, logger);
+
+            var unknownCount = await vectorStore.GetUnknownSourceKeyCountAsync(cancellationToken);
+            WarnOnUnknownSourceKeys(unknownCount, logger);
         }
         catch (Exception ex)
         {
@@ -59,9 +62,22 @@ public sealed partial class ScopeHealthCheck(
         }
     }
 
+    /// <summary>Catalog-drift guard: warns once with the count when one or more <c>dnd_blocks</c>
+    /// points carry a <c>source_key</c> that matches no <see cref="BookCatalog"/> key — i.e. a book
+    /// was ingested but nobody registered its key in <see cref="BookCatalog"/>. Silent when 0.</summary>
+    internal static void WarnOnUnknownSourceKeys(long unknownCount, ILogger logger)
+    {
+        if (unknownCount > 0)
+            LogUnknownSourceKeyDrift(logger, unknownCount);
+    }
+
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Scope key '{Key}' has 0 blocks in dnd_blocks — retrieval scoped to it will return nothing until it is ingested")]
     private static partial void LogZeroCountScopeKey(ILogger logger, string key);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "{Count} dnd_blocks points have a source_key not registered in BookCatalog — a book was likely ingested without registering its key (catalog drift)")]
+    private static partial void LogUnknownSourceKeyDrift(ILogger logger, long count);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Scope health check failed; continuing startup")]
     private static partial void LogScopeHealthCheckFailed(ILogger logger, Exception ex);

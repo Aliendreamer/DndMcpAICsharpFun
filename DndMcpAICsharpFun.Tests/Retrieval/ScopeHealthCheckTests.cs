@@ -78,6 +78,78 @@ public sealed class ScopeHealthCheckTests
         capturingLogger.Logs.Should().BeEmpty();
     }
 
+    // ── Catalog-drift guard (unknown source_key) ────────────────────────────
+
+    [Fact]
+    public void WarnOnUnknownSourceKeys_logs_a_warning_with_the_count_when_positive()
+    {
+        var capturingLogger = new CapturingLogger<ScopeHealthCheck>();
+
+        ScopeHealthCheck.WarnOnUnknownSourceKeys(7, capturingLogger);
+
+        capturingLogger.Logs.Should().ContainSingle(
+            l => l.Level == LogLevel.Warning && l.Message.Contains('7'),
+            "a warning must be logged naming the unknown-source_key drift count");
+    }
+
+    [Fact]
+    public void WarnOnUnknownSourceKeys_is_silent_when_the_count_is_zero()
+    {
+        var capturingLogger = new CapturingLogger<ScopeHealthCheck>();
+
+        ScopeHealthCheck.WarnOnUnknownSourceKeys(0, capturingLogger);
+
+        capturingLogger.Logs.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task StartAsync_warns_for_unknown_source_key_drift_end_to_end()
+    {
+        var counts = BookCatalog.Keys.ToDictionary(k => k, _ => 10L, StringComparer.Ordinal);
+        var vectorStore = Substitute.For<IVectorStoreService>();
+        vectorStore.GetSourceKeyCountsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyDictionary<string, long>>(counts));
+        vectorStore.GetUnknownSourceKeyCountAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(3L));
+
+        var services = new ServiceCollection();
+        services.AddSingleton(vectorStore);
+        await using var provider = services.BuildServiceProvider();
+        var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+
+        var capturingLogger = new CapturingLogger<ScopeHealthCheck>();
+        var check = new ScopeHealthCheck(scopeFactory, capturingLogger);
+
+        await check.StartAsync(CancellationToken.None);
+
+        capturingLogger.Logs.Should().ContainSingle(
+            l => l.Level == LogLevel.Warning && l.Message.Contains('3'),
+            "the unknown-source_key drift count must be logged even when every known key has blocks");
+    }
+
+    [Fact]
+    public async Task StartAsync_is_silent_on_drift_when_every_block_matches_a_known_key()
+    {
+        var counts = BookCatalog.Keys.ToDictionary(k => k, _ => 10L, StringComparer.Ordinal);
+        var vectorStore = Substitute.For<IVectorStoreService>();
+        vectorStore.GetSourceKeyCountsAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyDictionary<string, long>>(counts));
+        vectorStore.GetUnknownSourceKeyCountAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(0L));
+
+        var services = new ServiceCollection();
+        services.AddSingleton(vectorStore);
+        await using var provider = services.BuildServiceProvider();
+        var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+
+        var capturingLogger = new CapturingLogger<ScopeHealthCheck>();
+        var check = new ScopeHealthCheck(scopeFactory, capturingLogger);
+
+        await check.StartAsync(CancellationToken.None);
+
+        capturingLogger.Logs.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task StartAsync_does_not_throw_when_the_vector_store_call_fails()
     {

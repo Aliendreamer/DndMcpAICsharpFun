@@ -22,4 +22,9 @@ public interface IVectorStoreService
     /// <summary>Sets <c>source_key</c> on every block whose <c>source_book</c> equals <paramref name="displayName"/>.
     /// Returns the post-update count of blocks matching that <c>source_book</c>.</summary>
     Task<long> SetSourceKeyForBookAsync(string displayName, string key, CancellationToken ct = default);
+
+    /// <summary>Counts <c>dnd_blocks</c> points whose <c>source_key</c> does NOT match any
+    /// <see cref="DndMcpAICsharpFun.Features.Retrieval.BookCatalog"/> key — the catalog-drift guard:
+    /// a nonzero count means a book was ingested with a key nobody registered in <c>BookCatalog</c>.</summary>
+    Task<long> GetUnknownSourceKeyCountAsync(CancellationToken ct = default);
 }

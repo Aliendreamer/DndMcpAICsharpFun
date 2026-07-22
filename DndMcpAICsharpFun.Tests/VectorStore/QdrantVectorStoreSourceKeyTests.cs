@@ -80,6 +80,36 @@ public sealed class QdrantVectorStoreSourceKeyTests : IAsyncLifetime
         keyCounts["MM"].Should().Be(0);
     }
 
+    [Fact]
+    public async Task GetUnknownSourceKeyCountAsync_flags_a_block_whose_source_key_is_outside_BookCatalog()
+    {
+        // Delta-based (not absolute count): the shared test collection may already carry blocks
+        // from other tests in this class with no source_key set at all (also "unknown" by the
+        // must_not/match-any semantics), so we only assert the drift count strictly increases
+        // once a block with a genuinely unregistered key is added.
+        var before = await _store.GetUnknownSourceKeyCountAsync();
+
+        var metadata = new BlockMetadata(
+            SourceBook: "Homebrew Grimoire",
+            Version: DndVersion.Edition2014,
+            Category: ContentCategory.Rule,
+            SectionTitle: "Section 0",
+            SectionStart: 0,
+            SectionEnd: 1,
+            PageNumber: 1,
+            BlockOrder: 0,
+            GlobalIndex: 0,
+            SourceKey: "NOT-A-REAL-CATALOG-KEY");
+        var chunk = new BlockChunk("homebrew drift block", metadata);
+        var vector = Enumerable.Range(0, 4).Select(i => (float)i / 10f).ToArray();
+        await _store.UpsertBlocksAsync([(chunk, vector, new DomainSparseVector([], []), "hash-homebrew-drift")]);
+
+        var after = await _store.GetUnknownSourceKeyCountAsync();
+
+        after.Should().BeGreaterThan(before,
+            "a block whose source_key matches no BookCatalog key must be counted as catalog drift");
+    }
+
     private static (BlockChunk Chunk, float[] Vector, DomainSparseVector Sparse, string FileHash) MakeBlock(
         string sourceBook, string fileHash, int index)
     {

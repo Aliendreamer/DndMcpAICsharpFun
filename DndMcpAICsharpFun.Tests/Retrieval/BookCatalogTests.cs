@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Features.Retrieval;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Retrieval;
@@ -31,5 +33,19 @@ public class BookCatalogTests
         BookCatalog.All.Should().OnlyContain(b =>
             !string.IsNullOrWhiteSpace(b.Key) && !string.IsNullOrWhiteSpace(b.DisplayName));
         BookCatalog.Keys.Count.Should().Be(BookCatalog.All.Count);
+    }
+
+    [Fact]
+    public void MPMM_MTF_SCAG_are_registered_with_verbatim_display_names()
+    {
+        // These three were extracted (canonical JSON produced) before ever being wired into
+        // BookCatalog — the audit's catalog-drift finding. Registering them here closes that gap.
+        BookCatalog.KeyToDisplayName["SCAG"].Should().Be("Sword Coast Adventurer's Guide");
+        BookCatalog.KeyToDisplayName["MTF"].Should().Be("Mordenkainen's Tome of Foes");
+        BookCatalog.KeyToDisplayName["MPMM"].Should().Be("Mordenkainen Presents: Monsters of the Multiverse");
+
+        BookCatalog.DisplayNameToKey["Sword Coast Adventurer's Guide"].Should().Be("SCAG");
+        BookCatalog.DisplayNameToKey["Mordenkainen's Tome of Foes"].Should().Be("MTF");
+        BookCatalog.DisplayNameToKey["Mordenkainen Presents: Monsters of the Multiverse"].Should().Be("MPMM");
     }
 }
