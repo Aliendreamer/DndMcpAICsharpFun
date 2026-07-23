@@ -1,8 +1,6 @@
 using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain.Entities;
-using DndMcpAICsharpFun.Domain.Entities.Fields;
-using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Admin;
@@ -12,11 +10,16 @@ namespace DndMcpAICsharpFun.Tests.Entities.Admin;
 /// self-contained prose-catalog providers (mirroring GodBackfillProvider/SpellBackfillProvider,
 /// NOT the generic field-fill mappers). See <see cref="BackfillProviderTests"/> for the sibling
 /// suite covering the 4 pre-existing providers.
+///
+/// Whole-branch review fix (I-1): <c>BuildEntity</c>'s <c>Fields</c> now carry the RAW 5etools
+/// property names the corresponding <c>ISimpleEntityRenderer</c> actually reads (and the
+/// hand-authored <c>Schemas/canonical/*Fields.schema.json</c> describe) — NOT a curated domain
+/// <c>*Fields</c> record shape. These tests assert against <c>entity.Fields</c> directly (a raw
+/// <see cref="JsonElement"/>) instead of via <c>CanonicalJsonLoader.DeserialiseFields&lt;T&gt;</c>.
+/// See <c>BackfillRenderCompatTests</c> for the end-to-end render-through-dispatcher regression.
 /// </summary>
 public sealed class CatalogBackfillProviderTests
 {
-    private readonly CanonicalJsonLoader _loader = new();
-
     [Fact]
     public void FeatBackfillProvider_Type_IsFeat()
     {
@@ -26,7 +29,7 @@ public sealed class CatalogBackfillProviderTests
     }
 
     [Fact]
-    public void FeatBackfillProvider_BuildEntity_ProjectsCuratedFieldsForAlert()
+    public void FeatBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForAlert()
     {
         var provider = new FeatBackfillProvider();
         using var doc = JsonDocument.Parse("""
@@ -45,10 +48,15 @@ public sealed class CatalogBackfillProviderTests
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
         Assert.True(entity.Srd);
 
-        var fields = _loader.DeserialiseFields<FeatFields>(entity);
-        Assert.Contains("Level 4", fields.Prerequisites);
-        Assert.Contains("Skill Proficiency", fields.Grants);
-        Assert.Equal("Always on the lookout for danger, you gain the following benefits.", fields.Description);
+        var fields = entity.Fields;
+        var prerequisite = fields.GetProperty("prerequisite");
+        Assert.Equal(JsonValueKind.Array, prerequisite.ValueKind);
+        Assert.Equal(4, prerequisite[0].GetProperty("level").GetInt32());
+
+        var entries = fields.GetProperty("entries");
+        Assert.Equal(JsonValueKind.Array, entries.ValueKind);
+        Assert.Equal(JsonValueKind.String, entries[0].ValueKind);
+        Assert.Contains("Always on the lookout for danger", entries[0].GetString());
     }
 
     [Fact]
@@ -85,21 +93,13 @@ public sealed class CatalogBackfillProviderTests
     }
 
     [Fact]
-    public void BackgroundBackfillProvider_BuildEntity_ProjectsCuratedFieldsForAcolyte()
+    public void BackgroundBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForAcolyte()
     {
         var provider = new BackgroundBackfillProvider();
         using var doc = JsonDocument.Parse("""
             { "name": "Acolyte", "source": "PHB", "page": 127, "srd": true,
               "skillProficiencies": [ { "insight": true, "religion": true } ],
               "languageProficiencies": [ { "anyStandard": 2 } ],
-              "startingEquipment": [
-                { "_": [
-                    { "item": "holy symbol|phb", "displayName": "holy symbol (a gift)" },
-                    { "special": "vestments" },
-                    "common clothes|phb"
-                  ]
-                }
-              ],
               "entries": [
                 { "name": "Feature: Shelter of the Faithful", "type": "entries",
                   "entries": [ "You command the respect of those who share your faith." ] }
@@ -113,15 +113,16 @@ public sealed class CatalogBackfillProviderTests
         Assert.Equal("5etools-backfill", entity.DataSource);
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
 
-        var fields = _loader.DeserialiseFields<BackgroundFields>(entity);
-        Assert.Contains("Insight", fields.SkillProficiencies);
-        Assert.Contains("Religion", fields.SkillProficiencies);
-        Assert.Contains("2 of your choice", fields.Languages);
-        Assert.Contains("holy symbol (a gift)", fields.Equipment);
-        Assert.Contains("vestments", fields.Equipment);
-        Assert.Contains("common clothes", fields.Equipment);
-        Assert.Equal("Shelter of the Faithful", fields.FeatureName);
-        Assert.Equal("You command the respect of those who share your faith.", fields.FeatureSummary);
+        var fields = entity.Fields;
+        var skillProficiencies = fields.GetProperty("skillProficiencies");
+        Assert.Equal(JsonValueKind.Array, skillProficiencies.ValueKind);
+        Assert.True(skillProficiencies[0].GetProperty("insight").GetBoolean());
+        Assert.True(skillProficiencies[0].GetProperty("religion").GetBoolean());
+
+        var entries = fields.GetProperty("entries");
+        Assert.Equal(JsonValueKind.String, entries[0].ValueKind);
+        Assert.Contains("Shelter of the Faithful", entries[0].GetString());
+        Assert.Contains("respect of those who share your faith", entries[0].GetString());
     }
 
     [Fact]
@@ -158,7 +159,7 @@ public sealed class CatalogBackfillProviderTests
     }
 
     [Fact]
-    public void ConditionBackfillProvider_BuildEntity_ProjectsCuratedFieldsForBlinded()
+    public void ConditionBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForBlinded()
     {
         var provider = new ConditionBackfillProvider();
         using var doc = JsonDocument.Parse("""
@@ -179,9 +180,11 @@ public sealed class CatalogBackfillProviderTests
         Assert.Equal("5etools-backfill", entity.DataSource);
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
 
-        var fields = _loader.DeserialiseFields<ConditionFields>(entity);
-        Assert.Contains("blinded creature can't see", fields.Description);
-        Assert.Contains("disadvantage", fields.Description);
+        var entries = entity.Fields.GetProperty("entries");
+        Assert.Equal(JsonValueKind.Array, entries.ValueKind);
+        Assert.Equal(JsonValueKind.String, entries[0].ValueKind);
+        Assert.Contains("blinded creature can't see", entries[0].GetString());
+        Assert.Contains("disadvantage", entries[0].GetString());
     }
 
     [Fact]
@@ -222,13 +225,13 @@ public sealed class CatalogBackfillProviderTests
     }
 
     [Fact]
-    public void TrapBackfillProvider_BuildEntity_ProjectsCuratedFieldsForPitTrap()
+    public void TrapBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForPitTrap()
     {
         var provider = new TrapBackfillProvider();
         using var doc = JsonDocument.Parse("""
             { "name": "Pit Trap", "source": "DMG", "page": 122, "srd": true,
+              "trapHazType": "SMPL",
               "rating": [ { "tier": 1, "threat": "dangerous" } ],
-              "detectDc": 15, "disarmDc": 10,
               "entries": [ "A simple pit dug in the ground, camouflaged with dirt and debris." ] }
             """);
 
@@ -239,11 +242,11 @@ public sealed class CatalogBackfillProviderTests
         Assert.Equal("5etools-backfill", entity.DataSource);
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
 
-        var fields = _loader.DeserialiseFields<TrapFields>(entity);
-        Assert.Equal("Dangerous", fields.Difficulty);
-        Assert.Equal(15, fields.DetectDc);
-        Assert.Equal(10, fields.DisarmDc);
-        Assert.Contains("simple pit", fields.Description);
+        var fields = entity.Fields;
+        Assert.Equal("SMPL", fields.GetProperty("trapHazType").GetString());
+        var entries = fields.GetProperty("entries");
+        Assert.Equal(JsonValueKind.String, entries[0].ValueKind);
+        Assert.Contains("simple pit", entries[0].GetString());
     }
 
     [Fact]
@@ -284,7 +287,7 @@ public sealed class CatalogBackfillProviderTests
     }
 
     [Fact]
-    public void DiseasePoisonBackfillProvider_BuildEntity_ProjectsCuratedFieldsForCackleFever()
+    public void DiseasePoisonBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForCackleFever()
     {
         var provider = new DiseasePoisonBackfillProvider();
         using var doc = JsonDocument.Parse("""
@@ -299,10 +302,9 @@ public sealed class CatalogBackfillProviderTests
         Assert.Equal("5etools-backfill", entity.DataSource);
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
 
-        var fields = _loader.DeserialiseFields<DiseasePoisonFields>(entity);
-        Assert.Equal("Disease", fields.Kind);
-        Assert.Equal("12", fields.SaveDc);
-        Assert.Contains("tainted by this disease", fields.Description);
+        var entries = entity.Fields.GetProperty("entries");
+        Assert.Equal(JsonValueKind.String, entries[0].ValueKind);
+        Assert.Contains("tainted by this disease", entries[0].GetString());
     }
 
     [Fact]
@@ -343,7 +345,7 @@ public sealed class CatalogBackfillProviderTests
     }
 
     [Fact]
-    public void VehicleBackfillProvider_BuildEntity_ProjectsCuratedFieldsForKeelboat()
+    public void VehicleBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForKeelboat()
     {
         var provider = new VehicleBackfillProvider();
         using var doc = JsonDocument.Parse("""
@@ -361,11 +363,11 @@ public sealed class CatalogBackfillProviderTests
         Assert.Equal("5etools-backfill", entity.DataSource);
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
 
-        var fields = _loader.DeserialiseFields<VehicleMountFields>(entity);
-        Assert.Equal("SHIP", fields.Kind);
-        Assert.Equal(30, fields.Speed);
-        Assert.Equal(1000, fields.CapacityLb);
-        Assert.Contains("solid keel", fields.Description);
+        var fields = entity.Fields;
+        Assert.Equal("SHIP", fields.GetProperty("vehicleType").GetString());
+        var entries = fields.GetProperty("entries");
+        Assert.Equal(JsonValueKind.String, entries[0].ValueKind);
+        Assert.Contains("solid keel", entries[0].GetString());
     }
 
     [Fact]

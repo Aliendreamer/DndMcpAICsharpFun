@@ -1,8 +1,6 @@
 using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain.Entities;
-using DndMcpAICsharpFun.Domain.Entities.Fields;
-using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 
 namespace DndMcpAICsharpFun.Tests.Entities.Admin;
@@ -16,8 +14,6 @@ namespace DndMcpAICsharpFun.Tests.Entities.Admin;
 /// </summary>
 public sealed class BaseItemBackfillProviderTests
 {
-    private readonly CanonicalJsonLoader _loader = new();
-
     [Fact]
     public void WeaponBackfillProvider_Type_IsWeapon()
     {
@@ -43,14 +39,15 @@ public sealed class BaseItemBackfillProviderTests
     }
 
     [Fact]
-    public void WeaponBackfillProvider_BuildEntity_ProjectsCuratedFieldsForDagger()
+    public void WeaponBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForDagger()
     {
         var provider = new WeaponBackfillProvider();
         using var doc = JsonDocument.Parse("""
             { "name": "Dagger", "source": "PHB", "page": 149, "srd": true,
               "type": "M", "rarity": "none", "weight": 1, "value": 200,
               "weaponCategory": "simple", "property": [ "F", "L", "T" ],
-              "range": "20/60", "dmg1": "1d4", "dmgType": "P" }
+              "range": "20/60", "dmg1": "1d4", "dmgType": "P",
+              "entries": [ "A simple blade, easily concealed and thrown." ] }
             """);
 
         var entity = provider.BuildEntity("PHB", "Edition2014", "Dagger", doc.RootElement);
@@ -60,30 +57,24 @@ public sealed class BaseItemBackfillProviderTests
         Assert.Equal("5etools-backfill", entity.DataSource);
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
 
-        var fields = _loader.DeserialiseFields<WeaponFields>(entity);
-        Assert.Equal("Simple", fields.Category);
-        Assert.Equal("Melee", fields.WeaponType);
-        Assert.Equal(200, fields.CostCp);
-        Assert.Equal(1, fields.WeightLb);
-        Assert.Equal("1d4", fields.Damage.Dice);
-        Assert.Equal(2, fields.Damage.Average);
-        Assert.Equal("piercing", fields.Damage.Type);
-        Assert.NotNull(fields.Range);
-        Assert.Equal(20, fields.Range!.Normal);
-        Assert.Equal(60, fields.Range!.Long);
-        Assert.Contains("Finesse", fields.Properties);
-        Assert.Contains("Light", fields.Properties);
-        Assert.Contains("Thrown", fields.Properties);
+        var fields = entity.Fields;
+        Assert.Equal("simple", fields.GetProperty("weaponCategory").GetString());
+        Assert.Equal("1d4", fields.GetProperty("dmg1").GetString());
+        Assert.Equal("P", fields.GetProperty("dmgType").GetString());
+        var entries = fields.GetProperty("entries");
+        Assert.Equal(JsonValueKind.String, entries[0].ValueKind);
+        Assert.Contains("simple blade", entries[0].GetString());
     }
 
     [Fact]
-    public void ArmorBackfillProvider_BuildEntity_ProjectsCuratedFieldsForChainMail()
+    public void ArmorBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForChainMail()
     {
         var provider = new ArmorBackfillProvider();
         using var doc = JsonDocument.Parse("""
             { "name": "Chain Mail", "source": "PHB", "page": 145, "srd": true,
               "type": "HA", "rarity": "none", "weight": 55, "value": 7500,
-              "ac": 16, "strength": "13", "stealth": true }
+              "ac": 16, "strength": "13", "stealth": true,
+              "entries": [ "Made of interlocking metal rings." ] }
             """);
 
         var entity = provider.BuildEntity("PHB", "Edition2014", "Chain Mail", doc.RootElement);
@@ -93,17 +84,16 @@ public sealed class BaseItemBackfillProviderTests
         Assert.Equal("5etools-backfill", entity.DataSource);
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
 
-        var fields = _loader.DeserialiseFields<ArmorFields>(entity);
-        Assert.Equal("Heavy", fields.Category);
-        Assert.Equal(75, fields.CostGp);
-        Assert.Equal(55, fields.WeightLb);
-        Assert.Equal("16", fields.AcFormula);
-        Assert.Equal(13, fields.StrengthRequirement);
-        Assert.True(fields.StealthDisadvantage);
+        var fields = entity.Fields;
+        Assert.Equal("HA", fields.GetProperty("type").GetString());
+        Assert.Equal(16, fields.GetProperty("ac").GetInt32());
+        var entries = fields.GetProperty("entries");
+        Assert.Equal(JsonValueKind.String, entries[0].ValueKind);
+        Assert.Contains("interlocking metal rings", entries[0].GetString());
     }
 
     [Fact]
-    public void ItemBackfillProvider_BuildEntity_ProjectsCuratedFieldsForCrowbar()
+    public void ItemBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForCrowbar()
     {
         var provider = new ItemBackfillProvider();
         using var doc = JsonDocument.Parse("""
@@ -119,10 +109,12 @@ public sealed class BaseItemBackfillProviderTests
         Assert.Equal("5etools-backfill", entity.DataSource);
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
 
-        var fields = _loader.DeserialiseFields<ItemFields>(entity);
-        Assert.Equal(200, fields.CostCp);
-        Assert.Equal(5, fields.WeightLb);
-        Assert.Contains("advantage to Strength checks", fields.Description);
+        var fields = entity.Fields;
+        Assert.Equal("AT", fields.GetProperty("type").GetString());
+        Assert.Equal(200, fields.GetProperty("value").GetInt32());
+        var entries = fields.GetProperty("entries");
+        Assert.Equal(JsonValueKind.String, entries[0].ValueKind);
+        Assert.Contains("advantage to Strength checks", entries[0].GetString());
     }
 
     [Fact]

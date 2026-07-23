@@ -160,9 +160,19 @@ public static partial class BooksAdminEndpoints
     private static async Task<IResult> Reconcile(RegistryReconcileService svc, CancellationToken ct) =>
         Results.Ok(new { created = await svc.ReconcileAsync(ct) });
 
-    private static IResult UnsupportedType(string type) => Results.Problem(
-        $"Unsupported type '{type}'. Supported: Monster, Spell, MagicItem, God.",
-        statusCode: StatusCodes.Status400BadRequest);
+    /// <summary>
+    /// M-2 (whole-branch review): enumerates the ACTUALLY registered backfill provider types
+    /// (the <paramref name="services"/> dictionary keys) instead of a hand-maintained literal
+    /// list — the old "Supported: Monster, Spell, MagicItem, God." message went stale the moment
+    /// the 9 catalog/base-item providers were added.
+    /// </summary>
+    private static IResult UnsupportedType(string type, IReadOnlyDictionary<EntityType, EntityBackfillService> services)
+    {
+        var supported = string.Join(", ", services.Keys.Select(t => t.ToString()).OrderBy(t => t, StringComparer.Ordinal));
+        return Results.Problem(
+            $"Unsupported type '{type}'. Supported: {supported}.",
+            statusCode: StatusCodes.Status400BadRequest);
+    }
 
     private static bool TryResolveService(
         string type,
@@ -184,7 +194,7 @@ public static partial class BooksAdminEndpoints
         CancellationToken ct)
     {
         if (!TryResolveService(type, services, out var svc))
-            return UnsupportedType(type);
+            return UnsupportedType(type, services);
 
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)
@@ -235,7 +245,7 @@ public static partial class BooksAdminEndpoints
         CancellationToken ct)
     {
         if (!TryResolveService(type, services, out var svc))
-            return UnsupportedType(type);
+            return UnsupportedType(type, services);
 
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)
@@ -297,7 +307,7 @@ public static partial class BooksAdminEndpoints
         CancellationToken ct)
     {
         if (!TryResolveService(type, services, out var svc))
-            return UnsupportedType(type);
+            return UnsupportedType(type, services);
 
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)

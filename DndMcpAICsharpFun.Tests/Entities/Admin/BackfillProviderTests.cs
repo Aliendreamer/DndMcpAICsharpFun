@@ -68,7 +68,7 @@ public sealed class BackfillProviderTests
     }
 
     [Fact]
-    public void MagicItemBackfillProvider_BuildEntity_ProjectsCuratedFieldsForRodOfThePactKeeper()
+    public void MagicItemBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForRodOfThePactKeeper()
     {
         var provider = new MagicItemBackfillProvider();
         using var doc = JsonDocument.Parse("""
@@ -84,11 +84,13 @@ public sealed class BackfillProviderTests
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
         Assert.False(entity.NeedsReview);
 
-        var fields = _loader.DeserialiseFields<MagicItemFields>(entity);
-        Assert.Equal("uncommon", fields.Rarity);
-        Assert.Equal("RD", fields.ItemCategory);
-        Assert.Equal("by a warlock", fields.Attunement);
-        Assert.StartsWith("While holding", fields.Description);
+        var fields = entity.Fields;
+        Assert.Equal("uncommon", fields.GetProperty("rarity").GetString());
+        Assert.Equal("RD|DMG", fields.GetProperty("type").GetString());
+        Assert.Equal("by a warlock", fields.GetProperty("reqAttune").GetString());
+        var entries = fields.GetProperty("entries");
+        Assert.Equal(JsonValueKind.String, entries[0].ValueKind);
+        Assert.StartsWith("While holding", entries[0].GetString());
     }
 
     [Fact]
@@ -170,7 +172,7 @@ public sealed class BackfillProviderTests
     }
 
     [Fact]
-    public void GodBackfillProvider_BuildEntity_ProjectsCuratedFieldsForAsmodeus()
+    public void GodBackfillProvider_BuildEntity_ProjectsRawRendererFieldsForAsmodeus()
     {
         var provider = new GodBackfillProvider();
         using var doc = JsonDocument.Parse("""
@@ -185,12 +187,14 @@ public sealed class BackfillProviderTests
         Assert.Equal("5etools-backfill", entity.DataSource);
         Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
 
-        var fields = _loader.DeserialiseFields<GodFields>(entity);
-        Assert.Equal("L, E", fields.Alignment);
-        Assert.Contains("Trickery", fields.Domains);
-        Assert.NotNull(fields.Symbol);
-        Assert.Null(fields.Plane);
-        Assert.Equal("", fields.Description);
+        var fields = entity.Fields;
+        var alignment = fields.GetProperty("alignment").EnumerateArray().Select(e => e.GetString()).ToList();
+        Assert.Equal(new[] { "L", "E" }, alignment);
+        var domains = fields.GetProperty("domains").EnumerateArray().Select(e => e.GetString()).ToList();
+        Assert.Contains("Trickery", domains);
+        Assert.Equal("Three triangles", fields.GetProperty("symbol").GetString());
+        Assert.Equal("Dawn War", fields.GetProperty("pantheon").GetString());
+        Assert.Equal(0, fields.GetProperty("entries").GetArrayLength());
     }
 
     [Fact]

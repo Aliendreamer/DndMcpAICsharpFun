@@ -7,9 +7,10 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 
 /// <summary>
 /// <see cref="IFivetoolsBackfillProvider"/> for <see cref="EntityType.God"/>. Reads
-/// <c>deities.json</c>'s <c>"deity"</c> array (no filter — every deity qualifies) and projects a
-/// curated <see cref="Domain.Entities.Fields.GodFields"/> shape — a NEW projection (the generic
-/// mapper's Clone doesn't match this canonical shape).
+/// <c>deities.json</c>'s <c>"deity"</c> array (no filter — every deity qualifies) and projects
+/// the RAW <c>fields</c> shape the <see cref="Features.Entities.CanonicalText.GodCanonicalTextRenderer"/>
+/// reads (<c>pantheon</c>/<c>symbol</c>/<c>alignment</c>/<c>domains</c> + <c>entries</c>) — NOT a
+/// curated domain-record shape.
 /// </summary>
 public sealed class GodBackfillProvider : IFivetoolsBackfillProvider
 {
@@ -65,56 +66,24 @@ public sealed class GodBackfillProvider : IFivetoolsBackfillProvider
     }
 
     /// <summary>
-    /// Builds the canonical God <c>fields</c> shape (see
-    /// <see cref="Domain.Entities.Fields.GodFields"/>): alignment codes joined, domains list,
-    /// optional symbol/pantheon/plane, and a description assembled from the string entries of
-    /// <c>entries[]</c> (deities frequently have none).
+    /// Builds the raw <c>fields</c> shape the
+    /// <see cref="Features.Entities.CanonicalText.GodCanonicalTextRenderer"/> reads (and
+    /// <c>Schemas/canonical/GodFields.schema.json</c> requires non-null): the raw
+    /// <c>alignment</c>/<c>domains</c> arrays copied verbatim (defaulting to empty when absent —
+    /// the schema requires them), <c>pantheon</c>/<c>symbol</c> strings, plus a flattened
+    /// <c>entries</c> array (deities frequently have none).
     /// </summary>
     private static JsonElement BuildFields(JsonElement deity)
     {
         var fields = new JsonObject
         {
-            ["alignment"] = GetAlignment(deity),
-            ["domains"] = GetDomains(deity),
-            ["symbol"] = CopyStringOrNull(deity, "symbol"),
-            ["pantheon"] = CopyStringOrNull(deity, "pantheon"),
-            ["plane"] = CopyStringOrNull(deity, "plane"),
-            ["description"] = GetDescription(deity),
+            ["alignment"] = RawFieldCopy.ArrayOrEmpty(deity, "alignment"),
+            ["domains"] = RawFieldCopy.ArrayOrEmpty(deity, "domains"),
+            ["symbol"] = RawFieldCopy.StringOrNull(deity, "symbol"),
+            ["pantheon"] = RawFieldCopy.StringOrNull(deity, "pantheon"),
+            ["entries"] = FivetoolsEntryText.ToRendererEntries(deity),
         };
 
         return JsonDocument.Parse(fields.ToJsonString()).RootElement.Clone();
-    }
-
-    private static string GetAlignment(JsonElement deity)
-    {
-        if (!deity.TryGetProperty("alignment", out var v) || v.ValueKind != JsonValueKind.Array)
-            return "";
-        return string.Join(", ", v.EnumerateArray()
-            .Where(e => e.ValueKind == JsonValueKind.String)
-            .Select(e => e.GetString()!));
-    }
-
-    private static JsonArray GetDomains(JsonElement deity)
-    {
-        var domains = new JsonArray();
-        if (deity.TryGetProperty("domains", out var v) && v.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var e in v.EnumerateArray())
-                if (e.ValueKind == JsonValueKind.String)
-                    domains.Add(e.GetString());
-        }
-        return domains;
-    }
-
-    private static string? CopyStringOrNull(JsonElement deity, string prop)
-        => deity.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.String
-            ? v.GetString()
-            : null;
-
-    private static string GetDescription(JsonElement deity)
-    {
-        if (!deity.TryGetProperty("entries", out var entries) || entries.ValueKind != JsonValueKind.Array)
-            return "";
-        return FivetoolsEntryText.Flatten(entries);
     }
 }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
@@ -33,6 +34,26 @@ public static partial class FivetoolsEntryText
         }
 
         return string.Join("\n\n", pieces);
+    }
+
+    /// <summary>
+    /// Builds the canonical <c>entries</c> field-array shape the <c>ISimpleEntityRenderer</c>s
+    /// (and the hand-authored <c>Schemas/canonical/*Fields.schema.json</c> overrides) expect: a
+    /// single flattened prose string wrapping the source's raw <c>entries</c> array (or an empty
+    /// array when absent/blank) — a plain string as the FIRST element, which is what
+    /// <c>RendererHelpers.FirstEntryText</c> requires, unlike the raw 5etools shape where
+    /// <c>entries[0]</c> is frequently a nested <c>list</c>/<c>entries</c> object.
+    /// </summary>
+    public static JsonArray ToRendererEntries(JsonElement source, string prop = "entries")
+    {
+        var result = new JsonArray();
+        if (!source.TryGetProperty(prop, out var raw) || raw.ValueKind != JsonValueKind.Array)
+            return result;
+
+        var text = Flatten(raw);
+        if (!string.IsNullOrWhiteSpace(text))
+            result.Add(text);
+        return result;
     }
 
     private static string FlattenEntry(JsonElement entry) => entry.ValueKind switch

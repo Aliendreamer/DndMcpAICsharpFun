@@ -8,10 +8,9 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 /// <summary>
 /// <see cref="IFivetoolsBackfillProvider"/> for <see cref="EntityType.Condition"/>. Reads
 /// <c>conditionsdiseases.json</c>'s <c>"condition"</c> array ONLY (the sibling <c>"disease"</c>
-/// array is out of scope for this type) and projects a curated
-/// <see cref="Domain.Entities.Fields.ConditionFields"/> shape — self-contained, like
-/// <see cref="GodBackfillProvider"/>/<see cref="SpellBackfillProvider"/>, NOT the generic
-/// field-fill mapper's raw clone.
+/// array is out of scope for this type) and projects the RAW <c>fields</c> shape the
+/// <see cref="Features.Entities.CanonicalText.ConditionCanonicalTextRenderer"/> reads
+/// (<c>entries</c> only) — NOT a curated domain-record shape.
 /// </summary>
 public sealed class ConditionBackfillProvider : IFivetoolsBackfillProvider
 {
@@ -66,24 +65,18 @@ public sealed class ConditionBackfillProvider : IFivetoolsBackfillProvider
     }
 
     /// <summary>
-    /// Builds the canonical Condition <c>fields</c> shape (see
-    /// <see cref="Domain.Entities.Fields.ConditionFields"/>): a single description assembled from
-    /// the string/nested-block entries of <c>entries[]</c>.
+    /// Builds the raw <c>fields</c> shape the
+    /// <see cref="Features.Entities.CanonicalText.ConditionCanonicalTextRenderer"/> reads (and
+    /// <c>Schemas/canonical/ConditionFields.schema.json</c> requires): a flattened <c>entries</c>
+    /// array — the ONLY field this renderer consumes.
     /// </summary>
     private static JsonElement BuildFields(JsonElement condition)
     {
         var fields = new JsonObject
         {
-            ["description"] = GetDescription(condition),
+            ["entries"] = FivetoolsEntryText.ToRendererEntries(condition),
         };
 
         return JsonDocument.Parse(fields.ToJsonString()).RootElement.Clone();
-    }
-
-    private static string GetDescription(JsonElement condition)
-    {
-        if (!condition.TryGetProperty("entries", out var entries) || entries.ValueKind != JsonValueKind.Array)
-            return "";
-        return FivetoolsEntryText.Flatten(entries);
     }
 }

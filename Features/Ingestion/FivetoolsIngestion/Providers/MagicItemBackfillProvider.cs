@@ -8,8 +8,10 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 /// <summary>
 /// <see cref="IFivetoolsBackfillProvider"/> for <see cref="EntityType.MagicItem"/>. Reads
 /// <c>items.json</c>'s <c>"item"</c> array, filtering out mundane items (rarity absent or
-/// <c>"none"</c>), and projects a curated <see cref="Domain.Entities.Fields.MagicItemFields"/>
-/// shape — a NEW projection (the generic mapper's Clone doesn't match this canonical shape).
+/// <c>"none"</c>), and projects the RAW <c>fields</c> shape the
+/// <see cref="Features.Entities.CanonicalText.MagicItemCanonicalTextRenderer"/> reads
+/// (<c>rarity</c>/<c>type</c>/<c>reqAttune</c> + <c>entries</c>) — NOT a curated domain-record
+/// shape.
 /// </summary>
 public sealed class MagicItemBackfillProvider : IFivetoolsBackfillProvider
 {
@@ -86,56 +88,23 @@ public sealed class MagicItemBackfillProvider : IFivetoolsBackfillProvider
     }
 
     /// <summary>
-    /// Builds the canonical MagicItem <c>fields</c> shape (see
-    /// <see cref="Domain.Entities.Fields.MagicItemFields"/>): rarity, item category (the
-    /// <c>type</c> code with any trailing <c>|SOURCE</c> stripped), attunement requirement, and a
-    /// description assembled from the string entries of <c>entries[]</c>.
+    /// Builds the raw <c>fields</c> shape the
+    /// <see cref="Features.Entities.CanonicalText.MagicItemCanonicalTextRenderer"/> reads (and
+    /// <c>Schemas/canonical/MagicItemFields.schema.json</c> describes): <c>rarity</c>/<c>type</c>
+    /// strings and <c>reqAttune</c> (bool OR string, copied verbatim — the renderer only checks
+    /// it's neither <c>false</c> nor <c>null</c>) copied straight from the source, plus a
+    /// flattened <c>entries</c> array.
     /// </summary>
     private static JsonElement BuildFields(JsonElement item)
     {
         var fields = new JsonObject
         {
-            ["rarity"] = GetRarity(item),
-            ["itemCategory"] = GetItemCategory(item),
-            ["attunement"] = GetAttunement(item),
-            ["description"] = GetDescription(item),
+            ["rarity"] = RawFieldCopy.StringOrNull(item, "rarity"),
+            ["type"] = RawFieldCopy.StringOrNull(item, "type"),
+            ["reqAttune"] = RawFieldCopy.Any(item, "reqAttune"),
+            ["entries"] = FivetoolsEntryText.ToRendererEntries(item),
         };
 
         return JsonDocument.Parse(fields.ToJsonString()).RootElement.Clone();
-    }
-
-    private static string GetRarity(JsonElement item)
-        => item.TryGetProperty("rarity", out var v) && v.ValueKind == JsonValueKind.String
-            ? v.GetString()!
-            : "";
-
-    /// <summary>Strips any trailing <c>"|SOURCE"</c> suffix from the 5etools <c>type</c> code, e.g.
-    /// <c>"RD|DMG"</c> → <c>"RD"</c>.</summary>
-    private static string GetItemCategory(JsonElement item)
-    {
-        if (!item.TryGetProperty("type", out var v) || v.ValueKind != JsonValueKind.String)
-            return "";
-        var type = v.GetString()!;
-        var pipe = type.IndexOf('|');
-        return pipe >= 0 ? type[..pipe] : type;
-    }
-
-    private static string GetAttunement(JsonElement item)
-    {
-        if (!item.TryGetProperty("reqAttune", out var v))
-            return "";
-        return v.ValueKind switch
-        {
-            JsonValueKind.String => v.GetString()!,
-            JsonValueKind.True => "requires attunement",
-            _ => "",
-        };
-    }
-
-    private static string GetDescription(JsonElement item)
-    {
-        if (!item.TryGetProperty("entries", out var entries) || entries.ValueKind != JsonValueKind.Array)
-            return "";
-        return FivetoolsEntryText.Flatten(entries);
     }
 }

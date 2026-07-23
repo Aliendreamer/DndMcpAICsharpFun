@@ -123,7 +123,9 @@ public sealed class EntityBackfillService
         {
             ct.ThrowIfCancellationRequested();
 
-            var name = element.GetProperty("name").GetString();
+            var name = element.TryGetProperty("name", out var nameProp) && nameProp.ValueKind == JsonValueKind.String
+                ? nameProp.GetString()
+                : null;
             if (string.IsNullOrWhiteSpace(name)) continue;
 
             var norm = EntityNameIndex.Normalize(name);

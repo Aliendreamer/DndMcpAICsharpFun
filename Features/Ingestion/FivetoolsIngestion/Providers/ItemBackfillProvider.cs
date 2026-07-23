@@ -10,9 +10,9 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 /// "everything else" partition of the base-item split (see <see cref="BaseItemPartition"/>):
 /// every mundane items-base.json/items.json element that is neither a weapon
 /// (<see cref="WeaponBackfillProvider"/>) nor armor (<see cref="ArmorBackfillProvider"/>).
-/// Projects a curated <see cref="Domain.Entities.Fields.ItemFields"/> shape — self-contained,
-/// like <see cref="GodBackfillProvider"/>/<see cref="SpellBackfillProvider"/>, NOT the generic
-/// field-fill mapper's raw clone.
+/// Projects the RAW <c>fields</c> shape the
+/// <see cref="Features.Entities.CanonicalText.ItemCanonicalTextRenderer"/> reads (<c>type</c> +
+/// <c>value</c> + <c>entries</c>) — NOT a curated domain-record shape.
 /// </summary>
 public sealed class ItemBackfillProvider : IFivetoolsBackfillProvider
 {
@@ -49,44 +49,30 @@ public sealed class ItemBackfillProvider : IFivetoolsBackfillProvider
     }
 
     /// <summary>
-    /// Builds the canonical Item <c>fields</c> shape (see
-    /// <see cref="Domain.Entities.Fields.ItemFields"/>): cost in copper pieces (5etools'
-    /// <c>value</c> is already denominated in cp), weight in pounds, and a description assembled
-    /// from <c>entries[]</c> (falling back to <c>additionalEntries[]</c> for base items that
-    /// only carry rules text there, e.g. tool-proficiency gear).
+    /// Builds the raw <c>fields</c> shape the
+    /// <see cref="Features.Entities.CanonicalText.ItemCanonicalTextRenderer"/> reads (and
+    /// <c>Schemas/canonical/ItemFields.schema.json</c> describes): the raw <c>type</c> code and
+    /// <c>value</c> (cost in copper pieces) copied verbatim, plus a flattened <c>entries</c>
+    /// array (falling back to <c>additionalEntries</c> for base items whose rules text only
+    /// lives there, e.g. tool-proficiency gear).
     /// </summary>
     private static JsonElement BuildFields(JsonElement item)
     {
         var fields = new JsonObject
         {
-            ["costCp"] = GetCostCp(item),
-            ["weightLb"] = GetWeightLb(item),
-            ["description"] = GetDescription(item),
+            ["type"] = RawFieldCopy.StringOrNull(item, "type"),
+            ["value"] = RawFieldCopy.IntOrNull(item, "value"),
+            ["entries"] = GetEntries(item),
         };
 
         return JsonDocument.Parse(fields.ToJsonString()).RootElement.Clone();
     }
 
-    private static int GetCostCp(JsonElement item)
-        => item.TryGetProperty("value", out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var cp)
-            ? cp
-            : 0;
-
-    private static double GetWeightLb(JsonElement item)
-        => item.TryGetProperty("weight", out var w) && w.ValueKind == JsonValueKind.Number && w.TryGetDouble(out var lb)
-            ? lb
-            : 0;
-
-    private static string GetDescription(JsonElement item)
+    private static JsonArray GetEntries(JsonElement item)
     {
-        if (item.TryGetProperty("entries", out var entries) && entries.ValueKind == JsonValueKind.Array)
-        {
-            var text = FivetoolsEntryText.Flatten(entries);
-            if (!string.IsNullOrWhiteSpace(text)) return text;
-        }
-        if (item.TryGetProperty("additionalEntries", out var addl) && addl.ValueKind == JsonValueKind.Array)
-            return FivetoolsEntryText.Flatten(addl);
+        var entries = FivetoolsEntryText.ToRendererEntries(item);
+        if (entries.Count > 0) return entries;
 
-        return "";
+        return FivetoolsEntryText.ToRendererEntries(item, "additionalEntries");
     }
 }

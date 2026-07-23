@@ -7,28 +7,13 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 
 /// <summary>
 /// <see cref="IFivetoolsBackfillProvider"/> for <see cref="EntityType.Feat"/>. Reads
-/// <c>feats.json</c>'s <c>"feat"</c> array (no filter — every feat qualifies) and projects a
-/// curated <see cref="Domain.Entities.Fields.FeatFields"/> shape — self-contained, like
-/// <see cref="GodBackfillProvider"/>/<see cref="SpellBackfillProvider"/>, NOT the generic
-/// field-fill mapper's raw clone.
+/// <c>feats.json</c>'s <c>"feat"</c> array (no filter — every feat qualifies) and projects the
+/// RAW <c>fields</c> shape the <see cref="Features.Entities.CanonicalText.FeatCanonicalTextRenderer"/>
+/// reads (<c>prerequisite</c> + <c>entries</c>) — NOT a curated domain-record shape.
 /// </summary>
 public sealed class FeatBackfillProvider : IFivetoolsBackfillProvider
 {
     public EntityType Type => EntityType.Feat;
-
-    private static readonly (string Key, string Label)[] GrantKeys =
-    {
-        ("ability", "Ability Score Increase"),
-        ("skillProficiencies", "Skill Proficiency"),
-        ("toolProficiencies", "Tool Proficiency"),
-        ("languageProficiencies", "Language"),
-        ("expertise", "Expertise"),
-        ("additionalSpells", "Spells"),
-        ("resist", "Resistance"),
-        ("senses", "Senses"),
-        ("armorProficiencies", "Armor Proficiency"),
-        ("weaponProficiencies", "Weapon Proficiency"),
-    };
 
     /// <summary>Raw 5etools feat records from feats.json's "feat" array (no filter — every feat is a candidate).</summary>
     public IEnumerable<JsonElement> EnumerateRoster(string fivetoolsDir)
@@ -79,97 +64,19 @@ public sealed class FeatBackfillProvider : IFivetoolsBackfillProvider
     }
 
     /// <summary>
-    /// Builds the canonical Feat <c>fields</c> shape (see
-    /// <see cref="Domain.Entities.Fields.FeatFields"/>): a human-readable prerequisite summary,
-    /// a description assembled from <c>entries[]</c>, and a coarse list of grant categories
-    /// (ability score increase, proficiencies, spells, etc.) present on the raw element.
+    /// Builds the raw <c>fields</c> shape the <see cref="Features.Entities.CanonicalText.FeatCanonicalTextRenderer"/>
+    /// reads (and <c>Schemas/canonical/FeatFields.schema.json</c> describes): the raw
+    /// <c>prerequisite</c> array copied verbatim (the renderer serialises it as-is), plus a
+    /// flattened <c>entries</c> array (see <see cref="FivetoolsEntryText.ToRendererEntries"/>).
     /// </summary>
     private static JsonElement BuildFields(JsonElement feat)
     {
         var fields = new JsonObject
         {
-            ["prerequisites"] = ToJsonArray(GetPrerequisites(feat)),
-            ["description"] = GetDescription(feat),
-            ["grants"] = ToJsonArray(GetGrants(feat)),
+            ["prerequisite"] = RawFieldCopy.Array(feat, "prerequisite"),
+            ["entries"] = FivetoolsEntryText.ToRendererEntries(feat),
         };
 
         return JsonDocument.Parse(fields.ToJsonString()).RootElement.Clone();
-    }
-
-    private static IReadOnlyList<string> GetPrerequisites(JsonElement feat)
-    {
-        if (!feat.TryGetProperty("prerequisite", out var arr) || arr.ValueKind != JsonValueKind.Array)
-            return Array.Empty<string>();
-
-        var result = new List<string>();
-        foreach (var pre in arr.EnumerateArray())
-        {
-            if (pre.ValueKind != JsonValueKind.Object) continue;
-            foreach (var prop in pre.EnumerateObject())
-            {
-                var summary = SummarizePrereq(prop.Name, prop.Value);
-                if (!string.IsNullOrWhiteSpace(summary))
-                    result.Add(summary);
-            }
-        }
-        return result;
-    }
-
-    private static string SummarizePrereq(string key, JsonElement value)
-    {
-        switch (key)
-        {
-            case "level":
-                return value.ValueKind == JsonValueKind.Number
-                    ? $"Level {value.GetInt32()}"
-                    : value.TryGetProperty("level", out var lv) && lv.ValueKind == JsonValueKind.Number
-                        ? $"Level {lv.GetInt32()}"
-                        : "Level";
-            case "spellcasting" or "spellcasting2020" when value.ValueKind == JsonValueKind.True:
-                return "Spellcasting";
-            case "ability" when value.ValueKind == JsonValueKind.Array:
-                return string.Join(" or ", value.EnumerateArray()
-                    .Where(o => o.ValueKind == JsonValueKind.Object)
-                    .SelectMany(o => o.EnumerateObject())
-                    .Select(p => $"{Titleize(p.Name)} {(p.Value.ValueKind == JsonValueKind.Number ? p.Value.GetInt32().ToString() : "")}".Trim()));
-            case "race" when value.ValueKind == JsonValueKind.Array:
-                return string.Join(" or ", value.EnumerateArray()
-                    .Where(o => o.ValueKind == JsonValueKind.Object)
-                    .Select(o => o.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String ? n.GetString() : null)
-                    .Where(n => !string.IsNullOrWhiteSpace(n)));
-            default:
-                return value.ValueKind is JsonValueKind.Array or JsonValueKind.Object
-                    ? $"{Titleize(key)}: {value.GetRawText()}"
-                    : $"{Titleize(key)}";
-        }
-    }
-
-    private static IReadOnlyList<string> GetGrants(JsonElement feat)
-    {
-        var grants = new List<string>();
-        foreach (var (key, label) in GrantKeys)
-        {
-            if (feat.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.Array && v.GetArrayLength() > 0)
-                grants.Add(label);
-        }
-        return grants;
-    }
-
-    private static string GetDescription(JsonElement feat)
-    {
-        if (!feat.TryGetProperty("entries", out var entries) || entries.ValueKind != JsonValueKind.Array)
-            return "";
-        return FivetoolsEntryText.Flatten(entries);
-    }
-
-    private static string Titleize(string s)
-        => string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..];
-
-    private static JsonArray ToJsonArray(IEnumerable<string> items)
-    {
-        var arr = new JsonArray();
-        foreach (var i in items)
-            arr.Add(i);
-        return arr;
     }
 }

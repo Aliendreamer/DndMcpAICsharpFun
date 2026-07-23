@@ -9,10 +9,9 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 /// <see cref="IFivetoolsBackfillProvider"/> for <see cref="EntityType.Trap"/>. Reads
 /// <c>trapshazards.json</c>'s <c>"trap"</c> array ONLY (the sibling <c>"hazard"</c> array has no
 /// modeled <see cref="EntityType"/> and is out of scope here — it is surfaced only via the
-/// coverage service's unmodeled bucket) and projects a curated
-/// <see cref="Domain.Entities.Fields.TrapFields"/> shape — self-contained, like
-/// <see cref="GodBackfillProvider"/>/<see cref="SpellBackfillProvider"/>, NOT the generic
-/// field-fill mapper's raw clone.
+/// coverage service's unmodeled bucket) and projects the RAW <c>fields</c> shape the
+/// <see cref="Features.Entities.CanonicalText.TrapCanonicalTextRenderer"/> reads
+/// (<c>trapHazType</c> + <c>entries</c>) — NOT a curated domain-record shape.
 /// </summary>
 public sealed class TrapBackfillProvider : IFivetoolsBackfillProvider
 {
@@ -67,48 +66,19 @@ public sealed class TrapBackfillProvider : IFivetoolsBackfillProvider
     }
 
     /// <summary>
-    /// Builds the canonical Trap <c>fields</c> shape (see
-    /// <see cref="Domain.Entities.Fields.TrapFields"/>): a difficulty label from the first
-    /// <c>rating[].threat</c> entry (current 5etools traps carry a tier/threat rating rather than
-    /// explicit DCs), the top-level <c>detectDc</c>/<c>disarmDc</c> numbers when present (older
-    /// simple-trap shape), and a description assembled from <c>entries[]</c>.
+    /// Builds the raw <c>fields</c> shape the
+    /// <see cref="Features.Entities.CanonicalText.TrapCanonicalTextRenderer"/> reads (and
+    /// <c>Schemas/canonical/TrapFields.schema.json</c> describes): the raw <c>trapHazType</c>
+    /// code copied verbatim, plus a flattened <c>entries</c> array.
     /// </summary>
     private static JsonElement BuildFields(JsonElement trap)
     {
         var fields = new JsonObject
         {
-            ["difficulty"] = GetDifficulty(trap),
-            ["detectDc"] = CopyIntOrNull(trap, "detectDc"),
-            ["disarmDc"] = CopyIntOrNull(trap, "disarmDc"),
-            ["description"] = GetDescription(trap),
+            ["trapHazType"] = RawFieldCopy.StringOrNull(trap, "trapHazType"),
+            ["entries"] = FivetoolsEntryText.ToRendererEntries(trap),
         };
 
         return JsonDocument.Parse(fields.ToJsonString()).RootElement.Clone();
     }
-
-    private static string GetDifficulty(JsonElement trap)
-    {
-        if (trap.TryGetProperty("rating", out var arr) && arr.ValueKind == JsonValueKind.Array && arr.GetArrayLength() > 0)
-        {
-            var first = arr[0];
-            if (first.TryGetProperty("threat", out var t) && t.ValueKind == JsonValueKind.String)
-                return Titleize(t.GetString()!);
-        }
-        return "";
-    }
-
-    private static JsonNode? CopyIntOrNull(JsonElement el, string prop)
-        => el.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.Number
-            ? JsonValue.Create(v.GetInt32())
-            : null;
-
-    private static string GetDescription(JsonElement trap)
-    {
-        if (!trap.TryGetProperty("entries", out var entries) || entries.ValueKind != JsonValueKind.Array)
-            return "";
-        return FivetoolsEntryText.Flatten(entries);
-    }
-
-    private static string Titleize(string s)
-        => string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..];
 }

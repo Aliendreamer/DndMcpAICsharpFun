@@ -9,9 +9,9 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 /// <see cref="IFivetoolsBackfillProvider"/> for <see cref="EntityType.VehicleMount"/>. Reads
 /// <c>vehicles.json</c>'s <c>"vehicle"</c> array (no filter — every vehicle/mount qualifies; the
 /// sibling <c>"vehicleUpgrade"</c> array has no modeled <see cref="EntityType"/> and is out of
-/// scope here) and projects a curated <see cref="Domain.Entities.Fields.VehicleMountFields"/>
-/// shape — self-contained, like <see cref="GodBackfillProvider"/>/<see cref="SpellBackfillProvider"/>,
-/// NOT the generic field-fill mapper's raw clone.
+/// scope here) and projects the RAW <c>fields</c> shape the
+/// <see cref="Features.Entities.CanonicalText.VehicleMountCanonicalTextRenderer"/> reads
+/// (<c>vehicleType</c> + <c>entries</c>) — NOT a curated domain-record shape.
 /// </summary>
 public sealed class VehicleBackfillProvider : IFivetoolsBackfillProvider
 {
@@ -66,66 +66,19 @@ public sealed class VehicleBackfillProvider : IFivetoolsBackfillProvider
     }
 
     /// <summary>
-    /// Builds the canonical VehicleMount <c>fields</c> shape (see
-    /// <see cref="Domain.Entities.Fields.VehicleMountFields"/>): the raw <c>vehicleType</c> code
-    /// as <c>kind</c>, a best-effort walking/first-listed speed in feet, a best-effort cargo
-    /// capacity in pounds (5etools' <c>capCargo</c> is denominated in TONS, converted ×2000), and
-    /// a description assembled from <c>entries[]</c>.
+    /// Builds the raw <c>fields</c> shape the
+    /// <see cref="Features.Entities.CanonicalText.VehicleMountCanonicalTextRenderer"/> reads (and
+    /// <c>Schemas/canonical/VehicleMountFields.schema.json</c> describes): the raw
+    /// <c>vehicleType</c> code copied verbatim, plus a flattened <c>entries</c> array.
     /// </summary>
     private static JsonElement BuildFields(JsonElement vehicle)
     {
         var fields = new JsonObject
         {
-            ["kind"] = GetKind(vehicle),
-            ["speed"] = CopySpeedOrNull(vehicle),
-            ["capacityLb"] = CopyCapacityLbOrNull(vehicle),
-            ["description"] = GetDescription(vehicle),
+            ["vehicleType"] = RawFieldCopy.StringOrNull(vehicle, "vehicleType"),
+            ["entries"] = FivetoolsEntryText.ToRendererEntries(vehicle),
         };
 
         return JsonDocument.Parse(fields.ToJsonString()).RootElement.Clone();
-    }
-
-    private static string GetKind(JsonElement vehicle)
-        => vehicle.TryGetProperty("vehicleType", out var v) && v.ValueKind == JsonValueKind.String
-            ? v.GetString()!
-            : "";
-
-    private static JsonNode? CopySpeedOrNull(JsonElement vehicle)
-    {
-        if (!vehicle.TryGetProperty("speed", out var speed))
-            return null;
-
-        if (speed.ValueKind == JsonValueKind.Number && speed.TryGetInt32(out var n))
-            return JsonValue.Create(n);
-
-        if (speed.ValueKind == JsonValueKind.Object)
-        {
-            foreach (var prop in speed.EnumerateObject())
-            {
-                if (prop.Value.ValueKind == JsonValueKind.Number && prop.Value.TryGetInt32(out var pv))
-                    return JsonValue.Create(pv);
-                if (prop.Value.ValueKind == JsonValueKind.Object
-                    && prop.Value.TryGetProperty("number", out var num)
-                    && num.ValueKind == JsonValueKind.Number
-                    && num.TryGetInt32(out var nv))
-                    return JsonValue.Create(nv);
-            }
-        }
-
-        return null;
-    }
-
-    private static JsonNode? CopyCapacityLbOrNull(JsonElement vehicle)
-        => vehicle.TryGetProperty("capCargo", out var c)
-            && c.ValueKind == JsonValueKind.Number
-            && c.TryGetDouble(out var tons)
-            ? JsonValue.Create((int)Math.Round(tons * 2000))
-            : null;
-
-    private static string GetDescription(JsonElement vehicle)
-    {
-        if (!vehicle.TryGetProperty("entries", out var entries) || entries.ValueKind != JsonValueKind.Array)
-            return "";
-        return FivetoolsEntryText.Flatten(entries);
     }
 }
