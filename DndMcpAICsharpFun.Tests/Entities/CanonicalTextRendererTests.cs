@@ -260,4 +260,54 @@ public class CanonicalTextRendererTests
         var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Subclass, "Blank Subclass", fields));
         text.Should().Contain("Blank Subclass");
     }
+
+
+    // COR-render-nodrop: whole-branch follow-up. DeserialiseFields<TFields> calls
+    // envelope.Fields.Deserialize<TFields>(JsonOptions) UNGUARDED — a type-boundary mismatch
+    // (e.g. JSON null or a wrong-kind value bound to a non-nullable value-type property) throws
+    // JsonException *before* the (now-hardened) renderer body ever runs. That throw propagates
+    // out of Render() and is caught by EntityIngestionOrchestrator's per-entity try/catch, which
+    // SKIPS the entity — silently dropping it from dnd_entities. Render() must degrade to a
+    // non-empty, name-bearing canonicalText instead of throwing, for ANY failure mode.
+
+    [Fact]
+    public void Monster_renderer_degrades_instead_of_throwing_when_hp_average_fails_to_deserialise_as_null()
+    {
+        // MonsterHp.Average is a non-nullable int; a JSON null for "average" makes
+        // System.Text.Json throw JsonException out of DeserialiseFields<MonsterFields> — this is
+        // the actual mechanism that dropped "Sacred Statue" at ingest.
+        var fields = Parse("""{ "size": ["L"], "type": "construct", "cr": "1/8", "hp": { "average": null } }""");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Monster, "Sacred Statue", fields));
+        text.Should().NotBeNullOrWhiteSpace().And.Contain("Sacred Statue");
+    }
+
+    [Fact]
+    public void Monster_renderer_degrades_instead_of_throwing_when_hp_average_is_wrong_kind()
+    {
+        // Same type-boundary failure, different wrong-kind value: a JSON string bound to the
+        // non-nullable int Average property.
+        var fields = Parse("""{ "size": ["L"], "type": "construct", "cr": "1/8", "hp": { "average": "many" } }""");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Monster, "Wordy Statue", fields));
+        text.Should().NotBeNullOrWhiteSpace().And.Contain("Wordy Statue");
+    }
+
+    [Fact]
+    public void Object_renderer_degrades_instead_of_throwing_when_hp_average_is_wrong_kind()
+    {
+        // ObjectHp.Average is also a non-nullable int — same DeserialiseFields<ObjectFields>
+        // type-boundary throw, proving the dispatcher-level fix is NOT Monster-specific.
+        var fields = Parse("""{ "hp": { "average": "many" } }""");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Object, "Wordy Object", fields));
+        text.Should().NotBeNullOrWhiteSpace().And.Contain("Wordy Object");
+    }
+
+    [Fact]
+    public void Class_renderer_degrades_instead_of_throwing_when_hitdice_number_is_wrong_kind()
+    {
+        // HitDice.Number is a non-nullable int — same DeserialiseFields<ClassFields>
+        // type-boundary throw for the Class-typed renderer path.
+        var fields = Parse("""{ "hd": { "number": "one", "faces": 8 } }""");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Class, "Wordy Class", fields));
+        text.Should().NotBeNullOrWhiteSpace().And.Contain("Wordy Class");
+    }
 }

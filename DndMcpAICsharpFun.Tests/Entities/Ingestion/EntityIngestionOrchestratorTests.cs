@@ -239,6 +239,79 @@ public class EntityIngestionOrchestratorTests
         Assert.NotNull(fighter);
         Assert.True(fighter!.Envelope.Srd, "Srd flag should be merged from the existing 5etools entity");
     }
+
+
+    // COR-render-nodrop: an entity whose Fields FAIL to deserialise into its typed *Fields*
+    // record (e.g. Monster's non-nullable MonsterHp.Average bound to a JSON null) must still be
+    // INGESTED with a degraded, name-bearing canonicalText — never silently skipped by the
+    // per-entity try/catch in IngestEntitiesAsync.
+    [Fact]
+    public async Task IngestEntitiesAsync_KeepsEntityWithUndeserialisableFields_UsingDegradedFallbackText()
+    {
+        const string displayName = "Malformed Monster Book";
+        var tracker = Substitute.For<IIngestionTracker>();
+        var record = new IngestionRecord { Id = 3, DisplayName = displayName, FileHash = "malformedhash" };
+        tracker.GetByIdAsync(3, Arg.Any<CancellationToken>()).Returns(record);
+
+        var embeddings = Substitute.For<IEmbeddingService>();
+        embeddings.EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Task.FromResult<IList<float[]>>(
+                ci.Arg<IList<string>>().Select(_ => new float[1024]).ToList()));
+
+        IList<EntityPoint>? captured = null;
+        var store = Substitute.For<IEntityVectorStore>();
+        store.UpsertAsync(Arg.Any<IList<EntityPoint>>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                captured = ci.Arg<IList<EntityPoint>>();
+                return Task.CompletedTask;
+            });
+
+        var slug = EntityIdSlug.For(displayName, EntityType.Class, "x").Split('.')[0];
+        var tempDir = Path.GetTempPath();
+        var canonicalPath = Path.Combine(tempDir, slug + ".json");
+
+        var canonicalJson = """
+            {
+              "schemaVersion": "1",
+              "book": { "sourceBook": "Malformed Monster Book", "edition": "Edition2014", "fileHash": "malformedhash", "displayName": "Malformed Monster Book" },
+              "entities": [{
+                "id": "malformed.monster.sacred-statue", "type": "Monster", "name": "Sacred Statue",
+                "sourceBook": "Malformed Monster Book", "edition": "Edition2014", "page": 1,
+                "firstAppearedIn": { "book": "Malformed Monster Book", "edition": "Edition2014" },
+                "revisedIn": [], "settingTags": [], "canonicalText": "",
+                "fields": { "size": ["L"], "type": "construct", "cr": "1/8", "hp": { "average": null } }
+              }]
+            }
+            """;
+        await File.WriteAllTextAsync(canonicalPath, canonicalJson);
+
+        try
+        {
+            var orchestrator = new EntityIngestionOrchestrator(
+                tracker,
+                new CanonicalJsonLoader(),
+                new EntityCanonicalTextDispatcher(),
+                new EntityReferenceResolver(),
+                embeddings,
+                store,
+                Options.Create(new EntityIngestionOptions { CanonicalDirectory = tempDir }),
+                NullLogger<EntityIngestionOrchestrator>.Instance);
+
+            var result = await orchestrator.IngestEntitiesAsync(3, CancellationToken.None);
+
+            // The entity must NOT be dropped — RED today (result.TotalEntities == 0, the render
+            // throw is caught by the orchestrator's "Skipping entity ... render failed" path).
+            result.TotalEntities.Should().Be(1);
+            Assert.NotNull(captured);
+            Assert.Single(captured!);
+            captured![0].Envelope.CanonicalText.Should().Contain("Sacred Statue");
+        }
+        finally
+        {
+            if (File.Exists(canonicalPath)) File.Delete(canonicalPath);
+        }
+    }
 }
 
 public class EntityIngestionOrchestratorEnrichmentTests
