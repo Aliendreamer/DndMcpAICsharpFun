@@ -1,5 +1,12 @@
 # Parser: MinerU is the main parser — SHIPPED + VALIDATED (2026-06-29)
 
+## UNLIMITED-OCR EVALUATED + REJECTED (2026-07-23, `unlimited-ocr-parser-spike`, NO-GO)
+Baidu `Unlimited-OCR` (3.3B MoE, DeepSeek-OCR lineage) evaluated as a MinerU replacement. **NO-GO on two independent grounds:**
+1. **Can't self-host via vLLM on the 8 GB box:** bf16 weights 6.24 GiB; WSL2 exposes only ~6.83 GiB to a container → no room for KV cache; 5 escalating configs all OOM'd (`No available memory for the cache blocks`). sm_120/CUDA/the `vllm/vllm-openai:unlimited-ocr` image are FINE — VRAM was the sole wall.
+2. **4-bit bitsandbytes via HF transformers DID load (~3.5 GiB, bypasses vLLM's KV pre-alloc; needed `transformers==4.46.3` pin + a fp16 vision-embed dtype patch to the remote code), but the model returns EMPTY OUTPUT on all 21/21 PHB class/race heading pages** — exactly the target pages. 4 variants (gundam/base, anti-repeat off, illustration-cropped) all empty; ~255s/page where it did work (brutally slow). Genuine research-grade-model bug on that layout.
+- **KEY CORRECTION (the spike's real value):** the "8 classes + 8 races never became candidates" premise was STALE. The deterministic A/B on the REAL current PHB: **MinerU = 1342 candidates, 21/21 target recall (12 classes + 9 races), 129 tables @ 4.7% degenerate** — already good (the 2 long-tail missing races closed via `extraction-recall-fixes`). MinerU is NOT the bottleneck on official books; the 45%-degenerate / 8+8-dropped figures are obsolete. Parser-replacement thesis for official books is CLOSED. Real frontier remains homebrew (no 5etools) + prose completeness. Strategic finding: the 8 GB box can't host ANY ≥~6 GiB doc-VLM under WSL2 → any parser/brain upgrade means going off-box (one-time rented/frontier batch), which then favors the most capable model, not a small local one. Spike scaffolding (adapter+harness) relocated to `.superpowers/spike-unlimited-ocr/` (NO-GO, not committed — scratch-dependent).
+
+
 MinerU + `-m ocr` + the spell-chapter splitter replaced Marker as the sole production PDF parser. Live prod run validated.
 
 ## VALIDATION (2026-06-29): mineru-main-parser PASSED ✅
