@@ -244,6 +244,9 @@ public static partial class BooksAdminEndpoints
         [FromServices] CanonicalJsonWriter writer,
         CancellationToken ct)
     {
+        if (string.Equals(type, "all", StringComparison.OrdinalIgnoreCase))
+            return await BackfillAllTypes(id, tracker, services, loader, writer, ct);
+
         if (!TryResolveService(type, services, out var svc))
             return UnsupportedType(type, services);
 
@@ -272,6 +275,80 @@ public static partial class BooksAdminEndpoints
         {
             backfilled = result.ToAppend.Select(e => e.Name).ToList(),
             alreadyPresent = result.AlreadyPresent,
+        });
+    }
+
+    /// <summary>
+    /// Batch mode for <c>?type=all</c>: diffs EVERY registered <see cref="EntityBackfillService"/>
+    /// against a SINGLE canonical snapshot (each provider's <see cref="EntityBackfillService.ComputeAsync"/>
+    /// only reads; none of them write) and appends all gaps in ONE write. This exists to fix a
+    /// lost-update race: calling <c>backfill-entities?type=&lt;T&gt;</c> once per type (13x per book) does
+    /// a load→append→write of the WHOLE canonical each time, and rapid-fire writes on the WSL2 bind
+    /// mount (plus a read cache) can make a later request's load miss an earlier request's write —
+    /// silently dropping that type's appended entities. One write per book eliminates the race.
+    /// </summary>
+    private static async Task<IResult> BackfillAllTypes(
+        int id,
+        IIngestionTracker tracker,
+        IReadOnlyDictionary<EntityType, EntityBackfillService> services,
+        CanonicalJsonLoader loader,
+        CanonicalJsonWriter writer,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        var results = new List<EntityBackfillResult>();
+        foreach (var svc in services.Values)
+        {
+            var result = await svc.ComputeAsync(record, ct);
+
+            if (!result.HasSourceKey)
+                return Results.Problem(
+                    "Book has no fivetoolsSourceKey; all backfill requires an official 5etools source.",
+                    statusCode: StatusCodes.Status400BadRequest);
+
+            results.Add(result);
+        }
+
+        var canonicalPath = results.Count > 0 ? results[0].CanonicalPath : null;
+        if (canonicalPath is null || !File.Exists(canonicalPath))
+            return Results.Conflict($"No canonical file found for book {id}; run extraction first.");
+
+        var toAppend = results.SelectMany(r => r.ToAppend).ToList();
+        var alreadyPresent = results.Sum(r => r.AlreadyPresent);
+        var backfilledByType = results
+            .Where(r => r.ToAppend.Count > 0)
+            .ToDictionary(
+                r => r.ToAppend[0].Type.ToString(),
+                r => r.ToAppend.Select(e => e.Name).ToList());
+
+        if (toAppend.Count > 0)
+        {
+            var file = await loader.LoadAsync(canonicalPath, ct);
+            var merged = file.Entities.Concat(toAppend).ToList();
+
+            // Defensive dedup guard: providers are keyed by distinct EntityType so a cross-provider
+            // id collision shouldn't occur, but this protects the canonical from ever being written
+            // with a duplicate id (CanonicalJsonLoader would throw on load anyway).
+            var duplicateIds = merged
+                .GroupBy(e => e.Id, StringComparer.Ordinal)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+            if (duplicateIds.Count > 0)
+                return Results.Problem(
+                    $"Batch backfill would introduce duplicate entity ids: {string.Join(", ", duplicateIds)}.",
+                    statusCode: StatusCodes.Status409Conflict);
+
+            await writer.WriteAsync(canonicalPath, file with { Entities = merged }, ct);
+        }
+
+        return Results.Ok(new
+        {
+            backfilled = backfilledByType,
+            alreadyPresent,
         });
     }
 

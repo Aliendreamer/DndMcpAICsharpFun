@@ -377,6 +377,26 @@
       "authentication": {}
     },
     {
+      "_id": "req_books_backfill_entities_all",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Batch backfill ALL registered types in one call (?type=all)",
+      "description": "Diffs every registered provider against a single canonical snapshot and writes ONCE, instead of one load-append-write per type — avoids a lost-update race from N rapid-fire per-type calls each doing their own load-append-write of the whole canonical. Response: { \"backfilled\": { \"Feat\": [\"Alert\"], \"Condition\": [\"Prone\"], ... }, \"alreadyPresent\": N }",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/backfill-entities?type=all",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_books_fill_fields",
       "_type": "request",
       "parentId": "fld_admin_books",

@@ -303,6 +303,101 @@ public sealed class EntityBackfillEndpointTests : IDisposable
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+
+    private sealed record BackfillAllResponse(Dictionary<string, List<string>> Backfilled, int AlreadyPresent);
+
+    /// <summary>
+    /// The lost-update-race regression guard: <c>type=all</c> must diff EVERY registered provider
+    /// against a SINGLE canonical snapshot and write ONCE, instead of the caller looping
+    /// <c>type=&lt;T&gt;</c> N times (N reads + N writes racing on the WSL2 bind mount). One call
+    /// here must land gaps across several distinct types (Spell/Feat/Condition/Weapon), and a
+    /// second identical call must be a pure no-op (idempotent, nothing new appended).
+    /// </summary>
+    [Fact]
+    public async Task BackfillEntities_TypeAll_AppendsAllTypesInOneCall_AndIsIdempotent()
+    {
+        File.WriteAllText(Path.Combine(_fivetoolsDir, "feats.json"), """
+        { "feat": [
+          { "name": "Alert", "source": "PHB", "page": 165, "entries": ["You are always on alert."] }
+        ] }
+        """);
+        File.WriteAllText(Path.Combine(_fivetoolsDir, "conditionsdiseases.json"), """
+        { "condition": [
+          { "name": "Prone", "source": "PHB", "page": 292, "entries": ["A prone creature's only movement option is to crawl."] }
+        ], "disease": [] }
+        """);
+        File.WriteAllText(Path.Combine(_fivetoolsDir, "items-base.json"), """
+        { "baseitem": [
+          { "name": "Handaxe", "source": "PHB", "page": 149, "type": "M", "rarity": "none",
+            "weaponCategory": "simple", "weight": 2, "value": 500,
+            "property": [ "L", "T" ], "range": "20/60", "dmg1": "1d6", "dmgType": "S" }
+        ] }
+        """);
+
+        var (client, tracker) = await BuildClientAsync();
+        tracker.GetByIdAsync(2, Arg.Any<CancellationToken>()).Returns(Record(2, "Player's Handbook 2014", "PHB"));
+
+        var canonicalPath = Path.Combine(_canonicalDir, "phb14.json");
+        var loader = new CanonicalJsonLoader();
+        var before = await loader.LoadAsync(canonicalPath, CancellationToken.None);
+        var beforeFireball = before.Entities.Single(e => e.Id == "phb14.spell.fireball");
+
+        var response = await client.PostAsync("/admin/books/2/backfill-entities?type=all", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<BackfillAllResponse>();
+        Assert.NotNull(body);
+        body!.Backfilled.Should().ContainKey("Spell");
+        body.Backfilled.Should().ContainKey("Feat");
+        body.Backfilled.Should().ContainKey("Condition");
+        body.Backfilled.Should().ContainKey("Weapon");
+        body.Backfilled["Spell"].Should().Contain("Ray of Sickness");
+
+        // Reload via CanonicalJsonLoader — the dev-flow canonical-rewrite gate: it must load
+        // without throwing a duplicate-id error, and every id must be unique (guards the
+        // lost-update regression: if two providers' writes had clobbered each other, the
+        // surviving file would be missing one of these types entirely).
+        var after = await loader.LoadAsync(canonicalPath, CancellationToken.None);
+        var ids = after.Entities.Select(e => e.Id).ToList();
+        ids.Should().OnlyHaveUniqueItems();
+
+        var afterFireball = after.Entities.Single(e => e.Id == "phb14.spell.fireball");
+        Assert.Equal(JsonSerializer.Serialize(beforeFireball), JsonSerializer.Serialize(afterFireball));
+
+        var raySickness = after.Entities.Single(e => e.Id == "phb14.spell.ray-of-sickness");
+        var alert = after.Entities.Single(e => e.Id == "phb14.feat.alert");
+        var prone = after.Entities.Single(e => e.Id == "phb14.condition.prone");
+        var handaxe = after.Entities.Single(e => e.Id == "phb14.weapon.handaxe");
+        foreach (var newEntity in new[] { raySickness, alert, prone, handaxe })
+        {
+            Assert.Equal("5etools-backfill", newEntity.DataSource);
+            Assert.Equal(EntityDisposition.Accepted, newEntity.Disposition);
+        }
+
+        // Idempotent: a second type=all call against the now-backfilled canonical must be a
+        // pure no-op — everything is already present, nothing new appended, entity count stable.
+        var second = await client.PostAsync("/admin/books/2/backfill-entities?type=all", null);
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        var secondBody = await second.Content.ReadFromJsonAsync<BackfillAllResponse>();
+        Assert.NotNull(secondBody);
+        secondBody!.Backfilled.Should().BeEmpty();
+
+        var final = await loader.LoadAsync(canonicalPath, CancellationToken.None);
+        final.Entities.Select(e => e.Id).Should().OnlyHaveUniqueItems();
+        final.Entities.Count.Should().Be(after.Entities.Count);
+    }
+
+    [Fact]
+    public async Task BackfillEntities_TypeAll_MissingSourceKey_Returns400()
+    {
+        var (client, tracker) = await BuildClientAsync();
+        tracker.GetByIdAsync(3, Arg.Any<CancellationToken>()).Returns(Record(3, "Homebrew Book", null));
+
+        var response = await client.PostAsync("/admin/books/3/backfill-entities?type=all", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     public void Dispose()
     {
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }

@@ -93,6 +93,10 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/backfill-entities?type=MagicItem
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Batch backfill ALL registered types in one call (?type=all; diffs every registered provider against a single canonical snapshot and writes ONCE, instead of one load-append-write per type — avoids a lost-update race from N rapid-fire per-type calls each doing their own load-append-write of the whole canonical). Response: { "backfilled": { "Feat": ["Alert"], "Condition": ["Prone"], ... }, "alreadyPresent": N }
+POST {{baseUrl}}/admin/books/1/backfill-entities?type=all
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Fill missing structured fields on existing canonical entities from 5etools (official books only; fill-missing-only merge via the allowlist, never overwrites an extraction/human field, skips dataSource:"manual" entities; 409 if no canonical file exists yet)
 POST {{baseUrl}}/admin/books/1/fill-fields
 X-Admin-Api-Key: {{adminKey}}
