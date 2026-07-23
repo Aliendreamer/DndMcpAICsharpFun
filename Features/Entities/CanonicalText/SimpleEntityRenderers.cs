@@ -109,6 +109,119 @@ internal static partial class RendererHelpers
         }
         return null;
     }
+
+
+    private static readonly FrozenDictionary<string, string> AbilityNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["str"] = "Strength",
+        ["dex"] = "Dexterity",
+        ["con"] = "Constitution",
+        ["int"] = "Intelligence",
+        ["wis"] = "Wisdom",
+        ["cha"] = "Charisma",
+    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Renders a 5etools feat/race/etc. "prerequisite" array (e.g.
+    /// <c>[{"race":[{"name":"halfling"}]}]</c>, <c>[{"ability":[{"dex":13}]}]</c>,
+    /// <c>[{"spellcasting":true}]</c>) as readable prose instead of dumping the raw JSON. Each
+    /// element of the outer array is an alternative (joined with " or "); each key within one
+    /// element's object is an additional requirement (joined with ", "). Unknown/malformed keys
+    /// or shapes are skipped rather than surfaced as raw JSON — this never throws.
+    /// </summary>
+    public static string FormatPrerequisite(JsonElement prerequisite)
+    {
+        if (prerequisite.ValueKind != JsonValueKind.Array) return string.Empty;
+
+        var orParts = new List<string>();
+        foreach (var entry in prerequisite.EnumerateArray())
+        {
+            if (entry.ValueKind != JsonValueKind.Object) continue;
+
+            var andParts = new List<string>();
+            foreach (var prop in entry.EnumerateObject())
+            {
+                var part = FormatPrerequisiteKey(prop.Name, prop.Value);
+                if (!string.IsNullOrEmpty(part)) andParts.Add(part);
+            }
+            if (andParts.Count > 0) orParts.Add(string.Join(", ", andParts));
+        }
+        return string.Join(" or ", orParts);
+    }
+
+    private static string FormatPrerequisiteKey(string key, JsonElement value) => key switch
+    {
+        "race" => FormatPrerequisiteRace(value),
+        "ability" => FormatPrerequisiteAbility(value),
+        "spellcasting" => value.ValueKind == JsonValueKind.True
+            ? "The ability to cast at least one spell" : string.Empty,
+        "level" => FormatPrerequisiteLevel(value),
+        "proficiency" or "other" => FormatPrerequisiteBestEffort(value),
+        _ => string.Empty,
+    };
+
+    private static string FormatPrerequisiteRace(JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Array) return string.Empty;
+        var names = value.EnumerateArray()
+            .Where(e => e.ValueKind == JsonValueKind.Object)
+            .Select(e => StringProp(e, "name"))
+            .Where(n => !string.IsNullOrEmpty(n))
+            .ToList();
+        return names.Count > 0 ? string.Join(" or ", names) : string.Empty;
+    }
+
+    private static string FormatPrerequisiteAbility(JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Array) return string.Empty;
+        var orGroups = new List<string>();
+        foreach (var group in value.EnumerateArray())
+        {
+            if (group.ValueKind != JsonValueKind.Object) continue;
+            var abilityParts = new List<string>();
+            foreach (var prop in group.EnumerateObject())
+            {
+                if (!AbilityNameMap.TryGetValue(prop.Name, out var fullName)) continue;
+                if (prop.Value.ValueKind == JsonValueKind.Number && prop.Value.TryGetInt32(out var score))
+                    abilityParts.Add($"{fullName} {score}");
+            }
+            if (abilityParts.Count > 0) orGroups.Add(string.Join(", ", abilityParts));
+        }
+        return string.Join(" or ", orGroups);
+    }
+
+    private static string FormatPrerequisiteLevel(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var level))
+            return $"Level {level}";
+        if (value.ValueKind == JsonValueKind.Object && value.TryGetProperty("level", out var nested)
+            && nested.ValueKind == JsonValueKind.Number && nested.TryGetInt32(out var nestedLevel))
+            return $"Level {nestedLevel}";
+        return string.Empty;
+    }
+
+    private static string FormatPrerequisiteBestEffort(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.String) return value.GetString() ?? string.Empty;
+        if (value.ValueKind == JsonValueKind.Array)
+        {
+            var parts = value.EnumerateArray()
+                .Select(FormatPrerequisiteBestEffortElement)
+                .Where(s => !string.IsNullOrEmpty(s));
+            return string.Join(", ", parts);
+        }
+        return FormatPrerequisiteBestEffortElement(value);
+    }
+
+    private static string FormatPrerequisiteBestEffortElement(JsonElement e)
+    {
+        if (e.ValueKind == JsonValueKind.String) return e.GetString() ?? string.Empty;
+        if (e.ValueKind != JsonValueKind.Object) return string.Empty;
+        var scalarParts = e.EnumerateObject()
+            .Where(p => p.Value.ValueKind == JsonValueKind.String)
+            .Select(p => p.Value.GetString()!);
+        return string.Join(" ", scalarParts);
+    }
 }
 
 public sealed class RaceCanonicalTextRenderer : ISimpleEntityRenderer
@@ -172,8 +285,8 @@ public sealed class FeatCanonicalTextRenderer : ISimpleEntityRenderer
         var sb = new StringBuilder($"{name}.");
         if (f.TryGetProperty("prerequisite", out var pre) && pre.ValueKind == JsonValueKind.Array)
         {
-            var preText = pre.GetRawText();
-            if (preText.Length > 2) sb.Append($" Prerequisite: {preText}.");
+            var preText = RendererHelpers.FormatPrerequisite(pre);
+            if (preText.Length > 0) sb.Append($" Prerequisite: {preText}.");
         }
         var summary = RendererHelpers.FirstEntryText(f);
         if (!string.IsNullOrEmpty(summary)) sb.Append($" {summary}");

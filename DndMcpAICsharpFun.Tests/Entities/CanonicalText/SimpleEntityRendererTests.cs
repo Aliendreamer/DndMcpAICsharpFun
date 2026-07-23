@@ -36,6 +36,56 @@ public class SimpleEntityRendererTests
         text.Should().Contain("Dual Wielder").And.Contain("fighting in two weapons");
     }
 
+    // Live-validation regression: Bountiful Luck's canonicalText contained the literal
+    // "Prerequisite: [{"race":[{"name":"halfling"}]}]" — the 5etools "prerequisite" array was
+    // dumped as raw JSON instead of rendered as prose. FeatCanonicalTextRenderer must translate
+    // the known 5etools prerequisite shapes (race/ability/spellcasting/level/proficiency/other)
+    // into readable text and never leak a raw '{' or '[' into canonicalText.
+    [Fact]
+    public void Feat_prerequisite_race_renders_as_prose_not_raw_json()
+    {
+        var fields = J("{\"prerequisite\":[{\"race\":[{\"name\":\"halfling\"}]}],\"entries\":[\"You are unfailingly lucky.\"]}");
+        var text = new FeatCanonicalTextRenderer().Render("Bountiful Luck", fields);
+        text.Should().Contain("halfling");
+        text.Should().NotContainAny("{", "[");
+    }
+
+    [Fact]
+    public void Feat_prerequisite_ability_dex_renders_as_prose_not_raw_json()
+    {
+        var fields = J("{\"prerequisite\":[{\"ability\":[{\"dex\":13}]}],\"entries\":[\"You are agile.\"]}");
+        var text = new FeatCanonicalTextRenderer().Render("Fencer", fields);
+        text.Should().Contain("Dexterity 13");
+        text.Should().NotContainAny("{", "[");
+    }
+
+    [Fact]
+    public void Feat_prerequisite_ability_str_renders_as_prose_not_raw_json()
+    {
+        var fields = J("{\"prerequisite\":[{\"ability\":[{\"str\":13}]}],\"entries\":[\"You are strong.\"]}");
+        var text = new FeatCanonicalTextRenderer().Render("Brawler", fields);
+        text.Should().Contain("Strength 13");
+        text.Should().NotContainAny("{", "[");
+    }
+
+    [Fact]
+    public void Feat_prerequisite_spellcasting_renders_as_prose_not_raw_json()
+    {
+        var fields = J("{\"prerequisite\":[{\"spellcasting\":true}],\"entries\":[\"You have expanded your magical power.\"]}");
+        var text = new FeatCanonicalTextRenderer().Render("Metamagic Adept", fields);
+        text.Should().Contain("The ability to cast at least one spell");
+        text.Should().NotContainAny("{", "[");
+    }
+
+    [Fact]
+    public void Feat_prerequisite_unknown_shape_degrades_gracefully_without_raw_json_or_throw()
+    {
+        var fields = J("{\"prerequisite\":[{\"someUnknownKey\":{\"weird\":[1,2,3]}}],\"entries\":[\"Something odd.\"]}");
+        var text = new FeatCanonicalTextRenderer().Render("Odd Feat", fields);
+        text.Should().Contain("Odd Feat");
+        text.Should().NotContainAny("{", "[");
+    }
+
     [Fact]
     public void God_renderer_includes_domains_and_alignment()
     {
