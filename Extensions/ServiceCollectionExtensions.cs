@@ -299,6 +299,13 @@ internal static class ServiceCollectionExtensions
             var fivetoolsDir = configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools";
             return new EntityFieldFillService(loader, writer, canonicalDir, fivetoolsDir);
         });
+        // Report-only aggregator over the SAME per-type backfill services above; never applies.
+        services.AddSingleton(sp =>
+        {
+            var backfillServices = sp.GetRequiredService<IReadOnlyDictionary<EntityType, EntityBackfillService>>();
+            var fivetoolsDir = configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools";
+            return new FivetoolsCoverageService(backfillServices, fivetoolsDir);
+        });
         services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
         services.AddSingleton<DndMcpAICsharpFun.Features.Admin.CanonicalValidationService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalTypeFixerService>();
