@@ -283,7 +283,12 @@ internal static class ServiceCollectionExtensions
             var canonicalDir = sp.GetRequiredService<IOptions<EntityExtractionOptions>>().Value.CanonicalDirectory;
             var fivetoolsDir = configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools";
             IFivetoolsBackfillProvider[] providers =
-                { new MonsterBackfillProvider(), new SpellBackfillProvider(), new MagicItemBackfillProvider(), new GodBackfillProvider() };
+                {
+                    new MonsterBackfillProvider(), new SpellBackfillProvider(), new MagicItemBackfillProvider(), new GodBackfillProvider(),
+                    new FeatBackfillProvider(), new BackgroundBackfillProvider(), new ConditionBackfillProvider(),
+                    new TrapBackfillProvider(), new DiseasePoisonBackfillProvider(), new VehicleBackfillProvider(),
+                    new ItemBackfillProvider(), new WeaponBackfillProvider(), new ArmorBackfillProvider(),
+                };
             return providers.ToDictionary(p => p.Type, p => new EntityBackfillService(p, registry, loader, canonicalDir, fivetoolsDir));
         });
         services.AddSingleton(sp =>

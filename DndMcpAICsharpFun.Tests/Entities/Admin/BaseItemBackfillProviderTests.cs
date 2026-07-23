@@ -175,4 +175,46 @@ public sealed class BaseItemBackfillProviderTests
             Directory.Delete(root, recursive: true);
         }
     }
+
+    /// <summary>
+    /// Review finding (design D2): a magic WEAPON — a base item carrying BOTH a
+    /// <c>"weaponCategory"</c> (so <see cref="BaseItemPartition.Classify"/> would otherwise call
+    /// it a weapon) AND a present, non-"none" <c>"rarity"</c> (so it's a magic item, not mundane
+    /// gear) — must be excluded from all three mundane partitions by
+    /// <see cref="BaseItemPartition.IsMundane"/>. The existing partition test above only seeds a
+    /// magic ITEM (Bag of Holding, no <c>weaponCategory</c>); this closes the double-count risk
+    /// specific to a magic item that ALSO looks like a weapon by shape.
+    /// </summary>
+    [Fact]
+    public void BaseItemProviders_Partition_ExcludesMagicWeapon_FromAllThreeMundaneProviders()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "baseitem-backfill-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "items.json"), """
+                { "item": [
+                    { "name": "+1 Longsword", "source": "DMG", "type": "M", "rarity": "rare",
+                      "weaponCategory": "martial", "reqAttune": false, "weight": 3, "value": 1500,
+                      "property": [ "V" ], "dmg1": "1d8", "dmg2": "1d10", "dmgType": "S", "bonusWeapon": "+1" }
+                  ]
+                }
+                """);
+
+            var weaponNames = new WeaponBackfillProvider().EnumerateRoster(root)
+                .Select(e => e.GetProperty("name").GetString()).ToList();
+            var armorNames = new ArmorBackfillProvider().EnumerateRoster(root)
+                .Select(e => e.GetProperty("name").GetString()).ToList();
+            var itemNames = new ItemBackfillProvider().EnumerateRoster(root)
+                .Select(e => e.GetProperty("name").GetString()).ToList();
+
+            Assert.DoesNotContain("+1 Longsword", weaponNames);
+            Assert.DoesNotContain("+1 Longsword", armorNames);
+            Assert.DoesNotContain("+1 Longsword", itemNames);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 }

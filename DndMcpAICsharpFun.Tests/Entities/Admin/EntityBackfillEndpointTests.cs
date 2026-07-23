@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
@@ -11,6 +12,8 @@ using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
+
+using FluentAssertions;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
@@ -103,7 +106,12 @@ public sealed class EntityBackfillEndpointTests : IDisposable
         var loader = new CanonicalJsonLoader();
 
         IFivetoolsBackfillProvider[] providers =
-            { new MonsterBackfillProvider(), new SpellBackfillProvider(), new MagicItemBackfillProvider(), new GodBackfillProvider() };
+            {
+                new MonsterBackfillProvider(), new SpellBackfillProvider(), new MagicItemBackfillProvider(), new GodBackfillProvider(),
+                new FeatBackfillProvider(), new BackgroundBackfillProvider(), new ConditionBackfillProvider(),
+                new TrapBackfillProvider(), new DiseasePoisonBackfillProvider(), new VehicleBackfillProvider(),
+                new ItemBackfillProvider(), new WeaponBackfillProvider(), new ArmorBackfillProvider(),
+            };
         var services = providers.ToDictionary(
             p => p.Type,
             p => new EntityBackfillService(p, registry, loader, _canonicalDir, _fivetoolsDir));
@@ -215,6 +223,73 @@ public sealed class EntityBackfillEndpointTests : IDisposable
         var response = await client.GetAsync("/admin/books/1/entity-recall?type=Plane");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Proves the 9 newly-registered catalog/base-item providers (Feat, Background, Condition,
+    /// Trap, DiseasePoison, VehicleMount, Item, Weapon, Armor) are wired into the SAME
+    /// provider array the DI registration in <c>ServiceCollectionExtensions.AddEntityExtraction</c>
+    /// uses (this test's <see cref="BuildClientAsync"/> is that array's replica). Runs a
+    /// multi-type backfill apply for PHB across several of the new types and reloads the
+    /// rewritten canonical to check the dev-flow canonical-rewrite gate: no duplicate-id load
+    /// error, unique ids, the pre-existing extraction-owned Spell entity byte-unchanged, and the
+    /// new entities correctly marked as backfilled.
+    /// </summary>
+    [Fact]
+    public async Task BackfillEntities_MultiType_RoundTripsCanonicalWithUniqueIdsAndPreservesExtractionOwnedEntity()
+    {
+        // Gaps across three of the new types, all sourced PHB, at the fivetoolsDir root (where
+        // each provider reads its own file — feats.json / conditionsdiseases.json / items-base.json).
+        File.WriteAllText(Path.Combine(_fivetoolsDir, "feats.json"), """
+        { "feat": [
+          { "name": "Alert", "source": "PHB", "page": 165, "entries": ["You are always on alert."] }
+        ] }
+        """);
+        File.WriteAllText(Path.Combine(_fivetoolsDir, "conditionsdiseases.json"), """
+        { "condition": [
+          { "name": "Prone", "source": "PHB", "page": 292, "entries": ["A prone creature's only movement option is to crawl."] }
+        ], "disease": [] }
+        """);
+        File.WriteAllText(Path.Combine(_fivetoolsDir, "items-base.json"), """
+        { "baseitem": [
+          { "name": "Handaxe", "source": "PHB", "page": 149, "type": "M", "rarity": "none",
+            "weaponCategory": "simple", "weight": 2, "value": 500,
+            "property": [ "L", "T" ], "range": "20/60", "dmg1": "1d6", "dmgType": "S" }
+        ] }
+        """);
+
+        var (client, tracker) = await BuildClientAsync();
+        tracker.GetByIdAsync(2, Arg.Any<CancellationToken>()).Returns(Record(2, "Player's Handbook 2014", "PHB"));
+
+        var canonicalPath = Path.Combine(_canonicalDir, "phb14.json");
+        var loader = new CanonicalJsonLoader();
+        var before = await loader.LoadAsync(canonicalPath, CancellationToken.None);
+        var beforeFireball = before.Entities.Single(e => e.Id == "phb14.spell.fireball");
+
+        foreach (var type in new[] { "Feat", "Condition", "Weapon" })
+        {
+            var response = await client.PostAsync($"/admin/books/2/backfill-entities?type={type}", null);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        // Reload via CanonicalJsonLoader — this is the dev-flow canonical-rewrite gate: it must
+        // load without throwing a duplicate-id error.
+        var after = await loader.LoadAsync(canonicalPath, CancellationToken.None);
+
+        var ids = after.Entities.Select(e => e.Id).ToList();
+        ids.Should().OnlyHaveUniqueItems();
+
+        var afterFireball = after.Entities.Single(e => e.Id == "phb14.spell.fireball");
+        Assert.Equal(JsonSerializer.Serialize(beforeFireball), JsonSerializer.Serialize(afterFireball));
+
+        var alert = after.Entities.Single(e => e.Id == "phb14.feat.alert");
+        var prone = after.Entities.Single(e => e.Id == "phb14.condition.prone");
+        var handaxe = after.Entities.Single(e => e.Id == "phb14.weapon.handaxe");
+        foreach (var newEntity in new[] { alert, prone, handaxe })
+        {
+            Assert.Equal("5etools-backfill", newEntity.DataSource);
+            Assert.Equal(EntityDisposition.Accepted, newEntity.Disposition);
+        }
     }
 
     [Fact]
