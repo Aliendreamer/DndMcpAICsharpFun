@@ -212,4 +212,188 @@ public sealed class CatalogBackfillProviderTests
             Directory.Delete(root, recursive: true);
         }
     }
+
+    [Fact]
+    public void TrapBackfillProvider_Type_IsTrap()
+    {
+        var provider = new TrapBackfillProvider();
+
+        Assert.Equal(EntityType.Trap, provider.Type);
+    }
+
+    [Fact]
+    public void TrapBackfillProvider_BuildEntity_ProjectsCuratedFieldsForPitTrap()
+    {
+        var provider = new TrapBackfillProvider();
+        using var doc = JsonDocument.Parse("""
+            { "name": "Pit Trap", "source": "DMG", "page": 122, "srd": true,
+              "rating": [ { "tier": 1, "threat": "dangerous" } ],
+              "detectDc": 15, "disarmDc": 10,
+              "entries": [ "A simple pit dug in the ground, camouflaged with dirt and debris." ] }
+            """);
+
+        var entity = provider.BuildEntity("DMG", "Edition2014", "Pit Trap", doc.RootElement);
+
+        Assert.Equal("dmg14.trap.pit-trap", entity.Id);
+        Assert.Equal(EntityType.Trap, entity.Type);
+        Assert.Equal("5etools-backfill", entity.DataSource);
+        Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
+
+        var fields = _loader.DeserialiseFields<TrapFields>(entity);
+        Assert.Equal("Dangerous", fields.Difficulty);
+        Assert.Equal(15, fields.DetectDc);
+        Assert.Equal(10, fields.DisarmDc);
+        Assert.Contains("simple pit", fields.Description);
+    }
+
+    [Fact]
+    public void TrapBackfillProvider_EnumerateRoster_YieldsOnlyTrapsNotHazards()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "trap-backfill-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "trapshazards.json"), """
+                { "trap": [
+                    { "name": "Pit Trap", "source": "DMG" },
+                    { "name": "Poison Dart Trap", "source": "DMG" }
+                  ],
+                  "hazard": [
+                    { "name": "Falling Rubble", "source": "DMG" }
+                  ]
+                }
+                """);
+
+            var provider = new TrapBackfillProvider();
+            var names = provider.EnumerateRoster(root).Select(e => e.GetProperty("name").GetString()).ToList();
+
+            Assert.Equal(new[] { "Pit Trap", "Poison Dart Trap" }, names);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DiseasePoisonBackfillProvider_Type_IsDiseasePoison()
+    {
+        var provider = new DiseasePoisonBackfillProvider();
+
+        Assert.Equal(EntityType.DiseasePoison, provider.Type);
+    }
+
+    [Fact]
+    public void DiseasePoisonBackfillProvider_BuildEntity_ProjectsCuratedFieldsForCackleFever()
+    {
+        var provider = new DiseasePoisonBackfillProvider();
+        using var doc = JsonDocument.Parse("""
+            { "name": "Cackle Fever", "source": "DMG", "page": 257,
+              "entries": [ "Any humanoid that drinks water tainted by this disease must succeed on a {@dc 12} Constitution saving throw or become infected." ] }
+            """);
+
+        var entity = provider.BuildEntity("DMG", "Edition2014", "Cackle Fever", doc.RootElement);
+
+        Assert.Equal("dmg14.diseasepoison.cackle-fever", entity.Id);
+        Assert.Equal(EntityType.DiseasePoison, entity.Type);
+        Assert.Equal("5etools-backfill", entity.DataSource);
+        Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
+
+        var fields = _loader.DeserialiseFields<DiseasePoisonFields>(entity);
+        Assert.Equal("Disease", fields.Kind);
+        Assert.Equal("12", fields.SaveDc);
+        Assert.Contains("tainted by this disease", fields.Description);
+    }
+
+    [Fact]
+    public void DiseasePoisonBackfillProvider_EnumerateRoster_YieldsOnlyDiseasesNotConditions()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "diseasepoison-backfill-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "conditionsdiseases.json"), """
+                { "condition": [
+                    { "name": "Blinded", "source": "PHB" }
+                  ],
+                  "disease": [
+                    { "name": "Cackle Fever", "source": "DMG" },
+                    { "name": "Sewer Plague", "source": "DMG" }
+                  ]
+                }
+                """);
+
+            var provider = new DiseasePoisonBackfillProvider();
+            var names = provider.EnumerateRoster(root).Select(e => e.GetProperty("name").GetString()).ToList();
+
+            Assert.Equal(new[] { "Cackle Fever", "Sewer Plague" }, names);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void VehicleBackfillProvider_Type_IsVehicleMount()
+    {
+        var provider = new VehicleBackfillProvider();
+
+        Assert.Equal(EntityType.VehicleMount, provider.Type);
+    }
+
+    [Fact]
+    public void VehicleBackfillProvider_BuildEntity_ProjectsCuratedFieldsForKeelboat()
+    {
+        var provider = new VehicleBackfillProvider();
+        using var doc = JsonDocument.Parse("""
+            { "name": "Keelboat", "source": "PHB", "page": 119, "srd": true,
+              "vehicleType": "SHIP",
+              "speed": { "walk": 30 },
+              "capCargo": 0.5,
+              "entries": [ "A keelboat has a solid keel that allows it to sail on the roughest waters." ] }
+            """);
+
+        var entity = provider.BuildEntity("PHB", "Edition2014", "Keelboat", doc.RootElement);
+
+        Assert.Equal("phb14.vehiclemount.keelboat", entity.Id);
+        Assert.Equal(EntityType.VehicleMount, entity.Type);
+        Assert.Equal("5etools-backfill", entity.DataSource);
+        Assert.Equal(EntityDisposition.Accepted, entity.Disposition);
+
+        var fields = _loader.DeserialiseFields<VehicleMountFields>(entity);
+        Assert.Equal("SHIP", fields.Kind);
+        Assert.Equal(30, fields.Speed);
+        Assert.Equal(1000, fields.CapacityLb);
+        Assert.Contains("solid keel", fields.Description);
+    }
+
+    [Fact]
+    public void VehicleBackfillProvider_EnumerateRoster_YieldsOnlyVehiclesNotUpgrades()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "vehicle-backfill-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "vehicles.json"), """
+                { "vehicle": [
+                    { "name": "Keelboat", "source": "PHB" },
+                    { "name": "Longship", "source": "PHB" }
+                  ],
+                  "vehicleUpgrade": [
+                    { "name": "Ballista", "source": "GoS" }
+                  ]
+                }
+                """);
+
+            var provider = new VehicleBackfillProvider();
+            var names = provider.EnumerateRoster(root).Select(e => e.GetProperty("name").GetString()).ToList();
+
+            Assert.Equal(new[] { "Keelboat", "Longship" }, names);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 }
