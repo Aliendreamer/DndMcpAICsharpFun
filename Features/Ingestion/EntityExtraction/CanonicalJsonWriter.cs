@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain.Entities;
+using DndMcpAICsharpFun.Features.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
@@ -35,6 +36,12 @@ public sealed class CanonicalJsonWriter
             try { if (File.Exists(tmp)) File.Delete(tmp); } catch { /* swallow cleanup */ }
             throw;
         }
+
+        // Read-after-write consistency: evict the loader's cache entry for this path unconditionally,
+        // rather than relying on the FS to report a changed mtime/length (see CanonicalJsonLoader's
+        // Cache field remarks — a WSL2 bind mount can report a stale mtime right after a real write,
+        // which would otherwise let a rapid load-modify-write sequence clobber this write's changes).
+        CanonicalJsonLoader.Invalidate(path);
     }
 
     /// <summary>

@@ -141,6 +141,38 @@ public class CanonicalJsonLoaderTests
         finally { File.Delete(tmp); }
     }
 
+
+    // Live-validation bug: on a WSL2 bind mount, File.GetLastWriteTimeUtc can return a STALE mtime
+    // after a real write, so a rapid load-modify-write sequence on the same path can serve a stale
+    // cached instance and clobber the previous write's appended entities. Belt-and-suspenders fix:
+    // the cache key also requires the file LENGTH to match (an append always changes length even
+    // when the reported mtime doesn't).
+    [Fact]
+    public async Task LoadAsync_StaleMtimeButChangedLength_ReturnsFreshContent()
+    {
+        var tmp = Path.GetTempFileName();
+        var fixedMtime = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        await File.WriteAllTextAsync(tmp, MakeMinimalCanonicalJson("first", "h1"));
+        File.SetLastWriteTimeUtc(tmp, fixedMtime);
+        try
+        {
+            var loader = new CanonicalJsonLoader();
+            var first = await loader.LoadAsync(tmp, CancellationToken.None);
+            first.Book.SourceBook.Should().Be("first");
+
+            // Simulate the WSL2 bind-mount stale-mtime bug: a second write changes content
+            // (and hence length) but the FS reports the SAME mtime as before.
+            await File.WriteAllTextAsync(tmp, MakeMinimalCanonicalJson("second-with-more-content", "h2"));
+            File.SetLastWriteTimeUtc(tmp, fixedMtime);
+
+            var second = await loader.LoadAsync(tmp, CancellationToken.None);
+            second.Book.SourceBook.Should().Be(
+                "second-with-more-content",
+                "a changed file length must bust the cache even when the reported mtime is unchanged (stale bind-mount mtime)");
+        }
+        finally { File.Delete(tmp); }
+    }
+
     private static string MakeMinimalCanonicalJson(string sourceBook, string fileHash) =>
         $$"""{"schemaVersion":"1","book":{"sourceBook":"{{sourceBook}}","edition":"e","fileHash":"{{fileHash}}","displayName":"{{sourceBook}}"},"entities":[]}""";
 }

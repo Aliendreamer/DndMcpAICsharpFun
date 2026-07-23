@@ -17,12 +17,31 @@ public sealed class CanonicalJsonLoader
     // Canonical JSON files run 2-3.5 MB and are re-parsed on every admin-path call; writers use an
     // atomic tmp+rename so the file's mtime changes on every real write, making it a safe cache-validity
     // key (audit P3). Keyed by path (not resolved/full path) — callers are expected to pass a stable path.
-    private static readonly ConcurrentDictionary<string, (DateTime MtimeUtc, CanonicalJsonFile File)> Cache = new();
+    //
+    // On a WSL2 bind mount, File.GetLastWriteTimeUtc can return a STALE mtime immediately after a
+    // real write, so a rapid load-modify-write sequence on the same path could serve a stale cached
+    // instance on the next load and silently clobber the previous write's changes. Two independent
+    // defenses close this: (1) the cache key also requires the file LENGTH to match — an append/edit
+    // almost always changes length even when the reported mtime doesn't; (2) CanonicalJsonWriter.
+    // WriteAsync calls Invalidate(path) after every successful write, unconditionally evicting the
+    // entry regardless of what the FS reports for mtime/length. The cache is `static` (shared across
+    // all CanonicalJsonLoader instances in the process), so Invalidate is a static method usable by
+    // any caller without needing the same loader instance injected.
+    private static readonly ConcurrentDictionary<string, (DateTime MtimeUtc, long Length, CanonicalJsonFile File)> Cache = new();
+
+    /// <summary>
+    /// Evicts the cache entry for <paramref name="path"/>, if any, forcing the next
+    /// <see cref="LoadAsync"/> call for that path to re-read from disk. Call this after writing to
+    /// <paramref name="path"/> — read-after-write consistency must not depend on the filesystem's
+    /// mtime granularity (see class remarks).
+    /// </summary>
+    public static void Invalidate(string path) => Cache.TryRemove(path, out _);
 
     public async Task<CanonicalJsonFile> LoadAsync(string path, CancellationToken ct)
     {
         var mtimeUtc = File.GetLastWriteTimeUtc(path);
-        if (Cache.TryGetValue(path, out var cached) && cached.MtimeUtc == mtimeUtc)
+        var length = new FileInfo(path).Length;
+        if (Cache.TryGetValue(path, out var cached) && cached.MtimeUtc == mtimeUtc && cached.Length == length)
             return cached.File;
 
         await using var stream = File.OpenRead(path);
@@ -68,7 +87,7 @@ public sealed class CanonicalJsonLoader
 
         var promoted = file.Entities.Select(PromoteKeywords).ToList();
         var result = file with { Entities = promoted };
-        Cache[path] = (mtimeUtc, result);
+        Cache[path] = (mtimeUtc, length, result);
         return result;
     }
 

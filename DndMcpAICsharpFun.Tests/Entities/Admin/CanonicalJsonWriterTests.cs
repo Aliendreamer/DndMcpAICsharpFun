@@ -145,4 +145,54 @@ public sealed class CanonicalJsonWriterTests : IDisposable
         var after = await _loader.LoadAsync(path, CancellationToken.None);
         after.Entities.Should().HaveCount(countBefore, "write must not drop or duplicate entities");
     }
+
+
+    // Live-validation bug: a rapid load-modify-write on the same path can serve a stale cached
+    // read on the NEXT load when the FS mtime doesn't change (WSL2 bind mounts). The robust fix is
+    // eviction-on-write: WriteAsync must invalidate the loader's cache entry for the written path
+    // regardless of mtime/length. This test isolates that mechanism from the belt-and-suspenders
+    // length-based cache key by padding the second write so its on-disk length is byte-identical to
+    // the first (in addition to forcing an identical mtime) -- only cache eviction can save this case.
+    [Fact]
+    public async Task WriteAsync_EvictsLoaderCache_EvenWhenMtimeAndLengthAppearUnchanged()
+    {
+        var path = Path.Combine(_dir, "evict-test.json");
+        var fixedMtime = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        // fileA carries a large filler in DisplayName so its serialised length comfortably exceeds
+        // fileB's, leaving room to pad fileB's on-disk bytes up to fileA's exact length below.
+        var fileA = new CanonicalJsonFile(
+            SchemaVersion: "1",
+            Book: new CanonicalBookMetadata("first", "Edition2014", "h1", new string('x', 5000)),
+            Entities: Array.Empty<EntityEnvelope>());
+        var fileB = new CanonicalJsonFile(
+            SchemaVersion: "1",
+            Book: new CanonicalBookMetadata("second-book", "Edition2014", "h2", "second"),
+            Entities: Array.Empty<EntityEnvelope>());
+
+        await _writer.WriteAsync(path, fileA, CancellationToken.None);
+        File.SetLastWriteTimeUtc(path, fixedMtime);
+        var targetLength = new FileInfo(path).Length;
+
+        var first = await _loader.LoadAsync(path, CancellationToken.None);
+        first.Book.SourceBook.Should().Be("first");
+
+        await _writer.WriteAsync(path, fileB, CancellationToken.None);
+
+        var currentLength = new FileInfo(path).Length;
+        currentLength.Should().BeLessThanOrEqualTo(targetLength,
+            "fileB must be constructed to serialise no longer than fileA for the padding trick below");
+        if (currentLength < targetLength)
+            await File.AppendAllTextAsync(path, new string(' ', (int)(targetLength - currentLength)));
+
+        // Simulate the WSL2 bind-mount bug: the FS reports the SAME mtime as the first write even
+        // though the content changed; the padding above also makes the length identical.
+        File.SetLastWriteTimeUtc(path, fixedMtime);
+
+        var second = await _loader.LoadAsync(path, CancellationToken.None);
+        second.Book.SourceBook.Should().Be(
+            "second-book",
+            "WriteAsync must invalidate the loader's cache entry so a subsequent load re-reads from " +
+            "disk even when mtime and length are unchanged");
+    }
 }
