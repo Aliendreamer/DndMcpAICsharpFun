@@ -16,7 +16,11 @@ public sealed class CanonicalJsonLoader
 
     // Canonical JSON files run 2-3.5 MB and are re-parsed on every admin-path call; writers use an
     // atomic tmp+rename so the file's mtime changes on every real write, making it a safe cache-validity
-    // key (audit P3). Keyed by path (not resolved/full path) — callers are expected to pass a stable path.
+    // key (audit P3). Keyed by Path.GetFullPath(path) (see NormalizePathKey) — NOT the raw path
+    // string — so a LoadAsync and a later WriteAsync/Invalidate for the same file always agree on
+    // the cache key even if the two callers spelled the path differently (e.g. one with a "./"
+    // relative segment). A raw-string key previously let such spelling differences make
+    // Invalidate silently miss the entry it needed to evict.
     //
     // On a WSL2 bind mount, File.GetLastWriteTimeUtc can return a STALE mtime immediately after a
     // real write, so a rapid load-modify-write sequence on the same path could serve a stale cached
@@ -35,13 +39,21 @@ public sealed class CanonicalJsonLoader
     /// <paramref name="path"/> — read-after-write consistency must not depend on the filesystem's
     /// mtime granularity (see class remarks).
     /// </summary>
-    public static void Invalidate(string path) => Cache.TryRemove(path, out _);
+    public static void Invalidate(string path) => Cache.TryRemove(NormalizePathKey(path), out _);
+
+    // Cache key normalization (COR-cache-key-gap): callers are NOT guaranteed to pass byte-identical
+    // path strings between a LoadAsync and a later WriteAsync/Invalidate for the SAME file (e.g. one
+    // caller's path carries a "./" or other relative segment). Path.GetFullPath resolves such
+    // differences to the same canonical absolute string, so the cache key and the eviction key
+    // always match for the same underlying file regardless of how the path was spelled.
+    private static string NormalizePathKey(string path) => Path.GetFullPath(path);
 
     public async Task<CanonicalJsonFile> LoadAsync(string path, CancellationToken ct)
     {
+        var cacheKey = NormalizePathKey(path);
         var mtimeUtc = File.GetLastWriteTimeUtc(path);
         var length = new FileInfo(path).Length;
-        if (Cache.TryGetValue(path, out var cached) && cached.MtimeUtc == mtimeUtc && cached.Length == length)
+        if (Cache.TryGetValue(cacheKey, out var cached) && cached.MtimeUtc == mtimeUtc && cached.Length == length)
             return cached.File;
 
         await using var stream = File.OpenRead(path);
@@ -87,7 +99,7 @@ public sealed class CanonicalJsonLoader
 
         var promoted = file.Entities.Select(PromoteKeywords).ToList();
         var result = file with { Entities = promoted };
-        Cache[path] = (mtimeUtc, length, result);
+        Cache[cacheKey] = (mtimeUtc, length, result);
         return result;
     }
 

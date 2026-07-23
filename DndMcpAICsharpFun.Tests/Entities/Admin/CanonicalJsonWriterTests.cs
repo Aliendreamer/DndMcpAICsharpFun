@@ -195,4 +195,58 @@ public sealed class CanonicalJsonWriterTests : IDisposable
             "WriteAsync must invalidate the loader's cache entry so a subsequent load re-reads from " +
             "disk even when mtime and length are unchanged");
     }
+
+    // Live-validation regression (path-key gap): the single-type backfill path calls LoadAsync
+    // and WriteAsync with path strings that are NOT guaranteed to be byte-identical (e.g. one
+    // caller passes a path with a "./" relative segment, another passes the plain path) even
+    // though they resolve to the SAME file on disk. Cache.TryRemove(path, ...) inside Invalidate
+    // only evicts when the string used to write matches EXACTLY the string used to key the cache
+    // during load. This test forces the mtime+length coincidence (as above) so ONLY cache
+    // eviction (not the mtime/length fallback) can save it, and uses two different-but-equivalent
+    // path spellings for load vs. write to isolate the path-key mismatch specifically.
+    [Fact]
+    public async Task WriteAsync_EvictsLoaderCache_EvenWhenPathSpellingDiffersFromLoadAsyncSpelling()
+    {
+        var path = Path.Combine(_dir, "evict-pathkey-test.json");
+        var fixedMtime = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        var fileA = new CanonicalJsonFile(
+            SchemaVersion: "1",
+            Book: new CanonicalBookMetadata("first", "Edition2014", "h1", new string('x', 5000)),
+            Entities: Array.Empty<EntityEnvelope>());
+        var fileB = new CanonicalJsonFile(
+            SchemaVersion: "1",
+            Book: new CanonicalBookMetadata("second-book", "Edition2014", "h2", "second"),
+            Entities: Array.Empty<EntityEnvelope>());
+
+        await _writer.WriteAsync(path, fileA, CancellationToken.None);
+        File.SetLastWriteTimeUtc(path, fixedMtime);
+        var targetLength = new FileInfo(path).Length;
+
+        // Load via a DIFFERENT-but-equivalent path spelling (inserts a "./" relative segment) —
+        // resolves to the same file on disk as `path`, but is a different string.
+        var loadSpelling = Path.Combine(Path.GetDirectoryName(path)!, ".", Path.GetFileName(path));
+        loadSpelling.Should().NotBe(path, "the test only proves anything if the spellings differ");
+
+        var first = await _loader.LoadAsync(loadSpelling, CancellationToken.None);
+        first.Book.SourceBook.Should().Be("first");
+
+        // Write via the ORIGINAL path spelling — a different string, same file.
+        await _writer.WriteAsync(path, fileB, CancellationToken.None);
+
+        var currentLength = new FileInfo(path).Length;
+        currentLength.Should().BeLessThanOrEqualTo(targetLength,
+            "fileB must be constructed to serialise no longer than fileA for the padding trick below");
+        if (currentLength < targetLength)
+            await File.AppendAllTextAsync(path, new string(' ', (int)(targetLength - currentLength)));
+        File.SetLastWriteTimeUtc(path, fixedMtime);
+
+        // Load again via the FIRST (different) spelling — must see the fresh write, not a stale
+        // cache entry that Invalidate failed to evict because its path-key didn't match.
+        var second = await _loader.LoadAsync(loadSpelling, CancellationToken.None);
+        second.Book.SourceBook.Should().Be(
+            "second-book",
+            "WriteAsync's cache eviction must match LoadAsync's cache key regardless of how the " +
+            "path string was spelled, so a load-after-write always sees fresh content");
+    }
 }
