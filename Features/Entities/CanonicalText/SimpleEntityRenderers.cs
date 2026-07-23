@@ -51,6 +51,26 @@ internal static partial class RendererHelpers
             ? n : null;
     }
 
+
+    /// <summary>Safely reads a nested "sub-property" of a JsonElement (e.g. the "ac" inside an
+    /// AC-source object, or the "cr" inside a lair-CR object) as a display string, tolerating
+    /// EITHER a String or a Number ValueKind — 5etools-derived data is inconsistent about which
+    /// shape a given sub-property takes, and both <see cref="JsonElement.GetString"/> and
+    /// <see cref="JsonElement.TryGetInt32"/> THROW <see cref="InvalidOperationException"/> for a
+    /// ValueKind they don't expect (TryGetXxx on JsonElement only "tries" for overflow/parse
+    /// failures on an already-correct-kind element, not for the wrong ValueKind). Returns
+    /// <c>null</c> if the property is missing or is neither a String nor a Number.</summary>
+    public static string? NumberOrStringProp(JsonElement e, string key)
+    {
+        if (!e.TryGetProperty(key, out var v)) return null;
+        return v.ValueKind switch
+        {
+            JsonValueKind.String => v.GetString(),
+            JsonValueKind.Number => v.GetRawText(),
+            _ => null,
+        };
+    }
+
     public static IEnumerable<string> StringArray(JsonElement e, string key)
     {
         if (!e.TryGetProperty(key, out var arr) || arr.ValueKind != JsonValueKind.Array)
@@ -80,11 +100,12 @@ internal static partial class RendererHelpers
         }
         if (element.ValueKind == JsonValueKind.Object
             && element.TryGetProperty(objectKey, out var cf) && cf.ValueKind == JsonValueKind.String
-            && element.TryGetProperty("level", out var lv2) && lv2.ValueKind == JsonValueKind.Number)
+            && element.TryGetProperty("level", out var lv2) && lv2.ValueKind == JsonValueKind.Number
+            && lv2.TryGetInt32(out var levelInt))
         {
             var raw = cf.GetString() ?? string.Empty;
             var name = raw.Split('|')[0];
-            return (name, lv2.GetInt32());
+            return (name, levelInt);
         }
         return null;
     }

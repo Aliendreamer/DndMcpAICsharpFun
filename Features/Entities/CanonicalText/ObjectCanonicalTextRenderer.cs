@@ -64,7 +64,7 @@ public sealed class ObjectCanonicalTextRenderer
         if (ac.ValueKind == JsonValueKind.Number && ac.TryGetInt32(out var n))
             return n.ToString();
         if (ac.ValueKind == JsonValueKind.Object && ac.TryGetProperty("ac", out var acProp)
-            && acProp.TryGetInt32(out var acN))
+            && acProp.ValueKind == JsonValueKind.Number && acProp.TryGetInt32(out var acN))
             return acN.ToString();
         return "?";
     }

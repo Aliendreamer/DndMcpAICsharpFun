@@ -14,8 +14,9 @@ public sealed class ClassCanonicalTextRenderer
 
         if (f.Proficiency is { Count: > 0 })
         {
-            var saves = string.Join(", ", f.Proficiency.Select(p => p.ToUpperInvariant()));
-            sb.AppendLine($"Saving throws: {saves}.");
+            var saves = string.Join(", ", f.Proficiency.Where(p => p is not null).Select(p => p.ToUpperInvariant()));
+            if (saves.Length > 0)
+                sb.AppendLine($"Saving throws: {saves}.");
         }
 
         if (f.ClassFeatures is { Count: > 0 })

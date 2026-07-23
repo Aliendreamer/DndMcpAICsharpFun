@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Domain.Entities.Fields;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 
@@ -127,5 +128,136 @@ public class CanonicalTextRendererTests
             Lair: null, LairHeader: null, Spellcasting: null, Environment: null);
         var text = new MonsterCanonicalTextRenderer().Render("Bullywug", fields);
         text.Should().Contain("Bullywug").And.Contain("CR 1/4").And.Contain("Medium").And.Contain("Amphibious");
+    }
+
+    private static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement;
+
+    private static EntityEnvelope BuildEnvelope(EntityType type, string name, JsonElement fields) =>
+        new(
+            Id: $"test.{type}.{name}", Type: type, Name: name,
+            SourceBook: "TEST", Edition: "Edition2014", Page: null,
+            FirstAppearedIn: new FirstAppearance("TEST", "Edition2014", null),
+            RevisedIn: Array.Empty<Revision>(), SettingTags: Array.Empty<string>(),
+            CanonicalText: "", Fields: fields);
+
+    // COR-Sacred-Statue: live corpus ingest observed mtf.monster.sacred-statue /
+    // mpmm.monster.sacred-statue SKIPPED because MonsterCanonicalTextRenderer.Render threw.
+    // Sacred Statue is a genuinely SPARSE monster record (no ac/hp/speed; cr/type present but
+    // their shapes vary across 5etools-derived data). These two lock in the real corpus shapes
+    // as a non-throwing regression; the tests below reproduce the *actual* wrong-kind accessor
+    // bugs found while auditing the renderer (nested type/cr/ac sub-properties assumed to be a
+    // specific ValueKind without checking first) that make such sparse/irregular records throw.
+
+    [Fact]
+    public void Monster_renderer_handles_real_sacred_statue_sparse_fields_Mtf()
+    {
+        var fields = Parse("""
+            { "size": ["L"], "type": { "type": "object", "tags": ["construct"] }, "cr": "1/8",
+              "keywords": ["Construct"], "traitTags": ["False Appearance"], "senseTags": ["D"],
+              "languageTags": ["LF"], "_fivetoolsFilledFields": ["languageTags", "senseTags", "traitTags"] }
+            """);
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Monster, "Sacred Statue", fields));
+        text.Should().Contain("Sacred Statue");
+    }
+
+    [Fact]
+    public void Monster_renderer_handles_real_sacred_statue_sparse_fields_Mpmm()
+    {
+        var fields = Parse("""
+            { "size": ["L"], "type": { "type": "construct", "tags": ["statue"] }, "cr": {},
+              "ac": [ { "ac": 15, "from": ["construct armor"] } ],
+              "hp": { "average": 15, "formula": "2d8+4" },
+              "speed": { "walk": 0 },
+              "str": 14, "dex": 8, "con": 16, "int": 10, "wis": 14, "cha": 8 }
+            """);
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Monster, "Sacred Statue", fields));
+        text.Should().Contain("Sacred Statue");
+    }
+
+    [Fact]
+    public void Monster_renderer_never_throws_when_fields_are_completely_sparse()
+    {
+        var fields = Parse("{}");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Monster, "Blank Golem", fields));
+        text.Should().Contain("Blank Golem");
+    }
+
+    [Fact]
+    public void Monster_renderer_never_throws_when_nested_type_subproperty_is_wrong_kind()
+    {
+        // 5etools monster.type is usually {"type": "<string>", "tags": [...]} (or a plain string),
+        // but malformed/LLM-extracted canonical JSON can carry a wrong-kind nested "type" value.
+        var fields = Parse("""{ "size": ["L"], "type": { "type": 42, "tags": [] }, "cr": "1/8" }""");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Monster, "Odd Statue", fields));
+        text.Should().Contain("Odd Statue");
+    }
+
+    [Fact]
+    public void Monster_renderer_never_throws_when_nested_cr_subproperty_is_wrong_kind()
+    {
+        // Nested cr shape {"cr": "1/2", "lair": "1"} is normal; a numeric nested "cr" is not.
+        var fields = Parse("""{ "size": ["L"], "type": "construct", "cr": { "cr": 0.125 } }""");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Monster, "Fractional Statue", fields));
+        text.Should().Contain("Fractional Statue");
+    }
+
+    [Fact]
+    public void Monster_renderer_never_throws_when_nested_ac_subproperty_is_wrong_kind()
+    {
+        // ac[0] = {"ac": <int>, "from": [...]} is normal; a string "ac" sub-value is not.
+        var fields = Parse("""{ "size": ["L"], "cr": "1/8", "ac": [ { "ac": "15 (natural armor)" } ] }""");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Monster, "Typo Statue", fields));
+        text.Should().Contain("Typo Statue");
+    }
+
+    [Fact]
+    public void Object_renderer_never_throws_when_fields_are_completely_sparse()
+    {
+        var fields = Parse("{}");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Object, "Blank Object", fields));
+        text.Should().Contain("Blank Object");
+    }
+
+    [Fact]
+    public void Object_renderer_never_throws_when_nested_ac_subproperty_is_wrong_kind()
+    {
+        var fields = Parse("""{ "ac": [ { "ac": "15 (natural armor)" } ] }""");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Object, "Typo Object", fields));
+        text.Should().Contain("Typo Object");
+    }
+
+    [Fact]
+    public void Class_renderer_never_throws_when_fields_are_completely_sparse()
+    {
+        var fields = Parse("{}");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Class, "Blank Class", fields));
+        text.Should().Contain("Blank Class");
+    }
+
+    [Fact]
+    public void Class_renderer_never_throws_when_proficiency_array_contains_null()
+    {
+        var fields = Parse("""{ "hd": { "number": 1, "faces": 8 }, "proficiency": ["str", null] }""");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Class, "Null Prof Class", fields));
+        text.Should().Contain("Null Prof Class").And.Contain("STR");
+    }
+
+    [Fact]
+    public void Class_renderer_never_throws_when_classFeature_level_is_non_integral()
+    {
+        var fields = Parse("""
+            { "hd": { "number": 1, "faces": 8 },
+              "classFeatures": [ { "classFeature": "Weird Feature|Test||1.5", "level": 1.5 } ] }
+            """);
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Class, "Odd Level Class", fields));
+        text.Should().Contain("Odd Level Class");
+    }
+
+    [Fact]
+    public void Subclass_renderer_never_throws_when_fields_are_completely_sparse()
+    {
+        var fields = Parse("""{ "className": "Fighter" }""");
+        var text = new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Subclass, "Blank Subclass", fields));
+        text.Should().Contain("Blank Subclass");
     }
 }

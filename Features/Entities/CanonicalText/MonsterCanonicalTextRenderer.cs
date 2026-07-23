@@ -122,7 +122,8 @@ public sealed class MonsterCanonicalTextRenderer
         if (e is null || e.Value.ValueKind == JsonValueKind.Undefined) return "unknown";
         if (e.Value.ValueKind == JsonValueKind.String)
             return e.Value.GetString() ?? "unknown";
-        if (e.Value.ValueKind == JsonValueKind.Object && e.Value.TryGetProperty("type", out var t))
+        if (e.Value.ValueKind == JsonValueKind.Object && e.Value.TryGetProperty("type", out var t)
+            && t.ValueKind == JsonValueKind.String)
             return t.GetString() ?? "unknown";
         return "unknown";
     }
@@ -132,7 +133,7 @@ public sealed class MonsterCanonicalTextRenderer
         if (ac.ValueKind == JsonValueKind.Number && ac.TryGetInt32(out var n))
             return n.ToString();
         if (ac.ValueKind == JsonValueKind.Object && ac.TryGetProperty("ac", out var acProp)
-            && acProp.TryGetInt32(out var acN))
+            && acProp.ValueKind == JsonValueKind.Number && acProp.TryGetInt32(out var acN))
             return acN.ToString();
         return "?";
     }
@@ -142,8 +143,8 @@ public sealed class MonsterCanonicalTextRenderer
         if (e is null || e.Value.ValueKind == JsonValueKind.Undefined) return "?";
         if (e.Value.ValueKind == JsonValueKind.String)
             return e.Value.GetString() ?? "?";
-        if (e.Value.ValueKind == JsonValueKind.Object && e.Value.TryGetProperty("cr", out var crProp))
-            return crProp.GetString() ?? "?";
+        if (e.Value.ValueKind == JsonValueKind.Object)
+            return RendererHelpers.NumberOrStringProp(e.Value, "cr") ?? "?";
         return "?";
     }
 
