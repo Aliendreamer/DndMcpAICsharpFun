@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Providers;
 
@@ -227,5 +228,118 @@ public sealed class BackfillRenderCompatTests
         text.Should().Contain("uncommon");
         text.Should().Contain("attunement");
         text.Should().Contain("+1 bonus to spell attack rolls");
+    }
+
+
+    // Live-validation regression: a backfilled numeric field (e.g. Item's "value", Armor's "ac")
+    // that is JSON null or missing entirely must never make the renderer throw — a throwing
+    // renderer causes EntityIngestionOrchestrator to SKIP the entity out of dnd_entities (it
+    // catches the render exception and continues). The provider now OMITS the key when the
+    // source value is null (see ItemBackfillProvider/ArmorBackfillProvider), but the renderer
+    // itself must also be defensive — hand-authored or LLM-extracted canonical JSON can still
+    // carry an explicit null.
+
+    [Fact]
+    public void Item_BackfillEntity_WithMissingValue_RendersWithoutThrowing()
+    {
+        var provider = new ItemBackfillProvider();
+        var element = Parse("""
+            { "name": "Trinket", "source": "PHB", "page": 158,
+              "type": "TG",
+              "entries": [ "A curious little object." ] }
+            """);
+
+        var entity = provider.BuildEntity("PHB", "Edition2014", "Trinket", element);
+        var text = _dispatcher.Render(entity);
+
+        text.Should().Contain("Trinket");
+        text.Should().Contain("curious little object");
+        text.Should().NotContain("Value:");
+    }
+
+    [Fact]
+    public void Armor_BackfillEntity_WithMissingAc_RendersWithoutThrowing()
+    {
+        var provider = new ArmorBackfillProvider();
+        var element = Parse("""
+            { "name": "Test Armor", "source": "PHB", "page": 1,
+              "type": "LA",
+              "entries": [ "Some armor entry." ] }
+            """);
+
+        var entity = provider.BuildEntity("PHB", "Edition2014", "Test Armor", element);
+        var text = _dispatcher.Render(entity);
+
+        text.Should().Contain("Test Armor");
+        text.Should().NotContain("AC:");
+    }
+
+    [Fact]
+    public void Weapon_BackfillEntity_WithNullDamageFields_RendersWithoutThrowing()
+    {
+        var provider = new WeaponBackfillProvider();
+        var element = Parse("""
+            { "name": "Net", "source": "PHB", "page": 1,
+              "weaponCategory": null, "dmg1": null, "dmgType": null,
+              "entries": [ "A net is small and light." ] }
+            """);
+
+        var entity = provider.BuildEntity("PHB", "Edition2014", "Net", element);
+        var text = _dispatcher.Render(entity);
+
+        text.Should().Contain("Net");
+        text.Should().Contain("A net is small and light");
+    }
+
+    [Fact]
+    public void Item_Envelope_WithNullValueField_RendersWithoutThrowing()
+    {
+        var fields = Parse("""
+            { "type": "A", "value": null,
+              "entries": [ "Ammunition for a sling." ] }
+            """);
+        var envelope = new EntityEnvelope(
+            Id: "test.item.sling-bullet",
+            Type: EntityType.Item,
+            Name: "Sling Bullet",
+            SourceBook: "PHB",
+            Edition: "Edition2014",
+            Page: null,
+            FirstAppearedIn: new FirstAppearance("PHB", "Edition2014", null),
+            RevisedIn: Array.Empty<Revision>(),
+            SettingTags: Array.Empty<string>(),
+            CanonicalText: "",
+            Fields: fields);
+
+        var text = _dispatcher.Render(envelope);
+
+        text.Should().Contain("Sling Bullet");
+        text.Should().Contain("Ammunition for a sling");
+    }
+
+    [Fact]
+    public void Armor_Envelope_WithNullAcField_RendersWithoutThrowing()
+    {
+        var fields = Parse("""
+            { "type": "LA", "ac": null,
+              "entries": [ "Padded armor consists of quilted layers of cloth." ] }
+            """);
+        var envelope = new EntityEnvelope(
+            Id: "test.armor.padded",
+            Type: EntityType.Armor,
+            Name: "Padded",
+            SourceBook: "PHB",
+            Edition: "Edition2014",
+            Page: null,
+            FirstAppearedIn: new FirstAppearance("PHB", "Edition2014", null),
+            RevisedIn: Array.Empty<Revision>(),
+            SettingTags: Array.Empty<string>(),
+            CanonicalText: "",
+            Fields: fields);
+
+        var text = _dispatcher.Render(envelope);
+
+        text.Should().Contain("Padded");
+        text.Should().Contain("quilted layers");
     }
 }

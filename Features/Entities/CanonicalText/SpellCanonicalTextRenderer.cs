@@ -41,7 +41,7 @@ public sealed class SpellCanonicalTextRenderer
             {
                 var m = f.Components.M.Value;
                 var matText = m.ValueKind == JsonValueKind.String ? m.GetString()
-                    : m.ValueKind == JsonValueKind.Object && m.TryGetProperty("text", out var t) ? t.GetString()
+                    : m.ValueKind == JsonValueKind.Object && m.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String ? t.GetString()
                     : null;
                 comps.Add(matText is null ? "M" : $"M ({matText})");
             }
@@ -55,8 +55,8 @@ public sealed class SpellCanonicalTextRenderer
                 "instant" => "Instantaneous",
                 "permanent" => "Until dispelled",
                 "timed" when d.Duration.HasValue
-                    && d.Duration.Value.TryGetProperty("amount", out var da)
-                    && d.Duration.Value.TryGetProperty("type", out var dt)
+                    && d.Duration.Value.TryGetProperty("amount", out var da) && da.ValueKind == JsonValueKind.Number
+                    && d.Duration.Value.TryGetProperty("type", out var dt) && dt.ValueKind == JsonValueKind.String
                     => $"{da.GetInt32()} {dt.GetString()}",
                 _ => d.Type
             };

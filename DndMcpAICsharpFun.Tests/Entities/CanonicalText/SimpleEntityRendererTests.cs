@@ -67,4 +67,43 @@ public class SimpleEntityRendererTests
         var text = new MagicItemCanonicalTextRenderer().Render("Wand of Lightning Bolts", fields);
         text.Should().Contain("rare").And.Contain("attunement").And.Contain("electricity");
     }
+
+
+    // Live-validation regression: JsonElement.TryGetInt32 THROWS InvalidOperationException when
+    // the element's ValueKind is not Number (it only returns false for overflow/format issues on
+    // an actual Number) — so a backfilled "value": null (e.g. Sling Bullet, Trinket) made
+    // ItemCanonicalTextRenderer throw, and the throwing renderer caused the entity to be SKIPPED
+    // out of dnd_entities entirely (EntityIngestionOrchestrator catches the render exception and
+    // continues). A canonicalText renderer must never throw for any Fields JSON shape.
+    [Fact]
+    public void Item_renderer_with_null_value_does_not_throw()
+    {
+        var fields = J("{\"type\":\"A\",\"value\":null,\"entries\":[\"Ammunition for a sling.\"]}");
+        var text = new ItemCanonicalTextRenderer().Render("Sling Bullet", fields);
+        text.Should().Contain("Sling Bullet").And.Contain("Ammunition for a sling").And.NotContain("Value:");
+    }
+
+    [Fact]
+    public void Item_renderer_with_missing_value_does_not_throw()
+    {
+        var fields = J("{\"type\":\"TG\",\"entries\":[\"A curious little object.\"]}");
+        var text = new ItemCanonicalTextRenderer().Render("Trinket", fields);
+        text.Should().Contain("Trinket").And.Contain("curious little object").And.NotContain("Value:");
+    }
+
+    [Fact]
+    public void Armor_renderer_with_null_ac_does_not_throw()
+    {
+        var fields = J("{\"type\":\"LA\",\"ac\":null,\"entries\":[\"Padded armor consists of quilted layers of cloth.\"]}");
+        var text = new ArmorCanonicalTextRenderer().Render("Padded", fields);
+        text.Should().Contain("Padded").And.Contain("quilted layers").And.NotContain("AC:");
+    }
+
+    [Fact]
+    public void Armor_renderer_with_missing_ac_does_not_throw()
+    {
+        var fields = J("{\"type\":\"LA\",\"entries\":[\"Some armor entry.\"]}");
+        var text = new ArmorCanonicalTextRenderer().Render("Test Armor", fields);
+        text.Should().Contain("Test Armor").And.NotContain("AC:");
+    }
 }

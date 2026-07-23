@@ -58,9 +58,13 @@ public sealed class ArmorBackfillProvider : IFivetoolsBackfillProvider
         var fields = new JsonObject
         {
             ["type"] = RawFieldCopy.StringOrNull(armor, "type"),
-            ["ac"] = RawFieldCopy.IntOrNull(armor, "ac"),
             ["entries"] = FivetoolsEntryText.ToRendererEntries(armor),
         };
+
+        // Omit "ac" entirely rather than writing a JSON null — ArmorCanonicalTextRenderer
+        // treats a present-but-null "ac" the same as absent (no AC line rendered either way).
+        var ac = RawFieldCopy.IntOrNull(armor, "ac");
+        if (ac.HasValue) fields["ac"] = ac.Value;
 
         return JsonDocument.Parse(fields.ToJsonString()).RootElement.Clone();
     }

@@ -39,6 +39,18 @@ internal static partial class RendererHelpers
             ? v.GetString()! : string.Empty;
     }
 
+
+    /// <summary>Copies a raw numeric property as an <c>int</c>, else <c>null</c> — safe against
+    /// a JSON <c>null</c>/wrong-kind value (e.g. backfilled <c>"value": null</c>), which would
+    /// otherwise make <see cref="JsonElement.TryGetInt32"/> throw <see cref="InvalidOperationException"/>
+    /// (it only returns <c>false</c> for overflow/format issues on a Number-kind element — a
+    /// non-Number ValueKind throws).</summary>
+    public static int? IntProp(JsonElement e, string key)
+    {
+        return e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var n)
+            ? n : null;
+    }
+
     public static IEnumerable<string> StringArray(JsonElement e, string key)
     {
         if (!e.TryGetProperty(key, out var arr) || arr.ValueKind != JsonValueKind.Array)
@@ -67,8 +79,8 @@ internal static partial class RendererHelpers
             return null;
         }
         if (element.ValueKind == JsonValueKind.Object
-            && element.TryGetProperty(objectKey, out var cf)
-            && element.TryGetProperty("level", out var lv2))
+            && element.TryGetProperty(objectKey, out var cf) && cf.ValueKind == JsonValueKind.String
+            && element.TryGetProperty("level", out var lv2) && lv2.ValueKind == JsonValueKind.Number)
         {
             var raw = cf.GetString() ?? string.Empty;
             var name = raw.Split('|')[0];
@@ -155,8 +167,8 @@ public sealed class ItemCanonicalTextRenderer : ISimpleEntityRenderer
         var type = RendererHelpers.StringProp(f, "type");
         var sb = new StringBuilder($"{name}.");
         if (!string.IsNullOrEmpty(type)) sb.Append($" Type: {type}.");
-        if (f.TryGetProperty("value", out var val) && val.TryGetInt32(out var v))
-            sb.Append($" Value: {v / 100} gp.");
+        var value = RendererHelpers.IntProp(f, "value");
+        if (value.HasValue) sb.Append($" Value: {value.Value / 100} gp.");
         var summary = RendererHelpers.FirstEntryText(f);
         if (!string.IsNullOrEmpty(summary)) sb.Append($" {summary}");
         return sb.ToString();
@@ -203,8 +215,8 @@ public sealed class ArmorCanonicalTextRenderer : ISimpleEntityRenderer
     {
         var type = RendererHelpers.StringProp(f, "type");
         var sb = new StringBuilder($"{name}. {type} armor.");
-        if (f.TryGetProperty("ac", out var ac) && ac.TryGetInt32(out var acv))
-            sb.Append($" AC: {acv}.");
+        var ac = RendererHelpers.IntProp(f, "ac");
+        if (ac.HasValue) sb.Append($" AC: {ac.Value}.");
         var summary = RendererHelpers.FirstEntryText(f);
         if (!string.IsNullOrEmpty(summary)) sb.Append($" {summary}");
         return sb.ToString();

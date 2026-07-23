@@ -61,9 +61,14 @@ public sealed class ItemBackfillProvider : IFivetoolsBackfillProvider
         var fields = new JsonObject
         {
             ["type"] = RawFieldCopy.StringOrNull(item, "type"),
-            ["value"] = RawFieldCopy.IntOrNull(item, "value"),
             ["entries"] = GetEntries(item),
         };
+
+        // Omit "value" entirely rather than writing a JSON null — some base items (e.g. Sling
+        // Bullet, Trinket) carry no cost in 5etools, and ItemCanonicalTextRenderer treats a
+        // present-but-null "value" the same as absent (no Value line rendered either way).
+        var value = RawFieldCopy.IntOrNull(item, "value");
+        if (value.HasValue) fields["value"] = value.Value;
 
         return JsonDocument.Parse(fields.ToJsonString()).RootElement.Clone();
     }
