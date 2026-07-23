@@ -82,6 +82,13 @@ X-Admin-Api-Key: {{adminKey}}
 GET {{baseUrl}}/admin/books/1/entity-recall?type=Monster
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — 5etools coverage report (official books only; report-only, never applies a backfill). Loops every registered backfill provider and returns, per type, the 5etools roster count, the present count (roster-matched canonical entities), the NAMED missing entities, plus an "unmodeled" bucket of 5etools content types (e.g. optionalfeatures) with no EntityType at all yet. A book with no fivetoolsSourceKey returns the empty/no-op shape.
+# Response shape:
+# { "sourceKey": "MM", "perType": [{ "type": "Monster", "rosterCount": 493, "present": 493, "missingCount": 0, "missingNames": [] }, ...],
+#   "unmodeled": ["optionalfeatures"], "totalPresent": N, "totalRoster": N, "coveragePct": 100.0 }
+GET {{baseUrl}}/admin/books/1/coverage
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Backfill missing entities from 5etools (official books only; ?type=Monster|Spell|MagicItem|God; fills parser gaps, appends dataSource:"5etools-backfill" entities). For MagicItem the roster also includes templated +N variants expanded from magicvariants.json (e.g. "+1 Longsword"), and Descriptions are richly flattened from 5etools entries (nested lists/tables/sub-entries, inline tags reduced to display text).
 POST {{baseUrl}}/admin/books/1/backfill-entities?type=MagicItem
 X-Admin-Api-Key: {{adminKey}}
@@ -153,8 +160,10 @@ Content-Type: application/json
 ### Admin — Validate the entire canonical corpus
 # Response shape:
 # { "filesScanned": N, "totalEntities": N, "failures": [], "warnings": [],
-#   "needsReview": [{ "file": "tce.json", "count": 156 }] }
+#   "needsReview": [{ "file": "tce.json", "count": 156 }],
+#   "coverage": [{ "file": "phb14.json", "sourceKey": "PHB", "coveragePct": 92.3, "totalMissing": 12 }] }
 # needsReview: entities flagged for human review (name quality). Not errors — returns 200.
+# coverage: 5etools coverage below 100% per book (report + warn only — NEVER causes a 422; see GET /admin/books/{id}/coverage for the full per-type breakdown).
 POST {{baseUrl}}/admin/canonical/validate
 X-Admin-Api-Key: {{adminKey}}
 

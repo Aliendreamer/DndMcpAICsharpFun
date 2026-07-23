@@ -306,6 +306,8 @@ internal static class ServiceCollectionExtensions
             var fivetoolsDir = configuration["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools";
             return new FivetoolsCoverageService(backfillServices, fivetoolsDir);
         });
+        // Startup guard (Task 6, surface c): warns per official book below 100% coverage; non-fatal.
+        services.AddHostedService<FivetoolsCoverageHealthCheck>();
         services.AddScoped<IEntityExtractionOrchestrator, EntityExtractionOrchestrator>();
         services.AddSingleton<DndMcpAICsharpFun.Features.Admin.CanonicalValidationService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalTypeFixerService>();

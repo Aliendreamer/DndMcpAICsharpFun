@@ -337,6 +337,26 @@
       "authentication": {}
     },
     {
+      "_id": "req_books_coverage",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "5etools coverage report (official books only; report-only, never applies a backfill)",
+      "description": "Loops every registered backfill provider and returns, per type, the 5etools roster count, the present count (roster-matched canonical entities), the NAMED missing entities, plus an \"unmodeled\" bucket of 5etools content types (e.g. optionalfeatures) with no EntityType at all yet. A book with no fivetoolsSourceKey returns the empty/no-op shape.",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/admin/books/1/coverage",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_books_backfill_entities",
       "_type": "request",
       "parentId": "fld_admin_books",
@@ -481,6 +501,7 @@
       "_type": "request",
       "parentId": "fld_admin_books",
       "name": "Validate canonical corpus",
+      "description": "Response includes needsReview (name-quality flags) and coverage (5etools coverage below 100% per book: file, sourceKey, coveragePct, totalMissing) warning blocks. Both are report + warn only — never cause a 422; see GET /admin/books/{id}/coverage for the full per-type breakdown.",
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/canonical/validate",
       "headers": [

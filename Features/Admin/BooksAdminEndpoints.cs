@@ -29,6 +29,7 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/{id:int}/ingest-entities", IngestEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/extract-entities", ExtractEntities).DisableAntiforgery();
         group.MapGet("/books/{id:int}/entity-recall", EntityRecall);
+        group.MapGet("/books/{id:int}/coverage", GetCoverage);
         group.MapPost("/books/{id:int}/backfill-entities", BackfillEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/fill-fields", FillFields).DisableAntiforgery();
         group.MapPost("/books/{id:int}/flag-unknown-entities", FlagUnknownEntities).DisableAntiforgery();
@@ -203,6 +204,25 @@ public static partial class BooksAdminEndpoints
             extraOtherSource = result.ExtraOtherSource,
             extraUnknown = result.ExtraUnknown,
         });
+    }
+
+    /// <summary>
+    /// Read-only 5etools coverage report for a book: per-type roster/present/missing counts (with
+    /// NAMED gaps) plus the unmodeled-content bucket. Never applies a backfill. A book with no
+    /// <c>fivetoolsSourceKey</c> returns the empty/no-op <see cref="BookCoverage"/>.
+    /// </summary>
+    private static async Task<IResult> GetCoverage(
+        int id,
+        [FromServices] IIngestionTracker tracker,
+        [FromServices] FivetoolsCoverageService coverage,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        var result = await coverage.ComputeAsync(record, ct);
+        return Results.Ok(result);
     }
 
     private static async Task<IResult> BackfillEntities(

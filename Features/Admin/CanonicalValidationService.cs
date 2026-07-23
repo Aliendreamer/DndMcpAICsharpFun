@@ -1,6 +1,8 @@
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
+using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 
 using Microsoft.Extensions.Options;
 
@@ -10,7 +12,8 @@ public sealed class CanonicalValidationService(
     CanonicalJsonLoader loader,
     EntityReferenceResolver resolver,
     IOptions<EntityExtractionOptions> options,
-    ILogger<CanonicalValidationService> logger)
+    ILogger<CanonicalValidationService> logger,
+    FivetoolsCoverageService coverageService)
 {
     private readonly EntityExtractionOptions _opts = options.Value;
 
@@ -19,6 +22,7 @@ public sealed class CanonicalValidationService(
         var failures = new List<CanonicalValidationFailure>();
         var warnings = new List<CanonicalValidationWarning>();
         var needsReviewWarnings = new List<CanonicalNeedsReviewWarning>();
+        var coverageWarnings = new List<CanonicalCoverageWarning>();
         var allEntities = new List<EntityEnvelope>();
         var seenIds = new Dictionary<string, string>(StringComparer.Ordinal);  // id → file
 
@@ -57,6 +61,23 @@ public sealed class CanonicalValidationService(
                     needsReviewWarnings.Add(new CanonicalNeedsReviewWarning(
                         File: Path.GetFileName(path),
                         Count: reviewCount));
+
+                // Coverage against 5etools (Task 6, surface b) — report + warn only, NEVER a
+                // CanonicalValidationFailure, so it can never turn this endpoint's 200 into a 422.
+                // Reuses the book's own sourceBook as the 5etools key (a homebrew/non-5etools key
+                // simply yields TotalRoster == 0 and is skipped below).
+                var syntheticRecord = new IngestionRecord
+                {
+                    FivetoolsSourceKey = loaded.Book.SourceBook,
+                    DisplayName = loaded.Book.DisplayName,
+                };
+                var coverage = await coverageService.ComputeAsync(syntheticRecord, ct);
+                if (coverage.TotalRoster > 0 && coverage.CoveragePct < 100.0)
+                    coverageWarnings.Add(new CanonicalCoverageWarning(
+                        File: Path.GetFileName(path),
+                        SourceKey: coverage.SourceKey,
+                        CoveragePct: coverage.CoveragePct,
+                        TotalMissing: coverage.TotalRoster - coverage.TotalPresent));
 
                 allEntities.AddRange(loaded.Entities);
             }
@@ -99,6 +120,6 @@ public sealed class CanonicalValidationService(
             }
         }
 
-        return new CanonicalValidationReport(files.Count, allEntities.Count, failures, warnings, needsReviewWarnings);
+        return new CanonicalValidationReport(files.Count, allEntities.Count, failures, warnings, needsReviewWarnings, coverageWarnings);
     }
 }
