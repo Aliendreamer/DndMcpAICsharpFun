@@ -24,23 +24,36 @@ docker exec personalcommandcenter-postgres-1 psql -U pcc -tAc \
 docker exec personalcommandcenter-ollama-1 ollama list | grep -E "mxbai|qwen3"
 ```
 
-## Run the app
+## Run the app (2026-07-24 — keys now live in git-crypt appsettings, NOT env)
 
-`Admin__ApiKey` and `Mcp__ApiKey` are MANDATORY (hardening removed the dev fallbacks). `.env` is
-git-ignored and masked in the agent sandbox, so pass keys INLINE — Compose substitutes them from the
-shell env:
+`Admin__ApiKey` / `Mcp__ApiKey` / `McpClient__ApiKey` come from the **git-crypt `Config/appsettings.{env}.json`**
+(dev = `appsettings.Development.json`), NOT from env. Both `docker-compose.yml` (dev) and
+`docker-compose.prod.yml` DELIBERATELY do **no env injection** of these keys (their comments say so) —
+injecting an UNSET `${ADMIN_API_KEY}` would override the appsettings value to an empty string and crash
+startup on `WebApplicationExtensions.ValidateStartupConfiguration` ("Admin:ApiKey must be configured").
+
+**Correct local run — plain, explicit dev file, NO key env vars:**
 
 ```bash
-ADMIN_API_KEY=$(openssl rand -hex 20) \
-MCP_API_KEY=$(openssl rand -hex 20) \
-docker compose up -d --build app
+docker compose -f docker-compose.yml up -d --build app
 ```
 
-(Or copy `.env.example` -> `.env` and set the two keys.) `--build` recreates the container so code
-changes take effect (image otherwise lags `main`). Startup applies EF migrations to `dnd` + seeds a
-`test` user. App = `http://localhost:5101`; `/health` -> `Healthy`. Save the ADMIN key — admin routes
-need the `X-Admin-Api-Key` header. All `docker`/`curl localhost:5101` commands need the agent sandbox
-DISABLED (docker socket + network + masked `.env`).
+- **Do NOT** pass `ADMIN_API_KEY=...` / `MCP_API_KEY=...` on the command line — that's the retired
+  deployment-hardening approach; it either injects a FAKE key (a bogus `Admin__ApiKey=devXXXdev` ends up
+  baked in the container env, overriding the real appsettings key) or, when unset, nullifies it → crash.
+  Verify the container is clean: `docker inspect dndmcpaicsharpfun-app-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -i admin__apikey` should return NOTHING (key comes from appsettings).
+- **Always use `-f docker-compose.yml`** for local dev. A bare `docker compose ...` (no `-f`) was observed
+  to emit `warning: ADMIN_API_KEY variable is not set. Defaulting to a blank string` and crash the app on
+  startup — the explicit `-f docker-compose.yml` build+recreate came up healthy from appsettings. (Root
+  mechanism of the phantom `${ADMIN_API_KEY}` interpolation on the bare command was never fully pinned;
+  the reliable workaround is the explicit `-f`.)
+- `--build` recreates the container so code changes take effect (image otherwise lags `main`). Startup
+  applies EF migrations to `dnd` + seeds a `test` user (login `test`/`test`). App = `http://localhost:5101`;
+  `/health` -> `Healthy`. **A container recreate DROPS the auth cookie — re-login in the browser after every rebuild.**
+- To hit ADMIN routes (`X-Admin-Api-Key` header) you need the real key from `appsettings.Development.json`,
+  which is git-crypt-masked in the sandbox — read it via a `docker exec` into the running container's config
+  or from the decrypted working copy outside the sandbox; do NOT invent one.
+- All `docker`/`curl localhost:5101` commands need the agent sandbox DISABLED (docker socket + network).
 
 ## GOTCHA — non-root container + bind-mount ownership (broke extraction 2026-07-03)
 
