@@ -82,6 +82,8 @@ public sealed class CharacterResolutionService(
             return ResolveSubclassSpellsAsync(sheet, ct);
         if (feature.Equals("saving throws", StringComparison.OrdinalIgnoreCase))
             return Task.FromResult(ResolveSavingThrows(sheet));
+        if (feature.Equals("armor class", StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult(ResolveArmorClass(sheet));
 
         throw new NotSupportedException($"feature not supported: {feature}");
     }
@@ -602,6 +604,76 @@ public sealed class CharacterResolutionService(
             rendered.Add($"{name} {val}");
         }
         return new ResolvedFact("saving throws", string.Join(", ", rendered), components, "ok");
+    }
+
+    // Best applicable Unarmored Defense base (WITHOUT shield) across the character's classes:
+    // Barbarian 10+Dex+Con (shield allowed), Monk 10+Dex+Wis (only when no shield). null if none apply.
+    private static int? UnarmoredDefense(CharacterSheet sheet, bool hasShield)
+    {
+        int? best = null;
+        var dex = CharacterSheet.Modifier(sheet.Dexterity);
+        foreach (var c in sheet.Classes)
+        {
+            int? ud = null;
+            if (string.Equals(c.Class, "Barbarian", StringComparison.OrdinalIgnoreCase))
+                ud = 10 + dex + CharacterSheet.Modifier(sheet.Constitution);
+            else if (string.Equals(c.Class, "Monk", StringComparison.OrdinalIgnoreCase) && !hasShield)
+                ud = 10 + dex + CharacterSheet.Modifier(sheet.Wisdom);
+            if (ud is not null && (best is null || ud > best)) best = ud;
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// Armor Class from the structured worn armor: unarmored 10+Dex raised to the best Unarmored Defense;
+    /// Light base+Dex, Medium base+min(Dex,2), Heavy base; +2 shield; +magic. Pure/computed (no DB, no
+    /// provenance). Unknown armor name => needsReview (no fabricated base AC).
+    /// </summary>
+    public static ResolvedFact ResolveArmorClass(CharacterSheet sheet)
+    {
+        var armor = sheet.WornArmor ?? new WornArmor();
+        var dex = CharacterSheet.Modifier(sheet.Dexterity);
+        var components = new List<ResolvedComponent>();
+        static string Signed(int n) => n >= 0 ? $"+{n}" : n.ToString();
+
+        var unarmored = string.IsNullOrWhiteSpace(armor.ArmorName)
+                        || string.Equals(armor.ArmorName, "None", StringComparison.OrdinalIgnoreCase);
+        int baseAc;
+        if (unarmored)
+        {
+            baseAc = 10 + dex;
+            components.Add(new ResolvedComponent("base", "10", null));
+            components.Add(new ResolvedComponent("dex", Signed(dex), null));
+            var ud = UnarmoredDefense(sheet, armor.Shield);
+            if (ud is not null && ud > baseAc)
+            {
+                baseAc = ud.Value;
+                components.Add(new ResolvedComponent("unarmored defense", ud.Value.ToString(), null));
+            }
+        }
+        else
+        {
+            var entry = ArmorCatalog.Lookup(armor.ArmorName);
+            if (entry is null)
+                return new ResolvedFact("armor class", "unknown armor", [], "needsReview");
+            var (b, cat) = entry.Value;
+            var dexPart = cat switch
+            {
+                ArmorCategory.Light => dex,
+                ArmorCategory.Medium => Math.Min(dex, 2),
+                _ => 0, // Heavy
+            };
+            baseAc = b + dexPart;
+            components.Add(new ResolvedComponent("armor", $"{armor.ArmorName} {b}", null));
+            if (cat != ArmorCategory.Heavy)
+                components.Add(new ResolvedComponent("dex", Signed(dexPart), null));
+        }
+
+        var total = baseAc;
+        if (armor.Shield) { total += 2; components.Add(new ResolvedComponent("shield", "+2", null)); }
+        if (armor.MagicBonus != 0) { total += armor.MagicBonus; components.Add(new ResolvedComponent("magic", Signed(armor.MagicBonus), null)); }
+
+        return new ResolvedFact("armor class", total.ToString(), components, "ok");
     }
 
     /// <summary>User-scoped wrapper: enforces snapshot ownership (SEC-08) then runs the pure check.</summary>
