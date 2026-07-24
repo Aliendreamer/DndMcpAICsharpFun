@@ -651,7 +651,7 @@ NEXT candidates (user's call):
     fixes tool-selection, arg-binding, and instruction-adherence at the source. OR NPC-gen v2 (setting-aware names/hooks,
     party of NPCs); OR session-prep v2 (party of NPCs, multiple encounters); OR grow the setting catalog (ingest more setting books);
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
-(3) resume the parked `prose-grounded-knowledge-model` re-architecture (`mem:project_entity_extraction_rethink`);
+(3) ~~resume the parked prose-grounded-knowledge-model~~ — CLOSED as delivered/superseded 2026-07-xx (commit 6042964); prose extraction now needed ONLY for homebrew/non-5etools books (official content projects from 5etools — see [[read_path_frontier]]);
 (4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6) — user DEFERRED this 2026-07-11
     ("leave moe for later"); a foundational lever under all when revisited.
 Deferred operational: live-host smokes for Item 3 (reground, Ollama judge path), Item 4 (dedup endpoints),
