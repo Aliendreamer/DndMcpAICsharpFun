@@ -258,6 +258,17 @@ else
                     <label>Max HP <input type="number" @bind="_editSheet.MaxHitPoints" /></label>
                     <label>Current HP <input type="number" @bind="_editSheet.CurrentHitPoints" /></label>
                     <label>AC <input type="number" @bind="_editSheet.ArmorClass" /></label>
+                    <label>Armor
+                        <select @bind="_editSheet.WornArmor.ArmorName">
+                            <option value="">None</option>
+                            @foreach (var name in ArmorCatalog.Names)
+                            {
+                                <option value="@name">@name</option>
+                            }
+                        </select>
+                    </label>
+                    <label>Shield <input type="checkbox" @bind="_editSheet.WornArmor.Shield" /></label>
+                    <label>Armor Magic Bonus <input type="number" @bind="_editSheet.WornArmor.MagicBonus" /></label>
                     <label>Speed <input type="number" @bind="_editSheet.Speed" /></label>
                     <label>Initiative <input type="number" @bind="_editSheet.Initiative" /></label>
                     <span class="prof-bonus-readout"><b>Prof. Bonus:</b> +@CharacterSheet.ProficiencyBonusForLevel(_editSheet.Level) (auto, from level)</span>
@@ -468,6 +479,7 @@ else
     {
         var src = _hero!.LatestSnapshot?.Sheet ?? new CharacterSheet();
         _editSheet = JsonSerializer.Deserialize<CharacterSheet>(JsonSerializer.Serialize(src))!;
+        _editSheet.WornArmor ??= new();
         _spellsText = string.Join("\n", _editSheet.SpellsKnown);
         _armorProfText = string.Join("\n", _editSheet.ArmorProficiencies);
         _weaponProfText = string.Join("\n", _editSheet.WeaponProficiencies);
