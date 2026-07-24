@@ -53,6 +53,11 @@ public sealed class EntityRetrievalService(
         if (!string.IsNullOrWhiteSpace(q.CastableByClass))
             return await ListSpellsByClassAsync(q, clamped, ct);
 
+        // race-ability-filter: same query-time scroll-then-filter shape as CastableByClass —
+        // the boosted-ability data isn't a payload field, so Qdrant can't filter it.
+        if (!string.IsNullOrWhiteSpace(q.AbilityBonus))
+            return await ListRacesByAbilityAsync(q, clamped, ct);
+
         var (total, hits) = await store.ListByFilterAsync(BuildFilters(q), clamped, ct);
         var rows = hits.Select(h => ToRow(h.Envelope)).ToList();
         return new EntitySetResult(total, rows.Count, rows);
@@ -64,6 +69,22 @@ public sealed class EntityRetrievalService(
         var (_, hits) = await store.ListByFilterAsync(spellFilters, SpellClassMaxScan, ct);
         var matched = hits
             .Where(h => spellClassIndex.CanCast(q.CastableByClass!, h.Envelope.Name, h.Envelope.SourceBook))
+            .ToList();
+        var rows = matched.Take(cap).Select(h => ToRow(h.Envelope)).ToList();
+        return new EntitySetResult(matched.Count, rows.Count, rows);
+    }
+
+
+    // Upper bound on the race set scanned for an ability-bonus join (races are a small corpus slice).
+    private const int RaceAbilityMaxScan = 3000;
+
+    private async Task<EntitySetResult> ListRacesByAbilityAsync(EntitySearchQuery q, int cap, CancellationToken ct)
+    {
+        var code = q.AbilityBonus!.Trim().ToLowerInvariant();
+        var raceFilters = BuildFilters(q) with { Type = EntityType.Race };
+        var (_, hits) = await store.ListByFilterAsync(raceFilters, RaceAbilityMaxScan, ct);
+        var matched = hits
+            .Where(h => RaceAbilityParser.BoostedAbilities(h.Envelope.Fields).Contains(code))
             .ToList();
         var rows = matched.Take(cap).Select(h => ToRow(h.Envelope)).ToList();
         return new EntitySetResult(matched.Count, rows.Count, rows);

@@ -274,4 +274,72 @@ public sealed class EntityRetrievalServiceRerankerTests
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
+
+
+    // ── race-ability-filter: abilityBonus ─────────────────────────────────────
+
+    private static EntitySearchHit MakeRaceHit(string id, string name, string abilityJson) =>
+        new(new EntityEnvelope(id, EntityType.Race, name, "PHB", "Edition2014", null,
+            new FirstAppearance("PHB", "Edition2014"), [], [], "", JsonDocument.Parse(abilityJson).RootElement),
+            0f, id + "-pt");
+
+    private static IEntityVectorStore MakeRaceStoreForAbilityBonus()
+    {
+        var store = Substitute.For<IEntityVectorStore>();
+        IReadOnlyList<EntitySearchHit> races =
+        [
+            MakeRaceHit("phb.race.mountain-dwarf", "Mountain Dwarf", """{"ability":[{"str":2}]}"""),
+            MakeRaceHit("phb.race.half-elf", "Half-Elf", """{"ability":[{"choose":{"from":["str","dex"]}}]}"""),
+            MakeRaceHit("phb.race.wood-elf", "Wood Elf", """{"ability":[{"dex":2}]}"""),
+        ];
+        store.ListByFilterAsync(Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+             .Returns(Task.FromResult((3, races)));
+        return store;
+    }
+
+    [Fact]
+    public async Task ListAsync_abilityBonus_returns_only_races_that_boost_that_ability()
+    {
+        var store = MakeRaceStoreForAbilityBonus();
+        var sut = BuildSut(store, Substitute.For<IReranker>());
+        var q = new EntitySearchQuery("", EntityType.Race, null, null, null, null, null,
+            null, null, null, null, TopK: 50, AbilityBonus: "str");
+
+        var result = await sut.ListAsync(q, 50, CancellationToken.None);
+
+        result.Total.Should().Be(2); // dex-only race excluded from the class-filtered total
+        result.Rows.Select(r => r.Name).Should().BeEquivalentTo("Mountain Dwarf", "Half-Elf");
+    }
+
+    [Fact]
+    public async Task ListAsync_abilityBonus_is_case_insensitive()
+    {
+        var store = MakeRaceStoreForAbilityBonus();
+        var sut = BuildSut(store, Substitute.For<IReranker>());
+        var q = new EntitySearchQuery("", EntityType.Race, null, null, null, null, null,
+            null, null, null, null, TopK: 50, AbilityBonus: "STR");
+
+        var result = await sut.ListAsync(q, 50, CancellationToken.None);
+
+        result.Total.Should().Be(2);
+        result.Rows.Select(r => r.Name).Should().BeEquivalentTo("Mountain Dwarf", "Half-Elf");
+    }
+
+    [Fact]
+    public async Task ListAsync_abilityBonus_null_uses_the_generic_path_unchanged()
+    {
+        var store = Substitute.For<IEntityVectorStore>();
+        IReadOnlyList<EntitySearchHit> hits = [MakeHit("mm.monster.a", "txt", 0f)];
+        store.ListByFilterAsync(Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+             .Returns(Task.FromResult((1, hits)));
+
+        var sut = BuildSut(store, Substitute.For<IReranker>());
+        var q = new EntitySearchQuery("", EntityType.Monster, null, null, null, null, null,
+            null, null, null, null, TopK: 50, AbilityBonus: null);
+
+        var result = await sut.ListAsync(q, 50, CancellationToken.None);
+
+        result.Total.Should().Be(1);
+        result.Rows.Should().ContainSingle(r => r.Id == "mm.monster.a");
+    }
 }

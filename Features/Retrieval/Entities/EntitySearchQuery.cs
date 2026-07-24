@@ -19,4 +19,6 @@ public sealed record EntitySearchQuery(
     bool? Srd52 = null,
     bool? BasicRules2024 = null,
     // spell-class-join: restrict to spells this class can cast (resolved via SpellClassIndex).
-    string? CastableByClass = null);
+    string? CastableByClass = null,
+    // race-ability-filter: restrict to races that boost this ability (fixed or choosable).
+    string? AbilityBonus = null);
