@@ -8,10 +8,13 @@ Do a proper corpus-wide breakdown of the degenerate/junk tables, not just the on
 - **Check for OTHER noise sources** not yet characterized: multi-column text/sidebars mis-detected as tables? spanning/merged-cell mangling? single-column "tables"? repeated/duplicate tables? tables split across page breaks into fragments? Quantify each with a corpus scan (books/canonical/*.json `tables[]`): distribution of (colCount, rowCount), share that are stat-block-shaped vs other, sample the non-stat-block degenerates.
 - **Naming noise:** MinerU emits `table_caption` for only ~11% (14/129 PHB); the rest default to `Table N`. Captured fix = `table-name-from-heading` (name from preceding section_header).
 
-## Deferred fixes already captured (openspec changes)
-- `filter-degenerate-tables` — drop 0-data-row + stat-block-shaped tables.
-- `table-name-from-heading` — name caption-less tables from the preceding heading.
-- (broader) `extraction-content-classification`, `extraction-cross-type-recovery` — the entity-side "map, don't just decline" work.
+## Deferred fixes — status
+- `filter-degenerate-tables` — **SHIPPED 2026-07-24** (`2026-07-24-filter-degenerate-tables`, suite 1645/1645). `HtmlTableParser.Parse` drops D1 (<2-col OR 0-data-row) + D2 (stat-block fragment: ≤2-row grid, ≥3 cells matching case-sensitive `\b(STR|DEX|CON|INT|WIS|CHA)\b\s*\d`) at the single parse chokepoint; collector unchanged (already skips null). Live MTF re-extract DEFERRED (MTF tables are 5etools-`ProjectTables`-sourced, not MinerU → filter's payoff is homebrew/keyless + pre-ProjectTables; books git-crypt on host; ~8.5h run; unit tests prove D1/D2). Applies on next natural re-extraction.
+- `table-name-from-heading` — still deferred: name caption-less tables from the preceding heading.
+- (broader) `extraction-content-classification`, `extraction-cross-type-recovery` — **both SHIPPED + archived** (the entity-side "map, don't just decline" work; `automatic-decline-recovery` was the same effort, its stale active dir archived 2026-07-24).
+
+## Still-open TODO
+The "investigate WHY there's so much table noise" corpus breakdown above is STILL worth doing (other noise sources beyond stat-blocks not yet characterized), and `table-name-from-heading` + wiring auto-collected tables to the resolution engine (id alignment) remain.
 
 ## Sequence
 After the corpus run finishes: (1) run the noise investigation above; (2) apply `filter-degenerate-tables` + `table-name-from-heading`; (3) a re-collect/re-extract gives a clean, well-named table set; (4) then wire auto-collected tables to the resolution engine (id alignment — Draconic Ancestry came out as "Table 7", won't match `phb14.table.draconic-ancestry`). Related: [[read_path_frontier]], archived `2026-07-18-mineru-table-extraction`.
