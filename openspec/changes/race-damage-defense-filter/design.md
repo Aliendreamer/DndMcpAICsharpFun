@@ -1,0 +1,22 @@
+## Context
+
+Directly follows `race-ability-filter` (archived `2026-07-24-race-ability-filter`): `EntityRetrievalService` runs query-time joins for non-payload filters (`castableByClass` → `ListSpellsByClassAsync`; `abilityBonus` → `ListRacesByAbilityAsync`) — `BuildFilters(q) with { Type = … }`, `ListByFilterAsync(..., MaxScan)`, an in-memory `.Where`, `.Take(cap)`, `total = matched.Count`. `RaceAbilityParser.BoostedAbilities(JsonElement fields)` is the parser precedent (reads the raw envelope `Fields`, case-tolerant, never throws). Verified 5etools race data: `resist`/`immune` are damage-type STRING arrays (`["necrotic","radiant"]`, `["poison"]`) plus 6 `{"choose":{"from":[…]}}` resist blocks (Dragonborn variants, Tiefling); immune has NO choose blocks. Damage vocabulary seen: acid, cold, fire, lightning, necrotic, poison, psychic, radiant (+ force, thunder in choose blocks).
+
+## Goals / Non-Goals
+
+**Goals:** `resist` and `immune` filters over Race entities, fixed + choosable, query-time, no re-index, ANDed when both given. **Non-Goals:** a single combined "damage defense" param (user chose separate params); any chat/MCP tool; a Qdrant payload index / re-embed; non-race entities.
+
+## Decisions
+
+- **D1 — `RaceDamageDefenseParser` (pure, raw `JsonElement`).** `DamageTypes(JsonElement fields, string key) : IReadOnlySet<string>` — case-tolerant lookup of the `key` array (`resist` or `immune`) on `fields` (enumerate props, match `key` OrdinalIgnoreCase — canonical Fields use lowercase 5etools keys but `TryGetProperty` is case-sensitive). For each array element: a **String** → add its lowercased value; a **`choose`** object with a `from` array → add each string entry. Ignore other shapes. `fields` not Object / no key / empty → empty set. Never throws. One method for both fields (parameterized by `key`). Mirrors `RaceAbilityParser` (which reads numeric ability keys; here the entries are damage-type strings + choose).
+- **D2 — two query params.** `EntitySearchQuery.ResistDamage` (`string? = null`) + `ImmuneDamage` (`string? = null`), trailing after `AbilityBonus`. Values are damage-type codes, lowercased/trimmed at the service boundary; unrecognized value → zero matches (never throws). Open vocabulary (no enum) — the 5etools codes are the contract.
+- **D3 — single query-time branch, AND semantics.** In the list method, after the `abilityBonus` branch: `if (!string.IsNullOrWhiteSpace(q.ResistDamage) || !string.IsNullOrWhiteSpace(q.ImmuneDamage)) return await ListRacesByDamageDefenseAsync(q, clamped, ct);`. The helper: `BuildFilters(q) with { Type = EntityType.Race }`, `ListByFilterAsync(..., RaceDamageDefenseMaxScan)`, then `matched = hits.Where(h => ResistOk(h) && ImmuneOk(h))` where `ResistOk` = resist unset OR `DamageTypes(fields,"resist").Contains(resistCode)` and likewise `ImmuneOk` — so an unset param is a no-op (true), a set param must match, and both-set ANDs. `.Take(cap)`, `total = matched.Count`. Add `RaceDamageDefenseMaxScan` mirroring `SpellClassMaxScan`/`RaceAbilityMaxScan` (3000). Do NOT touch `BuildFilters`.
+- **D4 — endpoint threading.** Add `string? resist` and `string? immune` to `ListPublic` (alongside `abilityBonus`) and extend the `with { … }` to set `ResistDamage = resist, ImmuneDamage = immune`. Public `/retrieval/entities/list` only. Update `.http` + insomnia.
+
+## Risks / Trade-offs
+
+- **Coverage gap (data).** ~42/157 races have structured resist/immune; the rest don't match. Honest grounding — no fabrication. Documented; the integration test asserts the matching set, not corpus completeness.
+- **Choose-block inclusiveness (by design).** Dragonborn's `{"choose":{"from":["acid","cold","fire","lightning","poison"]}}` matches `resist=fire` — the agreed "match fixed + choosable" semantics (you *can* pick that resistance). Covered by an explicit choose test.
+- **AND semantics for both params.** `resist=fire&immune=poison` returns races that resist fire AND are immune to poison (likely empty on real data, correctly). Each param alone filters independently. An unset param never constrains. Unit + integration cover resist-only, immune-only, and (a constructible) both case.
+- **Total semantics.** Like the siblings, `total` is the matched count after a capped scan (races are a small set; the 3000 cap is comfortable).
+- **Real-infra dependency.** A fake store proves the parse/filter shape; a real-Qdrant `QdrantFixture` test (seed the actual string + choose shapes) proves `Fields` round-trips and the filter matches real data — same discipline as `race-ability-filter`.
