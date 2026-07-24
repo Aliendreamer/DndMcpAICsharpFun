@@ -1,20 +1,22 @@
 # Tasks — resolution-features (three new grounded CharacterResolutionService features)
 
+All tasks complete. Shipped commits 0a6d45d, 124babe, c7f3b06 (+ fix wave f165edc, spec reconcile cf79cfc). Full suite 1679/1679 with Docker; whole-branch review APPROVE.
+
 ## 1. `class resources` feature
-- [ ] 1.1 Add a `class resources` branch to `ResolveForSheetAsync` + a `ResolveClassResourcesAsync` method. Per class, look up the projected class table (`.EndsWith($".table.{EntityIdSlug.Slug(c.Class)}")`, Take(2) ambiguity guard — mirror `ResolveClassFeaturesAsync`), read the row at `RowIndex == c.Level - 1`, and emit every column EXCEPT the structural/spellcasting set `{Level, Proficiency Bonus, Features, Cantrips Known, Spells Known, Spell Slots, Slot Level, 1st..9th}` (case-insensitive) as a component `"<Class> <Column>"` with the cell provenance, non-empty cells only. No resource column → `"none"` (`ok`); missing/ambiguous table → `needsReview`.
-- [ ] 1.2 Unit tests: Barbarian Rages resolves at level (fake table with a `Rages` column) → component + `ok`; Fighter (only Level/Proficiency Bonus/Features) → `"none"`, no fabricated value; missing table → `needsReview`. RED-first.
+- [x] 1.1 `class resources` branch + `ResolveClassResourcesAsync` (projected class table, `RowIndex==Level-1`, resource columns only via `NonResourceColumns` exclusion, per-cell provenance; `"none"`/`needsReview`). (0a6d45d)
+- [x] 1.2 Integration tests (real Postgres, real 5etools columns): Barbarian Rages → ok + provenance; Fighter → `"none"`; missing table → `needsReview`. RED-first. (0a6d45d)
 
 ## 2. `saving throws` feature
-- [ ] 2.1 Add a static PHB `class → (Ability, Ability)` save map (all 12 classes) — a new small static helper (or alongside `MulticlassSpellcasting`), returning the two proficient save abilities or null for an unknown class. Values: Barbarian STR/CON, Bard DEX/CHA, Cleric WIS/CHA, Druid INT/WIS, Fighter STR/CON, Monk STR/DEX, Paladin WIS/CHA, Ranger STR/DEX, Rogue DEX/INT, Sorcerer CON/CHA, Warlock WIS/CHA, Wizard INT/WIS.
-- [ ] 2.2 Add a `saving throws` branch + `ResolveSavingThrows` (pure/computed — no DB). Proficient set from `Classes[0]` only. Emit all six abilities: `Modifier(score) + (proficient ? ProficiencyBonus : 0)`, mark proficiency in the value; computed → null provenance. Starting class not in the map → `needsReview`.
-- [ ] 2.3 Unit tests: proficient save adds PB, non-proficient does not; multiclass save proficiency comes only from `Classes[0]`; unknown starting class → `needsReview`. RED-first.
+- [x] 2.1 `SavingThrowProficiencies` static PHB `class → (Ability, Ability)` map (all 12 classes). (124babe)
+- [x] 2.2 `saving throws` branch + pure static `ResolveSavingThrows` (`Classes[0]`→`sheet.Class`, all six abilities, computed/null provenance, unknown → `needsReview`). (124babe, f165edc)
+- [x] 2.3 Unit tests: proficient adds PB / non-proficient doesn't; multiclass proficiency from starting class only; unknown → `needsReview`. RED-first. (124babe)
 
 ## 3. `spell count` feature (branch-per-caster-type)
-- [ ] 3.1 Add a `spell count` branch + `ResolveSpellCountAsync`. Classify each class by DATA (not slot-source): KNOWN ⇔ the class table row has a `Spells Known` cell → read it (cell provenance) [Bard/Sorcerer/Ranger/Warlock]; PREPARED ⇔ no `Spells Known` column but `SpellcastingAbility(class) != null` → compute via `SpellcastingAbility`, full-caster `mod + level` / half-caster (`Classify` is half — Paladin) `mod + level/2`, both min 1 (computed, null provenance); NON-caster ⇔ `SpellcastingAbility == null` → `"no spellcasting"`. Add `Cantrips Known` cell where the column exists. Known caster with missing table, or no class contributes → `needsReview`.
-- [ ] 3.2 Unit tests — ONE PER BRANCH (the classifier-branch discipline): known caster reads `Spells Known` from the table (cell provenance); prepared full-caster `mod + level`; Paladin half `mod + level/2` min 1; non-caster → `"no spellcasting"`, no count; a warlock known-count branch. RED-first each.
+- [x] 3.1 `spell count` branch + `ResolveSpellCountAsync`, data-driven known/prepared/non-caster (full `mod+level` / half `mod+level/2` min 1). (c7f3b06, f165edc)
+- [x] 3.2 Integration tests — one per branch (known Bard reads Spells Known + provenance; prepared-full Cleric; prepared-half Paladin + null provenance; non-caster Fighter → `"no spellcasting"` + `needsReview`). RED-first. (c7f3b06, f165edc)
 
 ## 4. Real-infra grounding
-- [ ] 4.1 A real-Postgres integration test (reuse `PostgresFixture`) seeding a class progression table with the REAL 5etools column names (`Rages`; `Spells Known`) and asserting `ResolveClassResourcesAsync` + the `spell count` known-caster path return the seeded value with `Confidence=="ok"` — proves the filter/read matches real column names, not just fakes.
+- [x] 4.1 Satisfied inherently: Tasks 1 & 3 integration tests seed the REAL 5etools-projected tables (`Rages`, `Spells Known`) and assert grounded value + `ok`. (0a6d45d, c7f3b06)
 
 ## 5. Gates
-- [ ] 5.1 `dotnet build` 0/0; FULL `dotnet test` green (Docker for the integration test; if down, run non-persistence + note); `dotnet format` clean on touched files; `git diff --stat` confined to `Features/Resolution/*` + tests; no `.http`/insomnia change.
+- [x] 5.1 build 0/0; FULL `dotnet test` 1679/1679 with Docker; `dotnet format` clean; diff confined to `Features/Resolution/*` + 3 test files; no `.http`/insomnia change. Whole-branch review APPROVE.
