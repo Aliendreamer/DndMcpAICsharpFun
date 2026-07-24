@@ -48,7 +48,7 @@ public sealed class MinerUTableCollectorTests
     [Fact]
     public void Uncaptioned_table_takes_preceding_section_header_name()
     {
-        var html = "<table><tr><td>Black</td><td>Acid</td></tr></table>";
+        var html = "<table><tr><td>Black</td><td>Acid</td></tr><tr><td>Blue</td><td>Lightning</td></tr></table>";
         var doc = new PdfStructureDocument("md", new List<PdfStructureItem>
         {
             new("section_header", "Draconic Ancestry", 34, 2),
@@ -64,7 +64,7 @@ public sealed class MinerUTableCollectorTests
     [Fact]
     public void Captioned_table_keeps_its_caption()
     {
-        var html = "<table><tr><td>x</td><td>y</td></tr></table>";
+        var html = "<table><tr><td>x</td><td>y</td></tr><tr><td>1</td><td>2</td></tr></table>";
         var doc = new PdfStructureDocument("md", new List<PdfStructureItem>
         {
             new("section_header", "Some Section", 1, 2),
@@ -77,7 +77,7 @@ public sealed class MinerUTableCollectorTests
     [Fact]
     public void Uncaptioned_table_with_no_nearby_heading_falls_back_to_positional()
     {
-        var html = "<table><tr><td>x</td><td>y</td></tr></table>";
+        var html = "<table><tr><td>x</td><td>y</td></tr><tr><td>1</td><td>2</td></tr></table>";
         var items = new List<PdfStructureItem> { new("section_header", "Far Away", 1, 2) };
         for (var i = 0; i < 15; i++) items.Add(new("text", $"para {i}", 1, null)); // push heading out of the window
         items.Add(new("table", "", 1, null, html));
