@@ -1030,6 +1030,29 @@
       "authentication": {}
     },
     {
+      "_id": "req_retrieval_entities_ability_bonus",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "List races by ability bonus (race-ability-filter; fixed or choosable)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/retrieval/entities/list",
+      "headers": [],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "abilityBonus",
+          "value": "str"
+        },
+        {
+          "name": "limit",
+          "value": "50"
+        }
+      ],
+      "authentication": {}
+    },
+    {
       "_id": "req_retrieval_entities_admin",
       "_type": "request",
       "parentId": "fld_retrieval",

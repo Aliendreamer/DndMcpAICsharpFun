@@ -274,6 +274,9 @@ GET {{baseUrl}}/retrieval/entities/list?type=Spell&spellLevel=3&damageType=fire&
 ### Retrieval — Spell↔class join (spell-class-join): all level-3 spells a Wizard can learn (via 5etools sources.json)
 GET {{baseUrl}}/retrieval/entities/list?castableByClass=Wizard&spellLevel=3&limit=50
 
+### List races that boost Strength (race-ability-filter; fixed or choosable)
+GET {{baseUrl}}/retrieval/entities/list?abilityBonus=str&limit=50
+
 ### Retrieval — Admin diagnostic entity search (full fields + pointId)
 GET {{baseUrl}}/admin/retrieval/entities/search?q=fireball&type=Spell&spellLevel=3
 X-Admin-Api-Key: {{adminKey}}
