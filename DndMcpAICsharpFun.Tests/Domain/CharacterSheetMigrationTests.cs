@@ -53,4 +53,14 @@ public sealed class CharacterSheetMigrationTests
         sheet.Class.Should().Be("");
         sheet.Level.Should().Be(0);
     }
+
+    [Fact]
+    public void Legacy_sheet_without_worn_armor_deserializes_to_unarmored_default()
+    {
+        const string json = """{ "Race": "Elf", "Strength": 10, "Dexterity": 14 }""";
+        var sheet = JsonSerializer.Deserialize<CharacterSheet>(json)!;
+        sheet.WornArmor.Should().NotBeNull();
+        sheet.WornArmor.ArmorName.Should().BeEmpty();
+        sheet.WornArmor.Shield.Should().BeFalse();
+    }
 }

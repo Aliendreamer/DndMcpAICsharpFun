@@ -49,6 +49,8 @@ public sealed class CharacterSheet : IJsonOnDeserialized
     public List<string> Equipment { get; set; } = [];
     public Dictionary<string, string> ResolvedChoices { get; set; } = new();
 
+    public WornArmor WornArmor { get; set; } = new();
+
     public static int Modifier(int score) => (int)Math.Floor((score - 10) / 2.0);
     public static string ModifierStr(int score)
     {
@@ -99,4 +101,12 @@ public sealed class ClassLevel
     public string Class { get; set; } = "";
     public int Level { get; set; }
     public string Subclass { get; set; } = "";
+}
+
+public sealed class WornArmor
+{
+    /// <summary>PHB armor name (see ArmorCatalog); empty or "None" = unarmored.</summary>
+    public string ArmorName { get; set; } = "";
+    public bool Shield { get; set; }
+    public int MagicBonus { get; set; }
 }
