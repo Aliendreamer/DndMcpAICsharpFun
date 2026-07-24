@@ -74,6 +74,8 @@ public sealed class CharacterResolutionService(
             return ResolveSpellAttackAsync(sheet, ct);
         if (feature.Equals("class features", StringComparison.OrdinalIgnoreCase))
             return ResolveClassFeaturesAsync(sheet, ct);
+        if (feature.Equals("class resources", StringComparison.OrdinalIgnoreCase))
+            return ResolveClassResourcesAsync(sheet, ct);
         if (feature.Equals("subclass spells", StringComparison.OrdinalIgnoreCase))
             return ResolveSubclassSpellsAsync(sheet, ct);
 
@@ -350,6 +352,69 @@ public sealed class CharacterResolutionService(
         if (components.Count == 0)
             return new ResolvedFact("class features", "no classes", [], "needsReview");
         return new ResolvedFact("class features", string.Join(" | ", rendered), components, confidence);
+    }
+
+
+    private static readonly HashSet<string> NonResourceColumns = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Level", "Proficiency Bonus", "Features", "Cantrips Known", "Spells Known",
+        "Spell Slots", "Slot Level", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th",
+    };
+
+    private async Task<ResolvedFact> ResolveClassResourcesAsync(CharacterSheet sheet, CancellationToken ct)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        var components = new List<ResolvedComponent>();
+        var rendered = new List<string>();
+        var confidence = "ok";
+
+        foreach (var c in sheet.Classes)
+        {
+            if (string.IsNullOrWhiteSpace(c.Class)) continue;
+            var suffix = $".table.{EntityIdSlug.Slug(c.Class)}";
+            var tables = await db.StructuredTables.Where(t => t.CanonicalId.EndsWith(suffix)).Take(2).ToListAsync(ct);
+            if (tables.Count == 0)
+            {
+                confidence = "needsReview";
+                components.Add(new ResolvedComponent(c.Class, "[class table not found]", null));
+                continue;
+            }
+            if (tables.Count > 1)
+            {
+                confidence = "needsReview";
+                components.Add(new ResolvedComponent(c.Class, $"[ambiguous: multiple books define {suffix}]", null));
+                continue;
+            }
+            var table = tables[0];
+            var columns = JsonSerializer.Deserialize<List<string>>(table.ColumnsJson, JsonOpts) ?? [];
+            var row = await db.StructuredTableRows
+                .FirstOrDefaultAsync(r => r.TableId == table.Id && r.RowIndex == c.Level - 1, ct);
+            if (row is null)
+            {
+                confidence = "needsReview";
+                components.Add(new ResolvedComponent(c.Class, "[no row for level]", null));
+                continue;
+            }
+            var cells = JsonSerializer.Deserialize<List<CanonicalCell>>(row.CellsJson, JsonOpts) ?? [];
+            var any = false;
+            for (var i = 0; i < columns.Count && i < cells.Count; i++)
+            {
+                if (NonResourceColumns.Contains(columns[i])) continue;
+                if (string.IsNullOrWhiteSpace(cells[i].Value)) continue;
+                components.Add(new ResolvedComponent($"{c.Class} {columns[i]}", cells[i].Value, cells[i].Provenance));
+                rendered.Add($"{c.Class} {columns[i]}: {cells[i].Value}");
+                any = true;
+            }
+            if (!any)
+            {
+                components.Add(new ResolvedComponent(c.Class, "none", null));
+                rendered.Add($"{c.Class}: none");
+            }
+        }
+
+        if (components.Count == 0)
+            return new ResolvedFact("class resources", "no classes", [], "needsReview");
+        return new ResolvedFact("class resources", string.Join(" | ", rendered), components, confidence);
     }
 
 
