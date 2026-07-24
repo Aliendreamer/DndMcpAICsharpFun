@@ -13,8 +13,15 @@ Do a proper corpus-wide breakdown of the degenerate/junk tables, not just the on
 - `table-name-from-heading` — **SHIPPED 2026-07-20** (`2026-07-20-table-name-from-heading`, feat `10cf2c0`): `MinerUTableCollector` already names caption-less tables from the preceding `section_header` within a 10-item window (see `MinerUTableCollector.cs:40-41`).
 - (broader) `extraction-content-classification`, `extraction-cross-type-recovery` — **both SHIPPED + archived** (the entity-side "map, don't just decline" work; `automatic-decline-recovery` was the same effort, its stale active dir archived 2026-07-24).
 
-## Still-open TODO
-The "investigate WHY there's so much table noise" corpus breakdown above is STILL worth doing (other noise sources beyond stat-blocks not yet characterized), and `table-name-from-heading` + wiring auto-collected tables to the resolution engine (id alignment) remain.
+## NOISE INVESTIGATION — DONE (2026-07-24 corpus scan of books/canonical/*.json tables[])
+Corpus is host-readable (git-crypt unlocked; books/ not sandbox-masked). Result — the noise is fully characterized and NOT a new category:
+- **313/706 tables (44%) degenerate, ALL in MPMM (206/320) + MTF (106/161)** — the ONLY two books whose tables are MinerU-sourced. Every 5etools-`ProjectTables` book (DMG/ERLW/PHB/TCE/XGE, most of SCAG) = **0% degenerate**. (Monster books have no captioned 5etools reference-tables → ProjectTables projects ~0 → correctly SKIPS them → their noisy MinerU tables remain.)
+- **The "other" (non-stat-block) 213 are the SAME monster-stat-block noise, mis-segmented:** MinerU splits a stat block into 1-column fragments — the "columns" cell is a run-on `"RED ABISHAI Medium Fiend (Devil)… Armor Class 22"`, rows are `"Hit Points 289…"` / bare `['STR','DEX','CON','INT','WIS','CHA']` headers (no adjacent digit → the `STR\s*\d` regex misses them). Sub-types: **283 are 1-col, 30 are 0-row.**
+- **`filter-degenerate-tables` D1 (`<2col || 0-row`) drops ALL 313 by construction** (degenerate ≡ D1's condition). D2's UNIQUE marginal catch (stat-block-shaped but ≥2col & ≥1row, surviving D1) = **only 3**. So NO new filter is needed; the shipped filter fully solves it on the next MPMM/MTF re-extract (share ~65% → ~0). No other noise source exists.
+
+## Still-open
+- Wiring auto-collected tables to the resolution engine (id alignment: a collected table like "Table 7" won't match `phb14.table.draconic-ancestry`; and per the dev-flow Red Flag, id-alignment ≠ SHAPE-alignment — the resolver reads NORMALIZED columns, so a dedicated resolution projector must own the id). This concerns the CLEAN 5etools tables, NOT the MPMM/MTF stat-block noise (which belongs as Monster ENTITY fields, not tables).
+- Realizing the MPMM/MTF cleanup requires a re-extract of those two books (~8.5h each; deferred).
 
 ## Sequence
 After the corpus run finishes: (1) run the noise investigation above; (2) apply `filter-degenerate-tables` + `table-name-from-heading`; (3) a re-collect/re-extract gives a clean, well-named table set; (4) then wire auto-collected tables to the resolution engine (id alignment — Draconic Ancestry came out as "Table 7", won't match `phb14.table.draconic-ancestry`). Related: [[read_path_frontier]], archived `2026-07-18-mineru-table-extraction`.
