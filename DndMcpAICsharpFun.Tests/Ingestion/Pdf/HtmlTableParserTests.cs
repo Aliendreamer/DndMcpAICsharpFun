@@ -61,4 +61,52 @@ public sealed class HtmlTableParserTests
     [InlineData("<div>not a table</div>")]
     public void Malformed_or_empty_html_yields_null(string? html) =>
         HtmlTableParser.Parse(html, "t", "T", Prov).Should().BeNull();
+
+
+    // filter-degenerate-tables: a header-only grid (columns but no data rows) is not a table.
+    [Fact]
+    public void Header_only_grid_is_dropped()
+    {
+        const string html = "<table><tr><td>A</td><td>B</td><td>C</td></tr></table>";
+        HtmlTableParser.Parse(html, "t", "T", Prov).Should().BeNull();
+    }
+
+    // filter-degenerate-tables D1: a table needs >=2 columns; a single-column grid is a list, not a table.
+    [Fact]
+    public void Single_column_grid_is_dropped()
+    {
+        const string html = "<table><tr><td>Header</td></tr><tr><td>one</td></tr><tr><td>two</td></tr></table>";
+        HtmlTableParser.Parse(html, "t", "T", Prov).Should().BeNull();
+    }
+
+    // filter-degenerate-tables D2: a single-row stat-block ability line MinerU mis-tags as a table.
+    [Fact]
+    public void Single_row_stat_block_line_is_dropped()
+    {
+        const string html = "<table><tr><td>STR 22 (+6)</td><td>DEX 19 (+4)</td><td>CON 24 (+7)</td></tr></table>";
+        HtmlTableParser.Parse(html, "t", "T", Prov).Should().BeNull();
+    }
+
+    // filter-degenerate-tables D2: a stat block that survives D1 (2 rows / >=1 data row) is still a
+    // stat-block fragment (ability-token cells) and is dropped.
+    [Fact]
+    public void Two_row_stat_block_fragment_is_dropped()
+    {
+        const string html = "<table>" +
+            "<tr><td>STR 22 (+6)</td><td>DEX 19 (+4)</td><td>CON 24 (+7)</td></tr>" +
+            "<tr><td>INT 3 (-4)</td><td>WIS 11 (+0)</td><td>CHA 16 (+3)</td></tr></table>";
+        HtmlTableParser.Parse(html, "t", "T", Prov).Should().BeNull();
+    }
+
+    // A genuine table (>=2 cols, >=1 data row, not a stat block) is kept unchanged.
+    [Fact]
+    public void Genuine_two_column_table_is_kept()
+    {
+        const string html = "<table><tr><td>Level</td><td>Proficiency Bonus</td></tr>" +
+            "<tr><td>1</td><td>+2</td></tr></table>";
+        var t = HtmlTableParser.Parse(html, "t", "T", Prov);
+        t.Should().NotBeNull();
+        t!.Columns.Should().Equal("Level", "Proficiency Bonus");
+        t.Rows.Should().ContainSingle();
+    }
 }

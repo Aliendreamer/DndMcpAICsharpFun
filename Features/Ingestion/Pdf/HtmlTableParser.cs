@@ -23,7 +23,13 @@ public static partial class HtmlTableParser
         if (rows.Count == 0) return null;
 
         var columns = rows[0];
-        if (columns.Count == 0) return null;
+        // filter-degenerate-tables D1: a real table needs >=2 columns and >=1 data row.
+        // (dataRows is rows.Skip(1), so rows.Count < 2 means zero data rows — a header-only grid.)
+        if (columns.Count < 2 || rows.Count < 2) return null;
+
+        // filter-degenerate-tables D2: a monster stat-block ability line ("STR 22 (+6) …") MinerU
+        // mis-tags as a table; drop it even though it technically has a data row.
+        if (IsStatBlockFragment(rows)) return null;
 
         var dataRows = rows.Skip(1)
             .Select(r => new CanonicalTableRow(
@@ -31,6 +37,16 @@ public static partial class HtmlTableParser
             .ToList();
 
         return new CanonicalTable(tableId, name, columns, dataRows);
+    }
+
+    // A small grid (<=2 rows) dominated by ability-score tokens like "STR 22" / "DEX 19 (+4)" is a
+    // stat-block fragment, not a table. Narrow by design — the ability regex + >=3-match threshold +
+    // <=2-row guard keep genuine multi-row reference tables (which never carry 3 such cells) safe.
+    private static bool IsStatBlockFragment(List<List<string>> rows)
+    {
+        if (rows.Count > 2) return false;
+        var abilityCells = rows.SelectMany(r => r).Count(cell => AbilityTokenRx().IsMatch(cell));
+        return abilityCells >= 3;
     }
 
     private static List<List<string>> ExtractRows(string html)
@@ -64,4 +80,7 @@ public static partial class HtmlTableParser
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhitespaceRx();
+
+    [GeneratedRegex(@"\b(STR|DEX|CON|INT|WIS|CHA)\b\s*\d")]
+    private static partial Regex AbilityTokenRx();
 }
