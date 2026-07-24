@@ -78,6 +78,8 @@ public sealed class CharacterResolutionService(
             return ResolveClassResourcesAsync(sheet, ct);
         if (feature.Equals("subclass spells", StringComparison.OrdinalIgnoreCase))
             return ResolveSubclassSpellsAsync(sheet, ct);
+        if (feature.Equals("saving throws", StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult(ResolveSavingThrows(sheet));
 
         throw new NotSupportedException($"feature not supported: {feature}");
     }
@@ -478,6 +480,37 @@ public sealed class CharacterResolutionService(
         };
         var value = prereq.Allowed ? "allowed" : $"not allowed: {prereq.Reason}";
         return new ResolvedFact($"multiclass into {targetClass}", value, components, "ok");
+    }
+
+    /// <summary>
+    /// Per-ability saving-throw bonus = ability modifier + (proficiency bonus if the STARTING class is
+    /// proficient in that save). Pure/computed — no DB, no provenance. Unknown starting class => needsReview.
+    /// </summary>
+    public static ResolvedFact ResolveSavingThrows(CharacterSheet sheet)
+    {
+        var starting = sheet.Classes.Count > 0 ? sheet.Classes[0].Class : "";
+        var profs = SavingThrowProficiencies.For(starting);
+        if (profs is null)
+            return new ResolvedFact("saving throws", "unknown class", [], "needsReview");
+
+        var (p1, p2) = profs.Value;
+        var pb = sheet.ProficiencyBonus;
+        var abilities = new (string Name, int Score)[]
+        {
+            ("Strength", sheet.Strength), ("Dexterity", sheet.Dexterity), ("Constitution", sheet.Constitution),
+            ("Intelligence", sheet.Intelligence), ("Wisdom", sheet.Wisdom), ("Charisma", sheet.Charisma),
+        };
+        var components = new List<ResolvedComponent>();
+        var rendered = new List<string>();
+        foreach (var (name, score) in abilities)
+        {
+            var proficient = string.Equals(name, p1, StringComparison.Ordinal) || string.Equals(name, p2, StringComparison.Ordinal);
+            var bonus = CharacterSheet.Modifier(score) + (proficient ? pb : 0);
+            var val = (bonus >= 0 ? $"+{bonus}" : bonus.ToString()) + (proficient ? " (proficient)" : "");
+            components.Add(new ResolvedComponent(name, val, null));
+            rendered.Add($"{name} {val}");
+        }
+        return new ResolvedFact("saving throws", string.Join(", ", rendered), components, "ok");
     }
 
     /// <summary>User-scoped wrapper: enforces snapshot ownership (SEC-08) then runs the pure check.</summary>
