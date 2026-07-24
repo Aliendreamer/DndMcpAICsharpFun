@@ -58,6 +58,11 @@ public sealed class EntityRetrievalService(
         if (!string.IsNullOrWhiteSpace(q.AbilityBonus))
             return await ListRacesByAbilityAsync(q, clamped, ct);
 
+        // race-damage-defense-filter: same query-time scroll-then-filter shape — resist/immune
+        // damage-type data isn't a payload field, so Qdrant can't filter it.
+        if (!string.IsNullOrWhiteSpace(q.ResistDamage) || !string.IsNullOrWhiteSpace(q.ImmuneDamage))
+            return await ListRacesByDamageDefenseAsync(q, clamped, ct);
+
         var (total, hits) = await store.ListByFilterAsync(BuildFilters(q), clamped, ct);
         var rows = hits.Select(h => ToRow(h.Envelope)).ToList();
         return new EntitySetResult(total, rows.Count, rows);
@@ -85,6 +90,23 @@ public sealed class EntityRetrievalService(
         var (_, hits) = await store.ListByFilterAsync(raceFilters, RaceAbilityMaxScan, ct);
         var matched = hits
             .Where(h => RaceAbilityParser.BoostedAbilities(h.Envelope.Fields).Contains(code))
+            .ToList();
+        var rows = matched.Take(cap).Select(h => ToRow(h.Envelope)).ToList();
+        return new EntitySetResult(matched.Count, rows.Count, rows);
+    }
+
+    private const int RaceDamageDefenseMaxScan = 3000;
+
+    private async Task<EntitySetResult> ListRacesByDamageDefenseAsync(EntitySearchQuery q, int cap, CancellationToken ct)
+    {
+        var resist = string.IsNullOrWhiteSpace(q.ResistDamage) ? null : q.ResistDamage!.Trim().ToLowerInvariant();
+        var immune = string.IsNullOrWhiteSpace(q.ImmuneDamage) ? null : q.ImmuneDamage!.Trim().ToLowerInvariant();
+        var raceFilters = BuildFilters(q) with { Type = EntityType.Race };
+        var (_, hits) = await store.ListByFilterAsync(raceFilters, RaceDamageDefenseMaxScan, ct);
+        var matched = hits
+            .Where(h =>
+                (resist is null || RaceDamageDefenseParser.DamageTypes(h.Envelope.Fields, "resist").Contains(resist))
+                && (immune is null || RaceDamageDefenseParser.DamageTypes(h.Envelope.Fields, "immune").Contains(immune)))
             .ToList();
         var rows = matched.Take(cap).Select(h => ToRow(h.Envelope)).ToList();
         return new EntitySetResult(matched.Count, rows.Count, rows);

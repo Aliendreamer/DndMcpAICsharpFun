@@ -21,4 +21,7 @@ public sealed record EntitySearchQuery(
     // spell-class-join: restrict to spells this class can cast (resolved via SpellClassIndex).
     string? CastableByClass = null,
     // race-ability-filter: restrict to races that boost this ability (fixed or choosable).
-    string? AbilityBonus = null);
+    string? AbilityBonus = null,
+    // race-damage-defense-filter: restrict to races that resist / are immune to a damage type.
+    string? ResistDamage = null,
+    string? ImmuneDamage = null);

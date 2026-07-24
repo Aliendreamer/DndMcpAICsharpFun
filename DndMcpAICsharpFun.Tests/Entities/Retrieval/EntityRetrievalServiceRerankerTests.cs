@@ -342,4 +342,95 @@ public sealed class EntityRetrievalServiceRerankerTests
         result.Total.Should().Be(1);
         result.Rows.Should().ContainSingle(r => r.Id == "mm.monster.a");
     }
+
+    // ── race-damage-defense-filter: resist/immune ──────────────────────────────
+
+    private static IEntityVectorStore MakeRaceStoreForDamageDefense()
+    {
+        var store = Substitute.For<IEntityVectorStore>();
+        IReadOnlyList<EntitySearchHit> races =
+        [
+            MakeRaceHit("phb.race.fire-genasi", "Fire Genasi", """{"resist":["fire"]}"""),
+            MakeRaceHit("phb.race.tiefling", "Tiefling", """{"resist":[{"choose":{"from":["fire","cold"]}}]}"""),
+            MakeRaceHit("phb.race.hill-dwarf", "Hill Dwarf", """{"immune":["poison"]}"""),
+            MakeRaceHit("phb.race.human", "Human", """{}"""),
+        ];
+        store.ListByFilterAsync(Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+             .Returns(Task.FromResult((4, races)));
+        return store;
+    }
+
+    [Fact]
+    public async Task ListAsync_resistDamage_returns_only_races_that_resist_that_damage_type()
+    {
+        var store = MakeRaceStoreForDamageDefense();
+        var sut = BuildSut(store, Substitute.For<IReranker>());
+        var q = new EntitySearchQuery("", EntityType.Race, null, null, null, null, null,
+            null, null, null, null, TopK: 50, ResistDamage: "fire");
+
+        var result = await sut.ListAsync(q, 50, CancellationToken.None);
+
+        result.Total.Should().Be(2);
+        result.Rows.Select(r => r.Name).Should().BeEquivalentTo("Fire Genasi", "Tiefling");
+    }
+
+    [Fact]
+    public async Task ListAsync_immuneDamage_returns_only_races_that_are_immune_to_that_damage_type()
+    {
+        var store = MakeRaceStoreForDamageDefense();
+        var sut = BuildSut(store, Substitute.For<IReranker>());
+        var q = new EntitySearchQuery("", EntityType.Race, null, null, null, null, null,
+            null, null, null, null, TopK: 50, ImmuneDamage: "poison");
+
+        var result = await sut.ListAsync(q, 50, CancellationToken.None);
+
+        result.Total.Should().Be(1);
+        result.Rows.Should().ContainSingle(r => r.Name == "Hill Dwarf");
+    }
+
+    [Fact]
+    public async Task ListAsync_resistDamage_and_immuneDamage_together_ANDs_both_and_can_yield_none()
+    {
+        var store = MakeRaceStoreForDamageDefense();
+        var sut = BuildSut(store, Substitute.For<IReranker>());
+        var q = new EntitySearchQuery("", EntityType.Race, null, null, null, null, null,
+            null, null, null, null, TopK: 50, ResistDamage: "fire", ImmuneDamage: "poison");
+
+        var result = await sut.ListAsync(q, 50, CancellationToken.None);
+
+        result.Total.Should().Be(0);
+        result.Rows.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ListAsync_resistDamage_is_case_insensitive()
+    {
+        var store = MakeRaceStoreForDamageDefense();
+        var sut = BuildSut(store, Substitute.For<IReranker>());
+        var q = new EntitySearchQuery("", EntityType.Race, null, null, null, null, null,
+            null, null, null, null, TopK: 50, ResistDamage: "FIRE");
+
+        var result = await sut.ListAsync(q, 50, CancellationToken.None);
+
+        result.Total.Should().Be(2);
+        result.Rows.Select(r => r.Name).Should().BeEquivalentTo("Fire Genasi", "Tiefling");
+    }
+
+    [Fact]
+    public async Task ListAsync_resistDamage_and_immuneDamage_null_uses_the_generic_path_unchanged()
+    {
+        var store = Substitute.For<IEntityVectorStore>();
+        IReadOnlyList<EntitySearchHit> hits = [MakeHit("mm.monster.a", "txt", 0f)];
+        store.ListByFilterAsync(Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+             .Returns(Task.FromResult((1, hits)));
+
+        var sut = BuildSut(store, Substitute.For<IReranker>());
+        var q = new EntitySearchQuery("", EntityType.Monster, null, null, null, null, null,
+            null, null, null, null, TopK: 50, ResistDamage: null, ImmuneDamage: null);
+
+        var result = await sut.ListAsync(q, 50, CancellationToken.None);
+
+        result.Total.Should().Be(1);
+        result.Rows.Should().ContainSingle(r => r.Id == "mm.monster.a");
+    }
 }
