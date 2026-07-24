@@ -66,6 +66,14 @@ public sealed class ArmorClassResolutionTests
     }
 
     [Fact]
+    public void Unarmored_defense_win_omits_the_superseded_base_component()
+    {
+        var fact = CharacterResolutionService.ResolveArmorClass(Sheet("Barbarian", 3, dex: 14, con: 16));
+        fact.Components.Should().Contain(c => c.Label == "unarmored defense");
+        fact.Components.Should().NotContain(c => c.Label == "base");
+    }
+
+    [Fact]
     public void Unknown_armor_is_needsReview() =>
         CharacterResolutionService.ResolveArmorClass(Sheet("Fighter", 1, armor: "Mithral Plate")).Confidence.Should().Be("needsReview");
 

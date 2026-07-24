@@ -641,14 +641,18 @@ public sealed class CharacterResolutionService(
         int baseAc;
         if (unarmored)
         {
-            baseAc = 10 + dex;
-            components.Add(new ResolvedComponent("base", "10", null));
-            components.Add(new ResolvedComponent("dex", Signed(dex), null));
+            var plain = 10 + dex;
             var ud = UnarmoredDefense(sheet, armor.Shield);
-            if (ud is not null && ud > baseAc)
+            if (ud is not null && ud > plain)
             {
                 baseAc = ud.Value;
                 components.Add(new ResolvedComponent("unarmored defense", ud.Value.ToString(), null));
+            }
+            else
+            {
+                baseAc = plain;
+                components.Add(new ResolvedComponent("base", "10", null));
+                components.Add(new ResolvedComponent("dex", Signed(dex), null));
             }
         }
         else

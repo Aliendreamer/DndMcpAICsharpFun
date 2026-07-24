@@ -562,6 +562,8 @@ input::placeholder, textarea::placeholder { color:var(--muted); }
 .edit-grid { display: flex; flex-direction: column; gap: var(--s3); }
 .edit-grid label { display: flex; flex-direction: column; gap: var(--s1); font-size: var(--fs-sm); color: var(--muted); }
 .edit-grid label input, .edit-grid label textarea, .edit-grid label select { width: 100%; }
+.edit-grid label.checkbox-label { flex-direction: row; align-items: center; gap: var(--s2); }
+.edit-grid label.checkbox-label input[type=checkbox] { width: auto; }
 
 .class-rows { display: flex; flex-direction: column; gap: var(--s2); }
 .class-edit-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
