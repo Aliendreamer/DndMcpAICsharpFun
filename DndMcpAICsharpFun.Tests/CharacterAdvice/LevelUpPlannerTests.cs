@@ -1,8 +1,11 @@
 using System.Text.Json;
+
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities.Fields;
 using DndMcpAICsharpFun.Features.CharacterAdvice;
+
 using FluentAssertions;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.CharacterAdvice;
@@ -65,5 +68,25 @@ public class LevelUpPlannerTests
         var delta = new LevelUpPlanner().Plan(FighterAt(4), "Fighter", FighterFields(), null);
         delta.SpellSlotsBefore.Should().OnlyContain(x => x == 0);
         delta.SpellSlotsAfter.Should().OnlyContain(x => x == 0);
+    }
+
+    [Fact]
+    public void VeryLowConstitution_floorsHpGainAtOne()
+    {
+        var fields = new ClassFields(
+            Hd: new HitDice(Number: 1, Faces: 6),
+            Proficiency: ["int", "wis"],
+            StartingProficiencies: null,
+            ClassFeatures: null,
+            Multiclassing: null,
+            Entries: null,
+            SubclassTitle: null);
+        var sheet = new CharacterSheet { Constitution = 3 };          // -4 CON mod
+        sheet.SetSingleClass("Wizard", "", 1);
+
+        var delta = new LevelUpPlanner().Plan(sheet, "Wizard", fields, null);
+
+        // Raw (faces/2)+1+conMod = 3+1-4 = 0 → D&D floors HP gain at 1 per level.
+        delta.HpAverageGain.Should().Be(1);
     }
 }

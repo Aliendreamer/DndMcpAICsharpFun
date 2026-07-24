@@ -32,9 +32,10 @@ public sealed class LevelUpPlanner
         var pbBefore = CharacterSheet.ProficiencyBonusForLevel(sheet.Level);
         var pbAfter = CharacterSheet.ProficiencyBonusForLevel(newTotalLevel);
 
-        // HP: hit-die average (ceil((faces+1)/2), i.e. faces/2 + 1 via integer division) + CON modifier.
+        // HP: hit-die average (ceil((faces+1)/2), i.e. faces/2 + 1 via integer division) + CON modifier,
+        // floored at the D&D minimum of 1 HP per level.
         var faces = classFields.Hd?.Faces ?? 8;
-        var hpAverage = (faces / 2) + 1 + CharacterSheet.Modifier(sheet.Constitution);
+        var hpAverage = Math.Max(1, (faces / 2) + 1 + CharacterSheet.Modifier(sheet.Constitution));
 
         var slotsBefore = MulticlassSlotTableSeeder.SlotsForCasterLevel(MulticlassSpellcasting.ResolveSlotSource(before));
         var slotsAfter = MulticlassSlotTableSeeder.SlotsForCasterLevel(MulticlassSpellcasting.ResolveSlotSource(after));
