@@ -645,15 +645,11 @@ FULL suite **1323/1323** (crafting-calculator).
 NEXT candidates (user's call):
 (1) companion REASONING frontier — the full atomic-surfaces + CAPSTONE set is now BUILT (character-coach + encounter
     swarms + setting-aware lore + rules-adjudication (+v2) + NPC generation + **session prep** ALL DONE): **downtime/crafting DONE** (`plan_downtime` + deterministic `calculate_crafting`, both archived 2026-07-13). Remaining
-    QUEUED — **the deferred local MoE upgrade (Item 5/6) is now the STRONGEST-argued next lever**: qwen3:8b's weaknesses have
-    compounded across surfaces — 4-param tool-call binding flakiness (session-prep), retrieval-over-calculator misrouting +
-    fabricated math + prose-rule disobedience (crafting-calculator, only partly fixable by persona) — a better local model
-    fixes tool-selection, arg-binding, and instruction-adherence at the source. OR NPC-gen v2 (setting-aware names/hooks,
-    party of NPCs); OR session-prep v2 (party of NPCs, multiple encounters); OR grow the setting catalog (ingest more setting books);
+    QUEUED — **the local MoE upgrade is TRIED & REJECTED, NOT a lever** (user 2026-07-24: "we tried moe it did not work"; matches the BENCHMARKED & REJECTED section below — every 8GB-fit model loses to qwen3:8b, and the `--cpu-moe` 26B tier spills to RAM → 10-100× slower). qwen3:8b IS the local ceiling on this hardware; the ONLY real model unlock is a **16GB+ GPU** (hardware, not a software swap) — do not re-propose MoE. Remaining SOFTWARE levers: OR NPC-gen v2 (setting-aware names/hooks, party of NPCs); OR session-prep v2 (party of NPCs, multiple encounters); OR grow the setting catalog (ingest more setting books); OR retrieval reranking/section-scoping (the hard-multi-rule answer ceiling);
 (2) [level-up grounding coverage — ✅ RESOLVED via `fivetools-field-fill` field-fill hybrid; optional: `backfill-spells` for spell gaps];
 (3) ~~resume the parked prose-grounded-knowledge-model~~ — CLOSED as delivered/superseded 2026-07-xx (commit 6042964); prose extraction now needed ONLY for homebrew/non-5etools books (official content projects from 5etools — see [[read_path_frontier]]);
-(4) the **local MoE model upgrade** (MODEL/INFERENCE UPGRADE PATH — Item 5/6) — user DEFERRED this 2026-07-11
-    ("leave moe for later"); a foundational lever under all when revisited.
+(4) ~~local MoE model upgrade~~ — TRIED & DID NOT WORK (user confirmed 2026-07-24; see BENCHMARKED & REJECTED
+    section — qwen3:8b is the local ceiling on 8GB, MoE spills to RAM). NOT a lever; the only real model unlock is a 16GB+ GPU (hardware).
 Deferred operational: live-host smokes for Item 3 (reground, Ollama judge path), Item 4 (dedup endpoints),
 encounter-design (chat build→rate), Item C (play page + tracker Playwright smoke). Table-play roll→log→reveal
 UI smoke DONE 2026-07-10 (see Item B). Relates to
