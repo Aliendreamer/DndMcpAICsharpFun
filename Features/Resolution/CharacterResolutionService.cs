@@ -76,6 +76,8 @@ public sealed class CharacterResolutionService(
             return ResolveClassFeaturesAsync(sheet, ct);
         if (feature.Equals("class resources", StringComparison.OrdinalIgnoreCase))
             return ResolveClassResourcesAsync(sheet, ct);
+        if (feature.Equals("spell count", StringComparison.OrdinalIgnoreCase))
+            return ResolveSpellCountAsync(sheet, ct);
         if (feature.Equals("subclass spells", StringComparison.OrdinalIgnoreCase))
             return ResolveSubclassSpellsAsync(sheet, ct);
         if (feature.Equals("saving throws", StringComparison.OrdinalIgnoreCase))
@@ -417,6 +419,95 @@ public sealed class CharacterResolutionService(
         if (components.Count == 0)
             return new ResolvedFact("class resources", "no classes", [], "needsReview");
         return new ResolvedFact("class resources", string.Join(" | ", rendered), components, confidence);
+    }
+
+    private static int ModForAbility(CharacterSheet s, string ability) => CharacterSheet.Modifier(ability switch
+    {
+        "Strength" => s.Strength,
+        "Dexterity" => s.Dexterity,
+        "Constitution" => s.Constitution,
+        "Intelligence" => s.Intelligence,
+        "Wisdom" => s.Wisdom,
+        "Charisma" => s.Charisma,
+        _ => 10,
+    });
+
+    private async Task<ResolvedFact> ResolveSpellCountAsync(CharacterSheet sheet, CancellationToken ct)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        var components = new List<ResolvedComponent>();
+        var rendered = new List<string>();
+        var confidence = "ok";
+        var contributed = false;
+
+        foreach (var c in sheet.Classes)
+        {
+            if (string.IsNullOrWhiteSpace(c.Class)) continue;
+
+            // Load the class table row (needed for the known-caster read + cantrips).
+            var suffix = $".table.{EntityIdSlug.Slug(c.Class)}";
+            var tables = await db.StructuredTables.Where(t => t.CanonicalId.EndsWith(suffix)).Take(2).ToListAsync(ct);
+            var ambiguous = tables.Count > 1;
+            var table = tables.Count == 1 ? tables[0] : null;
+
+            List<string> columns = [];
+            List<CanonicalCell> cells = [];
+            if (table is not null)
+            {
+                columns = JsonSerializer.Deserialize<List<string>>(table.ColumnsJson, JsonOpts) ?? [];
+                var row = await db.StructuredTableRows
+                    .FirstOrDefaultAsync(r => r.TableId == table.Id && r.RowIndex == c.Level - 1, ct);
+                cells = row is null ? [] : JsonSerializer.Deserialize<List<CanonicalCell>>(row.CellsJson, JsonOpts) ?? [];
+            }
+
+            CanonicalCell? Cell(string col)
+            {
+                for (var i = 0; i < columns.Count && i < cells.Count; i++)
+                    if (string.Equals(columns[i], col, StringComparison.OrdinalIgnoreCase)) return cells[i];
+                return null;
+            }
+
+            var known = Cell("Spells Known");
+            var cantrips = Cell("Cantrips Known");
+            var ability = MulticlassSpellcasting.SpellcastingAbility(c.Class);
+
+            List<string> Parts(string head) =>
+                cantrips is not null && !string.IsNullOrWhiteSpace(cantrips.Value)
+                    ? [head, $"{cantrips.Value} cantrips"] : [head];
+
+            if (known is not null && !string.IsNullOrWhiteSpace(known.Value))
+            {
+                var val = string.Join(", ", Parts($"{known.Value} known"));
+                components.Add(new ResolvedComponent(c.Class, val, known.Provenance));
+                rendered.Add($"{c.Class}: {val}");
+                contributed = true;
+            }
+            else if (ambiguous)
+            {
+                confidence = "needsReview";
+                components.Add(new ResolvedComponent(c.Class, $"[ambiguous: multiple books define {suffix}]", null));
+            }
+            else if (ability is not null)
+            {
+                var mod = ModForAbility(sheet, ability);
+                var prepared = MulticlassSpellcasting.Classify(c) == CasterType.Half ? mod + c.Level / 2 : mod + c.Level;
+                prepared = Math.Max(1, prepared);
+                var val = string.Join(", ", Parts($"{prepared} prepared"));
+                components.Add(new ResolvedComponent(c.Class, val, null));
+                rendered.Add($"{c.Class}: {val}");
+                contributed = true;
+            }
+            else
+            {
+                components.Add(new ResolvedComponent(c.Class, "no spellcasting", null));
+                rendered.Add($"{c.Class}: no spellcasting");
+            }
+        }
+
+        if (!contributed)
+            return new ResolvedFact("spell count",
+                components.Count > 0 ? string.Join(" | ", rendered) : "no classes", components, "needsReview");
+        return new ResolvedFact("spell count", string.Join(" | ", rendered), components, confidence);
     }
 
 
