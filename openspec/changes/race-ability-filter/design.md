@@ -1,0 +1,27 @@
+## Context
+
+`EntityRetrievalService.ListEntitiesAsync` filters entities via `store.ListByFilterAsync(BuildFilters(q), cap)` for Qdrant-payload-indexed fields. Relationship/computed filters that aren't payload fields use a **query-time join**: `castableByClass` calls `ListSpellsByClassAsync` — `BuildFilters(q) with { Type = Spell }`, `ListByFilterAsync(..., SpellClassMaxScan)`, `.Where(h => spellClassIndex.CanCast(q.CastableByClass!, h.Envelope.Name, h.Envelope.SourceBook))`, `.Take(cap)`, and returns `total = matched.Count` (Qdrant can't count a computed set). The endpoint `GET /retrieval/entities/list` (`EntityRetrievalEndpoints.ListPublic` → `BuildQuery`) already threads `castableByClass`. The ability data is on the entity itself: `RaceFields.Ability` is `IReadOnlyList<JsonElement>?` holding the 5etools ability shape.
+
+5etools ability shapes (from `races.json`, already projected):
+- fixed: `{"str":2,"cha":1}` → boosts str, cha.
+- choose: `{"choose":{"from":["str","dex","con","int","wis","cha"],"count":2}}` → boosts any of the listed.
+- mixed: `{"cha":2,"choose":{"from":["str","dex","con","int","wis"],"count":1}}` → boosts cha + any listed.
+
+## Goals / Non-Goals
+
+**Goals:** an `abilityBonus` filter returning races that boost that ability (fixed OR choosable), query-time, no re-index. **Non-Goals:** resistance/immunity filtering (deferred); any chat/MCP tool; a Qdrant payload index / corpus re-embed; changing the total semantics for other filters; handling non-race entity types (ability bonus is race-only).
+
+## Decisions
+
+- **D1 — `RaceAbilityParser` (pure, self-contained; no external 5etools load).** `BoostedAbilities(RaceFields? fields) : IReadOnlySet<string>` — for each `JsonElement` in `fields.Ability`: add every top-level property name that is one of the six ability codes with a numeric value (fixed); if a `choose` object with a `from` array is present, add each string entry from `from` that is an ability code. Return lowercase codes. Missing/empty `Ability` → empty set. The data is ALREADY on the entity (unlike the spell→class relationship), so NO `SpellClassIndex`-style external index is needed — parse from the hit's fields directly. Robust to shape drift (TryGetProperty, ValueKind checks; unknown keys ignored).
+- **D2 — `AbilityBonus` query param + normalization.** `EntitySearchQuery.AbilityBonus` (`string? = null`). Accept a 3-letter code `str/dex/con/int/wis/cha`, lowercased/trimmed at the service boundary; an unrecognized value yields zero matches (never throws, never fabricates). (Full ability names are out of scope — the 5etools codes are the contract.)
+- **D3 — query-time filter (mirror `castableByClass`).** In `ListEntitiesAsync`, before the generic path: `if (!string.IsNullOrWhiteSpace(q.AbilityBonus)) return await ListRacesByAbilityAsync(q, clamped, ct);`. `ListRacesByAbilityAsync` = `BuildFilters(q) with { Type = EntityType.Race }`, `ListByFilterAsync(..., RaceAbilityMaxScan)`, `.Where(h => RaceAbilityParser.BoostedAbilities(<h race fields>).Contains(code))`, `.Take(cap)`, `total = matched.Count`. Add `RaceAbilityMaxScan` mirroring `SpellClassMaxScan`. Access the race fields from `h.Envelope` the same way other typed-field reads do (deserialize the envelope's Fields to `RaceFields`, or read the already-typed accessor — match the codebase's existing envelope→RaceFields access; confirm during implementation).
+- **D4 — endpoint threading.** Add an `abilityBonus` parameter to `ListPublic` and `BuildQuery` in `EntityRetrievalEndpoints`, set on the `EntitySearchQuery` exactly as `castableByClass` is. Only the public `/retrieval/entities/list` endpoint (the diagnostic/admin `search` endpoints are separate and out of scope unless they already share `BuildQuery`). Update `.http` + insomnia.
+
+## Risks / Trade-offs
+
+- **Coverage gap (data, not code).** Only ~74/157 races have structured `Ability` data; the rest won't match. That's the honest grounding contract (no fabrication) — the filter returns races that provably boost the ability. Documented, not a defect. MITIGATION: the integration test asserts the matching set, and a `no-STR` race is excluded — it does not assert corpus-wide completeness.
+- **Choose-block false-inclusiveness (by design).** A race that lets you *choose* any ability (Variant Human / Half-Elf choose-two) matches EVERY ability filter. That is the agreed semantics ("match both fixed + choosable" — it reflects that you *can* build that race with the bonus). Covered by an explicit choose-block parser test.
+- **Total semantics.** Like `castableByClass`, `total` is the matched count after a capped scan, not a Qdrant aggregate — if the Race corpus ever exceeds `RaceAbilityMaxScan`, the count is a floor. Races are a small set, so the cap is comfortable; mirror `SpellClassMaxScan`'s value.
+- **Real-infra dependency.** A fake store proves the parse/filter shape, not that real Race entities carry `Ability`. MITIGATION: a real-Qdrant `QdrantFixture` test seeding entities with the actual 5etools ability JSON shapes (fixed + choose) and asserting the filter result + honest total.
+- **Envelope→RaceFields access.** The exact way to get `RaceFields` from a search hit's envelope must match the existing codebase pattern (there IS a typed-field path used by other renderers/resolvers) — verify at implementation rather than assume a deserialize.
