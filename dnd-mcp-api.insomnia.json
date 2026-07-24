@@ -1053,6 +1053,52 @@
       "authentication": {}
     },
     {
+      "_id": "req_retrieval_entities_resist",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "List races resistant to fire (race-damage-defense-filter; fixed or choosable)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/retrieval/entities/list",
+      "headers": [],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "resist",
+          "value": "fire"
+        },
+        {
+          "name": "limit",
+          "value": "50"
+        }
+      ],
+      "authentication": {}
+    },
+    {
+      "_id": "req_retrieval_entities_immune",
+      "_type": "request",
+      "parentId": "fld_retrieval",
+      "name": "List races immune to poison (race-damage-defense-filter)",
+      "method": "GET",
+      "url": "{{ _.baseUrl }}/retrieval/entities/list",
+      "headers": [],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [
+        {
+          "name": "immune",
+          "value": "poison"
+        },
+        {
+          "name": "limit",
+          "value": "50"
+        }
+      ],
+      "authentication": {}
+    },
+    {
       "_id": "req_retrieval_entities_admin",
       "_type": "request",
       "parentId": "fld_retrieval",
