@@ -486,6 +486,7 @@ public sealed class CharacterResolutionService(
             {
                 confidence = "needsReview";
                 components.Add(new ResolvedComponent(c.Class, $"[ambiguous: multiple books define {suffix}]", null));
+                rendered.Add($"{c.Class}: [ambiguous: multiple books define {suffix}]");
             }
             else if (ability is not null)
             {
@@ -509,7 +510,6 @@ public sealed class CharacterResolutionService(
                 components.Count > 0 ? string.Join(" | ", rendered) : "no classes", components, "needsReview");
         return new ResolvedFact("spell count", string.Join(" | ", rendered), components, confidence);
     }
-
 
     private async Task<ResolvedFact> ResolveSubclassSpellsAsync(CharacterSheet sheet, CancellationToken ct)
     {
@@ -579,7 +579,7 @@ public sealed class CharacterResolutionService(
     /// </summary>
     public static ResolvedFact ResolveSavingThrows(CharacterSheet sheet)
     {
-        var starting = sheet.Classes.Count > 0 ? sheet.Classes[0].Class : "";
+        var starting = sheet.Class;
         var profs = SavingThrowProficiencies.For(starting);
         if (profs is null)
             return new ResolvedFact("saving throws", "unknown class", [], "needsReview");

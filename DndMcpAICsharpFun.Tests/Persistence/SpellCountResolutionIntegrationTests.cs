@@ -73,7 +73,9 @@ public sealed class SpellCountResolutionIntegrationTests(PostgresFixture pg) : I
         var dbf = DbFactory();
         var snapId = await SeedAsync(dbf, "paladin", Sheet("Paladin", 6, ("Charisma", 14)), heroId: 3); // +2 mod
         var fact = await new CharacterResolutionService(dbf, new HeroRepository(dbf)).ResolveAsync(snapId, "spell count");
-        fact.Components.First(c => c.Label == "Paladin").Value.Should().Contain("5 prepared"); // 2 + 6/2 = 5
+        var component = fact.Components.First(c => c.Label == "Paladin");
+        component.Value.Should().Contain("5 prepared"); // 2 + 6/2 = 5
+        component.Provenance.Should().BeNull(); // prepared = computed = no provenance
     }
 
     [Fact] // NON-caster: no fabricated number
@@ -83,5 +85,6 @@ public sealed class SpellCountResolutionIntegrationTests(PostgresFixture pg) : I
         var snapId = await SeedAsync(dbf, "fighter", Sheet("Fighter", 3, ("Strength", 16)), heroId: 4);
         var fact = await new CharacterResolutionService(dbf, new HeroRepository(dbf)).ResolveAsync(snapId, "spell count");
         fact.Components.First(c => c.Label == "Fighter").Value.Should().Be("no spellcasting");
+        fact.Confidence.Should().Be("needsReview"); // non-caster contributes no count, so contributed stays false
     }
 }
