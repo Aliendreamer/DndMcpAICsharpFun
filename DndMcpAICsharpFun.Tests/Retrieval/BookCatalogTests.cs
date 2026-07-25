@@ -50,6 +50,15 @@ public class BookCatalogTests
     }
 
     [Fact]
+    public void FTD_and_BGG_are_registered_with_verbatim_display_names()
+    {
+        BookCatalog.KeyToDisplayName["FTD"].Should().Be("Fizban's Treasury of Dragons");
+        BookCatalog.KeyToDisplayName["BGG"].Should().Be("Bigby Presents: Glory of the Giants");
+        BookCatalog.DisplayNameToKey["Fizban's Treasury of Dragons"].Should().Be("FTD");
+        BookCatalog.DisplayNameToKey["Bigby Presents: Glory of the Giants"].Should().Be("BGG");
+    }
+
+    [Fact]
     public void VRGR_is_registered_with_verbatim_display_name()
     {
         // Ravenloft setting book — wired into BookCatalog so setting-lore citations resolve to a
