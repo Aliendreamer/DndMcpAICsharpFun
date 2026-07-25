@@ -1,14 +1,20 @@
 using System.Text.Json;
 
+using DndMcpAICsharpFun.Infrastructure.Ollama;
+
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
 public sealed class OllamaEntityExtractionClient(
     IChatClient chat,
     PartialJsonRecoverer recoverer,
+    IOptions<OllamaOptions> ollamaOptions,
     ILogger<OllamaEntityExtractionClient> logger) : IEntityExtractionLlmClient
 {
+    private readonly TimeSpan _callTimeout = TimeSpan.FromSeconds(ollamaOptions.Value.ChatTimeoutSeconds);
+
     public async Task<ExtractionResponse> ExtractAsync(ExtractionRequest req, CancellationToken ct)
     {
         // Suppress qwen3's thinking block for extraction: type selection is already handled
@@ -32,9 +38,17 @@ public sealed class OllamaEntityExtractionClient(
             ResponseFormat = ChatResponseFormat.ForJsonSchema(req.ToolInputSchema),
         };
 
+        // Bound each generation with a per-call timeout so a hung ollama response (a giant stat block
+        // qwen3 never returns from) is recorded as a failed candidate and the run continues, instead
+        // of blocking the whole extraction forever (the extraction OllamaApiClient's HttpClient has an
+        // infinite socket timeout, so cancellation is the only bound). A real caller cancellation via
+        // `ct` still aborts the run; only a timeout that fires while `ct` is NOT cancelled is swallowed.
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(_callTimeout);
+
         try
         {
-            var response = await chat.GetResponseAsync(messages, chatOptions, ct);
+            var response = await chat.GetResponseAsync(messages, chatOptions, timeoutCts.Token);
             var rawText = response.Text ?? string.Empty;
             var inputTokens = (int)(response.Usage?.InputTokenCount ?? 0);
             var outputTokens = (int)(response.Usage?.OutputTokenCount ?? 0);
@@ -80,6 +94,17 @@ public sealed class OllamaEntityExtractionClient(
                     ErrorMessage: $"Response was not valid JSON: {ex.Message}",
                     RawJson: rawText);
             }
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !ct.IsCancellationRequested)
+        {
+            logger.LogWarning(
+                "Ollama chat request timed out after {TimeoutSeconds}s for model {Model} — recording candidate as failed and continuing",
+                _callTimeout.TotalSeconds, req.ModelId);
+            return new ExtractionResponse(
+                Success: false, ToolInput: null, StopReason: "timeout",
+                InputTokens: 0, OutputTokens: 0,
+                ErrorMessage: $"Ollama call timed out after {_callTimeout.TotalSeconds:0}s",
+                RawJson: null);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
