@@ -65,37 +65,18 @@ public sealed partial class BlockIngestionOrchestrator(
             var version = Enum.TryParse<DndVersion>(record.Version, ignoreCase: true, out var v)
                 ? v : DndVersion.Edition2014;
 
-            var chunks = new List<BlockChunk>();
-            var globalIndex = 0;
-            foreach (var block in extraction.Blocks)
+            var chunks = BuildChunks(extraction.Blocks, tocMap, record, version);
+
+            // The bookmark TOC (from PdfPig) and the blocks (from MinerU) are independent page sources;
+            // when they don't align, every block misses its section and chunks is empty. Rebuild from the
+            // same-source heading TOC before giving up. Guarded on bookmarks.Count > 0 so the already
+            // bookmarkless path (tocMap is already heading-derived) never rebuilds redundantly.
+            if (chunks.Count == 0 && extraction.Headings.Count > 0 && bookmarks.Count > 0)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (block.Text.Length < MinBlockChars) continue;
-                if (IsMostlyNumeric(block.Text)) continue;
-
-                var entry = tocMap.GetEntry(block.PageNumber);
-                if (entry is null) continue;
-
-                // Long blocks are split into multiple chunks before embedding
-                // so the back of the block isn't lost to embed-context truncation.
-                // All splits share section/category/page/block_order; only chunk_index differs.
-                foreach (var splitText in SplitLongBlock(block.Text))
-                {
-                    var meta = new BlockMetadata(
-                        SourceBook: record.DisplayName,
-                        Version: version,
-                        Category: entry.Category ?? ContentCategory.Rule,
-                        SectionTitle: entry.Title,
-                        SectionStart: entry.StartPage,
-                        SectionEnd: entry.EndPage ?? int.MaxValue,
-                        PageNumber: block.PageNumber,
-                        BlockOrder: block.Order,
-                        GlobalIndex: globalIndex++,
-                        BookType: record.BookType,
-                        SourceKey: record.FivetoolsSourceKey);
-                    chunks.Add(new BlockChunk(splitText, meta));
-                }
+                LogBookmarkTocFallback(logger, record.DisplayName, recordId, extraction.Headings.Count);
+                var headingTocMap = new TocCategoryMap(
+                    FullCoverageHeadingTocMapper.Map(extraction.Headings, record.DisplayName));
+                chunks = BuildChunks(extraction.Blocks, headingTocMap, record, version);
             }
 
             if (chunks.Count == 0)
@@ -186,6 +167,42 @@ public sealed partial class BlockIngestionOrchestrator(
         }
     }
 
+    internal static List<BlockChunk> BuildChunks(
+        IReadOnlyList<PdfBlock> blocks,
+        TocCategoryMap tocMap,
+        IngestionRecord record,
+        DndVersion version)
+    {
+        var chunks = new List<BlockChunk>();
+        var globalIndex = 0;
+        foreach (var block in blocks)
+        {
+            if (block.Text.Length < MinBlockChars) continue;
+            if (IsMostlyNumeric(block.Text)) continue;
+
+            var entry = tocMap.GetEntry(block.PageNumber);
+            if (entry is null) continue;
+
+            foreach (var splitText in SplitLongBlock(block.Text))
+            {
+                var meta = new BlockMetadata(
+                    SourceBook: record.DisplayName,
+                    Version: version,
+                    Category: entry.Category ?? ContentCategory.Rule,
+                    SectionTitle: entry.Title,
+                    SectionStart: entry.StartPage,
+                    SectionEnd: entry.EndPage ?? int.MaxValue,
+                    PageNumber: block.PageNumber,
+                    BlockOrder: block.Order,
+                    GlobalIndex: globalIndex++,
+                    BookType: record.BookType,
+                    SourceKey: record.FivetoolsSourceKey);
+                chunks.Add(new BlockChunk(splitText, meta));
+            }
+        }
+        return chunks;
+    }
+
     private static bool IsMostlyNumeric(string text)
     {
         var letters = 0;
@@ -215,6 +232,10 @@ public sealed partial class BlockIngestionOrchestrator(
     [LoggerMessage(Level = LogLevel.Information,
         Message = "No bookmarks for {DisplayName} (id={Id}) — using heading-derived full-coverage TOC from {HeadingCount} headings")]
     private static partial void LogHeadingFallback(ILogger logger, string displayName, int id, int headingCount);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Bookmark TOC matched 0 blocks for {DisplayName} (id={Id}) — falling back to heading-derived TOC from {HeadingCount} headings")]
+    private static partial void LogBookmarkTocFallback(ILogger logger, string displayName, int id, int headingCount);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "No blocks matched any section for {DisplayName} (id={Id})")]
     private static partial void LogNoBlocksMatched(ILogger logger, string displayName, int id);
