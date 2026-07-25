@@ -15,6 +15,7 @@ public static class BookCatalog
         new("DMG",  "Dungeon Master's Guide 2014",        DndVersion.Edition2014, "DMG"),
         new("XGE",  "Xanathar's Guide to Everything",     DndVersion.Edition2014, "XGE"),
         new("ERLW", "Eberron: Rising from the Last War",  DndVersion.Edition2014, "ERLW"),
+        new("VRGR", "Van Richten's Guide to Ravenloft",   DndVersion.Edition2014, "VRGR"),
         new("SCAG", "Sword Coast Adventurer's Guide",     DndVersion.Edition2014, "SCAG"),
         new("MTF",  "Mordenkainen's Tome of Foes",        DndVersion.Edition2014, "MTF"),
         new("MPMM", "Mordenkainen Presents: Monsters of the Multiverse", DndVersion.Edition2014, "MPMM"),

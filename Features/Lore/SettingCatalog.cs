@@ -15,6 +15,7 @@ public static class SettingCatalog
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
             ["Eberron"] = ["ERLW"],
+            ["Ravenloft"] = ["VRGR"],
         };
 
     public static IReadOnlyList<string> KnownSettings => SettingBooks.Keys.ToList();

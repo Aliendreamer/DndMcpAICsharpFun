@@ -48,4 +48,13 @@ public class BookCatalogTests
         BookCatalog.DisplayNameToKey["Mordenkainen's Tome of Foes"].Should().Be("MTF");
         BookCatalog.DisplayNameToKey["Mordenkainen Presents: Monsters of the Multiverse"].Should().Be("MPMM");
     }
+
+    [Fact]
+    public void VRGR_is_registered_with_verbatim_display_name()
+    {
+        // Ravenloft setting book — wired into BookCatalog so setting-lore citations resolve to a
+        // display name and the scope-health guard knows the key (SettingCatalog maps Ravenloft -> VRGR).
+        BookCatalog.KeyToDisplayName["VRGR"].Should().Be("Van Richten's Guide to Ravenloft");
+        BookCatalog.DisplayNameToKey["Van Richten's Guide to Ravenloft"].Should().Be("VRGR");
+    }
 }

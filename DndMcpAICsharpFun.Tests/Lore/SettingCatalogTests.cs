@@ -16,6 +16,15 @@ public sealed class SettingCatalogTests
     }
 
     [Fact]
+    public void Ravenloft_resolves_to_its_book_plus_core()
+    {
+        var books = SettingCatalog.Resolve("Ravenloft");
+
+        books.Should().Contain("VRGR");
+        books.Should().Contain(new[] { "PHB", "DMG", "MM" }); // core always included
+    }
+
+    [Fact]
     public void Unknown_or_generic_or_null_resolves_to_empty_unscoped()
     {
         SettingCatalog.Resolve(null).Should().BeEmpty();
