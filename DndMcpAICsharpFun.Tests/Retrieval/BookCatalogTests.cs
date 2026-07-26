@@ -68,6 +68,13 @@ public class BookCatalogTests
     }
 
     [Fact]
+    public void GGR_is_registered_with_verbatim_display_name()
+    {
+        BookCatalog.KeyToDisplayName["GGR"].Should().Be("Guildmasters' Guide to Ravnica");
+        BookCatalog.DisplayNameToKey["Guildmasters' Guide to Ravnica"].Should().Be("GGR");
+    }
+
+    [Fact]
     public void VRGR_is_registered_with_verbatim_display_name()
     {
         // Ravenloft setting book — wired into BookCatalog so setting-lore citations resolve to a
