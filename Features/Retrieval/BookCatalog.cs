@@ -25,6 +25,12 @@ public static class BookCatalog
         new("SCAG", "Sword Coast Adventurer's Guide",     DndVersion.Edition2014, "SCAG"),
         new("MTF",  "Mordenkainen's Tome of Foes",        DndVersion.Edition2014, "MTF"),
         new("MPMM", "Mordenkainen Presents: Monsters of the Multiverse", DndVersion.Edition2014, "MPMM"),
+        // Registered before fivetoolsSourceKey was supplied, so its blocks carry NO source_key at all
+        // and its entity ids are slugged from the display name. The key here is 5etools' own EEPC
+        // (used by races.json/feats.json/spells-xge.json) purely so block scoping and the drift guard
+        // can see it; IngestionRecord.FivetoolsSourceKey is deliberately NOT set, because that would
+        // re-slug its entity ids from elemental-evil-player-s-companion.* to eepc.*.
+        new("EEPC", "Elemental Evil Player's Companion", DndVersion.Edition2014, "EEPC"),
     ];
 
     public static IReadOnlySet<string> Keys { get; } = All.Select(b => b.Key).ToHashSet(StringComparer.Ordinal);

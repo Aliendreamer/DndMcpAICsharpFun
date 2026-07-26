@@ -68,6 +68,16 @@ public class BookCatalogTests
     }
 
     [Fact]
+    public void EEPC_is_registered_so_its_blocks_can_be_scoped()
+    {
+        // Elemental Evil was registered without a fivetoolsSourceKey, so its 365 blocks carry no
+        // source_key and the drift guard counted them. Registering it here lets the source-key
+        // backfill stamp them (it maps by display name) without touching its entity ids.
+        BookCatalog.KeyToDisplayName["EEPC"].Should().Be("Elemental Evil Player's Companion");
+        BookCatalog.DisplayNameToKey["Elemental Evil Player's Companion"].Should().Be("EEPC");
+    }
+
+    [Fact]
     public void TCE_is_registered_with_verbatim_display_name()
     {
         // TCE was ingested (2445 blocks, source_key="TCE") but never registered here, so every
