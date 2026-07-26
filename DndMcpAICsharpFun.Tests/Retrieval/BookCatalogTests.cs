@@ -59,6 +59,15 @@ public class BookCatalogTests
     }
 
     [Fact]
+    public void EGW_and_SCC_are_registered_with_verbatim_display_names()
+    {
+        BookCatalog.KeyToDisplayName["EGW"].Should().Be("Explorer's Guide to Wildemount");
+        BookCatalog.KeyToDisplayName["SCC"].Should().Be("Strixhaven: A Curriculum of Chaos");
+        BookCatalog.DisplayNameToKey["Explorer's Guide to Wildemount"].Should().Be("EGW");
+        BookCatalog.DisplayNameToKey["Strixhaven: A Curriculum of Chaos"].Should().Be("SCC");
+    }
+
+    [Fact]
     public void VRGR_is_registered_with_verbatim_display_name()
     {
         // Ravenloft setting book — wired into BookCatalog so setting-lore citations resolve to a

@@ -18,6 +18,8 @@ public static class BookCatalog
         new("VRGR", "Van Richten's Guide to Ravenloft",   DndVersion.Edition2014, "VRGR"),
         new("FTD",  "Fizban's Treasury of Dragons",        DndVersion.Edition2014, "FTD"),
         new("BGG",  "Bigby Presents: Glory of the Giants", DndVersion.Edition2014, "BGG"),
+        new("EGW",  "Explorer's Guide to Wildemount",      DndVersion.Edition2014, "EGW"),
+        new("SCC",  "Strixhaven: A Curriculum of Chaos",   DndVersion.Edition2014, "SCC"),
         new("SCAG", "Sword Coast Adventurer's Guide",     DndVersion.Edition2014, "SCAG"),
         new("MTF",  "Mordenkainen's Tome of Foes",        DndVersion.Edition2014, "MTF"),
         new("MPMM", "Mordenkainen Presents: Monsters of the Multiverse", DndVersion.Edition2014, "MPMM"),
