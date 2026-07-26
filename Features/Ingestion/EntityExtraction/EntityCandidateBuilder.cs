@@ -59,12 +59,27 @@ public sealed class EntityCandidateBuilder(
             _matcher,
             recoverMonsters,
             ungateOnTocFailure: !recoverMonsters && statBlockCandidates.Count > 0).ToList();
+        // Repair names whose heading collapsed together with a magic-item stat line
+        // ("AMULET OF THE DRUNKARD Wondrous item, uncommon" -> "AMULET OF THE DRUNKARD") BEFORE
+        // dedupe and before the drop-prefilter: dedupe keys on an id derived from the name, so a
+        // dirty and a clean variant of the same item must be collapsed here rather than shipped as
+        // two entities; and the prefilter never drops a name that MATCHES a 5etools entry, so the
+        // repaired name is what saves a real item from the name gate. A name that is ENTIRELY a stat
+        // line is returned unchanged by Strip and rejected by the gate instead.
+        // See extraction-statline-name-repair.
+        var repaired = statBlockCandidates.Concat(sectionCandidates)
+            .Select(c =>
+            {
+                var clean = MagicItemStatLineName.Strip(c.DisplayName);
+                return clean == c.DisplayName ? c : c with { DisplayName = clean };
+            });
+
         // Collapse same-id candidates (a header-clean monster yields both a section and a
         // stat-block candidate) to the best input: prefer the one carrying a stat block, then
         // the richer text — so header-clean monsters extract from full-context section text
         // (reliable) and headerless ones keep their stat-block candidate.
         var candidates = ExtractionCandidateDeduplicator.Dedupe(
-            statBlockCandidates.Concat(sectionCandidates), ExtractionEntityIds.BookKey(record));
+            repaired, ExtractionEntityIds.BookKey(record));
 
         // Deterministic resolution drops non-entity-named candidates (headings/fragments) before
         // extraction — no wasted LLM call, no garbage entity. INVARIANT: this prefilter omits

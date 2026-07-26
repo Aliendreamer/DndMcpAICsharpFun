@@ -63,6 +63,25 @@ public sealed class ExtractionSignaturesTests
     [InlineData("AN ANARCH's LAIR", false)]
     [InlineData("Effects of the Mold", false)]
     [InlineData("Variant: Chromatic Drakes", false)]
+    // extraction-statline-name-repair: magic-item stat lines used as NAMES. Every one of these was
+    // observed as an entity name in the live EGW / SCC runs (~19 of EGW's 82 entities).
+    [InlineData("Wondrous item, very rare", false)]
+    [InlineData("Wondrous item, common", false)]
+    [InlineData("Wondrous item, uncommon", false)]
+    [InlineData("Wondrous item, legendary", false)]
+    [InlineData("Wondrous Item, Uncommon (Requires Attunement by a Spellcaster)", false)]
+    [InlineData("Potion, very rare", false)]
+    [InlineData("Potion, rare", false)]
+    [InlineData("Weapon (greataxe), very rare (requires attunement)", false)]
+    [InlineData("Weapon (whip), artifact (requires attunement)", false)]
+    [InlineData("Weapon (mace), artifact (requires attunement)", false)]
+    [InlineData("Armor (studded leather), legendary (requires attunement)", false)]
+    [InlineData("Ring, rare (requires attunement)", false)]
+    // ...but a real item name is not rejected just because it names a category or ends in a rarity
+    [InlineData("Ring of Spell Storing", true)]
+    [InlineData("Wand of Fireballs, rare", true)]
+    [InlineData("Acheron Blade", true)]
+    [InlineData("Brooch of Living Essence", true)]
     // known-good entities must STILL admit (no recall regression)
     [InlineData("Tortle", true)]
     [InlineData("Babau", true)]

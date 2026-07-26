@@ -31,7 +31,12 @@ public sealed class EntityNameMatcher(EntityNameIndex index)
     // ordinal tie-break on Canonical, same return semantics as the original two scans.
     private (string Canonical, EntityType Type)? Scan(string rawName, EntityType? type)
     {
-        var normalized = EntityNameIndex.Normalize(MonsterStatLineName.Strip(rawName));
+        // Both stat-line strips run before normalisation: MinerU collapses either a monster's
+        // "<Size> <type>" line or a magic item's "<category>, <rarity>" line into the heading, and a
+        // raw concatenated name normalises to a key that exists in no index (so it would match
+        // nothing and lose its grounding). See extraction-statline-name-repair.
+        var normalized = EntityNameIndex.Normalize(
+            MagicItemStatLineName.Strip(MonsterStatLineName.Strip(rawName)));
         if (type is not null && normalized.Length == 0) return null;
 
         // 1. Exact normalized hit (optionally restricted to the requested type).

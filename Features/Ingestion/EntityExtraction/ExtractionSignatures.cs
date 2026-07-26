@@ -49,6 +49,12 @@ public static partial class ExtractionSignatures
         // mis-picked as a candidate header is not an entity, whatever its surrounding text signature.
         if (StatBlockFieldLabel().IsMatch(n)) return false;
         if (SidebarHeading().IsMatch(n)) return false;
+        // extraction-statline-name-repair: a MAGIC-ITEM stat line ("Wondrous item, very rare",
+        // "Weapon (greataxe), very rare (requires attunement)") mis-picked as a candidate header is
+        // not an entity, whatever IsMagicItem says about its surrounding text. A name with a real
+        // entity in FRONT of the stat line is repaired by MagicItemStatLineName.Strip instead, so it
+        // never reaches here — this rejects only the case where the name IS the stat line.
+        if (MagicItemStatLineName.IsWholeStatLine(n)) return false;
         if (n.StartsWith("Appendix", StringComparison.OrdinalIgnoreCase)) return false;
         if (StructuralHeaders.Contains(n)) return false;
         // Any "<X> LAIR" heading (was limited to the "A "-prefixed form, so "AN ANARCH's LAIR" leaked).
