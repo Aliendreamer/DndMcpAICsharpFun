@@ -68,6 +68,16 @@ public class BookCatalogTests
     }
 
     [Fact]
+    public void TCE_is_registered_with_verbatim_display_name()
+    {
+        // TCE was ingested (2445 blocks, source_key="TCE") but never registered here, so every
+        // key-scoped retrieval feature was blind to it and the startup catalog-drift guard warned
+        // about 2445 unknown-source_key points. Registering it closes that gap.
+        BookCatalog.KeyToDisplayName["TCE"].Should().Be("Tasha's Cauldron of Everything");
+        BookCatalog.DisplayNameToKey["Tasha's Cauldron of Everything"].Should().Be("TCE");
+    }
+
+    [Fact]
     public void GGR_is_registered_with_verbatim_display_name()
     {
         BookCatalog.KeyToDisplayName["GGR"].Should().Be("Guildmasters' Guide to Ravnica");

@@ -14,6 +14,7 @@ public static class BookCatalog
         new("MM",   "Monster Manual 2014",                DndVersion.Edition2014, "MM"),
         new("DMG",  "Dungeon Master's Guide 2014",        DndVersion.Edition2014, "DMG"),
         new("XGE",  "Xanathar's Guide to Everything",     DndVersion.Edition2014, "XGE"),
+        new("TCE",  "Tasha's Cauldron of Everything",     DndVersion.Edition2014, "TCE"),
         new("ERLW", "Eberron: Rising from the Last War",  DndVersion.Edition2014, "ERLW"),
         new("VRGR", "Van Richten's Guide to Ravenloft",   DndVersion.Edition2014, "VRGR"),
         new("FTD",  "Fizban's Treasury of Dragons",        DndVersion.Edition2014, "FTD"),
