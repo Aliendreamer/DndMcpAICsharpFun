@@ -96,10 +96,15 @@ public sealed class EntityCandidateScanner(ILogger<EntityCandidateScanner> logge
                 if (recoverFromRoster && matcher is not null &&
                     matcher.MatchPreferSource(s.Section, bookSourceKey) is { } recovered)
                 {
-                    // Matched type leads the prior; the frequency floor stays available so the model
-                    // can still re-type if the heading match was misleading.
+                    // Matched type leads the prior, followed by the FULL ranked prior for that type
+                    // (its empirical confusion set, then the frequency floor) so the model can still
+                    // re-type when the match was misleading. Keeping the confusion set matters for
+                    // reprints: EGW's Sea Elf / Aarakocra / Kenku / Tortle pages are races that 5etools
+                    // attributes to other sources, so same-source preference finds nothing and the
+                    // global fallback returns the bestiary Monster — Monster's confusion set carries
+                    // Race, which is the model's route to the right type.
                     var recoveredPrior = new List<EntityType> { recovered.Type };
-                    foreach (var t in ExpandToEntityPrior(ContentCategory.Unknown))
+                    foreach (var t in ExpandToEntityPrior(MapEntityTypeToCategory(recovered.Type)))
                         if (!recoveredPrior.Contains(t)) recoveredPrior.Add(t);
 
                     logger.LogInformation(
@@ -143,6 +148,25 @@ public sealed class EntityCandidateScanner(ILogger<EntityCandidateScanner> logge
             .Select(t => t!.Value)
             .Distinct()
             .ToList();
+
+    // Inverse of MapCategoryToEntityType, so a roster-matched TYPE can be expanded into the same
+    // ranked prior (confusion set + frequency floor) a keyword-derived CATEGORY gets. Types with no
+    // category of their own fall back to Unknown, which still yields the frequency floor.
+    private static ContentCategory MapEntityTypeToCategory(EntityType type) => type switch
+    {
+        EntityType.Spell => ContentCategory.Spell,
+        EntityType.Monster => ContentCategory.Monster,
+        EntityType.Class or EntityType.Subclass => ContentCategory.Class,
+        EntityType.Race or EntityType.Subrace => ContentCategory.Race,
+        EntityType.Background => ContentCategory.Background,
+        EntityType.Item or EntityType.Weapon or EntityType.Armor => ContentCategory.Item,
+        EntityType.MagicItem => ContentCategory.Treasure,
+        EntityType.Condition => ContentCategory.Condition,
+        EntityType.God => ContentCategory.God,
+        EntityType.Plane => ContentCategory.Plane,
+        EntityType.Trap => ContentCategory.Trap,
+        _ => ContentCategory.Unknown,
+    };
 
     private static EntityType? MapCategoryToEntityType(ContentCategory category) => category switch
     {

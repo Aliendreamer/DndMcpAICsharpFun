@@ -304,6 +304,23 @@ public class EntityCandidateScannerTests
         prior.Should().HaveCountGreaterThan(1, "the frequency floor must remain available for re-typing");
     }
 
+    // A reprinted RACE page whose 5etools entry belongs to another source falls back to the global
+    // bestiary Monster entry, so the model's only route to the right type is Monster's confusion set.
+    // The live EGW run showed Sea Elf / Aarakocra / Kenku / Tortle taking exactly this path.
+    [Fact]
+    public void Recovered_candidate_prior_keeps_the_matched_types_confusion_set()
+    {
+        var candidates = ScanForBook(
+            "Sea Elf",
+            "Sea elves fell in love with the wild beauty of the ocean in the earliest days of the multiverse.",
+            "EGW");
+
+        var prior = candidates.Should().ContainSingle().Subject.TypePrior;
+        prior[0].Should().Be(EntityType.Monster, "no EGW-sourced entry exists, so the global fallback applies");
+        prior.Should().Contain(EntityType.Race,
+            "Monster's confusion set carries Race — without it a reprinted race page can never re-type");
+    }
+
     [Fact]
     public void Does_not_recover_rule_section_that_matches_no_monster()
     {
