@@ -13,8 +13,9 @@ public sealed class EntityCandidateScanner(ILogger<EntityCandidateScanner> logge
         IList<ScannerInput> blocks,
         TocCategoryMap toc,
         EntityNameMatcher? matcher = null,
-        bool recoverMonsters = false,
-        bool ungateOnTocFailure = false)
+        bool recoverFromRoster = false,
+        bool ungateOnTocFailure = false,
+        string? bookSourceKey = null)
     {
         ArgumentNullException.ThrowIfNull(blocks);
         ArgumentNullException.ThrowIfNull(toc);
@@ -85,17 +86,26 @@ public sealed class EntityCandidateScanner(ILogger<EntityCandidateScanner> logge
             if (type is null)
             {
                 // 5etools-roster recovery (official books): a section the TOC gate would drop but
-                // whose heading confidently matches a 5etools MONSTER is recovered as a Monster
-                // candidate. Recovery only ADDS — extraction + the decline gate still adjudicate the
-                // final entity, so it cannot lower precision.
-                if (recoverMonsters && matcher is not null &&
-                    matcher.MatchOfType(s.Section, EntityType.Monster) is { } monster)
+                // whose heading confidently matches ANY indexed 5etools entity is recovered, typed by
+                // the MATCHED ENTRY rather than a hardcoded Monster. Matching prefers the book's own
+                // source, so EGW's "Orc" page resolves to EGW's Race entry instead of another book's
+                // bestiary Orc — the defect that shipped EGW's race pages as Monsters.
+                // Recovery only ADDS — extraction + the decline gate still adjudicate the final
+                // entity, so it cannot lower precision, and its cost is bounded by roster matches
+                // rather than by the number of skipped sections.
+                if (recoverFromRoster && matcher is not null &&
+                    matcher.MatchPreferSource(s.Section, bookSourceKey) is { } recovered)
                 {
-                    var recoveredPrior = ExpandToEntityPrior(ContentCategory.Monster);
+                    // Matched type leads the prior; the frequency floor stays available so the model
+                    // can still re-type if the heading match was misleading.
+                    var recoveredPrior = new List<EntityType> { recovered.Type };
+                    foreach (var t in ExpandToEntityPrior(ContentCategory.Unknown))
+                        if (!recoveredPrior.Contains(t)) recoveredPrior.Add(t);
+
                     logger.LogInformation(
-                        "Recovered monster candidate '{Canonical}' from TOC-skipped section on page {Page}",
-                        monster.Canonical, s.Page);
-                    yield return new EntityCandidate(EntityType.Monster, monster.Canonical, s.Text, s.Page, recoveredPrior);
+                        "Recovered {Type} candidate '{Canonical}' from TOC-skipped section on page {Page}",
+                        recovered.Type, recovered.Canonical, s.Page);
+                    yield return new EntityCandidate(recovered.Type, recovered.Canonical, s.Text, s.Page, recoveredPrior);
                     continue;
                 }
 

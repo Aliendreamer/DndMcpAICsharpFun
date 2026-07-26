@@ -52,13 +52,16 @@ public sealed class EntityCandidateBuilder(
         var scannerInputs = BuildScannerInputs(doc.Items);
         // 5etools-roster recovery runs only for official books (those with a fivetools source key);
         // TOC-failure ungating runs only for the non-official fallback. The two are mutually exclusive.
-        var recoverMonsters = record.FivetoolsSourceKey is not null;
+        var recoverFromRoster = record.FivetoolsSourceKey is not null;
         var sectionCandidates = scanner.Scan(
             scannerInputs,
             tocMap,
             _matcher,
-            recoverMonsters,
-            ungateOnTocFailure: !recoverMonsters && statBlockCandidates.Count > 0).ToList();
+            recoverFromRoster,
+            ungateOnTocFailure: !recoverFromRoster && statBlockCandidates.Count > 0,
+            // The book's own 5etools source, so recovery types a heading by THIS book's entry rather
+            // than whichever file loaded first (extraction-roster-recovery-generalization).
+            bookSourceKey: record.FivetoolsSourceKey).ToList();
         // Repair names whose heading collapsed together with a magic-item stat line
         // ("AMULET OF THE DRUNKARD Wondrous item, uncommon" -> "AMULET OF THE DRUNKARD") BEFORE
         // dedupe and before the drop-prefilter: dedupe keys on an id derived from the name, so a

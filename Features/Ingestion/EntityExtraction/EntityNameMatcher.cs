@@ -13,7 +13,7 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 /// </summary>
 public sealed class EntityNameMatcher(EntityNameIndex index)
 {
-    public (string Canonical, EntityType Type)? Match(string rawName) => Scan(rawName, null);
+    public (string Canonical, EntityType Type)? Match(string rawName) => Project(Scan(rawName, null));
 
     /// <summary>
     /// Like <see cref="Match"/>, but restricted to entries of the given <paramref name="type"/>.
@@ -21,15 +21,37 @@ public sealed class EntityNameMatcher(EntityNameIndex index)
     /// (e.g. "Dwarf" → the Dwarf <em>Race</em> entry rather than the Dwarf Monster entry).
     /// Returns null when no entry of that type matches (exact or fuzzy).
     /// </summary>
-    public (string Canonical, EntityType Type)? MatchOfType(string rawName, EntityType type) => Scan(rawName, type);
+    public (string Canonical, EntityType Type)? MatchOfType(string rawName, EntityType type) => Project(Scan(rawName, type));
 
-    // Single bounded-fuzzy Levenshtein scan over EntriesByName shared by Match and MatchOfType.
+    /// <summary>
+    /// Like <see cref="Match"/>, but PREFERRING entries whose 5etools source is
+    /// <paramref name="sourceKey"/>, falling back to the global result when the book has no matching
+    /// entry. Answers "what is this heading, for THIS book?" — which is what stops a heading being
+    /// typed by whichever file happened to load first: `EntityNameIndex` loads `bestiary-*` before
+    /// `races.json`, so the global lookup types EGW's "Orc" page as a Monster when EGW's own Orc is a
+    /// Race. A null/blank <paramref name="sourceKey"/> is simply a global lookup.
+    /// <para>
+    /// Same confidence bar as the other two: exact normalised hit first, then bounded fuzzy at the
+    /// same ±2 length window and 0.90 ratio. Source preference changes WHICH entries are considered,
+    /// never how confidently a name must match.
+    /// </para>
+    /// </summary>
+    public (string Canonical, EntityType Type)? MatchPreferSource(string rawName, string? sourceKey) =>
+        Project(string.IsNullOrWhiteSpace(sourceKey)
+            ? Scan(rawName, null)
+            : Scan(rawName, null, sourceKey) ?? Scan(rawName, null));
+
+    private static (string Canonical, EntityType Type)? Project((string Canonical, EntityType Type, string Source)? entry) =>
+        entry is { } e ? (e.Canonical, e.Type) : null;
+
+    // Single bounded-fuzzy Levenshtein scan over EntriesByName shared by all three public lookups.
     // Entries is always the first-wins winner per normalized key — i.e. EntriesByName[key][0] —
-    // so the untyped path (type is null) scans EntriesByName exclusively by only ever
-    // considering each key's first entry, while the typed path filters every entry of that key
-    // to the requested EntityType. Same distance bound (±2), same 0.90 ratio threshold, same
-    // ordinal tie-break on Canonical, same return semantics as the original two scans.
-    private (string Canonical, EntityType Type)? Scan(string rawName, EntityType? type)
+    // so the unfiltered path (type and requireSource both null) scans EntriesByName exclusively by
+    // only ever considering each key's first entry, while a filtered path considers every entry of
+    // that key matching the requested EntityType and/or source. Same distance bound (±2), same 0.90
+    // ratio threshold, same ordinal tie-break on Canonical, same return semantics throughout.
+    private (string Canonical, EntityType Type, string Source)? Scan(
+        string rawName, EntityType? type, string? requireSource = null)
     {
         // Both stat-line strips run before normalisation: MinerU collapses either a monster's
         // "<Size> <type>" line or a magic item's "<category>, <rarity>" line into the heading, and a
@@ -37,22 +59,28 @@ public sealed class EntityNameMatcher(EntityNameIndex index)
         // nothing and lose its grounding). See extraction-statline-name-repair.
         var normalized = EntityNameIndex.Normalize(
             MagicItemStatLineName.Strip(MonsterStatLineName.Strip(rawName)));
-        if (type is not null && normalized.Length == 0) return null;
 
-        // 1. Exact normalized hit (optionally restricted to the requested type).
+        var filtered = type is not null || requireSource is not null;
+        if (filtered && normalized.Length == 0) return null;
+
+        bool Accepts((string Canonical, EntityType Type, string Source) e) =>
+            (type is null || e.Type == type)
+            && (requireSource is null || string.Equals(e.Source, requireSource, StringComparison.OrdinalIgnoreCase));
+
+        // 1. Exact normalized hit (optionally restricted to the requested type and/or source).
         if (index.EntriesByName.TryGetValue(normalized, out var exactList))
         {
-            if (type is null)
+            if (!filtered)
                 return exactList[0];
 
             foreach (var e in exactList)
-                if (e.Type == type) return e;
+                if (Accepts(e)) return e;
         }
 
         // 2. Bounded fuzzy: only compare against index keys within ±2 chars of the query
         //    to keep the cost proportional to a small candidate set.
         var queryLen = normalized.Length;
-        (string Canonical, EntityType Type)? best = null;
+        (string Canonical, EntityType Type, string Source)? best = null;
         var bestRatio = 0.0;
         string? bestCanonical = null;
 
@@ -64,7 +92,7 @@ public sealed class EntityNameMatcher(EntityNameIndex index)
             var maxLen = Math.Max(queryLen, key.Length);
             var ratio = maxLen == 0 ? 1.0 : 1.0 - (double)dist / maxLen;
 
-            if (type is null)
+            if (!filtered)
             {
                 var value = values[0];
                 if (ratio > bestRatio || (ratio == bestRatio && string.CompareOrdinal(value.Canonical, bestCanonical) < 0))
@@ -78,7 +106,7 @@ public sealed class EntityNameMatcher(EntityNameIndex index)
             {
                 foreach (var value in values)
                 {
-                    if (value.Type != type) continue;
+                    if (!Accepts(value)) continue;
                     if (ratio > bestRatio || (ratio == bestRatio && string.CompareOrdinal(value.Canonical, bestCanonical) < 0))
                     {
                         bestRatio = ratio;

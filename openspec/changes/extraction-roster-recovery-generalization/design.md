@@ -41,7 +41,11 @@ The category is decided by `HeadingCategoryClassifier.Guess`, a keyword ladder o
 
 **Same-source preference lives in the matcher, not the scanner.** The scanner should ask "what is this heading, for this book?" and not know about index internals or load order. A new source-aware lookup keeps the ordering rule in the one place that already owns normalisation, fuzzy bounds and tie-breaks. `Match`/`MatchOfType` stay byte-identical so no existing caller shifts.
 
-**Source is added to the entry tuple rather than kept in a parallel map.** `EntriesByName` is already the multimap that retains one entry per distinct type; adding `Source` to the same tuple keeps a single lookup and avoids a second structure that can drift out of sync. This does mean touching every `LoadGlob` call and both dictionaries — a mechanical but wide edit, so it lands as one atomic task (a partially-retyped tuple does not compile).
+**Source is added to the entry tuple rather than kept in a parallel map — but only to `EntriesByName`.** `EntriesByName` is the multimap the matcher actually scans (its own comment says so), and it retains one entry per distinct type, so adding `Source` there is what makes source preference expressible. `Entries` — the first-wins single-entry convenience view — deliberately keeps its `(Canonical, Type)` shape: no production code reads it, and `EntityNameIndexTests` asserts it by whole-tuple equality (`.Should().Be(("Fireball", EntityType.Spell))`) in ~10 places. Widening it would churn those assertions into pinning 5etools source values that have nothing to do with what each test is checking. The asymmetry is documented on the two properties.
+
+This still means touching every `LoadGlob` call and `Add`, so it lands as one atomic task (a partially-retyped tuple does not compile).
+
+**`Match` and `MatchOfType` keep returning `(Canonical, Type)`.** Source preference is a new method; the existing two project the source away. This holds the ripple inside `EntityNameIndex` and `EntityNameMatcher` and satisfies the spec requirement that existing callers see identical results — the scanner only needs canonical name and type anyway.
 
 **Subraces load after base races.** Mirrors the existing documented convention (`// classes — loaded before monsters so "Bard" (class) wins`; subclasses after classes). A name that is both keeps resolving to the broader type under first-wins.
 

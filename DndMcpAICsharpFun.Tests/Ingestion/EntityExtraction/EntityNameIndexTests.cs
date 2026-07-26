@@ -32,6 +32,37 @@ public sealed class EntityNameIndexTests
         Index.Entries[EntityNameIndex.Normalize("BAG OF HOLDING")]
             .Should().Be(("Bag of Holding", EntityType.MagicItem));
 
+    // ── Source on entries + subrace roster (extraction-roster-recovery-generalization) ───────
+
+    [Fact]
+    public void EntriesByName_carries_the_5etools_source()
+    {
+        Index.EntriesByName[EntityNameIndex.Normalize("FIREBALL")]
+            .Should().Contain(e => e.Type == EntityType.Spell && e.Source == "PHB");
+    }
+
+    // "Orc" is the cross-source collision that mis-typed EGW's race pages as Monsters: both an EGW
+    // Race entry and a bestiary Monster entry must be retained, each with its own source.
+    [Fact]
+    public void EntriesByName_retains_both_sources_for_a_cross_type_collision()
+    {
+        var orc = Index.EntriesByName[EntityNameIndex.Normalize("Orc")];
+        orc.Should().Contain(e => e.Type == EntityType.Race && e.Source == "EGW");
+        orc.Should().Contain(e => e.Type == EntityType.Monster);
+    }
+
+    // races.json's subrace[] array was never loaded, so these were unmatchable by any caller.
+    [Theory]
+    [InlineData("Draconblood")]
+    [InlineData("Ravenite")]
+    [InlineData("Pallid")]
+    [InlineData("Lotusden")]
+    public void Loads_egw_subraces_as_subrace(string name)
+    {
+        Index.EntriesByName[EntityNameIndex.Normalize(name)]
+            .Should().Contain(e => e.Type == EntityType.Subrace && e.Source == "EGW");
+    }
+
     [Fact]
     public void Does_not_contain_spellcasting() =>
         Index.Entries.Should().NotContainKey(EntityNameIndex.Normalize("Spellcasting"));

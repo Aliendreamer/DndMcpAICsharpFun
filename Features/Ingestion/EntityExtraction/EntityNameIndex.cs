@@ -18,13 +18,20 @@ public sealed class EntityNameIndex
     /// <see cref="Entries"/> (first-wins, a single entry per name), this retains every type a
     /// name maps to, so a cross-type collision (e.g. "Dwarf" as both Monster and Race) can be
     /// resolved against a caller's preferred type.
+    /// <para>
+    /// Each entry also carries its 5etools <c>source</c> (empty when the record has none), so a
+    /// caller can prefer the book currently being extracted over another book's entry of the same
+    /// name — without which a heading is typed by whichever file happened to load first. NOTE the
+    /// deliberate asymmetry with <see cref="Entries"/>, which stays a `(Canonical, Type)` pair: it is
+    /// the first-wins convenience view and no production code reads it.
+    /// </para>
     /// </summary>
-    public IReadOnlyDictionary<string, IReadOnlyList<(string Canonical, EntityType Type)>> EntriesByName { get; }
+    public IReadOnlyDictionary<string, IReadOnlyList<(string Canonical, EntityType Type, string Source)>> EntriesByName { get; }
 
     public EntityNameIndex(string fivetoolsDir)
     {
         var entries = new Dictionary<string, (string Canonical, EntityType Type)>(StringComparer.Ordinal);
-        var byName = new Dictionary<string, List<(string Canonical, EntityType Type)>>(StringComparer.Ordinal);
+        var byName = new Dictionary<string, List<(string Canonical, EntityType Type, string Source)>>(StringComparer.Ordinal);
 
         // spells
         LoadGlob(entries, byName, Path.Combine(fivetoolsDir, "spells"), "spells-*.json", "spell",
@@ -57,6 +64,10 @@ public sealed class EntityNameIndex
         // remaining top-level entity files (single-file each)
         LoadGlob(entries, byName, fivetoolsDir, "backgrounds.json", "background", _ => EntityType.Background);
         LoadGlob(entries, byName, fivetoolsDir, "races.json", "race", _ => EntityType.Race);
+        // subraces — the same file's subrace[] array. Loaded AFTER base races so a colliding name
+        // resolves to Race first, mirroring the class-before-subclass convention above. Without this
+        // the EGW lineages (Draconblood, Ravenite, Pallid, Lotusden) match nothing at all.
+        LoadGlob(entries, byName, fivetoolsDir, "races.json", "subrace", _ => EntityType.Subrace);
         // feats: exclude Fighting-Style sub-features (category exactly "FS")
         LoadGlob(entries, byName, fivetoolsDir, "feats.json", "feat", _ => EntityType.Feat,
             include: e => !e.TryGetProperty("category", out var cat) ||
@@ -67,7 +78,7 @@ public sealed class EntityNameIndex
         Entries = entries;
         EntriesByName = byName.ToDictionary(
             kv => kv.Key,
-            kv => (IReadOnlyList<(string Canonical, EntityType Type)>)kv.Value,
+            kv => (IReadOnlyList<(string Canonical, EntityType Type, string Source)>)kv.Value,
             StringComparer.Ordinal);
     }
 
@@ -81,7 +92,7 @@ public sealed class EntityNameIndex
 
     private static void LoadGlob(
         Dictionary<string, (string Canonical, EntityType Type)> entries,
-        Dictionary<string, List<(string Canonical, EntityType Type)>> byName,
+        Dictionary<string, List<(string Canonical, EntityType Type, string Source)>> byName,
         string directory,
         string pattern,
         string arrayKey,
@@ -108,13 +119,16 @@ public sealed class EntityNameIndex
                     if (string.IsNullOrEmpty(name)) continue;
 
                     var type = typeSelector(elem);
-                    Add(entries, byName, name, name, type);
+                    var source = elem.TryGetProperty("source", out var src)
+                        ? src.GetString() ?? string.Empty
+                        : string.Empty;
+                    Add(entries, byName, name, name, type, source);
 
                     // Optional alias (e.g. a subclass's shortName) — indexed under its own
                     // normalized key but grounding to the primary entry's canonical name.
                     var alias = aliasSelector?.Invoke(elem);
                     if (!string.IsNullOrEmpty(alias) && alias != name)
-                        Add(entries, byName, alias, name, type);
+                        Add(entries, byName, alias, name, type, source);
                 }
             }
         }
@@ -122,20 +136,23 @@ public sealed class EntityNameIndex
 
     private static void Add(
         Dictionary<string, (string Canonical, EntityType Type)> entries,
-        Dictionary<string, List<(string Canonical, EntityType Type)>> byName,
+        Dictionary<string, List<(string Canonical, EntityType Type, string Source)>> byName,
         string keyName,
         string canonical,
-        EntityType type)
+        EntityType type,
+        string source)
     {
         var norm = Normalize(keyName);
 
         // first-wins: keep the entry already in the dictionary if present
         entries.TryAdd(norm, (canonical, type));
 
-        // Multimap: retain every distinct type a name maps to (first-wins per type).
+        // Multimap: retain every distinct (type, source) a name maps to, first-wins per pair. Keyed
+        // on the PAIR rather than the type alone so a cross-SOURCE collision of the same type (the
+        // same monster reprinted in two books) is retained and a caller can prefer its own book.
         if (!byName.TryGetValue(norm, out var list))
-            byName[norm] = list = new List<(string Canonical, EntityType Type)>();
-        if (list.TrueForAll(e => e.Type != type))
-            list.Add((canonical, type));
+            byName[norm] = list = new List<(string Canonical, EntityType Type, string Source)>();
+        if (list.TrueForAll(e => e.Type != type || !string.Equals(e.Source, source, StringComparison.Ordinal)))
+            list.Add((canonical, type, source));
     }
 }

@@ -225,11 +225,83 @@ public class EntityCandidateScannerTests
         };
 
         var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
-        var candidates = scanner.Scan(blocks, toc, RosterMatcher, recoverMonsters: true).ToList();
+        var candidates = scanner.Scan(blocks, toc, RosterMatcher, recoverFromRoster: true).ToList();
 
         candidates.Should().ContainSingle()
             .Which.Should().Match<EntityCandidate>(c =>
                 c.Type == EntityType.Monster && c.DisplayName == "Aboleth" && c.Page == 12);
+    }
+
+    // ── Generalized roster recovery (extraction-roster-recovery-generalization) ──────────────
+
+    private static TocCategoryMap AllRulePages() => new(new[]
+    {
+        new TocSectionEntry("Rules", ContentCategory.Rule, StartPage: 1, EndPage: 400),
+    });
+
+    private static List<EntityCandidate> ScanForBook(string heading, string text, string sourceKey) =>
+        new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance)
+            .Scan(
+                new List<ScannerInput> { new(heading, 184, text) },
+                AllRulePages(),
+                RosterMatcher,
+                recoverFromRoster: true,
+                bookSourceKey: sourceKey)
+            .ToList();
+
+    // EGW's whole character-options chapter classifies Rule, so these were dropped entirely:
+    // 82 entities against a ~219 roster, with zero Subclass/Race/Subrace/Spell.
+    [Fact]
+    public void Recovers_a_subclass_candidate_from_a_rule_page()
+    {
+        var candidates = ScanForBook(
+            "ECHO KNIGHT",
+            "Echo Knights are warriors who wield the power of dunamis to summon an echo of themselves.",
+            "EGW");
+
+        candidates.Should().ContainSingle()
+            .Which.Should().Match<EntityCandidate>(c =>
+                c.Type == EntityType.Subclass && c.DisplayName == "Echo Knight");
+    }
+
+    [Fact]
+    public void Recovers_a_subrace_candidate_from_a_rule_page()
+    {
+        var candidates = ScanForBook(
+            "Pallid",
+            "Pallid elves have lived so long underground that their skin has lost all colour.",
+            "EGW");
+
+        candidates.Should().ContainSingle()
+            .Which.Type.Should().Be(EntityType.Subrace);
+    }
+
+    // The mis-typing this change fixes: EGW's Orc page is a RACE, but the global first-wins index
+    // returns the bestiary Orc (bestiary-* loads before races.json), so it shipped as a Monster.
+    [Fact]
+    public void Recovered_candidate_prefers_the_books_own_source_over_another_books_type()
+    {
+        var candidates = ScanForBook(
+            "Orc",
+            "Orcs are massive humanoids with grey skin, jutting jaws and prominent teeth.",
+            "EGW");
+
+        candidates.Should().ContainSingle()
+            .Which.Type.Should().Be(EntityType.Race, "EGW's own Orc entry is a Race, not a Monster");
+    }
+
+    // The recovered candidate must still offer alternatives so the model can re-type.
+    [Fact]
+    public void Recovered_candidate_leads_its_prior_with_the_matched_type()
+    {
+        var candidates = ScanForBook(
+            "ECHO KNIGHT",
+            "Echo Knights are warriors who wield the power of dunamis to summon an echo of themselves.",
+            "EGW");
+
+        var prior = candidates.Should().ContainSingle().Subject.TypePrior;
+        prior[0].Should().Be(EntityType.Subclass);
+        prior.Should().HaveCountGreaterThan(1, "the frequency floor must remain available for re-typing");
     }
 
     [Fact]
@@ -247,7 +319,7 @@ public class EntityCandidateScannerTests
         };
 
         var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
-        var candidates = scanner.Scan(blocks, toc, RosterMatcher, recoverMonsters: true).ToList();
+        var candidates = scanner.Scan(blocks, toc, RosterMatcher, recoverFromRoster: true).ToList();
 
         candidates.Should().BeEmpty("a non-monster Rule heading must not be recovered");
     }
@@ -255,7 +327,7 @@ public class EntityCandidateScannerTests
     [Fact]
     public void Does_not_recover_monster_when_recovery_flag_is_off()
     {
-        // Non-official books pass recoverMonsters:false → the matcher is never consulted.
+        // Non-official books pass recoverFromRoster:false → the matcher is never consulted.
         var toc = new TocCategoryMap(new[]
         {
             new TocSectionEntry("Legal", ContentCategory.Rule, StartPage: 1, EndPage: 400),
@@ -267,7 +339,7 @@ public class EntityCandidateScannerTests
         };
 
         var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
-        var candidates = scanner.Scan(blocks, toc, RosterMatcher, recoverMonsters: false).ToList();
+        var candidates = scanner.Scan(blocks, toc, RosterMatcher, recoverFromRoster: false).ToList();
 
         candidates.Should().BeEmpty("recovery is off for non-official books even when the matcher would match");
     }
@@ -292,7 +364,7 @@ public class EntityCandidateScannerTests
 
         var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
         var candidates = scanner.Scan(blocks, toc, matcher: null,
-            recoverMonsters: false, ungateOnTocFailure: true).ToList();
+            recoverFromRoster: false, ungateOnTocFailure: true).ToList();
 
         candidates.Should().HaveCount(2, "no section maps to an entity type, so the TOC gate is bypassed");
         candidates.Select(c => c.DisplayName).Should().Contain(new[] { "GRUUL", "SNAPMAW" });
@@ -318,7 +390,7 @@ public class EntityCandidateScannerTests
 
         var scanner = new EntityCandidateScanner(NullLogger<EntityCandidateScanner>.Instance);
         var candidates = scanner.Scan(blocks, toc, matcher: null,
-            recoverMonsters: false, ungateOnTocFailure: true).ToList();
+            recoverFromRoster: false, ungateOnTocFailure: true).ToList();
 
         candidates.Should().ContainSingle().Which.DisplayName.Should().Be("BULLYWUG");
     }
