@@ -52,6 +52,16 @@ public sealed class OllamaEntityExtractionClientTests
         public void Dispose() { }
     }
 
+    [Fact]
+    public void Default_per_call_timeout_is_600_seconds()
+    {
+        // Guards the PRODUCTION default: no appsettings section sets Ollama:ChatTimeoutSeconds, so this
+        // property value is what live extraction runs with. Every other test here passes an explicit
+        // timeout, so without this the default could drift back unnoticed. 240s dropped ~7% of the
+        // Strixhaven candidates (5 of 69) as "timed out" when the generations were merely slow.
+        new OllamaOptions().ChatTimeoutSeconds.Should().Be(600);
+    }
+
     private static IOptions<OllamaOptions> Options(int timeoutSeconds = 240) =>
         Microsoft.Extensions.Options.Options.Create(new OllamaOptions { ChatTimeoutSeconds = timeoutSeconds });
 
