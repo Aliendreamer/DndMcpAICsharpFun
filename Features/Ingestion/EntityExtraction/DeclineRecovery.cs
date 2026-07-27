@@ -15,7 +15,8 @@ namespace DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 public sealed class DeclineRecovery(
     EntityExtractionRunner runner,
     ExtractionPromptBuilder promptBuilder,
-    EntityNameMatcher? matcher = null)
+    EntityNameMatcher? matcher = null,
+    ILogger<DeclineRecovery>? logger = null)
 {
     private const string RecoveryDataSource = "decline-recovery";
 
@@ -27,6 +28,19 @@ public sealed class DeclineRecovery(
         Dictionary<EntityType, JsonElement> schemas,
         CancellationToken ct)
     {
+        // Deterministic name-shape guard, BEFORE any model call. The recovery prompt offers a `none`
+        // branch for headings, but relying on the model to take it failed at scale: on GGR it chose
+        // Rule/Lore for 86 section headings ("Boros Creatures", "Zombies", "Chapter 5: Treasures"),
+        // 34% of that book's entities. Rejecting here also saves the wasted call, rather than
+        // discarding the result afterwards. See decline-recovery-heading-guard.
+        if (RecoveryHeadingGuard.IsSectionHeading(candidate.DisplayName))
+        {
+            logger?.LogInformation(
+                "Decline-recovery skipped for '{Candidate}': name is a section/category heading",
+                candidate.DisplayName);
+            return null;
+        }
+
         var rebound = candidate with { TypePrior = new[] { EntityType.Rule, EntityType.Lore } };
         var id = ExtractionEntityIds.RecordedEntityId(record, rebound, matcher, isOfficial: true);
         var prompt = promptBuilder.BuildRecoverySystemPrompt(sourceBook, edition);

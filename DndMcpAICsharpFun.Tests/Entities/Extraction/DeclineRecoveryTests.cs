@@ -86,6 +86,56 @@ public sealed class DeclineRecoveryTests
             "would be dishonest and could collide with a real Item entity of the same slug");
     }
 
+    [Theory]
+    [InlineData("Boros Creatures")]
+    [InlineData("Golgari NPCs")]
+    [InlineData("Zombies")]
+    [InlineData("Chapter 5: Treasures")]
+    [InlineData("Aurelia's")]
+    public async Task Section_heading_is_rejected_WITHOUT_calling_the_model(string headingName)
+    {
+        // decline-recovery-heading-guard: the point is the LLM call is SKIPPED, not that its result is
+        // discarded — on GGR these cost 86 wasted calls AND produced 34% of the book's entities as
+        // junk. The llm stub is configured to return a Rule pick, so if the guard were absent (or ran
+        // after the call) this test would get an envelope back.
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        ReturnsToolInput(llm, """{"entityType":"Rule","name":"Recovered"}""");
+
+        var recovery = new DeclineRecovery(BuildRunner(llm), new ExtractionPromptBuilder(), matcher: null);
+        var candidate = DeclinedCandidate() with { DisplayName = headingName };
+
+        var envelope = await recovery.TryRecoverAsync(
+            Record(), candidate, sourceBook: "Test", edition: "5e", schemas: Schemas(), ct: CancellationToken.None);
+
+        envelope.Should().BeNull("a section heading must stay declined");
+        await llm.DidNotReceive().ExtractAsync(Arg.Any<ExtractionRequest>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_named_npc_still_reaches_the_model_and_recovers()
+    {
+        // The same GGR pass legitimately recovered 14 named legendary NPCs. The guard must not
+        // suppress them — a guard that does is worse than the bug it fixes.
+        var llm = Substitute.For<IEntityExtractionLlmClient>();
+        ReturnsToolInput(llm, """{"entityType":"Rule","name":"Teysa Karlov"}""");
+
+        var recovery = new DeclineRecovery(BuildRunner(llm), new ExtractionPromptBuilder(), matcher: null);
+        // Text must actually mention the name: the grounding cascade rejects a name that does not
+        // appear in its own text (the anti-fabrication contract), which is unrelated to the guard.
+        var candidate = DeclinedCandidate() with
+        {
+            DisplayName = "Teysa Karlov",
+            Text = "Teysa Karlov is the guildmaster of the Orzhov Syndicate, a shrewd negotiator who "
+                 + "commands the loyalty of the guild's spirits and enforces its contracts without mercy.",
+        };
+
+        var envelope = await recovery.TryRecoverAsync(
+            Record(), candidate, sourceBook: "Test", edition: "5e", schemas: Schemas(), ct: CancellationToken.None);
+
+        envelope.Should().NotBeNull("a named NPC is real content and must still be recoverable");
+        await llm.Received().ExtractAsync(Arg.Any<ExtractionRequest>(), Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task Recovery_none_pick_stays_declined()
     {
