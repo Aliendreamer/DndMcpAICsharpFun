@@ -56,3 +56,90 @@ headings resolve, but a wrong neighbour does not). A null result SHALL NOT drop 
 - **WHEN** a raw heading is below the fuzzy confidence threshold for every index entry
 - **THEN** `Match` returns null (the candidate is NOT given a wrong canonical name — it falls through to content-first)
 
+### Requirement: Candidate-name matching SHALL strip a trailing magic-item stat line before lookup
+
+`EntityNameMatcher` SHALL strip a trailing magic-item stat line from the raw candidate name before normalising and looking it up in the 5etools index, in addition to the existing monster stat-line strip. Without this, a concatenated heading such as `"AMULET OF THE DRUNKARD Wondrous item, uncommon"` normalises to a key that exists in no index and matches nothing, so the candidate loses its grounding and its stable entity id.
+
+Both strips SHALL be applied, and the strip SHALL run **before** the match, because `DeterministicTypeResolver` never drops a name that matches a 5etools entry — a match found on the stripped name is what protects a real magic item from being dropped by the name gate.
+
+#### Scenario: A concatenated magic-item heading grounds to its 5etools entry
+
+- **WHEN** the raw candidate name is `"AMULET OF THE DRUNKARD Wondrous item, uncommon"` and 5etools contains the `Amulet of the Drunkard` magic item
+- **THEN** the matcher strips the trailing stat line and returns that entry, so the candidate is grounded and receives the canonical name and a stable id
+
+#### Scenario: Monster stat-line stripping is unaffected
+
+- **WHEN** the raw candidate name carries a monster stat-line suffix, e.g. `"Moorbounder Large monstrosity, unaligned"`
+- **THEN** the existing monster strip still applies and the name resolves as before
+
+#### Scenario: A name that is only a stat line matches nothing
+
+- **WHEN** the raw candidate name is `"Wondrous item, uncommon"`
+- **THEN** stripping leaves the input unchanged, the lookup finds no entry, and the candidate is left unmatched so the name gate can drop it
+
+### Requirement: The 5etools name index SHALL carry each entry's source
+
+Every entry in `EntityNameIndex` SHALL record the 5etools `source` value it was loaded from, alongside
+its canonical name and entity type. Without the source on the entry, a caller cannot express a
+preference for the book currently being extracted, and a heading is typed by whichever file happened to
+load first.
+
+#### Scenario: An entry exposes its source
+
+- **WHEN** the index loads the EGW `Orc` race entry and a bestiary `Orc` monster entry
+- **THEN** both entries are retained for the normalised name `orc`, each carrying its own source
+  (`EGW` and the bestiary source respectively) in addition to its type
+
+### Requirement: The 5etools name index SHALL index subraces
+
+`EntityNameIndex` SHALL load the `subrace` array from `races.json` as `EntityType.Subrace`. Subraces are
+currently not indexed at all, so subrace headings (`Draconblood`, `Ravenite`, `Lotusden`, `Pallid`)
+cannot be matched, grounded, or recovered by any caller.
+
+Subrace entries SHALL be loaded after base races, consistent with the existing convention by which a
+colliding name resolves to the broader type first (as base classes are loaded before subclasses).
+
+#### Scenario: A subrace heading matches
+
+- **WHEN** a candidate name is `"Draconblood"` or `"Pallid"` and `races.json` contains that subrace
+- **THEN** the matcher returns the entry with type `Subrace`
+
+#### Scenario: A subrace name colliding with a race resolves to the race first
+
+- **WHEN** a normalised name exists as both a race and a subrace
+- **THEN** the first-wins ordering resolves it to the `Race` entry, matching the existing
+  class-before-subclass convention
+
+### Requirement: Matching SHALL support same-source preference with global fallback
+
+`EntityNameMatcher` SHALL expose a lookup that prefers entries whose source equals a caller-supplied
+source key, and falls back to the global (first-wins) result when no same-source entry matches at the
+confidence bar. The existing untyped `Match` and type-restricted `MatchOfType` behaviour SHALL be
+unchanged, so existing callers are unaffected.
+
+The same-source lookup SHALL apply the established confidence bar (exact normalised hit, then bounded
+fuzzy at the existing threshold) — it changes which candidate entries are considered, not how
+confidently a name must match.
+
+#### Scenario: Same-source entry is preferred
+
+- **WHEN** the caller supplies source key `EGW` and the name `"Orc"` matches both an `EGW` race entry
+  and a monster entry from another source
+- **THEN** the `EGW` race entry is returned
+
+#### Scenario: Falls back to global when the book has no such entry
+
+- **WHEN** the caller supplies source key `EGW` and the name matches no `EGW`-sourced entry but does
+  match an entry from another source at the confidence bar
+- **THEN** that entry is returned
+
+#### Scenario: No match at the confidence bar returns nothing
+
+- **WHEN** neither a same-source nor a global entry matches at the confidence bar
+- **THEN** the lookup returns null and the caller's non-match path applies unchanged
+
+#### Scenario: Existing lookups are unchanged
+
+- **WHEN** an existing caller uses `Match` or `MatchOfType`
+- **THEN** results are identical to those before this change
+
