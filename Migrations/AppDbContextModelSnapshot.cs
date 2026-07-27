@@ -81,12 +81,19 @@ namespace DndMcpAICsharpFun.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("AllowedBookKeys")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("Edition")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()

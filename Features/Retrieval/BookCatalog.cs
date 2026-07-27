@@ -4,15 +4,23 @@ namespace DndMcpAICsharpFun.Features.Retrieval;
 
 /// <summary>Single source of truth for the known source books: stable 5etools Key ↔ exact
 /// dnd_blocks.source_book DisplayName. Display names are copied VERBATIM from the live corpus.</summary>
-public sealed record BookInfo(string Key, string DisplayName, DndVersion Version, string FivetoolsSourceKey);
+/// <param name="IsCore">Whether this is one of its edition's three core rulebooks. Drives the
+/// core-only default allowlist a new campaign receives, so that default is derived from this catalog
+/// rather than a second hardcoded list that could drift from it.</param>
+public sealed record BookInfo(
+    string Key,
+    string DisplayName,
+    DndVersion Version,
+    string FivetoolsSourceKey,
+    bool IsCore = false);
 
 public static class BookCatalog
 {
     public static IReadOnlyList<BookInfo> All { get; } =
     [
-        new("PHB",  "PlayerHandbook 2014",                DndVersion.Edition2014, "PHB"),
-        new("MM",   "Monster Manual 2014",                DndVersion.Edition2014, "MM"),
-        new("DMG",  "Dungeon Master's Guide 2014",        DndVersion.Edition2014, "DMG"),
+        new("PHB",  "PlayerHandbook 2014",                DndVersion.Edition2014, "PHB", IsCore: true),
+        new("MM",   "Monster Manual 2014",                DndVersion.Edition2014, "MM", IsCore: true),
+        new("DMG",  "Dungeon Master's Guide 2014",        DndVersion.Edition2014, "DMG", IsCore: true),
         new("XGE",  "Xanathar's Guide to Everything",     DndVersion.Edition2014, "XGE"),
         new("TCE",  "Tasha's Cauldron of Everything",     DndVersion.Edition2014, "TCE"),
         new("ERLW", "Eberron: Rising from the Last War",  DndVersion.Edition2014, "ERLW"),
@@ -30,9 +38,9 @@ public static class BookCatalog
         // TCE's 2445 blocks from every key-scoped feature. Display names deliberately match the
         // EntityIdSlug override table ("Player's Handbook 2024" -> phb24) so the canonical file and
         // the block payload agree; pass these EXACT strings as displayName when registering.
-        new("XPHB", "Player's Handbook 2024",                DndVersion.Edition2024, "XPHB"),
-        new("XDMG", "Dungeon Master's Guide 2024",           DndVersion.Edition2024, "XDMG"),
-        new("XMM",  "Monster Manual 2025",                   DndVersion.Edition2024, "XMM"),
+        new("XPHB", "Player's Handbook 2024",                DndVersion.Edition2024, "XPHB", IsCore: true),
+        new("XDMG", "Dungeon Master's Guide 2024",           DndVersion.Edition2024, "XDMG", IsCore: true),
+        new("XMM",  "Monster Manual 2025",                   DndVersion.Edition2024, "XMM", IsCore: true),
         // Registered before fivetoolsSourceKey was supplied, so its blocks carry NO source_key at all
         // and its entity ids are slugged from the display name. The key here is 5etools' own EEPC
         // (used by races.json/feats.json/spells-xge.json) purely so block scoping and the drift guard

@@ -4,6 +4,7 @@ using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Combat;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace DndMcpAICsharpFun.Infrastructure.Persistence;
 
@@ -56,6 +57,20 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             // FK-shaped column with no navigation property (plain record), so EF never auto-detects it
             // as a relationship/shadow-FK — the index must be declared explicitly (audit P3).
             e.HasIndex(c => c.UserId);
+
+            // AllowedBookKeys is a small value-set owned entirely by its campaign — never queried
+            // across campaigns, never joined — so it persists as a JSON string column (the
+            // HeroSnapshot.CharacterSheet precedent) rather than a join table. A join table would add
+            // a cascade obligation: CampaignRepository.DeleteAsync cascades children BY HAND, and a
+            // new child table not added there orphans rows on campaign delete.
+            e.Property(c => c.AllowedBookKeys)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => DeserializeBookKeys(v))
+                .Metadata.SetValueComparer(new ValueComparer<IReadOnlyList<string>>(
+                    (a, b) => a!.SequenceEqual(b!),
+                    v => v.Aggregate(0, (acc, s) => HashCode.Combine(acc, s.GetHashCode(StringComparison.Ordinal))),
+                    v => v.ToList()));
         });
 
         modelBuilder.Entity<Hero>(e =>
@@ -174,6 +189,21 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     // EF's materialization — AttachLatestSnapshotsAsync batches ALL heroes' latest snapshots in one query,
     // so an unguarded throw here would take down an entire campaign's hero list for one bad row (audit P3,
     // persistence.md §7). A malformed row surfaces as an empty CharacterSheet rather than an exception.
+    /// <summary>Same containment rule as <see cref="DeserializeCharacterSheet"/>: a corrupted row
+    /// surfaces as an empty allowlist rather than throwing out of EF's materialization and taking down
+    /// the caller's whole campaign list.</summary>
+    private static IReadOnlyList<string> DeserializeBookKeys(string v)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(v) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
     private static CharacterSheet DeserializeCharacterSheet(string v)
     {
         try
