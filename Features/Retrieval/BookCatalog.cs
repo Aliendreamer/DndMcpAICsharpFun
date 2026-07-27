@@ -25,6 +25,14 @@ public static class BookCatalog
         new("SCAG", "Sword Coast Adventurer's Guide",     DndVersion.Edition2014, "SCAG"),
         new("MTF",  "Mordenkainen's Tome of Foes",        DndVersion.Edition2014, "MTF"),
         new("MPMM", "Mordenkainen Presents: Monsters of the Multiverse", DndVersion.Edition2014, "MPMM"),
+        // ── Revised core (2024/25). Registered here BEFORE the PDFs are ingested so the startup
+        // catalog-drift guard recognises their source_key the moment blocks land — the gap that hid
+        // TCE's 2445 blocks from every key-scoped feature. Display names deliberately match the
+        // EntityIdSlug override table ("Player's Handbook 2024" -> phb24) so the canonical file and
+        // the block payload agree; pass these EXACT strings as displayName when registering.
+        new("XPHB", "Player's Handbook 2024",                DndVersion.Edition2024, "XPHB"),
+        new("XDMG", "Dungeon Master's Guide 2024",           DndVersion.Edition2024, "XDMG"),
+        new("XMM",  "Monster Manual 2025",                   DndVersion.Edition2024, "XMM"),
         // Registered before fivetoolsSourceKey was supplied, so its blocks carry NO source_key at all
         // and its entity ids are slugged from the display name. The key here is 5etools' own EEPC
         // (used by races.json/feats.json/spells-xge.json) purely so block scoping and the drift guard

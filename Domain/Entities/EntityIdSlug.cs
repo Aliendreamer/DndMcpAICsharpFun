@@ -15,6 +15,7 @@ public static class EntityIdSlug
         ["Player's Handbook 2024"] = "phb24",
         ["Monster Manual 2014"] = "mm14",
         ["Monster Manual 2024"] = "mm24",
+        ["Monster Manual 2025"] = "mm24",
         ["Dungeon Master's Guide 2014"] = "dmg14",
         ["Dungeon Master's Guide 2024"] = "dmg24",
         ["Dungeon Master's Guide"] = "dmg14",
@@ -29,7 +30,11 @@ public static class EntityIdSlug
         ["DMG"] = "dmg14",
         ["XDMG"] = "dmg24",
         ["MM"] = "mm14",
-        ["MM25"] = "mm24",
+        // The revised Monster Manual's real 5etools source key is XMM (published 2025). "MM25" was
+        // never a 5etools key — it appears nowhere in the data — so this override matched nothing and
+        // a registration with fivetoolsSourceKey=XMM would have slugged the book "xmm", producing
+        // xmm.json / xmm.monster.* instead of joining the revised-core family.
+        ["XMM"] = "mm24",
         ["TCE"] = "tce",
         ["XGTE"] = "xgte",
         ["MPMM"] = "mpmm",

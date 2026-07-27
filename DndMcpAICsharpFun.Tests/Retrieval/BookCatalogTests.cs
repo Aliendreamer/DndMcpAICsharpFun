@@ -1,3 +1,5 @@
+using DndMcpAICsharpFun.Domain;
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Retrieval;
 
 using FluentAssertions;
@@ -65,6 +67,37 @@ public class BookCatalogTests
         BookCatalog.KeyToDisplayName["SCC"].Should().Be("Strixhaven: A Curriculum of Chaos");
         BookCatalog.DisplayNameToKey["Explorer's Guide to Wildemount"].Should().Be("EGW");
         BookCatalog.DisplayNameToKey["Strixhaven: A Curriculum of Chaos"].Should().Be("SCC");
+    }
+
+    [Fact]
+    public void Revised_core_2024_books_are_registered_with_Edition2024()
+    {
+        // Registered ahead of ingest so the drift guard recognises their source_key immediately.
+        BookCatalog.KeyToDisplayName["XPHB"].Should().Be("Player's Handbook 2024");
+        BookCatalog.KeyToDisplayName["XDMG"].Should().Be("Dungeon Master's Guide 2024");
+        BookCatalog.KeyToDisplayName["XMM"].Should().Be("Monster Manual 2025");
+
+        BookCatalog.All.Where(b => b.Key is "XPHB" or "XDMG" or "XMM")
+            .Should().OnlyContain(b => b.Version == DndVersion.Edition2024)
+            .And.HaveCount(3);
+    }
+
+    [Fact]
+    public void Revised_core_display_names_agree_with_the_EntityIdSlug_override_table()
+    {
+        // The canonical file slug and the dnd_blocks payload must agree, so the catalog display name
+        // has to be a key the override table recognises — otherwise registering with that displayName
+        // slugifies it instead ("playerhandbook-2024.json"), the mis-named-file gotcha.
+        EntityIdSlug.BookSlug(BookCatalog.KeyToDisplayName["XPHB"]).Should().Be("phb24");
+        EntityIdSlug.BookSlug(BookCatalog.KeyToDisplayName["XDMG"]).Should().Be("dmg24");
+        EntityIdSlug.BookSlug(BookCatalog.KeyToDisplayName["XMM"]).Should().Be("mm24");
+
+        // ...and the 5etools source keys must slug identically, since ids derive from the KEY.
+        EntityIdSlug.BookSlug("XPHB").Should().Be("phb24");
+        EntityIdSlug.BookSlug("XDMG").Should().Be("dmg24");
+        EntityIdSlug.BookSlug("XMM").Should().Be("mm24",
+            "XMM is the real 5etools key; the old MM25 entry matched nothing, so a registration would "
+            + "have produced xmm.monster.* instead of mm24.monster.*");
     }
 
     [Fact]

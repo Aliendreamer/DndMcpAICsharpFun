@@ -62,7 +62,10 @@ public class EntityIdSlugTests
     [InlineData("XPHB", "phb24")]
     [InlineData("XDMG", "dmg24")]
     [InlineData("MM", "mm14")]
-    [InlineData("MM25", "mm24")]
+    // XMM, not MM25: the revised Monster Manual's real 5etools source key is XMM (published 2025).
+    // "MM25" appears nowhere in the 5etools data, so the old override matched nothing and a
+    // registration would have slugged the book "xmm" instead of joining the phb24/dmg24 family.
+    [InlineData("XMM", "mm24")]
     [InlineData("XGTE", "xgte")]
     [InlineData("MPMM", "mpmm")]
     [InlineData("VGM", "vgm")]
