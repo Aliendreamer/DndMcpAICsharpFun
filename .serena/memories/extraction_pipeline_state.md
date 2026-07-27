@@ -1,4 +1,12 @@
-# Entity-extraction pipeline — current state (2026-06-26)
+# Entity-extraction pipeline — current state (updated 2026-07-27)
+
+## 2026-07-27 — three quality fixes shipped (archived `2026-07-27-*`)
+
+- **`MagicItemStatLineName`** (sibling of `MonsterStatLineName`): `Strip()` removes a TRAILING magic-item stat line, `IsWholeStatLine()` reports a LEADING one; one shared pattern so repair and reject cannot drift. `IsEntityLikeName` rejects the whole-stat-line case; `EntityNameMatcher` strips BOTH kinds before normalising; `EntityCandidateBuilder` repairs `DisplayName` before dedupe AND before the drop-prefilter. Order matters: strip → match → gate.
+- **Roster recovery generalized**: `EntityCandidateScanner` recovers a TOC-skipped section on a match of ANY indexed type (was Monster-only), typed by the matched entry, via `EntityNameMatcher.MatchPreferSource(name, bookSourceKey)`. `EntityNameIndex.EntriesByName` entries are now `(Canonical, Type, Source)` deduped per (type, source) — NOT per type, because "Orc" is a race in six sources. `Entries` deliberately stays a `(Canonical, Type)` pair (first-wins convenience view, asserted by tests, read by no production code). `races.json`'s `subrace[]` is now loaded as `EntityType.Subrace`. Flag renamed `recoverMonsters` → `recoverFromRoster`. The recovered prior = matched type + `MapEntityTypeToCategory(type)`'s full ranked prior — keeping the CONFUSION SET is essential (dropping it regressed reprinted races).
+- **`RecoveryHeadingGuard`**: deterministic name-shape guard in `DeclineRecovery.TryRecoverAsync`, BEFORE the model call. Separate from `IsEntityLikeName` and deliberately harsher — its input is already-declined, so a false positive is cheap and a false negative fabricates.
+
+# Entity-extraction pipeline — earlier state (2026-06-26)
 
 **Content-first honesty pipeline is SHIPPED and validated across 3 books (MM, PHB, DMG).** Does NOT overfit to the Monster Manual: spells→Spell, classes→Class, races→Race, items→Item/MagicItem, planes→Plane, traps→Trap; non-entity prose/rules are correctly DECLINED (disposition enum Accepted/NeedsReview/Declined/Failed), never fabricated.
 
