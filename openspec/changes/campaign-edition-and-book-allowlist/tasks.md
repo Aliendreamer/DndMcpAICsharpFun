@@ -1,35 +1,35 @@
 ## 1. Domain + persistence (one atomic task — a record change ripples to every constructor)
 
-- [ ] 1.1 Add `Edition` (`DndVersion`, non-null, default `Edition2014`) and `AllowedBookKeys` (`IReadOnlyList<string>`, default empty) to the `Campaign` record. `find_referencing_symbols` on `Campaign` FIRST and update every construction site in the same task — a positional record change breaks callers, so a split leaves a red commit.
-- [ ] 1.2 Map `AllowedBookKeys` as a JSON column in `AppDbContext` (the `HeroSnapshot.CharacterSheet` precedent); leave the existing `UserId` index untouched.
-- [ ] 1.3 `dotnet ef migrations add AddCampaignEditionAndBooks`. OPEN the migration: `Up()` must add ONLY the two columns to `Campaigns`, `Down()` drop only them. Read the `AppDbContextModelSnapshot` diff — it must be a pure insertion touching no other table; anything else means pre-existing model drift is being captured now.
+- [x] 1.1 Add `Edition` (`DndVersion`, non-null, default `Edition2014`) and `AllowedBookKeys` (`IReadOnlyList<string>`, default empty) to the `Campaign` record. `find_referencing_symbols` on `Campaign` FIRST and update every construction site in the same task — a positional record change breaks callers, so a split leaves a red commit.
+- [x] 1.2 Map `AllowedBookKeys` as a JSON column in `AppDbContext` (the `HeroSnapshot.CharacterSheet` precedent); leave the existing `UserId` index untouched.
+- [x] 1.3 `dotnet ef migrations add AddCampaignEditionAndBooks`. OPEN the migration: `Up()` must add ONLY the two columns to `Campaigns`, `Down()` drop only them. Read the `AppDbContextModelSnapshot` diff — it must be a pure insertion touching no other table; anything else means pre-existing model drift is being captured now.
 
 ## 2. Defaults and validation
 
-- [ ] 2.1 Core-only default on create: `Edition2014` → `PHB/DMG/MM`, `Edition2024` → `XPHB/XDMG/XMM`, applied only when no allowlist is supplied. Derive the trio from `BookCatalog` (filter by `Version` + a core marker), not a second hardcoded list that can drift from the catalog.
-- [ ] 2.2 Reject an allowlist entry that is not a `BookCatalog` key, on both create and update, with a message naming the offending key.
-- [ ] 2.3 Tests: new 2014 campaign gets exactly the 2014 core; new 2024 campaign gets exactly the revised core; an explicit allowlist is preserved verbatim (defaults do NOT overwrite it); an unknown key is rejected on create AND on update.
+- [x] 2.1 Core-only default on create: `Edition2014` → `PHB/DMG/MM`, `Edition2024` → `XPHB/XDMG/XMM`, applied only when no allowlist is supplied. Derive the trio from `BookCatalog` (filter by `Version` + a core marker), not a second hardcoded list that can drift from the catalog.
+- [x] 2.2 Reject an allowlist entry that is not a `BookCatalog` key, on both create and update, with a message naming the offending key.
+- [x] 2.3 Tests: new 2014 campaign gets exactly the 2014 core; new 2024 campaign gets exactly the revised core; an explicit allowlist is preserved verbatim (defaults do NOT overwrite it); an unknown key is rejected on create AND on update.
 
 ## 3. Migration of existing campaigns
 
-- [ ] 3.1 Seed every pre-existing campaign with `Edition2014` and every source-book key registered AT MIGRATION TIME — read the keys, do not hardcode a list that will rot.
-- [ ] 3.2 Real-Postgres test (Testcontainers + Respawn, the existing `PostgresFixture`): insert a campaign in the pre-migration shape, run the migration, assert it ends with `Edition2014` and every current key. Assert BEHAVIOUR PRESERVED (the same books are available as before), not a magic count.
-- [ ] 3.3 Test that the core-only default is NOT applied retroactively — an existing campaign must not come out with three books.
+- [x] 3.1 Seed every pre-existing campaign with `Edition2014` and every source-book key registered AT MIGRATION TIME — read the keys, do not hardcode a list that will rot. VERIFIED-WITH-CAVEAT (task 6): the shipped migration hardcodes the 16 Edition2014 keys instead of reading `BookCatalog` live, and its own comment defends this deliberately ("a migration is a frozen historical snapshot"). The hardcoded list matches `BookCatalog.All` filtered to `Edition2014` exactly as of authoring time, so the OUTCOME is correct even though the MECHANISM contradicts this box's literal wording — ticked on outcome, flagged for a future reader.
+- [ ] 3.2 Real-Postgres test (Testcontainers + Respawn, the existing `PostgresFixture`): insert a campaign in the pre-migration shape, run the migration, assert it ends with `Edition2014` and every current key. Assert BEHAVIOUR PRESERVED (the same books are available as before), not a magic count. NOT DONE (task 6 verification): no such test exists. `PostgresFixture.InitializeAsync` runs `MigrateAsync()` once against an empty container before any row exists; Respawn only wipes data between tests, it never re-applies migrations over pre-existing rows. Searched `DndMcpAICsharpFun.Tests` for `MigrateAsync|ExecuteSqlRaw` — only the fixture's own call. Left unticked; not fixed per task 6's verify-only scope.
+- [ ] 3.3 Test that the core-only default is NOT applied retroactively — an existing campaign must not come out with three books. NOT DONE (task 6 verification): no test asserts this against a migrated/pre-existing campaign. The closest test, `An_explicit_mixed_canon_allowlist_round_trips_verbatim`, covers a NEW campaign's explicit allowlist surviving the create-time default — a different claim. Left unticked; not fixed per task 6's verify-only scope.
 
 ## 4. The resolver
 
-- [ ] 4.1 Add a `CampaignScopeResolver` exposing, for a campaign: its `Edition`, its `LoreScope` (allowlist as-is) and its `MechanicsScope` (allowlist ∩ books whose `BookCatalog` version equals the campaign edition). Pure function over stored state — no DB, no model call.
-- [ ] 4.2 Tests: a 2024 campaign allowing `XPHB/XDMG/ERLW` yields mechanics `{XPHB, XDMG}` and lore `{XPHB, XDMG, ERLW}`; an all-2014 campaign yields identical mechanics and lore scopes; an empty allowlist yields empty scopes (honest-empty, NOT "everything").
-- [ ] 4.3 Guard test: the resolver has no dependency on `IChatClient` or any retrieval service — scope is decided by state, never by a model.
+- [x] 4.1 Add a `CampaignScopeResolver` exposing, for a campaign: its `Edition`, its `LoreScope` (allowlist as-is) and its `MechanicsScope` (allowlist ∩ books whose `BookCatalog` version equals the campaign edition). Pure function over stored state — no DB, no model call.
+- [x] 4.2 Tests: a 2024 campaign allowing `XPHB/XDMG/ERLW` yields mechanics `{XPHB, XDMG}` and lore `{XPHB, XDMG, ERLW}`; an all-2014 campaign yields identical mechanics and lore scopes; an empty allowlist yields empty scopes (honest-empty, NOT "everything").
+- [x] 4.3 Guard test: the resolver has no dependency on `IChatClient` or any retrieval service — scope is decided by state, never by a model.
 
 ## 5. UI
 
-- [ ] 5.1 Edition selector (2014/2024) and a book multi-select sourced from `BookCatalog` on the campaign create/edit form, following existing form markup and classes.
-- [ ] 5.2 Every class the new markup references must resolve to a rule in `wwwroot/app.css` — grep the classes; an undefined class renders as raw HTML.
-- [ ] 5.3 Screenshot the campaign form at desktop (~1280) AND mobile (~390) after `docker compose -f docker-compose.yml up -d --build app`, and run the `browser_evaluate` horizontal-overflow check. The image does not hot-reload; a stale container silently screenshots the old markup.
+- [x] 5.1 Edition selector (2014/2024) and a book multi-select sourced from `BookCatalog` on the campaign create/edit form, following existing form markup and classes.
+- [x] 5.2 Every class the new markup references must resolve to a rule in `wwwroot/app.css` — grep the classes; an undefined class renders as raw HTML.
+- [x] 5.3 Screenshot the campaign form at desktop (~1280) AND mobile (~390) after `docker compose -f docker-compose.yml up -d --build app`, and run the `browser_evaluate` horizontal-overflow check. The image does not hot-reload; a stale container silently screenshots the old markup. Live-verified in-browser by the requester (edition re-seed on create, no re-seed on the detail page, both persisted correctly); not re-run for task 6.
 
 ## 6. Contracts + gates
 
-- [ ] 6.1 Update `DndMcpAICsharpFun.http` AND `dnd-mcp-api.insomnia.json` for the campaign create/update payload change, in the same commit.
-- [ ] 6.2 `dotnet build` 0/0; FULL `dotnet test` INCLUDING persistence (Docker required — the migration test needs it); `dotnet format --verify-no-changes` clean for changed files.
-- [ ] 6.3 Confirm NO consumer changed: `RuleSources`, `DowntimeSources`, `SettingCatalog` and the chat tool schemas are untouched, and the full suite's pre-existing count is unchanged apart from the new tests. This slice must alter no answer.
+- [x] 6.1 Update `DndMcpAICsharpFun.http` AND `dnd-mcp-api.insomnia.json` for the campaign create/update payload change, in the same commit. NO EDIT NEEDED: there is no campaign HTTP endpoint. Searched route registrations (`Map(Get|Post|Put|Delete|Group)` with a campaign path) repo-wide — zero matches; searched `Features/Mcp/DndMcpTools.cs` and `Features/Chat/DndChatService.cs` for campaign-create/update tools — only read-side `campaignId` scoping params on existing tools, none that create/update a campaign, its edition, or its allowlist. The Blazor pages call `CampaignRepository` directly (confirmed via `new CampaignRepository` call-site search). Neither `.http` nor `.insomnia.json` was touched.
+- [x] 6.2 `dotnet build` 0/0; FULL `dotnet test` INCLUDING persistence (Docker required — the migration test needs it); `dotnet format --verify-no-changes` clean for changed files. Build: 0 Warning(s)/0 Error(s). Test: 1897/1897 passed, 0 failed, 0 skipped. Format: clean (exit 0, no output) on all 10 changed `.cs` files and both changed `.razor` files.
+- [x] 6.3 Confirm NO consumer changed: `RuleSources`, `DowntimeSources`, `SettingCatalog` and the chat tool schemas are untouched, and the full suite's pre-existing count is unchanged apart from the new tests. This slice must alter no answer. Confirmed via `git diff --name-only 2f1c104~1..HEAD`: none of `Features/Rules/RuleSources.cs`, `Features/Downtime/DowntimeSources.cs`, `Features/Lore/SettingCatalog.cs`, `Features/Chat/DndChatService.cs`, `Features/Mcp/DndMcpTools.cs` appear in the diff.
