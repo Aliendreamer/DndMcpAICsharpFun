@@ -2,8 +2,10 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
+@using DndMcpAICsharpFun.Domain
 @using DndMcpAICsharpFun.Features.Campaigns
 @using DndMcpAICsharpFun.Features.Lore
+@using DndMcpAICsharpFun.Features.Retrieval
 @attribute [Authorize]
 @inject CampaignRepository CampaignRepo
 @inject HeroRepository HeroRepo
@@ -36,6 +38,46 @@ else
                 }
             </select>
         </label>
+
+        <label class="campaign-setting">Edition
+            <select value="@_edition" @onchange="OnEditionChangedAsync">
+                <option value="@(DndVersion.Edition2014)">2014</option>
+                <option value="@(DndVersion.Edition2024)">2024</option>
+            </select>
+        </label>
+
+        @if (!string.IsNullOrEmpty(_booksError))
+        {
+            <p class="error">@_booksError</p>
+        }
+
+        <div class="book-select">
+            <span class="book-select-heading">Source Books</span>
+            <div class="book-select-groups">
+                <div class="book-group">
+                    <h4 class="book-group-title">2024</h4>
+                    @foreach (var b in BookCatalog.All.Where(x => x.Version == DndVersion.Edition2024))
+                    {
+                        <label class="checkbox-label">
+                            <input type="checkbox" checked="@_bookKeys.Contains(b.Key)"
+                                   @onchange="e => OnBookToggledAsync(b.Key, e)" />
+                            @b.DisplayName
+                        </label>
+                    }
+                </div>
+                <div class="book-group">
+                    <h4 class="book-group-title">2014</h4>
+                    @foreach (var b in BookCatalog.All.Where(x => x.Version == DndVersion.Edition2014))
+                    {
+                        <label class="checkbox-label">
+                            <input type="checkbox" checked="@_bookKeys.Contains(b.Key)"
+                                   @onchange="e => OnBookToggledAsync(b.Key, e)" />
+                            @b.DisplayName
+                        </label>
+                    }
+                </div>
+            </div>
+        </div>
 
         <h2>Party</h2>
         <div class="hero-roster">
@@ -134,6 +176,9 @@ else
     private Campaign? _campaign;
     private List<Hero> _heroes = [];
     private long _userId;
+    private DndVersion _edition;
+    private HashSet<string> _bookKeys = [];
+    private string _booksError = "";
     private bool _showAddHero;
     private string _newHeroName = "";
     private string _addHeroError = "";
@@ -159,6 +204,8 @@ else
             Nav.NavigateTo("/campaigns");
             return;
         }
+        _edition = _campaign.Edition;
+        _bookKeys = _campaign.AllowedBookKeys.ToHashSet();
         _heroes = await HeroRepo.GetByCampaignAsync(Id);
         _notes = await NoteRepo.GetByCampaignAsync(Id);
     }
@@ -170,6 +217,46 @@ else
         var value = e.Value as string;
         await CampaignRepo.SetSettingAsync(Id, _userId, string.IsNullOrWhiteSpace(value) ? null : value);
         _campaign = await CampaignRepo.GetByIdAsync(Id, _userId);
+    }
+
+    // Edition and the book allowlist are independent by design (see Campaign.cs): changing the
+    // edition here does NOT re-seed the selected books, unlike the create form. This campaign may
+    // already be using supplements a silent reseed would drop from underneath a live table.
+    private async Task OnEditionChangedAsync(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<DndVersion>(e.Value as string, out var edition))
+        {
+            _edition = edition;
+            await PersistBooksAsync();
+        }
+    }
+
+    private async Task OnBookToggledAsync(string key, ChangeEventArgs e)
+    {
+        var isChecked = e.Value is bool b && b;
+        if (isChecked)
+        {
+            _bookKeys.Add(key);
+        }
+        else
+        {
+            _bookKeys.Remove(key);
+        }
+        await PersistBooksAsync();
+    }
+
+    private async Task PersistBooksAsync()
+    {
+        try
+        {
+            await CampaignRepo.SetBooksAsync(Id, _userId, _edition, _bookKeys.ToList());
+            _campaign = await CampaignRepo.GetByIdAsync(Id, _userId);
+            _booksError = "";
+        }
+        catch (ArgumentException ex)
+        {
+            _booksError = ex.Message;
+        }
     }
 
     private void ShowAddHero() => _showAddHero = true;

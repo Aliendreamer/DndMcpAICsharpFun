@@ -857,6 +857,47 @@ input::placeholder, textarea::placeholder { color:var(--muted); }
 .note-card input, .note-card textarea { width: 100%; margin-bottom: var(--s2); }
 .add-note-form textarea { resize: vertical; }
 
+/* shared book/edition picker (Campaigns.razor create form + CampaignDetail.razor) */
+.book-select {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    font-size: var(--fs-sm);
+    color: var(--muted);
+}
+
+.book-select-heading { font-weight: 600; }
+
+.book-select-groups {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+    max-height: 220px;
+    overflow-y: auto;
+    padding: var(--s3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+}
+
+.book-group { display: flex; flex-direction: column; gap: var(--s1); }
+
+.book-group-title {
+    font-size: var(--fs-xs);
+    color: var(--arcane);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.book-select label.checkbox-label {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--s2);
+    color: var(--text);
+}
+
+.book-select label.checkbox-label input[type=checkbox] { width: auto; }
+
 /* surface: table (CampaignTable.razor + DiceRollerPanel/EncounterPanel/InitiativeTracker/CampaignLog) */
 
 .campaign-table { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s5) var(--s6); }

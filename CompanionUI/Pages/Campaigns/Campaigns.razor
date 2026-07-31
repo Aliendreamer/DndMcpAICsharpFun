@@ -2,8 +2,10 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
+@using DndMcpAICsharpFun.Domain
 @using DndMcpAICsharpFun.Features.Campaigns
 @using DndMcpAICsharpFun.Features.Lore
+@using DndMcpAICsharpFun.Features.Retrieval
 @attribute [Authorize]
 @inject CampaignRepository CampaignRepo
 @inject NavigationManager Nav
@@ -67,6 +69,39 @@
                     }
                 </select>
             </label>
+            <label>Edition
+                <select value="@_newEdition" @onchange="OnEditionChanged">
+                    <option value="@(DndVersion.Edition2014)">2014</option>
+                    <option value="@(DndVersion.Edition2024)">2024</option>
+                </select>
+            </label>
+            <div class="book-select">
+                <span class="book-select-heading">Source Books</span>
+                <div class="book-select-groups">
+                    <div class="book-group">
+                        <h4 class="book-group-title">2024</h4>
+                        @foreach (var b in BookCatalog.All.Where(x => x.Version == DndVersion.Edition2024))
+                        {
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked="@_newBookKeys.Contains(b.Key)"
+                                       @onchange="e => ToggleNewBook(b.Key, e)" />
+                                @b.DisplayName
+                            </label>
+                        }
+                    </div>
+                    <div class="book-group">
+                        <h4 class="book-group-title">2014</h4>
+                        @foreach (var b in BookCatalog.All.Where(x => x.Version == DndVersion.Edition2014))
+                        {
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked="@_newBookKeys.Contains(b.Key)"
+                                       @onchange="e => ToggleNewBook(b.Key, e)" />
+                                @b.DisplayName
+                            </label>
+                        }
+                    </div>
+                </div>
+            </div>
             @if (!string.IsNullOrEmpty(_createError))
             {
                 <p class="error">@_createError</p>
@@ -90,6 +125,8 @@
     private string _newName = "";
     private string _newDescription = "";
     private string _newSetting = "";
+    private DndVersion _newEdition = DndVersion.Edition2014;
+    private HashSet<string> _newBookKeys = CampaignScopeResolver.CoreBooksFor(DndVersion.Edition2014).ToHashSet();
     private string _createError = "";
     private long? _deleteConfirmId;
 
@@ -113,6 +150,30 @@
         _campaigns = await CampaignRepo.GetAllAsync(_userId);
     }
 
+    // Re-seeds the book selection to the new edition's core rulebooks. Safe because nothing is lost
+    // before the campaign exists yet — mirrors CampaignRepository.CreateAsync's own core-only default.
+    private void OnEditionChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<DndVersion>(e.Value as string, out var edition))
+        {
+            _newEdition = edition;
+            _newBookKeys = CampaignScopeResolver.CoreBooksFor(edition).ToHashSet();
+        }
+    }
+
+    private void ToggleNewBook(string key, ChangeEventArgs e)
+    {
+        var isChecked = e.Value is bool b && b;
+        if (isChecked)
+        {
+            _newBookKeys.Add(key);
+        }
+        else
+        {
+            _newBookKeys.Remove(key);
+        }
+    }
+
     private async Task CreateAsync()
     {
         if (string.IsNullOrWhiteSpace(_newName))
@@ -120,11 +181,22 @@
             _createError = "Name is required.";
             return;
         }
-        await CampaignRepo.CreateAsync(_userId, _newName.Trim(), _newDescription.Trim(),
-            string.IsNullOrWhiteSpace(_newSetting) ? null : _newSetting);
+        try
+        {
+            await CampaignRepo.CreateAsync(_userId, _newName.Trim(), _newDescription.Trim(),
+                string.IsNullOrWhiteSpace(_newSetting) ? null : _newSetting,
+                _newEdition, _newBookKeys.ToList());
+        }
+        catch (ArgumentException ex)
+        {
+            _createError = ex.Message;
+            return;
+        }
         _newName = "";
         _newDescription = "";
         _newSetting = "";
+        _newEdition = DndVersion.Edition2014;
+        _newBookKeys = CampaignScopeResolver.CoreBooksFor(_newEdition).ToHashSet();
         _createError = "";
         _showCreateForm = false;
         await LoadAsync();
