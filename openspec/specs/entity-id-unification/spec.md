@@ -13,7 +13,8 @@ Required mappings (source key → slug):
 - `"DMG"` → `"dmg14"`
 - `"XDMG"` → `"dmg24"`
 - `"MM"` → `"mm14"`
-- `"MM25"` → `"mm24"`
+- `"XMM"` → `"mm24"` (the revised Monster Manual's real 5etools source key is `XMM`; the originally
+  specified `"MM25"` was never a 5etools key and matched nothing)
 - `"TCE"` → `"tce"`
 - `"XGTE"` → `"xgte"`
 - `"MPMM"` → `"mpmm"`

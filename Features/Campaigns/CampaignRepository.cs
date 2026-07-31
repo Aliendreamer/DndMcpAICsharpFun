@@ -40,6 +40,7 @@ public sealed class CampaignRepository(IDbContextFactory<AppDbContext> dbf)
     {
         // No allowlist supplied -> the edition's core rulebooks only; supplements are opt-in. An
         // EXPLICIT list is preserved verbatim, including an explicitly empty one.
+        ValidateEdition(edition);
         var books = allowedBookKeys ?? CampaignScopeResolver.CoreBooksFor(edition);
         ValidateBookKeys(books);
 
@@ -52,6 +53,7 @@ public sealed class CampaignRepository(IDbContextFactory<AppDbContext> dbf)
 
     public async Task SetBooksAsync(long id, long userId, DndVersion edition, IReadOnlyList<string> allowedBookKeys)
     {
+        ValidateEdition(edition);
         ValidateBookKeys(allowedBookKeys);
 
         await using var db = await dbf.CreateDbContextAsync();
@@ -59,6 +61,18 @@ public sealed class CampaignRepository(IDbContextFactory<AppDbContext> dbf)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(c => c.Edition, edition)
                 .SetProperty(c => c.AllowedBookKeys, allowedBookKeys));
+    }
+
+    /// <summary>Rejects an out-of-range <see cref="DndVersion"/> value, symmetric with
+    /// <see cref="ValidateBookKeys"/>. <c>Enum.TryParse</c> (used by the Blazor circuit handlers)
+    /// accepts any numeric string, so a crafted value (e.g. "99") would otherwise persist a
+    /// permanently-empty <c>MechanicsScope</c> with no error.</summary>
+    private static void ValidateEdition(DndVersion edition)
+    {
+        if (!Enum.IsDefined(edition))
+        {
+            throw new ArgumentException($"Unknown edition: {edition}. Allowed values come from DndVersion.", nameof(edition));
+        }
     }
 
     /// <summary>Rejects a key that is not in <c>BookCatalog</c>, naming it. Storing an unmatchable key

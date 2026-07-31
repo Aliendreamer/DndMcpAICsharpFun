@@ -889,7 +889,12 @@ input::placeholder, textarea::placeholder { color:var(--muted); }
     letter-spacing: .5px;
 }
 
+/* display:flex is set HERE, not inherited from an ancestor rule: the create form gets it from
+   `.create-form label`, but CampaignDetail's book-select sits under neither `.create-form` nor
+   `.edit-grid`, so without this the row/gap/align declarations below are inert and the checkbox
+   renders jammed against its label. */
 .book-select label.checkbox-label {
+    display: flex;
     flex-direction: row;
     align-items: center;
     gap: var(--s2);

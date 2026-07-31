@@ -32,4 +32,51 @@
 
 - [x] 6.1 Update `DndMcpAICsharpFun.http` AND `dnd-mcp-api.insomnia.json` for the campaign create/update payload change, in the same commit. NO EDIT NEEDED: there is no campaign HTTP endpoint. Searched route registrations (`Map(Get|Post|Put|Delete|Group)` with a campaign path) repo-wide — zero matches; searched `Features/Mcp/DndMcpTools.cs` and `Features/Chat/DndChatService.cs` for campaign-create/update tools — only read-side `campaignId` scoping params on existing tools, none that create/update a campaign, its edition, or its allowlist. The Blazor pages call `CampaignRepository` directly (confirmed via `new CampaignRepository` call-site search). Neither `.http` nor `.insomnia.json` was touched.
 - [x] 6.2 `dotnet build` 0/0; FULL `dotnet test` INCLUDING persistence (Docker required — the migration test needs it); `dotnet format --verify-no-changes` clean for changed files. Build: 0 Warning(s)/0 Error(s). Test: 1897/1897 passed, 0 failed, 0 skipped. Format: clean (exit 0, no output) on all 10 changed `.cs` files and both changed `.razor` files.
+- [x] 6.2b Gates RE-RUN after the task-7 hardening pass below (the 6.2 numbers above are the
+  pre-hardening ones). Build: 0 Warning(s)/0 Error(s). Test: 1910/1910 passed, 0 failed, 0 skipped
+  (1899 at commit `681e7b0` + 5 hardening tests + 6 `CampaignScopeDisplayTests`). Format:
+  `--verify-no-changes` clean on all 7 changed/added `.cs` files.
 - [x] 6.3 Confirm NO consumer changed: `RuleSources`, `DowntimeSources`, `SettingCatalog` and the chat tool schemas are untouched, and the full suite's pre-existing count is unchanged apart from the new tests. This slice must alter no answer. Confirmed via `git diff --name-only 2f1c104~1..HEAD`: none of `Features/Rules/RuleSources.cs`, `Features/Downtime/DowntimeSources.cs`, `Features/Lore/SettingCatalog.cs`, `Features/Chat/DndChatService.cs`, `Features/Mcp/DndMcpTools.cs` appear in the diff.
+
+## 7. Post-review hardening (follow-up on the shipped slice)
+
+Fixes found reviewing the shipped 1–6 work, plus the two defects the task-5.3 screenshots caught only
+once they were re-run against a freshly built container.
+
+- [x] 7.1 Reject an out-of-range `DndVersion` on BOTH write paths (`CreateAsync`, `SetBooksAsync`),
+  symmetric with the existing book-key validation. `Enum.TryParse` — which the Blazor circuit handlers
+  use — accepts any numeric string, so a crafted `"99"` would otherwise persist a permanently-empty
+  `MechanicsScope` with no error. Tests: rejected on create AND on update, message naming the value.
+- [x] 7.2 Contain a corrupted `AllowedBookKeys` column. A malformed row still deserializes to an empty
+  list (EF materialization must not throw and take down the whole campaign list) but is now LOGGED —
+  silently-empty is indistinguishable from a DM who unchecked every book. Null elements in an
+  otherwise-valid array (`'["PHB",null]'`) are FILTERED, because `CampaignScopeResolver`'s
+  `HashSet<string>` and the value comparer's hash both throw on a null. Two real-Postgres tests insert
+  each shape with raw SQL.
+- [x] 7.3 `Edition2024Sources` `MM25` → `XMM`. `"MM25"` was never a 5etools key; the entry matched
+  nothing and left the mapper disagreeing with `BookCatalog`, which registers `XMM` as `Edition2024` —
+  so a 2024 campaign's `MechanicsScope` would have excluded the 2024 Monster Manual's own monsters.
+  This is the pair to the already-shipped `EntityIdSlug` override fix (commit `dbe36f3`); a regression
+  test now asserts the mapper and the catalog AGREE rather than each being right alone. The main spec
+  `openspec/specs/entity-id-unification/spec.md` still documented the dead `MM25` mapping and was
+  corrected in the same pass (registry drift — the failure class this repo keeps hitting).
+- [x] 7.4 Scope summary on both forms: `Rules from: … · Lore from: N books`, derived from the CURRENT
+  (possibly unsaved) form state via `CampaignScopeResolver`, so the summary can never disagree with the
+  checkboxes mid-edit. Plus an explicit warning when `MechanicsScope` is empty — otherwise the
+  honest-empty scope is invisible until rules answers come back with nothing. Extracted to a shared
+  `CampaignScopeDisplay` (6 tests) rather than a copy in each `.razor`, which would drift; mechanics
+  names are capped at 3 + "+N more" because a migrated campaign carries all 16 books and naming every
+  one wrapped the detail page to three dense lines.
+- [x] 7.5 CSS: `.book-select label.checkbox-label` now sets `display: flex` ITSELF. It previously
+  inherited flex from `.create-form label`, so it worked on the create form and was INERT on the detail
+  page (labels computed `display: block`; the `flex-direction`/`gap`/`align-items` declarations did
+  nothing and the checkbox rendered jammed against its text). This is the 5.2 failure mode one level
+  deeper — the class RESOLVED, but its rules could not apply — and only the live detail-page render
+  showed it.
+- [x] 7.6 Live re-verification after `docker compose -f docker-compose.yml up -d --build app`, at 1280
+  AND 390: edition change re-seeds the create form (2024 → XPHB/XDMG/XMM) but NOT the detail page;
+  a 2024 edition with ERLW checked shows `Rules from: Player's Handbook 2024 · Lore from: 2 books` (the
+  two-canon split, rendered); the empty-scope warning appears when every book is unchecked; adding a
+  2024 book to the 2014 campaign moved lore 16 → 17 with mechanics unchanged and SURVIVED a reload
+  (`SetBooksAsync` persists). `browser_evaluate` horizontal-overflow check clean on both pages at 390
+  (`scrollWidth == clientWidth`, no internal overflow).

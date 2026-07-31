@@ -1,7 +1,9 @@
 using System.Text.Json;
 
+using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.Mappers;
+using DndMcpAICsharpFun.Features.Retrieval;
 
 using FluentAssertions;
 
@@ -241,5 +243,21 @@ public class FivetoolsMappersTests
         var envelope = mapper.Map(element);
         envelope!.Srd.Should().BeTrue();
         envelope.Srd52.Should().BeFalse();
+    }
+
+    // Regression guard for the second time the Edition2024Sources/BookCatalog pair drifted (the
+    // first was EntityIdSlug's now-corrected "MM25" -> "XMM" override): an XMM-sourced entity must
+    // agree with BookCatalog's own Edition2024 registration for the XMM key, or a 2024 campaign's
+    // MechanicsScope would silently exclude the 2024 Monster Manual's own monsters.
+    [Fact]
+    public void MonsterMapper_maps_XMM_source_to_Edition2024_agreeing_with_BookCatalog()
+    {
+        var mapper = new FivetoolsMonsterMapper();
+        var json = """{"name":"Aboleth","source":"XMM","page":13,"cr":"10"}""";
+        var element = JsonDocument.Parse(json).RootElement;
+        var envelope = mapper.Map(element);
+
+        envelope!.Edition.Should().Be("Edition2024");
+        BookCatalog.All.Single(b => b.Key == "XMM").Version.Should().Be(DndVersion.Edition2024);
     }
 }

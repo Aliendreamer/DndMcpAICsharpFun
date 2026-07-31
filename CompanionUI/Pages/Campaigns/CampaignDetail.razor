@@ -52,10 +52,10 @@ else
         }
 
         <div class="book-select">
-            <span class="book-select-heading">Source Books</span>
+            <h2 class="book-select-heading">Source Books</h2>
             <div class="book-select-groups">
                 <div class="book-group">
-                    <h4 class="book-group-title">2024</h4>
+                    <h3 class="book-group-title">2024</h3>
                     @foreach (var b in BookCatalog.All.Where(x => x.Version == DndVersion.Edition2024))
                     {
                         <label class="checkbox-label">
@@ -66,7 +66,7 @@ else
                     }
                 </div>
                 <div class="book-group">
-                    <h4 class="book-group-title">2014</h4>
+                    <h3 class="book-group-title">2014</h3>
                     @foreach (var b in BookCatalog.All.Where(x => x.Version == DndVersion.Edition2014))
                     {
                         <label class="checkbox-label">
@@ -78,6 +78,12 @@ else
                 </div>
             </div>
         </div>
+
+        <p class="muted">Rules from: @CampaignScopeDisplay.Mechanics(Scope) · Lore from: @CampaignScopeDisplay.Lore(Scope)</p>
+        @if (Scope.MechanicsScope.Count == 0)
+        {
+            <p class="error">No rulebooks for this edition are selected — rules answers will have nothing to draw on.</p>
+        }
 
         <h2>Party</h2>
         <div class="hero-roster">
@@ -256,8 +262,19 @@ else
         catch (ArgumentException ex)
         {
             _booksError = ex.Message;
+            // Revert to _campaign — the last state actually persisted — so the checkboxes/edition
+            // selector never display something the database does not have. _campaign is only ever
+            // reassigned on a successful persist above, so it still holds that last-good state here.
+            _edition = _campaign!.Edition;
+            _bookKeys = _campaign.AllowedBookKeys.ToHashSet();
         }
     }
+
+    // Derives the effective scope from the CURRENT (possibly not-yet-persisted) form state, so the
+    // summary can never disagree with the checkboxes even mid-edit. No new dependency: pure function
+    // over a throwaway Campaign built from the form fields, per CampaignScopeResolver's own contract.
+    private CampaignScope Scope => CampaignScopeResolver.Resolve(
+        new Campaign(0, _userId, "", "", DateTime.UtcNow, null, _edition, _bookKeys.ToList()));
 
     private void ShowAddHero() => _showAddHero = true;
     private void CancelAddHero() { _showAddHero = false; _addHeroError = ""; }

@@ -7,9 +7,12 @@ namespace DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 
 public abstract class FivetoolsMapperBase : IFivetoolsEntityMapper
 {
-    // Sources released under the 2024 D&D ruleset revision.
+    // Sources released under the 2024 D&D ruleset revision. The revised Monster Manual's real
+    // 5etools source key is XMM (published 2025) — "MM25" was never a 5etools key (see
+    // EntityIdSlug's BookOverrides comment for the paired fix) and previously left this table
+    // disagreeing with BookCatalog, which registers XMM as Edition2024.
     internal static readonly FrozenSet<string> Edition2024Sources = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        { "PHB24", "DMG24", "MM25", "XPHB", "XDMG" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+        { "PHB24", "DMG24", "XMM", "XPHB", "XDMG" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     protected abstract EntityType EntityType { get; }
 

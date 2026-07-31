@@ -191,15 +191,26 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     // persistence.md §7). A malformed row surfaces as an empty CharacterSheet rather than an exception.
     /// <summary>Same containment rule as <see cref="DeserializeCharacterSheet"/>: a corrupted row
     /// surfaces as an empty allowlist rather than throwing out of EF's materialization and taking down
-    /// the caller's whole campaign list.</summary>
+    /// the caller's whole campaign list. A parse failure is logged loudly (this is a value-converter
+    /// constructed by EF with no DI access, so it uses the static Serilog logger — the same pattern as
+    /// <see cref="Features.Ingestion.FivetoolsIngestion.FivetoolsRecordIndex"/>'s missing-directory
+    /// warning — rather than an indistinguishable-from-normal silent empty result. Null elements
+    /// (a malformed but syntactically valid row, e.g. '["PHB",null]') are filtered out so downstream
+    /// <c>HashSet&lt;string&gt;</c> consumers (<see cref="Features.Campaigns.CampaignScopeResolver"/>,
+    /// this type's own value comparer) never see a null and throw.</summary>
     private static IReadOnlyList<string> DeserializeBookKeys(string v)
     {
         try
         {
-            return JsonSerializer.Deserialize<List<string>>(v) ?? [];
+            var keys = JsonSerializer.Deserialize<List<string?>>(v) ?? [];
+            return keys.Where(k => k is not null).Select(k => k!).ToList();
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            Serilog.Log.Warning(ex,
+                "Campaign.AllowedBookKeys column contains malformed JSON ('{Raw}') — treating as an " +
+                "empty allowlist. This is indistinguishable from a DM who unchecked every book; " +
+                "investigate the row.", v);
             return [];
         }
     }

@@ -102,6 +102,11 @@
                     </div>
                 </div>
             </div>
+            <p class="muted">Rules from: @CampaignScopeDisplay.Mechanics(NewScope) · Lore from: @CampaignScopeDisplay.Lore(NewScope)</p>
+            @if (NewScope.MechanicsScope.Count == 0)
+            {
+                <p class="error">No rulebooks for this edition are selected — rules answers will have nothing to draw on.</p>
+            }
             @if (!string.IsNullOrEmpty(_createError))
             {
                 <p class="error">@_createError</p>
@@ -160,6 +165,11 @@
             _newBookKeys = CampaignScopeResolver.CoreBooksFor(edition).ToHashSet();
         }
     }
+
+    // Same derivation as CampaignDetail.razor's Scope, but the campaign doesn't exist yet here — a
+    // throwaway Campaign built from the form fields, never a duplicated mechanics ∩ edition rule.
+    private CampaignScope NewScope => CampaignScopeResolver.Resolve(
+        new Campaign(0, _userId, "", "", DateTime.UtcNow, null, _newEdition, _newBookKeys.ToList()));
 
     private void ToggleNewBook(string key, ChangeEventArgs e)
     {

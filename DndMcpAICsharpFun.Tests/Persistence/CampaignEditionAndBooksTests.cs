@@ -4,6 +4,8 @@ using DndMcpAICsharpFun.Tests.Persistence;
 
 using FluentAssertions;
 
+using Microsoft.EntityFrameworkCore;
+
 using Xunit;
 
 namespace DndMcpAICsharpFun.Tests.Persistence;
@@ -77,6 +79,70 @@ public sealed class CampaignEditionAndBooksTests(PostgresFixture pg) : IAsyncLif
         var act = () => _repo.SetBooksAsync(id, 1, DndVersion.Edition2014, ["ALSO_NOT_A_BOOK"]);
 
         await act.Should().ThrowAsync<ArgumentException>().WithMessage("*ALSO_NOT_A_BOOK*");
+    }
+
+    // Enum.TryParse (used by the Blazor circuit handlers) accepts any numeric string, so a crafted
+    // out-of-range value would otherwise persist a permanently-empty MechanicsScope with no error.
+    [Fact]
+    public async Task An_out_of_range_edition_is_rejected_on_create()
+    {
+        var act = () => _repo.CreateAsync(1, "Bad Edition", "d", edition: (DndVersion)99, allowedBookKeys: ["PHB"]);
+
+        await act.Should().ThrowAsync<ArgumentException>().WithMessage("*99*");
+    }
+
+    [Fact]
+    public async Task An_out_of_range_edition_is_rejected_on_update()
+    {
+        var id = await _repo.CreateAsync(1, "C", "d");
+
+        var act = () => _repo.SetBooksAsync(id, 1, (DndVersion)99, ["PHB"]);
+
+        await act.Should().ThrowAsync<ArgumentException>().WithMessage("*99*");
+    }
+
+    // Malformed JSON in the AllowedBookKeys column (a corrupted row) must not throw out of EF's
+    // materialization — the honest-empty policy — and must now also be logged loudly rather than
+    // silently, so a corrupted row is distinguishable from a DM who unchecked every book.
+    [Fact]
+    public async Task Malformed_AllowedBookKeys_JSON_deserializes_to_an_empty_list_not_a_throw()
+    {
+        const string name = "Malformed row";
+        await using (var db = pg.NewContext())
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "Campaigns" ("UserId", "Name", "Description", "CreatedAt", "Edition", "AllowedBookKeys")
+                VALUES (1, {name}, 'd', now(), 0, 'not valid json')
+                """);
+        }
+
+        var campaign = (await _repo.GetAllAsync(1)).Single(c => c.Name == name);
+        var full = await _repo.GetByIdAsync(campaign.Id, 1);
+        full!.AllowedBookKeys.Should().BeEmpty();
+    }
+
+    // A syntactically valid JSON array that contains a null element (e.g. '["PHB",null]') must not
+    // reach CampaignScopeResolver.Resolve's HashSet<string>().Contains(null) or the value comparer's
+    // hash — both would throw. The null is filtered rather than the whole row being treated as
+    // malformed.
+    [Fact]
+    public async Task A_null_element_in_AllowedBookKeys_JSON_is_filtered_not_thrown()
+    {
+        const string name = "Null-element row";
+        await using (var db = pg.NewContext())
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "Campaigns" ("UserId", "Name", "Description", "CreatedAt", "Edition", "AllowedBookKeys")
+                VALUES (1, {name}, 'd', now(), 0, '["PHB",null]')
+                """);
+        }
+
+        var campaign = (await _repo.GetAllAsync(1)).Single(c => c.Name == name);
+        var full = await _repo.GetByIdAsync(campaign.Id, 1);
+        full!.AllowedBookKeys.Should().BeEquivalentTo(["PHB"]);
+
+        var scope = CampaignScopeResolver.Resolve(full);
+        scope.LoreScope.Should().BeEquivalentTo(["PHB"]);
     }
 
     [Fact]
