@@ -119,4 +119,14 @@ public sealed class EvalAdminEndpointsTests
         var r = await client.PostAsJsonAsync("/admin/eval/turn", new { prompt = "hi" });
         r.StatusCode.Should().Be(HttpStatusCode.BadGateway);
     }
+
+    [Fact]
+    public async Task RunnerTimesOut_Returns502()
+    {
+        // An HttpClient timeout surfaces as TaskCanceledException (an OperationCanceledException)
+        // while the request token is NOT cancelled — must be a 502, not an unhandled 500.
+        var client = await BuildAsync(new FakeRunner(_ => throw new TaskCanceledException("HttpClient.Timeout of 100 seconds elapsing")), 42);
+        var r = await client.PostAsJsonAsync("/admin/eval/turn", new { prompt = "hi" });
+        r.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+    }
 }

@@ -70,8 +70,10 @@ public static class EvalAdminEndpoints
             {
                 turn = await runner.RunAsync(body.Prompt, userId.Value, body.AllowWebSearch, ct);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
+                // Only the caller aborting propagates; an HttpClient timeout (also an
+                // OperationCanceledException) is a model/infra failure -> 502 below.
                 throw;
             }
             catch (Exception ex)
