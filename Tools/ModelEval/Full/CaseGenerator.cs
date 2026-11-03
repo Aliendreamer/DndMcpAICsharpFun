@@ -44,7 +44,8 @@ internal static class CaseGenerator
 
         var classes = new List<Candidate>();
         var spells = new List<Candidate>();
-        if (On("class") || On("spell"))
+        var monsters = new List<Candidate>();
+        if (On("class") || On("spell") || On("monster"))
         {
             foreach (var book in o.Books)
             {
@@ -56,6 +57,7 @@ internal static class CaseGenerator
                     var type = Str(e, "type");
                     if (type == "Class" && On("class")) AddClass(e, classes);
                     else if (type == "Spell" && On("spell")) AddSpell(e, spells);
+                    else if (type == "Monster" && On("monster")) AddMonster(e, monsters);
                 }
             }
         }
@@ -63,6 +65,7 @@ internal static class CaseGenerator
         var cases = new List<EvalCase>();
         if (On("class")) cases.AddRange(Sample(classes, o));
         if (On("spell")) cases.AddRange(Sample(spells, o));
+        if (On("monster")) cases.AddRange(Sample(monsters, o));
         if (On("crafting")) cases.AddRange(Sample(CraftingCandidates(), o));
         return cases;
     }
@@ -160,6 +163,64 @@ internal static class CaseGenerator
                 [[$"\"amount\":{feet}"]], [ans]));
         }
         if (templates.Count > 0) into.Add(new Candidate(id, templates));
+    }
+
+    // ---- monster ----
+
+    private static void AddMonster(JsonElement e, List<Candidate> into)
+    {
+        if (!e.TryGetProperty("needsReview", out var nr) || nr.ValueKind != JsonValueKind.False) return;
+        if (!e.TryGetProperty("fields", out var f) || f.ValueKind != JsonValueKind.Object) return;
+        var id = Str(e, "id");
+        var name = Str(e, "name");
+        string Prompt(string what) => what.Replace("{name}", name) + " in the 2014 Monster Manual?";
+        var templates = new List<Func<EvalCase>>();
+
+        if (f.TryGetProperty("ac", out var acEl) && MonsterAc(acEl) is { } ac)
+        {
+            templates.Add(() => Make($"gen.monster.{id}.ac", "monster",
+                Prompt("What is the armor class of a {name}"), ClassSpellTools,
+                [[$"\"ac\":{ac}"]], [[$"armor class {ac}", $"armor class of {ac}", $"ac {ac}", $"ac of {ac}"]]));
+        }
+        if (f.TryGetProperty("hp", out var hpEl) && hpEl.ValueKind == JsonValueKind.Object
+            && hpEl.TryGetProperty("average", out var avg) && avg.ValueKind == JsonValueKind.Number && avg.TryGetInt32(out var hp))
+        {
+            templates.Add(() => Make($"gen.monster.{id}.hp", "monster",
+                Prompt("How many hit points does a {name} have on average"), ClassSpellTools,
+                [[$"\"average\":{hp}"]], [[$"{hp} hit points", $"{hp} hp", $"hit points of {hp}", $"{hp} average hit points"]]));
+        }
+        if (f.TryGetProperty("cr", out var crEl) && MonsterCr(crEl) is { } cr)
+        {
+            templates.Add(() => Make($"gen.monster.{id}.cr", "monster",
+                Prompt("What is the challenge rating of a {name}"), ClassSpellTools,
+                [[$"\"cr\":\"{cr}\""]], [[$"challenge rating {cr}", $"challenge rating of {cr}", $"cr {cr}"]]));
+        }
+        if (templates.Count > 0) into.Add(new Candidate(id, templates));
+    }
+
+    private static int? MonsterAc(JsonElement el)
+    {
+        if (el.ValueKind == JsonValueKind.Array)
+        {
+            if (el.GetArrayLength() == 0) return null;
+            return MonsterAc(el[0]);
+        }
+        if (el.ValueKind == JsonValueKind.Number) return el.TryGetInt32(out var n) ? n : null;
+        if (el.ValueKind == JsonValueKind.Object && el.TryGetProperty("ac", out var inner)
+            && inner.ValueKind == JsonValueKind.Number)
+            return inner.TryGetInt32(out var m) ? m : null;
+        return null;
+    }
+
+    private static string? MonsterCr(JsonElement el)
+    {
+        if (el.ValueKind == JsonValueKind.Object && el.TryGetProperty("cr", out var inner)) el = inner;
+        return el.ValueKind switch
+        {
+            JsonValueKind.String when !string.IsNullOrWhiteSpace(el.GetString()) => el.GetString(),
+            JsonValueKind.Number when el.TryGetInt32(out var n) => n.ToString(CultureInfo.InvariantCulture),
+            _ => null,
+        };
     }
 
     // ---- crafting ----

@@ -230,4 +230,118 @@ public sealed class CaseGeneratorTests : IDisposable
 
         FactMatcher.AllMatch(c.AnswerFacts, "75 gp of materials and three workweeks").Should().BeTrue();
     }
+
+    private static object Monster(string id, string name, object? ac, object? hp, object? cr, bool needsReview = false)
+    {
+        var fields = new Dictionary<string, object?>();
+        if (ac is not null) fields["ac"] = ac;
+        if (hp is not null) fields["hp"] = hp;
+        if (cr is not null) fields["cr"] = cr;
+        return new { id, type = "Monster", name, authority = "canon", needsReview, fields };
+    }
+
+    private static GenOptions MonsterOpts(int seed = 1, int count = 3, string[]? cats = null) =>
+        new(seed, count, ["mm14"], cats);
+
+    private void MonsterFixture(int n = 30)
+    {
+        var list = new List<object>();
+        for (var i = 0; i < n; i++)
+            list.Add(Monster($"mm14.monster.m{i:00}", $"M{i}", new[] { new { ac = 16 } }, new { average = 27 }, "1"));
+        Write("mm14.json", list.ToArray());
+    }
+
+    [Fact]
+    public void Monster_ReviewedEntity_ProducesAcHpCrCases()
+    {
+        MonsterFixture();
+
+        var cases = CaseGenerator.Generate(_dir, MonsterOpts(count: 30, cats: ["monster"]));
+
+        cases.Should().OnlyContain(c => c.Category == "monster");
+        cases.Should().Contain(c => c.Id.EndsWith(".ac"));
+        cases.Should().Contain(c => c.Id.EndsWith(".hp"));
+        cases.Should().Contain(c => c.Id.EndsWith(".cr"));
+        var ac = cases.First(c => c.Id.EndsWith(".ac"));
+        ac.Prompt.Should().Contain("2014 Monster Manual");
+        ac.AnswerFacts.Single().Variants.Should().Contain(["armor class 16", "ac 16"]);
+        cases.SelectMany(c => c.AnswerFacts).Should().OnlyContain(f => f.Variants.All(v => !v.All(char.IsDigit)));
+    }
+
+    [Fact]
+    public void Monster_NeedsReview_Excluded()
+    {
+        Write("mm14.json", Monster("mm14.monster.bad", "Bad", 12, new { average = 5 }, "1", needsReview: true));
+
+        CaseGenerator.Generate(_dir, MonsterOpts(cats: ["monster"])).Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(12)]
+    public void Monster_AcShapes_IntListAndInt_Render(int ac)
+    {
+        Write("mm14.json", Monster("mm14.monster.a", "A", new[] { ac }, null, null),
+            Monster("mm14.monster.b", "B", ac, null, null));
+
+        var cases = CaseGenerator.Generate(_dir, MonsterOpts(count: 5, cats: ["monster"]));
+
+        cases.Should().HaveCount(2);
+        cases.Should().OnlyContain(c => c.AnswerFacts.Single().Variants.Contains("armor class 12"));
+    }
+
+    [Fact]
+    public void Monster_CrObject_UsesCr()
+    {
+        Write("mm14.json", Monster("mm14.monster.d", "D", null, null, new { cr = "5", lair = "6" }));
+
+        var c = CaseGenerator.Generate(_dir, MonsterOpts(cats: ["monster"])).Single();
+
+        c.AnswerFacts.Single().Variants.Should().Contain("challenge rating 5");
+    }
+
+    [Fact]
+    public void Monster_UnrenderableShapes_SkippedWithoutThrow()
+    {
+        Write("mm14.json", Monster("mm14.monster.x", "X", "see text", new { formula = "1d8" }, new[] { 1 }));
+
+        var act = () => CaseGenerator.Generate(_dir, MonsterOpts(cats: ["monster"]));
+
+        act.Should().NotThrow();
+        act().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Monster_ToolDataVariants_IncludeRawJsonForms()
+    {
+        MonsterFixture();
+        var cases = CaseGenerator.Generate(_dir, MonsterOpts(count: 30, cats: ["monster"]));
+
+        var ac = cases.First(c => c.Id.EndsWith(".ac")).ToolDataFacts!.Single().Variants;
+        ac.Should().Contain(["\"ac\":16", "armor class 16"]);
+        cases.First(c => c.Id.EndsWith(".hp")).ToolDataFacts!.Single().Variants
+            .Should().Contain(["\"average\":27", "27 hit points"]);
+        cases.First(c => c.Id.EndsWith(".cr")).ToolDataFacts!.Single().Variants
+            .Should().Contain(["\"cr\":\"1\"", "challenge rating 1"]);
+    }
+
+    [Fact]
+    public void Monster_CategoryFilter_OnlyMonsters()
+    {
+        MonsterFixture(5);
+        Write("phb14.json", Class("phb14.class.a", "A", 8, "str"));
+
+        var cases = CaseGenerator.Generate(_dir,
+            new GenOptions(1, 10, ["phb14", "mm14"], ["monster"]));
+
+        cases.Should().NotBeEmpty().And.OnlyContain(c => c.Category == "monster");
+    }
+
+    [Fact]
+    public void Monster_SameSeed_SameCases()
+    {
+        MonsterFixture();
+
+        Sig(CaseGenerator.Generate(_dir, MonsterOpts(cats: ["monster"])))
+            .Should().Be(Sig(CaseGenerator.Generate(_dir, MonsterOpts(cats: ["monster"]))));
+    }
 }

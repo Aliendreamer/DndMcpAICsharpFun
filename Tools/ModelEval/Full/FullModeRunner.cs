@@ -18,7 +18,7 @@ internal static class FullModeRunner
             return 1;
         }
 
-        var books = (a.Books ?? "phb14").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var books = (a.Books ?? "phb14,mm14").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var categories = a.Categories?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var seed = a.Seed ?? 42;
 

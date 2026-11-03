@@ -31,7 +31,7 @@ dotnet run --project Tools/ModelEval
 dotnet run --project Tools/ModelEval -- --mode full --admin-key <Admin:ApiKey>
 ```
 
-Full-chain mode sends generated class/spell/crafting questions (from `books/canonical/phb14.json`) plus `Tools/ModelEval/cases/manual.json` through `POST /admin/eval/turn`. It runs each case 3×, writes `Tools/ModelEval/reports/<yyyyMMdd-HHmmss>-<model>-full.json`, and compares against the previous report (or `--baseline <path>`). Exit 2 means a category dropped by more than one passing case; exit 1 means infra or setup trouble. The admin key is `Admin:ApiKey` from the git-crypt `Config/appsettings.Development.json`, or the `ADMIN_API_KEY` env var. Other flags: `--seed`, `--count`, `--categories`, `--books`, `--runs`, `--host`.
+Full-chain mode sends generated class/spell/monster/crafting questions (from `books/canonical/phb14.json` and `books/canonical/mm14.json`; default `--books phb14,mm14`) plus `Tools/ModelEval/cases/manual.json` through `POST /admin/eval/turn`. It runs each case 3×, writes `Tools/ModelEval/reports/<yyyyMMdd-HHmmss>-<model>-full.json`, and compares against the previous report (or `--baseline <path>`). Exit 2 means a category dropped by more than one passing case; exit 1 means infra or setup trouble. The admin key is `Admin:ApiKey` from the git-crypt `Config/appsettings.Development.json`, or the `ADMIN_API_KEY` env var. Other flags: `--seed`, `--count`, `--categories`, `--books`, `--runs`, `--host`.
 
 ## Architecture
 
