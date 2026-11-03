@@ -1350,6 +1350,24 @@
       "authentication": {}
     },
     {
+      "_id": "req_eval_turn",
+      "_type": "request",
+      "parentId": "fld_needs_review",
+      "name": "Eval \u2014 run one isolated chat turn (text + tool trace)",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/eval/turn",
+      "headers": [
+        { "name": "X-Admin-Api-Key", "value": "{{ _.adminKey }}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{ \"prompt\": \"What hit die does a Wizard have in the 2014 Player's Handbook?\" }"
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_logout",
       "_type": "request",
       "parentId": "fld_webui",

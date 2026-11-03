@@ -56,6 +56,8 @@ internal static class ChatExtensions
         services.AddSingleton<Features.Chat.Routing.IExemplarIndex, Features.Chat.Routing.ExemplarIndex>();
         services.AddScoped<Features.Chat.Routing.QueryRouter>();
         services.AddScoped<DndChatService>();
+        services.AddScoped<Features.Admin.IEvalTurnRunner, Features.Admin.DndChatEvalTurnRunner>();
+        services.AddScoped<Features.Admin.IEvalUserResolver, Features.Admin.RepositoryEvalUserResolver>();
         return services;
     }
 }

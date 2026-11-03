@@ -161,6 +161,15 @@ Content-Type: application/json
 
 {}
 
+### Admin — Eval — Run one isolated production chat turn (text + tool trace; no persistence)
+# userId optional (defaults to the seeded 'test' user); allowWebSearch optional (default false).
+# 400 = empty prompt / no test user; 502 = model failure.
+POST {{baseUrl}}/admin/eval/turn
+X-Admin-Api-Key: {{adminKey}}
+Content-Type: application/json
+
+{ "prompt": "What hit die does a Wizard have in the 2014 Player's Handbook?" }
+
 ### Admin — Validate the entire canonical corpus
 # Response shape:
 # { "filesScanned": N, "totalEntities": N, "failures": [], "warnings": [],
