@@ -1,7 +1,10 @@
 using DndMcpAICsharpFun.Features.Auth;
 using DndMcpAICsharpFun.Features.Chat;
 
+using DndMcpAICsharpFun.Infrastructure.Ollama;
+
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Admin;
 
@@ -47,7 +50,7 @@ public static class EvalAdminEndpoints
             EvalTurnRequest? body,
             IEvalTurnRunner runner,
             IEvalUserResolver users,
-            IConfiguration config,
+            IOptions<OllamaOptions> ollama,
             CancellationToken ct) =>
         {
             if (body is null || string.IsNullOrWhiteSpace(body.Prompt))
@@ -77,7 +80,7 @@ public static class EvalAdminEndpoints
             }
 
             return Results.Ok(new EvalTurnResponse(
-                config["Ollama:ChatModel"] ?? "unknown",
+                ollama.Value.ChatModel,
                 turn.Text, turn.OfferedTools, turn.ToolCalls, turn.LatencyMs));
         });
 

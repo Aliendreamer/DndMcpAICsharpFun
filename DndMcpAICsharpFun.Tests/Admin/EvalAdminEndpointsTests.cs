@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using DndMcpAICsharpFun.Features.Admin;
 using DndMcpAICsharpFun.Features.Chat;
+using DndMcpAICsharpFun.Infrastructure.Ollama;
 
 using FluentAssertions;
 
@@ -43,7 +44,7 @@ public sealed class EvalAdminEndpointsTests
         builder.Services.AddSingleton(runner);
         builder.Services.AddSingleton<IEvalUserResolver>(new FakeUsers(testUser));
         builder.Services.Configure<AdminOptions>(o => o.ApiKey = ValidKey);
-        builder.Configuration["Ollama:ChatModel"] = "qwen-test";
+        builder.Services.Configure<OllamaOptions>(o => o.ChatModel = "qwen-test");
         var app = builder.Build();
         app.UseWhen(
             static ctx => ctx.Request.Path.StartsWithSegments("/admin"),
@@ -72,6 +73,8 @@ public sealed class EvalAdminEndpointsTests
         using var doc = JsonDocument.Parse(await r.Content.ReadAsStringAsync());
         doc.RootElement.GetProperty("model").GetString().Should().Be("qwen-test");
         doc.RootElement.GetProperty("text").GetString().Should().Be("hello");
+        doc.RootElement.GetProperty("offeredTools")[0].GetString().Should().Be("lookup");
+        doc.RootElement.GetProperty("latencyMs").GetInt64().Should().Be(12);
         doc.RootElement.GetProperty("toolCalls")[0].GetProperty("name").GetString().Should().Be("lookup");
     }
 
