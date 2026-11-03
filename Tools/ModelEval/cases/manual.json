@@ -3,8 +3,352 @@
     "id": "manual.multiclass-wizard-hitdie",
     "category": "class",
     "prompt": "My character is a level 1 Wizard. What hit die do they roll, per the 2014 Player's Handbook?",
-    "expectedTools": ["get_entity", "search_entities", "search_lore", "search_dnd"],
-    "toolDataFacts": [{ "variants": ["\"faces\":6", "d6"] }],
-    "answerFacts": [{ "variants": ["d6"] }]
+    "expectedTools": [
+      "get_entity",
+      "search_entities",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "\"faces\":6",
+          "d6"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "d6"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.rules.prone",
+    "category": "rules",
+    "prompt": "Per the 2014 Player's Handbook, what happens when a creature is prone and I attack it from within 5 feet?",
+    "expectedTools": [
+      "ask_rules",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "advantage"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "advantage"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.rules.grappled",
+    "category": "rules",
+    "prompt": "Per the 2014 Player's Handbook, what does the grappled condition do to a creature's speed?",
+    "expectedTools": [
+      "ask_rules",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "speed becomes 0",
+          "speed is 0",
+          "speed of 0",
+          "speed to 0"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "speed becomes 0",
+          "speed is 0",
+          "speed of 0",
+          "speed to 0"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.rules.opportunity-attack",
+    "category": "rules",
+    "prompt": "Per the 2014 Player's Handbook, when can a creature make an opportunity attack against me?",
+    "expectedTools": [
+      "ask_rules",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "reach"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "reach"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.rules.dodge",
+    "category": "rules",
+    "prompt": "Per the 2014 Player's Handbook, what does the Dodge action do for attackers who target me?",
+    "expectedTools": [
+      "ask_rules",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "disadvantage"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "disadvantage"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.rules.half-cover",
+    "category": "rules",
+    "prompt": "Per the 2014 Player's Handbook, what bonus does half cover give to AC and Dexterity saving throws?",
+    "expectedTools": [
+      "ask_rules",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "+2"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "+2"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.lore.last-war",
+    "category": "lore",
+    "prompt": "In the Eberron setting, what war was ended by the Treaty of Thronehold?",
+    "expectedTools": [
+      "ask_setting_lore",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "last war"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "last war"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.lore.mourning",
+    "category": "lore",
+    "prompt": "In the Eberron setting, which nation was destroyed by the Mourning?",
+    "expectedTools": [
+      "ask_setting_lore",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "cyre"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "cyre"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.lore.sharn",
+    "category": "lore",
+    "prompt": "In the Eberron setting, what is the City of Towers called?",
+    "expectedTools": [
+      "ask_setting_lore",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "sharn"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "sharn"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.lore.warforged",
+    "category": "lore",
+    "prompt": "In the Eberron setting, what are the living constructs built for the Last War called?",
+    "expectedTools": [
+      "ask_setting_lore",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "warforged"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "warforged"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.npc.single",
+    "category": "npc",
+    "prompt": "Generate a stat block for a shifty dockworker who is secretly a Spy.",
+    "expectedTools": [
+      "generate_npc",
+      "generate_npc_party"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "\"archetypeInCorpus\":true"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "hit points",
+          "armor class",
+          "hp"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.npc.party",
+    "category": "npc",
+    "prompt": "Generate a cast of NPCs for a bandit crew that has been raiding the trade road.",
+    "expectedTools": [
+      "generate_npc",
+      "generate_npc_party"
+    ],
+    "toolDataFacts": [
+      {
+        "variants": [
+          "\"archetypeInCorpus\":true"
+        ]
+      }
+    ],
+    "answerFacts": [
+      {
+        "variants": [
+          "hit points",
+          "armor class",
+          "hp"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.not-found.spell",
+    "category": "not-found",
+    "prompt": "What does the spell Zorblax's Shimmering Hexflame do?",
+    "expectedTools": [
+      "get_entity",
+      "search_entities",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": null,
+    "answerFacts": [
+      {
+        "variants": [
+          "couldn't find",
+          "could not find",
+          "couldnt find",
+          "not find",
+          "no record",
+          "not found",
+          "don't have",
+          "do not have",
+          "no information"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual.not-found.monster",
+    "category": "not-found",
+    "prompt": "Give me the stat block for the Gloomfang Vespertine monster.",
+    "expectedTools": [
+      "get_entity",
+      "search_entities",
+      "search_lore",
+      "search_dnd"
+    ],
+    "toolDataFacts": null,
+    "answerFacts": [
+      {
+        "variants": [
+          "couldn't find",
+          "could not find",
+          "couldnt find",
+          "not find",
+          "no record",
+          "not found",
+          "don't have",
+          "do not have",
+          "no information"
+        ]
+      }
+    ]
   }
 ]

@@ -56,6 +56,29 @@ public class AttributionTests
         s.Outcome.Should().Be(RunOutcome.WrongAnswer);
     }
 
+    private static EvalCase NotFoundCase() => new(
+        "nf1", "not-found", "manual", "What does Zorblax's Shimmering Hexflame do?",
+        new[] { "search_lore" }, null,
+        new[] { F("couldn't find", "could not find", "couldnt find", "not find", "no record", "not found", "don't have", "do not have", "no information") });
+
+    [Fact]
+    public void NotFoundCase_InventedAnswer_Fails()
+    {
+        var s = Attribution.Score(NotFoundCase(),
+            Turn("Zorblax's Shimmering Hexflame is a 3rd-level evocation spell", new[] { "search_lore" },
+                new ToolCallDto("search_lore", "{}", "[]", null)));
+        s.Outcome.Should().Be(RunOutcome.WrongAnswer);
+    }
+
+    [Fact]
+    public void NotFoundCase_CouldNotFindReply_Passes()
+    {
+        var s = Attribution.Score(NotFoundCase(),
+            Turn("I couldn't find that spell in your books", new[] { "search_lore" },
+                new ToolCallDto("search_lore", "{}", "[]", null)));
+        s.Outcome.Should().Be(RunOutcome.Pass);
+    }
+
     [Fact]
     public void AnyAcceptableToolPasses()
     {

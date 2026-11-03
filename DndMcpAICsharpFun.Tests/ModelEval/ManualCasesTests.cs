@@ -60,6 +60,18 @@ public class ManualCasesTests
         cases.Should().OnlyContain(c => c.Tag == "manual");
     }
 
+    [Fact]
+    public void ShippedManualFile_LoadsAllCategories()
+    {
+        var cases = ManualCases.Load(TestPaths.RepoFile("Tools/ModelEval/cases/manual.json"));
+        cases.Select(c => c.Id).Should().OnlyHaveUniqueItems();
+        var counts = cases.GroupBy(c => c.Category).ToDictionary(g => g.Key, g => g.Count());
+        counts["rules"].Should().Be(5);
+        counts["lore"].Should().Be(4);
+        counts["npc"].Should().Be(2);
+        counts["not-found"].Should().Be(2);
+    }
+
     private static void AssertThrows(string json, string messagePattern)
     {
         var path = WriteTemp(json);
