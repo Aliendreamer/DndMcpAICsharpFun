@@ -1009,4 +1009,64 @@ public sealed class DndChatServiceTests : IDisposable
         await act.Should().ThrowAsync<ArgumentException>()
             .WithMessage("*supply campaignId or partyLevels*");
     }
+
+    [Fact]
+    public async Task RunTurnAsync_WithUserId_OffersPerUserTools()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client);
+
+        await svc.RunTurnAsync([new ChatMessage(ChatRole.User, "hi")], 7, false, CancellationToken.None);
+
+        var names = client.LastOptions!.Tools!.Select(t => t.Name).ToList();
+        names.Should().Contain("calculate_crafting").And.Contain("resolve_character_feature");
+    }
+
+    [Fact]
+    public async Task RunTurnAsync_NullUser_OffersNoPerUserTools()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client);
+
+        await svc.RunTurnAsync([new ChatMessage(ChatRole.User, "hi")], null, false, CancellationToken.None);
+
+        var names = client.LastOptions!.Tools!.Select(t => t.Name).ToList();
+        names.Should().NotContain("calculate_crafting").And.NotContain("resolve_character_feature");
+    }
+
+    [Fact]
+    public async Task RunTurnAsync_DoesNotTouchHistory()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client);
+
+        await svc.RunTurnAsync([new ChatMessage(ChatRole.User, "hi")], 7, false, CancellationToken.None);
+
+        svc.History.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RunTurnAsync_ReturnsTraceAndOfferedTools()
+    {
+        var client = new FakeChatClient
+        {
+            Response = new ChatResponse(
+            [
+                new ChatMessage(ChatRole.Assistant,
+                    [new FunctionCallContent("c1", "search_lore", new Dictionary<string, object?> { ["q"] = "x" })]),
+                new ChatMessage(ChatRole.Tool, [new FunctionResultContent("c1", "found it")]),
+                new ChatMessage(ChatRole.Assistant, "final answer"),
+            ]),
+        };
+        var tools = new[] { AIFunctionFactory.Create(() => "", "search_lore") };
+        var svc = CreateService(client, tools);
+
+        var result = await svc.RunTurnAsync(
+            [new ChatMessage(ChatRole.User, "hi")], null, false, CancellationToken.None);
+
+        result.ToolCalls.Should().ContainSingle(t => t.Name == "search_lore" && t.Result == "found it");
+        result.OfferedTools.Should().Equal("search_lore");
+        result.Text.Should().Contain("final answer");
+        result.LatencyMs.Should().BeGreaterThanOrEqualTo(0);
+    }
 }

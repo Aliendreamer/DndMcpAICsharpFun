@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Claims;
 
 using DndMcpAICsharpFun.Domain;
@@ -65,6 +66,80 @@ public sealed class DndChatService(
             return true;
         }
 
+        var idClaim = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        long? userId = long.TryParse(idClaim, out var parsedId) ? parsedId : null;
+
+        History.Add(new ChatMessage(ChatRole.User, userMessage));
+        await PersistAsync("user", userMessage);
+        try
+        {
+            var turn = await RunTurnAsync(History, userId, allowWebSearch, ct);
+            var reply = turn.Text;
+            History.Add(new ChatMessage(ChatRole.Assistant, reply));
+            await PersistAsync("assistant", reply);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // Failure is surfaced to the caller (UI banner); no assistant bubble is injected.
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Runs one model turn over <paramref name="conversation"/> using the production persona, tool
+    /// surface and query router, and returns the reply plus the offered tools and tool-call trace.
+    /// Performs no persistence, history mutation or rate limiting; throws on model failure.
+    /// </summary>
+    public async Task<ChatTurnResult> RunTurnAsync(
+        IReadOnlyList<ChatMessage> conversation, long? userId, bool allowWebSearch, CancellationToken ct)
+    {
+        var toolList = await BuildToolsAsync(userId, allowWebSearch, ct);
+
+        // Per-request message list: [System(persona), ...conversation window]. Not persisted.
+        var messages = new List<ChatMessage>
+        {
+            new(ChatRole.System, personaProvider.GetPersonaText()),
+        };
+        // think-on reasoning cost grows with prompt size, so only the most recent window
+        // is sent to the model; full history is still loaded/displayed/persisted.
+        messages.AddRange(conversation.TakeLast(MaxModelHistoryMessages));
+
+        var lastUser = conversation.LastOrDefault(m => m.Role == ChatRole.User)?.Text ?? string.Empty;
+
+        // chat-query-router: narrow the offered tools to the query's tool group (safe full-set
+        // fallback on low confidence), so the model chooses over a smaller, on-topic surface.
+        var offeredTools = await queryRouter.RouteAsync(lastUser, toolList, ct);
+
+        var sw = Stopwatch.StartNew();
+        var response = await chatClient.GetResponseAsync(
+            messages,
+            new ChatOptions
+            {
+                Tools = [.. offeredTools],
+                // qwen3 think ON (default): reasoning is required for multi-rule questions to
+                // come out correct. Bench (model-eval-harness): tool selection/binding is a
+                // 36/36 tie between think-on and think-off, so there is no accuracy cost to
+                // leaving it on. qwen3 reasons by default when no RawRepresentationFactory
+                // overrides the outgoing request's `think` field; OllamaSharp surfaces the
+                // model's reasoning in a separate field, so response.Text stays answer-only.
+            },
+            ct);
+        sw.Stop();
+
+        return new ChatTurnResult(
+            response.Text ?? string.Empty,
+            offeredTools.Select(t => t.Name).ToList(),
+            ChatTurnTraceBuilder.Build(response),
+            sw.ElapsedMilliseconds);
+    }
+
+    private async Task<List<AITool>> BuildToolsAsync(long? userId, bool allowWebSearch, CancellationToken ct)
+    {
         var tools = await toolsProvider.GetToolsAsync(ct);
         var activeTools = allowWebSearch
             ? tools
@@ -75,12 +150,11 @@ public sealed class DndChatService(
         // close over the signed-in user's id, so the ownership check in *ForUserAsync is always
         // applied. Unauthenticated callers get no tool.
         var toolList = activeTools.ToList();
-        var idClaim = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (long.TryParse(idClaim, out var userId))
+        if (userId is { } uid)
         {
             toolList.Add(AIFunctionFactory.Create(
                 (long heroSnapshotId, string feature, CancellationToken toolCt) =>
-                    resolutionService.ResolveForUserAsync(heroSnapshotId, userId, feature, toolCt),
+                    resolutionService.ResolveForUserAsync(heroSnapshotId, uid, feature, toolCt),
                 name: "resolve_character_feature",
                 description: "Compute a character-specific, cited rule fact for a hero snapshot the " +
                     "signed-in user owns. Supported features: \"breath weapon\", \"spell slots\" " +
@@ -94,7 +168,7 @@ public sealed class DndChatService(
             toolList.Add(AIFunctionFactory.Create(
                 (long heroSnapshotId, string targetClass, CancellationToken toolCt) =>
                     resolutionService.ResolveMulticlassValidityForUserAsync(
-                        heroSnapshotId, userId, targetClass, toolCt),
+                        heroSnapshotId, uid, targetClass, toolCt),
                 name: "check_multiclass",
                 description: "Check whether the signed-in user's hero snapshot may multiclass into a " +
                     "given class (targetClass, e.g. \"Rogue\"). Returns allowed/not-allowed with the " +
@@ -105,7 +179,7 @@ public sealed class DndChatService(
                 (MonsterQuantity[] monsters, string edition, long? campaignId = null, int[]? partyLevels = null,
                     CancellationToken toolCt = default) =>
                     encounterService.RateForUserAsync(
-                        userId, campaignId, partyLevels, monsters, ParseEdition(edition), toolCt),
+                        uid, campaignId, partyLevels, monsters, ParseEdition(edition), toolCt),
                 name: "rate_encounter",
                 description: "Rate a combat encounter's difficulty (Trivial/Easy/Medium/Hard/Deadly) " +
                     "for the signed-in user's party. The party comes from the caller's own campaign " +
@@ -120,7 +194,7 @@ public sealed class DndChatService(
                     double? maxCr = null, double? minCr = null, CancellationToken toolCt = default) =>
                 {
                     var built = await encounterService.BuildForUserAsync(
-                        userId, campaignId, partyLevels: null, ParseDifficulty(difficulty),
+                        uid, campaignId, partyLevels: null, ParseDifficulty(difficulty),
                         ParseEdition(edition), theme, crLte: maxCr, crGte: minCr, toolCt);
                     var a = built.Assessment;
                     return new BuiltEncounterView(
@@ -141,7 +215,7 @@ public sealed class DndChatService(
             toolList.Add(AIFunctionFactory.Create(
                 (long heroSnapshotId, string? targetClass = null, bool? considerDip = null, CancellationToken toolCt = default) =>
                     levelUpService.PlanForUserAsync(
-                        heroSnapshotId, userId, targetClass, considerDip ?? false, toolCt),
+                        heroSnapshotId, uid, targetClass, considerDip ?? false, toolCt),
                 name: "plan_level_up",
                 description: "Plan the next level-up for a hero snapshot the signed-in user owns. Returns, " +
                     "for each way to advance (each existing class, plus legal new-class dips when considerDip " +
@@ -167,7 +241,7 @@ public sealed class DndChatService(
 
             toolList.Add(AIFunctionFactory.Create(
                 (long heroSnapshotId, CancellationToken toolCt) =>
-                    critiqueService.CritiqueForUserAsync(heroSnapshotId, userId, toolCt),
+                    critiqueService.CritiqueForUserAsync(heroSnapshotId, uid, toolCt),
                 name: "critique_build",
                 description: "Review a hero snapshot the signed-in user owns and critique the build. Returns " +
                     "grounded findings — untaken choices (a subclass not chosen, class features not recorded), " +
@@ -179,7 +253,7 @@ public sealed class DndChatService(
             toolList.Add(AIFunctionFactory.Create(
                 (long campaignId, string question, string? edition = null, CancellationToken toolCt = default) =>
                     settingLoreService.AskForUserAsync(
-                        userId, campaignId, question,
+                        uid, campaignId, question,
                         string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
                         toolCt),
                 name: "ask_setting_lore",
@@ -306,7 +380,7 @@ public sealed class DndChatService(
                 (long campaignId, string theme, string npcArchetype, string? difficulty = null,
                     CancellationToken toolCt = default) =>
                     sessionPrepService.PrepForUserAsync(
-                        userId, campaignId, theme, ParseDifficulty(difficulty), npcArchetype,
+                        uid, campaignId, theme, ParseDifficulty(difficulty), npcArchetype,
                         DndVersion.Edition2014, toolCt),
                 name: "prep_session",
                 description: "Prep a game session for the signed-in user's OWN campaign (campaignId). Pass a " +
@@ -322,51 +396,7 @@ public sealed class DndChatService(
                     "from npc.availableArchetypes. Never invent stat numbers or world lore."));
         }
 
-        History.Add(new ChatMessage(ChatRole.User, userMessage));
-        await PersistAsync("user", userMessage);
-        try
-        {
-            // Build a per-request message list: [System(persona), ...History]
-            // The system message is NOT added to History and is NOT persisted.
-            var messages = new List<ChatMessage>
-            {
-                new(ChatRole.System, personaProvider.GetPersonaText()),
-            };
-            // think-on reasoning cost grows with prompt size, so only the most recent window
-            // is sent to the model; full history is still loaded/displayed/persisted.
-            messages.AddRange(History.TakeLast(MaxModelHistoryMessages));
-
-            // chat-query-router: narrow the offered tools to the query's tool group (safe full-set
-            // fallback on low confidence), so the model chooses over a smaller, on-topic surface.
-            var offeredTools = await queryRouter.RouteAsync(userMessage, toolList, ct);
-
-            var response = await chatClient.GetResponseAsync(
-                messages,
-                new ChatOptions
-                {
-                    Tools = [.. offeredTools],
-                    // qwen3 think ON (default): reasoning is required for multi-rule questions to
-                    // come out correct. Bench (model-eval-harness): tool selection/binding is a
-                    // 36/36 tie between think-on and think-off, so there is no accuracy cost to
-                    // leaving it on. qwen3 reasons by default when no RawRepresentationFactory
-                    // overrides the outgoing request's `think` field; OllamaSharp surfaces the
-                    // model's reasoning in a separate field, so response.Text stays answer-only.
-                },
-                ct);
-            var reply = response.Text ?? string.Empty;
-            History.Add(new ChatMessage(ChatRole.Assistant, reply));
-            await PersistAsync("assistant", reply);
-            return true;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception)
-        {
-            // Failure is surfaced to the caller (UI banner); no assistant bubble is injected.
-            return false;
-        }
+        return toolList;
     }
 
     /// <summary>

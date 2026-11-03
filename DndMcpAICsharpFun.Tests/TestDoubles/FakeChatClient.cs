@@ -11,6 +11,9 @@ public sealed class FakeChatClient : IChatClient
     /// <summary>The reply text the client will return for every request.</summary>
     public string Reply { get; set; } = "Test reply";
 
+    /// <summary>When set, returned verbatim instead of a plain-text <see cref="Reply"/> response.</summary>
+    public ChatResponse? Response { get; set; }
+
     /// <summary>When true, <see cref="GetResponseAsync"/> throws <see cref="HttpRequestException"/>.</summary>
     public bool ShouldThrow { get; set; }
 
@@ -28,6 +31,7 @@ public sealed class FakeChatClient : IChatClient
         LastMessages = chatMessages.ToList();
         LastOptions = options;
         if (ShouldThrow) throw new HttpRequestException("Ollama unreachable");
+        if (Response is not null) return Task.FromResult(Response);
         return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, Reply)));
     }
 
