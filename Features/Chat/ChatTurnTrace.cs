@@ -57,6 +57,10 @@ public static class ChatTurnTraceBuilder
         null => null,
         string s => s,
         JsonElement { ValueKind: JsonValueKind.String } e => e.GetString(),
+        // MCP 1.3.x: McpClientTool.InvokeAsync yields TextContent (or a list of AIContent) for successful results.
+        TextContent t => t.Text,
+        IEnumerable<AIContent> parts when parts.Any(p => p is TextContent) =>
+            string.Join("\n", parts.OfType<TextContent>().Select(p => p.Text)),
         _ => JsonSerializer.Serialize(value, WebJson),
     };
 

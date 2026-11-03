@@ -119,6 +119,7 @@ public sealed class DndChatService(
         // fallback on low confidence), so the model chooses over a smaller, on-topic surface.
         var offeredTools = await queryRouter.RouteAsync(lastUser, toolList, ct);
 
+        // LatencyMs covers the model call only; it excludes the query router and the tool build above.
         var sw = Stopwatch.StartNew();
         var response = await chatClient.GetResponseAsync(
             messages,

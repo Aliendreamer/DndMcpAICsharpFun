@@ -123,4 +123,29 @@ public sealed class ChatTurnTraceTests
 
         traces[0].Error.Should().Be("error");
     }
+
+    [Fact]
+    public void Build_McpTextContentResult_UnwrapsText()
+    {
+        var response = Response(Call("c1", "get_entity"),
+            Result("c1", new TextContent("{\"fields\":{\"level\":3}}")));
+
+        var traces = ChatTurnTraceBuilder.Build(response);
+
+        traces[0].Result.Should().Contain("\"level\":3");
+        traces[0].Result.Should().NotContain("$type");
+        traces[0].Error.Should().BeNull();
+    }
+
+    [Fact]
+    public void Build_AIContentList_JoinsTextParts()
+    {
+        var response = Response(Call("c1", "t"),
+            Result("c1", new List<AIContent> { new TextContent("first"), new TextContent("second") }));
+
+        var traces = ChatTurnTraceBuilder.Build(response);
+
+        traces[0].Result.Should().Be("first\nsecond");
+        traces[0].Error.Should().BeNull();
+    }
 }
