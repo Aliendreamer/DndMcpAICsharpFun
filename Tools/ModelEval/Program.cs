@@ -7,6 +7,9 @@ const string persona =
     "Report tool results in prose, not as numbered lists.";
 
 var a = EvalArgs.Parse(args);
+if (a.Mode == "full")
+    return await DndMcpAICsharpFun.Tools.ModelEval.Full.FullModeRunner.RunAsync(a);
+
 var client = ModelClientFactory.Build(a);
 
 var systemPersona = a.PersonaPath is { } p ? await File.ReadAllTextAsync(p) : persona;

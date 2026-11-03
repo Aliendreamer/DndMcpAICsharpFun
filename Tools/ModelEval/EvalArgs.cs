@@ -15,7 +15,8 @@ internal sealed record EvalArgs(
     string? Categories = null,
     string? Baseline = null,
     string CanonicalDir = "books/canonical",
-    string ReportsDir = "Tools/ModelEval/reports")
+    string ReportsDir = "Tools/ModelEval/reports",
+    string ManualPath = "Tools/ModelEval/cases/manual.json")
 {
     public static EvalArgs Parse(string[] args)
     {
@@ -34,6 +35,7 @@ internal sealed record EvalArgs(
         string? baseline = null;
         var canonicalDir = "books/canonical";
         var reportsDir = "Tools/ModelEval/reports";
+        var manualPath = "Tools/ModelEval/cases/manual.json";
 
         for (var i = 0; i < args.Length - 1; i++)
         {
@@ -54,6 +56,7 @@ internal sealed record EvalArgs(
                 case "--baseline": baseline = args[++i]; break;
                 case "--canonical-dir": canonicalDir = args[++i]; break;
                 case "--reports-dir": reportsDir = args[++i]; break;
+                case "--manual": manualPath = args[++i]; break;
             }
         }
 
@@ -61,6 +64,6 @@ internal sealed record EvalArgs(
         var effectiveRuns = runs ?? (mode == "full" ? 3 : 5);
 
         return new EvalArgs(model, thinkOn, effectiveRuns, baseUrl, personaPath, mode, host, adminKey,
-            seed, count, books, categories, baseline, canonicalDir, reportsDir);
+            seed, count, books, categories, baseline, canonicalDir, reportsDir, manualPath);
     }
 }
