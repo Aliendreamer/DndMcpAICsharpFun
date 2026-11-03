@@ -7,7 +7,7 @@ public static class TestPaths
     public static string RepoFile(string relativePath)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "books", "canonical")))
+        while (dir is not null && !(Directory.Exists(Path.Combine(dir.FullName, "books", "canonical")) && File.Exists(Path.Combine(dir.FullName, "Directory.Build.props"))))
             dir = dir.Parent;
         if (dir is null)
             throw new DirectoryNotFoundException("Could not locate repo root (no books/canonical above the test binary).");
