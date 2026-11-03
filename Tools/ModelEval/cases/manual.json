@@ -302,7 +302,10 @@
       {
         "variants": [
           "hit points",
-          "armor class"
+          "armor class",
+          "re:ac\\d+",
+          "re:\\d+hp",
+          "re:hp\\d+"
         ]
       }
     ]
@@ -326,7 +329,10 @@
       {
         "variants": [
           "hit points",
-          "armor class"
+          "armor class",
+          "re:ac\\d+",
+          "re:\\d+hp",
+          "re:hp\\d+"
         ]
       }
     ]
@@ -353,7 +359,14 @@
           "not found",
           "don't have",
           "do not have",
-          "no information"
+          "no information",
+          "don't recognize",
+          "do not recognize",
+          "isn't a recognized",
+          "is not a recognized",
+          "not a recognized",
+          "isn't recognized",
+          "no such"
         ]
       }
     ]
@@ -380,7 +393,14 @@
           "not found",
           "don't have",
           "do not have",
-          "no information"
+          "no information",
+          "don't recognize",
+          "do not recognize",
+          "isn't a recognized",
+          "is not a recognized",
+          "not a recognized",
+          "isn't recognized",
+          "no such"
         ]
       }
     ]

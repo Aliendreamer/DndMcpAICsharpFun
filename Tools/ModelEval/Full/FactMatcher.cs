@@ -33,8 +33,15 @@ internal static partial class FactMatcher
     public static bool AllMatch(IReadOnlyList<Fact> facts, string haystack)
     {
         var h = Normalize(haystack);
-        return facts.All(f => f.Variants.Any(v => ContainsClean(h, Normalize(v))));
+        return facts.All(f => f.Variants.Any(v => Matches(h, v)));
     }
+
+    /// <summary>A variant prefixed <c>re:</c> is a regex applied to the NORMALIZED haystack (no whitespace,
+    /// lowercase), e.g. <c>re:ac\d+</c> for "AC 17"; any other variant is a normalized substring match.</summary>
+    private static bool Matches(string normalizedHaystack, string variant) =>
+        variant.StartsWith("re:", StringComparison.Ordinal)
+            ? Regex.IsMatch(normalizedHaystack, variant[3..], RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1))
+            : ContainsClean(normalizedHaystack, Normalize(variant));
 
     private static bool ContainsClean(string h, string v)
     {

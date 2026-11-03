@@ -200,13 +200,15 @@ internal static class CaseGenerator
             templates.Add(() => Make($"gen.monster.{id}.hp", "monster",
                 Prompt("How many hit points does a {name} have on average"), ClassSpellTools,
                 [[$"\"average\":{hp}"]], [[$"{hp} hit points", $"{hp} hp", $"hit points of {hp}", $"{hp} average hit points",
-                    $"hit points {hp}", $"hp {hp}"]]));
+                    $"hit points {hp}", $"hp {hp}", $"hit points as {hp}", $"hit points are {hp}", $"hit points is {hp}",
+                    $"hp of {hp}", $"hp is {hp}", $"has {hp} hit"]]));
         }
         if (f.TryGetProperty("cr", out var crEl) && MonsterCr(crEl) is { } rawCr && LeadingCr(rawCr) is { } cr)
         {
             templates.Add(() => Make($"gen.monster.{id}.cr", "monster",
                 Prompt("What is the challenge rating of a {name}"), ClassSpellTools,
-                [[$"\"cr\":\"{rawCr}\""]], [[$"challenge rating {cr}", $"challenge rating of {cr}", $"cr {cr}"]]));
+                [[$"\"cr\":\"{rawCr}\""]], [[$"challenge rating {cr}", $"challenge rating of {cr}", $"cr {cr}", $"cr of {cr}", $"cr is {cr}", $"(cr) of {cr}", $"(cr) {cr}", $"(cr) is {cr}",
+                    $"challenge rating is {cr}"]]));
         }
         if (templates.Count > 0) into.Add(new Candidate(id, templates));
     }

@@ -104,4 +104,15 @@ public class FactMatcherTests
     [Fact]
     public void AllMatch_DigitBoundaryStillHolds_AfterNoiseStripping() =>
         FactMatcher.AllMatch([F("d6")], "a d**60** die").Should().BeFalse();
+
+    [Fact]
+    public void AllMatch_ParenthesizedCrForm_Matches() =>
+        FactMatcher.AllMatch([F("(cr) of 3")], "a **Challenge Rating (CR) of 3**.").Should().BeTrue();
+
+    [Theory]
+    [InlineData("Stats: AC 17, 58 HP, STR 16", true)]
+    [InlineData("HP 58 and nothing else", true)]
+    [InlineData("She walks with pride", false)]
+    public void AllMatch_RegexVariant_MatchesNormalizedText(string text, bool expected) =>
+        FactMatcher.AllMatch([F(@"re:ac\d+", @"re:\d+hp", @"re:hp\d+")], text).Should().Be(expected);
 }
