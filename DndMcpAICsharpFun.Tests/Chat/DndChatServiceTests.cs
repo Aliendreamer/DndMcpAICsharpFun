@@ -236,9 +236,10 @@ public sealed class DndChatServiceTests : IDisposable
         DowntimeService? downtimeService = null,
         NpcGenerationService? npcGenerationService = null,
         SessionPrepService? sessionPrepService = null,
-        DndMcpAICsharpFun.Features.Chat.Routing.QueryRouter? queryRouter = null) =>
+        DndMcpAICsharpFun.Features.Chat.Routing.QueryRouter? queryRouter = null,
+        IMcpToolsProvider? toolsProvider = null) =>
         new(client,
-            new FakeMcpToolsProvider(tools ?? []),
+            toolsProvider ?? new FakeMcpToolsProvider(tools ?? []),
             new ChatRepository(new NoOpDbFactory()),
             httpContextAccessor ?? new NullHttpContextAccessor(),
             new ChatRateLimiter(1000),
@@ -1065,8 +1066,30 @@ public sealed class DndChatServiceTests : IDisposable
             [new ChatMessage(ChatRole.User, "hi")], null, false, CancellationToken.None);
 
         result.ToolCalls.Should().ContainSingle(t => t.Name == "search_lore" && t.Result == "found it");
+        // The default router is disabled (pass-through), so the offered tools equal the input tools.
         result.OfferedTools.Should().Equal("search_lore");
         result.Text.Should().Contain("final answer");
         result.LatencyMs.Should().BeGreaterThanOrEqualTo(0);
+    }
+
+    private sealed class ThrowingToolsProvider : IMcpToolsProvider
+    {
+        public Task<IReadOnlyList<AITool>> GetToolsAsync(CancellationToken ct = default) =>
+            throw new InvalidOperationException("tools unavailable");
+    }
+
+    [Fact]
+    public async Task SendAsync_ToolsProviderThrows_ReturnsFalseAndKeepsUserMessage()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client, toolsProvider: new ThrowingToolsProvider());
+
+        var ok = await svc.SendAsync("Hello", false, CancellationToken.None);
+
+        ok.Should().BeFalse();
+        svc.History.Should().ContainSingle();
+        svc.History[0].Role.Should().Be(ChatRole.User);
+        svc.History[0].Text.Should().Be("Hello");
+        svc.History.Should().NotContain(m => m.Role == ChatRole.Assistant);
     }
 }

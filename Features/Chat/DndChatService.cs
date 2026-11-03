@@ -55,6 +55,10 @@ public sealed class DndChatService(
                 t.Role == "user" ? ChatRole.User : ChatRole.Assistant, t.Content));
     }
 
+    /// <remarks>
+    /// A tools-provider failure is treated like a model failure: SendAsync returns false and the
+    /// user message stays in <see cref="History"/> (no assistant message is added).
+    /// </remarks>
     public async Task<bool> SendAsync(string userMessage, bool allowWebSearch, CancellationToken ct)
     {
         var ip = httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
