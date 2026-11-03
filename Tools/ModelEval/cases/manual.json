@@ -1,0 +1,10 @@
+[
+  {
+    "id": "manual.multiclass-wizard-hitdie",
+    "category": "class",
+    "prompt": "My character is a level 1 Wizard. What hit die do they roll, per the 2014 Player's Handbook?",
+    "expectedTools": ["get_entity", "search_entities", "search_lore", "search_dnd"],
+    "toolDataFacts": [{ "variants": ["\"faces\":6", "d6"] }],
+    "answerFacts": [{ "variants": ["d6"] }]
+  }
+]
