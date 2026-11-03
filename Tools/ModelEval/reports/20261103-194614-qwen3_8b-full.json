@@ -1,0 +1,231 @@
+{
+  "mode": "full",
+  "model": "qwen3:8b",
+  "utcTimestamp": "2026-11-03T19:46:14.2987135Z",
+  "seed": 42,
+  "books": [
+    "phb14"
+  ],
+  "caseSetHash": "6c5dadb70067f024d272137b53247423f8d9642456ed2431d0de06e4bfea67bc",
+  "cases": [
+    {
+      "id": "gen.class.phb14.class.paladin.hitdie",
+      "category": "class",
+      "tag": "generated",
+      "passes": 2,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "wrong-tool:not-chosen",
+        "pass"
+      ]
+    },
+    {
+      "id": "gen.class.phb14.class.druid.saves",
+      "category": "class",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-answer",
+        "wrong-tool-data",
+        "wrong-tool:not-chosen"
+      ]
+    },
+    {
+      "id": "gen.class.phb14.class.monk.hitdie",
+      "category": "class",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool:not-chosen"
+      ]
+    },
+    {
+      "id": "gen.class.phb14.class.barbarian.hitdie",
+      "category": "class",
+      "tag": "generated",
+      "passes": 1,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "pass",
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen"
+      ]
+    },
+    {
+      "id": "gen.class.phb14.class.cleric.hitdie",
+      "category": "class",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen"
+      ]
+    },
+    {
+      "id": "gen.spell.phb14.spell.sacred-flame.school",
+      "category": "spell",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-chosen",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ]
+    },
+    {
+      "id": "gen.spell.phb14.spell.suggestion.school",
+      "category": "spell",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ]
+    },
+    {
+      "id": "gen.spell.phb14.spell.conjure-minor-elementals.school",
+      "category": "spell",
+      "tag": "generated",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "gen.spell.phb14.spell.earthquake.range",
+      "category": "spell",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ]
+    },
+    {
+      "id": "gen.spell.phb14.spell.nondetection.level",
+      "category": "spell",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ]
+    },
+    {
+      "id": "gen.crafting.magic.VeryRare",
+      "category": "crafting",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered"
+      ]
+    },
+    {
+      "id": "gen.crafting.nonmagical.150",
+      "category": "crafting",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered"
+      ]
+    },
+    {
+      "id": "gen.crafting.magic.Rare",
+      "category": "crafting",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered"
+      ]
+    },
+    {
+      "id": "gen.crafting.nonmagical.50",
+      "category": "crafting",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered"
+      ]
+    },
+    {
+      "id": "gen.crafting.nonmagical.500",
+      "category": "crafting",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered"
+      ]
+    },
+    {
+      "id": "manual.multiclass-wizard-hitdie",
+      "category": "class",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen"
+      ]
+    }
+  ],
+  "passedByCategory": {
+    "class": 1,
+    "spell": 1,
+    "crafting": 0
+  },
+  "totalByCategory": {
+    "class": 6,
+    "spell": 5,
+    "crafting": 5
+  },
+  "infraErrors": 0
+}
