@@ -21,11 +21,23 @@ internal static class FullModeRunner
         var books = (a.Books ?? "phb14").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var categories = a.Categories?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var seed = a.Seed ?? 42;
-        var opts = new GenOptions(seed, a.Count ?? 5, books, categories);
 
-        var cases = CaseGenerator.Generate(canonicalDir, opts)
-            .Concat(ManualCases.Load(Path.GetFullPath(a.ManualPath)))
-            .ToList();
+        List<EvalCase> cases;
+        EvalReport? explicitBaseline = null;
+        try
+        {
+            cases = BuildCases(a, canonicalDir, books, categories, seed);
+            if (a.Baseline is { } bp)
+                explicitBaseline = EvalReportStore.Load(Path.GetFullPath(bp))
+                    ?? throw new InvalidDataException($"Baseline report is empty: {bp}");
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or System.Text.Json.JsonException
+            or UnauthorizedAccessException or ArgumentException)
+        {
+            Console.Error.WriteLine($"Setup error: {ex.Message}");
+            return 1;
+        }
+
         var hash = CaseGenerator.CaseSetHash(cases, books);
         Console.Error.WriteLine($"[full] {cases.Count} cases x {a.Runs} runs, seed {seed}, books {string.Join(",", books)}");
 
@@ -46,13 +58,28 @@ internal static class FullModeRunner
 
         var report = EvalReport.Build(model, DateTime.UtcNow, seed, books, hash, results);
         var path = EvalReportStore.Write(report, Path.GetFullPath(a.ReportsDir));
-        var baseline = a.Baseline is { } bp
-            ? EvalReportStore.Load(Path.GetFullPath(bp))
-            : EvalReportStore.LatestBefore(Path.GetFullPath(a.ReportsDir), path);
+        var baseline = explicitBaseline
+            ?? EvalReportStore.LatestBefore(Path.GetFullPath(a.ReportsDir), path);
         var comparison = BaselineComparer.Compare(baseline, report);
 
         Print(report, baseline, comparison, path);
-        return BaselineComparer.ExitCode(comparison);
+        return BaselineComparer.ExitCode(comparison, report);
+    }
+
+    /// <summary>Generates + loads cases, applies the category filter to manual cases, rejects duplicate ids.</summary>
+    internal static List<EvalCase> BuildCases(
+        EvalArgs a, string canonicalDir, string[] books, string[]? categories, int seed)
+    {
+        var opts = new GenOptions(seed, a.Count ?? 5, books, categories);
+        var manual = ManualCases.Load(Path.GetFullPath(a.ManualPath));
+        if (categories is { Length: > 0 })
+            manual = manual.Where(c => categories.Contains(c.Category, StringComparer.OrdinalIgnoreCase)).ToList();
+
+        var cases = CaseGenerator.Generate(canonicalDir, opts).Concat(manual).ToList();
+        var dup = cases.GroupBy(c => c.Id, StringComparer.Ordinal).FirstOrDefault(g => g.Count() > 1);
+        if (dup is not null)
+            throw new InvalidDataException($"Duplicate case id '{dup.Key}' across generated and manual cases.");
+        return cases;
     }
 
     private static void Print(EvalReport r, EvalReport? baseline, Comparison c, string path)
@@ -61,6 +88,8 @@ internal static class FullModeRunner
         Console.WriteLine(c.HasBaseline
             ? $"Baseline: {baseline!.Model} @ {baseline.UtcTimestamp:u}{(c.SameCaseSet ? "" : " (different case set; shared ids only)")}"
             : "Baseline: none");
+        if (r.InfraErrors > 0)
+            Console.WriteLine($"*** {r.InfraErrors} infra errors — results not trustworthy (not used as a baseline) ***");
         Console.WriteLine();
         Console.WriteLine($"{"category",-12} {"passed",-9} {"delta",-7} flag");
         foreach (var cat in r.TotalByCategory.Keys.OrderBy(k => k, StringComparer.Ordinal))

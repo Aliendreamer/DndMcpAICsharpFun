@@ -29,4 +29,7 @@ internal static class BaselineComparer
     }
 
     public static int ExitCode(Comparison c) => c.RegressedCategories.Count > 0 ? 2 : 0;
+
+    /// <summary>Infra errors make the results untrustworthy: exit 1, taking precedence over a regression (2).</summary>
+    public static int ExitCode(Comparison c, EvalReport current) => current.InfraErrors > 0 ? 1 : ExitCode(c);
 }

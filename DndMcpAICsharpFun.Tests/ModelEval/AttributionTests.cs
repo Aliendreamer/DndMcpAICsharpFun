@@ -72,4 +72,31 @@ public class AttributionTests
             new ToolCallDto("lookup_spell", "{}", "anything", null)));
         s.Outcome.Should().Be(RunOutcome.Pass);
     }
+
+    [Fact]
+    public void DataMissing_NotFoundText_ReasonNotFound()
+    {
+        var s = Attribution.Score(Case(new[] { F("\"level\":3") }), Turn("x", new[] { "lookup_spell" },
+            new ToolCallDto("lookup_spell", "{}", "Entity phb14.spell.zzz Not Found", null)));
+        s.Outcome.Should().Be(RunOutcome.WrongToolData);
+        s.Reason.Should().Be("not-found");
+        EvalReport.Label(s).Should().Be("wrong-tool-data:not-found");
+    }
+
+    [Fact]
+    public void DataMissing_NoEntitiesFound_ReasonNotFound()
+    {
+        var s = Attribution.Score(Case(new[] { F("\"level\":3") }), Turn("x", new[] { "lookup_spell" },
+            new ToolCallDto("lookup_spell", "{}", "no entities found for query", null)));
+        s.Reason.Should().Be("not-found");
+    }
+
+    [Fact]
+    public void DataMissing_OtherText_NoReason_PlainLabel()
+    {
+        var s = Attribution.Score(Case(new[] { F("\"level\":3") }), Turn("x", new[] { "lookup_spell" },
+            new ToolCallDto("lookup_spell", "{}", "{\"level\":2}", null)));
+        s.Reason.Should().BeNull();
+        EvalReport.Label(s).Should().Be("wrong-tool-data");
+    }
 }

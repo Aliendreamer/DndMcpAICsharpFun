@@ -4,14 +4,17 @@ namespace DndMcpAICsharpFun.Tools.ModelEval.Full;
 
 internal static class FactMatcher
 {
-    /// <summary>Lowercases and removes all whitespace and commas.</summary>
+    /// <summary>
+    /// Lowercases, removes whitespace, commas and markdown/label noise (<c>* _ ` :</c>), and folds
+    /// Unicode hyphens/minus (U+2010-U+2015, U+2212) to ASCII '-'.
+    /// </summary>
     public static string Normalize(string s)
     {
         var sb = new StringBuilder(s.Length);
         foreach (var c in s)
         {
-            if (char.IsWhiteSpace(c) || c == ',') continue;
-            sb.Append(char.ToLowerInvariant(c));
+            if (char.IsWhiteSpace(c) || c is ',' or '*' or '_' or '`' or ':') continue;
+            sb.Append(c is (>= '\u2010' and <= '\u2015') or '\u2212' ? '-' : char.ToLowerInvariant(c));
         }
         return sb.ToString();
     }

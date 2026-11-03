@@ -61,4 +61,21 @@ public class BaselineComparerTests
         c.NewlyFailing.Should().Equal("c");
         c.NewlyPassing.Should().BeEmpty();
     }
+
+    [Fact]
+    public void InfraErrors_ExitOne_TakesPrecedenceOverRegression()
+    {
+        var current = R(Spells(3, 5)) with { InfraErrors = 2 };
+        var c = BaselineComparer.Compare(R(Spells(5, 5)), current);
+
+        c.RegressedCategories.Should().Contain("spell");
+        BaselineComparer.ExitCode(c, current).Should().Be(1);
+    }
+
+    [Fact]
+    public void NoInfraErrors_ExitCodeUnchanged()
+    {
+        var current = R(Spells(3, 5));
+        BaselineComparer.ExitCode(BaselineComparer.Compare(R(Spells(5, 5)), current), current).Should().Be(2);
+    }
 }

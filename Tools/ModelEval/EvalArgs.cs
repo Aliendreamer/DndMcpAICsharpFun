@@ -16,7 +16,8 @@ internal sealed record EvalArgs(
     string? Baseline = null,
     string CanonicalDir = "books/canonical",
     string ReportsDir = "Tools/ModelEval/reports",
-    string ManualPath = "Tools/ModelEval/cases/manual.json")
+    string ManualPath = "Tools/ModelEval/cases/manual.json",
+    string? Error = null)
 {
     public static EvalArgs Parse(string[] args)
     {
@@ -36,6 +37,7 @@ internal sealed record EvalArgs(
         var canonicalDir = "books/canonical";
         var reportsDir = "Tools/ModelEval/reports";
         var manualPath = "Tools/ModelEval/cases/manual.json";
+        string? error = null;
 
         for (var i = 0; i < args.Length - 1; i++)
         {
@@ -46,7 +48,11 @@ internal sealed record EvalArgs(
                 case "--runs": runs = int.Parse(args[++i]); break;
                 case "--base-url": baseUrl = args[++i]; break;
                 case "--persona": personaPath = args[++i]; break;
-                case "--mode": mode = args[++i].ToLowerInvariant(); break;
+                case "--mode":
+                    var m = args[++i].ToLowerInvariant();
+                    if (m is "stub" or "full") mode = m;
+                    else error = $"Unknown --mode '{m}'. Expected 'stub' or 'full'.";
+                    break;
                 case "--host": host = args[++i]; break;
                 case "--admin-key": adminKey = args[++i]; break;
                 case "--seed": seed = int.Parse(args[++i]); break;
@@ -64,6 +70,6 @@ internal sealed record EvalArgs(
         var effectiveRuns = runs ?? (mode == "full" ? 3 : 5);
 
         return new EvalArgs(model, thinkOn, effectiveRuns, baseUrl, personaPath, mode, host, adminKey,
-            seed, count, books, categories, baseline, canonicalDir, reportsDir, manualPath);
+            seed, count, books, categories, baseline, canonicalDir, reportsDir, manualPath, error);
     }
 }

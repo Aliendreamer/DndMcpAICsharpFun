@@ -136,9 +136,14 @@ internal static class CaseGenerator
 
         if (filled.Contains("level") && f.TryGetProperty("level", out var lv) && lv.TryGetInt32(out var level) && level >= 1)
         {
-            var ans = new[] { $"{level}{Ordinal(level)}-level", $"{level}{Ordinal(level)} level", $"level {level}" };
+            var ans = new List<string> { $"{level}{Ordinal(level)}-level", $"{level}{Ordinal(level)} level", $"level {level}" };
+            if (level <= OrdinalWords.Length)
+            {
+                ans.Add($"{OrdinalWords[level - 1]}-level");
+                ans.Add($"{OrdinalWords[level - 1]} level");
+            }
             templates.Add(() => Make($"gen.spell.{id}.level", "spell", Prompt("level is"), ClassSpellTools,
-                [[$"\"level\":{level}"]], [ans]));
+                [[$"\"level\":{level}"]], [ans.ToArray()]));
         }
         if (filled.Contains("school") && f.TryGetProperty("school", out var sc)
             && sc.GetString() is { } code && Schools.TryGetValue(code, out var school))
@@ -191,7 +196,22 @@ internal static class CaseGenerator
     // Unit-qualified so a bare digit elsewhere in a reply cannot satisfy the fact.
     private static string[] Gp(string g) => [$"{g} gp", $"{g} gold", $"{g} gold pieces"];
 
-    private static string[] Weeks(string w) => [$"{w} workweek", $"{w} week", $"{w}-week", $"{w}-workweek"];
+    private static string[] Weeks(string w)
+    {
+        var v = new List<string> { $"{w} workweek", $"{w} week", $"{w}-week", $"{w}-workweek" };
+        if (int.TryParse(w, NumberStyles.None, CultureInfo.InvariantCulture, out var n) && n >= 1 && n <= NumberWords.Length)
+        {
+            var word = NumberWords[n - 1];
+            v.AddRange([$"{word} workweek", $"{word} week", $"{word}-week", $"{word}-workweek"]);
+        }
+        return [.. v];
+    }
+
+    private static readonly string[] OrdinalWords =
+        ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth"];
+
+    private static readonly string[] NumberWords =
+        ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 
     /// <summary>Tool-data facts = raw-JSON variants plus the matching human answer variants (lore tools return prose).</summary>
     private static EvalCase Make(string id, string category, string prompt, string[] tools,

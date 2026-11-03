@@ -26,7 +26,11 @@ internal static class Attribution
         {
             var data = string.Join("\n", called.Select(tc => tc.Result ?? string.Empty));
             if (!FactMatcher.AllMatch(c.ToolDataFacts, data))
-                return new RunScore(RunOutcome.WrongToolData, null, t.LatencyMs);
+            {
+                var notFound = data.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                    || data.Contains("No entities found", StringComparison.OrdinalIgnoreCase);
+                return new RunScore(RunOutcome.WrongToolData, notFound ? "not-found" : null, t.LatencyMs);
+            }
         }
 
         if (!FactMatcher.AllMatch(c.AnswerFacts, t.Text))

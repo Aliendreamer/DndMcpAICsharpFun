@@ -51,4 +51,26 @@ public class FactMatcherTests
     {
         FactMatcher.AllMatch([F("2000")], "2,000 gp").Should().BeTrue();
     }
+
+    [Fact]
+    public void AllMatch_IgnoresMarkdownEmphasis() =>
+        FactMatcher.AllMatch([F("750 gp")], "That costs **750** gp in total").Should().BeTrue();
+
+    [Fact]
+    public void AllMatch_IgnoresLabelColonAndBackticks()
+    {
+        FactMatcher.AllMatch([F("level 3")], "Level: 3").Should().BeTrue();
+        FactMatcher.AllMatch([F("d6")], "hit die: `d6`").Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("3rd\u2011level spell")]
+    [InlineData("3rd\u2013level spell")]
+    [InlineData("3rd\u2212level spell")]
+    public void AllMatch_FoldsUnicodeHyphens(string text) =>
+        FactMatcher.AllMatch([F("3rd-level")], text).Should().BeTrue();
+
+    [Fact]
+    public void AllMatch_DigitBoundaryStillHolds_AfterNoiseStripping() =>
+        FactMatcher.AllMatch([F("d6")], "a d**60** die").Should().BeFalse();
 }

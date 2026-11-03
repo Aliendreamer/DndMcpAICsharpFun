@@ -138,8 +138,8 @@ public sealed class CaseGeneratorTests : IDisposable
 
         var level = cases.First(c => c.Id.EndsWith(".level"));
         level.Prompt.Should().Be("What level is the spell Fireball in the 2014 Player's Handbook?");
-        level.AnswerFacts.Single().Variants.Should().Equal("3rd-level", "3rd level", "level 3");
-        level.ToolDataFacts!.Single().Variants.Should().Equal("\"level\":3", "3rd-level", "3rd level", "level 3");
+        level.AnswerFacts.Single().Variants.Should().Equal("3rd-level", "3rd level", "level 3", "third-level", "third level");
+        level.ToolDataFacts!.Single().Variants.Should().Equal("\"level\":3", "3rd-level", "3rd level", "level 3", "third-level", "third level");
         cases.First(c => c.Id.EndsWith(".school")).ToolDataFacts!.Single().Variants
             .Should().Equal("\"school\":\"V\"", "Evocation");
         cases.First(c => c.Id.EndsWith(".range")).AnswerFacts.Single().Variants
@@ -210,5 +210,24 @@ public sealed class CaseGeneratorTests : IDisposable
         var cases = CaseGenerator.Generate(_dir, Opts(count: 5, cats: ["class"]));
 
         cases.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Spell_OrdinalWordLevelVariant_Matches()
+    {
+        Write("phb14.json", Spell("phb14.spell.fireball", "Fireball", 3, "V", 150));
+        var level = CaseGenerator.Generate(_dir, Opts(count: 5, cats: ["spell"])).First(c => c.Id.EndsWith(".level"));
+
+        FactMatcher.AllMatch(level.AnswerFacts, "Fireball is a third-level spell").Should().BeTrue();
+        FactMatcher.AllMatch(level.AnswerFacts, "It is a third level evocation").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Crafting_NumberWordWorkweekVariant_Matches()
+    {
+        var c = CaseGenerator.Generate(_dir, Opts(count: 20, cats: ["crafting"]))
+            .Single(x => x.Id == "gen.crafting.nonmagical.150");
+
+        FactMatcher.AllMatch(c.AnswerFacts, "75 gp of materials and three workweeks").Should().BeTrue();
     }
 }
