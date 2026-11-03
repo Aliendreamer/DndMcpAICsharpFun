@@ -3,11 +3,26 @@ namespace DndMcpAICsharpFun.Tools.ModelEval.Full;
 internal enum RunOutcome { Pass, WrongTool, BindError, WrongToolData, WrongAnswer, InfraError }
 
 /// <param name="Reason">"not-offered"/"not-chosen" for WrongTool, or the error text.</param>
-internal sealed record RunScore(RunOutcome Outcome, string? Reason, long LatencyMs);
+internal sealed record RunScore(RunOutcome Outcome, string? Reason, long LatencyMs, RunDetail? Detail = null);
+
+/// <summary>What the model actually did in one run: tools it called and (truncated) reply text.</summary>
+internal sealed record RunDetail(IReadOnlyList<string> CalledTools, string Text)
+{
+    public const int MaxTextLength = 600;
+
+    public static RunDetail From(TurnDto t) => new(
+        t.ToolCalls.Select(tc => tc.Name).ToList(),
+        t.Text.Length > MaxTextLength ? t.Text[..MaxTextLength] : t.Text);
+
+    public static RunDetail Infra(string error) => new(
+        [], error.Length > MaxTextLength ? error[..MaxTextLength] : error);
+}
 
 internal static class Attribution
 {
-    public static RunScore Score(EvalCase c, TurnDto t)
+    public static RunScore Score(EvalCase c, TurnDto t) => ScoreCore(c, t) with { Detail = RunDetail.From(t) };
+
+    private static RunScore ScoreCore(EvalCase c, TurnDto t)
     {
         var called = t.ToolCalls.Where(tc => c.ExpectedTools.Contains(tc.Name)).ToList();
         if (called.Count == 0)

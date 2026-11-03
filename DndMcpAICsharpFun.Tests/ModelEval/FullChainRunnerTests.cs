@@ -1,9 +1,9 @@
 using System.Net;
 
-using FluentAssertions;
-
 using DndMcpAICsharpFun.Tools.ModelEval;
 using DndMcpAICsharpFun.Tools.ModelEval.Full;
+
+using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.ModelEval;
 
@@ -20,6 +20,32 @@ public class FullChainRunnerTests
 
     private static TurnDto Good() => new("qwen", "ok", new() { "t" }, new() { new ToolCallDto("t", "{}", "r", null) }, 10);
     private static TurnDto Bad() => new("qwen", "nope", new() { "t" }, new() { new ToolCallDto("t", "{}", "r", null) }, 10);
+
+    [Fact]
+    public async Task Report_RecordsRunDetail()
+    {
+        var c = new EvalCase("c1", "spell", "manual", "p", new[] { "get_entity" }, null, new[] { new Fact(new[] { "zzz" }) });
+        var client = new FakeClient(_ => new TurnDto("qwen", new string('a', 1000), new() { "get_entity" },
+            new() { new ToolCallDto("get_entity", "{}", "r", null) }, 10));
+
+        var (model, results) = await FullChainRunner.RunAsync(new[] { c }, 1, client, CancellationToken.None);
+        var report = EvalReport.Build(model, DateTime.UtcNow, 1, ["phb14"], "h", results);
+
+        var d = report.Cases[0].RunDetails!;
+        d[0].CalledTools.Should().Equal("get_entity");
+        d[0].Text.Length.Should().Be(600);
+    }
+
+    [Fact]
+    public async Task InfraErrorRun_RecordsEmptyToolsAndErrorText()
+    {
+        var client = new FakeClient(n => n == 1 ? Good() : throw new HttpRequestException("refused"));
+        var (model, results) = await FullChainRunner.RunAsync(new[] { Case() }, 2, client, CancellationToken.None);
+        var d = EvalReport.Build(model, DateTime.UtcNow, 1, [], "h", results).Cases[0].RunDetails!;
+
+        d[1].CalledTools.Should().BeEmpty();
+        d[1].Text.Should().Contain("refused");
+    }
 
     [Fact]
     public async Task FirstCallUnreachable_ThrowsInfra()

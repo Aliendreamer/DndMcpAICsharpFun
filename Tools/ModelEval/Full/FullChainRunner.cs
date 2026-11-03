@@ -58,7 +58,7 @@ internal static class FullChainRunner
                 }
                 catch (Exception ex)
                 {
-                    scores.Add(new RunScore(RunOutcome.InfraError, ex.Message, sw.ElapsedMilliseconds));
+                    scores.Add(new RunScore(RunOutcome.InfraError, ex.Message, sw.ElapsedMilliseconds, RunDetail.Infra(ex.Message)));
                 }
             }
             results.Add(new CaseResult(c, scores));

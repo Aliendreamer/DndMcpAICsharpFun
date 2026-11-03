@@ -5,7 +5,8 @@ namespace DndMcpAICsharpFun.Tools.ModelEval.Full;
 /// <param name="Outcomes">Per-run labels: pass, wrong-tool:not-offered, wrong-tool:not-chosen, bind-error,
 /// wrong-tool-data, wrong-answer, infra-error.</param>
 internal sealed record CaseReport(
-    string Id, string Category, string Tag, int Passes, int Runs, bool Passed, IReadOnlyList<string> Outcomes);
+    string Id, string Category, string Tag, int Passes, int Runs, bool Passed, IReadOnlyList<string> Outcomes,
+    IReadOnlyList<RunDetail>? RunDetails = null);
 
 internal sealed record EvalReport(
     string Mode,
@@ -26,7 +27,8 @@ internal sealed record EvalReport(
         var cases = results.Select(r => new CaseReport(
             r.Case.Id, r.Case.Category, r.Case.Tag,
             r.Runs.Count(s => s.Outcome == RunOutcome.Pass), r.Runs.Count, r.Passed,
-            r.Runs.Select(Label).ToList())).ToList();
+            r.Runs.Select(Label).ToList(),
+            r.Runs.Select(s => s.Detail ?? new RunDetail([], string.Empty)).ToList())).ToList();
         return new EvalReport("full", model, utcNow, seed, books, caseSetHash, cases,
             cases.GroupBy(c => c.Category).ToDictionary(g => g.Key, g => g.Count(c => c.Passed)),
             cases.GroupBy(c => c.Category).ToDictionary(g => g.Key, g => g.Count()),

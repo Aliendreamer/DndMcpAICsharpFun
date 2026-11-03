@@ -1,6 +1,6 @@
-using FluentAssertions;
-
 using DndMcpAICsharpFun.Tools.ModelEval.Full;
+
+using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.ModelEval;
 
@@ -70,6 +70,28 @@ public class EvalReportTests
             File.WriteAllText(path, json.ToJsonString());
 
             EvalReportStore.Load(path)!.InfraErrors.Should().Be(0);
+        }
+        finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void OldReport_WithoutRunDetails_LoadsAsBaseline()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"rep-{Guid.NewGuid():N}");
+        try
+        {
+            var cr = new CaseReport("a", "spell", "generated", 3, 3, true, ["pass", "pass", "pass"]);
+            var path = EvalReportStore.Write(Report("m", new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc), cr), dir);
+            var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            foreach (var cs in json["cases"]!.AsArray()) cs!.AsObject().Remove("runDetails");
+            File.WriteAllText(path, json.ToJsonString());
+            var current = EvalReportStore.Write(Report("m", new DateTime(2026, 1, 2, 10, 0, 0, DateTimeKind.Utc), cr), dir);
+
+            var baseline = EvalReportStore.LatestBefore(dir, current);
+
+            baseline.Should().NotBeNull();
+            baseline!.Cases[0].RunDetails.Should().BeNull();
+            BaselineComparer.ExitCode(BaselineComparer.Compare(baseline, EvalReportStore.Load(current)!)).Should().Be(0);
         }
         finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
     }
