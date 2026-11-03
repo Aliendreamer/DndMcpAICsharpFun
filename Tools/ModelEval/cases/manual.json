@@ -37,14 +37,26 @@
     "toolDataFacts": [
       {
         "variants": [
-          "advantage"
+          "have advantage",
+          "has advantage",
+          "with advantage",
+          "gain advantage",
+          "gets advantage",
+          "get advantage",
+          "at advantage"
         ]
       }
     ],
     "answerFacts": [
       {
         "variants": [
-          "advantage"
+          "have advantage",
+          "has advantage",
+          "with advantage",
+          "gain advantage",
+          "gets advantage",
+          "get advantage",
+          "at advantage"
         ]
       }
     ]
