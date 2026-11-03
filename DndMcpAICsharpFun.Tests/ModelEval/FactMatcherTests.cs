@@ -1,6 +1,6 @@
-using FluentAssertions;
-
 using DndMcpAICsharpFun.Tools.ModelEval.Full;
+
+using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.ModelEval;
 
@@ -44,6 +44,37 @@ public class FactMatcherTests
     public void AllMatch_LaterCleanOccurrenceMatches()
     {
         FactMatcher.AllMatch([F("d6")], "d60 or d6").Should().BeTrue();
+    }
+
+    [Fact]
+    public void AllMatch_DecodesJsonUnicodeEscapes()
+    {
+        FactMatcher.AllMatch([F("+2")], "{\"text\":\"a \\u002B2 bonus\"}").Should().BeTrue();
+        FactMatcher.AllMatch([F("couldn't find")], "I couldn\\u0027t find it").Should().BeTrue();
+    }
+
+    [Fact]
+    public void AllMatch_FoldsCurlyApostrophes()
+    {
+        FactMatcher.AllMatch([F("couldn't find")], "I couldn’t find it").Should().BeTrue();
+        FactMatcher.AllMatch([F("couldn't find")], "I couldn‘t find it").Should().BeTrue();
+    }
+
+    [Fact]
+    public void AllMatch_FractionIsNotNumericPrefix()
+    {
+        FactMatcher.AllMatch([F("challenge rating 1")], "challenge rating 1/2").Should().BeFalse();
+        FactMatcher.AllMatch([F("challenge rating 1/2")], "challenge rating 1/2").Should().BeTrue();
+        FactMatcher.AllMatch([F("2")], "1/2").Should().BeFalse();
+    }
+
+    [Fact]
+    public void AllMatch_HitPointsStatBlockForms()
+    {
+        var f = new[] { F("hit points 27", "hp 27") };
+        FactMatcher.AllMatch(f, "Hit Points: 27 (5d8 + 5)").Should().BeTrue();
+        FactMatcher.AllMatch(f, "HP 27").Should().BeTrue();
+        FactMatcher.AllMatch(f, "HP 270").Should().BeFalse();
     }
 
     [Fact]

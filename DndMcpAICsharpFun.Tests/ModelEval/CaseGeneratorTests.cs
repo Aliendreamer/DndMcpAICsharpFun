@@ -17,21 +17,30 @@ public sealed class CaseGeneratorTests : IDisposable
 
     private static object Class(string id, string name, int faces, params string[] prof) => new
     {
-        id, type = "Class", name, authority = "canon", needsReview = false,
+        id,
+        type = "Class",
+        name,
+        authority = "canon",
+        needsReview = false,
         fields = new { hd = new { number = 1, faces }, proficiency = prof },
     };
 
     private static object Spell(string id, string name, int level, string school, int feet,
         bool needsReview = false, string[]? filled = null) => new
-    {
-        id, type = "Spell", name, authority = "canon", needsReview,
-        fields = new
         {
-            level, school,
-            range = new { type = "point", distance = new { type = "feet", amount = feet } },
-            _fivetoolsFilledFields = filled ?? ["level", "school", "range"],
-        },
-    };
+            id,
+            type = "Spell",
+            name,
+            authority = "canon",
+            needsReview,
+            fields = new
+            {
+                level,
+                school,
+                range = new { type = "point", distance = new { type = "feet", amount = feet } },
+                _fivetoolsFilledFields = filled ?? ["level", "school", "range"],
+            },
+        };
 
     private void Write(string file, params object[] entities) =>
         File.WriteAllText(Path.Combine(_dir, file), JsonSerializer.Serialize(new { entities }));
@@ -343,5 +352,63 @@ public sealed class CaseGeneratorTests : IDisposable
 
         Sig(CaseGenerator.Generate(_dir, MonsterOpts(cats: ["monster"])))
             .Should().Be(Sig(CaseGenerator.Generate(_dir, MonsterOpts(cats: ["monster"]))));
+    }
+
+    [Fact]
+    public void Monster_CrWithXpSuffix_UsesLeadingNumberInAnswersAndRawInToolData()
+    {
+        Write("mm14.json", Monster("mm14.monster.d", "D", null, null, "10 (5,900 XP)"));
+
+        var c = CaseGenerator.Generate(_dir, MonsterOpts(cats: ["monster"])).Single();
+
+        c.AnswerFacts.Single().Variants.Should().Contain("challenge rating 10")
+            .And.NotContain(v => v.Contains("XP"));
+        c.ToolDataFacts!.Single().Variants.Should().Contain("\"cr\":\"10 (5,900 XP)\"")
+            .And.Contain("challenge rating 10");
+    }
+
+    [Fact]
+    public void Monster_CrGarbage_SkipsCrTemplate()
+    {
+        Write("mm14.json", Monster("mm14.monster.a", "A", null, null, ":[{"),
+            Monster("mm14.monster.b", "B", null, null, "?"));
+
+        CaseGenerator.Generate(_dir, MonsterOpts(count: 5, cats: ["monster"])).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Monster_FractionalCr_Kept()
+    {
+        Write("mm14.json", Monster("mm14.monster.h", "H", null, null, "1/2"));
+
+        CaseGenerator.Generate(_dir, MonsterOpts(cats: ["monster"])).Single()
+            .AnswerFacts.Single().Variants.Should().Contain("challenge rating 1/2");
+    }
+
+    [Fact]
+    public void Monster_HpAnswerVariants_IncludeStatBlockForms()
+    {
+        MonsterFixture();
+        var cases = CaseGenerator.Generate(_dir, MonsterOpts(count: 30, cats: ["monster"]));
+
+        var hp = cases.First(c => c.Id.EndsWith(".hp"));
+        hp.AnswerFacts.Single().Variants.Should().Contain(["hit points 27", "hp 27"]);
+        hp.ToolDataFacts!.Single().Variants.Should().Contain(["hit points 27", "hp 27"]);
+    }
+
+    [Fact]
+    public void BookScoping_MonstersOnlyFromMm14_ClassSpellOnlyFromOthers()
+    {
+        Write("phb14.json", Class("phb14.class.a", "A", 8, "str"),
+            Monster("phb14.monster.stray", "Stray", 12, new { average = 5 }, "1"));
+        Write("mm14.json", Monster("mm14.monster.m", "M", 12, new { average = 5 }, "1"),
+            Class("mm14.class.odd", "Odd", 6, "dex"));
+
+        var cases = CaseGenerator.Generate(_dir, new GenOptions(1, 50, ["phb14", "mm14"], null));
+
+        cases.Where(c => c.Category == "monster").Should().NotBeEmpty()
+            .And.OnlyContain(c => c.Id.Contains("mm14.monster."));
+        cases.Where(c => c.Category == "class").Should().NotBeEmpty()
+            .And.OnlyContain(c => c.Id.Contains("phb14.class."));
     }
 }

@@ -1,6 +1,6 @@
-using FluentAssertions;
-
 using DndMcpAICsharpFun.Tools.ModelEval.Full;
+
+using FluentAssertions;
 
 namespace DndMcpAICsharpFun.Tests.ModelEval;
 
@@ -70,6 +70,39 @@ public class ManualCasesTests
         counts["lore"].Should().Be(4);
         counts["npc"].Should().Be(2);
         counts["not-found"].Should().Be(2);
+    }
+
+    [Fact]
+    public void ShippedManual_NpcCases_DoNotUseBareHp()
+    {
+        var cases = ManualCases.Load(TestPaths.RepoFile("Tools/ModelEval/cases/manual.json"));
+
+        foreach (var id in new[] { "manual.npc.single", "manual.npc.party" })
+            cases.Single(c => c.Id == id).AnswerFacts.SelectMany(f => f.Variants).Should().NotContain("hp");
+    }
+
+    [Fact]
+    public void ShippedManual_OpportunityAttack_RequiresLeavingReach()
+    {
+        var c = ManualCases.Load(TestPaths.RepoFile("Tools/ModelEval/cases/manual.json"))
+            .Single(x => x.Id == "manual.rules.opportunity-attack");
+        var expected = new[] { "leave its reach", "leaves its reach", "leaving its reach", "leave your reach",
+            "leaves your reach", "out of its reach", "out of reach", "moves out of" };
+
+        c.AnswerFacts.Single().Variants.Should().BeEquivalentTo(expected);
+        c.ToolDataFacts!.Single().Variants.Should().BeEquivalentTo(expected);
+        FactMatcher.AllMatch(c.AnswerFacts, "when a creature enters its reach").Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShippedManual_Grappled_AcceptsZeroPhrasings()
+    {
+        var c = ManualCases.Load(TestPaths.RepoFile("Tools/ModelEval/cases/manual.json"))
+            .Single(x => x.Id == "manual.rules.grappled");
+        string[] extra = ["reduced to 0", "drops to 0", "becomes zero", "speed to zero", "speed is zero"];
+
+        c.AnswerFacts.Single().Variants.Should().Contain(extra);
+        c.ToolDataFacts!.Single().Variants.Should().Contain(extra);
     }
 
     private static void AssertThrows(string json, string messagePattern)

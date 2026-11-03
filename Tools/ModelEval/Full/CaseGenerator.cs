@@ -25,14 +25,24 @@ internal static class CaseGenerator
 
     private static readonly Dictionary<string, string> Abilities = new()
     {
-        ["str"] = "Strength", ["dex"] = "Dexterity", ["con"] = "Constitution",
-        ["int"] = "Intelligence", ["wis"] = "Wisdom", ["cha"] = "Charisma",
+        ["str"] = "Strength",
+        ["dex"] = "Dexterity",
+        ["con"] = "Constitution",
+        ["int"] = "Intelligence",
+        ["wis"] = "Wisdom",
+        ["cha"] = "Charisma",
     };
 
     private static readonly Dictionary<string, string> Schools = new()
     {
-        ["A"] = "Abjuration", ["C"] = "Conjuration", ["D"] = "Divination", ["E"] = "Enchantment",
-        ["V"] = "Evocation", ["I"] = "Illusion", ["N"] = "Necromancy", ["T"] = "Transmutation",
+        ["A"] = "Abjuration",
+        ["C"] = "Conjuration",
+        ["D"] = "Divination",
+        ["E"] = "Enchantment",
+        ["V"] = "Evocation",
+        ["I"] = "Illusion",
+        ["N"] = "Necromancy",
+        ["T"] = "Transmutation",
     };
 
     private sealed record Candidate(string Id, IReadOnlyList<Func<EvalCase>> Templates);
@@ -54,10 +64,12 @@ internal static class CaseGenerator
                 if (!doc.RootElement.TryGetProperty("entities", out var entities)) continue;
                 foreach (var e in entities.EnumerateArray())
                 {
+                    // Prompts name the 2014 MM for monsters and the 2014 PHB for class/spell, so scope by book.
+                    var isMonsterBook = string.Equals(book, "mm14", StringComparison.OrdinalIgnoreCase);
                     var type = Str(e, "type");
-                    if (type == "Class" && On("class")) AddClass(e, classes);
-                    else if (type == "Spell" && On("spell")) AddSpell(e, spells);
-                    else if (type == "Monster" && On("monster")) AddMonster(e, monsters);
+                    if (type == "Class" && On("class") && !isMonsterBook) AddClass(e, classes);
+                    else if (type == "Spell" && On("spell") && !isMonsterBook) AddSpell(e, spells);
+                    else if (type == "Monster" && On("monster") && isMonsterBook) AddMonster(e, monsters);
                 }
             }
         }
@@ -187,13 +199,14 @@ internal static class CaseGenerator
         {
             templates.Add(() => Make($"gen.monster.{id}.hp", "monster",
                 Prompt("How many hit points does a {name} have on average"), ClassSpellTools,
-                [[$"\"average\":{hp}"]], [[$"{hp} hit points", $"{hp} hp", $"hit points of {hp}", $"{hp} average hit points"]]));
+                [[$"\"average\":{hp}"]], [[$"{hp} hit points", $"{hp} hp", $"hit points of {hp}", $"{hp} average hit points",
+                    $"hit points {hp}", $"hp {hp}"]]));
         }
-        if (f.TryGetProperty("cr", out var crEl) && MonsterCr(crEl) is { } cr)
+        if (f.TryGetProperty("cr", out var crEl) && MonsterCr(crEl) is { } rawCr && LeadingCr(rawCr) is { } cr)
         {
             templates.Add(() => Make($"gen.monster.{id}.cr", "monster",
                 Prompt("What is the challenge rating of a {name}"), ClassSpellTools,
-                [[$"\"cr\":\"{cr}\""]], [[$"challenge rating {cr}", $"challenge rating of {cr}", $"cr {cr}"]]));
+                [[$"\"cr\":\"{rawCr}\""]], [[$"challenge rating {cr}", $"challenge rating of {cr}", $"cr {cr}"]]));
         }
         if (templates.Count > 0) into.Add(new Candidate(id, templates));
     }
@@ -221,6 +234,13 @@ internal static class CaseGenerator
             JsonValueKind.Number when el.TryGetInt32(out var n) => n.ToString(CultureInfo.InvariantCulture),
             _ => null,
         };
+    }
+
+    // Leading CR value of strings like "10 (5,900 XP)"; null when there is none (":[{", "?").
+    private static string? LeadingCr(string raw)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(raw, @"^\s*(\d+(?:/\d+)?)");
+        return m.Success ? m.Groups[1].Value : null;
     }
 
     // ---- crafting ----

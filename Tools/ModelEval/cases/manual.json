@@ -76,7 +76,12 @@
           "speed becomes 0",
           "speed is 0",
           "speed of 0",
-          "speed to 0"
+          "speed to 0",
+          "reduced to 0",
+          "drops to 0",
+          "becomes zero",
+          "speed to zero",
+          "speed is zero"
         ]
       }
     ],
@@ -86,7 +91,12 @@
           "speed becomes 0",
           "speed is 0",
           "speed of 0",
-          "speed to 0"
+          "speed to 0",
+          "reduced to 0",
+          "drops to 0",
+          "becomes zero",
+          "speed to zero",
+          "speed is zero"
         ]
       }
     ]
@@ -103,14 +113,28 @@
     "toolDataFacts": [
       {
         "variants": [
-          "reach"
+          "leave its reach",
+          "leaves its reach",
+          "leaving its reach",
+          "leave your reach",
+          "leaves your reach",
+          "out of its reach",
+          "out of reach",
+          "moves out of"
         ]
       }
     ],
     "answerFacts": [
       {
         "variants": [
-          "reach"
+          "leave its reach",
+          "leaves its reach",
+          "leaving its reach",
+          "leave your reach",
+          "leaves your reach",
+          "out of its reach",
+          "out of reach",
+          "moves out of"
         ]
       }
     ]
@@ -278,8 +302,7 @@
       {
         "variants": [
           "hit points",
-          "armor class",
-          "hp"
+          "armor class"
         ]
       }
     ]
@@ -303,8 +326,7 @@
       {
         "variants": [
           "hit points",
-          "armor class",
-          "hp"
+          "armor class"
         ]
       }
     ]
