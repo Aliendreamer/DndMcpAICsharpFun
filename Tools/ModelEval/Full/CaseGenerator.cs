@@ -170,7 +170,7 @@ internal static class CaseGenerator
             var id = $"gen.crafting.nonmagical.{v}";
             list.Add(new Candidate(id, [() => Make(id, "crafting",
                 $"How much do the materials cost and how many workweeks does it take to craft a nonmagical item with a market value of {v} gp?",
-                CraftingTools, [[$"\"materialsGp\":{mats}"]], [[mats], [weeks]])]));
+                CraftingTools, [[$"\"materialsGp\":{mats}"]], [Gp(mats), Weeks(weeks)])]));
         }
         foreach (var r in Enum.GetValues<Rarity>())
         {
@@ -181,20 +181,25 @@ internal static class CaseGenerator
             var words = r == Rarity.VeryRare ? "very rare" : r.ToString().ToLowerInvariant();
             list.Add(new Candidate(id, [() => Make(id, "crafting",
                 $"How much gold and how many workweeks does it take to craft a {words} magic item?",
-                CraftingTools, [[$"\"goldCostGp\":{gold}"]], [[gold], [weeks]])]));
+                CraftingTools, [[$"\"goldCostGp\":{gold}"]], [Gp(gold), Weeks(weeks)])]));
         }
         return list;
     }
 
     // ---- helpers ----
 
+    // Unit-qualified so a bare digit elsewhere in a reply cannot satisfy the fact.
+    private static string[] Gp(string g) => [$"{g} gp", $"{g} gold", $"{g} gold pieces"];
+
+    private static string[] Weeks(string w) => [$"{w} workweek", $"{w} week", $"{w}-week", $"{w}-workweek"];
+
     /// <summary>Tool-data facts = raw-JSON variants plus the matching human answer variants (lore tools return prose).</summary>
     private static EvalCase Make(string id, string category, string prompt, string[] tools,
         List<string[]> toolData, List<string[]> answers)
     {
         var answerFacts = answers.Select(a => new Fact(a)).ToList();
+        // toolData[i] pairs with answers[i] (clamped to the last answer when there are more tool facts than answers).
         var toolFacts = toolData.Select((t, i) => new Fact(t.Concat(answers[Math.Min(i, answers.Count - 1)]).Distinct().ToList())).ToList();
-        // Crafting has two answer facts but one tool-data fact; others align 1:1.
         return new EvalCase(id, category, "generated", prompt, tools, toolFacts, answerFacts);
     }
 

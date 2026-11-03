@@ -169,12 +169,24 @@ public sealed class CaseGeneratorTests : IDisposable
             var v = int.Parse(c.Id.Split('.')[^1]);
             var m = CraftingMath.CraftNonmagical(v);
             FactMatcher.AllMatch(c.AnswerFacts, $"{m.MaterialsGp} gp and {m.TotalWorkweeks} workweeks").Should().BeTrue();
-            c.AnswerFacts[0].Variants.Should().Contain(m.MaterialsGp.ToString());
+            c.AnswerFacts[0].Variants.Should().Contain($"{m.MaterialsGp} gp");
             c.ExpectedTools.Should().Equal("calculate_crafting");
         }
         var vr = cases.Single(c => c.Id == "gen.crafting.magic.VeryRare");
         vr.Prompt.Should().Contain("a very rare magic item");
-        vr.AnswerFacts.Select(f => f.Variants[0]).Should().Equal("20000", "25");
+        vr.AnswerFacts.Select(f => f.Variants[0]).Should().Equal("20000 gp", "25 workweek");
+    }
+
+    [Fact]
+    public void CraftingFacts_AreUnitQualified()
+    {
+        var cases = CaseGenerator.Generate(_dir, Opts(count: 20, cats: ["crafting"]));
+
+        cases.Should().NotBeEmpty();
+        cases.SelectMany(c => c.AnswerFacts).SelectMany(f => f.Variants)
+            .Should().OnlyContain(v => v.Any(char.IsLetter));
+        FactMatcher.AllMatch(cases.Single(c => c.Id == "gen.crafting.nonmagical.50").AnswerFacts,
+            "step 1, level 3, 50 gp").Should().BeFalse();
     }
 
     [Fact]
