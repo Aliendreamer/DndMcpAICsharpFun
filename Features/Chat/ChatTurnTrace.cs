@@ -14,6 +14,8 @@ public sealed record ChatTurnResult(
 
 public static class ChatTurnTraceBuilder
 {
+    private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
+
     public static IReadOnlyList<ToolCallTrace> Build(ChatResponse response)
     {
         var contents = response.Messages.SelectMany(m => m.Contents).ToList();
@@ -25,7 +27,7 @@ public static class ChatTurnTraceBuilder
         foreach (var call in contents.OfType<FunctionCallContent>())
         {
             var args = JsonSerializer.Serialize(
-                call.Arguments ?? new Dictionary<string, object?>(), JsonSerializerDefaults_Web);
+                call.Arguments ?? new Dictionary<string, object?>(), WebJson);
 
             string? text = null;
             string? error = null;
@@ -35,7 +37,13 @@ public static class ChatTurnTraceBuilder
                     error = result.Exception.Message;
 
                 text = Render(result.Result);
-                error ??= DetectError(result.Result, text);
+                if (TryUnwrapMcp(text, out var unwrapped, out var mcpError))
+                {
+                    text = unwrapped;
+                    error ??= mcpError;
+                }
+
+                error ??= DetectError(text);
             }
 
             traces.Add(new ToolCallTrace(call.Name, args, text, error));
@@ -44,17 +52,49 @@ public static class ChatTurnTraceBuilder
         return traces;
     }
 
-    private static readonly JsonSerializerOptions JsonSerializerDefaults_Web = new(JsonSerializerDefaults.Web);
-
     private static string? Render(object? value) => value switch
     {
         null => null,
         string s => s,
         JsonElement { ValueKind: JsonValueKind.String } e => e.GetString(),
-        _ => JsonSerializer.Serialize(value, JsonSerializerDefaults_Web),
+        _ => JsonSerializer.Serialize(value, WebJson),
     };
 
-    private static string? DetectError(object? raw, string? text)
+    // MCP CallToolResult serializes as {"content":[{"type":"text","text":"..."}],"isError":bool}.
+    private static bool TryUnwrapMcp(string? text, out string? unwrapped, out string? error)
+    {
+        unwrapped = null;
+        error = null;
+        if (text is null || !text.TrimStart().StartsWith('{'))
+            return false;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty("content", out var content)
+                || content.ValueKind != JsonValueKind.Array)
+                return false;
+
+            var parts = content.EnumerateArray()
+                .Where(i => i.ValueKind == JsonValueKind.Object
+                    && i.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String && t.GetString() == "text"
+                    && i.TryGetProperty("text", out var tx) && tx.ValueKind == JsonValueKind.String)
+                .Select(i => i.GetProperty("text").GetString()!);
+            unwrapped = string.Join("\n", parts);
+
+            if (root.TryGetProperty("isError", out var ie) && ie.ValueKind == JsonValueKind.True)
+                error = unwrapped.Length == 0 ? "MCP tool error" : unwrapped;
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static string? DetectError(string? text)
     {
         if (text is null)
             return null;
@@ -62,20 +102,22 @@ public static class ChatTurnTraceBuilder
         if (text.StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
             return text;
 
-        var trimmed = text.TrimStart();
-        if (!trimmed.StartsWith('{'))
+        if (!text.TrimStart().StartsWith('{'))
             return null;
 
         try
         {
-            using var doc = JsonDocument.Parse(trimmed);
+            using var doc = JsonDocument.Parse(text);
             if (doc.RootElement.ValueKind != JsonValueKind.Object)
                 return null;
 
             foreach (var prop in doc.RootElement.EnumerateObject())
             {
                 if (prop.NameEquals("error") && prop.Value.ValueKind != JsonValueKind.Null)
-                    return prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString() : prop.Value.GetRawText();
+                {
+                    var msg = prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString() : prop.Value.GetRawText();
+                    return string.IsNullOrWhiteSpace(msg) ? "error" : msg;
+                }
                 if (prop.NameEquals("isError") && prop.Value.ValueKind == JsonValueKind.True)
                     return text;
             }

@@ -81,4 +81,46 @@ public sealed class ChatTurnTraceTests
         traces.Select(t => t.Name).Should().Equal("first", "second", "third");
         traces[2].Result.Should().BeNull();
     }
+
+    [Fact]
+    public void Build_McpCallToolResult_UnwrapsContentText()
+    {
+        var el = System.Text.Json.JsonDocument.Parse(
+            "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"hd\\\":{\\\"faces\\\":6}}\"}],\"isError\":false}").RootElement.Clone();
+        var traces = ChatTurnTraceBuilder.Build(Response(Call("c1", "t"), Result("c1", el)));
+
+        traces[0].Result.Should().Contain("\"faces\":6");
+        traces[0].Error.Should().BeNull();
+    }
+
+    [Fact]
+    public void Build_McpIsError_SetsError()
+    {
+        var el = System.Text.Json.JsonDocument.Parse(
+            "{\"content\":[{\"type\":\"text\",\"text\":\"bad rarity\"}],\"isError\":true}").RootElement.Clone();
+        var empty = System.Text.Json.JsonDocument.Parse("{\"content\":[],\"isError\":true}").RootElement.Clone();
+        var traces = ChatTurnTraceBuilder.Build(Response(
+            Call("a", "t"), Result("a", el), Call("b", "t"), Result("b", empty)));
+
+        traces[0].Error.Should().Be("bad rarity");
+        traces[1].Error.Should().Be("MCP tool error");
+    }
+
+    [Fact]
+    public void Build_JsonElementStringResult_IsUnwrapped()
+    {
+        var el = System.Text.Json.JsonDocument.Parse("\"plain text\"").RootElement.Clone();
+        var traces = ChatTurnTraceBuilder.Build(Response(Call("c1", "t"), Result("c1", el)));
+
+        traces[0].Result.Should().Be("plain text");
+        traces[0].Error.Should().BeNull();
+    }
+
+    [Fact]
+    public void Build_BlankErrorProperty_StillErrors()
+    {
+        var traces = ChatTurnTraceBuilder.Build(Response(Call("c1", "t"), Result("c1", new { error = " " })));
+
+        traces[0].Error.Should().Be("error");
+    }
 }
