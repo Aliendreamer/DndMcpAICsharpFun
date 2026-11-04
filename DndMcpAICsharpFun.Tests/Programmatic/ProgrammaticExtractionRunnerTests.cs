@@ -55,7 +55,7 @@ public class ProgrammaticExtractionRunnerTests : IDisposable
         [Ent("mm14.monster.goblin", "Goblin", true), Ent("mm14.monster.orc", "Orc", false)],
         J("""{"pages":2}"""));
 
-    private ProgrammaticExtractionRunner Runner(TimeSpan? timeout = null) => new(
+    private ProgrammaticExtractionRunner Runner(TimeSpan? timeout = null, Action<string>? deleteFile = null) => new(
         _tracker, _client, new OverridesStore(Options.Create(new EntityIngestionOptions { CanonicalDirectory = _dir })),
         _ingestion, new BookSourceRegistry("does-not-exist.json"),
         Options.Create(new EntityIngestionOptions { CanonicalDirectory = _dir }),
@@ -65,7 +65,7 @@ public class ProgrammaticExtractionRunnerTests : IDisposable
             PollInterval = TimeSpan.FromMilliseconds(5),
             Timeout = timeout ?? TimeSpan.FromSeconds(30),
         }),
-        new CanonicalJsonWriter(), NullLogger<ProgrammaticExtractionRunner>.Instance);
+        new CanonicalJsonWriter(), NullLogger<ProgrammaticExtractionRunner>.Instance, deleteFile);
 
     private string P(string name) => Path.Combine(_dir, name);
 
@@ -198,5 +198,33 @@ public class ProgrammaticExtractionRunnerTests : IDisposable
         File.ReadAllText(P("mm14.json")).Should().NotBe("OLD");
         File.Exists(P("mm14.errors.json")).Should().BeFalse();
         File.Exists(P("mm14.report.json")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Sidecar_delete_failure_is_a_post_swap_error_not_untouched()
+    {
+        SeedOld();
+
+        var act = () => Runner(deleteFile: _ => throw new IOException("locked")).RunAsync(1, CancellationToken.None);
+
+        var ex = (await act.Should().ThrowAsync<PartialSwapException>()).Which;
+        ex.Should().BeAssignableTo<PostSwapException>();
+        ex.Message.Should().Contain("extract-programmatic").And.NotContain("untouched");
+        File.ReadAllText(P("mm14.json")).Should().NotBe("OLD");
+        await _ingestion.DidNotReceiveWithAnyArgs().IngestEntitiesAsync(default, default);
+    }
+
+    [Fact]
+    public async Task Report_write_failure_leaves_files_untouched_and_no_tmp()
+    {
+        SeedOld();
+        Directory.CreateDirectory(P("mm14.report.json")); // moving the report onto a directory fails
+
+        var act = () => Runner().RunAsync(1, CancellationToken.None);
+
+        var thrown = (await act.Should().ThrowAsync<Exception>()).Which;
+        thrown.Should().NotBeAssignableTo<PostSwapException>();
+        File.ReadAllText(P("mm14.json")).Should().Be("OLD");
+        File.Exists(P("mm14.report.json.tmp")).Should().BeFalse();
     }
 }

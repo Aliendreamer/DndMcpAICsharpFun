@@ -68,6 +68,20 @@ public class BookExtractorClientTests
     }
 
     [Fact]
+    public async Task Client_defaults_when_checks_and_provenance_keys_omitted()
+    {
+        var handler = new StubHandler(_ => Json(HttpStatusCode.OK, """
+            {"entities":[{"id":"x","type":"Spell","name":"X","canonicalText":"t","fields":{}}],"report":{}}
+            """));
+
+        var e = (await Client(handler).GetResultAsync("j", CancellationToken.None)).Entities.Single();
+
+        e.Checks.Should().BeEmpty();
+        e.Provenance.Pages.Should().BeEmpty();
+        e.Page.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Client_submit_and_status()
     {
         var handler = new StubHandler(req => req.Method == HttpMethod.Post
