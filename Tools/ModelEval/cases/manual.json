@@ -120,7 +120,12 @@
           "leaves your reach",
           "out of its reach",
           "out of reach",
-          "moves out of"
+          "moves out of",
+          "out of their reach",
+          "leave their reach",
+          "leaves their reach",
+          "leaving their reach",
+          "out of your reach"
         ]
       }
     ],
@@ -134,7 +139,12 @@
           "leaves your reach",
           "out of its reach",
           "out of reach",
-          "moves out of"
+          "moves out of",
+          "out of their reach",
+          "leave their reach",
+          "leaves their reach",
+          "leaving their reach",
+          "out of your reach"
         ]
       }
     ]
@@ -366,7 +376,13 @@
           "is not a recognized",
           "not a recognized",
           "isn't recognized",
-          "no such"
+          "no such",
+          "no official spell",
+          "no spell named",
+          "there's no",
+          "there is no",
+          "isn't an official",
+          "is not an official"
         ]
       }
     ]
@@ -400,7 +416,14 @@
           "is not a recognized",
           "not a recognized",
           "isn't recognized",
-          "no such"
+          "no such",
+          "no official monster",
+          "no monster named",
+          "no creature named",
+          "there's no",
+          "there is no",
+          "isn't an official",
+          "is not an official"
         ]
       }
     ]
