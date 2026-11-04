@@ -278,6 +278,26 @@ public sealed class CaseGeneratorTests : IDisposable
     }
 
     [Fact]
+    public void Monster_Truth_KeepsOnlyAgreeingFields_AndSkipsUnknownMonsters()
+    {
+        MonsterFixture(n: 2); // M0, M1: ac 16, hp 27, cr "1"
+        // 5etools truth: M0 agrees on AC and HP but has CR 3; M1 is absent.
+        using var doc = System.Text.Json.JsonDocument.Parse(
+            """{"name":"M0","ac":[{"ac":16,"from":["natural armor"]}],"hp":{"average":27,"formula":"5d8+5"},"cr":"3"}""");
+        var truth = new Dictionary<string, System.Text.Json.JsonElement> { ["m0"] = doc.RootElement.Clone() };
+
+        var cases = CaseGenerator.Generate(_dir, new GenOptions(1, 30, ["mm14"], ["monster"], truth));
+
+        cases.Should().OnlyContain(c => c.Id.StartsWith("gen.monster.mm14.monster.m00."));
+        cases.Should().NotContain(c => c.Id.EndsWith(".cr"));
+        // One template is sampled per monster; across seeds only the agreeing AC/HP templates ever appear.
+        var ids = Enumerable.Range(0, 20)
+            .SelectMany(s => CaseGenerator.Generate(_dir, new GenOptions(s, 30, ["mm14"], ["monster"], truth)))
+            .Select(c => c.Id[(c.Id.LastIndexOf('.') + 1)..]).Distinct().ToList();
+        ids.Should().BeEquivalentTo(["ac", "hp"]);
+    }
+
+    [Fact]
     public void Monster_NeedsReview_Excluded()
     {
         Write("mm14.json", Monster("mm14.monster.bad", "Bad", 12, new { average = 5 }, "1", needsReview: true));

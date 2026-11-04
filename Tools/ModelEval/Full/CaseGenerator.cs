@@ -11,7 +11,8 @@ internal sealed record GenOptions(
     int Seed,
     int CountPerCategory,
     IReadOnlyList<string> Books,
-    IReadOnlyList<string>? Categories);
+    IReadOnlyList<string>? Categories,
+    IReadOnlyDictionary<string, JsonElement>? MonsterTruth = null);
 
 /// <summary>
 /// Builds eval cases whose correct answers are known: class/spell facts from canonical entity JSON and
@@ -69,7 +70,7 @@ internal static class CaseGenerator
                     var type = Str(e, "type");
                     if (type == "Class" && On("class") && !isMonsterBook) AddClass(e, classes);
                     else if (type == "Spell" && On("spell") && !isMonsterBook) AddSpell(e, spells);
-                    else if (type == "Monster" && On("monster") && isMonsterBook) AddMonster(e, monsters);
+                    else if (type == "Monster" && On("monster") && isMonsterBook) AddMonster(e, monsters, o.MonsterTruth);
                 }
             }
         }
@@ -179,23 +180,34 @@ internal static class CaseGenerator
 
     // ---- monster ----
 
-    private static void AddMonster(JsonElement e, List<Candidate> into)
+    private static void AddMonster(JsonElement e, List<Candidate> into, IReadOnlyDictionary<string, JsonElement>? truth)
     {
         if (!e.TryGetProperty("needsReview", out var nr) || nr.ValueKind != JsonValueKind.False) return;
         if (!e.TryGetProperty("fields", out var f) || f.ValueKind != JsonValueKind.Object) return;
         var id = Str(e, "id");
         var name = Str(e, "name");
+
+        // Canonical mm14 stats are extraction-owned and partly wrong (live run 2026-11-04: CR wrong for ~1/3).
+        // With an authoritative 5etools record, only fields that AGREE with it become cases; a monster with
+        // no 5etools record is skipped. Without truth (tests, no 5etools dir) canonical is trusted as before.
+        JsonElement t = default;
+        if (truth is not null && !truth.TryGetValue(name.ToLowerInvariant(), out t)) return;
+        bool Agrees(string field, Func<JsonElement, string?> read, string? ours) =>
+            truth is null || (t.TryGetProperty(field, out var tv) && read(tv) is { } theirs && theirs == ours);
         string Prompt(string what) => what.Replace("{name}", name) + " in the 2014 Monster Manual?";
         var templates = new List<Func<EvalCase>>();
 
-        if (f.TryGetProperty("ac", out var acEl) && MonsterAc(acEl) is { } ac)
+        if (f.TryGetProperty("ac", out var acEl) && MonsterAc(acEl) is { } ac
+            && Agrees("ac", v => MonsterAc(v)?.ToString(CultureInfo.InvariantCulture), ac.ToString(CultureInfo.InvariantCulture)))
         {
             templates.Add(() => Make($"gen.monster.{id}.ac", "monster",
                 Prompt("What is the armor class of a {name}"), ClassSpellTools,
                 [[$"\"ac\":{ac}"]], [[$"armor class {ac}", $"armor class of {ac}", $"ac {ac}", $"ac of {ac}"]]));
         }
         if (f.TryGetProperty("hp", out var hpEl) && hpEl.ValueKind == JsonValueKind.Object
-            && hpEl.TryGetProperty("average", out var avg) && avg.ValueKind == JsonValueKind.Number && avg.TryGetInt32(out var hp))
+            && hpEl.TryGetProperty("average", out var avg) && avg.ValueKind == JsonValueKind.Number && avg.TryGetInt32(out var hp)
+            && Agrees("hp", v => v.ValueKind == JsonValueKind.Object && v.TryGetProperty("average", out var ta)
+                && ta.ValueKind == JsonValueKind.Number ? ta.GetRawText() : null, hp.ToString(CultureInfo.InvariantCulture)))
         {
             templates.Add(() => Make($"gen.monster.{id}.hp", "monster",
                 Prompt("How many hit points does a {name} have on average"), ClassSpellTools,
@@ -203,7 +215,8 @@ internal static class CaseGenerator
                     $"hit points {hp}", $"hp {hp}", $"hit points as {hp}", $"hit points are {hp}", $"hit points is {hp}",
                     $"hp of {hp}", $"hp is {hp}", $"has {hp} hit"]]));
         }
-        if (f.TryGetProperty("cr", out var crEl) && MonsterCr(crEl) is { } rawCr && LeadingCr(rawCr) is { } cr)
+        if (f.TryGetProperty("cr", out var crEl) && MonsterCr(crEl) is { } rawCr && LeadingCr(rawCr) is { } cr
+            && Agrees("cr", v => MonsterCr(v) is { } tc ? LeadingCr(tc) : null, cr))
         {
             templates.Add(() => Make($"gen.monster.{id}.cr", "monster",
                 Prompt("What is the challenge rating of a {name}"), ClassSpellTools,

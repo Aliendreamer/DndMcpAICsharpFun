@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace DndMcpAICsharpFun.Tools.ModelEval.Full;
 
 /// <summary>Entry point for <c>--mode full</c>. Exit codes: 0 OK, 2 regression, 1 infra/setup error.</summary>
@@ -70,7 +72,7 @@ internal static class FullModeRunner
     internal static List<EvalCase> BuildCases(
         EvalArgs a, string canonicalDir, string[] books, string[]? categories, int seed)
     {
-        var opts = new GenOptions(seed, a.Count ?? 5, books, categories);
+        var opts = new GenOptions(seed, a.Count ?? 5, books, categories, LoadMonsterTruth(MonsterTruthPath));
         var manual = ManualCases.Load(Path.GetFullPath(a.ManualPath));
         if (categories is { Length: > 0 })
             manual = manual.Where(c => categories.Contains(c.Category, StringComparer.OrdinalIgnoreCase)).ToList();
@@ -80,6 +82,26 @@ internal static class FullModeRunner
         if (dup is not null)
             throw new InvalidDataException($"Duplicate case id '{dup.Key}' across generated and manual cases.");
         return cases;
+    }
+
+    /// <summary>Authoritative 5etools Monster Manual bestiary (relative to the repo-root cwd).</summary>
+    internal const string MonsterTruthPath = "5etools/bestiary/bestiary-mm.json";
+
+    /// <summary>Loads 5etools monsters keyed by lowercase name, or null (with a warning) when the file is absent.</summary>
+    internal static IReadOnlyDictionary<string, JsonElement>? LoadMonsterTruth(string path)
+    {
+        if (!File.Exists(path))
+        {
+            Console.WriteLine($"Warning: {path} not found — monster cases trust canonical mm14 stats unverified.");
+            return null;
+        }
+        using var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var map = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var m in doc.RootElement.GetProperty("monster").EnumerateArray())
+            if (m.TryGetProperty("name", out var n) && n.GetString() is { } name)
+                map.TryAdd(name.ToLowerInvariant(), m.Clone());
+        Console.WriteLine($"Monster truth: cross-checking mm14 stats against {path} ({map.Count} monsters).");
+        return map;
     }
 
     private static void Print(EvalReport r, EvalReport? baseline, Comparison c, string path)
