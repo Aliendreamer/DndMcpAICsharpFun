@@ -25,6 +25,7 @@ services:
       - Ingestion__BooksPath=/books
       - SearXNG__Url=http://searxng:8080
       - McpClient__Url=http://localhost:5101/mcp
+      - BookExtractor__ServiceUrl=http://book-extractor:8000
       - Postgres__Host=postgres
       - Postgres__Password=${POSTGRES_PASSWORD:-dnd}
       # Reranker model lives in its own subdir of the shared ONNX volume (matches the
@@ -51,11 +52,39 @@ services:
       - shared
     restart: unless-stopped
 
+  # Deterministic PDF -> canonical-entity extractor (OCR/text layer, no LLM, CPU only). The app calls
+  # it at http://book-extractor:8000; OCR results are cached in the named volume so re-runs are cheap.
+  book-extractor:
+    build:
+      context: Tools/BookExtractor
+    environment:
+      - BOOKS_DIR=/books
+      - CACHE_DIR=/cache
+      - OCR_THREADS=4
+      - OCR_PROCESSES=2
+    volumes:
+      - ./books:/books:ro
+      - book_extractor_cache:/cache
+    deploy:
+      resources:
+        limits:
+          cpus: "8"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - shared
+    restart: unless-stopped
+
 volumes:
   # Externally-managed, shared with the aidoctor (MedAssist) stack. Create once with
   # `docker volume create shared_onnx_models`. Not auto-created by compose.
   shared_onnx_models:
     external: true
+  book_extractor_cache:
 
 networks:
   shared:
