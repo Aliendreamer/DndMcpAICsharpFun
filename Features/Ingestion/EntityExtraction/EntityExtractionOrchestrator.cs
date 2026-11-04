@@ -337,7 +337,7 @@ public sealed class EntityExtractionOrchestrator(
 
         // Write canonical JSON, errors, warnings.
         var canonicalFile = new CanonicalJsonFile(
-            SchemaVersion: CanonicalJsonSchema.CurrentVersion,
+            SchemaVersion: CanonicalJsonSchema.LegacyVersion,
             Book: new CanonicalBookMetadata(
                 SourceBook: sourceBook,
                 Edition: edition,

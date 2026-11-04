@@ -92,6 +92,7 @@ public sealed class EntityFieldFillService
             var allow = FieldFillAllowlist.For(e.Type);
             if (allow is null
                 || string.Equals(e.DataSource, "manual", StringComparison.Ordinal)
+                || string.Equals(e.DataSource, DataSources.Programmatic, StringComparison.Ordinal)
                 || !fivetoolsIndex.TryGetValue(e.Type, out var byName)
                 || !byName.TryGetValue(EntityNameIndex.Normalize(e.Name), out var fiveFields))
             {

@@ -53,6 +53,17 @@ public class CanonicalJsonLoaderV2Tests
     }
 
     [Fact]
+    public async Task Loads_fractional_float_box_coordinates()
+    {
+        var extra = """
+            , "dataSource": "programmatic",
+            "provenance": { "pages": [{ "page": 12, "boxes": [{ "x0": 71.5, "y0": 123.4, "x1": 300.0, "y1": 410.25 }] }] }
+            """;
+        var file = await LoadAsync(Json("2", extra));
+        file.Entities.Single().Provenance!.Pages[0].Boxes[0].Should().Be(new PageBox(71.5, 123.4, 300.0, 410.25));
+    }
+
+    [Fact]
     public async Task Roundtrips_checks_and_provenance()
     {
         var extra = """

@@ -23,7 +23,8 @@ public sealed record EntityBackfillResult(
     int GroundedCount,
     int BackfilledCount,
     IReadOnlyList<string> ExtraOtherSource,
-    IReadOnlyList<string> ExtraUnknown);
+    IReadOnlyList<string> ExtraUnknown,
+    bool SkippedProgrammatic = false);
 
 /// <summary>
 /// Result of the precision-flag operation: which canonical entities (from <see cref="EntityBackfillResult.ExtraUnknown"/>)
@@ -93,6 +94,14 @@ public sealed class EntityBackfillService
         if (File.Exists(canonicalPath))
         {
             var file = await _loader.LoadAsync(canonicalPath, ct);
+
+            // Programmatic books are authoritative from the PDF; 5etools must never add to them.
+            if (file.Entities.Any(e => e.DataSource == DataSources.Programmatic))
+                return new EntityBackfillResult(
+                    true, canonicalPath, Array.Empty<EntityEnvelope>(), 0,
+                    Array.Empty<string>(), Array.Empty<string>(), 0, 0,
+                    Array.Empty<string>(), Array.Empty<string>(), SkippedProgrammatic: true);
+
             foreach (var e in file.Entities)
             {
                 if (e.Type != _provider.Type) continue;

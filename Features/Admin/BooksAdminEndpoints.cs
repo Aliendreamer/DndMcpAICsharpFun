@@ -275,6 +275,7 @@ public static partial class BooksAdminEndpoints
         {
             backfilled = result.ToAppend.Select(e => e.Name).ToList(),
             alreadyPresent = result.AlreadyPresent,
+            skippedProgrammatic = result.SkippedProgrammatic,
         });
     }
 
@@ -349,6 +350,7 @@ public static partial class BooksAdminEndpoints
         {
             backfilled = backfilledByType,
             alreadyPresent,
+            skippedProgrammatic = results.Any(r => r.SkippedProgrammatic),
         });
     }
 

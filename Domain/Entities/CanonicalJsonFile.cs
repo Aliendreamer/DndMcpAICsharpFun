@@ -21,5 +21,8 @@ public static class CanonicalJsonSchema
 {
     public const string CurrentVersion = "2";
 
+    /// <summary>Version written by the legacy qwen3 extraction pipeline; "2" means programmatic with checks/provenance.</summary>
+    public const string LegacyVersion = "1";
+
     public static readonly IReadOnlyList<string> SupportedVersions = ["1", "2"];
 }

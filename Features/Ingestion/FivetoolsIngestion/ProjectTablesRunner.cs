@@ -1,3 +1,4 @@
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
@@ -22,6 +23,9 @@ public static class ProjectTablesRunner
         CanonicalJsonLoader loader, CanonicalJsonWriter writer, CancellationToken ct)
     {
         var file = await loader.LoadAsync(canonicalPath, ct);
+        if (file.Entities.Any(e => e.DataSource == DataSources.Programmatic))
+            return new ProjectResult(Skipped: true, SkipReason: "programmatic book (tables are extractor-owned)", TableCount: 0);
+
         var key = file.Book.SourceBook;
         if (string.IsNullOrWhiteSpace(key))
             return new ProjectResult(Skipped: true, SkipReason: "no fivetoolsSourceKey (homebrew)", TableCount: 0);

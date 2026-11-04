@@ -59,11 +59,11 @@ public sealed class FivetoolsIngestionService(
         var ids = envelopes.Select(e => e.Id).ToList();
         var existingSources = await store.GetDataSourcesAsync(ids, ct);
         var toIngest = envelopes
-            .Where(e => !existingSources.TryGetValue(e.Id, out var src) || src != "manual")
+            .Where(e => !existingSources.TryGetValue(e.Id, out var src) || src != "manual" && src != DataSources.Programmatic)
             .ToList();
 
         if (toIngest.Count < envelopes.Count)
-            logger.LogInformation("Skipped {Count} manually-corrected entities", envelopes.Count - toIngest.Count);
+            logger.LogInformation("Skipped {Count} manually-corrected or programmatic entities", envelopes.Count - toIngest.Count);
 
         var renderedEnvelopes = toIngest.Select(e =>
         {
