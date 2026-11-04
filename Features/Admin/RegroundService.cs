@@ -62,7 +62,8 @@ public sealed class RegroundService(
         var file = await loader.LoadAsync(path, ct);
         var entities = file.Entities.ToList();
 
-        var flaggedIds = entities.Where(IsFlagged).Select(e => e.Id).ToList();
+        var skippedProgrammatic = entities.Count(e => e.DataSource == DataSources.Programmatic && IsFlagged(e));
+        var flaggedIds = entities.Where(e => e.DataSource != DataSources.Programmatic && IsFlagged(e)).Select(e => e.Id).ToList();
 
         var checkpointPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".reground.progress.json");
         var (doneIds, changedIds) = await LoadCheckpointAsync(checkpointPath, ct);
@@ -161,7 +162,8 @@ public sealed class RegroundService(
             Promoted: promoted,
             MarkedUngrounded: markedUngrounded,
             StillFlagged: stillFlagged,
-            Tier2Invoked: tier2Invoked);
+            Tier2Invoked: tier2Invoked,
+            SkippedProgrammatic: skippedProgrammatic);
     }
 
     private static bool IsFlagged(EntityEnvelope e) =>

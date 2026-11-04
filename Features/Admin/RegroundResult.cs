@@ -8,5 +8,6 @@ namespace DndMcpAICsharpFun.Features.Admin;
 /// <param name="Promoted">Entities whose final disposition is Accepted (grounded, promoted out of the backlog).</param>
 /// <param name="MarkedUngrounded">Entities whose final disposition is Ungrounded (Tier-2-judge-confirmed fabrication).</param>
 /// <param name="StillFlagged">Entities left unchanged (still NeedsReview/Uncertain).</param>
+/// <param name="SkippedProgrammatic">Programmatic (PDF-verified) entities excluded from the backlog; never regrounded or modified.</param>
 /// <param name="Tier2Invoked">Number of entities for which the LLM judge (Tier 2) actually decided the verdict.</param>
-public sealed record RegroundResult(int Scanned, int Promoted, int MarkedUngrounded, int StillFlagged, int Tier2Invoked);
+public sealed record RegroundResult(int Scanned, int Promoted, int MarkedUngrounded, int StillFlagged, int Tier2Invoked, int SkippedProgrammatic = 0);

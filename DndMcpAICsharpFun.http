@@ -66,7 +66,7 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/project-structured
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Extract entities (LLM-driven; writes books/canonical/<book>.json). Initial run only. 409 if the book is already queued/processing, incl. a duplicate enqueue race.
+### Admin Books — Extract entities (LLM-driven; writes books/canonical/<book>.json). Initial run only. The background run FAILS (book marked failed) for a book whose canonical contains programmatic entities, even with force=true: use extract-programmatic. 409 if the book is already queued/processing, incl. a duplicate enqueue race.
 POST {{baseUrl}}/admin/books/1/extract-entities
 X-Admin-Api-Key: {{adminKey}}
 
@@ -89,11 +89,11 @@ X-Admin-Api-Key: {{adminKey}}
 GET {{baseUrl}}/admin/books/1/coverage
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Backfill missing entities from 5etools (official books only; ?type=Monster|Spell|MagicItem|God; fills parser gaps, appends dataSource:"5etools-backfill" entities). For MagicItem the roster also includes templated +N variants expanded from magicvariants.json (e.g. "+1 Longsword"), and Descriptions are richly flattened from 5etools entries (nested lists/tables/sub-entries, inline tags reduced to display text).
+### Admin Books — Backfill missing entities from 5etools (single-type response: { "backfilled": ["Name", ...], "alreadyPresent": N, "skippedProgrammatic": bool }; programmatic books are skipped, never backfilled; official books only; ?type=Monster|Spell|MagicItem|God; fills parser gaps, appends dataSource:"5etools-backfill" entities). For MagicItem the roster also includes templated +N variants expanded from magicvariants.json (e.g. "+1 Longsword"), and Descriptions are richly flattened from 5etools entries (nested lists/tables/sub-entries, inline tags reduced to display text).
 POST {{baseUrl}}/admin/books/1/backfill-entities?type=MagicItem
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Batch backfill ALL registered types in one call (?type=all; diffs every registered provider against a single canonical snapshot and writes ONCE, instead of one load-append-write per type — avoids a lost-update race from N rapid-fire per-type calls each doing their own load-append-write of the whole canonical). Response: { "backfilled": { "Feat": ["Alert"], "Condition": ["Prone"], ... }, "alreadyPresent": N }
+### Admin Books — Batch backfill ALL registered types in one call (?type=all; diffs every registered provider against a single canonical snapshot and writes ONCE, instead of one load-append-write per type — avoids a lost-update race from N rapid-fire per-type calls each doing their own load-append-write of the whole canonical). Response: { "backfilled": { "Feat": ["Alert"], "Condition": ["Prone"], ... }, "alreadyPresent": N, "skippedProgrammatic": false }. A book whose canonical contains dataSource:"programmatic" entities is never backfilled (skippedProgrammatic: true, nothing appended).
 POST {{baseUrl}}/admin/books/1/backfill-entities?type=all
 X-Admin-Api-Key: {{adminKey}}
 

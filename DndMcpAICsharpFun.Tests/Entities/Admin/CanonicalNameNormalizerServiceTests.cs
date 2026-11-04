@@ -199,4 +199,27 @@ public class CanonicalNameNormalizerServiceTests
             Directory.Delete(dir, recursive: true);
         }
     }
+
+    [Fact]
+    public async Task Skips_programmatic_entities_and_reports_them()
+    {
+        var json = OneEntityJson("FIREBALL").Replace("\"dataSource\": \"\"", "\"dataSource\": \"programmatic\"");
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var path = Path.Combine(dir, "test.json");
+            await File.WriteAllTextAsync(path, json);
+            var svc = new CanonicalNameNormalizerService(
+                new CanonicalJsonLoader(),
+                Options.Create(new EntityExtractionOptions { CanonicalDirectory = dir }));
+
+            var report = await svc.NormalizeAsync(dryRun: false, CancellationToken.None);
+
+            report.Changes.Single().SkippedProgrammatic.Should().Be(1);
+            report.Changes.Single().TitleCased.Should().Be(0);
+            (await new CanonicalJsonLoader().LoadAsync(path, CancellationToken.None)).Entities.Single().Name.Should().Be("FIREBALL");
+        }
+        finally { Directory.Delete(dir, true); }
+    }
 }

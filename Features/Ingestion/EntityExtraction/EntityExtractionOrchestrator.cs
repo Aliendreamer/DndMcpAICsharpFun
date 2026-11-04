@@ -48,6 +48,11 @@ public sealed class EntityExtractionOrchestrator(
         var errorsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".errors.json");
         var warningsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".warnings.json");
 
+        if (ProgrammaticCanonicalGuard.FileHasProgrammatic(canonicalPath))
+            throw new InvalidOperationException(
+                $"Book {bookId} is extracted programmatically ({canonicalPath}); use extract-programmatic. " +
+                "The LLM extraction pipeline will not overwrite or modify verified programmatic data, even with force=true.");
+
         if (!errorsOnly && File.Exists(canonicalPath) && !force)
             throw new InvalidOperationException(
                 $"Canonical JSON already exists at {canonicalPath}; pass force=true to overwrite.");

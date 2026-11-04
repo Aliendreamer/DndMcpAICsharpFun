@@ -162,4 +162,29 @@ public class CanonicalTypeFixerTests
         json.Should().MatchRegex("\"type\"\\s*:\\s*\"Subclass\"");
         json.Should().NotMatchRegex("\"type\"\\s*:\\s*\\d");
     }
+
+    [Fact]
+    public async Task FixTypesAsync_SkipsProgrammaticEntities()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(dir);
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(dir, "tce.json"), """
+            { "schemaVersion": "2",
+              "book": { "sourceBook": "TCE", "edition": "Edition2014", "fileHash": "", "displayName": "T" },
+              "entities": [{ "id": "tce.class.circle-of-spores", "type": "Class", "name": "Circle of Spores",
+                "sourceBook": "TCE", "dataSource": "programmatic" }] }
+            """);
+            var lookup = new Dictionary<(string name, string source), EntityType>
+            { [("circle of spores", "TCE")] = EntityType.Subclass };
+
+            var result = await CreateSvc(dir).FixTypesAsync("tce", lookup);
+
+            result.Fixed.Should().Be(0);
+            result.SkippedProgrammatic.Should().Be(1);
+            File.ReadAllText(Path.Combine(dir, "tce.json")).Should().Contain("tce.class.circle-of-spores");
+        }
+        finally { Directory.Delete(dir, true); }
+    }
 }

@@ -195,6 +195,26 @@ public sealed class RegroundServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RegroundAsync_SkipsProgrammaticEntities()
+    {
+        var prog = MakeEntity($"{BookSlug}.spell.prog", "Prog") with { DataSource = DataSources.Programmatic };
+        var llm = MakeEntity($"{BookSlug}.spell.llm", "Llm");
+        await SeedCanonicalAsync(prog, llm);
+        var cascade = new FakeGroundingCascade(new Dictionary<string, GroundingVerdict>
+        {
+            [llm.Id] = new GroundingVerdict(GroundingStatus.Grounded, DecidedByTier: 0, Score: 1.0),
+        });
+
+        var result = await BuildSut(cascade).RegroundAsync(1, judge: false, CancellationToken.None);
+
+        result.SkippedProgrammatic.Should().Be(1);
+        result.Scanned.Should().Be(1);
+        cascade.CalledIds.Should().NotContain(prog.Id);
+        var after = await _loader.LoadAsync(CanonicalPath, CancellationToken.None);
+        after.Entities.Single(e => e.Id == prog.Id).Disposition.Should().Be(EntityDisposition.NeedsReview);
+    }
+
+    [Fact]
     public async Task RegroundAsync_PreSeededCheckpoint_SkipsAlreadyProcessedIds()
     {
         var e1 = MakeEntity($"{BookSlug}.spell.grounded-one", "Grounded One");

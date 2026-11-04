@@ -4,7 +4,8 @@ public sealed record CanonicalNameNormalizerFileResult(
     string File,
     int TitleCased,
     int Flagged,
-    int Unchanged);
+    int Unchanged,
+    int SkippedProgrammatic = 0);
 
 public sealed record CanonicalNameNormalizerReport(
     int FilesScanned,

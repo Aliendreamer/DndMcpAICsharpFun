@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 
@@ -34,10 +35,16 @@ public sealed class CanonicalNameNormalizerService(
         {
             ct.ThrowIfCancellationRequested();
             var loaded = await loader.LoadAsync(path, ct);
-            int titleCased = 0, flagged = 0, unchanged = 0;
+            int titleCased = 0, flagged = 0, unchanged = 0, skippedProgrammatic = 0;
 
             var normalized = loaded.Entities.Select(entity =>
             {
+                if (entity.DataSource == DataSources.Programmatic)
+                {
+                    skippedProgrammatic++;
+                    return entity;
+                }
+
                 var name = entity.Name;
                 bool isAllCaps = name.Length > 1
                     && name == name.ToUpperInvariant()
@@ -68,7 +75,8 @@ public sealed class CanonicalNameNormalizerService(
                 File: Path.GetFileName(path),
                 TitleCased: titleCased,
                 Flagged: flagged,
-                Unchanged: unchanged));
+                Unchanged: unchanged,
+                SkippedProgrammatic: skippedProgrammatic));
 
             if (!dryRun)
             {

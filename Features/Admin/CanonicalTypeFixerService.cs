@@ -13,7 +13,7 @@ public sealed class CanonicalTypeFixerService(IOptions<EntityIngestionOptions> o
 {
     private readonly string _canonicalDirectory = options.Value.CanonicalDirectory;
 
-    public record FixResult(int Fixed, int Unmatched, int CrossRefsUpdated);
+    public record FixResult(int Fixed, int Unmatched, int CrossRefsUpdated, int SkippedProgrammatic = 0);
 
     public async Task<FixResult> FixTypesAsync(
         string bookSlug,
@@ -34,12 +34,18 @@ public sealed class CanonicalTypeFixerService(IOptions<EntityIngestionOptions> o
             ?? throw new InvalidOperationException($"Canonical file at {path} has no 'entities' array.");
         var entities = entitiesNode.AsArray();
 
-        int fixed_ = 0, unmatched = 0, xrefUpdated = 0;
+        int fixed_ = 0, unmatched = 0, xrefUpdated = 0, skippedProgrammatic = 0;
         var renames = new Dictionary<string, string>();
 
         foreach (var entity in entities)
         {
             if (entity is null) continue;
+            if (entity["dataSource"]?.GetValue<string>() == DataSources.Programmatic)
+            {
+                skippedProgrammatic++;
+                continue;
+            }
+
             var name = entity["name"]?.GetValue<string>();
             var source = entity["sourceBook"]?.GetValue<string>();
             if (name is null || source is null) continue;
@@ -71,7 +77,7 @@ public sealed class CanonicalTypeFixerService(IOptions<EntityIngestionOptions> o
         if (renames.Count == 0)
         {
             await File.WriteAllTextAsync(path, doc.ToJsonString(CanonicalJson.WriteOptions), ct);
-            return new FixResult(fixed_, unmatched, 0);
+            return new FixResult(fixed_, unmatched, 0, skippedProgrammatic);
         }
 
         // Rewrite cross-references: string-replace all old IDs in the serialized JSON
@@ -84,7 +90,7 @@ public sealed class CanonicalTypeFixerService(IOptions<EntityIngestionOptions> o
         }
 
         await File.WriteAllTextAsync(path, updated, ct);
-        return new FixResult(fixed_, unmatched, xrefUpdated);
+        return new FixResult(fixed_, unmatched, xrefUpdated, skippedProgrammatic);
     }
 
     private static string ReplaceTypeSlug(string id, EntityType newType)
