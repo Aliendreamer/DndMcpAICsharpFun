@@ -27,3 +27,10 @@ def test_classify_credits_and_toc():
 def test_classify_rules_pages():
     for book, n in [("mm", 167), ("mm", 169), ("phb", 242), ("dmg", 200), ("dmg", 150), ("mm", 50)]:
         assert classify_page(_load(book, n)) == "rules", (book, n)
+
+
+def test_table_heavy_rules_page_is_not_index():
+    from bookextractor.model import Line
+    rows = [f"Plate armor {i}" if i % 2 else f"Level {i}" for i in range(1, 31)]
+    lines = [Line(t, (0, i * 30, 300, i * 30 + 25), 25, 1) for i, t in enumerate(["Armor Prices"] + rows)]
+    assert classify_page(Page(1, 600, 900, lines, "ocr")) == "rules"

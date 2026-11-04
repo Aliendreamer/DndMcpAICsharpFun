@@ -108,7 +108,8 @@ def test_layer_used_when_quality_passes(tmp_path):
     pages = BookReader(pdf, tmp_path / "cache", processes=1, engine_factory=boom).read()
     assert pages[0].source == "layer"
     assert pages[0].lines[0].text.startswith("The goblin")
-    assert pages[0].width == round(595 * 200 / 72) or pages[0].width > 1000
+    assert pages[0].width == round(595 * 200 / 72)
+    assert pages[0].height == round(842 * 200 / 72)
 
 
 def test_layer_quality_low_for_garbage(tmp_path):
@@ -128,8 +129,49 @@ def test_render_png_cached(tmp_path):
     assert r.render_png(1) == data
 
 
-def test_default_engine_factory_is_module_level():
-    assert callable(reader_mod.default_engine_factory)
+def _stub_engine(img):
+    return _Result(np.array([[[1, 2], [50, 2], [50, 20], [1, 20]]], dtype=np.float32), ("Hi",), (0.9,))
+
+
+def stub_factory():
+    return _stub_engine
+
+
+def failing_factory():
+    def eng(img):
+        raise RuntimeError("engine failure")
+    return eng
+
+
+def test_multiprocess_pool_path(tmp_path):
+    pdf = _blank_pdf(tmp_path / "b.pdf", 4)
+    seen = []
+    pages = BookReader(pdf, tmp_path / "cache", threads=1, processes=2, engine_factory=stub_factory).read(
+        lambda d, t: seen.append((d, t)))
+    assert [p.number for p in pages] == [1, 2, 3, 4]
+    assert all(p.source == "ocr" and p.lines[0].text == "Hi" for p in pages)
+    assert seen[-1] == (4, 4)
+    assert len(list((tmp_path / "cache" / pdf_sha256(pdf) / "ocr").glob("*.json"))) == 4
+
+
+def test_worker_error_surfaces(tmp_path):
+    from concurrent.futures.process import BrokenProcessPool  # noqa: F401
+    pdf = _blank_pdf(tmp_path / "b.pdf", 3)
+    r = BookReader(pdf, tmp_path / "cache", threads=1, processes=2, engine_factory=failing_factory)
+    with pytest.raises(RuntimeError, match="engine failure"):
+        r.read()
+
+
+def test_threads_honoured_in_process(tmp_path, monkeypatch):
+    pdf = _blank_pdf(tmp_path / "b.pdf", 1)
+    got = []
+    def factory():
+        import os
+        got.append(os.environ["BOOKEXTRACTOR_OCR_THREADS"])
+        return lambda img: _Result()
+    BookReader(pdf, tmp_path / "cache", threads=3, processes=1, engine_factory=factory).read()
+    assert got == ["3"]
+    monkeypatch.delenv("BOOKEXTRACTOR_OCR_THREADS", raising=False)
 
 
 def test_scan_page_layer_is_capped(tmp_path):

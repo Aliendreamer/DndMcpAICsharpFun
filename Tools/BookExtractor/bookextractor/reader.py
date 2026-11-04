@@ -6,7 +6,7 @@ import json
 import os
 import re
 import tempfile
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable
 
@@ -146,7 +146,10 @@ class BookReader:
         return self.ocr_dir / f"{number:03d}.json"
 
     def read(self, progress: Callable[[int, int], None] | None = None) -> list[Page]:
-        doc = pymupdf.open(self.pdf_path)
+        with pymupdf.open(self.pdf_path) as doc:
+            return self._read(doc, progress)
+
+    def _read(self, doc: pymupdf.Document, progress) -> list[Page]:
         total = len(doc)
         pages: dict[int, Page] = {}
         todo: list[int] = []
@@ -174,23 +177,30 @@ class BookReader:
             tick()
 
         if todo:
+            os.environ["BOOKEXTRACTOR_OCR_THREADS"] = str(self.threads)
+            engine = self.engine_factory()  # warm in the parent: avoids a cold model-download race
             if self.processes <= 1:
-                engine = self.engine_factory()
                 for i in todo:
                     _ocr_to_cache(engine, doc, i, self._ocr_path(i + 1))
                     pages[i + 1] = load_ocr_page(self._ocr_path(i + 1), i + 1)
                     done += 1
                     tick()
             else:
+                del engine
                 with ProcessPoolExecutor(max_workers=self.processes, initializer=_worker_init,
                                          initargs=(str(self.pdf_path), self.engine_factory,
                                                    self.threads)) as pool:
                     futures = [pool.submit(_worker_run, i, str(self._ocr_path(i + 1))) for i in todo]
-                    for fut in futures:
-                        i = fut.result()
-                        pages[i + 1] = load_ocr_page(self._ocr_path(i + 1), i + 1)
-                        done += 1
-                        tick()
+                    try:
+                        for fut in as_completed(futures):
+                            i = fut.result()
+                            pages[i + 1] = load_ocr_page(self._ocr_path(i + 1), i + 1)
+                            done += 1
+                            tick()
+                    except BaseException:
+                        for f in futures:
+                            f.cancel()  # finished pages stay cached; pending ones are dropped
+                        raise
         return [pages[n] for n in sorted(pages)]
 
     def render_png(self, page: int) -> bytes:

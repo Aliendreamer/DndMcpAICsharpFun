@@ -9,6 +9,9 @@ from .model import Page
 PageKind = Literal["rules", "art", "toc", "index", "credits", "blank"]
 
 _ENTRY = re.compile(r"[,.\s]\s*\d{1,3}[.,]?$")  # "Goblin, 166" / "Aboleth.... 13" / bare page number
+# Index entries are "Name, 123" (comma then page ref); a thousands separator ("1,500 gp") or a bare
+# trailing number ("Level 5") in a rules table must not look like one.
+_INDEX_REF = re.compile(r"[A-Za-z)'.], ?\d{1,3}[.,]?$")
 _MIN_LISTING_LINES = 20
 _LISTING_RATIO = 0.5
 
@@ -31,6 +34,7 @@ def classify_page(page: Page) -> PageKind:
     many = len(page.lines) >= _MIN_LISTING_LINES
     if heading.startswith("contents") and (listing >= _LISTING_RATIO or many):
         return "toc"
-    if heading.startswith("index") or (many and listing >= 0.7):
+    refs = sum(1 for ln in page.lines if _INDEX_REF.search(ln.text)) / len(page.lines)
+    if heading.startswith("index") or (many and refs >= 0.7):
         return "index"
     return "rules"
