@@ -21,7 +21,7 @@ dependencies = [
 dev = ["pytest", "jsonschema", "httpx"]
 
 [tool.setuptools]
-packages = ["bookextractor"]
+packages = ["bookextractor", "bookextractor.parsers"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
