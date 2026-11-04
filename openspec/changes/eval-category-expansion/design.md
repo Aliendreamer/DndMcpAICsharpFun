@@ -64,6 +64,14 @@ and baseline comparison are unchanged; old reports without the field still load.
 Run the expanded set live on the current `main` (router/persona unchanged), commit the report, and record per-category
 results and notable failures in `report.md`. The overnight run is OK'd by the owner (asleep, GPU free).
 
+### D6 — Monster expectations verified against 5etools (added after the first live run)
+
+The first live run showed correct model answers scored as wrong because canonical `mm14` stats are partly wrong (CR
+disagrees with 5etools for 122 of 373 reviewed monsters, HP 33/272, AC 21/253; e.g. Grell CR stored as 1/4, real 3).
+When `5etools/bestiary/bestiary-mm.json` exists, the generator only creates a monster case for a field whose canonical
+value agrees with 5etools, and skips monsters with no 5etools record. Without that file (tests) canonical is trusted.
+The canonical-data bug itself is out of scope here and is reported for a separate fix.
+
 ## Risks / Trade-offs
 
 - [Rules/lore answer facts are short words like "advantage"] → each case chooses a word that only a correct answer
