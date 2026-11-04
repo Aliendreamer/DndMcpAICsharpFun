@@ -52,3 +52,29 @@ def test_join_hyphens():
     b = Line("rd here", (0, 12, 10, 22), 10, 1, [f])
     out = join_hyphens([a, b])
     assert [l.text for l in out] == ["a long word here"]
+
+
+def test_fix_digits_letter_digits():
+    assert fix_digits("1B") == "18"
+    assert fix_digits("Sd6") == "5d6"
+    assert fix_digits("1S") == "15"
+    assert fix_digits("Challenge O") == "Challenge 0"
+    assert fix_digits("Bludgeoning") == "Bludgeoning"
+
+
+def test_fix_digits_fraction_needs_digit():
+    assert fix_digits("I/O") == "I/O"
+    assert fix_digits("l/4") == "1/4"
+
+
+def test_edge_rule_keeps_entry_headings():
+    names = ["goblin", "clay golem", "faerie dragon", "lizard king", "demilich", "counterspell",
+             "fireball", "faerie fire", "revivify", "amulet of proof", "eye of vecna",
+             "spell scroll", "figurine of wondrous power"]
+    for f in sorted(FIX.glob("*/*.json")):
+        page = load_ocr_page(f, int(f.stem))
+        for l in page.lines:
+            if any(n in l.text.lower() for n in names):
+                # headings must not be dropped by the edge-noise rule (merged rows excluded)
+                merged = any(l.text in k.text for k in reading_order(page))
+                assert merged, (f, l.text)

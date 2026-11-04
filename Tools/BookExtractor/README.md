@@ -7,7 +7,9 @@ No LLM and no GPU: CPU onnxruntime only.
 
 ```bash
 cd Tools/BookExtractor
-python3 -m venv .venv
-.venv/bin/pip install -e ".[dev]"
+uv venv .venv
+uv pip install --python .venv/bin/python -e ".[dev]"
 .venv/bin/pytest -q
 ```
+
+`python3 -m venv` may fail where `ensurepip` is missing, so `uv` is the supported setup.

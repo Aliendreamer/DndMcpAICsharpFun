@@ -8,13 +8,19 @@ from .model import Fragment, Line, Page
 
 _DIGITISH = str.maketrans({"S": "5", "s": "5", "O": "0", "o": "0", "l": "1", "I": "1",
                            "i": "1", "Z": "2", "z": "2", "B": "8"})
-_NUMERIC_TOKEN = re.compile(r"[0-9SOolIZ]*\d[0-9SOolIZ]*")
-_DICE_TOKEN = re.compile(r"[0-9SOolIZ]+d[0-9SOolIZ]+")
-_FRACTION_TOKEN = re.compile(r"[0-9SOolIZ]+/[0-9SOolIZ]+")
+_D = "0-9SOolIZB"
+_NUMERIC_TOKEN = re.compile(rf"[{_D}]*\d[{_D}]*")
+_DICE_TOKEN = re.compile(rf"[{_D}]+d[{_D}]+")
+_FRACTION = re.compile(rf"(?<![A-Za-z0-9])[{_D}]+/[{_D}]+(?![A-Za-z0-9])")
+_CHALLENGE = re.compile(r"(?<=Challenge )[SOolIZB]+(?![A-Za-z0-9/])")
 
 
 def fix_digits(text: str) -> str:
-    """Repair OCR digit noise (S->5, O->0, l/I->1, Z->2, B->8) only inside numeric/dice tokens."""
+    """Repair OCR digit noise (S->5, O->0, l/I->1, Z->2, B->8) only inside numeric/dice tokens.
+
+    Letters are rewritten only in tokens that already contain a real digit (or a dice/fraction
+    shape with one), so plain words such as "Bludgeoning" are untouched.
+    """
     def fix(token: str) -> str:
         return token.translate(_DIGITISH)
 
@@ -28,11 +34,13 @@ def fix_digits(text: str) -> str:
         return w
 
     def frac(m: re.Match[str]) -> str:
+        if not re.search(r"\d", m.group(0)):
+            return m.group(0)  # e.g. "I/O" stays
         a, b = m.group(0).split("/", 1)
         return fix(a) + "/" + fix(b)
 
-    # fractions first (Challenge l/4); tokens of digit-like letters only, lone letters excluded below
-    text = re.sub(r"(?<![A-Za-z0-9])[0-9SOolIZ]+/[0-9SOolIZ]+(?![A-Za-z0-9])", frac, text)
+    text = _FRACTION.sub(frac, text)
+    text = _CHALLENGE.sub(lambda m: fix(m.group(0)), text)
     return re.sub(r"[0-9A-Za-z]+", tok, text)
 
 
