@@ -44,12 +44,12 @@ authorization policy that passes only for signed-in users with `IsAdmin` true.
 
 #### Scenario: Non-admin blocked
 
-- **WHEN** a signed-in user without `IsAdmin` opens `/admin/review`
+- **WHEN** a signed-in user without `IsAdmin` opens `/review`
 - **THEN** access is denied
 
 ### Requirement: Admin review page
 
-The Blazor page `/admin/review` SHALL list flagged entities (filterable by book), let the admin browse any entity, and
+The Blazor page `/review` SHALL list flagged entities (filterable by book), let the admin browse any entity, and
 show an entity's fields and failed-check reasons next to its book page image with its provenance boxes highlighted.
 The admin SHALL be able to override any field of any entity (Accepted ones included) with a reason, and approve a
 flagged entity. There is no bulk approve.

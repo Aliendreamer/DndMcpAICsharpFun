@@ -101,11 +101,11 @@ to the wrong monster); re-runs wiping manual fixes; 5etools as a data source by 
   assigned to an entity, or that the reader classified as prose/table for later phases. Pages without rules text
   (art-only, TOC, index, credits) are excluded by word count and layout. Warning if either is under 95%.
 - **Admin access:** `User.IsAdmin` (bool, default false), one EF migration, set by the owner in pgAdmin. An authorization
-  policy `Admin` guards the Blazor page `/admin/review`. Approve and override go through a C# service directly, not
+  policy `Admin` guards the Blazor page `/review` (not under `/admin`, which the API-key middleware gates). Approve and override go through a C# service directly, not
   through the `X-Admin-Api-Key` HTTP surface.
 - **Admin page:** filter by book and by flagged/all; entity view shows each field (editable) and the failed check
   reasons next to the page image with the provenance boxes highlighted. Page images come from the extractor
-  (`GET /pages/{book}/{page}.png`), proxied by the app, cached on disk by the extractor.
+  (`GET /page-image`), cached on disk by the extractor; the Blazor page shows it as a data URI, so no new app route.
 - **Writes:** saving an override or approval rewrites the overrides file, re-applies it to the canonical file, and
   upserts (or removes) that one entity in `dnd_entities`. Single admin → no locking.
 - **CPU cap:** the extractor container gets a CPU limit; default 2 processes × 4 threads, configurable.

@@ -31,7 +31,7 @@
 
 - [ ] 5.1 `User.IsAdmin` + EF migration + `Admin` authorization policy.
 - [ ] 5.2 Review service: list flagged/all, override field, approve (rewrite overrides, re-apply, upsert/remove one point).
-- [ ] 5.3 Blazor `/admin/review` page: list, entity view with editable fields and failed reasons, page image with boxes.
+- [ ] 5.3 Blazor `/review` page: list, entity view with editable fields and failed reasons, page image with boxes.
 
 ## 6. Live runs and verification
 
