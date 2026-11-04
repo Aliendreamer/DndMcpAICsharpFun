@@ -24,3 +24,10 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | mm | 338 | Swarm of Bats (swarm type) |
 | phb | 259 | Mass Cure Wounds, Mass Heal (level line OCRs without a space) |
 | phb | 243 | Fireball continuation (spell spans pages 242-243) |
+| phb | 268, 269, 270 | Prismatic Wall spans 268 to 270 across the empty/art page 269 |
+| phb | 290, 291 | Zone of Truth (last spell) followed by Appendix A Conditions |
+| phb | 223, 224 | Color Spray (inline At Higher Levels) |
+| phb | 244 | Flaming Sphere continuation (inline At Higher Levels) |
+| phb | 257 | Longstrider (inline At Higher Levels) |
+| phb | 232, 233, 234 | Detect Thoughts (art page 233 inside the text flow) |
+| phb | 247 | Greater Restoration (ends on a bullet list), Guardian of Faith |

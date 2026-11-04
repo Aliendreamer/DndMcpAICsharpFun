@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 import statistics
 
-from rapidfuzz import process
+from rapidfuzz import fuzz, process
 
 from ..checks import Check
 from ..model import Line
@@ -25,7 +25,8 @@ _TIME_UNITS = {"action": "action", "bonus action": "bonus", "reaction": "reactio
 _TIME = re.compile(rf"^({_NUM})\s*(bonus action|action|reaction|round|minute|hour|day)s?\b", re.I)
 _PAGE_FURNITURE = re.compile(r"^(?:part \d+\s*\|?\s*spells|spells\s*\|?\s*part \d+|chapter \d+\W.*)$", re.I)
 _WORDS = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
-_HIGHER = re.compile(r"^at higher levels?\b[.:]?\s*", re.I)
+_HIGHER = re.compile(r"\bat higher levels?\.\s*", re.I)
+_ORD = re.compile(r"\b[Il](?=st\b)")
 
 
 def _num(s: str) -> int:
@@ -37,13 +38,18 @@ def _school(word: str) -> str | None:
     return SCHOOLS[hit[0]] if hit else None
 
 
+def _ritual(token: str | None) -> bool:
+    word = re.sub(r"[^a-z]", "", (token or "").lower())
+    return bool(word) and fuzz.ratio(word, "ritual") >= 70
+
+
 def _level_line(t: str) -> tuple[int, str | None, bool] | None:
     m = _LEVEL.match(t)
     if m:
-        return _num(m.group(1)), _school(m.group(2)), bool(m.group(3))
+        return _num(m.group(1)), _school(m.group(2)), _ritual(m.group(3))
     m = _CANTRIP.match(t)
     if m:
-        return 0, _school(m.group(1)), bool(m.group(2))
+        return 0, _school(m.group(1)), _ritual(m.group(2))
     return None
 
 
@@ -195,9 +201,12 @@ def _entries(body: list[Line]) -> tuple[list[str], list[dict]]:
     entries: list[str] = []
     higher: list[dict] = []
     for para in _paragraphs(body):
-        m = _HIGHER.match(para)
-        if m and not higher:
-            higher.append({"type": "entries", "name": "At Higher Levels", "entries": [para[m.end():]]})
+        para = _ORD.sub("1", para)  # OCR "Ist" for "1st"
+        m = _HIGHER.search(para)
+        if m and not higher and (m.start() == 0 or para[m.start() - 1] == " "):
+            if para[:m.start()].strip():
+                entries.append(para[:m.start()].strip())
+            higher.append({"type": "entries", "name": "At Higher Levels", "entries": [para[m.end():].strip()]})
         else:
             entries.append(para)
     return entries, higher
@@ -210,16 +219,20 @@ def _name(raw: str) -> str:
     return re.sub(r"\b([A-Z][a-z]{3,})(and|of)\b(?= [A-Z])", lambda m: f"{m.group(1)} {m.group(2)}", t)
 
 
+def _section_break(l: Line, med: float) -> bool:
+    """A caps heading (e.g. 'PARALYZED') or an oversized heading line ends the spell text."""
+    return _is_heading_caps(l.text) or l.height > 1.6 * med
+
+
 def _parse_block(L: list[Line], med: float, i: int, end: int) -> Parsed:
     level, school, ritual = _level_line(L[i].text) or (0, None, False)
     vals, nxt = _header(L, i, end)
     body: list[Line] = []
     stop = end
     for x in range(nxt, end):
-        if _is_heading_caps(L[x].text) and L[x].height > 1.3 * med:
-            stop = x
-            break
-        if body and L[x].page - body[-1].page > 1:
+        if L[x].height > 1.6 * med and len(L[x].text) < 8:
+            continue  # decorative art / drop-cap glyphs inside the text flow
+        if _section_break(L[x], med):
             stop = x
             break
         body.append(L[x])
@@ -259,6 +272,36 @@ def parse_spells(lines: list[Line]) -> list[Parsed]:
 
 
 # ---------- checks ----------
+_HIGHER_MARK = re.compile(r"at higher level", re.I)
+
+
+def _printed(p: Parsed, label: str, until: str) -> str:
+    m = re.search(rf"(?ims)^{label}\w*\s*[:;]?\s*(.*?)^{until}", p.text)
+    return re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
+
+
+def _range_agrees(p: Parsed) -> bool:
+    printed = _printed(p, "Range", "Component")
+    rng = p.fields.get("range") or {}
+    if not printed:
+        return False
+    nums = sorted(_num(n) for n in re.findall(rf"(?<![A-Za-z]){_NUM}(?![A-Za-z])", printed) if re.search(r"\d|^[IlO]$", n))
+    amount = (rng.get("distance") or {}).get("amount")
+    got = sorted(([amount] if amount is not None else []))
+    if nums != got:
+        return False
+    low = printed.lower()
+    dtype = (rng.get("distance") or {}).get("type")
+    return all((w not in low) or dtype == w or rng.get("type") == w for w in ("touch", "sight", "unlimited", "special"))
+
+
+def _components_agree(p: Parsed) -> bool:
+    printed = _printed(p, "Component", "Duration")
+    comp = p.fields.get("components") or {}
+    head = printed.split("(")[0]
+    letters = set(re.findall(r"\b[VSM]\b", head))
+    have = {k.upper() for k in comp}
+    return bool(letters) and letters == have
 def spell_checks(p: Parsed) -> list[Check]:
     f = p.fields
     time = f.get("time") or []
@@ -275,16 +318,24 @@ def spell_checks(p: Parsed) -> list[Check]:
         time_ok = all(t.get("condition") for t in time if t["unit"] == "reaction")
     rng = f.get("range")
     range_ok = bool(rng) and (rng["type"] == "special" or bool(rng.get("distance")))
-    comp_ok = comp is not None and bool(comp) and (not ("m" in comp) or bool(comp["m"]))
+    comp_ok = bool(comp) and ("m" not in comp or bool(comp["m"]))
     printed = re.search(r"(?mi)^Duration:\s*(.*)$", p.text)
     shows_conc = bool(printed and "concentration" in printed.group(1).lower())
     has_conc = bool(dur) and any(d.get("concentration") for d in dur)
     conc_ok = f.get("concentration") is has_conc and (printed is None or shows_conc == has_conc)
+    ents = f.get("entries") or []
+    last = ents[-1] if ents else ""
+    complete = bool(ents) and (not isinstance(last, str) or "\u2022" in last
+                               or bool(re.search(r"[.!?:)\"'\u201d]\s*$", last)))  # a bullet list may end unpunctuated
+    split_ok = not (not f.get("entriesHigherLevel") and any(_HIGHER_MARK.search(str(e)) for e in ents))
     return [
         chk("level-school", level_ok, f"level {f.get('level')!r} / school {f.get('school')!r} not recognised"),
         chk("casting-time", time_ok, "casting time missing or unparseable"),
-        chk("range", range_ok, "range missing or unparseable"),
-        chk("components", comp_ok, "components missing or unparseable (or M without a material)"),
+        chk("range", range_ok and _range_agrees(p), "range missing, unparseable, or disagrees with the printed line"),
+        chk("components", comp_ok and _components_agree(p),
+            "components missing, unparseable, or disagree with the printed line"),
         chk("duration", bool(dur), "duration missing or unparseable"),
         chk("concentration-agrees", conc_ok, "concentration flag disagrees with the printed duration"),
+        chk("entries-complete", complete, f"description does not end in terminal punctuation: ...{last[-40:]!r}"),
+        chk("higher-level-split", split_ok, "'At Higher Levels' still inline in entries"),
     ]
