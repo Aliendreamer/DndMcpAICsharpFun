@@ -103,6 +103,13 @@ public static partial class BooksAdminEndpoints
         return Results.Accepted($"/admin/books/{id}");
     }
 
+    /// <summary>
+    /// Ruling R23 — Phase 1 allow-list for programmatic extraction: the extractor's parsers are only validated for the
+    /// 2014 core books. Later phases (see openspec/changes/programmatic-extraction-phase1/design.md) widen this list.
+    /// </summary>
+    public static readonly IReadOnlySet<string> ProgrammaticPhase1Books =
+        new HashSet<string>(["phb14", "mm14", "dmg14"], StringComparer.OrdinalIgnoreCase);
+
     private static async Task<IResult> ExtractProgrammatic(
         int id,
         IIngestionTracker tracker,
@@ -112,6 +119,12 @@ public static partial class BooksAdminEndpoints
         var record = await tracker.GetByIdAsync(id, ct);
         if (record is null)
             return Results.NotFound($"Book with id {id} not found");
+
+        var slug = EntityIdSlug.BookSlug(record);
+        if (!ProgrammaticPhase1Books.Contains(slug))
+            return Results.BadRequest(
+                $"Programmatic extraction is only enabled for {string.Join(", ", ProgrammaticPhase1Books.Order())} " +
+                $"in Phase 1; book {id} has slug '{slug}'.");
 
         if (!queue.TryEnqueue(id))
             return Results.Conflict("Book is already queued for programmatic extraction.");

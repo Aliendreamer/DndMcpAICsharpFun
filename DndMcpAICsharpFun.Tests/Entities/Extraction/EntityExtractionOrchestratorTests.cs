@@ -2762,4 +2762,89 @@ public class EntityExtractionOrchestratorTests
             try { Directory.Delete(canonicalDir, true); } catch { }
         }
     }
+
+    [Fact]
+    public async Task Rechecks_programmatic_guard_right_before_the_canonical_write()
+    {
+        // A programmatic run can swap in verified data while a long LLM run is still going: the LLM run must
+        // re-check the guard right before it writes, not only at start.
+        var canonicalDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(canonicalDir);
+        try
+        {
+            var record = new DndMcpAICsharpFun.Domain.IngestionRecord
+            {
+                Id = 44, FilePath = "/dev/null", FileName = "t.pdf", FileHash = "h", Version = "5e",
+                DisplayName = "Prog Race Book",
+            };
+            var tracker = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Tracking.IIngestionTracker>();
+            tracker.GetByIdAsync(44, Arg.Any<CancellationToken>()).Returns(record);
+            var slug = DndMcpAICsharpFun.Domain.Entities.EntityIdSlug
+                .For("Prog Race Book", DndMcpAICsharpFun.Domain.Entities.EntityType.Class, "x").Split('.')[0];
+            var canonical = Path.Combine(canonicalDir, slug + ".json");
+            const string body = """{ "schemaVersion": "2", "book": {"sourceBook":"B","edition":"Edition2014","fileHash":"","displayName":"B"}, "entities": [ { "id": "b.feat.alert", "dataSource": "programmatic" } ] }""";
+
+            var converter = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfStructureConverter>();
+            var emptyDoc = new DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureDocument(
+                "", new List<DndMcpAICsharpFun.Features.Ingestion.Pdf.PdfStructureItem>());
+            // The "programmatic run" lands while the LLM run is converting the PDF.
+            converter.ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(_ =>
+            {
+                File.WriteAllText(canonical, body);
+                return Task.FromResult(emptyDoc);
+            });
+            var llm = Substitute.For<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.IEntityExtractionLlmClient>();
+            var opts = Options.Create(new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionOptions
+            {
+                CanonicalDirectory = canonicalDir,
+                SchemasDirectory = canonicalDir,
+            });
+            var matcher = new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameMatcher(
+                new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityNameIndex(
+                    Path.Combine(Path.GetTempPath(), "__nonexistent_5etools__")));
+            var orchestrator = new EntityExtractionOrchestrator(
+                tracker: tracker,
+                registry: new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.BookSourceRegistry(
+                    Path.Combine(Path.GetTempPath(), "__nonexistent_books__.json")),
+                converter: converter,
+                candidateBuilder: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder(
+                    bookmarks: Substitute.For<DndMcpAICsharpFun.Features.Ingestion.Pdf.IPdfBookmarkReader>(),
+                    scanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner(NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateScanner>.Instance),
+                    statBlockScanner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.StatBlockScanner(),
+                    logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityCandidateBuilder>.Instance,
+                    matcher: matcher),
+                writer: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+                errorsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionErrorsFile(),
+                warningsFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionWarningsFile(),
+                declinedFile: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionDeclinedFile(),
+                refResolver: new DndMcpAICsharpFun.Features.Entities.EntityReferenceResolver(),
+                schemaProvider: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider(
+                    opts, NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider>.Instance),
+                checkpointStore: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.ExtractionCheckpointStore(),
+                runner: new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner(
+                    candidateExtractor: BuildCandidateExtractor(llm, opts),
+                    logger: NullLogger<DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntityExtractionRunner>.Instance,
+                    cascade: GroundingCascadeTestFactory.Inert(),
+                    matcher: matcher),
+                fieldFill: new DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion.EntityFieldFillService(
+                    new DndMcpAICsharpFun.Features.Entities.CanonicalJsonLoader(),
+                    new DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.CanonicalJsonWriter(),
+                    canonicalDir,
+                    Path.Combine(Path.GetTempPath(), "__nonexistent_5etools_fill__")),
+                options: opts,
+                logger: NullLogger<EntityExtractionOrchestrator>.Instance,
+                matcher: matcher);
+
+            var act = async () => await orchestrator.ExtractAsync(44, force: false, errorsOnly: false, CancellationToken.None);
+
+            (await act.Should().ThrowAsync<InvalidOperationException>())
+                .WithMessage("*use extract-programmatic*");
+            File.ReadAllText(canonical).Should().Be(body);
+            await converter.Received(1).ConvertAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        }
+        finally
+        {
+            try { Directory.Delete(canonicalDir, true); } catch { }
+        }
+    }
 }

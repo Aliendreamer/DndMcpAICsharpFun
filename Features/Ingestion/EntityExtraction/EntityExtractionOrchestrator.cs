@@ -33,6 +33,15 @@ public sealed class EntityExtractionOrchestrator(
     private readonly EntityExtractionOptions _opts = options.Value;
     private readonly EntityNameMatcher? _matcher = matcher;
 
+    /// <summary>Refuses to touch a canonical file that holds programmatic (PDF-verified) entities.</summary>
+    private static void ThrowIfProgrammatic(int bookId, string canonicalPath)
+    {
+        if (ProgrammaticCanonicalGuard.FileHasProgrammatic(canonicalPath))
+            throw new InvalidOperationException(
+                $"Book {bookId} is extracted programmatically ({canonicalPath}); use extract-programmatic. " +
+                "The LLM extraction pipeline will not overwrite or modify verified programmatic data, even with force=true.");
+    }
+
     public async Task ExtractAsync(int bookId, bool force, bool errorsOnly, CancellationToken ct)
     {
         var record = await tracker.GetByIdAsync(bookId, ct)
@@ -48,10 +57,7 @@ public sealed class EntityExtractionOrchestrator(
         var errorsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".errors.json");
         var warningsPath = Path.Combine(_opts.CanonicalDirectory, bookSlug + ".warnings.json");
 
-        if (ProgrammaticCanonicalGuard.FileHasProgrammatic(canonicalPath))
-            throw new InvalidOperationException(
-                $"Book {bookId} is extracted programmatically ({canonicalPath}); use extract-programmatic. " +
-                "The LLM extraction pipeline will not overwrite or modify verified programmatic data, even with force=true.");
+        ThrowIfProgrammatic(bookId, canonicalPath);
 
         if (!errorsOnly && File.Exists(canonicalPath) && !force)
             throw new InvalidOperationException(
@@ -351,6 +357,8 @@ public sealed class EntityExtractionOrchestrator(
             Entities: extracted,
             Tables: tables);
 
+        // A long LLM run can overlap a programmatic run that swapped in verified data meanwhile: re-check.
+        ThrowIfProgrammatic(bookId, canonicalPath);
         await writer.WriteAsync(canonicalPath, canonicalFile, ct);
         await errorsFile.WriteAsync(errorsPath, extractionErrors, ct);
         await warningsFile.WriteAsync(warningsPath, interWarnings, ct);
@@ -501,6 +509,7 @@ public sealed class EntityExtractionOrchestrator(
         var mergedEntities = existingFile.Entities.Concat(newlyExtracted).ToList();
         var mergedFile = existingFile with { Entities = mergedEntities };
 
+        ThrowIfProgrammatic(bookId, canonicalPath);
         await writer.WriteAsync(canonicalPath, mergedFile, ct);
         await errorsFile.WriteAsync(errorsPath, newErrors, ct);
         await warningsFile.WriteAsync(warningsPath, mergedWarnings, ct);

@@ -275,7 +275,7 @@
       "_type": "request",
       "parentId": "fld_admin_books",
       "name": "Extract entities (programmatic, no LLM)",
-      "description": "Drives the Python book-extractor service; replaces the book's canonical JSON and LLM sidecars, re-applies overrides, then ingests into dnd_entities. 202 {bookId}; 404 unknown book; 409 already queued/running. If ingestion fails after the files were replaced, retry with POST /admin/books/{id}/ingest-entities.",
+      "description": "Phase 1 allow-list: only books whose slug is phb14, mm14 or dmg14 (400 otherwise). Drives the Python book-extractor service; replaces the book's canonical JSON and LLM sidecars, re-applies overrides, ingests into dnd_entities, then purges prior 5etools-import points (file_hash 5etools:<KEY>) for the book. 202 {bookId}; 400 book not in the allow-list; 404 unknown book; 409 already queued/running. If ingestion fails after the files were replaced, retry with POST /admin/books/{id}/ingest-entities.",
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/books/1/extract-programmatic",
       "headers": [
@@ -710,6 +710,7 @@
       "_type": "request",
       "parentId": "fld_admin_books",
       "name": "Import all 5etools JSON files into dnd_entities",
+      "description": "Books with a programmatic canonical file (PHB/MM/DMG after extract-programmatic) are skipped wholesale. 200 {mapped, upserted, skippedProgrammaticBook, skippedExisting, programmaticBooks}.",
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/5etools/import",
       "headers": [
