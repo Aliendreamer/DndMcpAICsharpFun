@@ -97,12 +97,56 @@ public sealed class ProgrammaticGuardTests : IDisposable
         static EntityEnvelope Env(string id, string name) => new(id, EntityType.Class, name, "PHB", "Edition2014", null,
             new FirstAppearance("PHB", "Edition2014"), [], [], "", default, "5etools");
         var svc = new FivetoolsIngestionService(store, embeddings, new EntityCanonicalTextDispatcher(),
+            Options.Create(new EntityIngestionOptions { CanonicalDirectory = _root }),
             NullLogger<FivetoolsIngestionService>.Instance);
 
         await svc.IngestEnvelopesAsync([Env("phb.class.fighter", "Fighter"), Env("phb.class.wizard", "Wizard")], CancellationToken.None);
 
         await store.Received(1).UpsertAsync(
             Arg.Is<IList<EntityPoint>>(p => p.Count == 1 && p[0].Envelope.Name == "Wizard"), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Fivetools_import_drops_every_envelope_of_a_programmatic_book()
+    {
+        // Flagged programmatic entities are deliberately NOT in Qdrant, so the id guard alone cannot protect them:
+        // the import must skip the whole book once its canonical file is programmatic.
+        WriteCanonical("phb14", Entity("phb14.spell.fireball", "Spell", "Fireball", "programmatic", "NeedsReview"));
+        var store = new DndMcpAICsharpFun.Tests.TestDoubles.RecordingEntityVectorStore();
+        var embeddings = Substitute.For<IEmbeddingService>();
+        embeddings.EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Task.FromResult<IList<float[]>>(ci.Arg<IList<string>>().Select(_ => new float[4]).ToList()));
+        static EntityEnvelope Env(string id, string name, string book) => new(id, EntityType.Spell, name, book, "Edition2014",
+            null, new FirstAppearance(book, "Edition2014"), [], [], "", default, "5etools");
+        var svc = new FivetoolsIngestionService(store, embeddings, new EntityCanonicalTextDispatcher(),
+            Options.Create(new EntityIngestionOptions { CanonicalDirectory = _root }),
+            NullLogger<FivetoolsIngestionService>.Instance);
+
+        var result = await svc.IngestEnvelopesAsync([
+            Env("phb14.spell.fireball", "Fireball", "PHB"),  // flagged programmatic: not in the store at all
+            Env("phb14.spell.shield", "Shield", "PHB"),
+            Env("xge14.spell.toll-the-dead", "Toll the Dead", "XGE"),
+        ], CancellationToken.None);
+
+        store.Ids.Should().BeEquivalentTo(["xge14.spell.toll-the-dead"]);
+        result.Should().BeEquivalentTo(new
+        {
+            Mapped = 3, Upserted = 1, SkippedProgrammaticBook = 2, SkippedExisting = 0,
+            ProgrammaticBooks = new[] { "PHB" },
+        });
+    }
+
+    [Fact]
+    public async Task Purge_removes_only_the_books_5etools_import_points()
+    {
+        var store = new DndMcpAICsharpFun.Tests.TestDoubles.RecordingEntityVectorStore();
+        static EntityPoint Pt(string id, string hash) => new(new EntityEnvelope(id, EntityType.Spell, id, "PHB",
+            "Edition2014", null, new FirstAppearance("PHB", "Edition2014"), [], [], "", default, "5etools"), new float[4], hash);
+        await store.UpsertAsync([Pt("a", "5etools:PHB"), Pt("b", "5etools:MM"), Pt("c", "phb-file-hash")]);
+
+        await FivetoolsImportedPoints.PurgeAsync(store, "phb", CancellationToken.None);
+
+        store.Ids.Should().BeEquivalentTo(["b", "c"]);
     }
 
     [Fact]

@@ -44,6 +44,10 @@ public class FivetoolsIngestionServiceTests
         };
 
         var service = new FivetoolsIngestionService(store, embeddings, dispatcher,
+            Microsoft.Extensions.Options.Options.Create(new DndMcpAICsharpFun.Features.Ingestion.Entities.EntityIngestionOptions
+            {
+                CanonicalDirectory = Path.Combine(Path.GetTempPath(), "__no_canonical_" + Guid.NewGuid().ToString("N")),
+            }),
             NullLogger<FivetoolsIngestionService>.Instance);
 
         await service.IngestEnvelopesAsync(envelopes, CancellationToken.None);

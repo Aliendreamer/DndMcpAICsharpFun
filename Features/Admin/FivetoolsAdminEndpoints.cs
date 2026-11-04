@@ -15,8 +15,9 @@ public static class FivetoolsAdminEndpoints
         FivetoolsIngestionService service,
         CancellationToken ct)
     {
-        await service.ImportAllAsync(ct);
-        return Results.Ok();
+        // Books with a programmatic canonical file are skipped wholesale (see skippedProgrammaticBook).
+        var result = await service.ImportAllAsync(ct);
+        return Results.Ok(result);
     }
 
     private static IResult GetSources(BookSourceRegistry registry, string? group)
