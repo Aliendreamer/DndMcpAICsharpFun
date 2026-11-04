@@ -6,6 +6,7 @@ using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
 using DndMcpAICsharpFun.Features.Ingestion.Tracking;
+using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Ingestion;
 using Microsoft.Extensions.Options;
 
@@ -46,6 +47,8 @@ public sealed partial class ProgrammaticExtractionRunner(
     IOptions<IngestionOptions> ingestionOptions,
     IOptions<BookExtractorOptions> extractorOptions,
     CanonicalJsonWriter writer,
+    IEntityVectorStore entityStore,
+    CanonicalBookLocks locks,
     ILogger<ProgrammaticExtractionRunner> logger,
     Action<string>? deleteFile = null) : IProgrammaticExtractionRunner
 {
@@ -74,6 +77,20 @@ public sealed partial class ProgrammaticExtractionRunner(
             Book: new CanonicalBookMetadata(sourceBook, edition, record.FileHash, record.DisplayName),
             Entities: merged.Entities);
 
+        // The swap + ingest is one write on the book: the review page's saves wait for it (and vice versa).
+        using (await locks.AcquireAsync(slug, ct))
+            await SwapAndIngestAsync(record, bookId, slug, dir, file, result, ct);
+
+        var accepted = merged.Entities.Count(e => e.Disposition == EntityDisposition.Accepted);
+        var needsReview = merged.Entities.Count(e => e.Disposition == EntityDisposition.NeedsReview);
+        LogDone(logger, bookId, merged.Entities.Count, accepted, needsReview, merged.OrphanedEntityIds.Count);
+        return new ProgrammaticRunResult(merged.Entities.Count, accepted, needsReview, merged.OrphanedEntityIds, result.Report);
+    }
+
+    private async Task SwapAndIngestAsync(
+        DndMcpAICsharpFun.Domain.IngestionRecord record, int bookId, string slug, string dir, CanonicalJsonFile file,
+        ExtractorResult result, CancellationToken ct)
+    {
         // Point of no return: everything above can fail without touching existing files or points.
         // Report first (tmp + move), then the canonical file (atomic overwrite), then stale sidecars,
         // so a failed write can never leave a new canonical file beside old sidecars.
@@ -108,17 +125,16 @@ public sealed partial class ProgrammaticExtractionRunner(
         try
         {
             await ingestion.IngestEntitiesAsync(bookId, ct);
+            // Prior 5etools imports wrote points for this book under "5etools:<KEY>"; flagged programmatic entities
+            // are deliberately not indexed, so those stale points would otherwise keep answering for them.
+            if (!string.IsNullOrWhiteSpace(record.FivetoolsSourceKey))
+                await FivetoolsImportedPoints.PurgeAsync(entityStore, record.FivetoolsSourceKey, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogIngestAfterSwapFailed(logger, ex, bookId);
             throw new PostSwapIngestionException(bookId, ex);
         }
-
-        var accepted = merged.Entities.Count(e => e.Disposition == EntityDisposition.Accepted);
-        var needsReview = merged.Entities.Count(e => e.Disposition == EntityDisposition.NeedsReview);
-        LogDone(logger, bookId, merged.Entities.Count, accepted, needsReview, merged.OrphanedEntityIds.Count);
-        return new ProgrammaticRunResult(merged.Entities.Count, accepted, needsReview, merged.OrphanedEntityIds, result.Report);
     }
 
     private async Task WaitForJobAsync(string jobId, BookExtractorOptions opts, CancellationToken ct)
@@ -157,8 +173,12 @@ public sealed partial class ProgrammaticExtractionRunner(
         Fields: e.Fields,
         DataSource: DataSources.Programmatic,
         Authority: "book",
-        Checks: e.Checks,
+        // Fail closed: an entity the extractor did not verify at all must never be auto-accepted.
+        Checks: e.Checks is { Count: > 0 } ? e.Checks : [new EntityCheck(ChecksMissing, false, "extractor returned no checks")],
         Provenance: e.Provenance);
+
+    /// <summary>Failed check added when the extractor returned an entity with no checks.</summary>
+    public const string ChecksMissing = "checks-missing";
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Book {BookId}: extractor job {JobId} submitted")]
     private static partial void LogSubmitted(ILogger logger, int bookId, string jobId);

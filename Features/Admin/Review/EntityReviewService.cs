@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Text.Json;
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
@@ -34,12 +33,10 @@ public sealed class EntityReviewService(
     IBookExtractorClient extractor,
     IIngestionTracker tracker,
     IOptions<EntityIngestionOptions> entityOptions,
-    IOptions<IngestionOptions> ingestionOptions)
+    IOptions<IngestionOptions> ingestionOptions,
+    CanonicalBookLocks locks)
 {
     private const string ProgrammaticSchema = "2";
-
-    // One writer per book file; bounded by the number of registered books.
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> Locks = new(StringComparer.OrdinalIgnoreCase);
 
     private sealed record Located(string Slug, string Path, CanonicalJsonFile File, EntityEnvelope Entity);
 
@@ -95,8 +92,10 @@ public sealed class EntityReviewService(
                 if (!OverrideMerger.ValidatePath(updated, field))
                     throw new ArgumentException($"Invalid field path '{field}'.", nameof(changes));
                 var exists = OverrideMerger.TryGetValue(updated, field, out var current);
+                // JSON null is always allowed: it clears a wrong value without inventing a replacement.
                 if (field.StartsWith("fields.", StringComparison.Ordinal) && exists
-                    && current.ValueKind != JsonValueKind.Null && !SameKind(current.ValueKind, value.ValueKind))
+                    && current.ValueKind != JsonValueKind.Null && value.ValueKind != JsonValueKind.Null
+                    && !SameKind(current.ValueKind, value.ValueKind))
                     throw new ArgumentException(
                         $"'{field}' holds a {KindName(current.ValueKind)}; the new value is a {KindName(value.ValueKind)}.", nameof(changes));
 
@@ -126,7 +125,7 @@ public sealed class EntityReviewService(
                 overrides.Add(new FieldOverride(entityId, field, value, baseline, reason.Trim(), DateTimeOffset.UtcNow, absent));
             }
             var next = new EntityOverrides(overrides, o.Approvals);
-            return (OverrideMerger.SetDisposition(updated, IsApproved(next, entityId)), next);
+            return (OverrideMerger.SetDisposition(updated, OverrideMerger.ApprovalFor(next, entityId)), next);
         }, ct);
     }
 
@@ -160,9 +159,12 @@ public sealed class EntityReviewService(
                 }
             }
 
-            var approvals = o.Approvals.Where(a => a.EntityId != entityId)
-                .Append(new Approval(entityId, reason.Trim(), DateTimeOffset.UtcNow)).ToList();
-            return (OverrideMerger.SetDisposition(updated, approved: true), new EntityOverrides(rebased, approvals));
+            // The approval waives exactly the checks failing now (drift/unapplied are never waivable), so a later
+            // run that fails a different check sends the entity back to review.
+            var approval = new Approval(entityId, reason.Trim(), DateTimeOffset.UtcNow,
+                OverrideMerger.WaivableFailedChecks(updated));
+            var approvals = o.Approvals.Where(a => a.EntityId != entityId).Append(approval).ToList();
+            return (OverrideMerger.SetDisposition(updated, approval), new EntityOverrides(rebased, approvals));
         }, ct);
     }
 
@@ -199,7 +201,7 @@ public sealed class EntityReviewService(
 
             var next = new EntityOverrides(
                 o.Overrides.Where(x => !(x.EntityId == entityId && x.Field == field)).ToList(), o.Approvals);
-            return (OverrideMerger.SetDisposition(updated, IsApproved(next, entityId)), next);
+            return (OverrideMerger.SetDisposition(updated, OverrideMerger.ApprovalFor(next, entityId)), next);
         }, ct);
     }
 
@@ -239,7 +241,7 @@ public sealed class EntityReviewService(
         if (!known.Contains(page))
             throw new ArgumentException($"Page {page} is not a source page of {entityId}.", nameof(page));
 
-        var record = await FindRecordAsync(loc.Slug, ct)
+        var record = await FindRecordAsync(loc.Slug, loc.File.Book.FileHash, ct)
                      ?? throw new InvalidOperationException($"No ingestion record for book '{loc.Slug}'.");
         var pdfPath = Path.GetRelativePath(ingestionOptions.Value.BooksPath, record.FilePath);
         var bytes = await extractor.GetPageImageAsync(pdfPath, page, ct);
@@ -254,8 +256,6 @@ public sealed class EntityReviewService(
         if (string.IsNullOrWhiteSpace(reason))
             throw new ArgumentException("A reason is required.", nameof(reason));
     }
-
-    private static bool IsApproved(EntityOverrides o, string entityId) => o.Approvals.Any(a => a.EntityId == entityId);
 
     /// <summary>Removes the drift (and optionally unapplied) checks that belong to the override at <paramref name="field"/>.</summary>
     private static EntityEnvelope StripOverrideChecks(EntityEnvelope e, string field, bool unapplied = true) =>
@@ -273,13 +273,12 @@ public sealed class EntityReviewService(
         CancellationToken ct)
     {
         var first = await LocateAsync(entityId, ct) ?? throw new KeyNotFoundException($"No programmatic entity '{entityId}'.");
-        var sem = Locks.GetOrAdd(first.Path, _ => new SemaphoreSlim(1, 1));
-        await sem.WaitAsync(ct);
-        try
+        // Shared with the programmatic extraction run, so a save never interleaves with a file swap + ingest.
+        using (await locks.AcquireAsync(first.Slug, ct))
         {
             // Re-read under the lock so concurrent saves on the same book never lose each other's changes.
             var loc = await LocateAsync(entityId, ct) ?? throw new KeyNotFoundException($"No programmatic entity '{entityId}'.");
-            var record = await FindRecordAsync(loc.Slug, ct)
+            var record = await FindRecordAsync(loc.Slug, loc.File.Book.FileHash, ct)
                          ?? throw new InvalidOperationException($"No ingestion record for book '{loc.Slug}'.");
 
             var overrides = await overridesStore.LoadAsync(loc.Slug, ct);
@@ -290,10 +289,6 @@ public sealed class EntityReviewService(
             await writer.WriteAsync(loc.Path, loc.File with { Entities = entities }, ct);
             await ingestion.ReindexEntityAsync(record.Id, entityId, ct);
             return entity;
-        }
-        finally
-        {
-            sem.Release();
         }
     }
 
@@ -328,9 +323,17 @@ public sealed class EntityReviewService(
         return result;
     }
 
-    private async Task<IngestionRecord?> FindRecordAsync(string slug, CancellationToken ct)
+    /// <summary>
+    /// The ingestion record behind a canonical file: matched by the file's <c>book.fileHash</c> (several records can
+    /// share a slug, e.g. duplicate PDF uploads); falls back to the slug only when exactly one record has it.
+    /// </summary>
+    private async Task<IngestionRecord?> FindRecordAsync(string slug, string? fileHash, CancellationToken ct)
     {
         var all = await tracker.GetAllAsync(1000, 0, ct);
-        return all.FirstOrDefault(r => string.Equals(EntityIdSlug.BookSlug(r), slug, StringComparison.OrdinalIgnoreCase));
+        var bySlug = all.Where(r => string.Equals(EntityIdSlug.BookSlug(r), slug, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrEmpty(fileHash)
+            && bySlug.FirstOrDefault(r => string.Equals(r.FileHash, fileHash, StringComparison.OrdinalIgnoreCase)) is { } exact)
+            return exact;
+        return bySlug.Count == 1 ? bySlug[0] : null;
     }
 }

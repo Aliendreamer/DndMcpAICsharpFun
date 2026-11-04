@@ -12,8 +12,16 @@ public sealed record FieldOverride(
     DateTimeOffset At,
     bool ExtractedAbsent = false);
 
-/// <summary>An admin's sign-off that an entity with failing checks is acceptable.</summary>
-public sealed record Approval(string EntityId, string Reason, DateTimeOffset At);
+/// <summary>
+/// An admin's sign-off that an entity with failing checks is acceptable. <paramref name="WaivedChecks"/> names the
+/// failed checks the admin saw and waived at approval time; a later run failing any other check sends the entity back
+/// to review. A missing list (legacy approvals) waives nothing — such an approval must be re-done.
+/// </summary>
+public sealed record Approval(
+    string EntityId,
+    string Reason,
+    DateTimeOffset At,
+    IReadOnlyList<string>? WaivedChecks = null);
 
 public sealed record EntityOverrides(IReadOnlyList<FieldOverride> Overrides, IReadOnlyList<Approval> Approvals)
 {

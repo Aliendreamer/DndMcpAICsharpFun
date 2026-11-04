@@ -76,20 +76,74 @@ public class OverrideMergerTests
     public void Approval_accepts_failed_entity()
     {
         var e = Grell(checks: [new EntityCheck("hp-math", false, "bad")]);
-        OverrideMerger.SetDisposition(e, approved: false).Disposition.Should().Be(EntityDisposition.NeedsReview);
-        var accepted = OverrideMerger.SetDisposition(e, approved: true);
+        var approval = new Approval(e.Id, "ok", At, ["hp-math"]);
+        OverrideMerger.SetDisposition(e, null).Disposition.Should().Be(EntityDisposition.NeedsReview);
+        var accepted = OverrideMerger.SetDisposition(e, approval);
         accepted.Disposition.Should().Be(EntityDisposition.Accepted);
         accepted.NeedsReview.Should().BeFalse();
 
-        var viaApply = OverrideMerger.Apply([e], new EntityOverrides([], [new Approval(e.Id, "ok", At)]));
+        var viaApply = OverrideMerger.Apply([e], new EntityOverrides([], [approval]));
         viaApply.Entities[0].Disposition.Should().Be(EntityDisposition.Accepted);
+    }
+
+    [Fact]
+    public void Approval_is_sticky_to_the_checks_it_waived()
+    {
+        // R24: the admin waived hp-matches-dice; a later run that ALSO fails ability-modifiers is back in review.
+        var approval = new Approval("mm14.monster.grell", "checked the page", At, ["hp-matches-dice"]);
+        var o = new EntityOverrides([], [approval]);
+
+        var sameFailure = Grell(checks: [new EntityCheck("hp-matches-dice", false, "hp 45 vs 10d8")]);
+        OverrideMerger.Apply([sameFailure], o).Entities[0].Disposition.Should().Be(EntityDisposition.Accepted);
+
+        var newFailure = Grell(checks:
+        [
+            new EntityCheck("hp-matches-dice", false, "hp 45 vs 10d8"),
+            new EntityCheck("ability-modifiers", false, "STR 18 (+2)"),
+        ]);
+        var r = OverrideMerger.Apply([newFailure], o).Entities[0];
+        r.Disposition.Should().Be(EntityDisposition.NeedsReview);
+        r.NeedsReview.Should().BeTrue();
+
+        var onlyNew = Grell(checks: [new EntityCheck("ability-modifiers", false, "STR 18 (+2)")]);
+        OverrideMerger.Apply([onlyNew], o).Entities[0].Disposition.Should().Be(EntityDisposition.NeedsReview);
+    }
+
+    [Fact]
+    public void Legacy_approval_without_waived_checks_waives_nothing()
+    {
+        var e = Grell(checks: [new EntityCheck("hp-math", false, "bad")]);
+        OverrideMerger.Apply([e], new EntityOverrides([], [new Approval(e.Id, "ok", At)]))
+            .Entities[0].Disposition.Should().Be(EntityDisposition.NeedsReview);
+    }
+
+    [Fact]
+    public void Drift_and_unapplied_are_never_waivable_even_if_listed()
+    {
+        var e = Grell(checks: [new EntityCheck(OverrideMerger.DriftCheck, false, "x")]);
+        var approval = new Approval(e.Id, "ok", At, [OverrideMerger.DriftCheck, OverrideMerger.UnappliedCheck]);
+        OverrideMerger.SetDisposition(e, approval).Disposition.Should().Be(EntityDisposition.NeedsReview);
+        OverrideMerger.WaivableFailedChecks(e).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Programmatic_entity_disposition_is_always_derived()
+    {
+        // A programmatic entity carrying a stale NeedsReview with no checks/overrides is still re-derived.
+        var e = Grell(checks: []) with
+        {
+            DataSource = DataSources.Programmatic,
+            Disposition = EntityDisposition.NeedsReview,
+            NeedsReview = true,
+        };
+        OverrideMerger.Apply([e], EntityOverrides.Empty).Entities[0].Disposition.Should().Be(EntityDisposition.Accepted);
     }
 
     [Fact]
     public void Clean_entity_accepted()
     {
         var e = Grell(checks: [new EntityCheck("hp-math", true, "")]) with { NeedsReview = true };
-        var r = OverrideMerger.SetDisposition(e, approved: false);
+        var r = OverrideMerger.SetDisposition(e, null);
         r.Disposition.Should().Be(EntityDisposition.Accepted);
         r.NeedsReview.Should().BeFalse();
     }

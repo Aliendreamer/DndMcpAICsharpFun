@@ -76,8 +76,10 @@ public sealed class EntityReviewServiceTests : IDisposable
     {
         var eo = Options.Create(new EntityIngestionOptions { CanonicalDirectory = _dir });
         return new EntityReviewService(_loader, _writer, new OverridesStore(eo), _ingestion, _client, _tracker,
-            eo, Options.Create(new IngestionOptions { BooksPath = "/books" }));
+            eo, Options.Create(new IngestionOptions { BooksPath = "/books" }), _locks);
     }
+
+    private readonly CanonicalBookLocks _locks = new();
 
     private OverridesStore Store() =>
         new(Options.Create(new EntityIngestionOptions { CanonicalDirectory = _dir }));
@@ -121,9 +123,106 @@ public sealed class EntityReviewServiceTests : IDisposable
         var e = await FromFile(Orc);
         e.Disposition.Should().Be(EntityDisposition.Accepted);
         e.NeedsReview.Should().BeFalse();
-        (await Store().LoadAsync(Slug, CancellationToken.None)).Approvals
-            .Should().ContainSingle(a => a.EntityId == Orc && a.Reason == "reviewed against page");
+        var approval = (await Store().LoadAsync(Slug, CancellationToken.None)).Approvals
+            .Should().ContainSingle(a => a.EntityId == Orc && a.Reason == "reviewed against page").Subject;
+        approval.WaivedChecks.Should().Equal("hp-sane");
         await _ingestion.Received(1).ReindexEntityAsync(1, Orc, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Approval_waives_only_the_checks_failing_at_approval_time()
+    {
+        await Seed("2", Ent(Orc, "Orc",
+            [new EntityCheck("hp-matches-dice", false, "hp 45 vs 10d8"), new EntityCheck("ac-sane", true, "")],
+            EntityDisposition.NeedsReview));
+
+        await Svc().ApproveAsync(Orc, "page says 45", CancellationToken.None);
+        var saved = await Store().LoadAsync(Slug, CancellationToken.None);
+        saved.Approvals.Single().WaivedChecks.Should().Equal("hp-matches-dice");
+
+        // Re-run: same failure stays accepted; a new failing check sends it back to review.
+        OverrideMerger.Apply([Ent(Orc, "Orc", [new EntityCheck("hp-matches-dice", false, "hp 45 vs 10d8")])], saved)
+            .Entities[0].Disposition.Should().Be(EntityDisposition.Accepted);
+        OverrideMerger.Apply([Ent(Orc, "Orc",
+                [new EntityCheck("hp-matches-dice", false, "hp 45 vs 10d8"), new EntityCheck("ability-modifiers", false, "STR")])],
+                saved)
+            .Entities[0].Disposition.Should().Be(EntityDisposition.NeedsReview);
+    }
+
+    [Fact]
+    public async Task Approval_does_not_record_override_checks_as_waived()
+    {
+        await Seed("2", Ent(Orc, "Orc",
+            [Failed(), new EntityCheck(OverrideMerger.UnappliedCheck, false, "override at fields.gone.x could not be applied: nope")],
+            EntityDisposition.NeedsReview));
+
+        var e = await Svc().ApproveAsync(Orc, "ok", CancellationToken.None);
+
+        (await Store().LoadAsync(Slug, CancellationToken.None)).Approvals.Single().WaivedChecks.Should().Equal("hp-sane");
+        e.Disposition.Should().Be(EntityDisposition.NeedsReview);
+    }
+
+    [Fact]
+    public async Task Override_may_set_a_field_to_json_null()
+    {
+        await SeedDefault();
+
+        await Svc().OverrideAsync(Goblin, "fields.ac", J("null"), "AC not printed on the page", CancellationToken.None);
+
+        (await FromFile(Goblin)).Fields.GetProperty("ac").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Record_is_matched_by_file_hash_when_several_share_the_slug()
+    {
+        static IngestionRecord Rec(int id, string hash) => new()
+        {
+            Id = id, DisplayName = Slug, FilePath = $"/books/t14-{id}.pdf", FileName = "t14.pdf", FileHash = hash,
+            Version = "Edition2014",
+        };
+        _tracker.GetAllAsync(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new List<IngestionRecord> { Rec(9, "dup"), Rec(1, "h"), Rec(8, "dup2") });
+        await SeedDefault(); // canonical file's book.fileHash is "h"
+
+        await Svc().ApproveAsync(Orc, "ok", CancellationToken.None);
+
+        await _ingestion.Received(1).ReindexEntityAsync(1, Orc, Arg.Any<CancellationToken>());
+        await _ingestion.DidNotReceive().ReindexEntityAsync(9, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Ambiguous_slug_without_a_hash_match_is_refused()
+    {
+        static IngestionRecord Rec(int id, string hash) => new()
+        {
+            Id = id, DisplayName = Slug, FilePath = "/books/t14.pdf", FileName = "t14.pdf", FileHash = hash,
+            Version = "Edition2014",
+        };
+        _tracker.GetAllAsync(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new List<IngestionRecord> { Rec(9, "dup"), Rec(8, "dup2") });
+        await SeedDefault();
+
+        var act = () => Svc().ApproveAsync(Orc, "ok", CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*No ingestion record*");
+    }
+
+    [Fact]
+    public async Task Review_save_waits_for_a_held_book_lock()
+    {
+        await SeedDefault();
+        var held = await _locks.AcquireAsync(Slug, CancellationToken.None);
+
+        var save = Svc().ApproveAsync(Orc, "ok", CancellationToken.None);
+        await Task.Delay(200);
+
+        save.IsCompleted.Should().BeFalse();
+        (await Store().LoadAsync(Slug, CancellationToken.None)).Approvals.Should().BeEmpty();
+        await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
+
+        held.Dispose();
+        await save;
+        (await Store().LoadAsync(Slug, CancellationToken.None)).Approvals.Should().ContainSingle();
     }
 
     [Fact]

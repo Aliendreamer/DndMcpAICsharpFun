@@ -26,25 +26,38 @@ public static class OverrideMerger
         foreach (var original in extracted)
         {
             var mine = o.Overrides.Where(x => x.EntityId == original.Id).ToList();
-            var approved = o.Approvals.Any(a => a.EntityId == original.Id);
+            var approval = ApprovalFor(o, original.Id);
             var e = original;
             // In file order: for the same field the last override wins.
             foreach (var ov in mine)
                 e = ApplyOne(original, e, ov);
 
-            if (mine.Count > 0 || approved || e.Checks.Count > 0)
-                e = SetDisposition(e, approved);
+            // Programmatic entities always get a derived disposition (never trust whatever the input carried).
+            if (e.DataSource == DataSources.Programmatic || mine.Count > 0 || approval is not null || e.Checks.Count > 0)
+                e = SetDisposition(e, approval);
             result.Add(e);
         }
         return new MergeResult(result, orphans);
     }
 
-    public static EntityEnvelope SetDisposition(EntityEnvelope e, bool approved)
+    /// <summary>The entity's approval, if any (the last one wins).</summary>
+    public static Approval? ApprovalFor(EntityOverrides o, string entityId) =>
+        o.Approvals.LastOrDefault(a => a.EntityId == entityId);
+
+    /// <summary>Override drift and unapplied overrides can never be waived by an approval.</summary>
+    public static bool IsWaivable(string checkName) => checkName is not (DriftCheck or UnappliedCheck);
+
+    /// <summary>The names of the entity's currently failing checks that an approval may waive.</summary>
+    public static IReadOnlyList<string> WaivableFailedChecks(EntityEnvelope e) =>
+        e.Checks.Where(c => !c.Passed && IsWaivable(c.Name)).Select(c => c.Name).Distinct(StringComparer.Ordinal).ToList();
+
+    public static EntityEnvelope SetDisposition(EntityEnvelope e, Approval? approval)
     {
-        // An approval waives ordinary failed checks but never an unresolved override drift
-        // or an override that could not be applied.
+        // An approval waives only the failed checks it recorded at approval time (sticky, per check name),
+        // and never an unresolved override drift or an override that could not be applied.
+        var waived = approval?.WaivedChecks ?? [];
         var blocked = e.Checks.Any(c => !c.Passed
-            && (!approved || c.Name is DriftCheck or UnappliedCheck));
+            && (!IsWaivable(c.Name) || !waived.Contains(c.Name, StringComparer.Ordinal)));
         return blocked
             ? e with { Disposition = EntityDisposition.NeedsReview, NeedsReview = true }
             : e with { Disposition = EntityDisposition.Accepted, NeedsReview = false };
