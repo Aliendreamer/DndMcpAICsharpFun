@@ -28,10 +28,13 @@ class Vocabulary:
     """Lowercase word counts and adjacent-word-pair counts over the book's body-text lines."""
     words: Counter = field(default_factory=Counter)
     pairs: Counter = field(default_factory=Counter)
+    listed: set = field(default_factory=set)  # words printed on the index / table-of-contents pages
 
 
-def build_vocabulary(texts: Iterable[str]) -> Vocabulary:
+def build_vocabulary(texts: Iterable[str], listed: Iterable[str] = ()) -> Vocabulary:
     v = Vocabulary()
+    for t in listed:
+        v.listed.update(words_of(t))
     for t in texts:
         ws = words_of(t)
         v.words.update(ws)
@@ -66,10 +69,11 @@ class _Lexicon:
     def word_known(self, w: str) -> bool:
         if len(w) == 1:
             return w == "a"
-        if self.count(w) >= MIN_COUNT:
+        # an independently printed listing (index / contents page) corroborates a word on its own
+        if self.count(w) >= MIN_COUNT or w in self.vocab.listed:
             return True
         base = w[:-2] if w.endswith("'s") else None
-        if base and self.count(base) >= MIN_COUNT:
+        if base and (self.count(base) >= MIN_COUNT or base in self.vocab.listed):
             return True
         # plain plural / singular of a known word ("tricks" / "trick")
         if len(w) > 3 and w.endswith("s") and self.count(w[:-1]) >= MIN_COUNT:

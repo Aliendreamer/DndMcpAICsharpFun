@@ -43,3 +43,6 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | dmg | 206, 209 | Sword of Sharpness / Vorpal Sword (type line wraps before the rarity completes) |
 | dmg | 212, 213 | Wand of the War Mage (attunement on its own line), Weapon +1/+2/+3 |
 | dmg | 214, 218, 219, 220, 221, 222, 223 | Whelm followed by the Artifacts section headings (Destroying Artifacts), Axe of the Dwarvish Lords, Books of Exalted Deeds / Vile Darkness |
+| dmg | 317, 318, 319, 320 | Index pages (no heading on 318-320, page ranges, "(cont.)", "See" lines) |
+| dmg | 310, 311, 312, 313, 314, 315 | Appendix C maps (art: legend labels, scale bars) |
+| dmg | 95, 137, 144, 145, 299, 300, 301, 306, 307, 308, 309 | Table-dominated rules pages (random tables, monster lists by CR) |

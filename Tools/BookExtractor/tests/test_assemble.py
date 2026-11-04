@@ -96,3 +96,39 @@ def test_fields_validate_schema(book, ns, t, schema):
     assert r.entities
     for e in r.entities:
         jsonschema.validate(e["fields"], sch)
+
+
+def _parsed(fields, text="x " * 30):
+    from bookextractor.parsers import Parsed
+    return Parsed(type="Spell", name="Fireball", fields=fields, text=text, lines=[], checks=[])
+
+
+def _numeric(fields, text="x " * 30):
+    from collections import Counter
+
+    from bookextractor.names import build_vocabulary
+    from bookextractor.assemble import _id_and_checks
+    p = _parsed(fields, text)
+    _eid, checks = _id_and_checks(p, "b", Counter(), build_vocabulary(["fireball fireball"] * 2))
+    return p, next(c for c in checks if c.name == "numeric-clean")
+
+
+def test_digit_noise_repaired_before_numeric_clean():
+    p, c = _numeric({"entries": ["The target takes 8ld8 fire damage... or ld8 here, 33I"]},
+                    text="Fireball\nIt deals ld8 damage. " * 3)
+    assert "1d8" in p.fields["entries"][0] and "331" in p.fields["entries"][0]
+    assert "ld8" not in p.text and "1d8" in p.text
+    assert c.passed, c.reason
+
+
+def test_unrepairable_numeric_still_fails():
+    # a numeric field holding letters repair cannot turn into a number
+    _p, c = _numeric({"hp": {"average": "7x", "formula": "2d6"}})
+    assert not c.passed and "average" in c.reason
+    _p, c = _numeric({"cr": "1/Q"})
+    assert not c.passed
+
+
+def test_dmg_coverage_counts_tables_and_excludes_maps_and_index():
+    r = extract_book(pages("dmg", 95, 137, 163, 310, 317), "dmg14", {"MagicItem"})
+    assert r.report["pagesRules"] == 2 and r.report["pagesCovered"] == 2
