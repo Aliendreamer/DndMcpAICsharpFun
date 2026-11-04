@@ -1,5 +1,7 @@
 from collections import Counter
 
+import pytest
+
 from bookextractor.assemble import _id_and_checks
 from bookextractor.checks import Check
 from bookextractor.names import build_vocabulary, own_heading_counts, repair_name
@@ -21,6 +23,12 @@ BODY = [
     "of the and",
 ]
 VOCAB = build_vocabulary(BODY * 3)
+OCR_VOCAB = build_vocabulary([
+    "an adult dragon and a gold dragon; a dragon flies", "the crocodile bites and the crocodile swims crocodile",
+    "a cyclops throws rocks; the cyclops cyclops", "jackalwere jackalwere jackalwere in the desert",
+    "a giant and an ape; the giant giant and the ape ape", "a thunder clap and thunder thunder",
+    "a mantle of a mantle mantle", "the destroyer destroyer destroyer",
+])
 
 
 def fix(name):
@@ -61,13 +69,13 @@ def test_compound_not_torn_apart_without_evidence():
     assert fix("Druidcraft").name == "Druidcraft"
     # unknown glued word whose halves never sit together in the book is flagged, not split
     r = repair_name("Fireglobe", VOCAB, own_heading_counts("Fireglobe"))
-    assert not r.repaired and r.unknown == ["Fireglobe"]
+    assert not r.repaired and r.name == "Fireglobe"
 
 
 def test_own_heading_not_counted():
     vocab = build_vocabulary(["a lone camel stands", "Camel"])
     r = repair_name("Camel", vocab, own_heading_counts("Camel"))
-    assert r.unknown == ["Camel"]
+    assert not r.unknown and r.unattested == ["Camel"]  # one print elsewhere is not enough to be "known"
 
 
 def _parsed(name, text="x " * 30):
@@ -88,3 +96,38 @@ def test_assembler_flags_unknown_word():
     _eid, checks = _id_and_checks(p, "dmg14", Counter(), VOCAB)
     bad = next(c for c in checks if c.name == "name-words-known")
     assert not bad.passed and "Mgic" in bad.reason
+
+
+@pytest.mark.parametrize("name, word", [
+    ("Adult Gold Draon", "Draon"),      # one letter dropped from a known word
+    ("Giant Crogodile", "Crogodile"),   # one letter substituted
+    ("Cyyclops", "Cyyclops"),           # one letter doubled
+    ("Ackalwere", "Ackalwere"),         # first letter lost
+    ("Giantape", "Giantape"),           # lost space between two known words
+    ("Hq6!a-", "Hq6!a-"),               # not a word at all
+])
+def test_misread_looking_words_stay_unknown(name, word):
+    r = repair_name(name, OCR_VOCAB, own_heading_counts(name))
+    assert word in r.unknown, r
+
+
+@pytest.mark.parametrize("name, word", [
+    ("Thunderbuss", "Thunderbuss"), ("Mistralmantle", "Mistralmantle"), ("Lucent Destroyer", "Lucent"),
+])
+def test_coined_words_are_unattested_not_unknown(name, word):
+    r = repair_name(name, OCR_VOCAB, own_heading_counts(name))
+    assert not r.unknown and word in r.unattested, r
+
+
+def test_assembler_passes_unattested_name_with_a_note():
+    p = _parsed("Thunderbuss")
+    _eid, checks = _id_and_checks(p, "bgg", Counter(), OCR_VOCAB)
+    c = next(c for c in checks if c.name == "name-words-known")
+    assert c.passed and "not printed elsewhere in the book: Thunderbuss" in c.reason
+
+
+def test_name_that_does_not_start_with_a_letter_fails():
+    p = _parsed("-Bigby")
+    _eid, checks = _id_and_checks(p, "bgg", Counter(), build_vocabulary(["bigby says bigby wrote bigby"] * 3))
+    c = next(c for c in checks if c.name == "name-found")
+    assert not c.passed and "does not start with a letter" in c.reason

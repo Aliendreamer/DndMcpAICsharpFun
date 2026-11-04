@@ -118,10 +118,20 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
     checks = list(p.checks)
     if res and res.repaired:
         checks.append(Check("name-repaired", True, f"{res.original!r} -> {res.name!r}"))
-    checks.append(Check("name-found", bool(name.strip()), "" if name.strip() else "no entity name found"))
+    if not name.strip():
+        checks.append(Check("name-found", False, "no entity name found"))
+    elif not name.strip()[0].isalpha():
+        checks.append(Check("name-found", False, f"name {name!r} does not start with a letter"))
+    else:
+        checks.append(Check("name-found", True, ""))
     if res:
-        checks.append(Check("name-words-known", not res.unknown,
-                            "" if not res.unknown else "unknown words in name: " + ", ".join(res.unknown)))
+        if res.unknown:
+            why = "unknown words in name: " + ", ".join(res.unknown)
+        elif res.unattested:
+            why = "not printed elsewhere in the book: " + ", ".join(res.unattested)
+        else:
+            why = ""
+        checks.append(Check("name-words-known", not res.unknown, why))
     else:
         checks.append(Check("name-words-known", False, "no name to check"))
     checks.append(Check("text-present", len(p.text.strip()) >= 30, "" if len(p.text.strip()) >= 30

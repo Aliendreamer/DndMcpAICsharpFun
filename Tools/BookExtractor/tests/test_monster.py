@@ -59,8 +59,11 @@ def test_clay_golem_hp_mismatch():
     g = by_name(parse_monsters(lines(169)), "Clay Golem")
     hp = next(c for c in g.checks if c.name == "hp-matches-dice")
     assert not hp.passed and "133" in hp.reason and "14d70" in hp.reason
-    mods = next(c for c in g.checks if c.name == "ability-modifiers")
-    assert not mods.passed  # OCR read 18 (+4) as 78 (+4)
+    # OCR read CON 18 (+4) as 78 (+4) and WIS 8 (-1) as 8 (-7); both are corroborated repairs,
+    # so the entity is flagged by the HP dice alone
+    assert next(c for c in g.checks if c.name == "ability-modifiers").passed
+    notes = " ".join(c.reason for c in g.checks if c.name == "ability-repaired")
+    assert "CON read 78 (+4), repaired to 18" in notes and "WIS modifier read 8 (-7), repaired to -1" in notes
 
 
 def test_name_never_guessed():
@@ -224,3 +227,94 @@ def test_mm_orc_eye_of_gruumsh_con_is_what_the_book_prints():
     # the printed row is "16 (+3)" for CON; 5etools lists 17 (a known book-vs-5etools difference)
     g = _goblin_with_row("16 (+3) 12 (+1) 16 (+3) 9 (-1) 13 (+1) 12 (+1)")
     assert _abilities(g) == [16, 12, 16, 9, 13, 12]
+
+
+@pytest.mark.parametrize("row, stat, read, fixed", [
+    # MPMM Archdruid / MTF Canoloth: printed "12 (+1)", OCR "12 (+7)"
+    ("12 (+7) 14 (+2) 10 (+0) 10 (+0) 8 (-1) 8 (-1)", "STR", "12 (+7)", "+1"),
+    # MPMM Derro: printed "9 (-1)", OCR "9 (-7)"
+    ("8 (-1) 14 (+2) 9 (-7) 10 (+0) 8 (-1) 8 (-1)", "CON", "9 (-7)", "-1"),
+])
+def test_modifier_one_read_as_seven_is_repaired_when_the_score_fits(row, stat, read, fixed):
+    g = _goblin_with_row(row)
+    assert _check(g, "ability-modifiers").passed
+    assert f"{stat} modifier read {read}, repaired to {fixed}" in _check(g, "ability-repaired").reason
+
+
+@pytest.mark.parametrize("row", [
+    "17 (+0) 14 (+2) 10 (+0) 10 (+0) 8 (-1) 8 (-1)",   # Deathlock: score or modifier wrong, can't tell which
+    "24 (+1) 14 (+2) 10 (+0) 10 (+0) 8 (-1) 8 (-1)",   # no 7 to swap
+])
+def test_modifier_mismatch_without_a_7_to_swap_stays_flagged(row):
+    g = _goblin_with_row(row)
+    assert not _check(g, "ability-modifiers").passed
+    assert not any(c.name == "ability-repaired" for c in g.checks)
+
+
+def _block(name_lines, size_line, x=150, y=1000, h=40, page=207):
+    """A minimal stat block as reading-ordered lines: heading line(s), size line, AC, HP, speed, abilities."""
+    from bookextractor.model import Line
+    out, cy = [], y
+    for t in name_lines:
+        out.append(Line(t, (x, cy, x + 400, cy + h), h, page))
+        cy += h
+    body = [size_line, "Armor Class 18 (plate)", "Hit Points 187 (22d8 + 88)", "Speed 30 ft.",
+            "STR DEX CON INT WIS CHA", "19 (+4) 17 (+3) 18 (+4) 16 (+3) 16 (+3) 18 (+4)",
+            "Challenge 14 (11,500 XP)"]
+    for t in body:
+        out.append(Line(t, (x, cy, x + 600, cy + 30), 30, page))
+        cy += 32
+    filler = [Line("body text line of ordinary height here", (x, cy + 40 * k, x + 600, cy + 40 * k + 30), 30, page)
+              for k in range(1, 12)]
+    return out + filler
+
+
+def test_two_line_heading_is_one_name():
+    # MTF/MPMM: "GITHYANKI SUPREME" over "COMMANDER" was extracted as "Commander" and passed every check
+    ps = parse_monsters(_block(["GITHYANKI SUPREME", "COMMANDER"], "Medium humanoid (gith), lawful evil"))
+    assert [p.name for p in ps] == ["Githyanki Supreme Commander"]
+
+
+def test_one_line_heading_does_not_absorb_the_line_above():
+    ls = _block(["Goblin"], "Small humanoid (goblinoid), neutral evil")
+    from bookextractor.model import Line
+    ls.insert(0, Line("some lore text that ends the previous paragraph.", (150, 950, 750, 980), 30, 207))
+    assert [p.name for p in parse_monsters(ls)] == ["Goblin"]
+
+
+def test_size_line_with_borrowed_alignment_starts_a_stat_block():
+    # MTF/MPMM Sacred Statue: "Large construct, as the eidolon's alignment"
+    ps = parse_monsters(_block(["Sacred Statue"], "Large construct, as the eidolon's alignment"))
+    assert [p.name for p in ps] == ["Sacred Statue"]
+
+
+def _bgg_page_158():
+    """BGG p158 shape: big decorative quote with a "-Bigby" attribution, then a heading only 1.19x the
+    page median (large quote text inflates the median), touching its size line."""
+    from bookextractor.model import Line
+    P = 158
+    big = [Line("There's a grace to their existence, as", (905, 522, 1450, 602), 80, P),
+           Line("fractured as it seems.", (910, 601, 1213, 668), 67, P),
+           Line("-Bigby", (1121, 667, 1265, 730), 63, P)]
+    head = [Line("LigHTNING HULK", (885, 859, 1241, 903), 44, P),
+            Line("Large Elemental, Typically Chaotic Neutral", (884, 903, 1296, 937), 34, P)]
+    body = ["Armor Class 17 (natural armor)", "Hit Points 84 (8d10 + 40)", "Speed 30 ft.",
+            "STR DEX CON INT WIS CHA", "20 (+5) 10 (+0) 20 (+5) 7 (-2) 10 (+0) 7 (-2)", "Challenge 6 (2,300 XP)"]
+    y, out = 940, []
+    for t in body:
+        out.append(Line(t, (885, y, 1500, y + 37), 37, P))
+        y += 40
+    filler = [Line("ordinary body text of a fairly large book font", (150, 200 + 45 * k, 800, 237 + 45 * k), 37, P)
+              for k in range(30)]
+    return filler + big + head + out
+
+
+def test_quote_attribution_is_never_the_name():
+    assert [p.name for p in parse_monsters(_bgg_page_158())] == ["Lightning Hulk"]
+
+
+@pytest.mark.parametrize("name", ["Fire Giant of Evil Fire", "Frost Giant of Evil Water", "Stone Giant of Evil Earth"])
+def test_alignment_word_inside_a_name_is_still_a_name(name):
+    # BGG: "Evil" in the heading made the parser treat it as the alignment line and leave the name empty
+    ps = parse_monsters(_block([name], "Huge giant, typically lawful evil"))
+    assert [p.name for p in ps] == [name]

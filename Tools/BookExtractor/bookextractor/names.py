@@ -19,6 +19,19 @@ _WORD = re.compile(r"[a-z]+(?:'[a-z]+)?")
 _PLAIN = re.compile(r"^[A-Za-z']+$")
 
 
+COMMON_COUNT = 3  # a word printed this often is a safe reference for "one letter off"
+_LETTERS = "abcdefghijklmnopqrstuvwxyz'"
+
+
+def _edits1(w: str) -> set[str]:
+    """Every string one deletion, transposition, substitution or insertion away from w."""
+    sp = [(w[:i], w[i:]) for i in range(len(w) + 1)]
+    return ({a + b[1:] for a, b in sp if b}
+            | {a + b[1] + b[0] + b[2:] for a, b in sp if len(b) > 1}
+            | {a + c + b[1:] for a, b in sp if b for c in _LETTERS}
+            | {a + c + b for a, b in sp for c in _LETTERS}) - {w}
+
+
 def words_of(text: str) -> list[str]:
     return _WORD.findall(text.lower().replace("’", "'"))
 
@@ -52,7 +65,8 @@ class NameResult:
     name: str
     repaired: bool = False
     original: str = ""
-    unknown: list[str] = field(default_factory=list)
+    unknown: list[str] = field(default_factory=list)      # look like misreads: flagged
+    unattested: list[str] = field(default_factory=list)   # coined words the book prints only here: noted
 
 
 class _Lexicon:
@@ -89,6 +103,26 @@ class _Lexicon:
         if "-" in token and len(ws) > 1:
             return all(self.word_known(w) or (len(w) == 1 and w.isalpha()) for w in ws)
         return all(self.word_known(w) for w in ws)
+
+    def common(self, w: str) -> bool:
+        return self.count(w) >= COMMON_COUNT
+
+    def looks_misread(self, token: str) -> bool:
+        """An unknown token that is not a plain word, is one edit (drop, add, swap or change a letter) from a
+        common word of the book, or is two known words with the space lost. Anything else is a coined word
+        (a new item or monster name) that the book simply prints only once."""
+        if not _PLAIN.match(token.strip(".,;:")):
+            return True
+        for w in words_of(token):
+            if self.word_known(w):
+                continue
+            base = w[:-2] if w.endswith("'s") else w
+            if any(self.common(e) for e in _edits1(base)):
+                return True
+            # a lost space ("Giantape"); a real compound of two common words ("Dragonhide") lands in review too
+            if any(self.common(base[:i]) and self.common(base[i:]) for i in range(3, len(base) - 2)):
+                return True
+        return False
 
     def split(self, w: str) -> tuple[str, str] | None:
         """Two known words glued together. Accepted only with evidence: either one part is a glued
@@ -155,5 +189,7 @@ def repair_name(name: str, vocab: Vocabulary, own: Vocabulary | None = None) -> 
     if repaired:
         result = " ".join(_cap(w, k == 0) if w.lower() in SMALL_WORDS or k == 0 else w
                           for k, w in enumerate(result.split()))
-    unknown = [t for t in result.split() if not lex.token_known(t)]
-    return NameResult(name=result, repaired=repaired, original=name, unknown=unknown)
+    left = [t for t in result.split() if not lex.token_known(t)]
+    unknown = [t for t in left if lex.looks_misread(t)]
+    unattested = [t for t in left if t not in unknown]
+    return NameResult(name=result, repaired=repaired, original=name, unknown=unknown, unattested=unattested)

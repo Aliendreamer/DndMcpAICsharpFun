@@ -18,7 +18,8 @@ FIELDS = ["Armor Class", "Hit Points", "Speed", "Saving Throws", "Skills", "Dama
           "Damage Resistances", "Damage Immunities", "Condition Immunities", "Senses", "Languages", "Challenge"]
 SECTIONS = {"actions": "action", "reactions": "reaction", "legendary actions": "legendary",
             "lair actions": "lair", "bonus actions": "bonus"}
-ALIGN = re.compile(r"\b(lawful|chaotic|neutral|unaligned|any|good|evil)\b", re.I)
+# "alignment" covers a borrowed one ("Large construct, as the eidolon's alignment")
+ALIGN = re.compile(r"\b(lawful|chaotic|neutral|unaligned|any|good|evil|alignment)\b", re.I)
 ABILITIES = ["str", "dex", "con", "int", "wis", "cha"]
 _HEADER = "STR DEX CON INT WIS CHA"
 _PAIR = re.compile(r"(\d{1,3})[\s.,;:]*\(\s*([+-]{0,2})\s*(\d{1,2})\s*[)}\]]")
@@ -55,6 +56,11 @@ def _size_of(t: str) -> str | None:
     w = t.split()[0] if t.split() else ""
     hit = process.extractOne(w, SIZES, score_cutoff=50)
     return hit[0] if hit else None
+
+
+def _is_size_line(t: str) -> bool:
+    """"<Size> <type>, <alignment>" — not merely any line with "evil" in it ("Fire Giant of Evil Fire")."""
+    return "," in t and bool(ALIGN.search(t)) and bool(_size_of(t))
 
 
 def _is_ability_header(t: str) -> bool:
@@ -107,7 +113,7 @@ def _monster_starts(L: list[Line]) -> list[int]:
     for i, l in enumerate(L):
         if _lab(l.text, "Armor Class") and (not st or i - st[-1] > 3):
             for j in (i - 1, i - 2):
-                if j >= 0 and "," in L[j].text and ALIGN.search(L[j].text) and _size_of(L[j].text):
+                if j >= 0 and _is_size_line(L[j].text):
                     st.append(j)
                     break
     return st
@@ -127,10 +133,19 @@ def _pick_name(L: list[Line], rel: list[float], i: int) -> int | None:
     The only fallback is a short capitalised line directly above; never a previous page.
     """
     z = L[i]
+    # a heading touching the size line and taller than it is the name, whatever the page median
+    # (BGG's big decorative quotes push a real heading under 1.2x the median)
+    if i > 0:
+        l = L[i - 1]
+        gap = z.box[1] - l.box[3]
+        overlap = min(l.box[2], z.box[2]) - max(l.box[0], z.box[0])
+        if l.page == z.page and -0.3 * z.height <= gap < 0.6 * z.height and overlap > 0 \
+                and l.height >= 1.1 * z.height and _heading_like(l.text):
+            return i - 1
     best: tuple[float, int] | None = None
     for j in range(max(0, i - 400), min(len(L), i + 400)):
         l = L[j]
-        if l.page != z.page or j == i or rel[j] < 1.2 or ALIGN.search(l.text) or len(l.text.split()) > 6:
+        if l.page != z.page or j == i or rel[j] < 1.2 or not _heading_like(l.text):
             continue
         gap = z.box[1] - l.box[3]
         overlap = min(l.box[2], z.box[2]) - max(l.box[0], z.box[0])
@@ -141,10 +156,38 @@ def _pick_name(L: list[Line], rel: list[float], i: int) -> int | None:
     for j in range(i - 1, max(i - 4, -1), -1):
         l = L[j]
         t = l.text
-        if l.page == z.page and 1 <= len(t.split()) <= 6 and not t.endswith(".") and not t[:1].islower() \
-                and not ALIGN.search(t):
+        if l.page == z.page and _heading_like(t) and not t.endswith(".") and not t[:1].islower():
             return j
     return None
+
+
+def _heading_like(t: str) -> bool:
+    """Short, starts with a letter (never a "—Bigby" quote attribution), not the alignment line."""
+    t = t.strip()
+    return bool(t) and t[0].isalpha() and len(t.split()) <= 6 and not _is_size_line(t)
+
+
+def _heading_lines(L: list[Line], rel: list[float], nj: int) -> list[int]:
+    """The name line plus up to two lines directly above it that continue the same heading
+    ("GITHYANKI SUPREME" over "COMMANDER"): same page and column, heading-sized, height within 20%,
+    touching (no paragraph gap), short and not a sentence."""
+    top = nj
+    for _ in range(2):
+        k = top - 1
+        if k < 0:
+            break
+        a, b = L[k], L[top]
+        t = a.text.strip()
+        if a.page != b.page or rel[k] < 1.2 or abs(a.height - b.height) > 0.2 * b.height:
+            break
+        if _is_size_line(t) or len(t.split()) > 6 or t.endswith((".", ":", ",")) or t[:1].islower():
+            break
+        gap = b.box[1] - a.box[3]
+        overlap = min(a.box[2], b.box[2]) - max(a.box[0], b.box[0])
+        if not (-0.3 * b.height <= gap < 0.5 * b.height and overlap > 0):
+            break
+        top = k
+    return list(range(top, nj + 1))
 
 
 # ---------- field conversion ----------
@@ -330,6 +373,14 @@ def repair_abilities(pairs: list[tuple[int, int, bool, str | None]]) -> list[tup
             elif 1 <= r <= 30 and m2 != m and (r - 10) // 2 == m2:
                 note = f"{k.upper()} read {a} ({m:+d}), repaired to {r} ({m2:+d})"
                 a, m = r, m2
+        elif signed and (a - 10) // 2 != m and "7" in str(abs(m)):
+            # the modifier's 1 read as 7 (12 (+7), 9 (-7)): repaired only when the swap makes the score fit
+            m2 = int(f"{'-' if m < 0 else '+'}{str(abs(m)).replace('7', '1')}")
+            if (a - 10) // 2 == m2:
+                note = f"{k.upper()} modifier read {a} ({m:+d}), repaired to {m2:+d}"
+                m = m2
+            elif note:
+                note = f"{k.upper()} {note}"
         elif note:
             note = f"{k.upper()} {note}"
         out.append((a, m, signed, note))
@@ -362,7 +413,8 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
     head = parts[0] if parts else st_line
     align = ", ".join(parts[1:]) if len(parts) > 1 else ""
     size = _size_of(st_line)
-    name = _title(L[nj].text) if nj is not None else ""
+    name = _title(" ".join(L[k].text for k in _heading_lines(L, rel, nj))) if nj is not None else ""
+    nj = _heading_lines(L, rel, nj)[0] if nj is not None else None
 
     j = i + 1
     cur: str | None = None
@@ -526,6 +578,7 @@ def parse_monsters(lines: list[Line]) -> list[Parsed]:
         end = len(L)
         if k + 1 < len(st):
             nn = _pick_name(L, rel, st[k + 1])
+            nn = _heading_lines(L, rel, nn)[0] if nn is not None else None
             end = nn if nn is not None and i < nn < st[k + 1] else st[k + 1]
         for p in _expand_variants(_parse_block(L, rel, i, nj, end)):
             p.checks = monster_checks(p)
