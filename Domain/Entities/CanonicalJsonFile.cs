@@ -19,5 +19,7 @@ public sealed record CanonicalJsonFile(
 
 public static class CanonicalJsonSchema
 {
-    public const string CurrentVersion = "1";
+    public const string CurrentVersion = "2";
+
+    public static readonly IReadOnlyList<string> SupportedVersions = ["1", "2"];
 }

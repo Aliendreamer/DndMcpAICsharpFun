@@ -60,9 +60,9 @@ public sealed class CanonicalJsonLoader
         var file = await JsonSerializer.DeserializeAsync<CanonicalJsonFile>(stream, JsonOptions, ct)
                    ?? throw new CanonicalJsonSchemaException($"Failed to deserialise canonical JSON at {path}");
 
-        if (file.SchemaVersion != CanonicalJsonSchema.CurrentVersion)
+        if (!CanonicalJsonSchema.SupportedVersions.Contains(file.SchemaVersion))
             throw new CanonicalJsonSchemaException(
-                $"Unsupported schemaVersion '{file.SchemaVersion}' (expected '{CanonicalJsonSchema.CurrentVersion}') in {path}");
+                $"Unsupported schemaVersion '{file.SchemaVersion}' (expected one of {string.Join(", ", CanonicalJsonSchema.SupportedVersions)}) in {path}");
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var e in file.Entities)

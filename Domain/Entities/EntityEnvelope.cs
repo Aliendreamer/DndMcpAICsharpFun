@@ -21,7 +21,15 @@ public sealed record EntityEnvelope(
     bool BasicRules2024 = false,
     bool NeedsReview = false,
     IReadOnlyList<string> Keywords = null!,
-    EntityDisposition Disposition = EntityDisposition.Accepted)
+    EntityDisposition Disposition = EntityDisposition.Accepted,
+    IReadOnlyList<EntityCheck> Checks = null!,
+    EntityProvenance? Provenance = null)
 {
     public IReadOnlyList<string> Keywords { get; init; } = Keywords ?? [];
+    public IReadOnlyList<EntityCheck> Checks { get; init; } = Checks ?? [];
+}
+
+public static class DataSources
+{
+    public const string Programmatic = "programmatic";
 }

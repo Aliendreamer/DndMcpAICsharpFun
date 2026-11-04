@@ -90,7 +90,16 @@ public sealed class EntityIngestionOrchestrator(
             if (envelope.Disposition == EntityDisposition.Ungrounded)
                 continue;
 
-            var merged = MergeEnrichment(envelope, fivetoolsIndex, existingQdrant, out var matchedThis);
+            // Programmatic extraction: only Accepted entities are indexed, and the envelope is
+            // used as-is (no 5etools / prior-Qdrant enrichment).
+            var programmatic = envelope.DataSource == DataSources.Programmatic;
+            if (programmatic && envelope.Disposition != EntityDisposition.Accepted)
+                continue;
+
+            var matchedThis = false;
+            var merged = programmatic
+                ? envelope
+                : MergeEnrichment(envelope, fivetoolsIndex, existingQdrant, out matchedThis);
             if (matchedThis) matchedFivetools++; else unmatched++;
 
             string text;
@@ -172,6 +181,16 @@ public sealed class EntityIngestionOrchestrator(
             return;
         }
 
+        // Programmatic extraction: only Accepted entities live in dnd_entities.
+        if (envelope.DataSource == DataSources.Programmatic && envelope.Disposition != EntityDisposition.Accepted)
+        {
+            await store.DeleteByIdsAsync([entityId], ct);
+            logger.LogInformation(
+                "Reindex of non-Accepted programmatic entity {EntityId} (book {BookId}) converted to a delete",
+                entityId, bookId);
+            return;
+        }
+
         // ── Enrichment (same path as IngestEntitiesAsync but for a single entity) ──
         var fivetoolsIndex = await BuildFivetoolsIndexAsync(
             record, "Could not build 5etools enrichment index for single-entity reindex — proceeding unenriched", ct);
@@ -182,7 +201,9 @@ public sealed class EntityIngestionOrchestrator(
             ? new Dictionary<string, EntityEnvelope>()
             : await store.GetByIdsAsync([envelope.Id], ct);
 
-        var merged = MergeEnrichment(envelope, fivetoolsIndex, existingQdrant, out _);
+        var merged = envelope.DataSource == DataSources.Programmatic
+            ? envelope
+            : MergeEnrichment(envelope, fivetoolsIndex, existingQdrant, out _);
 
         string text;
         try
