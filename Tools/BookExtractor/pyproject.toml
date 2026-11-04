@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bookextractor"
+version = "0.1.0"
+description = "Deterministic D&D book extractor (OCR / text layer to canonical JSON). No LLM, CPU only."
+requires-python = ">=3.12"
+dependencies = [
+    "rapidocr==3.4.2",
+    "onnxruntime==1.31.1",
+    "pymupdf==2.1",
+    "rapidfuzz==3.14.6",
+    "numpy==2.5.4",
+    "fastapi",
+    "uvicorn",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "jsonschema", "httpx"]
+
+[tool.setuptools]
+packages = ["bookextractor"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

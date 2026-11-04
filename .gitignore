@@ -89,3 +89,6 @@ TestResults/
 logs/
 .superpowers
 .moe-bench
+Tools/BookExtractor/.venv/
+**/__pycache__/
+*.egg-info/
