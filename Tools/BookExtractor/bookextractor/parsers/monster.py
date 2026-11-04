@@ -21,7 +21,10 @@ SECTIONS = {"actions": "action", "reactions": "reaction", "legendary actions": "
 ALIGN = re.compile(r"\b(lawful|chaotic|neutral|unaligned|any|good|evil)\b", re.I)
 ABILITIES = ["str", "dex", "con", "int", "wis", "cha"]
 _HEADER = "STR DEX CON INT WIS CHA"
-_PAIR = re.compile(r"(\d{1,3})\s*\(\s*([+-]{0,2})\s*(\d{1,2})\s*[)}\]]")
+_PAIR = re.compile(r"(\d{1,3})[\s.,;:]*\(\s*([+-]{0,2})\s*(\d{1,2})\s*[)}\]]")
+# a score whose leading digit(s) OCR'd as junk ("$7+3)", ".4:(-3)"): junk, ones digit, optional "(", signed modifier
+_GARBLED = re.compile(r"(?<![\w(])[^\w\s(]{1,2}(\d)[^\w\s+\-]{0,2}\(?\s*([+-])(\d{1,2})\s*[)}\]]")
+_ABILITY_TOKEN = re.compile(_PAIR.pattern + "|" + _GARBLED.pattern)
 _SMALL = r"(?:of|the|and|to|with|a|an|in|on|or|for|from|by|at)"
 _ENTRY = re.compile(r"(?:(?<=^)|(?<=[.)] ))([A-Z][A-Za-z'\-]*(?: (?:[A-Z0-9][A-Za-z'\-/]*|" + _SMALL
                     + r")){0,5}(?: \([^)]{1,40}\))?)\. ")
@@ -271,36 +274,64 @@ def _split_entries(text: str) -> list[tuple[str | None, str]]:
 
 
 # ---------- ability rows ----------
-def ability_pairs(lines: list[Line]) -> list[tuple[int, int, bool]]:
-    """Six (score, modifier, signed) triples read from the one or two lines after the STR..CHA header.
+def _garbled_score(ones: str, sign: str, mod: str) -> tuple[int, int] | None:
+    """The one score 1..30 ending in `ones` whose modifier is the printed one (None if not unique)."""
+    m = int(f"{sign}{mod}")
+    hits = [v for v in range(1, 31) if v % 10 == int(ones) and (v - 10) // 2 == m]
+    return (hits[0], m) if len(hits) == 1 else None
+
+
+def _ability_tokens(text: str) -> list[tuple[int, int, bool, str | None]]:
+    out: list[tuple[int, int, bool, str | None]] = []
+    for m in _ABILITY_TOKEN.finditer(text):
+        if m.group(1) is not None:
+            a, s, md = m.group(1), m.group(2), m.group(3)
+            out.append((int(a), int(f"{s[-1:]}{md}"), bool(s), None))
+        else:
+            g = _garbled_score(m.group(4), m.group(5), m.group(6))
+            if g:
+                out.append((g[0], g[1], True,
+                            f"score read {m.group(0)!r}, repaired to {g[0]} ({g[1]:+d}) from its printed modifier"))
+    return out
+
+
+def ability_pairs(lines: list[Line]) -> list[tuple[int, int, bool, str | None]]:
+    """Six (score, modifier, signed, repair note) tuples read from the one or two lines after the STR..CHA header.
 
     A row may be split across two lines, so both lines are joined before matching.
     """
     for i, l in enumerate(lines):
         if _is_ability_header(l.text):
             joined = fix_digits(" ".join(x.text for x in lines[i + 1: i + 3]))
-            pairs = [(int(a), int(f"{s[-1:]}{m}"), bool(s)) for a, s, m in _PAIR.findall(joined)]
+            pairs = _ability_tokens(joined)
             if len(pairs) >= 6:
                 return pairs[:6]
             one = fix_digits(lines[i + 1].text) if i + 1 < len(lines) else ""
-            return [(int(a), int(f"{s[-1:]}{m}"), bool(s)) for a, s, m in _PAIR.findall(one)]
+            return _ability_tokens(one)
     return []
 
 
-def repair_abilities(pairs: list[tuple[int, int, bool]]) -> list[tuple[int, int, bool, str | None]]:
-    """Fix the one corroborated OCR misread: a leading 1 read as 7 (73 (+1) -> 13).
+def repair_abilities(pairs: list[tuple[int, int, bool, str | None]]) -> list[tuple[int, int, bool, str | None]]:
+    """Fix the corroborated OCR misread: a leading 1 read as 7 (73 (+1) -> 13).
 
     Only when the score disagrees with its printed, signed modifier and swapping the leading 7 for 1
-    gives a score whose modifier matches. Anything else is left for the ability-modifiers check.
+    gives a score whose modifier matches. When the modifier's own 1 was read as 7 too (73 (+7)), the pair
+    is repaired only if swapping 7 -> 1 in both makes them agree. Anything else is left for the
+    ability-modifiers check.
     """
     out: list[tuple[int, int, bool, str | None]] = []
-    for k, (a, m, signed) in zip(ABILITIES, pairs):
-        note = None
+    for k, (a, m, signed, note) in zip(ABILITIES, pairs):
         if signed and (a - 10) // 2 != m and len(str(a)) >= 2 and str(a).startswith("7"):
             r = int("1" + str(a)[1:])
+            m2 = int(f"{'-' if m < 0 else '+'}{str(abs(m)).replace('7', '1')}")
             if 1 <= r <= 30 and (r - 10) // 2 == m:
                 note = f"{k.upper()} read {a} ({m:+d}), repaired to {r}"
                 a = r
+            elif 1 <= r <= 30 and m2 != m and (r - 10) // 2 == m2:
+                note = f"{k.upper()} read {a} ({m:+d}), repaired to {r} ({m2:+d})"
+                a, m = r, m2
+        elif note:
+            note = f"{k.upper()} {note}"
         out.append((a, m, signed, note))
     return out
 

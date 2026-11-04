@@ -1,6 +1,4 @@
 import json
-
-import pytest
 import subprocess
 import sys
 
@@ -91,3 +89,28 @@ def test_missing_fivetools_dir_is_clean_error(tmp_path, capsys):
     out.write_text(json.dumps({"entities": []}))
     assert main(["score", "mm", str(out), "--fivetools", str(tmp_path / "nope")]) == 1
     assert "error:" in capsys.readouterr().err
+
+
+def _revivify_truth(tmp_path):
+    (tmp_path / "spells").mkdir()
+    sp = {"name": "Revivify", "level": 3, "school": "N", "time": [{"number": 1, "unit": "action"}],
+          "range": {"type": "point", "distance": {"type": "touch"}},
+          "components": {"v": True}, "duration": [{"type": "instant"}], "entries": ["a b c d e f"]}
+    (tmp_path / "spells/spells-phb.json").write_text(json.dumps({"spell": [sp]}))
+
+
+def _revivify_ours(school):
+    return {"type": "Spell", "name": "Revivify", "fields": {
+        "level": 3, "school": school, "time": [{"number": 1, "unit": "action"}],
+        "range": {"type": "point", "distance": {"type": "touch"}}, "components": {"v": True},
+        "duration": [{"type": "instant"}], "entries": ["a b c d e f"]}}
+
+
+def test_known_book_difference_is_listed_and_counted_only_while_value_matches(tmp_path):
+    _revivify_truth(tmp_path)
+    res = score_book("phb", [_revivify_ours("C")], tmp_path)  # the book prints conjuration
+    assert res["fields"]["school"]["pct"] == 100 and res["diffs"] == []
+    assert len(res["knownDifferences"]) == 1 and "Revivify: school" in res["knownDifferences"][0]
+    res = score_book("phb", [_revivify_ours("A")], tmp_path)  # any other value is still a real disagreement
+    assert res["fields"]["school"]["pct"] == 0 and res["knownDifferences"] == []
+    assert any("Revivify: school wrong" in d for d in res["diffs"])

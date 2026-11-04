@@ -280,6 +280,23 @@ def _printed(p: Parsed, label: str, until: str) -> str:
     return re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
 
 
+_SHAPES = ("hemisphere", "sphere", "cone", "line", "cube", "radius")
+
+
+def _printed_range_kind(printed: str) -> tuple[str | None, str | None]:
+    """(kind, shape) of a printed range line: kind is self/touch/sight/unlimited/special/feet/miles."""
+    low = printed.lower().strip()
+    for word in ("self", "touch", "sight", "unlimited", "special"):
+        if low.startswith(word):
+            shape = next((s for s in _SHAPES if s in low), None) if word == "self" else None
+            return word, shape
+    if re.search(r"\bmiles?\b", low):
+        return "miles", None
+    if re.search(r"\b(?:feet|foot|ft)\b", low):
+        return "feet", None
+    return None, None
+
+
 def _range_agrees(p: Parsed) -> bool:
     printed = _printed(p, "Range", "Component")
     rng = p.fields.get("range") or {}
@@ -290,9 +307,39 @@ def _range_agrees(p: Parsed) -> bool:
     got = sorted(([amount] if amount is not None else []))
     if nums != got:
         return False
-    low = printed.lower()
+    # the printed range TYPE must agree with the parsed one ("Self (30-foot radius)" is a self-origin shape)
+    kind, shape = _printed_range_kind(printed)
+    if kind is None:
+        return False
+    rtype = rng.get("type")
     dtype = (rng.get("distance") or {}).get("type")
-    return all((w not in low) or dtype == w or rng.get("type") == w for w in ("touch", "sight", "unlimited", "special"))
+    if rtype == "special":
+        got_kind, got_shape = "special", None
+    elif rtype == "point":
+        got_kind, got_shape = dtype, None
+    else:  # a shape: the spell is self-centred
+        got_kind, got_shape = "self", rtype
+    if kind != got_kind:
+        return False
+    return shape is None or got_shape is None or shape == got_shape
+
+
+def _level_school_agrees(p: Parsed) -> bool:
+    """The parsed level and school letter must be the ones the printed level line spells."""
+    printed = p.lines[1].text if len(p.lines) > 1 else ""
+    m = _LEVEL.match(printed)
+    if m:
+        level, word = _num(m.group(1)), m.group(2).lower()
+    else:
+        m = _CANTRIP.match(printed)
+        if not m:
+            return False
+        level, word = 0, m.group(1).lower()
+    name = next((n for n, c in SCHOOLS.items() if c == p.fields.get("school")), None)
+    if name is None or p.fields.get("level") != level:
+        return False
+    best = process.extractOne(word, list(SCHOOLS), score_cutoff=70)
+    return best is not None and best[0] == name
 
 
 def _components_agree(p: Parsed) -> bool:
@@ -302,6 +349,8 @@ def _components_agree(p: Parsed) -> bool:
     letters = set(re.findall(r"\b[VSM]\b", head))
     have = {k.upper() for k in comp}
     return bool(letters) and letters == have
+
+
 def spell_checks(p: Parsed) -> list[Check]:
     f = p.fields
     time = f.get("time") or []
@@ -311,7 +360,8 @@ def spell_checks(p: Parsed) -> list[Check]:
     def chk(name: str, ok: bool, why: str) -> Check:
         return Check(name, ok, "" if ok else why)
 
-    level_ok = isinstance(f.get("level"), int) and 0 <= f["level"] <= 9 and f.get("school") in SCHOOLS.values()
+    level_ok = (isinstance(f.get("level"), int) and 0 <= f["level"] <= 9 and f.get("school") in SCHOOLS.values()
+                and _level_school_agrees(p))
     time_ok = bool(time) and all(isinstance(t.get("number"), int) and t["number"] > 0
                                  and t.get("unit") in _TIME_UNITS.values() for t in time)
     if time_ok and any(t["unit"] == "reaction" for t in time):
@@ -329,7 +379,8 @@ def spell_checks(p: Parsed) -> list[Check]:
                                or bool(re.search(r"[.!?:)\"'\u201d]\s*$", last)))  # a bullet list may end unpunctuated
     split_ok = not (not f.get("entriesHigherLevel") and any(_HIGHER_MARK.search(str(e)) for e in ents))
     return [
-        chk("level-school", level_ok, f"level {f.get('level')!r} / school {f.get('school')!r} not recognised"),
+        chk("level-school", level_ok,
+            f"level {f.get('level')!r} / school {f.get('school')!r} not recognised or disagree with the printed level line"),
         chk("casting-time", time_ok, "casting time missing or unparseable"),
         chk("range", range_ok and _range_agrees(p), "range missing, unparseable, or disagrees with the printed line"),
         chk("components", comp_ok and _components_agree(p),

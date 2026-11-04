@@ -12,9 +12,24 @@ import statistics
 import sys
 from pathlib import Path
 
-from rapidfuzz import fuzz, process
+from rapidfuzz import fuzz
 
 BOOKS = {"mm": "Monster", "phb": "Spell", "dmg": "MagicItem"}
+
+# Verified book-vs-5etools differences: the printed page (checked against the page image) says what we
+# extracted, and 5etools says otherwise. (book, 5etools name, field) -> (our value, what the book prints).
+# A difference is excused only while our value is still exactly the one listed.
+KNOWN_DIFFERENCES: dict[tuple[str, str, str], tuple[object, str]] = {
+    ("phb", "Mass Cure Wounds", "school"): ("C", "the page prints 5th-level conjuration (5etools: evocation)"),
+    ("phb", "Mass Heal", "school"): ("C", "the page prints 9th-level conjuration (5etools: evocation)"),
+    ("phb", "Revivify", "school"): ("C", "the page prints 3rd-level conjuration (5etools: necromancy)"),
+    ("phb", "Crusader's Mantle", "range"): (
+        {"type": "point", "distance": {"type": "self"}},
+        "the page prints 'Range: Self' with no radius (5etools: 30-foot radius)"),
+    ("mm", "Orc Eye of Gruumsh", "abilities"): (
+        [16, 12, 16, 9, 13, 12], "the stat block prints CON 16 (+3) (5etools: 17)"),
+}
+_ABIL = ("str", "dex", "con", "int", "wis", "cha")
 
 _ATK = {"mw": "Melee Weapon Attack:", "rw": "Ranged Weapon Attack:", "mw,rw": "Melee or Ranged Weapon Attack:",
         "ms": "Melee Spell Attack:", "rs": "Ranged Spell Attack:", "ms,rs": "Melee or Ranged Spell Attack:"}
@@ -251,6 +266,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str) -> di
     missing: list[str] = []
     diffs: list[str] = []
     fuzzy: list[str] = []
+    known: list[str] = []
     text_ok = [0, 0]
     fam = [0, 0]  # multi-rarity families: count, ours == "varies"
     for i, t in enumerate(truth):
@@ -266,6 +282,12 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str) -> di
             fam[0] += 1
             fam[1] += fields.get("rarity") == "varies"
         for f, ok in res.items():
+            if not ok and (book, t["name"], f) in KNOWN_DIFFERENCES:
+                ours = [fields.get(k) for k in _ABIL] if f == "abilities" else fields.get(f)
+                want, why = KNOWN_DIFFERENCES[(book, t["name"], f)]
+                if ours == want:
+                    known.append(f"{t['name']}: {f} ({why})")
+                    ok = True  # agrees with the printed book
             agg[f][0] += ok
             agg[f][1] += 1
             if not ok:
@@ -284,7 +306,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str) -> di
         "textAtLeast90": {"pct": 100 * text_ok[0] / text_ok[1] if text_ok[1] else 0.0, "n": text_ok[1]},
         "textCoverageMedian": 100 * statistics.median(covs) if covs else 0.0,
         "textPrecisionMedian": 100 * statistics.median(precs) if precs else 0.0,
-        "missing": missing, "fuzzyMatches": fuzzy, "diffs": diffs,
+        "missing": missing, "fuzzyMatches": fuzzy, "diffs": diffs, "knownDifferences": known,
     }
 
 
@@ -301,6 +323,9 @@ def format_table(res: dict) -> str:
         m = res["rarityMultiFamilies"]
         out += (f"\nrarity (strict) covers single-rarity items only; multi-rarity families: {m['n']}, "
                 f"book says 'varies' for {m['variesAgree']}")
+    if res.get("knownDifferences"):
+        out += "\nverified book-vs-5etools differences (counted as agreeing with the book):\n  " + \
+            "\n  ".join(res["knownDifferences"])
     return out
 
 
@@ -315,6 +340,6 @@ def run(book: str, path: Path, fivetools_dir: Path, diffs_out: Path | None = Non
     print(format_table(res))
     if diffs_out:
         lines = ([f"MISSING {n}" for n in res["missing"]] + [f"FUZZY {n}" for n in res["fuzzyMatches"]]
-                 + res["diffs"])
+                 + [f"KNOWN {n}" for n in res["knownDifferences"]] + res["diffs"])
         diffs_out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return 0

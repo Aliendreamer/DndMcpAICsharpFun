@@ -7,7 +7,7 @@ from bookextractor.parsers.spell import parse_spells, spell_checks
 
 FIX = Path(__file__).parent / "fixtures" / "ocr" / "phb"
 SCHEMA = Path(__file__).parents[3] / "Schemas" / "canonical" / "SpellFields.schema.json"
-PAGES = [223, 224, 229, 232, 233, 234, 240, 242, 243, 244, 247, 257, 259, 268, 269, 270, 273, 290, 291]
+PAGES = [223, 224, 229, 231, 232, 233, 234, 240, 242, 243, 244, 247, 257, 259, 268, 269, 270, 273, 290, 291]
 
 
 def lines(*ns):
@@ -150,3 +150,44 @@ def test_new_checks_flag_truncation_and_mismatches():
     r.fields["entriesHigherLevel"] = []
     r.fields["entries"].append("At Higher Levels. more")
     assert not next(c for c in spell_checks(r) if c.name == "higher-level-split").passed
+
+
+def test_mass_spells_and_revivify_schools_match_the_printed_level_line():
+    # the book prints conjuration for all three (5etools lists Mass Cure Wounds / Mass Heal as evocation
+    # and Revivify as necromancy); the parse follows the printed page
+    assert get("Mass Cure Wounds", 259).fields["school"] == "C"
+    assert get("Mass Heal", 259).fields["school"] == "C"
+    assert get("Revivify", 273).fields["school"] == "C"
+
+
+def test_level_school_fails_when_school_forced_wrong():
+    for name, page in (("Mass Cure Wounds", 259), ("Mass Heal", 259), ("Revivify", 273)):
+        p = get(name, page)
+        assert next(c for c in p.checks if c.name == "level-school").passed
+        p.fields["school"] = "N"  # a valid code, but not the word the page prints
+        assert not next(c for c in spell_checks(p) if c.name == "level-school").passed
+    q = get("Fireball", 242, 243)
+    q.fields["level"] = 4
+    assert not next(c for c in spell_checks(q) if c.name == "level-school").passed
+
+
+def test_crusaders_mantle_range_is_self_as_printed():
+    p = get("Crusader's Mantle", 231)
+    assert p.fields["range"] == {"type": "point", "distance": {"type": "self"}}
+    assert not failed(p), failed(p)
+
+
+def test_range_type_is_checked_against_the_printed_type():
+    p = get("Crusader's Mantle", 231)
+    for wrong in ({"type": "point", "distance": {"type": "touch"}},
+                  {"type": "point", "distance": {"type": "sight"}},
+                  {"type": "radius", "distance": {"type": "feet", "amount": 30}},
+                  {"type": "special"}):
+        p.fields["range"] = wrong
+        assert not next(c for c in spell_checks(p) if c.name == "range").passed, wrong
+    q = get("Revivify", 273)  # printed "Touch"
+    q.fields["range"] = {"type": "point", "distance": {"type": "self"}}
+    assert not next(c for c in spell_checks(q) if c.name == "range").passed
+    f = get("Fireball", 242, 243)  # printed "150 feet": a miles reading must fail
+    f.fields["range"] = {"type": "point", "distance": {"type": "miles", "amount": 150}}
+    assert not next(c for c in spell_checks(f) if c.name == "range").passed

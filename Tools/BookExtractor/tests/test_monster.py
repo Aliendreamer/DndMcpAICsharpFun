@@ -163,3 +163,64 @@ def test_every_fixture_monster_matches_schema():
             jsonschema.validate(p.fields, schema)
             n += 1
     assert n >= 10
+
+
+def _abilities(g):
+    return [g.fields.get(k) for k in ("str", "dex", "con", "int", "wis", "cha")]
+
+
+def _check(g, name):
+    return next(c for c in g.checks if c.name == name)
+
+
+def test_mm_azer_score_with_junk_leading_glyph_is_repaired_from_its_modifier():
+    # printed "17 (+3)", OCR "$7+3)": the only score ending in 7 with modifier +3 is 17
+    g = _goblin_with_row("$7+3) 12 (+1) 15 (+2) 12 (+1) 13 (+1) 10 (+0)")
+    assert _abilities(g) == [17, 12, 15, 12, 13, 10]
+    rep = _check(g, "ability-repaired")
+    assert rep.passed and "STR" in rep.reason and "17" in rep.reason
+    assert _check(g, "ability-modifiers").passed and _check(g, "abilities-present").passed
+
+
+def test_mm_swarm_of_bats_score_with_junk_around_it_is_repaired():
+    g = _goblin_with_row("5 (-3) 15 (+2) 10 (+0) 2 (-4) 12 (+1) .4:(-3)")
+    assert _abilities(g) == [5, 15, 10, 2, 12, 4]
+    assert _check(g, "ability-modifiers").passed
+
+
+def test_mm_drow_priestess_period_for_space_before_modifier():
+    g = _goblin_with_row("10.(+0) 14 (+2) 12 (+1) 13 (+1) 17 (+3) 18 (+4)")
+    assert _abilities(g) == [10, 14, 12, 13, 17, 18]
+    assert _check(g, "ability-modifiers").passed
+
+
+def test_mm_jackal_comma_between_score_and_modifier():
+    g = _goblin_with_row("8 (-1) 15 (+2) 11, (+0) 3 (-4) 12 (+1) 6 (-2)")
+    assert _abilities(g) == [8, 15, 11, 3, 12, 6]
+    assert _check(g, "abilities-present").passed
+
+
+def test_mm_goristro_one_read_as_seven_in_score_and_modifier():
+    # printed "13 (+1)", OCR "73 (+7)": 73 is impossible, and 7 -> 1 in both gives a consistent 13 (+1)
+    g = _goblin_with_row("25 (+7) 11 (+0) 25 (+7) 6 (-2) 73 (+7) 14 (+2)")
+    assert _abilities(g) == [25, 11, 25, 6, 13, 14]
+    assert "WIS read 73 (+7), repaired to 13 (+1)" in _check(g, "ability-repaired").reason
+    assert _check(g, "ability-modifiers").passed
+
+
+@pytest.mark.parametrize("row", [
+    "12 (+1) 17 (+3) 12 (+1) 10 (+0) 11 (+0)",                      # Blink Dog: a whole pair dropped
+    "12 (+1) 13 (+1) 11 (+0) 2 (-4) 10 (+0) 3 (5.4)",              # Giant Frog: unreadable modifier
+    "19 (+4) 10 (+0) 13 (+1) 3 (-4) 12 (+1) 7)",                    # Killer Whale
+    "3 (-4) 13 (+1) 8 (-1) 2(-4) 12 (+1) 7.$(2)",                   # Owl
+    "5 (-3) 15 (+2) 10 (+0) 2 (-4) 12 (+1) .4:(+9)",                # junk score with a modifier no score fits
+])
+def test_mm_unreadable_rows_are_flagged_not_guessed(row):
+    g = _goblin_with_row(row)
+    assert not (_check(g, "abilities-present").passed and _check(g, "ability-modifiers").passed)
+
+
+def test_mm_orc_eye_of_gruumsh_con_is_what_the_book_prints():
+    # the printed row is "16 (+3)" for CON; 5etools lists 17 (a known book-vs-5etools difference)
+    g = _goblin_with_row("16 (+3) 12 (+1) 16 (+3) 9 (-1) 13 (+1) 12 (+1)")
+    assert _abilities(g) == [16, 12, 16, 9, 13, 12]
