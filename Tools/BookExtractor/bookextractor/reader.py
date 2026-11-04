@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import multiprocessing
 import os
 import re
 import tempfile
@@ -90,8 +91,16 @@ def default_engine_factory():
     """Build a RapidOCR engine (PP-OCRv5 English, CPU)."""
     from rapidocr import LangRec, OCRVersion, RapidOCR
     threads = int(os.environ.get("BOOKEXTRACTOR_OCR_THREADS", "4"))
+    # Global.font_path: RapidOCR builds a result visualiser on every page with detections and, with no font
+    # path set, DOWNLOADS a font into site-packages right then - a network call and a write into a read-only
+    # install for the container's non-root user (PermissionError). We never visualise, so any path will do:
+    # a given path is used as-is and never opened.
     return RapidOCR(params={"Rec.lang_type": LangRec.EN, "Rec.ocr_version": OCRVersion.PPOCRV5,
-                            "EngineConfig.onnxruntime.intra_op_num_threads": threads})
+                            "EngineConfig.onnxruntime.intra_op_num_threads": threads,
+                            "Global.font_path": _NO_VIS_FONT})
+
+
+_NO_VIS_FONT = "unused-no-visualisation.ttf"
 
 
 def _atomic_write(path: Path, data: bytes) -> None:
@@ -187,7 +196,13 @@ class BookReader:
                     tick()
             else:
                 del engine
-                with ProcessPoolExecutor(max_workers=self.processes, initializer=_worker_init,
+                # "spawn", not the Linux default "fork": the service runs reads on a worker thread (and
+                # onnxruntime/pymupdf start their own threads), and forking a multi-threaded process can
+                # deadlock a child on a lock some other thread held. Spawned children re-import this module,
+                # so the initializer, the runner and the engine factory must all be module-level picklables.
+                with ProcessPoolExecutor(max_workers=self.processes,
+                                         mp_context=multiprocessing.get_context("spawn"),
+                                         initializer=_worker_init,
                                          initargs=(str(self.pdf_path), self.engine_factory,
                                                    self.threads)) as pool:
                     futures = [pool.submit(_worker_run, i, str(self._ocr_path(i + 1))) for i in todo]

@@ -162,6 +162,32 @@ def test_worker_error_surfaces(tmp_path):
         r.read()
 
 
+def test_default_engine_never_downloads_a_visualisation_font(monkeypatch):
+    # Without Global.font_path RapidOCR downloads a font into site-packages on the first page with text,
+    # which fails (PermissionError) for the container's non-root user.
+    import rapidocr
+    seen = {}
+    monkeypatch.setattr(rapidocr, "RapidOCR", lambda params: seen.update(params) or object())
+    reader_mod.default_engine_factory()
+    assert seen["Global.font_path"]
+
+
+def test_pool_uses_spawn_not_fork(tmp_path, monkeypatch):
+    # Forking the multi-threaded service process can deadlock a child; the pool must use "spawn".
+    real = reader_mod.ProcessPoolExecutor
+    seen = {}
+
+    def recording(*args, **kwargs):
+        seen["method"] = kwargs["mp_context"].get_start_method()
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(reader_mod, "ProcessPoolExecutor", recording)
+    pdf = _blank_pdf(tmp_path / "b.pdf", 2)
+    pages = BookReader(pdf, tmp_path / "cache", threads=1, processes=2, engine_factory=stub_factory).read()
+    assert seen["method"] == "spawn"
+    assert [p.number for p in pages] == [1, 2]
+
+
 def test_threads_honoured_in_process(tmp_path, monkeypatch):
     pdf = _blank_pdf(tmp_path / "b.pdf", 1)
     got = []
