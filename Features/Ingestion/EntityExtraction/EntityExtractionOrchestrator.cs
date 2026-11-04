@@ -530,12 +530,6 @@ public sealed class EntityExtractionOrchestrator(
             ? candidate with { TypePrior = new[] { EntityType.Rule } }
             : null;
 
-    private (string SourceBook, string Edition) DeriveSourceAndEdition(DndMcpAICsharpFun.Domain.IngestionRecord record)
-    {
-        var sourceBook = record.FivetoolsSourceKey ?? record.DisplayName;
-        var edition = record.FivetoolsSourceKey is { } key && registry.TryGetBook(key) is { } info
-            ? (info.PublishedYear >= 2024 ? "Edition2024" : "Edition2014")
-            : record.Version;
-        return (sourceBook, edition);
-    }
+    private (string SourceBook, string Edition) DeriveSourceAndEdition(DndMcpAICsharpFun.Domain.IngestionRecord record) =>
+        BookMetadataDeriver.Derive(record, registry);
 }

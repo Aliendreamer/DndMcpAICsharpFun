@@ -70,6 +70,10 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/extract-entities
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Extract entities PROGRAMMATICALLY (no LLM; drives the Python book-extractor service, replaces books/canonical/<slug>.json + its LLM sidecars, re-applies <slug>.overrides.json, then ingests into dnd_entities). Use for PHB/MM/DMG. 202 {bookId}; 404 unknown book; 409 already queued/running.
+POST {{baseUrl}}/admin/books/1/extract-programmatic
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Re-extract entities (force overwrite of existing canonical JSON)
 POST {{baseUrl}}/admin/books/1/extract-entities?force=true
 X-Admin-Api-Key: {{adminKey}}

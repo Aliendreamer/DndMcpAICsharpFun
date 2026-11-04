@@ -271,6 +271,26 @@
       "authentication": {}
     },
     {
+      "_id": "req_books_extract_programmatic",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Extract entities (programmatic, no LLM)",
+      "description": "Drives the Python book-extractor service; replaces the book's canonical JSON and LLM sidecars, re-applies overrides, then ingests into dnd_entities. 202 {bookId}; 404 unknown book; 409 already queued/running.",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/extract-programmatic",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_books_extract_entities_force",
       "_type": "request",
       "parentId": "fld_admin_books",

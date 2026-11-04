@@ -123,6 +123,25 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IIngestionQueue>(sp => sp.GetRequiredService<IngestionQueueWorker>());
         services.AddHostedService(sp => sp.GetRequiredService<IngestionQueueWorker>());
 
+        // Programmatic (non-LLM) extraction: the Python book-extractor service over HTTP, driven by its own queue.
+        services.AddOptions<DndMcpAICsharpFun.Features.Ingestion.Programmatic.BookExtractorOptions>()
+            .BindConfiguration("BookExtractor");
+        services.AddHttpClient<DndMcpAICsharpFun.Features.Ingestion.Programmatic.IBookExtractorClient,
+                DndMcpAICsharpFun.Features.Ingestion.Programmatic.BookExtractorClient>((sp, c) =>
+            {
+                var o = sp.GetRequiredService<IOptions<DndMcpAICsharpFun.Features.Ingestion.Programmatic.BookExtractorOptions>>().Value;
+                c.BaseAddress = new Uri(o.ServiceUrl);
+                c.Timeout = TimeSpan.FromMinutes(5); // per request; whole-job time is bounded by BookExtractorOptions.Timeout
+            });
+        services.AddSingleton<DndMcpAICsharpFun.Features.Ingestion.Programmatic.OverridesStore>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Ingestion.Programmatic.IProgrammaticExtractionRunner,
+            DndMcpAICsharpFun.Features.Ingestion.Programmatic.ProgrammaticExtractionRunner>();
+        services.AddSingleton<DndMcpAICsharpFun.Features.Ingestion.Programmatic.ProgrammaticExtractionQueue>();
+        services.AddSingleton<DndMcpAICsharpFun.Features.Ingestion.Programmatic.IProgrammaticExtractionQueue>(
+            sp => sp.GetRequiredService<DndMcpAICsharpFun.Features.Ingestion.Programmatic.ProgrammaticExtractionQueue>());
+        services.AddHostedService(sp =>
+            sp.GetRequiredService<DndMcpAICsharpFun.Features.Ingestion.Programmatic.ProgrammaticExtractionQueue>());
+
         services.AddSingleton<BookSourceRegistry>();
         services.AddSingleton<IPdfBookmarkReader, PdfPigBookmarkReader>();
 

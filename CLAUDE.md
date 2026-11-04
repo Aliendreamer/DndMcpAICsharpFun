@@ -75,6 +75,7 @@ For official books (those with a `fivetoolsSourceKey`), a sibling `<book-slug>.d
 New endpoints:
 
 - `POST /admin/books/{id}/ingest-entities` — ingest a book's canonical JSON into `dnd_entities`.
+- `POST /admin/books/{id}/extract-programmatic` — **PHB/MM/DMG use this route.** No LLM: drives the Python `book-extractor` service (`BookExtractor:ServiceUrl`), then replaces `books/canonical/<book-slug>.json` (schema "2", entities carry `checks` and `provenance`) and deletes the old LLM sidecars (`.errors`, `.warnings`, `.declined`, `.progress*`). It writes `<book-slug>.report.json`, re-applies `<book-slug>.overrides.json` (hand corrections and approvals), and ingests into `dnd_entities`. A failure before the replace leaves existing files and points untouched. Returns 202 `{bookId}`; 404 unknown book; 409 already queued or running. The old `extract-entities` route and the 5etools field-fill/backfill tools do nothing to a programmatic book's data.
 - `POST /admin/books/{id}/extract-entities` — run Ollama-driven extraction (requires qwen3:8b pulled via ollama-pull); produces `books/canonical/<book-slug>.json` plus optional sibling `<book-slug>.errors.json` and `<book-slug>.warnings.json`. Pass `?force=true` to overwrite an existing canonical JSON. During the run, checkpoint files `<book-slug>.progress.json` and `<book-slug>.progress.errors.json` are written every 100 candidates and deleted on success; a crashed run resumes from the checkpoint on retry.
 - `POST /admin/canonical/validate` — corpus-wide validation; 200 (clean) / 422 (FAIL-class issues like duplicate IDs across files or schema-version mismatches).
 - `GET /retrieval/entities/{id}` — fetch a single entity by ID.
@@ -86,7 +87,7 @@ New endpoints:
 1. Check `GET /admin/5etools/sources` — if the book appears in the list, note its source key (e.g. `MPMM`).
 2. `POST /admin/books/register` — upload PDF. If the book is in 5etools, pass `fivetoolsSourceKey=<KEY>` (e.g. `fivetoolsSourceKey=MPMM`). If not, omit it — the system generates its own IDs from `displayName`. The response always includes `suggestedSources` with fuzzy-matched candidates if you're unsure of the key.
 3. `POST /admin/books/{id}/ingest-blocks` — populate `dnd_blocks`.
-4. `POST /admin/books/{id}/extract-entities` — produce canonical JSON.
+4. `POST /admin/books/{id}/extract-programmatic` for PHB/MM/DMG (and other books the extractor supports), or `POST /admin/books/{id}/extract-entities` for the legacy LLM route — produce canonical JSON. Programmatic books already ingest at the end of the run; step 8 is for the LLM route.
 5. Review the canonical JSON diff in a PR; hand-correct any LLM mistakes.
 6. `POST /admin/canonical/validate` — pre-merge sanity check.
 7. Merge.

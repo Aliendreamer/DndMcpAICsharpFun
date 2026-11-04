@@ -28,6 +28,7 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/{id:int}/ingest-blocks", IngestBlocks).DisableAntiforgery();
         group.MapPost("/books/{id:int}/ingest-entities", IngestEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/extract-entities", ExtractEntities).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/extract-programmatic", ExtractProgrammatic).DisableAntiforgery();
         group.MapGet("/books/{id:int}/entity-recall", EntityRecall);
         group.MapGet("/books/{id:int}/coverage", GetCoverage);
         group.MapPost("/books/{id:int}/backfill-entities", BackfillEntities).DisableAntiforgery();
@@ -100,6 +101,22 @@ public static partial class BooksAdminEndpoints
             return Results.Conflict("Book is already queued for processing.");
 
         return Results.Accepted($"/admin/books/{id}");
+    }
+
+    private static async Task<IResult> ExtractProgrammatic(
+        int id,
+        IIngestionTracker tracker,
+        Ingestion.Programmatic.IProgrammaticExtractionQueue queue,
+        CancellationToken ct)
+    {
+        var record = await tracker.GetByIdAsync(id, ct);
+        if (record is null)
+            return Results.NotFound($"Book with id {id} not found");
+
+        if (!queue.TryEnqueue(id))
+            return Results.Conflict("Book is already queued for programmatic extraction.");
+
+        return Results.Accepted($"/admin/books/{id}", new { bookId = id });
     }
 
     private static async Task<IResult> ExtractEntities(

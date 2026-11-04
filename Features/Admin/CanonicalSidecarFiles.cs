@@ -10,7 +10,8 @@ namespace DndMcpAICsharpFun.Features.Admin;
 /// </summary>
 public static class CanonicalSidecarFiles
 {
-    private static readonly string[] Suffixes =
+    // Sidecars of the LLM extraction pipeline: stale once a book is re-extracted programmatically.
+    private static readonly string[] ReplaceableSuffixes =
     {
         ".errors.json",
         ".warnings.json",
@@ -18,6 +19,19 @@ public static class CanonicalSidecarFiles
         ".progress.json",
         ".progress.errors.json",
     };
+
+    // Programmatic-extraction sidecars: not canonical documents either, but they survive re-extraction
+    // (the overrides file holds hand corrections) or are rewritten by it (the report).
+    private static readonly string[] Suffixes =
+    [
+        .. ReplaceableSuffixes,
+        ".report.json",
+        ".overrides.json",
+    ];
+
+    /// <summary>Paths of the LLM-pipeline sidecars for <paramref name="slug"/> that exist in <paramref name="dir"/>.</summary>
+    public static IEnumerable<string> ReplaceableSidecarPaths(string dir, string slug) =>
+        ReplaceableSuffixes.Select(s => Path.Combine(dir, slug + s)).Where(File.Exists);
 
     /// <summary>True if <paramref name="path"/> is a sidecar file, not a canonical entity file.</summary>
     public static bool IsSidecar(string path) =>
