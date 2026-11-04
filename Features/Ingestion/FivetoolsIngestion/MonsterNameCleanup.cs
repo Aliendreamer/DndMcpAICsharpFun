@@ -19,6 +19,14 @@ public static class MonsterNameCleanup
     private static bool IsBackfill(EntityEnvelope e) =>
         string.Equals(e.DataSource, BackfillDataSource, StringComparison.Ordinal);
 
+    /// <summary>
+    /// Monsters this cleanup may rename/dedupe. Programmatic (PDF-verified) entities are never touched: their names
+    /// come from the book and are corrected only through the review page's overrides.
+    /// </summary>
+    private static bool IsCleanable(EntityEnvelope e) =>
+        e.Type == EntityType.Monster
+        && !string.Equals(e.DataSource, DataSources.Programmatic, StringComparison.Ordinal);
+
     public static (IReadOnlyList<EntityEnvelope> Entities, MonsterNameCleanupCounts Counts) Clean(
         IReadOnlyList<EntityEnvelope> entities, EntityNameMatcher matcher, string bookKey)
     {
@@ -34,7 +42,7 @@ public static class MonsterNameCleanup
 
         var monsterGroups = entities
             .Select((e, i) => (e, i))
-            .Where(x => x.e.Type == EntityType.Monster)
+            .Where(x => IsCleanable(x.e))
             .GroupBy(x => EntityNameIndex.Normalize(ResolveCanonicalName(x.e.Name)), StringComparer.Ordinal);
 
         foreach (var group in monsterGroups)
@@ -112,7 +120,7 @@ public static class MonsterNameCleanup
         for (var i = 0; i < entities.Count; i++)
         {
             if (drop.Contains(i)) continue;
-            final.Add(entities[i].Type == EntityType.Monster ? result[i]! : entities[i]);
+            final.Add(IsCleanable(entities[i]) ? result[i]! : entities[i]);
         }
 
         var groundedCount = final.Count(e => e.Type == EntityType.Monster && !IsBackfill(e));

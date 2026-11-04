@@ -54,6 +54,20 @@ public sealed class MonsterNameCleanupTests
     }
 
     [Fact]
+    public void Programmatic_monsters_are_never_renamed_or_deduped()
+    {
+        var programmatic = Monster("ANCIENT BLACK DRAGON Gargantuan dragon, chaotic evil", DataSources.Programmatic);
+        var backfill = Monster("Ancient Black Dragon", Backfill);
+
+        var (entities, counts) = MonsterNameCleanup.Clean(new[] { programmatic, backfill }, Matcher, BookKey);
+
+        counts.Cleaned.Should().Be(0);
+        counts.Deduped.Should().Be(0);
+        entities.Should().HaveCount(2);
+        entities[0].Should().BeSameAs(programmatic);
+    }
+
+    [Fact]
     public void Clean_names_and_nonmonsters_untouched_and_idempotent()
     {
         var input = new[] { Monster("Dragon Turtle"), NonMonster("Fireball") };

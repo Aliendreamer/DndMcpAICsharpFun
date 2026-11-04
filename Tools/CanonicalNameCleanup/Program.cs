@@ -20,6 +20,13 @@ if (!File.Exists(canonicalPath))
     Console.Error.WriteLine($"Canonical file not found: {canonicalPath}");
     return 1;
 }
+if (ProgrammaticCanonicalGuard.FileHasProgrammatic(canonicalPath))
+{
+    Console.Error.WriteLine(
+        $"Refusing to clean {canonicalPath}: it holds programmatic (PDF-verified) entities. " +
+        "Correct programmatic names through the /review page (overrides), not this tool.");
+    return 1;
+}
 if (!Directory.Exists(fivetoolsDir))
 {
     Console.Error.WriteLine($"5etools directory not found: {fivetoolsDir}");
