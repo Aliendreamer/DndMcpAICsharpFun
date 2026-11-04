@@ -1,4 +1,7 @@
+using DndMcpAICsharpFun.Features.Auth;
+
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DndMcpAICsharpFun.Extensions;
 
@@ -18,7 +21,8 @@ internal static class AuthExtensions
                 o.Cookie.SameSite = SameSiteMode.Lax;
                 o.Cookie.HttpOnly = true;
             });
-        services.AddAuthorization();
+        services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
+        services.AddAuthorization(o => o.AddPolicy(AuthPolicies.Admin, p => p.AddRequirements(new AdminRequirement())));
         return services;
     }
 }

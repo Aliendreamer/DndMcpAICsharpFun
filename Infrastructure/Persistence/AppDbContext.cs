@@ -50,6 +50,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<User>(e =>
         {
             e.HasIndex(u => u.Username).IsUnique();
+            e.Property(u => u.IsAdmin).HasDefaultValue(false);
         });
 
         modelBuilder.Entity<Campaign>(e =>

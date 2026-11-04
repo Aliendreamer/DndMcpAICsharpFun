@@ -19,6 +19,12 @@ public sealed class UserRepository(IDbContextFactory<AppDbContext> dbf)
         return await db.Users.AnyAsync(u => u.Username == username);
     }
 
+    public async Task<bool> IsAdminAsync(long id)
+    {
+        await using var db = await dbf.CreateDbContextAsync();
+        return await db.Users.AsNoTracking().Where(u => u.Id == id).Select(u => u.IsAdmin).FirstOrDefaultAsync();
+    }
+
     public async Task<long> CreateAsync(string username, string passwordHash)
     {
         await using var db = await dbf.CreateDbContextAsync();
