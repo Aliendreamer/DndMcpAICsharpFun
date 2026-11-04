@@ -7,7 +7,7 @@ from copy import deepcopy
 
 from rapidfuzz import fuzz, process
 
-from ..checks import XP_BY_CR, Check, hp_dice_check
+from ..checks import XP_BY_CR, Check, hp_con_check, hp_dice_check
 from ..layout import fix_digits
 from ..model import Line
 from . import Parsed
@@ -58,9 +58,21 @@ def _size_of(t: str) -> str | None:
     return hit[0] if hit else None
 
 
+CREATURE_TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend",
+                  "giant", "humanoid", "monstrosity", "ooze", "plant", "undead"]
+# VRGR/TCE print no alignment: "Medium Monstrosity (Shapechanger)", "Large or Huge Undead"
+_SIZE_WORD = r"(?:tiny|small|medium|large|huge|gargantuan)"
+_BARE_SIZE_LINE = re.compile(rf"^{_SIZE_WORD}(?: or {_SIZE_WORD})? ([a-z]+)(?: \([^)]*\))?\.?$", re.I)
+
+
 def _is_size_line(t: str) -> bool:
-    """"<Size> <type>, <alignment>" — not merely any line with "evil" in it ("Fire Giant of Evil Fire")."""
-    return "," in t and bool(ALIGN.search(t)) and bool(_size_of(t))
+    """"<Size> <type>, <alignment>" — not merely any line with "evil" in it ("Fire Giant of Evil Fire") —
+    or the whole line "<Size> <creature type> (tags)" with no alignment at all."""
+    if "," in t and ALIGN.search(t) and _size_of(t):
+        return True
+    m = _BARE_SIZE_LINE.match(t.strip())
+    return bool(m) and bool(process.extractOne(m.group(1).lower(), CREATURE_TYPES, scorer=fuzz.ratio,
+                                               score_cutoff=85))
 
 
 def _is_ability_header(t: str) -> bool:
@@ -603,6 +615,7 @@ def monster_checks(p: Parsed) -> list[Check]:
     req("cr-present", bool(cr), "challenge rating")
     req("speed-present", bool(f.get("speed")), "speed")
     checks.append(hp_dice_check(hp.get("average"), hp.get("formula")))
+    checks.append(hp_con_check(hp.get("formula"), f.get("con")))
     checks.append(Check("cr-legal", cr in _LEGAL_CR, "" if cr in _LEGAL_CR else f"{cr!r} is not a legal CR"))
 
     xps = [x for c, x in _challenge_pairs(p.lines) if c == cr]

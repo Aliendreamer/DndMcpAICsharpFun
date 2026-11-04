@@ -119,7 +119,7 @@ def test_hp_formula_math(avg, formula, ok):
 def test_check_names():
     g = parse_monsters(lines(167))[0]
     assert [c.name for c in monster_checks(g)] == [
-        "abilities-present", "ac-present", "hp-present", "cr-present", "speed-present", "hp-matches-dice",
+        "abilities-present", "ac-present", "hp-present", "cr-present", "speed-present", "hp-matches-dice", "hp-bonus-matches-con",
         "cr-legal", "xp-matches-cr", "ability-modifiers"]
 
 
@@ -286,6 +286,50 @@ def test_size_line_with_borrowed_alignment_starts_a_stat_block():
     # MTF/MPMM Sacred Statue: "Large construct, as the eidolon's alignment"
     ps = parse_monsters(_block(["Sacred Statue"], "Large construct, as the eidolon's alignment"))
     assert [p.name for p in ps] == ["Sacred Statue"]
+
+
+@pytest.mark.parametrize("size_line, typ", [
+    ("Medium Monstrosity (Shapechanger)", {"type": "monstrosity", "tags": ["Shapechanger"]}),  # VRGR Loup Garou
+    ("Large Undead", "undead"),
+    ("Medium Aberration", "aberration"),  # TCE summon spirits
+])
+def test_size_line_without_alignment_starts_a_stat_block(size_line, typ):
+    # VRGR and TCE print no alignment, so every one of their stat blocks was missed
+    ps = parse_monsters(_block(["Loup Garou"], size_line))
+    assert [p.name for p in ps] == ["Loup Garou"]
+    assert ps[0].fields["type"] == typ
+    assert "alignment" not in ps[0].fields
+
+
+@pytest.mark.parametrize("text", ["Medium armor and shields", "Large areas of the town", "Small Beast companion."])
+def test_prose_starting_with_a_size_word_is_not_a_size_line(text):
+    from bookextractor.parsers.monster import _is_size_line
+    assert not _is_size_line(text)
+
+
+@pytest.mark.parametrize("formula, con, ok", [
+    ("7d10 + 35", 14, False),  # ERLW Living Cloudkill: CON "20 (+5)" read as "14 (+2)", passed every check
+    ("7d10 + 35", 20, True),
+    ("7d10+35", 21, True),
+    ("3d8", 10, True),
+    ("2d6 - 2", 8, True),
+    ("2d6 - 2", 10, False),
+    (None, 14, True),  # missing inputs fail other checks, not this one
+    ("7d10 + 35", None, True),
+])
+def test_hit_dice_bonus_must_match_con(formula, con, ok):
+    from bookextractor.checks import hp_con_check
+    c = hp_con_check(formula, con)
+    assert c.name == "hp-bonus-matches-con" and c.passed is ok
+    assert bool(c.reason) is not ok
+
+
+def test_con_misread_puts_the_monster_in_review():
+    ls = _block(["Living Cloudkill"], "Large construct, unaligned")
+    from dataclasses import replace
+    ls[3] = replace(ls[3], text="Hit Points 209 (22d8 + 110)")  # CON 18 (+4) needs + 88
+    [p] = parse_monsters(ls)
+    assert not _check(p, "hp-bonus-matches-con").passed
 
 
 def _bgg_page_158():

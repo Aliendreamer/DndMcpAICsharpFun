@@ -56,7 +56,9 @@ def _type_end(L: list[Line], i: int) -> int:
     while j < len(L) and j < i + 3 and L[j].page == L[i].page:
         open_paren = t.count("(") > t.count(")")
         dangling = bool(re.search(r"(?:,|\b(?:or|very|and|by|a|an|of))\s*$", t, re.I))
-        if not (open_paren or dangling or L[j].text.lower().startswith("(requires")):
+        # "(requires attunement ...)" or the last bonus of a wrapped rarity list: "(+3) (requires ...)"
+        carried = bool(re.match(r"\(\s*(?:requires|\+\d\))", L[j].text, re.I))
+        if not (open_paren or dangling or carried):
             break
         t = f"{t} {L[j].text}"
         j += 1

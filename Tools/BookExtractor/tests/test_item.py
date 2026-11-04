@@ -101,6 +101,20 @@ def test_type_line_with_late_rarity_and_separate_attunement_line():
         assert not failed(p), failed(p)
 
 
+def test_type_line_wrapping_before_the_last_bonus_keeps_attunement():
+    # TCE All-Purpose Tool: "..., very rare" / "(+3) (requires attunement by an artificer)" lost the attunement
+    from bookextractor.model import Line
+    texts = ["All-Purpose Tool", "Wondrous item, uncommon (+1), rare (+2), very rare",
+             "(+3) (requires attunement by an artificer)",
+             "This simple screwdriver can transform into a variety of tools.",
+             "While holding this tool, you gain a bonus to artificer spells."]
+    ls = [Line(t, (150, 1000 + 40 * k, 750, 1030 + 40 * k), 30, 40) for k, t in enumerate(texts)]
+    [p] = parse_items(ls)
+    assert p.fields["reqAttune"] == "by an artificer"
+    assert [v["bonus"] for v in p.fields["variants"]] == [1, 2, 3]
+    assert p.fields["entries"][0].startswith("This simple screwdriver")
+
+
 def test_attunement_condition_is_kept():
     answering = get("Sword of Answering", 206)  # (sic: the OCR reads "alinment")
     assert answering.fields["reqAttune"] == "by a creature with the same alinment as the sword"

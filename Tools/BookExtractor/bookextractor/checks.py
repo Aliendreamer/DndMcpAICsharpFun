@@ -37,3 +37,21 @@ def hp_dice_check(average: int | None, formula: str | None) -> Check:
     if expected == average:
         return Check(name, True)
     return Check(name, False, f"average {average} != {expected} expected from {formula}")
+
+
+def hp_con_check(formula: str | None, con: int | None) -> Check:
+    """The hit-dice bonus is the dice count times the CON modifier ("7d10 + 35" needs CON 20 or 21).
+
+    Catches a CON score and modifier misread together ("20 (+5)" read as "14 (+2)"), which the
+    score/modifier check can't see. Passes when either input is missing: other checks fail those.
+    """
+    name = "hp-bonus-matches-con"
+    m = _DICE.fullmatch(re.sub(r"\s+", "", formula or ""))
+    if not m or not isinstance(con, int):
+        return Check(name, True)
+    n = int(m.group(1))
+    k = int(m.group(4) or 0) * (-1 if m.group(3) == "-" else 1)
+    mod = (con - 10) // 2
+    if k == n * mod:
+        return Check(name, True)
+    return Check(name, False, f"{formula} needs a CON modifier of {k / n:+g}, but CON is {con} ({mod:+d})")
