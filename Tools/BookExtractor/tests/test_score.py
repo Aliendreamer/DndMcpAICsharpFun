@@ -114,3 +114,76 @@ def test_known_book_difference_is_listed_and_counted_only_while_value_matches(tm
     res = score_book("phb", [_revivify_ours("A")], tmp_path)  # any other value is still a real disagreement
     assert res["fields"]["school"]["pct"] == 0 and res["knownDifferences"] == []
     assert any("Revivify: school wrong" in d for d in res["diffs"])
+
+
+def test_any_bestiary_book_scores_monsters(tmp_path):
+    (tmp_path / "bestiary").mkdir()
+    truth = [dict(_monster("Githyanki Supreme Commander"), source="MPMM"), dict(_monster("Sacred Statue"), source="MPMM")]
+    (tmp_path / "bestiary/bestiary-mpmm.json").write_text(json.dumps({"monster": truth}))
+    res = score_book("mpmm", [_ours_monster("Githyanki Supreme Commander", ac=99)], tmp_path, "Monster")
+    assert res["book"] == "mpmm" and res["type"] == "Monster" and res["truth"] == 2 and res["found"] == 1
+    assert res["missing"] == ["Sacred Statue"] and res["fields"]["ac"]["pct"] == 0
+
+
+def test_any_book_scores_its_items_and_spells_by_source(tmp_path):
+    items = [{"name": "Thunderbuss", "source": "BGG", "rarity": "rare", "entries": ["a b c d e f"]},
+             {"name": "Bag of Holding", "source": "DMG", "rarity": "uncommon", "entries": ["a b c d e f"]}]
+    (tmp_path / "items.json").write_text(json.dumps({"item": items}))
+    ours = {"type": "MagicItem", "name": "Thunderbuss",
+            "fields": {"rarity": "rare", "reqAttune": None, "entries": ["a b c d e f"]}}
+    res = score_book("bgg", [ours], tmp_path, "MagicItem")
+    assert res["truth"] == 1 and res["found"] == 1 and res["fields"]["rarity"]["pct"] == 100
+    (tmp_path / "spells").mkdir()
+    (tmp_path / "spells/spells-xge.json").write_text(json.dumps({"spell": []}))
+    assert score_book("xge", [], tmp_path, "Spell")["truth"] == 0
+
+
+def test_cli_scores_every_type_a_book_has(tmp_path, capsys):
+    (tmp_path / "bestiary").mkdir()
+    (tmp_path / "bestiary/bestiary-ftd.json").write_text(json.dumps({"monster": [dict(_monster("Ashen Dragon"), source="FTD")]}))
+    (tmp_path / "items.json").write_text(json.dumps({"item": [
+        {"name": "Crystalblade", "source": "FTD", "rarity": "rare", "entries": ["a b c d e f"]}]}))
+    out = tmp_path / "o.json"
+    out.write_text(json.dumps({"entities": [_ours_monster("Ashen Dragon")]}))
+    assert main(["score", "ftd", str(out), "--fivetools", str(tmp_path)]) == 0
+    text = capsys.readouterr().out
+    assert "FTD Monster: 1 entries" in text and "FTD MagicItem: 1 entries" in text
+
+
+def test_core_books_keep_their_single_type(tmp_path, capsys):
+    (tmp_path / "bestiary").mkdir()
+    (tmp_path / "bestiary/bestiary-mm.json").write_text(json.dumps({"monster": [_monster("Zombie")]}))
+    out = tmp_path / "o.json"
+    out.write_text(json.dumps({"entities": [_ours_monster("Zombie")]}))
+    assert main(["score", "mm", str(out), "--fivetools", str(tmp_path)]) == 0
+    assert "MM Monster: 1 entries" in capsys.readouterr().out
+
+
+def test_ftd_tiered_items_collapse_to_the_printed_entry():
+    for tier in ("Slumbering", "Stirring", "Wakened", "Ascendant"):
+        assert base_item_name(f"{tier} Dragon-Touched Focus") == "Dragon-Touched Focus"
+        assert base_item_name(f"{tier} Scaled Ornament") == "Scaled Ornament"
+
+
+def test_ftd_greatwyrm_colours_collapse_to_the_printed_family(tmp_path):
+    from bookextractor.score import base_monster_name
+    assert base_monster_name("Red Greatwyrm") == "Chromatic Greatwyrm"
+    assert base_monster_name("Topaz Greatwyrm") == "Gem Greatwyrm"
+    assert base_monster_name("Gold Greatwyrm") == "Metallic Greatwyrm"
+    assert base_monster_name("Red Dragon Wyrmling") == "Red Dragon Wyrmling"
+    (tmp_path / "bestiary").mkdir()
+    truth = [dict(_monster(n), source="FTD") for n in ("Red Greatwyrm", "Blue Greatwyrm", "Gold Greatwyrm")]
+    (tmp_path / "bestiary/bestiary-ftd.json").write_text(json.dumps({"monster": truth}))
+    res = score_book("ftd", [_ours_monster("Chromatic Greatwyrm"), _ours_monster("Metallic Greatwyrm")],
+                     tmp_path, "Monster")
+    assert res["truth"] == 2 and res["found"] == 2 and res["missing"] == []
+
+
+def test_item_family_requires_attunement_when_any_tier_does(tmp_path):
+    items = [{"name": f"{t} Dragon Vessel", "source": "FTD", "rarity": r, "entries": ["a b c d e f"],
+              **({"reqAttune": True} if t == "Slumbering" else {})}
+             for t, r in [("Ascendant", "legendary"), ("Slumbering", "uncommon")]]
+    (tmp_path / "items.json").write_text(json.dumps({"item": items}))
+    ours = {"type": "MagicItem", "name": "Dragon Vessel",
+            "fields": {"rarity": "varies", "reqAttune": True, "entries": ["a b c d e f"]}}
+    assert score_book("ftd", [ours], tmp_path, "MagicItem")["fields"]["attune"]["pct"] == 100

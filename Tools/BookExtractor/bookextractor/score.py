@@ -101,22 +101,49 @@ def base_item_name(n: str) -> str:
     n = re.sub(r"^Potion of (Greater|Superior|Supreme) Healing$", "Potion of Healing", n)
     n = re.sub(r"^Ring of \w+ Elemental Command$", "Ring of Elemental Command", n)
     n = re.sub(r"^(Eye|Hand) of Vecna$", "Eye and Hand of Vecna", n)
+    # FTD prints one entry per item with four tiers; 5etools splits them by tier
+    n = re.sub(r"^(Slumbering|Stirring|Wakened|Ascendant) ", "", n)
     return n
 
 
-def load_truth(book: str, fivetools_dir: Path) -> list[dict]:
+_GREATWYRM = {"Chromatic": "Black|Blue|Green|Red|White", "Gem": "Amethyst|Crystal|Emerald|Sapphire|Topaz",
+              "Metallic": "Brass|Bronze|Copper|Gold|Silver"}
+
+
+def base_monster_name(n: str) -> str:
+    """Collapse a 5etools monster variant to the stat block the book prints (FTD's three greatwyrms)."""
+    for family, colours in _GREATWYRM.items():
+        if re.fullmatch(rf"({colours}) Greatwyrm", n):
+            return f"{family} Greatwyrm"
+    return n
+
+
+TYPES = ("Monster", "Spell", "MagicItem")
+
+
+def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list[dict]:
+    """5etools records of `etype` for the 5etools source `book` (lower case: mm, mpmm, xge ...).
+
+    `_copy` monsters are left out: 5etools stores them as a diff against another record, so their
+    fields are not the printed ones."""
     d = Path(fivetools_dir)
-    if book == "mm":
-        return [m for m in json.loads((d / "bestiary/bestiary-mm.json").read_text("utf-8"))["monster"]
-                if not m.get("_copy")]
-    if book == "phb":
-        return json.loads((d / "spells/spells-phb.json").read_text("utf-8"))["spell"]
+    etype = etype or BOOKS[book]
+    if etype == "Monster":
+        out: dict[str, dict] = {}
+        for m in json.loads((d / f"bestiary/bestiary-{book}.json").read_text("utf-8"))["monster"]:
+            if not m.get("_copy"):
+                b = base_monster_name(m["name"])
+                out.setdefault(b, dict(m, name=b))  # a collapsed family is scored against its first member
+        return list(out.values())
+    if etype == "Spell":
+        return json.loads((d / f"spells/spells-{book}.json").read_text("utf-8"))["spell"]
     seen: dict[str, dict] = {}
     for i in json.loads((d / "items.json").read_text("utf-8"))["item"]:
-        if i.get("source") == "DMG" and i.get("rarity") not in (None, "none"):
+        if i.get("source") == book.upper() and i.get("rarity") not in (None, "none"):
             b = base_item_name(i["name"])
             rec = seen.setdefault(b, dict(i, name=b, _rarities=set()))
             rec["_rarities"].add(i["rarity"])
+            rec["reqAttune"] = rec.get("reqAttune") or i.get("reqAttune")  # the printed entry covers every tier
     return list(seen.values())
 
 
@@ -197,9 +224,23 @@ def attunes(v) -> bool:
 
 
 # ---------------- scoring ----------------
-def score_record(book: str, fields: dict, t: dict) -> tuple[dict, float | None, float | None]:
+def available_types(book: str, fivetools_dir: Path) -> list[str]:
+    """The core books score their one type; any other book scores every type 5etools has for it."""
+    if book in BOOKS:
+        return [BOOKS[book]]
+    out = []
+    for t in TYPES:
+        try:
+            if load_truth(book, fivetools_dir, t):
+                out.append(t)
+        except FileNotFoundError:
+            pass
+    return out
+
+
+def score_record(etype: str, fields: dict, t: dict) -> tuple[dict, float | None, float | None]:
     r: dict[str, bool] = {}
-    if book == "mm":
+    if etype == "Monster":
         r["ac"] = _first_int(fields.get("ac")) == t_ac(t)
         r["hp"] = (fields.get("hp") or {}).get("average") == t.get("hp", {}).get("average")
         r["cr"] = str(fields.get("cr")) == str(t_cr(t))
@@ -207,7 +248,7 @@ def score_record(book: str, fields: dict, t: dict) -> tuple[dict, float | None, 
                          [t.get(k) for k in ("str", "dex", "con", "int", "wis", "cha")]
         got = flat([fields.get(k) for k in ("trait", "action", "reaction", "legendary") if fields.get(k)])
         cov, prec = coverage(text_monster(t), got)
-    elif book == "phb":
+    elif etype == "Spell":
         r["level"] = fields.get("level") == t["level"]
         r["school"] = fields.get("school") == t["school"]
         r["time"] = same_time(t, fields.get("time"))
@@ -249,15 +290,16 @@ def match_one_to_one(truth_keys: list[str], keys: list[str]) -> dict[int, tuple[
     return out
 
 
-def score_book(book: str, entities: list[dict], fivetools_dir: Path | str) -> dict:
-    """Score extracted entities of this book's type against 5etools. Returns a plain dict."""
-    if book not in BOOKS:
-        raise ValueError(f"unknown book {book!r}; expected one of {sorted(BOOKS)}")
-    truth = load_truth(book, Path(fivetools_dir))
+def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype: str | None = None) -> dict:
+    """Score extracted entities of one type (default: the core book's type) against 5etools."""
+    etype = etype or BOOKS.get(book)
+    if etype not in TYPES:
+        raise ValueError(f"book {book!r} needs a type, one of {list(TYPES)}")
+    truth = load_truth(book, Path(fivetools_dir), etype)
     idx: dict[str, dict] = {}
     for e in entities:
-        if e.get("type") == BOOKS[book]:
-            name = base_item_name(e["name"]) if book == "dmg" else e["name"]
+        if e.get("type") == etype:
+            name = base_item_name(e["name"]) if etype == "MagicItem" else e["name"]
             idx.setdefault(key(name), e)
     matches = match_one_to_one([key(t["name"]) for t in truth], list(idx))
     agg: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
@@ -277,8 +319,8 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str) -> di
         if not exact:
             fuzzy.append(f"{t['name']} ~ {idx[k]['name']}")
         fields = idx[k]["fields"]
-        res, cov, prec = score_record(book, fields, t)
-        if book == "dmg" and len(rarity_family(t)) > 1:
+        res, cov, prec = score_record(etype, fields, t)
+        if etype == "MagicItem" and len(rarity_family(t)) > 1:
             fam[0] += 1
             fam[1] += fields.get("rarity") == "varies"
         for f, ok in res.items():
@@ -300,9 +342,9 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str) -> di
             precs.append(prec)
     found = len(matches)
     return {
-        "book": book, "truth": len(truth), "found": found, "extra": len(idx) - found,
+        "book": book, "type": etype, "truth": len(truth), "found": found, "extra": len(idx) - found,
         "fields": {f: {"pct": 100 * a / n, "n": n} for f, (a, n) in agg.items() if n},
-        "rarityMultiFamilies": {"n": fam[0], "variesAgree": fam[1]} if book == "dmg" else None,
+        "rarityMultiFamilies": {"n": fam[0], "variesAgree": fam[1]} if etype == "MagicItem" else None,
         "textAtLeast90": {"pct": 100 * text_ok[0] / text_ok[1] if text_ok[1] else 0.0, "n": text_ok[1]},
         "textCoverageMedian": 100 * statistics.median(covs) if covs else 0.0,
         "textPrecisionMedian": 100 * statistics.median(precs) if precs else 0.0,
@@ -318,7 +360,7 @@ def format_table(res: dict) -> str:
     row = (f"{res['found']:>4}/{res['truth']:<4} {res['extra']:>6} {cells}  "
            f"{res['textAtLeast90']['pct']:8.0f}%  {res['textCoverageMedian']:10.0f}%  "
            f"{res['textPrecisionMedian']:12.0f}%")
-    out = f"=== {res['book'].upper()}: {res['truth']} entries in 5etools ===\n{head}\n{row}"
+    out = f"=== {res['book'].upper()} {res['type']}: {res['truth']} entries in 5etools ===\n{head}\n{row}"
     if res.get("rarityMultiFamilies"):
         m = res["rarityMultiFamilies"]
         out += (f"\nrarity (strict) covers single-rarity items only; multi-rarity families: {m['n']}, "
@@ -329,17 +371,25 @@ def format_table(res: dict) -> str:
     return out
 
 
-def run(book: str, path: Path, fivetools_dir: Path, diffs_out: Path | None = None) -> int:
+def run(book: str, path: Path, fivetools_dir: Path, diffs_out: Path | None = None,
+        etype: str | None = None) -> int:
+    book = book.lower()
     try:
         data = json.loads(Path(path).read_text("utf-8"))
-        res = score_book(book, data["entities"], fivetools_dir)
+        types = [etype] if etype else available_types(book, fivetools_dir)
+        if not types:
+            print(f"error: 5etools has no monsters, spells or items for {book!r} under {fivetools_dir}",
+                  file=sys.stderr)
+            return 1
+        results = [score_book(book, data["entities"], fivetools_dir, t) for t in types]
     except FileNotFoundError as ex:
         print(f"error: file not found: {ex.filename} (check the extract output and --fivetools dir)",
               file=sys.stderr)
         return 1
-    print(format_table(res))
+    print("\n\n".join(format_table(r) for r in results))
     if diffs_out:
-        lines = ([f"MISSING {n}" for n in res["missing"]] + [f"FUZZY {n}" for n in res["fuzzyMatches"]]
-                 + [f"KNOWN {n}" for n in res["knownDifferences"]] + res["diffs"])
+        lines = [f"{r['type']} {line}" for r in results for line in
+                 [f"MISSING {n}" for n in r["missing"]] + [f"FUZZY {n}" for n in r["fuzzyMatches"]]
+                 + [f"KNOWN {n}" for n in r["knownDifferences"]] + r["diffs"]]
         diffs_out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return 0
