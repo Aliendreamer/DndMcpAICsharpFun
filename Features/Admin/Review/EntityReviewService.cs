@@ -72,34 +72,72 @@ public sealed class EntityReviewService(
     public async Task<EntityEnvelope?> GetAsync(string entityId, CancellationToken ct) =>
         (await LocateAsync(entityId, ct))?.Entity;
 
-    public async Task<EntityEnvelope> OverrideAsync(
-        string entityId, string field, JsonElement value, string reason, CancellationToken ct)
+    public Task<EntityEnvelope> OverrideAsync(
+        string entityId, string field, JsonElement value, string reason, CancellationToken ct) =>
+        OverrideManyAsync(entityId, [(field, value)], reason, ct);
+
+    /// <summary>
+    /// Applies several field overrides as one all-or-nothing write: every change is validated first, and nothing
+    /// is saved if any is invalid. One reindex follows.
+    /// </summary>
+    public async Task<EntityEnvelope> OverrideManyAsync(
+        string entityId, IReadOnlyList<(string Field, JsonElement Value)> changes, string reason, CancellationToken ct)
     {
         RequireReason(reason);
-        var value0 = value.Clone();
+        if (changes.Count == 0) throw new ArgumentException("No changes given.", nameof(changes));
+        var cloned = changes.Select(c => (c.Field, Value: c.Value.Clone())).ToList();
         return await MutateAsync(entityId, (e, o) =>
         {
-            if (!OverrideMerger.ValidatePath(e, field))
-                throw new ArgumentException($"Invalid field path '{field}'.", nameof(field));
+            var updated = e;
+            var overrides = o.Overrides.ToList();
+            foreach (var (field, value) in cloned)
+            {
+                if (!OverrideMerger.ValidatePath(updated, field))
+                    throw new ArgumentException($"Invalid field path '{field}'.", nameof(changes));
+                var exists = OverrideMerger.TryGetValue(updated, field, out var current);
+                if (field.StartsWith("fields.", StringComparison.Ordinal) && exists
+                    && current.ValueKind != JsonValueKind.Null && !SameKind(current.ValueKind, value.ValueKind))
+                    throw new ArgumentException(
+                        $"'{field}' holds a {KindName(current.ValueKind)}; the new value is a {KindName(value.ValueKind)}.", nameof(changes));
 
-            // The baseline is the extractor's value: the previous override's baseline (rebased to the new
-            // extraction if it drifted), or, for a first override, what the entity holds right now.
-            var prior = o.Overrides.LastOrDefault(x => x.EntityId == entityId && x.Field == field);
-            var baseline = prior is null
-                ? OverrideMerger.GetValue(e, field)
-                : OverrideMerger.DriftNow(e, prior) ?? prior.Extracted;
+                // The baseline is the extractor's value: the previous override's baseline (rebased to the new
+                // extraction if it drifted), or, for a first override, what the entity holds right now.
+                var prior = overrides.LastOrDefault(x => x.EntityId == entityId && x.Field == field);
+                JsonElement? baseline;
+                bool absent;
+                if (prior is null)
+                {
+                    baseline = exists ? current : null;
+                    absent = !exists;
+                }
+                else if (OverrideMerger.DriftNow(e, prior) is { } now)
+                {
+                    (baseline, absent) = (now, false);
+                }
+                else
+                {
+                    (baseline, absent) = (prior.Extracted, prior.ExtractedAbsent);
+                }
 
-            var updated = OverrideMerger.TrySet(e, field, value0, out var why)
-                          ?? throw new ArgumentException($"Cannot apply override at '{field}': {why}", nameof(field));
-            updated = StripOverrideChecks(updated, field);
-
-            var overrides = o.Overrides.Where(x => !(x.EntityId == entityId && x.Field == field))
-                .Append(new FieldOverride(entityId, field, value0, baseline, reason.Trim(), DateTimeOffset.UtcNow))
-                .ToList();
+                updated = OverrideMerger.TrySet(updated, field, value, out var why)
+                          ?? throw new ArgumentException($"Cannot apply override at '{field}': {why}", nameof(changes));
+                updated = StripOverrideChecks(updated, field);
+                overrides.RemoveAll(x => x.EntityId == entityId && x.Field == field);
+                overrides.Add(new FieldOverride(entityId, field, value, baseline, reason.Trim(), DateTimeOffset.UtcNow, absent));
+            }
             var next = new EntityOverrides(overrides, o.Approvals);
             return (OverrideMerger.SetDisposition(updated, IsApproved(next, entityId)), next);
         }, ct);
     }
+
+    private static bool SameKind(JsonValueKind a, JsonValueKind b) =>
+        a == b || (a is JsonValueKind.True or JsonValueKind.False && b is JsonValueKind.True or JsonValueKind.False);
+
+    private static string KindName(JsonValueKind k) => k switch
+    {
+        JsonValueKind.True or JsonValueKind.False => "boolean",
+        _ => k.ToString().ToLowerInvariant(),
+    };
 
     public async Task<EntityEnvelope> ApproveAsync(string entityId, string reason, CancellationToken ct)
     {
@@ -113,7 +151,7 @@ public sealed class EntityReviewService(
             {
                 if (ov.EntityId == entityId && OverrideMerger.DriftNow(e, ov) is { } now)
                 {
-                    rebased.Add(ov with { Extracted = now });
+                    rebased.Add(ov with { Extracted = now, ExtractedAbsent = false });
                     updated = StripOverrideChecks(updated, ov.Field, unapplied: false);
                 }
                 else
@@ -142,8 +180,21 @@ public sealed class EntityReviewService(
             var unapplied = e.Checks.Any(c => c.Name == OverrideMerger.UnappliedCheck
                                               && c.Reason.StartsWith($"override at {field} could not", StringComparison.Ordinal));
             var updated = e;
-            if (!unapplied && (OverrideMerger.DriftNow(e, ov) ?? ov.Extracted) is { } restore)
-                updated = OverrideMerger.TrySet(e, field, restore, out _) ?? e;
+            if (!unapplied)
+            {
+                var drift = OverrideMerger.DriftNow(e, ov);
+                if ((drift ?? ov.Extracted) is { } restore)
+                    updated = OverrideMerger.TrySet(e, field, restore, out _) ?? e;
+                else if (ov.ExtractedAbsent)
+                    updated = OverrideMerger.TryRemoveKey(e, field) ?? e;
+                else
+                {
+                    // No stored baseline and not absent: the extractor's value was JSON null
+                    // (it round-trips through the overrides file as a plain null).
+                    using var nullDoc = JsonDocument.Parse("null");
+                    updated = OverrideMerger.TrySet(e, field, nullDoc.RootElement, out _) ?? e;
+                }
+            }
             updated = StripOverrideChecks(updated, field);
 
             var next = new EntityOverrides(

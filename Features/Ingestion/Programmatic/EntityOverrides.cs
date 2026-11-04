@@ -9,7 +9,8 @@ public sealed record FieldOverride(
     JsonElement Value,
     JsonElement? Extracted,
     string Reason,
-    DateTimeOffset At);
+    DateTimeOffset At,
+    bool ExtractedAbsent = false);
 
 /// <summary>An admin's sign-off that an entity with failing checks is acceptable.</summary>
 public sealed record Approval(string EntityId, string Reason, DateTimeOffset At);

@@ -148,6 +148,10 @@
                         </div>
                     }
 
+                    @if (_imageNote is not null)
+                    {
+                        <p class="muted">@_imageNote</p>
+                    }
                     @if (_imageUri is not null)
                     {
                         <div class="review-image-wrap">
@@ -181,6 +185,7 @@
     private int _imagePage;
     private string? _imageUri;
     private List<string> _boxes = [];
+    private string? _imageNote;
 
     private string _reason = "";
     private string? _message;
@@ -251,6 +256,7 @@
         if (_entity is null) return;
         _imagePage = page;
         _imageUri = null;
+        _imageNote = null;
         _boxes = [];
         try
         {
@@ -260,6 +266,10 @@
                 var boxes = _entity.Provenance?.Pages.Where(p => p.Page == page).SelectMany(p => p.Boxes) ?? [];
                 _boxes = boxes.Select(b => FormattableString.Invariant(
                     $"left:{b.X0 / w * 100:0.###}%;top:{b.Y0 / h * 100:0.###}%;width:{(b.X1 - b.X0) / w * 100:0.###}%;height:{(b.Y1 - b.Y0) / h * 100:0.###}%")).ToList();
+            }
+            else
+            {
+                _imageNote = "The page image is not a PNG, so its size is unknown and provenance boxes are not drawn.";
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -274,13 +284,14 @@
         {
             var changed = _editOrder.Where(k => _edits[k] != _originals[k]).ToList();
             if (changed.Count == 0) throw new ArgumentException("Nothing changed.");
+            // Parse every field first so one invalid field writes nothing.
+            var parsed = new List<(string Field, JsonElement Value)>();
             foreach (var k in changed)
             {
-                JsonElement value;
-                try { value = JsonDocument.Parse(_edits[k]).RootElement.Clone(); }
+                try { parsed.Add((k, JsonDocument.Parse(_edits[k]).RootElement.Clone())); }
                 catch (JsonException) { throw new ArgumentException($"{k} is not valid JSON."); }
-                await ReviewSvc.OverrideAsync(_entity!.Id, k, value, _reason, default);
             }
+            await ReviewSvc.OverrideManyAsync(_entity!.Id, parsed, _reason, default);
             _message = $"Saved {changed.Count} override(s).";
         });
     }

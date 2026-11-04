@@ -262,6 +262,77 @@ public sealed class EntityReviewServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Remove_override_on_an_absent_key_deletes_the_key()
+    {
+        await SeedDefault();
+
+        await Svc().OverrideAsync(Goblin, "fields.senses", J("\"darkvision\""), "missing", CancellationToken.None);
+        (await FromFile(Goblin)).Fields.TryGetProperty("senses", out _).Should().BeTrue();
+        (await Store().LoadAsync(Slug, CancellationToken.None)).Overrides.Single().ExtractedAbsent.Should().BeTrue();
+
+        await Svc().RemoveOverrideAsync(Goblin, "fields.senses", CancellationToken.None);
+
+        (await FromFile(Goblin)).Fields.TryGetProperty("senses", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Remove_override_on_a_json_null_baseline_restores_null()
+    {
+        await Seed("2", Ent(Goblin, "Goblin") with { Fields = J("""{"cr":"1","note":null}""") });
+
+        await Svc().OverrideAsync(Goblin, "fields.note", J("\"x\""), "r", CancellationToken.None);
+        var saved = (await Store().LoadAsync(Slug, CancellationToken.None)).Overrides.Single();
+        saved.ExtractedAbsent.Should().BeFalse();
+        saved.Extracted.Should().BeNull("a JSON null baseline round-trips as null, distinct from ExtractedAbsent");
+
+        await Svc().RemoveOverrideAsync(Goblin, "fields.note", CancellationToken.None);
+
+        var note = (await FromFile(Goblin)).Fields.GetProperty("note");
+        note.ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task OverrideMany_with_one_invalid_field_writes_nothing()
+    {
+        await SeedDefault();
+
+        var act = () => Svc().OverrideManyAsync(Goblin,
+            [("fields.cr", J("\"2\"")), ("fields.nope.x", J("1"))], "r", CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+        File.Exists(Path.Combine(_dir, Slug + ".overrides.json")).Should().BeFalse();
+        (await FromFile(Goblin)).Fields.GetProperty("cr").GetString().Should().Be("1");
+        await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
+    }
+
+    [Fact]
+    public async Task OverrideMany_writes_all_fields_with_one_reindex()
+    {
+        await SeedDefault();
+
+        await Svc().OverrideManyAsync(Goblin,
+            [("fields.cr", J("\"2\"")), ("name", J("\"Goblin Boss\""))], "r", CancellationToken.None);
+
+        var e = await FromFile(Goblin);
+        e.Fields.GetProperty("cr").GetString().Should().Be("2");
+        e.Name.Should().Be("Goblin Boss");
+        (await Store().LoadAsync(Slug, CancellationToken.None)).Overrides.Should().HaveCount(2);
+        await _ingestion.Received(1).ReindexEntityAsync(1, Goblin, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Override_with_a_different_json_kind_throws_unless_current_is_null()
+    {
+        await Seed("2", Ent(Goblin, "Goblin") with { Fields = J("""{"cr":"1","ac":[{"ac":12}],"note":null}""") });
+
+        var act = () => Svc().OverrideAsync(Goblin, "fields.ac", J("\"12\""), "r", CancellationToken.None);
+        (await act.Should().ThrowAsync<ArgumentException>()).Which.Message.Should().Contain("array").And.Contain("string");
+
+        await Svc().OverrideAsync(Goblin, "fields.note", J("\"fine\""), "r", CancellationToken.None);
+        (await FromFile(Goblin)).Fields.GetProperty("note").GetString().Should().Be("fine");
+    }
+
+    [Fact]
     public async Task Remove_unknown_override_throws()
     {
         await SeedDefault();

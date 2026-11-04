@@ -123,6 +123,38 @@ public static class OverrideMerger
         return node is null ? null : JsonDocument.Parse(node.ToJsonString()).RootElement.Clone();
     }
 
+    /// <summary>
+    /// Like <see cref="GetValue"/> but distinguishes an absent path (returns false) from a JSON null
+    /// (returns true with a Null-kind element).
+    /// </summary>
+    public static bool TryGetValue(EntityEnvelope e, string field, out JsonElement value)
+    {
+        value = default;
+        if (field is "name" or "canonicalText")
+        {
+            value = JsonDocument.Parse(JsonValue.Create(field == "name" ? e.Name : e.CanonicalText)!.ToJsonString()).RootElement.Clone();
+            return true;
+        }
+        if (!field.StartsWith(FieldsPrefix, StringComparison.Ordinal)) return false;
+        if (!TryWalk(FieldsNode(e), field[FieldsPrefix.Length..].Split('.'), out var node)) return false;
+        value = JsonDocument.Parse(node?.ToJsonString() ?? "null").RootElement.Clone();
+        return true;
+    }
+
+    /// <summary>Deletes the object key at <paramref name="field"/>; false when the path is not an object key under fields.</summary>
+    public static EntityEnvelope? TryRemoveKey(EntityEnvelope e, string field)
+    {
+        if (!field.StartsWith(FieldsPrefix, StringComparison.Ordinal)) return null;
+        var segments = field[FieldsPrefix.Length..].Split('.');
+        var root = FieldsNode(e);
+        JsonNode? parent = root;
+        if (segments.Length > 1 && !TryWalk(root, segments[..^1], out parent)) return e;
+        if (parent is not JsonObject obj) return null;
+        obj.Remove(segments[^1]);
+        using var doc = JsonDocument.Parse(root.ToJsonString());
+        return e with { Fields = doc.RootElement.Clone() };
+    }
+
     /// <summary>The drift check's text for an override whose baseline was <paramref name="baseline"/> — shared with <see cref="DriftNow"/>.</summary>
     private static string DriftPrefix(string field, JsonElement baseline) =>
         $"extraction changed under your override at {field}: was {baseline.GetRawText()}, now ";
