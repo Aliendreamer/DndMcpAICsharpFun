@@ -22,7 +22,7 @@ internal static class AuthExtensions
                 o.Cookie.HttpOnly = true;
             });
         services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
-        services.AddAuthorization(o => o.AddPolicy(AuthPolicies.Admin, p => p.AddRequirements(new AdminRequirement())));
+        services.AddAuthorization(o => o.AddPolicy(AuthPolicies.Admin, p => p.RequireAuthenticatedUser().AddRequirements(new AdminRequirement())));
         return services;
     }
 }

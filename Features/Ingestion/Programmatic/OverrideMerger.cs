@@ -59,6 +59,7 @@ public static class OverrideMerger
         if (field is "name" or "canonicalText") return true;
         if (!field.StartsWith(FieldsPrefix, StringComparison.Ordinal)) return false;
         var segments = field[FieldsPrefix.Length..].Split('.');
+        if (segments.Any(s => s.Length == 0)) return false;
         var root = FieldsNode(e);
         if (TryWalk(root, segments, out _)) return true;
         return segments.Length >= 1
@@ -93,7 +94,7 @@ public static class OverrideMerger
                 updated = updated with
                 {
                     Checks = [.. updated.Checks, new EntityCheck(DriftCheck, false,
-                        $"extraction changed under your override at {ov.Field}: was {baseline.GetRawText()}, now {current?.ToJsonString() ?? "null"}")],
+                        DriftPrefix(ov.Field, baseline) + (current?.ToJsonString() ?? "null"))],
                 };
             }
         }
@@ -109,6 +110,33 @@ public static class OverrideMerger
         }
         if (!field.StartsWith(FieldsPrefix, StringComparison.Ordinal)) return null;
         return TryWalk(FieldsNode(e), field[FieldsPrefix.Length..].Split('.'), out var node) ? node : null;
+    }
+
+    /// <summary>Sets one field on a copy of <paramref name="e"/>; null (with <paramref name="why"/>) if it cannot be applied.</summary>
+    public static EntityEnvelope? TrySet(EntityEnvelope e, string field, JsonElement value, out string why) =>
+        Set(e, field, value, out why);
+
+    /// <summary>The entity's current value at <paramref name="field"/>, or null when the path does not resolve.</summary>
+    public static JsonElement? GetValue(EntityEnvelope e, string field)
+    {
+        var node = GetCurrent(e, field);
+        return node is null ? null : JsonDocument.Parse(node.ToJsonString()).RootElement.Clone();
+    }
+
+    /// <summary>The drift check's text for an override whose baseline was <paramref name="baseline"/> — shared with <see cref="DriftNow"/>.</summary>
+    private static string DriftPrefix(string field, JsonElement baseline) =>
+        $"extraction changed under your override at {field}: was {baseline.GetRawText()}, now ";
+
+    /// <summary>
+    /// The re-extracted value recorded in an unresolved drift check for <paramref name="ov"/>, or null when the entity
+    /// has no such check. A JSON null current value comes back as a JsonElement of kind Null.
+    /// </summary>
+    public static JsonElement? DriftNow(EntityEnvelope e, FieldOverride ov)
+    {
+        if (ov.Extracted is not { } baseline) return null;
+        var prefix = DriftPrefix(ov.Field, baseline);
+        var check = e.Checks.FirstOrDefault(c => c.Name == DriftCheck && c.Reason.StartsWith(prefix, StringComparison.Ordinal));
+        return check is null ? null : JsonDocument.Parse(check.Reason[prefix.Length..]).RootElement.Clone();
     }
 
     private static EntityEnvelope? Set(EntityEnvelope e, string field, JsonElement value, out string why)
@@ -134,6 +162,11 @@ public static class OverrideMerger
         }
 
         var segments = field[FieldsPrefix.Length..].Split('.');
+        if (segments.Any(s => s.Length == 0))
+        {
+            why = "empty path segment";
+            return null;
+        }
         var root = FieldsNode(e);
         JsonNode? parent = root;
         if (segments.Length > 1 && !TryWalk(root, segments[..^1], out parent))

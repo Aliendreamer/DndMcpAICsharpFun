@@ -138,6 +138,7 @@ GET {{baseUrl}}/admin/entities/phb14.spell.fireball
 X-Admin-Api-Key: {{adminKey}}
 
 ### Admin — needsReview triage — Resolve: accept (clear the NeedsReview flag only)
+# Programmatic-extraction entities (canonical schema 2) are reviewed only on the /review page: this returns 409 for them.
 POST {{baseUrl}}/admin/entities/phb14.spell.fireball/resolve
 X-Admin-Api-Key: {{adminKey}}
 Content-Type: application/json
@@ -152,6 +153,7 @@ Content-Type: application/json
 { "action": "edit", "name": "Bullywug" }
 
 ### Admin — needsReview triage — Bulk-accept all low-confidence entities for a book
+# Response: { "cleared": n, "skipped": n } — skipped counts programmatic entities, which are never bulk-approved (use /review).
 POST {{baseUrl}}/admin/entities/needs-review/accept
 X-Admin-Api-Key: {{adminKey}}
 Content-Type: application/json

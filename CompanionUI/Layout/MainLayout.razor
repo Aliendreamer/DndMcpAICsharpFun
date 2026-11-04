@@ -1,6 +1,9 @@
 @inherits LayoutComponentBase
+@using DndMcpAICsharpFun.Features.Auth
+@using Microsoft.AspNetCore.Authorization
 @inject AuthenticationStateProvider Auth
 @inject NavigationManager Nav
+@inject IAuthorizationService AuthZ
 
 <div class="app-layout">
     <nav class="sidebar">
@@ -11,6 +14,10 @@
             <NavLink href="/campaigns" ActiveClass="active">🗺 Campaigns</NavLink>
             <NavLink href="/heroes" ActiveClass="active">🦸 Heroes</NavLink>
             <NavLink href="/scratch" ActiveClass="active">🎲 Scratchpad</NavLink>
+            @if (_isAdmin)
+            {
+                <NavLink href="/review" ActiveClass="active">🔎 Review</NavLink>
+            }
         </div>
 
         <div class="sidebar-footer">
@@ -26,10 +33,13 @@
 
 @code {
     private string _username = "";
+    private bool _isAdmin;
 
     protected override async Task OnInitializedAsync()
     {
         var state = await Auth.GetAuthenticationStateAsync();
         _username = state.User.Identity?.Name ?? "";
+        _isAdmin = state.User.Identity?.IsAuthenticated == true
+            && (await AuthZ.AuthorizeAsync(state.User, AuthPolicies.Admin)).Succeeded;
     }
 }

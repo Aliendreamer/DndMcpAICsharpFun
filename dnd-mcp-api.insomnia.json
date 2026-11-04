@@ -1303,6 +1303,7 @@
       "_type": "request",
       "parentId": "fld_needs_review",
       "name": "Resolve — accept (clear flag only)",
+      "description": "Programmatic-extraction entities (canonical schema 2) are reviewed only on the /review page: this returns 409 for them.",
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/entities/phb14.spell.fireball/resolve",
       "headers": [
@@ -1339,6 +1340,7 @@
       "_type": "request",
       "parentId": "fld_needs_review",
       "name": "Bulk-accept — low-confidence entities for a book",
+      "description": "Response: { cleared, skipped } — skipped counts programmatic entities, which are never bulk-approved (use /review).",
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/entities/needs-review/accept",
       "headers": [

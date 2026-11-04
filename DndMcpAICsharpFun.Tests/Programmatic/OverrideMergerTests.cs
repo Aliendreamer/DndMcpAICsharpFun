@@ -107,6 +107,25 @@ public class OverrideMergerTests
         OverrideMerger.ValidatePath(e, "canonicalText").Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData("fields.")]
+    [InlineData("fields..cr")]
+    [InlineData("fields.cr.")]
+    [InlineData("fields.ac..ac")]
+    public void Empty_path_segments_rejected(string path)
+    {
+        OverrideMerger.ValidatePath(Grell(), path).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Empty_path_segment_in_stored_override_is_unapplied_not_written()
+    {
+        var o = new EntityOverrides([Ov("fields.", "1")], []);
+        var e = OverrideMerger.Apply([Grell()], o).Entities[0];
+        e.Fields.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("cr", "ac");
+        e.Checks.Should().Contain(c => c.Name == OverrideMerger.UnappliedCheck && !c.Passed);
+    }
+
     private static EntityEnvelope WithFields(string json, IReadOnlyList<EntityCheck>? checks = null) =>
         Grell(checks: checks) with { Fields = J(json) };
 

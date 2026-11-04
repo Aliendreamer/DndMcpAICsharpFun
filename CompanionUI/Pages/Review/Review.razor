@@ -1,0 +1,329 @@
+@page "/review"
+@rendermode InteractiveServer
+@using System.Text.Json
+@using Microsoft.AspNetCore.Authorization
+@using DndMcpAICsharpFun.Domain.Entities
+@using DndMcpAICsharpFun.Features.Admin.Review
+@using DndMcpAICsharpFun.Features.Auth
+@using DndMcpAICsharpFun.Features.Ingestion.Programmatic
+@attribute [Authorize(Policy = AuthPolicies.Admin)]
+@inject EntityReviewService ReviewSvc
+
+<PageTitle>Review</PageTitle>
+
+<div class="review-page">
+    <h1>Entity review</h1>
+
+    <div class="review-layout">
+        <aside class="review-list card">
+            <div class="review-filters">
+                <select aria-label="Book" value="@_book" @onchange="OnBookChanged">
+                    <option value="">All books</option>
+                    @foreach (var b in _books)
+                    {
+                        <option value="@b">@b</option>
+                    }
+                </select>
+                <label class="review-toggle">
+                    <input type="checkbox" checked="@_flaggedOnly" @onchange="OnFlaggedChanged" />
+                    Flagged only
+                </label>
+            </div>
+
+            @if (_items is null)
+            {
+                <p class="muted">Loading...</p>
+            }
+            else if (_items.Count == 0)
+            {
+                <p class="muted">Nothing to review.</p>
+            }
+            else
+            {
+                <ul class="review-items">
+                    @foreach (var i in _items)
+                    {
+                        <li>
+                            <button type="button" class="review-item @(i.Id == _selectedId ? "selected" : "")"
+                                    @onclick="() => SelectAsync(i.Id)">
+                                <span class="review-item-name">@i.Name</span>
+                                <span class="review-item-meta">
+                                    <span class="chip">@i.Type</span>
+                                    <span class="muted">@i.BookSlug@(i.Page is null ? "" : $" p.{i.Page}")</span>
+                                    @if (i.Flagged)
+                                    {
+                                        <span class="badge review-flag">flagged</span>
+                                    }
+                                </span>
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+        </aside>
+
+        <section class="review-detail">
+            @if (_message is not null)
+            {
+                <p class="review-message">@_message</p>
+            }
+            @if (_error is not null)
+            {
+                <p class="error" role="alert">@_error</p>
+            }
+
+            @if (_entity is null)
+            {
+                <p class="muted">Select an entity on the left.</p>
+            }
+            else
+            {
+                <div class="card review-entity">
+                    <header class="review-entity-head">
+                        <h2>@_entity.Name</h2>
+                        <span class="chip">@_entity.Type</span>
+                        <span class="badge">@_entity.Disposition</span>
+                        <span class="muted data">@_entity.Id</span>
+                    </header>
+
+                    @if (_checks.Count > 0)
+                    {
+                        <ul class="review-checks">
+                            @foreach (var c in _checks)
+                            {
+                                <li class="review-check @(c.Passed ? "pass" : "fail")">
+                                    <span class="review-check-name data">@c.Name</span>
+                                    <span>@(c.Passed ? "repaired" : "failed"): @c.Reason</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    <div class="review-fields">
+                        @foreach (var key in _editOrder)
+                        {
+                            var k = key;
+                            var overridden = _overrides.Any(o => o.Field == k);
+                            <div class="review-field">
+                                <label for="f-@k" class="data">
+                                    @k
+                                    @if (overridden)
+                                    {
+                                        <span class="badge">overridden</span>
+                                        <button type="button" class="btn btn--danger review-remove"
+                                                @onclick="() => RemoveAsync(k)">Remove override</button>
+                                    }
+                                </label>
+                                <textarea id="f-@k" class="data" rows="@RowsFor(_edits[k])"
+                                          @bind="_edits[k]" @bind:event="oninput"></textarea>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="review-actions">
+                        <input type="text" placeholder="Reason (required)" aria-label="Reason"
+                               @bind="_reason" @bind:event="oninput" />
+                        <button type="button" class="btn btn--primary" disabled="@_busy" @onclick="SaveAsync">Save override</button>
+                        @if (_entity.Disposition != EntityDisposition.Accepted || _entity.NeedsReview)
+                        {
+                            <button type="button" class="btn btn--ghost" disabled="@_busy" @onclick="ApproveAsync">Approve</button>
+                        }
+                    </div>
+                </div>
+
+                <div class="card review-source">
+                    @if (_pages.Count == 0)
+                    {
+                        <p class="muted">No source page recorded for this entity.</p>
+                    }
+                    else
+                    {
+                        <div class="review-pages">
+                            @foreach (var p in _pages)
+                            {
+                                var pg = p;
+                                <button type="button" class="btn @(pg == _imagePage ? "btn--primary" : "btn--ghost")"
+                                        @onclick="() => ShowPageAsync(pg)">Page @pg</button>
+                            }
+                        </div>
+                    }
+
+                    @if (_imageUri is not null)
+                    {
+                        <div class="review-image-wrap">
+                            <img src="@_imageUri" alt="Book page @_imagePage" />
+                            @foreach (var b in _boxes)
+                            {
+                                <div class="review-box" style="@b"></div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    private List<string> _books = [];
+    private string _book = "";
+    private bool _flaggedOnly = true;
+    private IReadOnlyList<ReviewListItem>? _items;
+
+    private string? _selectedId;
+    private EntityEnvelope? _entity;
+    private IReadOnlyList<EntityCheck> _checks = [];
+    private IReadOnlyList<FieldOverride> _overrides = [];
+    private readonly Dictionary<string, string> _edits = new();
+    private readonly Dictionary<string, string> _originals = new();
+    private List<string> _editOrder = [];
+    private List<int> _pages = [];
+    private int _imagePage;
+    private string? _imageUri;
+    private List<string> _boxes = [];
+
+    private string _reason = "";
+    private string? _message;
+    private string? _error;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _books = (await ReviewSvc.ListBooksAsync(default)).ToList();
+        await ReloadListAsync();
+    }
+
+    private async Task ReloadListAsync() =>
+        _items = await ReviewSvc.ListAsync(_book == "" ? null : _book, _flaggedOnly, default);
+
+    private async Task OnBookChanged(ChangeEventArgs e)
+    {
+        _book = e.Value?.ToString() ?? "";
+        await ReloadListAsync();
+    }
+
+    private async Task OnFlaggedChanged(ChangeEventArgs e)
+    {
+        _flaggedOnly = e.Value is true;
+        await ReloadListAsync();
+    }
+
+    private async Task SelectAsync(string id)
+    {
+        _message = _error = null;
+        _reason = "";
+        _selectedId = id;
+        await LoadEntityAsync();
+        if (_pages.Count > 0) await ShowPageAsync(_pages[0]);
+    }
+
+    private async Task LoadEntityAsync()
+    {
+        _entity = _selectedId is null ? null : await ReviewSvc.GetAsync(_selectedId, default);
+        if (_entity is null) { _checks = []; _overrides = []; _pages = []; _imageUri = null; return; }
+
+        _checks = EntityReviewService.VisibleChecks(_entity);
+        _overrides = await ReviewSvc.GetOverridesAsync(_entity.Id, default);
+
+        _edits.Clear();
+        _originals.Clear();
+        _editOrder = ["name", "canonicalText"];
+        _originals["name"] = JsonSerializer.Serialize(_entity.Name);
+        _originals["canonicalText"] = JsonSerializer.Serialize(_entity.CanonicalText);
+        if (_entity.Fields.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var p in _entity.Fields.EnumerateObject())
+            {
+                var key = "fields." + p.Name;
+                _editOrder.Add(key);
+                _originals[key] = JsonSerializer.Serialize(p.Value, new JsonSerializerOptions { WriteIndented = true });
+            }
+        }
+        foreach (var (k, v) in _originals) _edits[k] = v;
+
+        _pages = (_entity.Provenance?.Pages.Select(p => p.Page) ?? [])
+            .Concat(_entity.Page is { } onPage ? new[] { onPage } : Array.Empty<int>())
+            .Distinct().OrderBy(p => p).ToList();
+    }
+
+    private async Task ShowPageAsync(int page)
+    {
+        if (_entity is null) return;
+        _imagePage = page;
+        _imageUri = null;
+        _boxes = [];
+        try
+        {
+            _imageUri = await ReviewSvc.GetPageImageDataUriAsync(_entity.Id, page, default);
+            if (EntityReviewService.TryGetPngSize(_imageUri, out var w, out var h))
+            {
+                var boxes = _entity.Provenance?.Pages.Where(p => p.Page == page).SelectMany(p => p.Boxes) ?? [];
+                _boxes = boxes.Select(b => FormattableString.Invariant(
+                    $"left:{b.X0 / w * 100:0.###}%;top:{b.Y0 / h * 100:0.###}%;width:{(b.X1 - b.X0) / w * 100:0.###}%;height:{(b.Y1 - b.Y0) / h * 100:0.###}%")).ToList();
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _error = $"Could not load page {page}: {ex.Message}";
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        await RunAsync(async () =>
+        {
+            var changed = _editOrder.Where(k => _edits[k] != _originals[k]).ToList();
+            if (changed.Count == 0) throw new ArgumentException("Nothing changed.");
+            foreach (var k in changed)
+            {
+                JsonElement value;
+                try { value = JsonDocument.Parse(_edits[k]).RootElement.Clone(); }
+                catch (JsonException) { throw new ArgumentException($"{k} is not valid JSON."); }
+                await ReviewSvc.OverrideAsync(_entity!.Id, k, value, _reason, default);
+            }
+            _message = $"Saved {changed.Count} override(s).";
+        });
+    }
+
+    private Task ApproveAsync() => RunAsync(async () =>
+    {
+        var e = await ReviewSvc.ApproveAsync(_entity!.Id, _reason, default);
+        _message = e.Disposition == EntityDisposition.Accepted
+            ? "Approved."
+            : "Approval saved, but unresolved override problems still block acceptance - remove or fix those overrides.";
+    });
+
+    private Task RemoveAsync(string field) => RunAsync(async () =>
+    {
+        await ReviewSvc.RemoveOverrideAsync(_entity!.Id, field, default);
+        _message = $"Removed override at {field}.";
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        if (_entity is null || _busy) return;
+        _busy = true;
+        _message = _error = null;
+        try
+        {
+            await action();
+            _reason = "";
+            await LoadEntityAsync();
+            await ReloadListAsync();
+        }
+        catch (ArgumentException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _error = $"Failed: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static int RowsFor(string text) => Math.Clamp(text.Count(c => c == '\n') + 1, 1, 12);
+}

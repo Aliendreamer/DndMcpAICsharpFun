@@ -45,6 +45,10 @@ public static class NeedsReviewEndpoints
             {
                 return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
             }
+            catch (ProgrammaticEntityReviewException ex)
+            {
+                return Results.Problem(ex.Message, statusCode: StatusCodes.Status409Conflict);
+            }
             return found ? Results.Ok() : Results.NotFound();
         });
 
@@ -54,8 +58,7 @@ public static class NeedsReviewEndpoints
             NeedsReviewService svc,
             CancellationToken ct) =>
         {
-            var cleared = await svc.BulkAcceptAsync(body?.Book, body?.Reason, ct);
-            return Results.Ok(new BulkAcceptResponse(cleared));
+            return Results.Ok(await svc.BulkAcceptAsync(body?.Book, body?.Reason, ct));
         });
 
         return group;

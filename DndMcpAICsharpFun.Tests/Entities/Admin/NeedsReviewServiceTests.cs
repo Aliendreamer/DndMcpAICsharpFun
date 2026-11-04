@@ -259,7 +259,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     public async Task BulkAccept_NoFilter_ClearsAllFlaggedEntities()
     {
         var sut = BuildSut();
-        var cleared = await sut.BulkAcceptAsync(null, null, CancellationToken.None);
+        var cleared = (await sut.BulkAcceptAsync(null, null, CancellationToken.None)).Cleared;
 
         cleared.Should().Be(2);
 
@@ -272,7 +272,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     public async Task BulkAccept_FilterByReason_OnlyClearsMatchingEntities()
     {
         var sut = BuildSut();
-        var cleared = await sut.BulkAcceptAsync(null, "low-confidence", CancellationToken.None);
+        var cleared = (await sut.BulkAcceptAsync(null, "low-confidence", CancellationToken.None)).Cleared;
 
         cleared.Should().Be(1, "only the low-confidence entity matches");
 
@@ -292,7 +292,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     public async Task BulkAccept_FilterByBook_OnlyClearsMatchingBook()
     {
         var sut = BuildSut();
-        var cleared = await sut.BulkAcceptAsync("needs-review-book", null, CancellationToken.None);
+        var cleared = (await sut.BulkAcceptAsync("needs-review-book", null, CancellationToken.None)).Cleared;
 
         cleared.Should().Be(2);
     }
@@ -301,7 +301,7 @@ public sealed class NeedsReviewServiceTests : IDisposable
     public async Task BulkAccept_FilterByNonExistingBook_ReturnsZero()
     {
         var sut = BuildSut();
-        var cleared = await sut.BulkAcceptAsync("no-such-book", null, CancellationToken.None);
+        var cleared = (await sut.BulkAcceptAsync("no-such-book", null, CancellationToken.None)).Cleared;
 
         cleared.Should().Be(0);
     }

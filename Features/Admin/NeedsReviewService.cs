@@ -33,7 +33,13 @@ public sealed record BulkAcceptRequest(
     string? Book = null,
     string? Reason = null);
 
-public sealed record BulkAcceptResponse(int Cleared);
+/// <param name="Cleared">Entities accepted.</param>
+/// <param name="Skipped">Programmatic entities left untouched — they are reviewed only on the /review page.</param>
+public sealed record BulkAcceptResponse(int Cleared, int Skipped = 0);
+
+/// <summary>Raised when the legacy HTTP triage is pointed at a programmatic entity (reviewed only via /review).</summary>
+public sealed class ProgrammaticEntityReviewException(string entityId) : InvalidOperationException(
+    $"Entity '{entityId}' is a programmatic extraction; review it on the /review page.");
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
@@ -92,7 +98,7 @@ public sealed class NeedsReviewService(
 
             foreach (var e in file.Entities)
             {
-                if (!e.NeedsReview) continue;
+                if (!e.NeedsReview || e.DataSource == DataSources.Programmatic) continue;
                 var reason = DeriveReason(e.Name);
                 if (reasonFilter is not null &&
                     !string.Equals(reason, reasonFilter, StringComparison.OrdinalIgnoreCase))
@@ -156,6 +162,8 @@ public sealed class NeedsReviewService(
             var entity = file.Entities.FirstOrDefault(e =>
                 string.Equals(e.Id, entityId, StringComparison.Ordinal));
             if (entity is null) continue;
+            if (entity.DataSource == DataSources.Programmatic)
+                throw new ProgrammaticEntityReviewException(entityId);
 
             // Found the entity — patch and reindex.
             var patched = await writer.PatchEntityAsync(
@@ -175,12 +183,13 @@ public sealed class NeedsReviewService(
 
     // ── Bulk accept ───────────────────────────────────────────────────────────
 
-    public async Task<int> BulkAcceptAsync(
+    public async Task<BulkAcceptResponse> BulkAcceptAsync(
         string? bookFilter,
         string? reasonFilter,
         CancellationToken ct)
     {
         int cleared = 0;
+        int skipped = 0;
 
         foreach (var path in GetCanonicalFiles())
         {
@@ -195,8 +204,11 @@ public sealed class NeedsReviewService(
             try { file = await loader.LoadAsync(path, ct); }
             catch { continue; }
 
+            // Programmatic entities are reviewed only on /review: never bulk-approved here.
+            skipped += file.Entities.Count(e => e.NeedsReview && e.DataSource == DataSources.Programmatic);
+
             var toAccept = file.Entities
-                .Where(e => e.NeedsReview)
+                .Where(e => e.NeedsReview && e.DataSource != DataSources.Programmatic)
                 .Where(e => reasonFilter is null ||
                     string.Equals(DeriveReason(e.Name), reasonFilter, StringComparison.OrdinalIgnoreCase))
                 .Select(e => e.Id)
@@ -218,7 +230,7 @@ public sealed class NeedsReviewService(
             }
         }
 
-        return cleared;
+        return new BulkAcceptResponse(cleared, skipped);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
