@@ -48,7 +48,14 @@ internal static class CaseGenerator
 
     private sealed record Candidate(string Id, IReadOnlyList<Func<EvalCase>> Templates);
 
-    public static IReadOnlyList<EvalCase> Generate(string canonicalDir, GenOptions o)
+    /// <summary>Which of a spell's fields may become cases: all of them, or only the 5etools-filled ones.</summary>
+    private readonly record struct TrustedFields(bool All, HashSet<string?> FivetoolsFilled)
+    {
+        public bool Contains(string field) => All || FivetoolsFilled.Contains(field);
+    }
+
+    /// <param name="log">Where setup notes go (default: stderr).</param>
+    public static IReadOnlyList<EvalCase> Generate(string canonicalDir, GenOptions o, TextWriter? log = null)
     {
         var wanted = o.Categories is null ? null : new HashSet<string>(o.Categories, StringComparer.OrdinalIgnoreCase);
         bool On(string c) => wanted is null || wanted.Contains(c);
@@ -76,6 +83,10 @@ internal static class CaseGenerator
         }
 
         var cases = new List<EvalCase>();
+        // The programmatic PHB extractor (Phase 1) emits no Class entities yet, so class cases can be absent.
+        if (On("class") && classes.Count == 0)
+            (log ?? Console.Error).WriteLine(
+                $"[full] note: no Class entities with a hit die in {string.Join(",", o.Books)} — generating no class cases.");
         if (On("class")) cases.AddRange(Sample(classes, o));
         if (On("spell")) cases.AddRange(Sample(spells, o));
         if (On("monster")) cases.AddRange(Sample(monsters, o));
@@ -137,14 +148,25 @@ internal static class CaseGenerator
 
     // ---- spell ----
 
+    /// <summary>
+    /// R25: a programmatic entity that passed every check (or was approved) is PDF-verified, so its fields are
+    /// trustworthy as-is — no "canon" authority or 5etools field-fill provenance needed.
+    /// </summary>
+    private static bool IsTrustedProgrammatic(JsonElement e) =>
+        Str(e, "dataSource") == "programmatic" && Str(e, "disposition") == "Accepted"
+        && e.TryGetProperty("needsReview", out var nr) && nr.ValueKind == JsonValueKind.False;
+
     private static void AddSpell(JsonElement e, List<Candidate> into)
     {
-        if (Str(e, "authority") != "canon") return;
+        var programmatic = IsTrustedProgrammatic(e);
+        if (!programmatic && Str(e, "authority") != "canon") return;
         if (!e.TryGetProperty("needsReview", out var nr) || nr.ValueKind != JsonValueKind.False) return;
         if (!e.TryGetProperty("fields", out var f)) return;
-        var filled = f.TryGetProperty("_fivetoolsFilledFields", out var ff) && ff.ValueKind == JsonValueKind.Array
+        var fivetoolsFilled = f.TryGetProperty("_fivetoolsFilledFields", out var ff) && ff.ValueKind == JsonValueKind.Array
             ? ff.EnumerateArray().Select(x => x.GetString()).ToHashSet()
             : [];
+        // Non-programmatic spells: only 5etools-filled fields are trusted. Programmatic Accepted: all fields.
+        var filled = new TrustedFields(programmatic, fivetoolsFilled);
         var id = Str(e, "id");
         var name = Str(e, "name");
         string Prompt(string what) => $"What {what} the spell {name} in the 2014 Player's Handbook?";

@@ -137,6 +137,61 @@ public sealed class CaseGeneratorTests : IDisposable
         cases.Should().NotBeEmpty().And.OnlyContain(c => c.Id.EndsWith(".school"));
     }
 
+    private static object ProgSpell(string id, string name, int level, string school, int feet,
+        string disposition = "Accepted", bool needsReview = false) => new
+        {
+            id,
+            type = "Spell",
+            name,
+            authority = "book",
+            dataSource = "programmatic",
+            disposition,
+            needsReview,
+            fields = new
+            {
+                level,
+                school,
+                range = new { type = "point", distance = new { type = "feet", amount = feet } },
+            },
+        };
+
+    [Fact]
+    public void ProgrammaticAcceptedSpell_AllFieldsTrusted()
+    {
+        Write("phb14.json", ProgSpell("phb14.spell.fb", "Fireball", 3, "V", 150));
+        var cases = new List<EvalCase>();
+        for (var seed = 0; seed < 30; seed++)
+            cases.AddRange(CaseGenerator.Generate(_dir, Opts(seed, 1, ["spell"]), TextWriter.Null));
+
+        cases.Select(c => c.Id).Distinct().Should().BeEquivalentTo(
+            "gen.spell.phb14.spell.fb.level", "gen.spell.phb14.spell.fb.school", "gen.spell.phb14.spell.fb.range");
+        cases.First(c => c.Id.EndsWith(".school")).ToolDataFacts!.Single().Variants
+            .Should().Equal("\"school\":\"V\"", "Evocation");
+    }
+
+    [Theory]
+    [InlineData("NeedsReview", true)]
+    [InlineData("NeedsReview", false)]
+    [InlineData("Accepted", true)]
+    public void ProgrammaticSpellNotAccepted_Excluded(string disposition, bool needsReview)
+    {
+        Write("phb14.json", ProgSpell("phb14.spell.fb", "Fireball", 3, "V", 150, disposition, needsReview));
+
+        CaseGenerator.Generate(_dir, Opts(count: 10, cats: ["spell"]), TextWriter.Null).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void NoClassEntities_NoClassCases_AndANote()
+    {
+        Write("phb14.json", ProgSpell("phb14.spell.fb", "Fireball", 3, "V", 150));
+        var log = new StringWriter();
+
+        var cases = CaseGenerator.Generate(_dir, Opts(count: 5, cats: ["class", "spell"]), log);
+
+        cases.Should().NotBeEmpty().And.OnlyContain(c => c.Category == "spell");
+        log.ToString().Should().Contain("no Class entities").And.Contain("no class cases");
+    }
+
     [Fact]
     public void SpellFacts_FollowBrief()
     {
