@@ -9,6 +9,7 @@ import collections
 import json
 import re
 import statistics
+import sys
 from pathlib import Path
 
 from rapidfuzz import fuzz, process
@@ -167,10 +168,13 @@ def same_duration(truth: dict, got, concentration) -> bool:
     return True
 
 
+def rarity_family(truth: dict) -> set:
+    return truth.get("_rarities") or {truth.get("rarity")}
+
+
 def same_rarity(truth: dict, got) -> bool:
-    t = truth.get("rarity")
-    family = truth.get("_rarities") or {t}
-    return got == t or got in family or (got == "varies" and (len(family) > 1 or t == "varies"))
+    """Strict: only meaningful for single-rarity families (multi-rarity ones are scored separately)."""
+    return got == truth.get("rarity")
 
 
 def attunes(v) -> bool:
@@ -198,17 +202,36 @@ def score_record(book: str, fields: dict, t: dict) -> tuple[dict, float | None, 
         got = flat(fields.get("entries")) + " " + flat(fields.get("entriesHigherLevel"))
         cov, prec = coverage(flat(t.get("entries")) + " " + flat(t.get("entriesHigherLevel")), got)
     else:
-        r["rarity"] = same_rarity(t, fields.get("rarity"))
+        if len(rarity_family(t)) == 1:
+            r["rarity"] = same_rarity(t, fields.get("rarity"))
         r["attune"] = attunes(fields.get("reqAttune")) == attunes(t.get("reqAttune"))
         cov, prec = coverage(flat(t.get("entries")), flat(fields.get("entries")))
     return r, cov, prec
 
 
-def _match(keys: list[str], k: str) -> str | None:
-    if k in keys:
-        return k
-    hit = process.extractOne(k, keys, scorer=fuzz.ratio, score_cutoff=90)
-    return hit[0] if hit else None
+def match_one_to_one(truth_keys: list[str], keys: list[str]) -> dict[int, tuple[str, bool]]:
+    """truth index -> (entity key, exact). Exact key matches first, then fuzzy (ratio >= 90) by best
+    score first; every entity is claimed at most once."""
+    out: dict[int, tuple[str, bool]] = {}
+    pool = set(keys)
+    for i, tk in enumerate(truth_keys):
+        if tk in pool:
+            out[i] = (tk, True)
+            pool.discard(tk)
+    left = [i for i in range(len(truth_keys)) if i not in out]
+    cands = []
+    for i in left:
+        for k in pool:
+            sc = fuzz.ratio(truth_keys[i], k)
+            if sc >= 90:
+                cands.append((sc, i, k))
+    cands.sort(key=lambda c: (-c[0], c[1], c[2]))
+    for _, i, k in cands:
+        if i in out or k not in pool:
+            continue
+        out[i] = (k, False)
+        pool.discard(k)
+    return out
 
 
 def score_book(book: str, entities: list[dict], fivetools_dir: Path | str) -> dict:
@@ -221,39 +244,47 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str) -> di
         if e.get("type") == BOOKS[book]:
             name = base_item_name(e["name"]) if book == "dmg" else e["name"]
             idx.setdefault(key(name), e)
-    keys = list(idx)
+    matches = match_one_to_one([key(t["name"]) for t in truth], list(idx))
     agg: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
     covs: list[float] = []
     precs: list[float] = []
     missing: list[str] = []
     diffs: list[str] = []
-    found = 0
+    fuzzy: list[str] = []
     text_ok = [0, 0]
-    for t in truth:
-        m = _match(keys, key(t["name"]))
-        if not m:
+    fam = [0, 0]  # multi-rarity families: count, ours == "varies"
+    for i, t in enumerate(truth):
+        if i not in matches:
             missing.append(t["name"])
             continue
-        found += 1
-        res, cov, prec = score_record(book, idx[m]["fields"], t)
+        k, exact = matches[i]
+        if not exact:
+            fuzzy.append(f"{t['name']} ~ {idx[k]['name']}")
+        fields = idx[k]["fields"]
+        res, cov, prec = score_record(book, fields, t)
+        if book == "dmg" and len(rarity_family(t)) > 1:
+            fam[0] += 1
+            fam[1] += fields.get("rarity") == "varies"
         for f, ok in res.items():
             agg[f][0] += ok
             agg[f][1] += 1
             if not ok:
-                diffs.append(f"{t['name']}: {f} wrong")
+                diffs.append(f"{t['name']}: {f} wrong" + ("" if exact else " (fuzzy match)"))
         if cov is not None:
             covs.append(cov)
             text_ok[0] += cov >= 0.9
             text_ok[1] += 1
         if prec is not None:
             precs.append(prec)
+    found = len(matches)
     return {
         "book": book, "truth": len(truth), "found": found, "extra": len(idx) - found,
         "fields": {f: {"pct": 100 * a / n, "n": n} for f, (a, n) in agg.items() if n},
+        "rarityMultiFamilies": {"n": fam[0], "variesAgree": fam[1]} if book == "dmg" else None,
         "textAtLeast90": {"pct": 100 * text_ok[0] / text_ok[1] if text_ok[1] else 0.0, "n": text_ok[1]},
         "textCoverageMedian": 100 * statistics.median(covs) if covs else 0.0,
         "textPrecisionMedian": 100 * statistics.median(precs) if precs else 0.0,
-        "missing": missing, "diffs": diffs,
+        "missing": missing, "fuzzyMatches": fuzzy, "diffs": diffs,
     }
 
 
@@ -265,14 +296,25 @@ def format_table(res: dict) -> str:
     row = (f"{res['found']:>4}/{res['truth']:<4} {res['extra']:>6} {cells}  "
            f"{res['textAtLeast90']['pct']:8.0f}%  {res['textCoverageMedian']:10.0f}%  "
            f"{res['textPrecisionMedian']:12.0f}%")
-    return f"=== {res['book'].upper()}: {res['truth']} entries in 5etools ===\n{head}\n{row}"
+    out = f"=== {res['book'].upper()}: {res['truth']} entries in 5etools ===\n{head}\n{row}"
+    if res.get("rarityMultiFamilies"):
+        m = res["rarityMultiFamilies"]
+        out += (f"\nrarity (strict) covers single-rarity items only; multi-rarity families: {m['n']}, "
+                f"book says 'varies' for {m['variesAgree']}")
+    return out
 
 
 def run(book: str, path: Path, fivetools_dir: Path, diffs_out: Path | None = None) -> int:
-    data = json.loads(Path(path).read_text("utf-8"))
-    res = score_book(book, data["entities"], fivetools_dir)
+    try:
+        data = json.loads(Path(path).read_text("utf-8"))
+        res = score_book(book, data["entities"], fivetools_dir)
+    except FileNotFoundError as ex:
+        print(f"error: file not found: {ex.filename} (check the extract output and --fivetools dir)",
+              file=sys.stderr)
+        return 1
     print(format_table(res))
     if diffs_out:
-        lines = [f"MISSING {n}" for n in res["missing"]] + res["diffs"]
+        lines = ([f"MISSING {n}" for n in res["missing"]] + [f"FUZZY {n}" for n in res["fuzzyMatches"]]
+                 + res["diffs"])
         diffs_out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return 0

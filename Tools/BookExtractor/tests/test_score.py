@@ -1,8 +1,11 @@
 import json
+
+import pytest
 import subprocess
 import sys
 
-from bookextractor.score import base_item_name, score_book, untag
+from bookextractor.cli import main
+from bookextractor.score import base_item_name, match_one_to_one, score_book, untag
 
 
 def test_tag_expansion():
@@ -38,4 +41,53 @@ def test_score_book_items_collapses_variants(tmp_path):
              "fields": {"rarity": "artifact", "reqAttune": None, "entries": ["x y z a b c d e"]}}]
     res = score_book("dmg", ents, tmp_path)
     assert res["truth"] == 2 and res["found"] == 2 and res["extra"] == 0
-    assert res["fields"]["rarity"]["pct"] == 100
+    assert res["fields"]["rarity"] == {"pct": 100.0, "n": 1}
+    assert res["rarityMultiFamilies"] == {"n": 1, "variesAgree": 1}
+
+
+def _monster(name, ac=12):
+    return {"name": name, "source": "MM", "ac": [ac], "hp": {"average": 5}, "cr": "1", "str": 1, "dex": 1,
+            "con": 1, "int": 1, "wis": 1, "cha": 1}
+
+
+def _ours_monster(name, ac=12):
+    return {"type": "Monster", "name": name, "fields": {"ac": [ac], "hp": {"average": 5}, "cr": "1", "str": 1,
+            "dex": 1, "con": 1, "int": 1, "wis": 1, "cha": 1}}
+
+
+def test_wrong_ac_missing_and_no_double_claim(tmp_path):
+    (tmp_path / "bestiary").mkdir()
+    truth = [_monster("Young Black Dragon"), _monster("Young Blue Dragon"), _monster("Zombie")]
+    (tmp_path / "bestiary/bestiary-mm.json").write_text(json.dumps({"monster": truth}))
+    res = score_book("mm", [_ours_monster("Young Black Dragon", ac=99), _ours_monster("Zombie")], tmp_path)
+    assert res["found"] == 2 and res["extra"] == 0
+    assert res["missing"] == ["Young Blue Dragon"]
+    assert any("Young Black Dragon: ac wrong" in d for d in res["diffs"])
+
+
+def test_matcher_one_to_one():
+    m = match_one_to_one(["youngblackdragon", "youngbluedragon"], ["youngblackdragon"])
+    assert m == {0: ("youngblackdragon", True)}
+    m = match_one_to_one(["youngblackdragn", "youngbluedragon"], ["youngbluedragn"])
+    assert len(m) == 1 and list(m.values())[0][1] is False
+
+
+def test_wrong_school_and_range_reported(tmp_path):
+    (tmp_path / "spells").mkdir()
+    sp = {"name": "Foo", "level": 1, "school": "V", "time": [{"number": 1, "unit": "action"}],
+          "range": {"type": "point", "distance": {"type": "feet", "amount": 60}},
+          "components": {"v": True}, "duration": [{"type": "instant"}], "entries": ["a b c d e f"]}
+    (tmp_path / "spells/spells-phb.json").write_text(json.dumps({"spell": [sp]}))
+    ours = {"type": "Spell", "name": "Foo", "fields": {"level": 1, "school": "C", "time": [{"number": 1, "unit": "action"}],
+            "range": {"type": "point", "distance": {"type": "feet", "amount": 30}}, "components": {"v": True},
+            "duration": [{"type": "instant"}], "entries": ["a b c d e f"]}}
+    res = score_book("phb", [ours], tmp_path)
+    assert res["fields"]["school"]["pct"] == 0 and res["fields"]["range"]["pct"] == 0
+    assert res["fields"]["level"]["pct"] == 100
+
+
+def test_missing_fivetools_dir_is_clean_error(tmp_path, capsys):
+    out = tmp_path / "o.json"
+    out.write_text(json.dumps({"entities": []}))
+    assert main(["score", "mm", str(out), "--fivetools", str(tmp_path / "nope")]) == 1
+    assert "error:" in capsys.readouterr().err
