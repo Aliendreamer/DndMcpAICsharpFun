@@ -181,7 +181,7 @@ def _type_field(head: str) -> str | dict:
     h = " ".join(head.split()[1:])
     sw = re.match(r"swarm of (\w+) (\w+?)s?(?: \(.*\))?$", h, re.I)
     if sw:
-        return {"type": sw.group(2).lower(), "swarmSize": SIZE_CODE.get(sw.group(1).title(), sw.group(1))}
+        return sw.group(2).lower()  # schema allows no swarm-size key; the swarm wording stays in Parsed.text
     m = re.match(r"([A-Za-z\-]+)(?:\s*\((.*)\))?$", h)
     if not m:
         return h
@@ -287,11 +287,29 @@ def ability_pairs(lines: list[Line]) -> list[tuple[int, int, bool]]:
     return []
 
 
+def repair_abilities(pairs: list[tuple[int, int, bool]]) -> list[tuple[int, int, bool, str | None]]:
+    """Fix the one corroborated OCR misread: a leading 1 read as 7 (73 (+1) -> 13).
+
+    Only when the score disagrees with its printed, signed modifier and swapping the leading 7 for 1
+    gives a score whose modifier matches. Anything else is left for the ability-modifiers check.
+    """
+    out: list[tuple[int, int, bool, str | None]] = []
+    for k, (a, m, signed) in zip(ABILITIES, pairs):
+        note = None
+        if signed and (a - 10) // 2 != m and len(str(a)) >= 2 and str(a).startswith("7"):
+            r = int("1" + str(a)[1:])
+            if 1 <= r <= 30 and (r - 10) // 2 == m:
+                note = f"{k.upper()} read {a} ({m:+d}), repaired to {r}"
+                a = r
+        out.append((a, m, signed, note))
+    return out
+
+
 def _challenge_pairs(lines: list[Line]) -> list[tuple[str, int]]:
     """Every '<cr> (<xp> XP)' printed in the Challenge line and its continuation line(s)."""
     out: list[tuple[str, int]] = []
     for i, l in enumerate(lines):
-        if _lab(l.text, "Challenge") and not _lab(l.text, "Challenge Rating") or l.text.lower().startswith("challenge"):
+        if _lab(l.text, "Challenge"):
             j = i
             while j < len(lines) and j < i + 3:
                 t = fix_digits(lines[j].text)
@@ -376,9 +394,9 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
     sp = _speed_field(vals.get("Speed", ""))
     if sp:
         fields["speed"] = sp
-    pairs = ability_pairs(L[i:stat_end])
+    pairs = repair_abilities(ability_pairs(L[i:stat_end]))
     if len(pairs) == 6:
-        for k, (score, _mod, _signed) in zip(ABILITIES, pairs):
+        for k, (score, _mod, _signed, _note) in zip(ABILITIES, pairs):
             fields[k] = score
     if "Saving Throws" in vals:
         fields["save"] = _bonus_map(vals["Saving Throws"], True)
@@ -489,7 +507,7 @@ def monster_checks(p: Parsed) -> list[Check]:
     f = p.fields
     hp = f.get("hp") or {}
     cr = f.get("cr") or ""
-    pairs = ability_pairs(p.lines)
+    pairs = repair_abilities(ability_pairs(p.lines))
     checks: list[Check] = []
 
     def req(name: str, ok: bool, what: str) -> None:
@@ -512,11 +530,12 @@ def monster_checks(p: Parsed) -> list[Check]:
         checks.append(Check("xp-matches-cr", ok, "" if ok else f"CR {cr} is {exp} XP, printed {xps[0]}"))
 
     # an unreadable sign ("5(3)") is accepted when the magnitude matches the score
-    bad = [f"{a} ({m:+d})" for a, m, signed in pairs
+    bad = [f"{a} ({m:+d})" for a, m, signed, _n in pairs
            if not 1 <= a <= 30 or ((a - 10) // 2 != m and (signed or abs((a - 10) // 2) != abs(m)))]
     if len(pairs) < 6:
         checks.append(Check("ability-modifiers", False, "fewer than six score/modifier pairs"))
     else:
         checks.append(Check("ability-modifiers", not bad,
                             "" if not bad else "score/modifier mismatch: " + ", ".join(bad)))
+    checks += [Check("ability-repaired", True, n) for *_x, n in pairs if n]
     return checks

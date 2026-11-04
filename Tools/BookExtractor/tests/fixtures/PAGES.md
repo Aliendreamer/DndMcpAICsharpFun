@@ -21,3 +21,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | mm | 003 | Credits |
 | mm | 004 | Table of contents |
 | mm | 352 | Index of stat blocks |
+| mm | 338 | Swarm of Bats (swarm type) |

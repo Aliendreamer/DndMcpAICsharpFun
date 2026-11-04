@@ -124,3 +124,42 @@ def test_ability_modifier_sign_is_checked():
     g = by_name(parse_monsters(lines(167)), "Goblin")
     assert next(c for c in g.checks if c.name == "ability-modifiers").passed
     assert g.fields["str"] == 8  # (-1) is read as negative, not as an unsigned magnitude
+
+
+def _goblin_with_row(row_text):
+    ls = lines(167)
+    i = next(n for n, l in enumerate(ls) if l.text.startswith("8 (-1) 14"))
+    ls[i] = type(ls[i])(row_text, ls[i].box, ls[i].height, ls[i].page, ls[i].frags)
+    return by_name(parse_monsters(ls), "Goblin")
+
+
+def test_ability_leading_one_read_as_seven_is_repaired():
+    g = _goblin_with_row("73 (+1) 14 (+2) 10 (+0) 10 (+0) 8 (-1) 8 (-1)")
+    assert g.fields["str"] == 13
+    rep = [c for c in g.checks if c.name == "ability-repaired"]
+    assert len(rep) == 1 and rep[0].passed and "STR read 73 (+1), repaired to 13" in rep[0].reason
+    assert next(c for c in g.checks if c.name == "ability-modifiers").passed
+
+
+def test_ability_uncorroborated_misread_is_not_repaired():
+    g = _goblin_with_row("73 (+6) 14 (+2) 10 (+0) 10 (+0) 8 (-1) 8 (-1)")
+    assert g.fields["str"] == 73
+    assert not any(c.name == "ability-repaired" for c in g.checks)
+    assert not next(c for c in g.checks if c.name == "ability-modifiers").passed
+
+
+def test_swarm_type_is_schema_valid():
+    ps = parse_monsters(lines(338))
+    assert any(p.name == "Swarm of Bats" for p in ps)
+    assert next(p for p in ps if p.name == "Swarm of Bats").fields["type"] == "beast"
+
+
+def test_every_fixture_monster_matches_schema():
+    jsonschema = pytest.importorskip("jsonschema")
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    n = 0
+    for page in (167, 169, 134, 206, 338, 50):
+        for p in parse_monsters(lines(page)):
+            jsonschema.validate(p.fields, schema)
+            n += 1
+    assert n >= 10
