@@ -21,7 +21,16 @@ def main(argv: list[str] | None = None) -> int:
     ex.add_argument("--threads", type=int, default=4)
     ex.add_argument("--processes", type=int, default=2)
     ex.add_argument("--types", default=",".join(ALL_TYPES), help="comma list of Monster,Spell,MagicItem")
+    sc = sub.add_parser("score", help="dev: score an extract output against 5etools")
+    sc.add_argument("book", choices=["mm", "phb", "dmg"])
+    sc.add_argument("extract_output", type=Path)
+    sc.add_argument("--fivetools", type=Path, required=True, help="5etools data directory")
+    sc.add_argument("--diffs", type=Path, default=None, help="write missing/wrong list here")
     args = ap.parse_args(argv)
+
+    if args.cmd == "score":
+        from . import score  # lazy: dev-only, never on the extraction path
+        return score.run(args.book, args.extract_output, args.fivetools, args.diffs)
 
     types = {t.strip() for t in args.types.split(",") if t.strip()}
     unknown = types - set(ALL_TYPES)
