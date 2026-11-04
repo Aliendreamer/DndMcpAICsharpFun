@@ -22,3 +22,5 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | mm | 004 | Table of contents |
 | mm | 352 | Index of stat blocks |
 | mm | 338 | Swarm of Bats (swarm type) |
+| phb | 259 | Mass Cure Wounds, Mass Heal (level line OCRs without a space) |
+| phb | 243 | Fireball continuation (spell spans pages 242-243) |
