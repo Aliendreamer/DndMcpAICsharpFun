@@ -182,4 +182,21 @@ public class ProgrammaticExtractionRunnerTests : IDisposable
 
         r.Orphans.Should().Equal("mm14.monster.gone");
     }
+
+    [Fact]
+    public async Task Ingestion_failure_after_swap_keeps_new_file_and_says_to_retry_ingest()
+    {
+        SeedOld();
+        _ingestion.IngestEntitiesAsync(1, Arg.Any<CancellationToken>())
+            .Returns<Task<EntityIngestionResult>>(_ => throw new InvalidOperationException("qdrant down"));
+
+        var act = () => Runner().RunAsync(1, CancellationToken.None);
+
+        var ex = (await act.Should().ThrowAsync<PostSwapIngestionException>()).Which;
+        ex.Message.Should().Contain("ingest-entities").And.Contain("new canonical file is in place");
+        ex.InnerException!.Message.Should().Be("qdrant down");
+        File.ReadAllText(P("mm14.json")).Should().NotBe("OLD");
+        File.Exists(P("mm14.errors.json")).Should().BeFalse();
+        File.Exists(P("mm14.report.json")).Should().BeTrue();
+    }
 }

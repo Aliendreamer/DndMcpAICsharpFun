@@ -44,6 +44,10 @@ public sealed partial class ProgrammaticExtractionQueue(
             {
                 throw;
             }
+            catch (PostSwapIngestionException ex)
+            {
+                LogIngestPending(logger, ex, bookId);
+            }
             catch (Exception ex)
             {
                 LogUnhandledError(logger, ex, bookId);
@@ -61,6 +65,9 @@ public sealed partial class ProgrammaticExtractionQueue(
     [LoggerMessage(Level = LogLevel.Information, Message = "Completed programmatic extraction for book {BookId} in {ElapsedMs}ms")]
     private static partial void LogCompleted(ILogger logger, int bookId, long elapsedMs);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Programmatic extraction failed for book {BookId}; existing canonical files left untouched")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Programmatic extraction failed for book {BookId} before replacing any files; existing canonical files and points are untouched")]
     private static partial void LogUnhandledError(ILogger logger, Exception ex, int bookId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Programmatic extraction for book {BookId} replaced the canonical files but ingestion failed; run POST /admin/books/{BookId}/ingest-entities")]
+    private static partial void LogIngestPending(ILogger logger, Exception ex, int bookId);
 }

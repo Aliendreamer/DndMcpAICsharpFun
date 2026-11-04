@@ -275,7 +275,7 @@
       "_type": "request",
       "parentId": "fld_admin_books",
       "name": "Extract entities (programmatic, no LLM)",
-      "description": "Drives the Python book-extractor service; replaces the book's canonical JSON and LLM sidecars, re-applies overrides, then ingests into dnd_entities. 202 {bookId}; 404 unknown book; 409 already queued/running.",
+      "description": "Drives the Python book-extractor service; replaces the book's canonical JSON and LLM sidecars, re-applies overrides, then ingests into dnd_entities. 202 {bookId}; 404 unknown book; 409 already queued/running. If ingestion fails after the files were replaced, retry with POST /admin/books/{id}/ingest-entities.",
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/books/1/extract-programmatic",
       "headers": [

@@ -14,6 +14,11 @@ namespace DndMcpAICsharpFun.Features.Ingestion.Programmatic;
 public sealed record ProgrammaticRunResult(
     int Entities, int Accepted, int NeedsReview, IReadOnlyList<string> Orphans, JsonElement Report);
 
+/// <summary>Ingestion failed after the new canonical file was swapped in; the file is in place but dnd_entities is stale.</summary>
+public sealed class PostSwapIngestionException(int bookId, Exception inner) : Exception(
+    $"Book {bookId}: the new canonical file is in place but ingestion into dnd_entities failed; " +
+    $"run POST /admin/books/{bookId}/ingest-entities to retry.", inner);
+
 public interface IProgrammaticExtractionRunner
 {
     Task<ProgrammaticRunResult> RunAsync(int bookId, CancellationToken ct);
@@ -61,13 +66,27 @@ public sealed partial class ProgrammaticExtractionRunner(
             Entities: merged.Entities);
 
         // Point of no return: everything above can fail without touching existing files or points.
-        // The new canonical file replaces the old one atomically; then stale sidecars are removed.
+        // Report first (tmp + move), then the canonical file (atomic overwrite), then stale sidecars,
+        // so a failed write can never leave a new canonical file beside old sidecars.
+        var reportPath = Path.Combine(dir, slug + ".report.json");
+        var reportTmp = reportPath + ".tmp";
+        await File.WriteAllTextAsync(reportTmp, result.Report.GetRawText(), ct);
+        File.Move(reportTmp, reportPath, overwrite: true);
         await writer.WriteAsync(Path.Combine(dir, slug + ".json"), file, ct);
-        await File.WriteAllTextAsync(Path.Combine(dir, slug + ".report.json"), result.Report.GetRawText(), ct);
         foreach (var sidecar in CanonicalSidecarFiles.ReplaceableSidecarPaths(dir, slug))
             File.Delete(sidecar);
 
-        await ingestion.IngestEntitiesAsync(bookId, ct);
+        // No rollback: the old data is known-wrong. If ingestion fails the new canonical file stays in place
+        // and the admin re-runs ingest-entities to bring dnd_entities in line.
+        try
+        {
+            await ingestion.IngestEntitiesAsync(bookId, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogIngestAfterSwapFailed(logger, ex, bookId);
+            throw new PostSwapIngestionException(bookId, ex);
+        }
 
         var accepted = merged.Entities.Count(e => e.Disposition == EntityDisposition.Accepted);
         var needsReview = merged.Entities.Count(e => e.Disposition == EntityDisposition.NeedsReview);
@@ -116,6 +135,10 @@ public sealed partial class ProgrammaticExtractionRunner(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Book {BookId}: extractor job {JobId} submitted")]
     private static partial void LogSubmitted(ILogger logger, int bookId, string jobId);
+
+    [LoggerMessage(Level = LogLevel.Error,
+        Message = "Book {BookId}: the new canonical file is in place, but ingestion failed; dnd_entities is stale. Run POST /admin/books/{BookId}/ingest-entities to retry")]
+    private static partial void LogIngestAfterSwapFailed(ILogger logger, Exception ex, int bookId);
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Book {BookId}: programmatic extraction done — {Entities} entities ({Accepted} accepted, {NeedsReview} needs review, {Orphans} orphaned overrides)")]

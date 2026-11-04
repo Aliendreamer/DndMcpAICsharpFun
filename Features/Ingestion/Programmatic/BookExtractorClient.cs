@@ -14,8 +14,13 @@ public sealed record ExtractedEntity(
     int? Page,
     string CanonicalText,
     JsonElement Fields,
-    IReadOnlyList<EntityCheck> Checks,
-    EntityProvenance Provenance);
+    IReadOnlyList<EntityCheck> Checks = null!,
+    EntityProvenance Provenance = null!)
+{
+    // The extractor may omit these; normalise so downstream code (OverrideMerger) never sees null.
+    public IReadOnlyList<EntityCheck> Checks { get; init; } = Checks ?? [];
+    public EntityProvenance Provenance { get; init; } = Provenance ?? new EntityProvenance([]);
+}
 
 public sealed record ExtractorResult(IReadOnlyList<ExtractedEntity> Entities, JsonElement Report);
 
