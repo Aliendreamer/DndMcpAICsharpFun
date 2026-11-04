@@ -10,6 +10,7 @@ public sealed record MergeResult(IReadOnlyList<EntityEnvelope> Entities, IReadOn
 public static class OverrideMerger
 {
     public const string DriftCheck = "override-drift";
+    public const string UnappliedCheck = "override-unapplied";
     private const string FieldsPrefix = "fields.";
 
     public static MergeResult Apply(IReadOnlyList<EntityEnvelope> extracted, EntityOverrides o)
@@ -22,13 +23,14 @@ public static class OverrideMerger
             .ToList();
 
         var result = new List<EntityEnvelope>(extracted.Count);
-        foreach (var entity in extracted)
+        foreach (var original in extracted)
         {
-            var mine = o.Overrides.Where(x => x.EntityId == entity.Id).ToList();
-            var approved = o.Approvals.Any(a => a.EntityId == entity.Id);
-            var e = entity;
+            var mine = o.Overrides.Where(x => x.EntityId == original.Id).ToList();
+            var approved = o.Approvals.Any(a => a.EntityId == original.Id);
+            var e = original;
+            // In file order: for the same field the last override wins.
             foreach (var ov in mine)
-                e = ApplyOne(e, ov);
+                e = ApplyOne(original, e, ov);
 
             if (mine.Count > 0 || approved || e.Checks.Count > 0)
                 e = SetDisposition(e, approved);
@@ -39,64 +41,106 @@ public static class OverrideMerger
 
     public static EntityEnvelope SetDisposition(EntityEnvelope e, bool approved)
     {
-        // An approval waives ordinary failed checks but never an unresolved override drift.
-        var blocked = e.Checks.Any(c => !c.Passed && (!approved || c.Name == DriftCheck));
+        // An approval waives ordinary failed checks but never an unresolved override drift
+        // or an override that could not be applied.
+        var blocked = e.Checks.Any(c => !c.Passed
+            && (!approved || c.Name is DriftCheck or UnappliedCheck));
         return blocked
             ? e with { Disposition = EntityDisposition.NeedsReview, NeedsReview = true }
             : e with { Disposition = EntityDisposition.Accepted, NeedsReview = false };
     }
 
+    /// <summary>
+    /// True for <c>name</c>, <c>canonicalText</c>, and <c>fields.…</c> paths that resolve to an existing value
+    /// (including JSON null), or to a new leaf key directly under an existing object. A missing parent is invalid.
+    /// </summary>
     public static bool ValidatePath(EntityEnvelope e, string field)
     {
         if (field is "name" or "canonicalText") return true;
         if (!field.StartsWith(FieldsPrefix, StringComparison.Ordinal)) return false;
+        var segments = field[FieldsPrefix.Length..].Split('.');
         var root = FieldsNode(e);
-        return Walk(root, field[FieldsPrefix.Length..].Split('.')) is not null;
+        if (TryWalk(root, segments, out _)) return true;
+        return segments.Length >= 1
+            && TryWalk(root, segments[..^1], out var parent)
+            && parent is JsonObject;
     }
 
-    private static EntityEnvelope ApplyOne(EntityEnvelope e, FieldOverride ov)
+    /// <summary>
+    /// Drift compares with <see cref="JsonNode.DeepEquals"/>: object key order is ignored, array order matters,
+    /// and numbers compare by value, so 2 and 2.0 are equal; genuinely different values drift.
+    /// </summary>
+    private static EntityEnvelope ApplyOne(EntityEnvelope original, EntityEnvelope e, FieldOverride ov)
     {
-        var current = GetCurrent(e, ov.Field);
-        var updated = Set(e, ov.Field, ov.Value);
-        if (updated is null) return e;
-
-        if (ov.Extracted is { } baseline && !JsonNode.DeepEquals(JsonNode.Parse(baseline.GetRawText()), current))
+        // Drift is judged against the original extraction, not an earlier override on the same field.
+        var current = GetCurrent(original, ov.Field);
+        var updated = Set(e, ov.Field, ov.Value, out var why);
+        if (updated is null)
         {
-            var was = baseline.GetRawText();
-            var now = current?.ToJsonString() ?? "null";
-            updated = updated with
+            return e with
             {
-                Checks = [.. updated.Checks.Where(c => c.Name != DriftCheck || c.Reason.Contains(ov.Field) == false),
-                    new EntityCheck(DriftCheck, false,
-                        $"extraction changed under your override: was {was}, now {now}")],
+                Checks = [.. e.Checks, new EntityCheck(UnappliedCheck, false,
+                    $"override at {ov.Field} could not be applied: {why}")],
             };
+        }
+
+        if (ov.Extracted is { } baseline
+            && !JsonNode.DeepEquals(JsonNode.Parse(baseline.GetRawText()), current))
+        {
+            var marker = $" at {ov.Field}:";
+            if (!updated.Checks.Any(c => c.Name == DriftCheck && c.Reason.Contains(marker)))
+            {
+                updated = updated with
+                {
+                    Checks = [.. updated.Checks, new EntityCheck(DriftCheck, false,
+                        $"extraction changed under your override at {ov.Field}: was {baseline.GetRawText()}, now {current?.ToJsonString() ?? "null"}")],
+                };
+            }
         }
         return updated;
     }
 
-    private static JsonNode? GetCurrent(EntityEnvelope e, string field) => field switch
-    {
-        "name" => JsonValue.Create(e.Name),
-        "canonicalText" => JsonValue.Create(e.CanonicalText),
-        _ when field.StartsWith(FieldsPrefix, StringComparison.Ordinal) =>
-            Walk(FieldsNode(e), field[FieldsPrefix.Length..].Split('.')),
-        _ => null,
-    };
-
-    private static EntityEnvelope? Set(EntityEnvelope e, string field, JsonElement value)
+    private static JsonNode? GetCurrent(EntityEnvelope e, string field)
     {
         switch (field)
         {
-            case "name":
-                return value.ValueKind == JsonValueKind.String ? e with { Name = value.GetString()! } : null;
-            case "canonicalText":
-                return value.ValueKind == JsonValueKind.String ? e with { CanonicalText = value.GetString()! } : null;
+            case "name": return JsonValue.Create(e.Name);
+            case "canonicalText": return JsonValue.Create(e.CanonicalText);
         }
         if (!field.StartsWith(FieldsPrefix, StringComparison.Ordinal)) return null;
+        return TryWalk(FieldsNode(e), field[FieldsPrefix.Length..].Split('.'), out var node) ? node : null;
+    }
+
+    private static EntityEnvelope? Set(EntityEnvelope e, string field, JsonElement value, out string why)
+    {
+        why = "";
+        switch (field)
+        {
+            case "name":
+            case "canonicalText":
+                if (value.ValueKind != JsonValueKind.String)
+                {
+                    why = $"value must be a string, got {value.ValueKind}";
+                    return null;
+                }
+                return field == "name"
+                    ? e with { Name = value.GetString()! }
+                    : e with { CanonicalText = value.GetString()! };
+        }
+        if (!field.StartsWith(FieldsPrefix, StringComparison.Ordinal))
+        {
+            why = "unknown field root";
+            return null;
+        }
 
         var segments = field[FieldsPrefix.Length..].Split('.');
         var root = FieldsNode(e);
-        var parent = segments.Length == 1 ? root : Walk(root, segments[..^1]);
+        JsonNode? parent = root;
+        if (segments.Length > 1 && !TryWalk(root, segments[..^1], out parent))
+        {
+            why = "parent path no longer exists after re-extraction";
+            return null;
+        }
         var last = segments[^1];
         var node = JsonNode.Parse(value.GetRawText());
         switch (parent)
@@ -108,6 +152,7 @@ public static class OverrideMerger
                 arr[i] = node;
                 break;
             default:
+                why = "parent is not an object, or the array index is out of range";
                 return null;
         }
         using var doc = JsonDocument.Parse(root.ToJsonString());
@@ -119,8 +164,10 @@ public static class OverrideMerger
             ? new JsonObject()
             : JsonNode.Parse(e.Fields.GetRawText()) ?? new JsonObject();
 
-    private static JsonNode? Walk(JsonNode? node, string[] segments)
+    /// <summary>Walks a path; <c>found</c> is true even when the value is JSON null.</summary>
+    private static bool TryWalk(JsonNode? start, string[] segments, out JsonNode? node)
     {
+        node = start;
         foreach (var seg in segments)
         {
             switch (node)
@@ -132,9 +179,10 @@ public static class OverrideMerger
                     node = arr[i];
                     break;
                 default:
-                    return null;
+                    node = null;
+                    return false;
             }
         }
-        return node;
+        return true;
     }
 }

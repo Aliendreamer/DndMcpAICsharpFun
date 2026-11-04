@@ -106,4 +106,94 @@ public class OverrideMergerTests
         OverrideMerger.ValidatePath(e, "name").Should().BeTrue();
         OverrideMerger.ValidatePath(e, "canonicalText").Should().BeTrue();
     }
+
+    private static EntityEnvelope WithFields(string json, IReadOnlyList<EntityCheck>? checks = null) =>
+        Grell(checks: checks) with { Fields = J(json) };
+
+    [Fact]
+    public void Unapplied_override_sends_entity_to_review()
+    {
+        // "ac" parent removed by re-extraction
+        var e = WithFields("""{"cr":"2"}""");
+        var o = new EntityOverrides([Ov("fields.ac.0.ac", "15")], []);
+        var r = OverrideMerger.Apply([e], o).Entities[0];
+        r.Checks.Should().ContainSingle(c => c.Name == "override-unapplied" && !c.Passed
+            && c.Reason.Contains("fields.ac.0.ac"));
+        r.Disposition.Should().Be(EntityDisposition.NeedsReview);
+        r.NeedsReview.Should().BeTrue();
+
+        var approved = OverrideMerger.Apply([e], new EntityOverrides(o.Overrides, [new Approval(e.Id, "ok", At)]));
+        approved.Entities[0].Disposition.Should().Be(EntityDisposition.NeedsReview);
+    }
+
+    [Fact]
+    public void Wrong_value_kind_is_unapplied()
+    {
+        var o = new EntityOverrides([Ov("name", "5")], []);
+        var r = OverrideMerger.Apply([Grell()], o).Entities[0];
+        r.Name.Should().Be("Grell");
+        r.Checks.Should().ContainSingle(c => c.Name == "override-unapplied");
+        r.Disposition.Should().Be(EntityDisposition.NeedsReview);
+    }
+
+    [Fact]
+    public void Object_key_order_does_not_drift()
+    {
+        var e = WithFields("""{"speed":{"walk":30,"fly":60},"list":[1,2]}""");
+        var o = new EntityOverrides([Ov("fields.speed", """{"walk":30,"fly":90}""", """{"fly":60,"walk":30}""")], []);
+        var r = OverrideMerger.Apply([e], o).Entities[0];
+        r.Checks.Should().BeEmpty();
+        r.Fields.GetProperty("speed").GetProperty("fly").GetInt32().Should().Be(90);
+    }
+
+    [Fact]
+    public void Array_order_and_changed_object_value_drift()
+    {
+        var e = WithFields("""{"speed":{"walk":30,"fly":60},"list":[2,1]}""");
+        var o = new EntityOverrides(
+            [Ov("fields.list", "[3]", "[1,2]"), Ov("fields.speed", "{}", """{"walk":30,"fly":40}""")], []);
+        var r = OverrideMerger.Apply([e], o).Entities[0];
+        r.Checks.Count(c => c.Name == "override-drift").Should().Be(2);
+        r.Checks.Should().Contain(c => c.Reason.Contains("at fields.list:"));
+    }
+
+    [Fact]
+    public void Numeric_forms_compare_by_value()
+    {
+        // JsonNode.DeepEquals compares numbers by value: 2 and 2.0 are equal (no drift).
+        var e = WithFields("""{"cr":2.0}""");
+        var o = new EntityOverrides([Ov("fields.cr", "3", "2")], []);
+        OverrideMerger.Apply([e], o).Entities[0].Checks.Should().BeEmpty();
+        var e2 = WithFields("""{"cr":2.5}""");
+        OverrideMerger.Apply([e2], o).Entities[0].Checks.Should().ContainSingle(c => c.Name == "override-drift");
+    }
+
+    [Fact]
+    public void Drift_reason_names_field()
+    {
+        var o = new EntityOverrides([Ov("fields.cr", "\"3\"", "\"2\"")], []);
+        var r = OverrideMerger.Apply([Grell("\"4\"")], o).Entities[0];
+        r.Checks.Single().Reason.Should().StartWith("extraction changed under your override at fields.cr: was");
+    }
+
+    [Fact]
+    public void ValidatePath_allows_new_leaf_and_null_value()
+    {
+        var e = WithFields("""{"speed":{"walk":30},"legendary":null}""");
+        OverrideMerger.ValidatePath(e, "fields.speed.fly").Should().BeTrue();
+        OverrideMerger.ValidatePath(e, "fields.legendary").Should().BeTrue();
+        OverrideMerger.ValidatePath(e, "fields.nope.x").Should().BeFalse();
+        OverrideMerger.ValidatePath(e, "fields.speed.walk.x").Should().BeFalse();
+    }
+
+    [Fact]
+    public void Two_overrides_same_field_last_wins_drift_vs_original()
+    {
+        var o = new EntityOverrides(
+            [Ov("fields.cr", "\"3\"", "\"2\""), Ov("fields.cr", "\"5\"", "\"2\"")], []);
+        var r = OverrideMerger.Apply([Grell("\"2\"")], o).Entities[0];
+        r.Fields.GetProperty("cr").GetString().Should().Be("5");
+        r.Checks.Should().BeEmpty();
+        r.Disposition.Should().Be(EntityDisposition.Accepted);
+    }
 }
