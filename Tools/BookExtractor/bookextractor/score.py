@@ -101,6 +101,9 @@ def base_item_name(n: str) -> str:
     n = re.sub(r"^Potion of (Greater|Superior|Supreme) Healing$", "Potion of Healing", n)
     n = re.sub(r"^Ring of \w+ Elemental Command$", "Ring of Elemental Command", n)
     n = re.sub(r"^(Eye|Hand) of Vecna$", "Eye and Hand of Vecna", n)
+    # GGR prints one Guild Signet and one Guild Keyrune; 5etools splits them per guild
+    n = re.sub(r"^(?:Azorius|Boros|Dimir|Golgari|Gruul|Izzet|Orzhov|Rakdos|Selesnya|Simic) (Guild Signet|Keyrune)$",
+               lambda m: "Guild Signet" if m.group(1) == "Guild Signet" else "Guild Keyrune", n)
     # FTD prints one entry per item with four tiers; 5etools splits them by tier
     n = re.sub(r"^(Slumbering|Stirring|Wakened|Ascendant) ", "", n)
     return n

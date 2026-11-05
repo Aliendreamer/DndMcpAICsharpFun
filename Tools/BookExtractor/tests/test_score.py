@@ -165,6 +165,12 @@ def test_ftd_tiered_items_collapse_to_the_printed_entry():
         assert base_item_name(f"{tier} Scaled Ornament") == "Scaled Ornament"
 
 
+def test_ggr_guild_items_collapse_to_the_printed_entry():
+    assert base_item_name("Azorius Guild Signet") == "Guild Signet"
+    assert base_item_name("Simic Keyrune") == "Guild Keyrune"
+    assert base_item_name("Rakdos Riteknife") == "Rakdos Riteknife"
+
+
 def test_ftd_greatwyrm_colours_collapse_to_the_printed_family(tmp_path):
     from bookextractor.score import base_monster_name
     assert base_monster_name("Red Greatwyrm") == "Chromatic Greatwyrm"
