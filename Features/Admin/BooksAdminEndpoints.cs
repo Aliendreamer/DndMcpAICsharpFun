@@ -104,11 +104,14 @@ public static partial class BooksAdminEndpoints
     }
 
     /// <summary>
-    /// Ruling R23 — Phase 1 allow-list for programmatic extraction: the extractor's parsers are only validated for the
-    /// 2014 core books. Later phases (see openspec/changes/programmatic-extraction-phase1/design.md) widen this list.
+    /// Ruling R23 — allow-list for programmatic extraction: only books the extractor's parsers have been scored
+    /// against (the 2014 core books plus the 13 supplements dry-run in Phase 1). Anything else gets a 400.
     /// </summary>
-    public static readonly IReadOnlySet<string> ProgrammaticPhase1Books =
-        new HashSet<string>(["phb14", "mm14", "dmg14"], StringComparer.OrdinalIgnoreCase);
+    public static readonly IReadOnlySet<string> ProgrammaticBooks =
+        new HashSet<string>(
+            ["phb14", "mm14", "dmg14", "mpmm", "mtf", "ftd", "bgg", "vrgr", "egw", "erlw", "ggr", "scc", "xge", "tce",
+             "scag", "elemental-evil-player-s-companion"],
+            StringComparer.OrdinalIgnoreCase);
 
     private static async Task<IResult> ExtractProgrammatic(
         int id,
@@ -121,10 +124,10 @@ public static partial class BooksAdminEndpoints
             return Results.NotFound($"Book with id {id} not found");
 
         var slug = EntityIdSlug.BookSlug(record);
-        if (!ProgrammaticPhase1Books.Contains(slug))
+        if (!ProgrammaticBooks.Contains(slug))
             return Results.BadRequest(
-                $"Programmatic extraction is only enabled for {string.Join(", ", ProgrammaticPhase1Books.Order())} " +
-                $"in Phase 1; book {id} has slug '{slug}'.");
+                $"Programmatic extraction is only enabled for {string.Join(", ", ProgrammaticBooks.Order())}; " +
+                $"book {id} has slug '{slug}'.");
 
         if (!queue.TryEnqueue(id))
             return Results.Conflict("Book is already queued for programmatic extraction.");

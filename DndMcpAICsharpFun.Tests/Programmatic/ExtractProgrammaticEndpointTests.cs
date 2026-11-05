@@ -50,10 +50,10 @@ public class ExtractProgrammaticEndpointTests
     }
 
     [Theory]
-    [InlineData("XGE", null)]
+    [InlineData("XDMG", null)]
     [InlineData(null, "Some Homebrew Book")]
     [InlineData("XPHB", null)]
-    public async Task Endpoint_400_for_books_outside_the_phase1_allow_list(string? key, string? displayName)
+    public async Task Endpoint_400_for_books_outside_the_allow_list(string? key, string? displayName)
     {
         var (client, tracker, queue) = await BuildAsync();
         tracker.GetByIdAsync(7, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
@@ -65,18 +65,25 @@ public class ExtractProgrammaticEndpointTests
         var res = await client.PostAsync("/admin/books/7/extract-programmatic", null);
 
         res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await res.Content.ReadAsStringAsync()).Should().Contain("phb14").And.Contain("Phase 1");
+        (await res.Content.ReadAsStringAsync()).Should().Contain("phb14").And.Contain("only enabled for");
         queue.DidNotReceive().TryEnqueue(Arg.Any<int>());
     }
 
     [Theory]
-    [InlineData("PHB")]
-    [InlineData("MM")]
-    [InlineData("DMG")]
-    public async Task Endpoint_accepts_the_phase1_books(string key)
+    [InlineData("PHB", null)]
+    [InlineData("MM", null)]
+    [InlineData("DMG", null)]
+    [InlineData("XGE", null)]
+    [InlineData("ERLW", null)]
+    [InlineData("TCE", null)]
+    [InlineData(null, "Elemental Evil Player's Companion")]
+    public async Task Endpoint_accepts_the_validated_books(string? key, string? displayName)
     {
         var (client, tracker, queue) = await BuildAsync();
-        tracker.GetByIdAsync(3, Arg.Any<CancellationToken>()).Returns(new IngestionRecord { Id = 3, FivetoolsSourceKey = key });
+        tracker.GetByIdAsync(3, Arg.Any<CancellationToken>()).Returns(new IngestionRecord
+        {
+            Id = 3, FivetoolsSourceKey = key, DisplayName = displayName ?? "",
+        });
         queue.TryEnqueue(3).Returns(true);
 
         var res = await client.PostAsync("/admin/books/3/extract-programmatic", null);

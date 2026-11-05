@@ -275,7 +275,7 @@
       "_type": "request",
       "parentId": "fld_admin_books",
       "name": "Extract entities (programmatic, no LLM)",
-      "description": "Phase 1 allow-list: only books whose slug is phb14, mm14 or dmg14 (400 otherwise). Drives the Python book-extractor service; replaces the book's canonical JSON and LLM sidecars, re-applies overrides, ingests into dnd_entities, then purges prior 5etools-import points (file_hash 5etools:<KEY>) for the book. 202 {bookId}; 400 book not in the allow-list; 404 unknown book; 409 already queued/running. If ingestion fails after the files were replaced, retry with POST /admin/books/{id}/ingest-entities.",
+      "description": "Allow-list: only books the extractor is validated on (slugs phb14, mm14, dmg14, mpmm, mtf, ftd, bgg, vrgr, egw, erlw, ggr, scc, xge, tce, scag, elemental-evil-player-s-companion; 400 otherwise). Drives the Python book-extractor service; replaces the book's canonical JSON and LLM sidecars, re-applies overrides, ingests into dnd_entities, then purges prior 5etools-import points (file_hash 5etools:<KEY>) for the book. 202 {bookId}; 400 book not in the allow-list; 404 unknown book; 409 already queued/running. If ingestion fails after the files were replaced, retry with POST /admin/books/{id}/ingest-entities.",
       "method": "POST",
       "url": "{{ _.baseUrl }}/admin/books/1/extract-programmatic",
       "headers": [

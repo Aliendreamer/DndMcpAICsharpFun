@@ -70,7 +70,7 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/extract-entities
 X-Admin-Api-Key: {{adminKey}}
 
-### Admin Books — Extract entities PROGRAMMATICALLY (no LLM; drives the Python book-extractor service, replaces books/canonical/<slug>.json + its LLM sidecars, re-applies <slug>.overrides.json, then ingests into dnd_entities). Phase 1 allow-list: only books whose slug is phb14, mm14 or dmg14 (400 otherwise). Also purges prior 5etools-import points (file_hash 5etools:<KEY>) for the book. 202 {bookId}; 400 book not in the allow-list; 404 unknown book; 409 already queued/running. If ingestion fails after the files were replaced, the new canonical file stays and the error log says so: retry with POST /admin/books/{id}/ingest-entities.
+### Admin Books — Extract entities PROGRAMMATICALLY (no LLM; drives the Python book-extractor service, replaces books/canonical/<slug>.json + its LLM sidecars, re-applies <slug>.overrides.json, then ingests into dnd_entities). Allow-list: only books the extractor is validated on (slugs phb14, mm14, dmg14, mpmm, mtf, ftd, bgg, vrgr, egw, erlw, ggr, scc, xge, tce, scag, elemental-evil-player-s-companion; 400 otherwise). Also purges prior 5etools-import points (file_hash 5etools:<KEY>) for the book. 202 {bookId}; 400 book not in the allow-list; 404 unknown book; 409 already queued/running. If ingestion fails after the files were replaced, the new canonical file stays and the error log says so: retry with POST /admin/books/{id}/ingest-entities.
 POST {{baseUrl}}/admin/books/1/extract-programmatic
 X-Admin-Api-Key: {{adminKey}}
 
