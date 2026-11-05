@@ -74,7 +74,17 @@ def reading_order(page: Page) -> list[Line]:
             else:
                 col_rows.append(replace(l, frags=list(l.frags)))
         rows.extend(col_rows)
-    return [r for r in rows if not _is_edge_noise(r, page)]
+    return [r for i, r in enumerate(rows)
+            if not _is_edge_noise(r, page) or _heads_text(r, rows[i + 1] if i + 1 < len(rows) else None, page)]
+
+
+def _heads_text(line: Line, nxt: Line | None, page: Page) -> bool:
+    """A top-edge caps line with body text directly below it in its column is a heading ('ARCANE
+    GRIMOIRE' over its type line), not a running header, which stands apart from the text."""
+    if nxt is None or line.box[1] > 0.5 * page.height or not re.fullmatch(r"[A-Z][A-Z '&-]{2,40}", line.text):
+        return False
+    same_col = abs(nxt.box[0] - line.box[0]) < 3 * line.height
+    return same_col and 0 <= nxt.box[1] - line.box[3] < 0.6 * line.height
 
 
 def join_hyphens(lines: list[Line]) -> list[Line]:

@@ -171,6 +171,11 @@ def test_ggr_guild_items_collapse_to_the_printed_entry():
     assert base_item_name("Rakdos Riteknife") == "Rakdos Riteknife"
 
 
+def test_tce_absorbing_tattoos_collapse_to_the_printed_entry():
+    assert base_item_name("Necrotic Absorbing Tattoo") == "Absorbing Tattoo"
+    assert base_item_name("Baba Yaga's Pestle") == base_item_name("Baba Yaga's Mortar") == "Baba Yaga's Mortar and Pestle"
+
+
 def test_ftd_greatwyrm_colours_collapse_to_the_printed_family(tmp_path):
     from bookextractor.score import base_monster_name
     assert base_monster_name("Red Greatwyrm") == "Chromatic Greatwyrm"
@@ -193,3 +198,13 @@ def test_item_family_requires_attunement_when_any_tier_does(tmp_path):
     ours = {"type": "MagicItem", "name": "Dragon Vessel",
             "fields": {"rarity": "varies", "reqAttune": True, "entries": ["a b c d e f"]}}
     assert score_book("ftd", [ours], tmp_path, "MagicItem")["fields"]["attune"]["pct"] == 100
+
+
+def test_entries_the_book_never_prints_are_not_counted_missing(tmp_path):
+    # VRGR: Elise and Isolde are "uses the X stat block with changes"; 5etools builds full blocks
+    (tmp_path / "bestiary").mkdir()
+    truth = [dict(_monster(n), source="VRGR") for n in ("Loup Garou", "Elise", "Isolde")]
+    (tmp_path / "bestiary/bestiary-vrgr.json").write_text(json.dumps({"monster": truth}))
+    res = score_book("vrgr", [_ours_monster("Loup Garou")], tmp_path, "Monster")
+    assert res["truth"] == 1 and res["found"] == 1 and res["missing"] == []
+    assert any(k.startswith("Elise: not printed") for k in res["knownDifferences"])

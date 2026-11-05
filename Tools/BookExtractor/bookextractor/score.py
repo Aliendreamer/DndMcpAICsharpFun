@@ -29,6 +29,11 @@ KNOWN_DIFFERENCES: dict[tuple[str, str, str], tuple[object, str]] = {
     ("mm", "Orc Eye of Gruumsh", "abilities"): (
         [16, 12, 16, 9, 13, 12], "the stat block prints CON 16 (+3) (5etools: 17)"),
 }
+# entries 5etools builds that the book never prints as their own entry
+NOT_PRINTED: dict[tuple[str, str], str] = {
+    ("vrgr", "Elise"): "the book says she uses the flesh golem stat block with changes",
+    ("vrgr", "Isolde"): "the book says she uses the cambion stat block with changes",
+}
 _ABIL = ("str", "dex", "con", "int", "wis", "cha")
 
 _ATK = {"mw": "Melee Weapon Attack:", "rw": "Ranged Weapon Attack:", "mw,rw": "Melee or Ranged Weapon Attack:",
@@ -101,6 +106,10 @@ def base_item_name(n: str) -> str:
     n = re.sub(r"^Potion of (Greater|Superior|Supreme) Healing$", "Potion of Healing", n)
     n = re.sub(r"^Ring of \w+ Elemental Command$", "Ring of Elemental Command", n)
     n = re.sub(r"^(Eye|Hand) of Vecna$", "Eye and Hand of Vecna", n)
+    # TCE prints Baba Yaga's Mortar and Pestle as one artifact; 5etools splits the two objects
+    n = re.sub(r"^Baba Yaga's (?:Mortar|Pestle)$", "Baba Yaga's Mortar and Pestle", n)
+    # TCE prints one Absorbing Tattoo; 5etools splits it per damage type
+    n = re.sub(r"^\w+ Absorbing Tattoo$", "Absorbing Tattoo", n)
     # GGR prints one Guild Signet and one Guild Keyrune; 5etools splits them per guild
     n = re.sub(r"^(?:Azorius|Boros|Dimir|Golgari|Gruul|Izzet|Orzhov|Rakdos|Selesnya|Simic) (Guild Signet|Keyrune)$",
                lambda m: "Guild Signet" if m.group(1) == "Guild Signet" else "Guild Keyrune", n)
@@ -299,6 +308,9 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     if etype not in TYPES:
         raise ValueError(f"book {book!r} needs a type, one of {list(TYPES)}")
     truth = load_truth(book, Path(fivetools_dir), etype)
+    known: list[str] = [f"{t['name']}: not printed ({NOT_PRINTED[(book, t['name'])]})"
+                        for t in truth if (book, t["name"]) in NOT_PRINTED]
+    truth = [t for t in truth if (book, t["name"]) not in NOT_PRINTED]
     idx: dict[str, dict] = {}
     for e in entities:
         if e.get("type") == etype:
@@ -311,7 +323,6 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     missing: list[str] = []
     diffs: list[str] = []
     fuzzy: list[str] = []
-    known: list[str] = []
     text_ok = [0, 0]
     fam = [0, 0]  # multi-rarity families: count, ours == "varies"
     for i, t in enumerate(truth):

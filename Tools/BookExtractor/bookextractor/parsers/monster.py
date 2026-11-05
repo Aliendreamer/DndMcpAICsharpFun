@@ -62,7 +62,22 @@ CREATURE_TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "el
                   "giant", "humanoid", "monstrosity", "ooze", "plant", "undead"]
 # VRGR/TCE print no alignment: "Medium Monstrosity (Shapechanger)", "Large or Huge Undead"
 _SIZE_WORD = r"(?:tiny|small|medium|large|huge|gargantuan)"
-_BARE_SIZE_LINE = re.compile(rf"^{_SIZE_WORD}(?: or {_SIZE_WORD})? ([a-z]+)(?: \([^)]*\))?\.?$", re.I)
+_BARE_SIZE_LINE = re.compile(rf"^{_SIZE_WORD}(?: or {_SIZE_WORD})? (?:swarm of {_SIZE_WORD} )?([a-z]+)(?: \([^)]*\))?\.?$",
+                             re.I)
+_GLUED_SIZE = re.compile(r"^(Tiny|Small|Medium|Large|Huge|Gargantuan)(?=[A-Z])")
+
+
+def _spaced(t: str) -> str:
+    """Restore the space OCR lost after the size word ('TinyMonstrosity')."""
+    return _GLUED_SIZE.sub(r"\1 ", t.strip())
+
+
+def _singular(w: str) -> str:
+    """'Monstrosities' -> 'monstrosity', 'Beasts' -> 'beast'; 'undead' stays."""
+    w = w.lower()
+    if w.endswith("ies"):
+        return w[:-3] + "y"
+    return w[:-1] if w.endswith("s") and w[:-1] in CREATURE_TYPES else w
 
 
 def _is_size_line(t: str) -> bool:
@@ -70,8 +85,8 @@ def _is_size_line(t: str) -> bool:
     or the whole line "<Size> <creature type> (tags)" with no alignment at all."""
     if "," in t and ALIGN.search(t) and _size_of(t):
         return True
-    m = _BARE_SIZE_LINE.match(t.strip())
-    return bool(m) and bool(process.extractOne(m.group(1).lower(), CREATURE_TYPES, scorer=fuzz.ratio,
+    m = _BARE_SIZE_LINE.match(_spaced(t))
+    return bool(m) and bool(process.extractOne(_singular(m.group(1)), CREATURE_TYPES, scorer=fuzz.ratio,
                                                score_cutoff=85))
 
 
@@ -237,9 +252,9 @@ def _alignment(s: str) -> list[str]:
 
 def _type_field(head: str) -> str | dict:
     h = " ".join(head.split()[1:])
-    sw = re.match(r"swarm of (\w+) (\w+?)s?(?: \(.*\))?$", h, re.I)
+    sw = re.match(r"swarm of (\w+) (\w+)(?: \(.*\))?$", h, re.I)
     if sw:
-        return sw.group(2).lower()  # schema allows no swarm-size key; the swarm wording stays in Parsed.text
+        return _singular(sw.group(2))  # schema allows no swarm-size key; the swarm wording stays in Parsed.text
     m = re.match(r"([A-Za-z\-]+)(?:\s*\((.*)\))?$", h)
     if not m:
         return h
@@ -419,7 +434,7 @@ def _challenge_pairs(lines: list[Line]) -> list[tuple[str, int]]:
 
 # ---------- the parser ----------
 def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: int) -> Parsed:
-    st_line = L[i].text
+    st_line = _spaced(L[i].text)
     # first comma outside parentheses separates "size type (tags)" from alignment
     parts = _split_top(st_line)
     head = parts[0] if parts else st_line

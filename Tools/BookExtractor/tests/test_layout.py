@@ -70,7 +70,7 @@ def test_fix_digits_fraction_needs_digit():
 def test_edge_rule_keeps_entry_headings():
     names = ["goblin", "clay golem", "faerie dragon", "lizard king", "demilich", "counterspell",
              "fireball", "faerie fire", "revivify", "amulet of proof", "eye of vecna",
-             "spell scroll", "figurine of wondrous power"]
+             "spell scroll", "figurine of wondrous power", "arcane grimoire"]
     for f in sorted(FIX.glob("*/*.json")):
         page = load_ocr_page(f, int(f.stem))
         for l in page.lines:

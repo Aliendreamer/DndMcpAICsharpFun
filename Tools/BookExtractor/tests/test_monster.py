@@ -301,6 +301,18 @@ def test_size_line_without_alignment_starts_a_stat_block(size_line, typ):
     assert "alignment" not in ps[0].fields
 
 
+@pytest.mark.parametrize("size_line, typ", [
+    ("Medium Swarm of Tiny Monstrosities", "monstrosity"),  # VRGR Swarm of Gremishkas
+    ("Medium Swarm of Tiny Beasts", "beast"),
+    ("Medium Swarm of Tiny Undead", "undead"),
+    ("TinyMonstrosity", "monstrosity"),  # VRGR Carrion Stalker: OCR lost the space
+])
+def test_alignment_less_swarm_and_glued_size_lines(size_line, typ):
+    ps = parse_monsters(_block(["Swarm of Maggots"], size_line))
+    assert [p.name for p in ps] == ["Swarm of Maggots"]
+    assert ps[0].fields["type"] == typ
+
+
 @pytest.mark.parametrize("text", ["Medium armor and shields", "Large areas of the town", "Small Beast companion."])
 def test_prose_starting_with_a_size_word_is_not_a_size_line(text):
     from bookextractor.parsers.monster import _is_size_line
