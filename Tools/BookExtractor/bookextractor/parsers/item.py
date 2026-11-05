@@ -165,7 +165,8 @@ def _type_fields(printed: str) -> dict:
 
 
 def _name(raw: str) -> str:
-    return _title(re.sub(r"\s+", " ", raw))
+    """Printed name without a sidebar label ("Magic Item: Infernal Tack", MTF)."""
+    return _title(re.sub(r"^\s*magic item\s*:\s*", "", re.sub(r"\s+", " ", raw), flags=re.I))
 
 
 def _parse_item(L: list[Line], med: float, caps: set[int], ns: int, ti: int, nxt: int, end: int) -> Parsed:

@@ -1,3 +1,4 @@
+import pytest
 import json
 from pathlib import Path
 
@@ -191,3 +192,59 @@ def test_range_type_is_checked_against_the_printed_type():
     f = get("Fireball", 242, 243)  # printed "150 feet": a miles reading must fail
     f.fields["range"] = {"type": "point", "distance": {"type": "miles", "amount": 150}}
     assert not next(c for c in spell_checks(f) if c.name == "range").passed
+
+
+@pytest.mark.parametrize("text, want", [
+    ("4th-Level Enchantment", (4, "E", False)),  # FTD/SCC capitalise "Level": every spell was missed
+    ("2nd-Level Illusion", (2, "I", False)),
+    ("1st-level evocation", (1, "V", False)),
+])
+def test_level_line_any_case(text, want):
+    from bookextractor.parsers.spell import _level_line
+    assert _level_line(text) == want
+
+
+@pytest.mark.parametrize("raw, want", [("Spell: Chaos Bolt", "Chaos Bolt"), ("SPELL: ENCODE THOUGHTS", "Encode Thoughts")])
+def test_sidebar_label_is_not_part_of_the_spell_name(raw, want):
+    # GGR sidebars title spells "Spell: Chaos Bolt"
+    from bookextractor.parsers.spell import _name
+    assert _name(raw) == want
+
+
+def _other(book, *ns):
+    d = Path(__file__).parent / "fixtures" / "ocr" / book
+    out = []
+    for n in ns:
+        out += reading_order(load_ocr_page(d / f"{n:03d}.json", n))
+    return {p.name: p for p in parse_spells(out)}
+
+
+def _text(p):
+    return " ".join(map(str, p.fields["entries"])) + " " + json.dumps(p.fields["entriesHigherLevel"])
+
+
+def test_pull_quote_does_not_end_the_spell():
+    # FTD p22: a "-Fizban" quote sits between "Damage Resistance." and "Evasion."; the spell was cut there
+    p = _other("ftd", 22, 23, 24)["Fizban's Platinum Shield"]
+    t = _text(p)
+    assert "Evasion." in t and "move the field to another creature" in t
+    assert "Scholars have engaged" not in t and "Fizban" not in t.split("Evasion")[1]
+
+
+def test_stat_block_before_the_spell_text_is_skipped():
+    # FTD p24: the Draconic Spirit stat block comes first in reading order; the spell held only the stat block
+    p = _other("ftd", 22, 23, 24)["Summon Draconic Spirit"]
+    t = _text(p)
+    assert t.startswith("You call forth a draconic spirit")
+    assert "Armor Class" not in t and "Multiattack" not in t
+    assert p.fields["entriesHigherLevel"] and "6th level or higher" in json.dumps(p.fields["entriesHigherLevel"])
+    assert "Amethyst" not in t and "Magic Items" not in t  # the next section is not part of the spell
+
+
+def test_at_higher_levels_after_the_stat_block_is_kept():
+    # TCE p110: spell text, then the Aberrant Spirit stat block, then "At Higher Levels" in the next column
+    ss = _other("tce", 110, 111)
+    for name, lvl in (("Summon Aberration", "5th level"), ("Summon Beast", "3rd level")):
+        t = _text(ss[name])
+        assert "You call forth" in t and lvl in json.dumps(ss[name].fields["entriesHigherLevel"]), name
+        assert "Armor Class" not in t and "Multiattack" not in t, name

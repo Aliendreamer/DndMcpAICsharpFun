@@ -9,7 +9,7 @@ from rapidfuzz import fuzz, process
 from ..checks import Check
 from ..model import Line
 from . import Parsed
-from .monster import _after_label, _is_heading_caps, _join_text, _lab, _title
+from .monster import _ENTRY, SECTIONS, _after_label, _is_heading_caps, _is_size_line, _join_text, _lab, _title
 
 SCHOOLS = {"abjuration": "A", "conjuration": "C", "divination": "D", "enchantment": "E",
            "evocation": "V", "illusion": "I", "necromancy": "N", "transmutation": "T"}
@@ -18,7 +18,7 @@ LABELS = ["Casting Time", "Range", "Components", "Duration"]
 _WINDOW = {0: 4, 1: 3, 2: 10}
 _DIGIT = str.maketrans({"I": "1", "i": "1", "l": "1", "O": "0", "o": "0", "S": "5", "Z": "2", "B": "8"})
 _NUM = r"[0-9IiOoSZBl]+"
-_LEVEL = re.compile(r"^([0-9IlOSZB]{1,2})(?:st|nd|rd|th)[- ]?level\s*([A-Za-z]{6,})\s*(\(\s*\w*\s*\)?)?$")
+_LEVEL = re.compile(r"^([0-9IlOSZB]{1,2})(?:st|nd|rd|th)[- ]?[Ll]evel\s*([A-Za-z]{6,})\s*(\(\s*\w*\s*\)?)?$")
 _CANTRIP = re.compile(r"^([A-Za-z]{6,})\s+cantrip\s*(\(\s*\w*\s*\)?)?$", re.I)
 _TIME_UNITS = {"action": "action", "bonus action": "bonus", "reaction": "reaction", "round": "round",
                "minute": "minute", "hour": "hour", "day": "day"}
@@ -26,6 +26,8 @@ _TIME = re.compile(rf"^({_NUM})\s*(bonus action|action|reaction|round|minute|hou
 _PAGE_FURNITURE = re.compile(r"^(?:part \d+\s*\|?\s*spells|spells\s*\|?\s*part \d+|chapter \d+\W.*)$", re.I)
 _WORDS = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
 _HIGHER = re.compile(r"\bat higher levels?\.\s*", re.I)
+# a sidebar label before the name: "Spell: Chaos Bolt" (GGR)
+_LABEL = re.compile(r"^\s*spell\s*:\s*", re.I)
 _ORD = re.compile(r"\b[Il](?=st\b)")
 
 
@@ -214,28 +216,91 @@ def _entries(body: list[Line]) -> tuple[list[str], list[dict]]:
 
 def _name(raw: str) -> str:
     """Printed spell name, repairing the OCR's lost spaces ('ControlWeatheR', 'Eviland Good')."""
+    raw = _LABEL.sub("", raw)
     t = raw if " " in raw.strip() else re.sub(r"(?<=[a-z]{4})(?=[A-Z][a-z])", " ", raw)  # only a lone glued token
     t = _title(t)
     return re.sub(r"\b([A-Z][a-z]{3,})(and|of)\b(?= [A-Z])", lambda m: f"{m.group(1)} {m.group(2)}", t)
 
 
 def _section_break(l: Line, med: float) -> bool:
-    """A caps heading (e.g. 'PARALYZED') or an oversized heading line ends the spell text."""
-    return _is_heading_caps(l.text) or l.height > 1.6 * med
+    """A caps heading (e.g. 'PARALYZED'), an oversized line, or a short tall heading ('Magic Items')
+    ends the spell text."""
+    t = l.text.strip()
+    short_heading = l.height > 1.3 * med and len(t.split()) <= 4 and t[:1].isupper() \
+        and not t.endswith((".", ",", ";", ":"))
+    return _is_heading_caps(t) or l.height > 1.6 * med or short_heading
+
+
+# a decorative quote ("Scholars have engaged in lengthy debates ... -Fizban") inside the text flow
+_ATTRIBUTION = re.compile(r"^[-—–~]\s*[A-Z][\w'. ]{1,30}$")
+
+
+def _pull_quote(L: list[Line], x: int, end: int, med: float) -> int:
+    """Length of a pull-quote starting at x: a run of tall sentence lines closed by an attribution
+    line ('-Fizban'). 0 when there is none (a merely tall 'At Higher Levels.' line is not a quote)."""
+    t = L[x].text.strip()
+    if not (L[x].height > 1.3 * med and len(t.split()) >= 4 and any(c.islower() for c in t)):
+        return 0
+    for y in range(x + 1, min(x + 10, end)):
+        if _ATTRIBUTION.match(L[y].text.strip()):
+            return y - x + 1
+        if L[y].height <= 1.2 * med:
+            return 0
+    return 0
+
+
+def _stat_section(t: str) -> bool:
+    """'Actions', 'Reactions', 'Bonus Actions', 'Legendary Actions' headers inside a stat block."""
+    return len(t.split()) <= 3 and not t.endswith(".") and \
+        process.extractOne(t.lower(), list(SECTIONS), scorer=fuzz.ratio, score_cutoff=85) is not None
+
+
+def _stat_block_at(L: list[Line], x: int, end: int) -> bool:
+    """A stat block name at x: a size line within two lines, then Armor Class within two more."""
+    for y in range(x + 1, min(x + 3, end)):
+        if _is_size_line(L[y].text):
+            return any(_lab(L[z].text, "Armor Class") for z in range(y + 1, min(y + 3, end)))
+    return False
+
+
+def _col_gap(a: Line, b: Line) -> float | None:
+    """Vertical gap between consecutive lines of one column; None across columns or pages."""
+    if a.page != b.page or abs(a.box[0] - b.box[0]) > 100:
+        return None
+    return b.box[1] - a.box[3]
 
 
 def _parse_block(L: list[Line], med: float, i: int, end: int) -> Parsed:
     level, school, ritual = _level_line(L[i].text) or (0, None, False)
     vals, nxt = _header(L, i, end)
     body: list[Line] = []
-    stop = end
+    in_block = after_actions = False
+    skip_to = 0
     for x in range(nxt, end):
-        if L[x].height > 1.6 * med and len(L[x].text) < 8:
+        if x < skip_to:
+            continue
+        l = L[x]
+        if in_block:  # a summoned creature's stat block printed inside the spell (FTD, TCE)
+            if not _HIGHER.match(l.text):
+                if _stat_section(l.text):
+                    after_actions = True
+                    continue
+                g = _col_gap(L[x - 1], l)
+                if not (after_actions and g is not None and g >= 0.9 * med and not _ENTRY.match(l.text)):
+                    continue
+            in_block = False
+        if _stat_block_at(L, x, end):
+            in_block, after_actions = True, False
+            continue
+        quote = _pull_quote(L, x, end, med)
+        if quote:
+            skip_to = x + quote
+            continue
+        if l.height > 1.6 * med and len(l.text) < 8:
             continue  # decorative art / drop-cap glyphs inside the text flow
-        if _section_break(L[x], med):
-            stop = x
+        if _section_break(l, med):
             break
-        body.append(L[x])
+        body.append(l)
     duration = _duration_field(vals["Duration"])
     entries, higher = _entries(body)
     fields: dict = {

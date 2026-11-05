@@ -190,3 +190,10 @@ def test_checks_flag_truncation_and_mismatches():
     assert {"entries-complete", "rarity-parsed", "attunement-agrees"} <= bad
     p.fields["type"] = "armor"
     assert "type-parsed" in {c.name for c in item_checks(p) if not c.passed}
+
+
+def test_sidebar_label_is_not_part_of_the_item_name():
+    # MTF sidebars title items "Magic Item: Infernal Tack"
+    from bookextractor.parsers.item import _name
+    assert _name("Magic Item: Infernal Tack") == "Infernal Tack"
+    assert _name("MAGIC ITEM: GREATER SILVER SWORD") == "Greater Silver Sword"
