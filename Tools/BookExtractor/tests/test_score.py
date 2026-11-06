@@ -892,11 +892,44 @@ def test_section_tree_reader_returns_named_sections_for_ggr():
 
 @needs_5etools
 def test_section_depth_follows_where_the_chapters_entities_match():
-    ents = [{"type": t, "name": n, "fields": {"entries": ["x"]}} for t, n in
-            [("Faction", "Azorius Senate"), ("Faction", "Boros Legion"), ("Location", "Precinct One")]]
+    ents = [{"type": "Faction", "name": n, "fields": {"entries": ["x"]}} for n in
+            ("Azorius Senate", "Boros Legion", "House Dimir", "Golgari Swarm", "Gruul Clans", "Izzet League")]
+    ents.append({"type": "Location", "name": "Guild Membership", "fields": {}})
     r = score_book("ggr", ents, FT, "Section")
-    assert r["found"] == 3 and r["perType"] == {"Faction": 2, "Location": 1, "Lore": 0, "Plane": 0}
+    assert r["found"] == 7 and r["perType"] == {"Faction": 6, "Location": 1, "Lore": 0, "Plane": 0}
     deep = [{"type": "Lore", "name": n, "fields": {}} for n in ("Inside the Senate", "Inside the Legion")]
     r2 = score_book("ggr", deep, FT, "Section")
-    assert r2["found"] == 2  # Chapter 2 is scored at depth 2 because that is where its entities are
-    assert any("Chapter 2: Guilds of Ravnica" in k and "depth 2" in k for k in r2["knownDifferences"])
+    # the deepest depth has the most headings, so it is the default; two matches at depth 2 are not half of it
+    assert r2["found"] == 0
+    assert any("Chapter 2: Guilds of Ravnica" in k and "depth 2 2/29" in k for k in r2["knownDifferences"])
+
+
+@needs_5etools
+def test_god_without_extracted_domains_is_wrong_not_vacuously_right():
+    f = {"alignment": ["L", "N"], "symbol": "Black jackal", "pantheon": "Egyptian"}
+    r = score_book("phb", [{"type": "God", "name": "Anubis", "fields": f}], FT, "God")
+    assert r["fields"]["domains"]["pct"] == 0
+
+
+@needs_5etools
+def test_rule_key_strips_variant_rule_prefix():
+    e = {"type": "Rule", "name": "Variant Rule: Encumbrance", "fields": {"ruleType": "V"}}
+    assert score_book("phb", [e], FT, "Rule")["found"] == 1
+
+
+@needs_5etools
+def test_few_top_headings_extracted_does_not_hide_the_deep_tree():
+    ents = [{"type": "Faction", "name": "Azorius Senate", "fields": {}}]
+    r = score_book("ggr", ents, FT, "Section")
+    line = next(k for k in r["knownDifferences"] if k.startswith("Chapter 4: Creating Adventures: scored at"))
+    assert "depth 2" in line and "depth 1 1/" in line  # defaults to the largest depth; recall shown per depth
+    assert r["truth"] > 100 and r["found"] == 0
+
+
+@needs_5etools
+def test_shallow_depth_chosen_when_half_its_headings_match():
+    names = ["Azorius Senate", "Boros Legion", "House Dimir", "Golgari Swarm", "Gruul Clans", "Izzet League",
+             "Orzhov Syndicate", "Cult of Rakdos", "Selesnya Conclave", "Simic Combine"]
+    r = score_book("ggr", [{"type": "Faction", "name": n, "fields": {}} for n in names], FT, "Section")
+    assert r["found"] == 10
+    assert any(k.startswith("Chapter 2: Guilds of Ravnica: scored at heading depth 1") for k in r["knownDifferences"])

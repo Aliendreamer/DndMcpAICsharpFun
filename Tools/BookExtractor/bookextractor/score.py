@@ -214,7 +214,7 @@ def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list
     return list(seen.values())
 
 
-_RULE_PREFIX = re.compile(r"^(variant|optional rule)\s*:\s*", re.I)
+_RULE_PREFIX = re.compile(r"^(variant rule|variant|optional rule)\s*:\s*", re.I)
 
 
 def _section_nodes(node: dict, chapter: str, depth: int, out: list[dict]) -> None:
@@ -680,7 +680,8 @@ def extra_god_domains(fields: dict, t: dict) -> list[str]:
 def _score_world(etype: str, f: dict, t: dict, r: dict) -> tuple[float | None, float | None]:
     if etype == "God":
         r["alignment"] = (f.get("alignment") or None) == (t.get("alignment") or None)
-        r["domains"] = {key(x) for x in f.get("domains") or []} <= {key(x) for x in t.get("domains") or []}
+        mine, theirs = {key(x) for x in f.get("domains") or []}, {key(x) for x in t.get("domains") or []}
+        r["domains"] = None if not mine and not theirs else bool(mine) and mine <= theirs
         ours, want = f.get("symbol"), t.get("symbol")
         r["symbol"] = None if not ours and not want else bool(ours and want) and \
             fuzz.ratio(key(ours), key(want)) >= 90
@@ -917,11 +918,13 @@ def match_one_to_one(truth_keys: list[str], keys: list[str]) -> dict[int, tuple[
 
 
 def _section_truth_at_chosen_depth(truth: list[dict], entities: list[dict], known: list[str]) -> list[dict]:
-    """The section tree's recall truth: per chapter, the headings at the depth where most of the chapter's entities
-    match (ties go to the shallower depth; a chapter with no match is scored at depth 1). Each heading name counts once.
+    """The section tree's recall truth: per chapter, the headings at one depth, each heading name once.
 
-    5etools has no world-type records, so which headings are 'entities' is read off our own extraction: an entity's
-    name is looked for among a chapter's headings at every depth."""
+    5etools has no world-type records, so the depth cannot come from it and must not be picked in a way that hides
+    misses. A chapter defaults to the depth with the MOST named headings (ties go shallower). A shallower depth is
+    taken only when our entities match at least half of that depth's headings (votes are distinct names per depth).
+    Recall at every depth is listed per chapter, and a chosen depth with under a quarter of the largest depth's
+    headings is flagged."""
     ours = {key(e["name"]) for e in entities if e.get("type") in _SECTION_TYPES}
     chapters: dict[str, list[dict]] = {}
     for t in truth:
@@ -929,17 +932,28 @@ def _section_truth_at_chosen_depth(truth: list[dict], entities: list[dict], know
     out: list[dict] = []
     seen: dict[str, int] = {}
     for ch, secs in chapters.items():
-        hits = collections.Counter(s["_depth"] for s in {key(s["name"]): s for s in secs
-                                                         if key(s["name"]) in ours}.values())
-        depth = max(hits, key=lambda d: (hits[d], -d)) if hits else 1
-        known.append(f"{ch}: scored at heading depth {depth} ({'; '.join(f'depth {d}: {n} entities' for d, n in sorted(hits.items())) or 'no entity matches'})")
-        for s in secs:
-            if s["_depth"] == depth:
-                seen[key(s["name"])] = seen.get(key(s["name"]), 0) + 1
-                if seen[key(s["name"])] == 1:
-                    out.append(s)
-    known += [f"heading printed {n} times, scored once: {nm}" for nm, n in sorted(seen.items()) if n > 1
-              for nm in [next(s["name"] for s in out if key(s["name"]) == nm)]]
+        names: dict[int, set[str]] = collections.defaultdict(set)
+        for sc in secs:
+            names[sc["_depth"]].add(key(sc["name"]))
+        total = {d: len(v) for d, v in names.items()}
+        hits = {d: len(v & ours) for d, v in names.items()}
+        depth = max(total, key=lambda d: (total[d], -d))
+        shallow = [d for d in total if d < depth and 2 * hits[d] >= total[d] and hits[d] > 0]
+        if shallow:
+            depth = max(shallow, key=lambda d: (hits[d], -d))
+        known.append(f"{ch}: scored at heading depth {depth}; recall by depth: "
+                     + "; ".join(f"depth {d} {hits[d]}/{total[d]}" for d in sorted(total)))
+        if 4 * total[depth] < max(total.values()):
+            known.append(f"WARNING {ch}: depth {depth} has {total[depth]} headings, under a quarter of the "
+                         f"largest depth's {max(total.values())}; deeper sections may be missed")
+        for sc in secs:
+            if sc["_depth"] == depth:
+                seen[key(sc["name"])] = seen.get(key(sc["name"]), 0) + 1
+                if seen[key(sc["name"])] == 1:
+                    out.append(sc)
+    for sc in out:
+        if seen[key(sc["name"])] > 1:
+            known.append(f"heading printed {seen[key(sc['name'])]} times, scored once: {sc['name']}")
     return out
 
 
