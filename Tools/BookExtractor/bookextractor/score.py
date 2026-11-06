@@ -39,6 +39,16 @@ NOT_PRINTED_FEATURES: dict[tuple[str, str], list[tuple[str, int, str]]] = {
     ("tce", "Artificer"): [("Optional Rule: Firearm Proficiency", 1, "a sidebar, not a class feature")],
     **{("tce", d): [("Blessed Strikes", 8, _TCE_BLESSED)]
        for d in ("Order Domain", "Peace Domain", "Twilight Domain")},
+    **{("tce", k): [("Sidekick Class", 1, "the book prints 'Gaining a Sidekick Class' once for all three classes")]
+       for k in ("Expert", "Spellcaster", "Warrior")},
+}
+_SIDEKICK_TABLE = "the class table prints the improved feature under its own name"
+# 5etools feature refs the book's table prints under another name: (book, entry) -> [(5etools, level, printed, why)]
+PRINTED_FEATURE_NAMES: dict[tuple[str, str], list[tuple[str, int, str, str]]] = {
+    ("tce", "Expert"): [("Inspiring Help Improvement", 20, "Inspiring Help (2d6)", _SIDEKICK_TABLE)],
+    ("tce", "Warrior"): [("Extra Attack Improvement", 15, "Extra Attack (2 extra)", _SIDEKICK_TABLE),
+                         ("Indomitable Improvement", 18, "Indomitable (2 uses)", _SIDEKICK_TABLE),
+                         ("Second Wind Improvement", 20, "Second Wind (2 uses)", _SIDEKICK_TABLE)],
 }
 # entries 5etools builds that the book never prints as their own entry
 NOT_PRINTED: dict[tuple[str, str], str] = {
@@ -190,6 +200,11 @@ def _split_character_truth(src: str, d: Path, etype: str) -> tuple[list[dict], l
             for r in json.loads(f.read_text("utf-8")).get(lst, []):
                 if r.get("source") != src:
                     continue
+                if etype == "Class" and r.get("isSidekick") and r["name"].endswith(" Sidekick"):
+                    printed = r["name"][: -len(" Sidekick")]
+                    dropped.append(f"sidekick class scored under its printed heading: {r['name']} -> {printed}")
+                    kept.append(dict(r, name=printed))
+                    continue
                 # 5etools stores each supplement subclass twice; the XPHB (2024 class) and EFA (2024 Artificer)
                 # copies are twins of the printed one
                 if etype == "Subclass" and r.get("classSource") in ("XPHB", "EFA"):
@@ -231,23 +246,33 @@ def dropped_truth_lines(book: str, fivetools_dir: Path | str, etype: str) -> lis
     return _split_character_truth(book.upper(), Path(fivetools_dir), etype)[1]
 
 
-_DIE_NOTE = re.compile(r"\s*\(d\d+\)\s*$", re.I)
+_DIE_NOTE = re.compile(r"\s*\(\d*d\d+\)\s*$", re.I)
 
 
 def _drop_unprinted_features(book: str, t: dict, known: list[str]) -> dict:
-    """`t` without the feature refs NOT_PRINTED_FEATURES lists for it; each one dropped adds a known line."""
-    drop = NOT_PRINTED_FEATURES.get((book, t["name"]))
-    if not drop:
+    """`t` without the feature refs NOT_PRINTED_FEATURES lists for it, and with the refs PRINTED_FEATURE_NAMES
+    lists renamed to the printed name; each one adds a known line."""
+    drop = NOT_PRINTED_FEATURES.get((book, t["name"]), [])
+    rename = PRINTED_FEATURE_NAMES.get((book, t["name"]), [])
+    if not drop and not rename:
         return t
     out = dict(t)
     for fld, lvl_idx in (("classFeatures", 3), ("subclassFeatures", 5)):
         kept = []
         for r in t.get(fld) or []:
-            parts = str(r.get("classFeature") or r.get("subclassFeature") if isinstance(r, dict) else r).split("|")
-            hit = next((d for d in drop if key(parts[0]) == key(d[0]) and len(parts) > lvl_idx
-                        and parts[lvl_idx] == str(d[1])), None)
+            ref = str(r.get("classFeature") or r.get("subclassFeature") if isinstance(r, dict) else r)
+            parts = ref.split("|")
+
+            def at(d) -> bool:
+                return key(parts[0]) == key(d[0]) and len(parts) > lvl_idx and parts[lvl_idx] == str(d[1])
+
+            hit = next((d for d in drop if at(d)), None)
+            new = next((d for d in rename if at(d)), None)
             if hit:
                 known.append(f"{t['name']}: feature {hit[0]} (level {hit[1]}) not printed in the entry ({hit[2]})")
+            elif new:
+                known.append(f"{t['name']}: feature {new[0]} (level {new[1]}) is printed '{new[2]}' ({new[3]})")
+                kept.append("|".join([new[2], *parts[1:]]))
             else:
                 kept.append(r)
         if fld in t:

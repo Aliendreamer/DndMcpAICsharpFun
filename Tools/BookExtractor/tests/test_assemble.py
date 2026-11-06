@@ -223,6 +223,12 @@ def test_feature_die_annotation_is_not_a_word():
     assert p.fields["classFeatures"] == ["Song of Rest (d6)|Bard||2", "Song of Rest (d8)|Bard||9"]
 
 
+def test_feature_dice_count_annotation_is_not_a_word():   # TCE sidekick table: "Inspiring Help (1d6)"
+    refs = ["Inspiring Help (1d6)|Expert|TCE|11", "Inspiring Help (2d6)|Expert|TCE|20"]
+    _p, cs = _feature_checks("Class", {"classFeatures": refs}, "expert inspiring help")
+    assert cs["feature-names-known"].passed, cs["feature-names-known"].reason
+
+
 def test_feature_word_printed_in_heading_and_once_more_is_known():
     from collections import Counter
 

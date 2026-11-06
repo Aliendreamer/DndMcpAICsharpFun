@@ -43,7 +43,7 @@ _PARSERS: dict[str, Callable[[list[Line], ParseContext], list[Parsed]]] = {
 }
 # feature-ref lists whose part 0 (the feature name) is checked against the book vocabulary
 _FEATURE_REFS = {"Class": ("classFeatures", "classFeature"), "Subclass": ("subclassFeatures", "subclassFeature")}
-_DIE_NOTE = re.compile(r"\s+\(d\d+\)$")
+_DIE_NOTE = re.compile(r"\s+\(\d*d\d+\)$")
 _DICE_LIKE = re.compile(r"\b[0-9SOolIZB]+d[0-9SOolIZB]+\b")
 _MIXED = re.compile(r"\b(?:[0-9]+[SOolIZB]+|[SOolIZB]+[0-9]+)[0-9SOolIZB]*\b")
 _NUMERIC_KEYS = {"formula": re.compile(r"\d+d\d+(?:\s*[+-]\s*\d+)?"), "cr": re.compile(r"[\d/]+")}

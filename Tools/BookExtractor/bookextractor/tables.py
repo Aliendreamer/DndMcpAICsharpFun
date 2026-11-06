@@ -110,7 +110,11 @@ def _try_table(page: Page, anchor: Line) -> Table | None:
 
     header_bottom = max(m.box[3] for _, _, ms in cols for m in ms)
     header_lines = [m for _, _, ms in cols for m in ms]
-    region = [l for l in page.lines if l not in header_lines and l.box[1] >= header_bottom - 2]
+    x_left = min(c[0] for c in cols)
+    # prose in the page column left of the table (TCE prints a table in the right column beside text) and an
+    # art credit set far taller than the cells, over the table, are not cells
+    lines = [l for l in page.lines if l.box[2] > x_left and l.height <= 2 * h]
+    region = [l for l in lines if l not in header_lines and l.box[1] >= header_bottom - 2]
 
     def start_col(l: Line) -> int:
         return sum(l.box[0] > b for b in bounds)
@@ -123,7 +127,7 @@ def _try_table(page: Page, anchor: Line) -> Table | None:
         return (min(b[0] for b in xs), max(b[2] for b in xs)) if xs else (0.0, 0.0)
 
     split = {id(l): _split(l, bounds, column, reach(l), spans) for l in region}
-    body = [part for l in page.lines for part in split.get(id(l), [l])]
+    body = [part for l in lines for part in split.get(id(l), [l])]
     first = sorted((l for l in body if column(l) == 0 and l.box[1] >= header_bottom - 2),
                    key=lambda l: l.box[1])
     anchors: list[Line] = []

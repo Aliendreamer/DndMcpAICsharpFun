@@ -410,3 +410,22 @@ def test_phb_human_ability_on_the_race_is_a_known_difference():
     # excused only while our value is the printed one
     res = score_book("phb", [_ent("Race", "Human", size=["M"], speed=30, ability=[{"str": 2}])], FT, "Race")
     assert any(d.startswith("Human: ability") for d in res["diffs"])
+
+
+@needs_5etools
+def test_sidekick_classes_score_under_their_printed_names():
+    assert {"Expert", "Spellcaster", "Warrior"} <= {t["name"] for t in load_truth("tce", FT, "Class")}
+    printed = {
+        "Expert": ["Bonus Proficiencies|Expert|TCE|1", "Helpful|Expert|TCE|1", "Cunning Action|Expert|TCE|2",
+                   "Expertise|Expert|TCE|3", "Ability Score Improvement|Expert|TCE|4",
+                   "Coordinated Strike|Expert|TCE|6", "Evasion|Expert|TCE|7", "Ability Score Improvement|Expert|TCE|8",
+                   "Ability Score Improvement|Expert|TCE|10", "Inspiring Help (1d6)|Expert|TCE|11",
+                   "Ability Score Improvement|Expert|TCE|12", "Reliable Talent|Expert|TCE|14",
+                   "Expertise|Expert|TCE|15", "Ability Score Improvement|Expert|TCE|16", "Sharp Mind|Expert|TCE|18",
+                   "Ability Score Improvement|Expert|TCE|19", "Inspiring Help (2d6)|Expert|TCE|20"]}
+    res = score_book("tce", [_ent("Class", "Expert", classFeatures=printed["Expert"])], FT, "Class")
+    assert res["fields"]["features"]["pct"] == 100, res["diffs"]
+    known = "\n".join(res["knownDifferences"])
+    assert "Expert: feature Sidekick Class (level 1) not printed" in known
+    assert "Expert: feature Inspiring Help Improvement (level 20) is printed 'Inspiring Help (2d6)'" in known
+    assert "Expert Sidekick" in known

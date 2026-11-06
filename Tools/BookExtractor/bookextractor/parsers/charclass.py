@@ -27,7 +27,8 @@ _SECTION_HEADS = ("Hit Points", "Proficiencies", "Equipment", "Starting Equipmen
                   "Class Features")
 _NUMBER_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
 # a uses marker, not part of the feature's name: "Action Surge (one use)", "Channel Divinity (2/rest)"
-_FIRST_GRANT = re.compile(r"\s*\((?:one use|\d/rest)\)\s*$", re.I)
+_FIRST_GRANT = re.compile(r"\s*\((?:one use|1 use|1 extra|\d/rest)\)\s*$", re.I)
+_SIDEKICK = re.compile(r"sidekick gains ?the following class features\b.{0,80}?summarized on the (\w+) table", re.I)
 _PAREN = re.compile(r"\s*\([^)]*\)\s*$")
 
 
@@ -382,13 +383,16 @@ def _respell(refs: list | None, spelling: dict[str, str]) -> list | None:
     return out
 
 
-def _entries(L: list[Line], sections: list[tuple[str, int]], end: int) -> list[dict]:
+def _entries(L: list[Line], sections: list[tuple[str, int]], end: int, skip: set[int] = frozenset()) \
+        -> list[dict]:
     heads = {i for _, i in sections}
     out = []
     for name, i in sections:
         body: list[Line] = []
         for j in range(i + 1, end):
             t = L[j].text.strip()
+            if j in skip:  # the level table, printed in the column after a feature
+                continue
             if j in heads or (_heading_like(t) and any(_like(t, h, 90) for h in _SECTION_HEADS)):
                 break
             body.append(L[j])
@@ -415,8 +419,58 @@ def _find_table(ctx: ParseContext, first: int, last: int) -> Table | None:
     return None
 
 
+def _sidekick_anchors(L: list[Line], med: float) -> list[tuple[int, str]]:
+    """(heading index, name) of each TCE sidekick class: a heading followed by "A sidekick gains the following
+    class features ... as summarized on the <Name> table", where <Name> spells the heading. The name is
+    the prose spelling (the small-caps heading OCR mixes cases)."""
+    out = []
+    for i, l in enumerate(L):
+        t = l.text.strip()
+        if not (_heading_like(t) and len(t.split()) <= 2 and l.height >= 1.1 * med):
+            continue
+        window = _join_text([x.text.strip() for x in L[i + 1:i + 16]])
+        m = _SIDEKICK.search(re.sub(r"\s+", " ", window))
+        if m and _squash(m.group(1)) == _squash(t):
+            out.append((i, m.group(1)))
+    return out
+
+
+def _sidekick_end(L: list[Line], i: int, stop: int, med: float) -> int:
+    """The next section heading after a sidekick class: a heading set well above body height (art credits,
+    set far taller still, are not headings)."""
+    for j in range(i + 1, stop):
+        t = L[j].text.strip()
+        if _heading_like(t) and 1.4 * med <= L[j].height <= 2.2 * med:
+            return j
+    return stop
+
+
+def _build(L: list[Line], ctx: ParseContext, cls: str, start: int, a: int, end: int, table: Table | None,
+           src: str, sidekick: bool = False) -> Parsed:
+    lines = L[start:end]
+    text = "\n".join(l.text for l in lines)
+    refs = _class_features(table, cls, src) if table is not None and cls else None
+    skip_idx = {i for i in range(a, end) if _in_table(L[i], table)}
+    sections = _feature_sections(L, a, end, _feature_names(refs), skip_idx)
+    spelling = {n: _printed_spelling(n, L[i].text) for n, i in sections}
+    refs = _respell(refs, spelling)
+    sections = [(spelling[n], i) for n, i in sections]
+    saves, sp = _proficiencies(L, a, end)
+    group = SUBCLASS_GROUPS.get(cls)
+    fields: dict = {
+        "hd": _hd(L[a].text), "proficiency": saves, "startingProficiencies": sp,
+        "multiclassing": _multiclassing(text),
+        "subclassTitle": group[0] if group and _squash(group[0]) in _squash(text) else None,
+        "classFeatures": refs, "entries": _entries(L, sections, end, skip_idx) or None,
+    }
+    p = Parsed(type="Class", name=cls, fields=fields, text=text, lines=lines)
+    p.checks = class_checks(fields, table, [L[i].text for _, i in sections], text, name=cls, sidekick=sidekick)
+    return p
+
+
 def parse_classes(body: list[Line], ctx: ParseContext) -> list[Parsed]:
-    """Parse every class chapter in `body` (reading-ordered lines of the whole book)."""
+    """Parse every class chapter in `body` (reading-ordered lines of the whole book), then the TCE sidekick
+    classes (Expert, Spellcaster, Warrior), which print no Hit Dice line."""
     L = body
     if not L:
         return []
@@ -436,48 +490,43 @@ def parse_classes(body: list[Line], ctx: ParseContext) -> list[Parsed]:
             nstart, _ = _class_heading(L, nxt, a + 1, med)
             end = min(end, nstart if nstart is not None else nxt)
         prev_end = end
-        lines = L[start:end]
-        text = "\n".join(l.text for l in lines)
         table = _find_table(ctx, L[start].page, L[a].page + 1)
         src = class_source(cls, ctx.source) if cls else ""
-        refs = _class_features(table, cls, src) if table is not None and cls else None
-        skip_idx = {i for i in range(a, end) if _in_table(L[i], table)}
-        sections = _feature_sections(L, a, end, _feature_names(refs), skip_idx)
-        spelling = {n: _printed_spelling(n, L[i].text) for n, i in sections}
-        refs = _respell(refs, spelling)
-        sections = [(spelling[n], i) for n, i in sections]
-        saves, sp = _proficiencies(L, a, end)
-        fields: dict = {
-            "hd": _hd(L[a].text), "proficiency": saves, "startingProficiencies": sp,
-            "multiclassing": _multiclassing(text),
-            "subclassTitle": SUBCLASS_GROUPS[cls][0] if cls and _squash(SUBCLASS_GROUPS[cls][0]) in _squash(text)
-            else None,
-            "classFeatures": refs, "entries": _entries(L, sections, end) or None,
-        }
-        p = Parsed(type="Class", name=cls, fields=fields, text=text, lines=lines)
-        p.checks = class_checks(fields, table, [L[i].text for _, i in sections], text, name=cls)
-        out.append(p)
+        out.append(_build(L, ctx, cls, start, a, end, table, src))
+    kicks = _sidekick_anchors(L, med)
+    for k, (a, cls) in enumerate(kicks):
+        stop = min(kicks[k + 1][0] if k + 1 < len(kicks) else len(L), a + _MAX_SECTION)
+        end = _sidekick_end(L, a, stop, med)
+        table = _find_table(ctx, L[a].page, L[end - 1].page)
+        # a sidekick class is defined by the book that prints it
+        out.append(_build(L, ctx, cls, a, a, end, table, ctx.source, sidekick=True))
     return out
 
 
 # ---------- checks ----------
 def _bonus(cell: str) -> str:
-    """Normalise a proficiency-bonus cell. The OCR reads a printed '+3' as 'E+' (a known confusion)."""
+    """Normalise a proficiency-bonus cell. The OCR reads a printed '+3' as 'E+' (a known confusion), once with
+    a stray '$' (the TCE Warrior table)."""
     c = re.sub(r"\s+", "", cell)
-    return "+3" if c in ("E+", "ε+", "3+") else fix_digits(c)
+    return "+3" if c in ("E+", "ε+", "3+", "$E+") else fix_digits(c)
 
 
 def class_checks(fields: dict, table: Table | None, feature_headings: list[str], text: str,
-                 name: str = "") -> list[Check]:
+                 name: str = "", sidekick: bool = False) -> list[Check]:
     who = name or (m.group(1).title() if (m := re.search(r"per (\w+) level", text)) else "this class")
-    return [_hit_die(fields, text), _table_read(table, who), _bonus_steps(table, who),
+    return [_hit_die(fields, text, sidekick), _table_read(table, who), _bonus_steps(table, who),
             _features_match(fields, table, feature_headings, who)]
 
 
-def _hit_die(fields: dict, text: str) -> Check:
+def _hit_die(fields: dict, text: str, sidekick: bool = False) -> Check:
     name = "hit-die-consistent"
     hd = fields.get("hd") or {}
     faces = hd.get("faces")
+    if sidekick and not faces:
+        # a sidekick class prints no Hit Dice: the sidekick rolls the Hit Die in its own stat block
+        if re.search(r"Hit Dice\s*[:;]", text, re.I):
+            return Check(name, False, "a Hit Dice line is printed in the sidekick class but was not read")
+        return Check(name, True)
     if not faces:
         return Check(name, False, "Hit Dice not read")
     flat = fix_digits(re.sub(r"\s+", " ", text))
@@ -561,6 +610,8 @@ def _features_match(fields: dict, table: Table | None, headings: list[str], who:
 
 
 _CUE = re.compile(r"^(?:at|starting at|beginning at|when you reach)\s+(\S+)\s+level\b", re.I)
+# the label under a sidekick feature heading: "11th-level Expert feature" (OCR: "1 1th-level")
+_LABEL_CUE = re.compile(r"^(\d[\d ]{0,2}(?:st|nd|rd|th))-level\s+\w+\s+feature\b", re.I)
 
 
 def _level_cues(entries: list, refs: list) -> list[str]:
@@ -570,8 +621,9 @@ def _level_cues(entries: list, refs: list) -> list[str]:
     for e in entries:
         if not isinstance(e, dict) or not e.get("entries"):
             continue
-        m = _CUE.match(str(e["entries"][0]).strip())
-        lvl = ordinal(fix_digits(m.group(1)).rstrip(",")) if m else None
+        first = str(e["entries"][0]).strip()
+        m = _CUE.match(first) or _LABEL_CUE.match(first)
+        lvl = ordinal(fix_digits(m.group(1).replace(" ", "")).rstrip(",")) if m else None
         if lvl is None:
             continue
         levels = sorted({int(_ref(r).rsplit("|", 1)[1]) for r in refs

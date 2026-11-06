@@ -255,3 +255,50 @@ def test_heading_differs_only_by_case_or_note_passes():
     c = check(class_checks(fields_with(), t, ["RAGE", "DaNGER SENSE", "Primal Path"], text_with("")),
               "features-match-table")
     assert c.passed, c.reason
+
+
+SIDEKICK_PAGES = [143, 144, 145, 146, 147, 148, 149]
+
+
+def sidekicks():
+    pages = load("tce", SIDEKICK_PAGES)
+    return {p.name: p for p in parse_classes(body_of(pages), ctx_for("tce", pages))}
+
+
+def test_tce_sidekick_classes_named_from_their_headings():
+    assert sorted(sidekicks()) == ["Expert", "Spellcaster", "Warrior"]
+
+
+def test_expert_sidekick_fields():
+    p = sidekicks()["Expert"]
+    f = p.fields
+    assert f["hd"] is None and f["subclassTitle"] is None and f["proficiency"] is None
+    assert refs(p)[:2] == ["Bonus Proficiencies|Expert|TCE|1", "Helpful|Expert|TCE|1"]
+    assert "Inspiring Help (1d6)|Expert|TCE|11" in refs(p) and "Sharp Mind|Expert|TCE|18" in refs(p)
+    assert not any(isinstance(r, dict) for r in f["classFeatures"])
+    names = [e["name"] for e in f["entries"]]
+    assert names[:3] == ["Bonus Proficiencies", "Helpful", "Cunning Action"] and "Sharp Mind" in names
+    assert not failed(p), failed(p)
+    jsonschema.validate(f, schema("ClassFields"))
+
+
+def test_warrior_sidekick_first_grant_marker_dropped():
+    r = refs(sidekicks()["Warrior"])
+    assert "Second Wind|Warrior|TCE|2" in r and "Extra Attack|Warrior|TCE|6" in r and "Indomitable|Warrior|TCE|11" in r
+    assert "Second Wind (2 uses)|Warrior|TCE|20" in r and "Extra Attack (2 extra)|Warrior|TCE|15" in r
+    assert not failed(sidekicks()["Warrior"]), failed(sidekicks()["Warrior"])
+
+
+def test_spellcaster_sidekick_passes_and_stops_before_the_next_section():
+    p = sidekicks()["Spellcaster"]
+    assert "Focused Casting|Spellcaster|TCE|20" in refs(p) and not failed(p), failed(p)
+    w = sidekicks()["Warrior"]
+    assert "Indomitable" in w.text and "PARLE" not in w.text.upper()
+
+
+def test_feature_label_level_disagrees_with_table():
+    f = fields_with()
+    f["entries"] = [{"type": "entries", "name": "Danger Sense",
+                     "entries": ["4th-level Barbarian feature", "You gain an uncanny sense."]}]
+    c = check(class_checks(f, table_ok, headings_ok, text_with("")), "features-match-table")
+    assert not c.passed and "Danger Sense" in c.reason and "[2]" in c.reason

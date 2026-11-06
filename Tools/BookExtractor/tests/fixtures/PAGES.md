@@ -80,3 +80,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | dmg | 285, 286, 287 | "Example Subrace: Eladrin" (prose names it an elf subrace), "Example Race: Aasimar" with its traits after design notes |
 | tce | 008, 009 | Custom Lineage: traits set with hanging indents under a plain heading, Size and Speed before Ability Score Increase |
 | dmg | 282 | NPC Features table: monster races (ability modifiers, features), "*" rows pointing at PHB races, the Troglodyte row with its name cell lost by the OCR, "Elf*" read as "*113" |
+| tce | 143, 144, 145, 146, 147, 148, 149 | Sidekick classes Expert, Spellcaster, Warrior: no Hit Dice line, "summarized on the X table", "Nth-level X feature" cues, art credits mid-column, then PARLEYING WITH MONSTERS |
