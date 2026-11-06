@@ -16,7 +16,7 @@ from ..layout import fix_digits
 from ..model import Line, Page
 from ..tables import Table, read_table
 from . import ParseContext, Parsed
-from .charcommon import ABILITIES, SKILLS, SUBCLASS_GROUPS, SUBCLASS_LEVELS, class_source, ordinal
+from .charcommon import ABILITIES, SKILLS, SUBCLASS_GROUPS, SUBCLASS_LEVELS, character_body, class_source, ordinal
 from .charcommon import like as _like
 from .charcommon import squash as _squash
 from .monster import _join_text
@@ -508,7 +508,7 @@ def _build(L: list[Line], ctx: ParseContext, cls: str, start: int, a: int, end: 
 def parse_classes(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     """Parse every class chapter in `body` (reading-ordered lines of the whole book), then the TCE sidekick
     classes (Expert, Spellcaster, Warrior), which print no Hit Dice line."""
-    L = body
+    L = character_body(body, ctx)
     if not L:
         return []
     med = statistics.median(l.height for l in L) or 1.0

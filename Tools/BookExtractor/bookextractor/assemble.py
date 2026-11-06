@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from .checks import Check
 from .layout import fix_digits, reading_order
 from .model import Line, Page
-from .names import Vocabulary, build_vocabulary, glued_words, own_heading_counts, repair_name
+from .names import Vocabulary, build_vocabulary, glued_words, own_heading_counts, repair_name, spaced_pair
 from .pages import classify_page, is_table_page
 from .parsers import ParseContext, Parsed
 from .parsers.background import parse_backgrounds
@@ -171,6 +171,12 @@ def _feature_name_checks(p: Parsed, vocab: Vocabulary) -> list[Check]:
         m = _DIE_NOTE.search(raw)
         word_part, note = (raw[:m.start()], raw[m.start():]) if m else (raw, "")
         res = repair_name(word_part, vocab, Vocabulary())
+        # a glued word the book prints spaced more often than glued is split, however often the glued form occurs
+        # (TCE prints its small-caps "Extra Attack" heading as "ExtRAATtaCk" three times)
+        words = res.name.split()
+        split = [" ".join(w[:1].upper() + w[1:] for w in sp) if (sp := spaced_pair(t, vocab)) else t for t in words]
+        if split != words:
+            res.name, res.repaired = " ".join(split), True
         if res.repaired:
             repaired.append(f"{word_part!r} -> {res.name!r}")
             ref = res.name + note + sep + rest

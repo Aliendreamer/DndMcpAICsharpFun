@@ -158,6 +158,30 @@ class _Lexicon:
         return (best[1], best[2]) if best else None
 
 
+_INFLECTIONS = ("", "s", "es", "ed", "d", "ing")
+
+
+def spaced_pair(token: str, vocab: Vocabulary) -> tuple[str, str] | None:
+    """The two known words (4+ letters each) a glued token splits into when the book prints them spaced more
+    often than it prints the glued form (either word inflected: "extra attacks" counts for "Extraattack"). OCR
+    glues a small-caps heading the same way every time it is printed, so a misread can be attested several
+    times; a real compound ("Spellcasting", printed ~150 times, "spell casting" once) is printed glued far more
+    often than spaced. None when no split has that evidence."""
+    w = token.lower()
+    if not w.isalpha():
+        return None
+    lex = _Lexicon(vocab, Vocabulary())
+    best: tuple[int, str, str] | None = None
+    for i in range(4, len(w) - 3):
+        a, b = w[:i], w[i:]
+        if not (lex.word_known(a) and lex.word_known(b)):
+            continue
+        spaced = sum(vocab.pairs.get((a + x, b + y), 0) for x in ("", "s") for y in _INFLECTIONS)
+        if spaced >= max(1, vocab.words.get(w, 0)) and (best is None or spaced > best[0]):
+            best = (spaced, a, b)
+    return (best[1], best[2]) if best else None
+
+
 def _cap(word: str, first: bool) -> str:
     if not first and word.lower() in SMALL_WORDS:
         return word.lower()

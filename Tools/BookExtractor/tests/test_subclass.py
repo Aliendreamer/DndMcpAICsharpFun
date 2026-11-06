@@ -22,6 +22,8 @@ BOOKS = {
     "egw": ("egw", "EGW", [184, 185, 186, 187]),
     "scag": ("scag", "SCAG", [122, 123]),
     "scag-wizard": ("scag", "SCAG", [142, 143, 144, 146]),
+    "tce-armorer": ("tce", "TCE", [15, 16, 17]),
+    "phb-paladin": ("phb14", "PHB", [86, 87]),
 }
 
 
@@ -31,7 +33,7 @@ def _squash(s):
 
 def parse(book="phb", mutate_heading=None):
     slug, source, ns = BOOKS[book]
-    pages = {n: load_ocr_page(FIX / book / f"{n:03d}.json", n) for n in ns}
+    pages = {n: load_ocr_page(FIX / book.split("-")[0] / f"{n:03d}.json", n) for n in ns}
     body = [l for n in sorted(pages) if classify_page(pages[n]) in ("rules", "art") for l in reading_order(pages[n])]
     if mutate_heading:
         body = [dataclasses.replace(l, text=mutate_heading) if _squash(l.text) == "primalpaths" else l for l in body]
@@ -315,3 +317,25 @@ def test_height_only_heading_overlapping_the_previous_levels_is_not_merged():
     subs = parse_subclasses(_synthetic(spec), ParseContext(slug="x", source="XGE", pages={}))
     assert [p.name for p in subs] == ["Champion", "Battle Master"]
     assert not any("Know Your Enemy" in r for r in subs[0].fields["subclassFeatures"])
+
+
+def _all_text(p):
+    return json.dumps(p.fields.get("entries")) + "\n" + p.text
+
+
+def test_an_art_credit_ocr_merged_into_a_body_line_is_not_kept():   # TCE: "whenever BRIAN VALEZA" (sideways credit)
+    p = get_sub("Armorer", book="tce-armorer")
+    assert "VALEZA" not in _all_text(p), [e for e in p.fields["entries"] if "VALEZA" in json.dumps(e)]
+    extra = next(e for e in p.fields["entries"] if _squash(e["name"]) == "extraattack")
+    assert "whenever you take the Attack action" in json.dumps(extra), extra
+
+
+def test_art_credit_rule_keeps_horizontal_all_caps_lines():
+    from bookextractor.model import Fragment, Line
+    from bookextractor.parsers.charcommon import without_art_credits
+    head = Line("ARMORER SPELLS", (100, 10, 400, 40), 30, 1, [Fragment("ARMORER SPELLS", 1.0, (100, 10, 400, 40))])
+    body = Line("whenever BRIAN VALEZA", (100, 50, 1534, 153), 30, 1,
+                [Fragment("whenever", 1.0, (100, 50, 400, 80)), Fragment("BRIAN VALEZA", 1.0, (1516, 50, 1534, 153))])
+    out = without_art_credits([head, body])
+    assert [l.text for l in out] == ["ARMORER SPELLS", "whenever"]
+    assert out[1].box == body.box   # printed-line identity (page, box) is kept for the text-bleed gate

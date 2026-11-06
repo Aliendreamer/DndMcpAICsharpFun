@@ -263,7 +263,7 @@ def test_score_class_features_ignore_other_sources_and_detect_wrong_level():
     refs = ["Rage|Barbarian||1", "Primal Knowledge|Barbarian||3|TCE"]
     from bookextractor.score import feature_levels
     assert feature_levels(refs, "PHB", 3, 4) == {("rage", 1)}
-    assert feature_levels(refs, "TCE", 3, 4) == {("rage", 1), ("primalknowledge", 3)}
+    assert feature_levels(refs, "TCE", 3, 4) == {("rage", 1), ("primal knowledge", 3)}
 
 
 @needs_5etools
@@ -372,8 +372,8 @@ def test_phb_custom_background_is_rules_not_entry():
 def test_feature_names_ignore_case_and_a_trailing_die_note():
     from bookextractor.score import feature_levels
     assert feature_levels(["Bardic Inspiration (d6)|Bard||1", "Artificer Specialist feature|Artificer|TCE|5"],
-                          "TCE", 3, 4) == {("bardicinspiration", 1), ("artificerspecialistfeature", 5)}
-    assert feature_levels(["Brutal Critical (1 die)|Barbarian||9"], "PHB", 3, 4) == {("brutalcritical1die", 9)}
+                          "TCE", 3, 4) == {("bardic inspiration", 1), ("artificer specialist feature", 5)}
+    assert feature_levels(["Brutal Critical (1 die)|Barbarian||9"], "PHB", 3, 4) == {("brutal critical 1 die", 9)}
 
 
 def _truth_refs(book, etype, name):
@@ -539,3 +539,11 @@ def test_subclass_text_scored_against_its_subclass_features():
         "that reminds you of home, and a pouch containing 10 gp."]}]
     _, _, prec2 = score_record("Subclass", {"className": "Barbarian", "entries": bleed}, t)
     assert prec2 < 0.7, prec2
+
+
+def test_feature_names_keep_word_boundaries():   # a glued "Extraattack" is a misread of "Extra Attack"
+    from bookextractor.score import feature_levels
+    assert feature_levels(["Extraattack|Artificer|TCE|Armorer|TCE|5"], "TCE", 5, 6) != \
+        feature_levels(["Extra Attack|Artificer|TCE|Armorer|TCE|5"], "TCE", 5, 6)
+    assert feature_levels(["EXTRA attack|Artificer|TCE|Armorer|TCE|5"], "TCE", 5, 6) == \
+        feature_levels(["Extra Attack|Artificer|TCE|Armorer|TCE|5"], "TCE", 5, 6)

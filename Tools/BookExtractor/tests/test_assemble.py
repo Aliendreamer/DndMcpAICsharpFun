@@ -384,3 +384,35 @@ def test_a_stat_block_starting_inside_a_subclass_and_running_past_it_is_not_blee
     shared_text_checks([sub2, mon2], [_keys(100, 300), _keys(0, 200)], firsts=[(1, (0.0, 100.0, 10.0, 105.0)),
                                                                                 (1, (0.0, 0.0, 10.0, 5.0))])
     assert not next(c for c in sub2["checks"] if c["name"] == "text-not-shared")["passed"]
+
+
+def _feature_ref_checks(refs, vocab_lines):
+    from collections import Counter
+
+    from bookextractor.assemble import _id_and_checks
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import Parsed
+    vocab = build_vocabulary(vocab_lines + ["armorer"] * 3)
+    p = Parsed(type="Subclass", name="Armorer", fields={"subclassFeatures": list(refs)},
+               text="Armorer " + "x " * 30, lines=[])
+    _e, checks = _id_and_checks(p, "tce", Counter(), vocab)
+    return p, {c.name: c for c in checks}
+
+
+def test_glued_feature_name_printed_glued_in_several_headings_is_split_on_the_spaced_pair():
+    # TCE prints the small-caps heading "ExtRAATtaCk" glued three times (Armorer, Battle Smith, Bladesinging), so
+    # the glued word is "known"; the body prints "extra attack" more often than that, so the glue is a misread
+    p, cs = _feature_ref_checks(["Extraattack|Artificer|TCE|Armorer|TCE|5"],
+                                ["ExtRAATtaCk"] * 3 + ["the Extra Attack feature", "an extra attack", "extra attacks",
+                                                       "extra damage", "an attack roll"])
+    assert p.fields["subclassFeatures"] == ["Extra Attack|Artificer|TCE|Armorer|TCE|5"], p.fields
+    assert cs["feature-name-repaired"].passed and "Extraattack" in cs["feature-name-repaired"].reason
+    assert cs["feature-names-known"].passed
+
+
+def test_a_compound_printed_far_more_often_than_its_spaced_pair_is_kept():
+    # PHB prints "spellcasting" ~150 times and "spell casting" once: the compound is the real word
+    p, cs = _feature_ref_checks(["Spellcasting|Artificer|TCE|Armorer|TCE|5"],
+                                ["spellcasting ability"] * 20 + ["spell casting", "a spell", "casting time"])
+    assert p.fields["subclassFeatures"] == ["Spellcasting|Artificer|TCE|Armorer|TCE|5"]
+    assert "feature-name-repaired" not in cs and cs["feature-names-known"].passed

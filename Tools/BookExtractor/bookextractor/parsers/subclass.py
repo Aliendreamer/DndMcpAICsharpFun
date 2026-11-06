@@ -32,7 +32,7 @@ from ..layout import fix_digits
 from ..model import Line
 from . import ParseContext, Parsed
 from .charcommon import SMALL_WORDS as _SMALL
-from .charcommon import SUBCLASS_GROUPS, SUBCLASS_LEVELS, class_source, ordinal, squash
+from .charcommon import SUBCLASS_GROUPS, SUBCLASS_LEVELS, character_body, class_source, ordinal, squash, vertical
 from .charcommon import heading_like as _heading_like
 from .charcommon import like as _like
 from .charcommon import tidy_case as _tidy_case
@@ -63,7 +63,7 @@ _CHAPTER_TITLE = re.compile(r"^chapter\s+[0-9lIi|]{1,2}\s*[:;.]", re.I)
 
 def _vertical(l: Line) -> bool:
     """Text set sideways in the margin (an art credit): taller than it is wide."""
-    return l.box[2] - l.box[0] < l.box[3] - l.box[1]
+    return vertical(l.box)
 
 
 def _group_class(t: str) -> str | None:
@@ -410,7 +410,7 @@ def _adds_options(L: list[Line], i: int, feats: list[_Feature]) -> bool:
 
 def parse_subclasses(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     """Parse every subclass in `body` (reading-ordered lines of the whole book)."""
-    L = body
+    L = character_body(body, ctx)
     if not L:
         return []
     by_page: dict[int, list[float]] = {}

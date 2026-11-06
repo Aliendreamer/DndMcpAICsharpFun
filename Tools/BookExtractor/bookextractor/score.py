@@ -396,8 +396,9 @@ def feature_levels(refs, src: str, level_idx: int, source_idx: int) -> set[tuple
         if lvl is None and len(parts) > level_idx and parts[level_idx].isdigit():
             lvl = int(parts[level_idx])
         if parts[0] and lvl is not None:
-            # a trailing die note is the table's, not the name's: "Bardic Inspiration (d6)"
-            out.add((key(_DIE_NOTE.sub("", parts[0])), int(lvl)))
+            # a trailing die note is the table's, not the name's: "Bardic Inspiration (d6)"; spaces kept, so a
+            # glued "Extraattack" is a misread of "Extra Attack", not the same name
+            out.add((spaced_key(_DIE_NOTE.sub("", parts[0])), int(lvl)))
     return out
 
 

@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 
 from rapidfuzz import fuzz
 
 from ..model import Line
+from . import ParseContext
 from .monster import _join_text
 
 SKILLS = ("Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight",
@@ -72,6 +74,40 @@ def like(a: str, b: str, cutoff: int = 85) -> bool:
     return bool(x) and bool(y) and fuzz.ratio(x, y) >= cutoff
 
 
+def vertical(box: tuple[float, float, float, float]) -> bool:
+    """Text set sideways in the margin (an art credit): taller than it is wide."""
+    return box[2] - box[0] < box[3] - box[1]
+
+
+def _credit(text: str, box: tuple[float, float, float, float]) -> bool:
+    """A sideways art credit ("BRIAN VALEZA"). Three letters at least: a single upright glyph ("I", a drop cap) can
+    be taller than it is wide too."""
+    return vertical(box) and sum(c.isalpha() for c in text) >= 3
+
+
+def without_art_credits(L: list[Line]) -> list[Line]:
+    """The lines with the sideways art credits taken out: a credit line of its own is dropped, and a credit that
+    reading order merged into the body row beside it ("whenever BRIAN VALEZA") is cut from that row's text. Upright
+    text is never touched, so an all-caps heading ("ARMORER SPELLS") stays. The row keeps its box, which is its
+    printed-line identity for the text-bleed gate."""
+    out = []
+    for l in L:
+        if _credit(l.text, l.box):
+            continue
+        keep = [f for f in l.frags if not _credit(f.text, f.box)]
+        if l.frags and keep and len(keep) < len(l.frags):
+            l = replace(l, text=" ".join(f.text for f in keep), frags=keep)
+        out.append(l)
+    return out
+
+
+def character_body(body: list[Line], ctx: ParseContext) -> list[Line]:
+    """The book's lines as the class and subclass parsers read them (art credits out), computed once per book."""
+    if "character_body" not in ctx.cache:
+        ctx.cache["character_body"] = without_art_credits(body)
+    return ctx.cache["character_body"]
+
+
 BULLET = re.compile(r"^(?:[•·]\s*|\.\s*(?=[A-Z]))")  # OCR reads some bullets as "."
 SENTENCE_END = (".", ":", "!", "?", ")", '"', "'")
 
@@ -133,7 +169,7 @@ def prose_entries(L: list[Line], start: int, end: int) -> list:
 
     prev = ""
     for j in range(start, end):
-        if L[j].box[2] - L[j].box[0] < L[j].box[3] - L[j].box[1]:
+        if vertical(L[j].box):
             continue  # an art credit set sideways in the margin
         raw = L[j].text.strip()
         bullet = bool(BULLET.match(raw))
