@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from .checks import Check
@@ -10,7 +11,7 @@ from .layout import fix_digits, reading_order
 from .model import Line, Page
 from .names import Vocabulary, build_vocabulary, own_heading_counts, repair_name
 from .pages import classify_page, is_table_page
-from .parsers import Parsed
+from .parsers import ParseContext, Parsed
 from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
 from .parsers.spell import parse_spells
@@ -18,7 +19,16 @@ from .report import build_report
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem")
 PROSE_LINES_PER_PAGE = 10
-_PARSERS = {"Monster": parse_monsters, "Spell": parse_spells, "MagicItem": parse_items}
+SOURCE_BY_SLUG = {
+    "phb14": "PHB", "mm14": "MM", "dmg14": "DMG", "mpmm": "MPMM", "mtf": "MTF", "ftd": "FTD", "bgg": "BGG",
+    "vrgr": "VRGR", "egw": "EGW", "erlw": "ERLW", "ggr": "GGR", "scc": "SCC", "xge": "XGE", "tce": "TCE",
+    "scag": "SCAG", "elemental-evil-player-s-companion": "EEPC",
+}
+_PARSERS: dict[str, Callable[[list[Line], ParseContext], list[Parsed]]] = {
+    "Monster": lambda body, ctx: parse_monsters(body),
+    "Spell": lambda body, ctx: parse_spells(body),
+    "MagicItem": lambda body, ctx: parse_items(body),
+}
 _DICE_LIKE = re.compile(r"\b[0-9SOolIZB]+d[0-9SOolIZB]+\b")
 _MIXED = re.compile(r"\b(?:[0-9]+[SOolIZB]+|[SOolIZB]+[0-9]+)[0-9SOolIZB]*\b")
 _NUMERIC_KEYS = {"formula": re.compile(r"\d+d\d+(?:\s*[+-]\s*\d+)?"), "cr": re.compile(r"[\d/]+")}
@@ -152,6 +162,7 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
 
 def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> ExtractionResult:
     by_number = {p.number: p for p in pages}
+    ctx = ParseContext(slug=book_slug, source=SOURCE_BY_SLUG.get(book_slug, book_slug.upper()), pages=by_number)
     kinds = {p.number: classify_page(p) for p in pages}
     rules = [p for p in pages if kinds[p.number] == "rules"]
     ordered = {p.number: reading_order(p) for p in pages if kinds[p.number] in ("rules", "art")}
@@ -166,7 +177,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     for t in ALL_TYPES:
         if t not in types:
             continue
-        for p in _PARSERS[t](body):
+        for p in _PARSERS[t](body, ctx):
             eid, checks = _id_and_checks(p, book_slug, seen, vocab)
             covered.update(l.page for l in p.lines)
             entities.append({

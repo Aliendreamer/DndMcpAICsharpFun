@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..checks import Check
-from ..model import Line
+from ..model import Line, Page
 
 
 @dataclass
@@ -16,3 +16,11 @@ class Parsed:
     lines: list[Line]
     checks: list[Check] = field(default_factory=list)
     variant_of: str | None = None
+
+
+@dataclass
+class ParseContext:
+    """What a parser may know about the book being parsed beyond its reading-ordered body lines."""
+    slug: str
+    source: str  # 5etools source key, e.g. "PHB"
+    pages: dict[int, Page]  # raw, un-ordered pages by number

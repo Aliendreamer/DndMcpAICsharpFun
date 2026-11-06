@@ -48,3 +48,6 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | dmg | 95, 137, 144, 145, 299, 300, 301, 306, 307, 308, 309 | Table-dominated rules pages (random tables, monster lists by CR) |
 | ftd | 22, 23, 24 | Spells with "4th-Level" capitalised, a pull-quote with a "-Fizban" attribution splitting Fizban's Platinum Shield, Summon Draconic Spirit's stat block printed before the spell text, then the Magic Items heading |
 | tce | 110, 111, 121 | Summon spells whose spirit stat block sits between the spell text and "At Higher Levels"; Arcane Grimoire heading inside the top 5% of page 121 |
+| phb | 048 | Barbarian class table (Rages, Rage Damage columns) |
+| phb | 072 | Fighter class table (OCR noise: `416` for 9th, `E+` for a bonus) |
+| phb | 114 | Wizard class table (cantrips known and nine spell slot columns) |
