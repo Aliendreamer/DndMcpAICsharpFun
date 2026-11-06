@@ -327,3 +327,60 @@ def test_subclass_name_repair_rederives_a_prefixed_short_name():
     assert p.fields["subclassFeatures"] == ["Clockwork Soul|Sorcerer||Clockwork Soul|TCE|1",
                                             "Bastion of Law|Sorcerer||Clockwork Soul|TCE|6"]
     assert any(c.name == "name-repaired" and "shortName" in c.reason for c in checks)
+
+
+def _ent(eid, t):
+    return {"id": eid, "type": t, "checks": []}
+
+
+def _keys(lo, hi, page=1):
+    return {(page, (0.0, float(y), 10.0, float(y) + 5)) for y in range(lo, hi)}
+
+
+def test_entities_of_different_types_sharing_printed_lines_both_fail():
+    from bookextractor.assemble import shared_text_checks
+    sub, bg = _ent("b.subclass.giant", "Subclass"), _ent("b.background.giant-foundling", "Background")
+    shared_text_checks([sub, bg], [_keys(0, 60), _keys(48, 90)])
+    a = next(c for c in sub["checks"] if c["name"] == "text-not-shared")
+    b = next(c for c in bg["checks"] if c["name"] == "text-not-shared")
+    assert not a["passed"] and "b.background.giant-foundling" in a["reason"] and "12" in a["reason"], a
+    assert not b["passed"] and "b.subclass.giant" in b["reason"], b
+
+
+def test_a_few_shared_lines_or_the_same_type_pass():
+    from bookextractor.assemble import shared_text_checks
+    race, sub, other = _ent("b.race.elf", "Race"), _ent("b.subrace.elf-high", "Subrace"), _ent("b.race.dwarf", "Race")
+    shared_text_checks([race, sub, other], [_keys(0, 50), _keys(45, 80), _keys(0, 50)])
+    assert all(c["passed"] for e in (race, sub, other) for c in e["checks"] if c["name"] == "text-not-shared")
+    assert any(c["name"] == "text-not-shared" for c in race["checks"])
+
+
+def test_a_stat_block_printed_inside_a_subclass_is_not_bleed():
+    from bookextractor.assemble import shared_text_checks
+    sub, mon = _ent("b.subclass.drakewarden", "Subclass"), _ent("b.monster.drake-companion", "Monster")
+    shared_text_checks([sub, mon], [_keys(0, 200), _keys(50, 140)])
+    assert all(c["passed"] for c in sub["checks"] if c["name"] == "text-not-shared")
+    assert not mon["checks"]   # a Phase 1 entity gets the check only when it fails
+
+
+def test_phase1_types_sharing_lines_are_not_gated():
+    from bookextractor.assemble import shared_text_checks
+    mon, item = _ent("b.monster.giant-fly", "Monster"), _ent("b.magicitem.wand-of-orcus", "MagicItem")
+    shared_text_checks([mon, item], [_keys(0, 200), _keys(50, 140)])
+    assert not mon["checks"] and not item["checks"]
+
+
+def test_a_stat_block_starting_inside_a_subclass_and_running_past_it_is_not_bleed():
+    # v19: the Drake Companion stat block opens inside Drakewarden and its parse runs on past the subclass;
+    # the subclass printed it, the over-run is the monster's own (already failing) problem
+    from bookextractor.assemble import shared_text_checks
+    sub, mon = _ent("b.subclass.drakewarden", "Subclass"), _ent("b.monster.drake-companion", "Monster")
+    mk = _keys(100, 260)
+    shared_text_checks([sub, mon], [_keys(0, 200), mk], firsts=[(1, (0.0, 0.0, 10.0, 5.0)),
+                                                                  (1, (0.0, 100.0, 10.0, 105.0))])
+    assert all(c["passed"] for c in sub["checks"] if c["name"] == "text-not-shared")
+    # a monster that opens before the subclass and runs into it is still bleed
+    sub2, mon2 = _ent("b.subclass.x", "Subclass"), _ent("b.monster.y", "Monster")
+    shared_text_checks([sub2, mon2], [_keys(100, 300), _keys(0, 200)], firsts=[(1, (0.0, 100.0, 10.0, 105.0)),
+                                                                                (1, (0.0, 0.0, 10.0, 5.0))])
+    assert not next(c for c in sub2["checks"] if c["name"] == "text-not-shared")["passed"]

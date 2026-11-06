@@ -24,7 +24,12 @@ from .report import build_report
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
              "Background")
+PHASE1_TYPES = ("Monster", "Spell", "MagicItem")
 PROSE_LINES_PER_PAGE = 10
+# printed lines two entities of different types may share before one is taken to hold the other's text
+# (v19: unrelated character entities share at most a few lines of repeated trait boilerplate)
+SHARED_LINES_MAX = 9
+_EMBEDDED = 0.9  # a stat block this much inside another entity is printed in it (Steel Defender in Battle Smith)
 SOURCE_BY_SLUG = {
     "phb14": "PHB", "mm14": "MM", "dmg14": "DMG", "mpmm": "MPMM", "mtf": "MTF", "ftd": "FTD", "bgg": "BGG",
     "vrgr": "VRGR", "egw": "EGW", "erlw": "ERLW", "ggr": "GGR", "scc": "SCC", "xge": "XGE", "tce": "TCE",
@@ -269,6 +274,52 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
     return eid, checks
 
 
+LineKey = tuple[int, tuple[float, ...]]
+
+
+def _line_keys(lines: list[Line]) -> set[LineKey]:
+    """Printed-line identity: page and box (reading order rebuilds Line objects, so not the object)."""
+    return {(l.page, tuple(round(x, 1) for x in l.box)) for l in lines}
+
+
+def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
+                       firsts: list[LineKey | None] | None = None) -> None:
+    """Text bleed gate: a character entity (Class ... Background) that shares more than SHARED_LINES_MAX printed
+    lines with an entity of another type holds that entity's text (a subclass feature running on into the
+    Backgrounds section), so both get a failing `text-not-shared` check naming the other. A stat block printed
+    inside the other entity (its first line, or nearly all its lines, are the other's) is not bleed: a stat
+    block parse that runs on past its host is the monster's own problem, which its own checks report. Character entities record a passing check; a Monster/Spell/MagicItem
+    gets the check only when it fails, and two of those are never compared (their own checks gate them)."""
+    owner: dict[LineKey, list[int]] = {}
+    for i, ks in enumerate(keys):
+        for k in ks:
+            owner.setdefault(k, []).append(i)
+    shared: Counter = Counter()
+    for ids in owner.values():
+        for x in range(len(ids)):
+            for y in range(x + 1, len(ids)):
+                shared[(ids[x], ids[y])] += 1
+    bad: dict[int, list[str]] = {}
+    for (i, j), n in shared.items():
+        a, b = entities[i], entities[j]
+        if a["type"] == b["type"] or (a["type"] in PHASE1_TYPES and b["type"] in PHASE1_TYPES):
+            continue
+        if n <= SHARED_LINES_MAX:
+            continue
+        if any(e["type"] == "Monster" and (n >= _EMBEDDED * len(keys[k])
+                                            or (firsts is not None and firsts[k] in keys[o]))
+               for e, k, o in ((a, i, j), (b, j, i))):
+            continue
+        bad.setdefault(i, []).append(f"{n} printed lines are also {b['id']} ({b['type']})")
+        bad.setdefault(j, []).append(f"{n} printed lines are also {a['id']} ({a['type']})")
+    for i, e in enumerate(entities):
+        if i in bad:
+            e["checks"].append({"name": "text-not-shared", "passed": False,
+                                "reason": "text bleed: " + "; ".join(bad[i])})
+        elif e["type"] not in PHASE1_TYPES:
+            e["checks"].append({"name": "text-not-shared", "passed": True, "reason": ""})
+
+
 def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> ExtractionResult:
     by_number = {p.number: p for p in pages}
     ctx = ParseContext(slug=book_slug, source=SOURCE_BY_SLUG.get(book_slug, book_slug.upper()), pages=by_number)
@@ -283,12 +334,16 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     entities: list[dict] = []
     covered: set[int] = set()
     seen: Counter = Counter()
+    keys: list[set[LineKey]] = []
+    firsts: list[LineKey | None] = []
     for t in ALL_TYPES:
         if t not in types:
             continue
         for p in _PARSERS[t](body, ctx):
             eid, checks = _id_and_checks(p, book_slug, seen, vocab)
             covered.update(l.page for l in p.lines)
+            keys.append(_line_keys(p.lines))
+            firsts.append(next(iter(_line_keys(p.lines[:1])), None))
             entities.append({
                 "id": eid, "type": p.type, "name": p.name,
                 "page": p.lines[0].page if p.lines else 0,
@@ -297,6 +352,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 "provenance": _provenance(p.lines, by_number),
             })
 
+    shared_text_checks(entities, keys, firsts)
     for p in rules:
         if sum(_is_prose(l.text) for l in ordered[p.number]) >= PROSE_LINES_PER_PAGE or is_table_page(p):
             covered.add(p.number)
