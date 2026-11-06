@@ -6,7 +6,7 @@ from pathlib import Path
 import jsonschema
 
 from bookextractor.layout import reading_order
-from bookextractor.model import load_ocr_page
+from bookextractor.model import Line, load_ocr_page
 from bookextractor.pages import classify_page
 from bookextractor.parsers import ParseContext
 from bookextractor.parsers.equipment import (cost_check, damage_check, parse_armor, parse_weapons, properties_check,
@@ -57,11 +57,12 @@ def schema(name):
     return json.loads((SCHEMAS / f"{name}.schema.json").read_text(encoding="utf-8"))
 
 
-def _edit(book, page, old, new):
-    """The book's pages with the line reading `old` on `page` read as `new` (an OCR misread)."""
-    pages = _pages(book)
+def _edit(book, page, old, new, near_y=None, pages=None):
+    """The book's pages with the line reading `old` on `page` (the one nearest `near_y`) read as `new` (an OCR
+    misread)."""
+    pages = pages or _pages(book)
     pg = pages[page]
-    hit = [l for l in pg.lines if l.text == old]
+    hit = sorted((l for l in pg.lines if l.text == old), key=lambda l: abs(l.box[1] - (near_y or 0)))
     assert hit, old
     pages[page] = replace(pg, lines=[replace(l, text=new) if l is hit[0] else l for l in pg.lines])
     return pages
@@ -112,7 +113,10 @@ def test_schema():
 def test_phb_weapons_all_rows():
     ws = weapons()
     assert len(ws) == 38  # the 37 5etools weapons plus the printed "Unarmed strike" row
-    assert [p.name for p in ws if failed(p)] == []
+    # the book prints a dash in these cells; the OCR drops it, so the blank cells fail and the rows go to review
+    assert {p.name: sorted(c.name for c in failed(p)) for p in ws if failed(p)} == {
+        "Unarmedstrike": ["cost-valid", "weight-valid"], "Sling": ["weight-valid"], "Net": ["damage-valid"]}
+    assert "blank" in check(get(ws, "Net"), "damage-valid").reason
     dagger = get(ws, "Dagger").fields
     assert dagger["property"] == ["F", "L", "T"] and dagger["range"] == "20/60" and dagger["type"] == "M"
     dart = get(ws, "Dart").fields
@@ -161,26 +165,80 @@ def test_dmg_firearms():
     assert "value" not in auto and auto["age"] == "modern"
     anti = get(ws, "Antimatter rifle").fields
     assert anti["dmg1"] == "6d8" and anti["dmgType"] == "N" and anti["age"] == "futuristic"
-    assert [p.name for p in ws if failed(p)] == []
+    # the modern and futuristic tables print a dash for every cost: blank, so cost-valid fails
+    assert {p.name: [c.name for c in failed(p)] for p in ws if failed(p)} == {
+        n: ["cost-valid"] for n in ["Pistol, automatic", "Revolver", "Rifle, hunting", "Rifle, automatic", "Shotgun",
+                                    "Laser pistol", "Antimatter rifle", "Laser rifle"]}
+
+
+def test_misread_header_cost_still_stops_the_table_above():
+    """"Cost" in the Modern (then the Futuristic) header OCR'd as "Csst": the Renaissance table must still stop at
+    the "Modern Item" header row, so the modern firearms keep their own table's age."""
+    pages = _edit("dmg", 268, "Cost", "Csst", near_y=1396)
+    pages = _edit("dmg", 268, "Cost", "Csst", near_y=1729, pages=pages)
+    ws = _run(parse_weapons, "dmg", pages)
+    ages = {p.name: p.fields.get("age") for p in ws}
+    assert ages["Revolver"] == "modern" and ages["Shotgun"] == "modern" and ages["Laser rifle"] == "futuristic"
+    assert ages["Musket"] == "renaissance" and len(ws) == 10
+    assert all(check(p, "table-rows-read").passed for p in ws)
+
+
+def test_header_like_row_read_as_data_fails_from_there_on():
+    """A header row too garbled to read as a header ("Modern Item" read as "Modrn", "Cost" as "Csst") is read as a
+    row: it resembles a header (one cell still reads "Damage"), so it and every row after it fail; the modern rows
+    are still produced (for review), not lost."""
+    pages = _edit("dmg", 268, "Modern Item", "Modrn", near_y=1398)
+    pages = _edit("dmg", 268, "Cost", "Csst", near_y=1396, pages=pages)
+    pages = _edit("dmg", 268, "Weight Properties", "Wt Props", near_y=1397, pages=pages)
+    ws = _run(parse_weapons, "dmg", pages)
+    bad = [p.name for p in ws if not check(p, "table-rows-read").passed]
+    assert "Pistol" not in bad and "Musket" not in bad
+    assert {"Modrn", "Revolver", "Shotgun", "Laser rifle"} <= set(bad) and len(ws) == 11  # the header row too
+    assert "looks like a table header" in check(get(ws, "Revolver"), "table-rows-read").reason
+
+
+def test_reload_is_a_firearm_property_only():
+    rows = _run(parse_weapons, "phb", _edit("phb", 150, "Finesse, light", "Finesse, reload (6 shots)"))
+    bad = [p for p in rows if not check(p, "properties-known").passed]
+    assert bad and all("reload (6 shots)" in check(p, "properties-known").reason for p in bad)
+    assert not properties_check(["burst fire"]).passed and properties_check(["burst fire"], firearm=True).passed
+
+
+def test_text_uses_repaired_cells():
+    p = get(weapons(), "Longsword")
+    assert "Cost: 15 gp" in p.text and "gP" not in p.text
+
+
+def test_stray_line_in_a_row_fails_row_complete():
+    """A line the table reader cannot place (set far taller than the cells) inside the Longsword row."""
+    pages = _pages("phb")
+    pg = pages[150]
+    stray = Line(text="XQZ", box=(330.0, 1200.0, 420.0, 1310.0), height=110.0, page=150)
+    pages[150] = replace(pg, lines=pg.lines + [stray])
+    rows = _run(parse_weapons, "phb", pages)
+    c = check(get(rows, "Longsword"), "row-complete")
+    assert not c.passed and "XQZ" in c.reason and "Longsword" in c.reason
+    assert check(get(rows, "Club"), "row-complete").passed
 
 
 # ---------- shared checks ----------
 def test_cost_check():
     assert cost_check("15 gp").passed and cost_check("1,500 gp").passed and cost_check("5 cp").passed
     assert cost_check("-").passed  # a printed dash
+    assert not cost_check("", "Revolver").passed and "Revolver" in cost_check("", "Revolver").reason  # blank fails
     bad = cost_check("1S gp", "Longsword")
     assert not bad.passed and bad.name == "cost-valid" and "1S gp" in bad.reason and "Longsword" in bad.reason
 
 
 def test_weight_check():
     assert weight_check("3 lb.").passed and weight_check("1/4 lb.").passed and weight_check("2lb.").passed
-    assert weight_check("-").passed
+    assert weight_check("-").passed and not weight_check("").passed
     bad = weight_check("3 kg")
     assert not bad.passed and bad.name == "weight-valid" and "3 kg" in bad.reason
 
 
 def test_damage_check():
-    assert damage_check("1d8 slashing").passed and damage_check("1 piercing").passed
+    assert damage_check("1d8 slashing").passed and damage_check("1 piercing").passed and not damage_check("").passed
     bad = damage_check("1d8 slashng")
     assert not bad.passed and bad.name == "damage-valid" and "1d8 slashng" in bad.reason
 

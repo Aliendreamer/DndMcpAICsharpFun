@@ -19,9 +19,15 @@ Fields use the 5etools encodings of `WeaponFields` / `ArmorFields`:
 - armor: `type` LA, MA, HA or S from the sub-heading row, `ac` (the base number, or the shield's "+2"), `strength`
   ("Str 13" -> "13", as 5etools stores it), `stealth` true for "Disadvantage".
 
-Values are read from the cells as the OCR printed them (before the digit repair): a cell that does not read cleanly
-leaves its field absent and fails its check naming the row and the cell. A blank cell is absent and passes: the OCR
-never reads the dash the book prints in an empty cell, so a blank cell is that dash.
+Values and checks read the cells as the OCR printed them (before the digit repair); the entity text shows the
+repaired cells. A cell that does not read cleanly leaves its field absent and fails its check naming the row and the
+cell. A blank Cost, Damage or Weight cell also fails: the OCR drops the dash the book prints in an empty cell, so a
+blank cell cannot be told from a cell the OCR lost (those rows go to review). A printed dash ("-") passes.
+
+A row that repeats a header (the next table's "Modern Item | Cost | ..." read as a row) is skipped and the rows
+below it take that table's age; a row that only half resembles a header is kept, but it and every row after it in
+that table fail `table-rows-read`, as do the rows after a repeated header naming no known table. A line
+the table reader could not place inside a row's span fails that row's `row-complete`.
 """
 from __future__ import annotations
 
@@ -63,6 +69,9 @@ _STRENGTH = re.compile(r"^str(?:ength)?\.?\s*(\d+)$", re.I)
 
 
 # ---------- shared cell checks ----------
+_BLANK = " (the OCR drops a printed dash, so a blank cell may be a dash or a lost cell)"
+
+
 def _who(row: str | None) -> str:
     return f" of {row!r}" if row else ""
 
@@ -72,9 +81,11 @@ def _blank(cell: str) -> bool:
 
 
 def cost_check(cell: str, row: str | None = None) -> Check:
-    """`cost-valid`: a number with a cp/sp/ep/gp/pp unit, or a printed dash (a blank cell is that dash)."""
+    """`cost-valid`: a number with a cp/sp/ep/gp/pp unit, or a printed dash. A blank cell fails."""
     t = cell.strip()
-    if not t or _DASH.match(t) or _COST.match(t):
+    if not t:
+        return Check("cost-valid", False, f"cost cell{_who(row)} is blank{_BLANK}")
+    if _DASH.match(t) or _COST.match(t):
         return Check("cost-valid", True)
     return Check("cost-valid", False, f"cost cell{_who(row)} {cell!r} is not a number with a cp/sp/ep/gp/pp unit")
 
@@ -86,9 +97,11 @@ def cost_value(cell: str) -> int | None:
 
 
 def weight_check(cell: str, row: str | None = None) -> Check:
-    """`weight-valid`: a number with "lb.", or a printed dash (a blank cell is that dash)."""
+    """`weight-valid`: a number with "lb.", or a printed dash. A blank cell fails."""
     t = cell.strip()
-    if not t or _DASH.match(t) or _WEIGHT.match(t):
+    if not t:
+        return Check("weight-valid", False, f"weight cell{_who(row)} is blank{_BLANK}")
+    if _DASH.match(t) or _WEIGHT.match(t):
         return Check("weight-valid", True)
     return Check("weight-valid", False, f"weight cell{_who(row)} {cell!r} is not a number of lb.")
 
@@ -106,9 +119,12 @@ def weight_value(cell: str) -> float | int | None:
 
 
 def damage_check(cell: str, row: str | None = None) -> Check:
-    """`damage-valid`: dice or a flat number plus a damage type from the closed set, or a printed dash."""
+    """`damage-valid`: dice or a flat number plus a damage type from the closed set, or a printed dash. A blank
+    cell fails."""
     t = cell.strip()
-    if not t or _DASH.match(t) or _DAMAGE.match(t):
+    if not t:
+        return Check("damage-valid", False, f"damage cell{_who(row)} is blank{_BLANK}")
+    if _DASH.match(t) or _DAMAGE.match(t):
         return Check("damage-valid", True)
     return Check("damage-valid", False, f"damage cell{_who(row)} {cell!r} is not dice (or a number) and a damage "
                                         "type")
@@ -130,14 +146,18 @@ def split_properties(cell: str) -> list[str]:
     return out
 
 
-def _read_property(token: str) -> tuple[str, str | None] | None:
-    """(printed name lower-cased, bracket text) of a known property whose bracket reads, else None."""
+_FIREARM_ONLY = ("reload", "burst fire")
+
+
+def _read_property(token: str, firearm: bool = False) -> tuple[str, str | None] | None:
+    """(printed name lower-cased, bracket text) of a known property whose bracket reads, else None. Reload and
+    burst fire are known only in a firearms table (`firearm`)."""
     m = _PROPERTY.match(token.strip())
     if not m:
         return None
     name = re.sub(r"\s+", " ", m.group(1)).lower()
     arg = m.group(2).strip() if m.group(2) is not None else None
-    if name not in PROPERTIES:
+    if name not in PROPERTIES or (name in _FIREARM_ONLY and not firearm):
         return None
     if name in ("ammunition", "thrown"):
         ok = arg is None or _RANGE.match(arg)
@@ -150,10 +170,10 @@ def _read_property(token: str) -> tuple[str, str | None] | None:
     return (name, arg) if ok else None
 
 
-def properties_check(props: list[str], row: str | None = None) -> Check:
-    """`properties-known`: every property is a known one (the PHB list, plus the DMG firearms' reload and burst
-    fire), with a readable bracket ("(range 20/60)", "(1d10)", "(15 shots)") where it takes one."""
-    bad = [p for p in props if _read_property(p) is None]
+def properties_check(props: list[str], row: str | None = None, firearm: bool = False) -> Check:
+    """`properties-known`: every property is from the PHB list (plus, in a firearms table, the DMG's reload and
+    burst fire), with a readable bracket ("(range 20/60)", "(1d10)", "(15 shots)") where it takes one."""
+    bad = [p for p in props if _read_property(p, firearm) is None]
     if not bad:
         return Check("properties-known", True)
     return Check("properties-known", False,
@@ -166,26 +186,70 @@ def _key(l: Line) -> tuple:
     return l.page, tuple(round(x, 1) for x in l.box)
 
 
-def _rows(tables: list[RowTable], seen: set) -> list[Row]:
-    """The rows of `tables` not already read (two header matches can read the same rows), each table stopping at
-    a row that repeats the header (the next table's "Modern Item | Cost | ..." read as a row)."""
-    out: list[Row] = []
+_COIN_CASE = re.compile(r"(\d\s*)(cp|sp|ep|gp|pp)\b", re.I)  # "15 gP" (OCR case noise) -> "15 gp"
+_FIRST_HEADERS = ("Name", "Armor", *(f"{a} Item" for a in ("Renaissance", "Modern", "Futuristic")))
+
+
+def _like(a: str, b: str) -> float:
+    return fuzz.ratio(a.strip().lower(), b.strip().lower())
+
+
+def _header_likeness(r: Row, t: RowTable) -> tuple[bool, bool]:
+    """(repeats a header, half resembles one) for a table row. A row repeats a header when its label reads as a
+    table's first header ("Modern Item", "Name", "Armor") or two of its cells read as their own header names."""
+    label = max(_like(r.label, h) for h in (*_FIRST_HEADERS, t.headers[0]))
+    cells = sum(_like(c, h) >= 80 for h, c in r.raw.items() if c.strip())
+    return label >= 80 or cells >= 2, label >= 60 or cells >= 1
+
+
+def _rows(tables: list[RowTable], seen: set, age: str | None = None) \
+        -> list[tuple[Row, RowTable, str | None, str | None]]:
+    """(row, its table, why the row is suspect or None, firearm age) for the rows of `tables` not already read (two
+    header matches can read the same rows). A row that repeats a header is the next table's header read as a row
+    (the Renaissance table runs on into "Modern Item | Cost | ..."): it is skipped, and the rows below it take that
+    table's age. When the repeated header names no known table, or a row only half resembles a header (so it is
+    kept as data), it and every row after it in the table are suspect."""
+    out: list[tuple[Row, RowTable, str | None, str | None]] = []
     for t in tables:
+        suspect: str | None = None
+        cur = age
         for r in t.rows:
-            if fuzz.ratio(r.raw.get("Cost", "").strip().lower(), "cost") >= 80:
-                break
+            repeats, resembles = _header_likeness(r, t)
+            if repeats:
+                named = [a for a in FIREARM_AGES if _like(r.label, f"{a} Item") >= 80]
+                if named:
+                    cur = named[0]
+                elif age is not None and suspect is None:  # a firearms table's next header, its age unread
+                    suspect = f"rows after the header row {r.label!r} were read without knowing their table"
+                continue
+            if resembles and suspect is None:
+                suspect = f"row {r.label!r} ({' | '.join(c for c in r.raw.values() if c.strip())}) looks like a " \
+                          "table header read as data"
             k = _key(r.lines[0])
             if k in seen:
                 continue
             seen.add(k)
-            out.append(r)
+            out.append((r, t, suspect, cur))
     return out
 
 
+def _table_checks(r: Row, t: RowTable, suspect: str | None) -> list[Check]:
+    """`table-rows-read` (no header-like row read as data at or above this row) and `row-complete` (no line the
+    table reader could not place sits inside this row's span)."""
+    y0, y1 = min(l.box[1] for l in r.lines), max(l.box[3] for l in r.lines)
+    stray = [l.text for l in t.unassigned if y0 <= (l.box[1] + l.box[3]) / 2 <= y1]
+    return [
+        Check("table-rows-read", suspect is None, suspect or ""),
+        Check("row-complete", not stray, "" if not stray else
+              f"text inside the row {r.label!r} not placed in any cell: " + ", ".join(repr(s) for s in stray)),
+    ]
+
+
 def _text(r: Row) -> str:
-    """The row as text: its label, each printed cell under its header, and the sub-heading it sits under."""
+    """The row as text: its label, each printed cell (digit-repaired) under its header, and its sub-heading."""
     parts = [r.label + (r.marker or "")]
-    parts += [f"{h}: {c}" for h, c in r.raw.items() if c.strip()]
+    parts += [f"{h}: {_COIN_CASE.sub(lambda m: m.group(1) + m.group(2).lower(), c)}" for h, c in r.cells.items()
+              if c.strip()]
     if r.group:
         parts.append(r.group)
     return "\n".join(parts)
@@ -201,7 +265,7 @@ def _cells(r: Row) -> dict[str, str]:
 
 
 # ---------- weapons ----------
-def _weapon(r: Row, age: str | None, firearm: bool) -> Parsed:
+def _weapon(r: Row, t: RowTable, suspect: str | None, age: str | None, firearm: bool) -> Parsed:
     c = _cells(r)
     weight, props = c.get("Weight", ""), c.get("Properties", "")
     if "Weight Properties" in c:  # one cell for both: "3 lb. Ammunition (range 30/90), loading"
@@ -225,7 +289,7 @@ def _weapon(r: Row, age: str | None, firearm: bool) -> Parsed:
     tokens = split_properties(props)
     codes: list[str] = []
     for tok in tokens:
-        got = _read_property(tok)
+        got = _read_property(tok, age is not None)
         if got is None:
             continue
         name, arg = got
@@ -244,7 +308,8 @@ def _weapon(r: Row, age: str | None, firearm: bool) -> Parsed:
         cost_check(c.get("Cost", ""), r.label),
         weight_check(weight, r.label),
         damage_check(c.get("Damage", ""), r.label),
-        properties_check(tokens, r.label),
+        properties_check(tokens, r.label, firearm=age is not None),
+        *_table_checks(r, t, suspect),
     ]
     p = Parsed(type="Weapon", name=r.label, fields=f, text=_text(r), lines=r.lines)
     p.checks = checks
@@ -267,10 +332,10 @@ def parse_weapons(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         page = ctx.pages[n]
         firearm = any(re.sub(r"[^a-z]", "", l.text.lower()) == "firearms" for l in page.lines)
         for t, age in sorted(_weapon_tables(page), key=lambda x: (x[0].box[1], x[0].box[0])):
-            for r in _rows([t], seen):
+            for r, tb, suspect, row_age in _rows([t], seen, age):
                 if r.group and re.fullmatch(r"ammunition", r.group.strip(), re.I):
                     continue
-                out.append(_weapon(r, age, firearm))
+                out.append(_weapon(r, tb, suspect, row_age, firearm))
     return out
 
 
@@ -283,7 +348,7 @@ def _armor_type(group: str | None) -> str | None:
     return _ARMOR_GROUP[m.group(1)] if m else None
 
 
-def _armor(r: Row) -> Parsed:
+def _armor(r: Row, t: RowTable, suspect: str | None) -> Parsed:
     c = _cells(r)
     f: dict = {}
     kind = _armor_type(r.group)
@@ -312,6 +377,7 @@ def _armor(r: Row) -> Parsed:
         Check("stealth-valid", not stealth or "stealth" in f,
               "" if not stealth or "stealth" in f else f"stealth cell of {r.label!r} {stealth!r} is not "
                                                         "'Disadvantage'"),
+        *_table_checks(r, t, suspect),
     ]
     p = Parsed(type="Armor", name=r.label, fields=f, text=_text(r), lines=r.lines)
     p.checks = checks
@@ -321,4 +387,5 @@ def _armor(r: Row) -> Parsed:
 def parse_armor(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     """One Armor per printed armor-table row, on any page of the book."""
     seen: set = set()
-    return [_armor(r) for n in sorted(ctx.pages) for r in _rows(read_row_tables(ctx.pages[n], ARMOR_HEADERS), seen)]
+    return [_armor(r, t, suspect) for n in sorted(ctx.pages)
+            for r, t, suspect, _ in _rows(read_row_tables(ctx.pages[n], ARMOR_HEADERS), seen)]
