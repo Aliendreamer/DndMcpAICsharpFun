@@ -215,7 +215,7 @@ from pathlib import Path  # noqa: E402
 
 import pytest  # noqa: E402
 
-from bookextractor.score import available_types, load_truth, score_record  # noqa: E402
+from bookextractor.score import available_types, dropped_truth_lines, load_truth, score_record  # noqa: E402
 
 FT = Path(__file__).resolve().parents[3] / "5etools"
 needs_5etools = pytest.mark.skipif(not (FT / "races.json").exists(), reason="5etools directory not present")
@@ -603,3 +603,89 @@ def test_status_records_are_known_not_truth():
 def test_available_types_lists_equipment():
     assert {"Weapon", "Armor", "Item", "Condition"} <= set(available_types("phb", FT))
     assert {"Trap", "VehicleMount", "Object", "DiseasePoison"} <= set(available_types("dmg", FT))
+
+
+# ---- Phase 2b: equipment names printed differently from 5etools ----
+
+def _eq(name, etype="Item", **fields):
+    return {"type": etype, "name": name, "fields": fields}
+
+
+def test_equipment_match_key_ignores_word_order_and_punctuation():
+    from bookextractor.score import match_key
+    for a, b in [("Crossbow, light", "Light Crossbow"), ("Rifle, hunting", "Hunting Rifle"),
+                 ("Poison, basic (vial)", "Basic Poison (vial)"), ("Ale, gallon", "Ale (gallon)"),
+                 ("Saddle, exotic", "Exotic Saddle"), ("Bread, loaf", "Loaf of Bread")]:
+        et = "DiseasePoison" if "Poison" in a else "Weapon" if "Crossbow" in a or "Rifle" in a else "Item"
+        assert match_key(et, a) == match_key(et, b), (a, b)
+    assert match_key("Armor", "Studded leather") == match_key("Armor", "Studded Leather Armor")
+    assert match_key("Trap", "Fiery Blast") == match_key("Trap", "Fiery Blast Trap")
+    assert match_key("Item", "Plate Armor") != match_key("Item", "Plate")  # suffix drop only for Armor/Trap
+
+
+@needs_5etools
+def test_equipment_match_keys_do_not_collide_within_a_book():
+    from bookextractor.score import _EQUIPMENT_TYPES, match_key
+    for book in ("mm", "phb", "dmg", "mpmm", "mtf", "ftd", "bgg", "vrgr", "egw", "erlw", "ggr", "scc", "xge", "tce",
+                 "scag", "eepc"):
+        for ty in available_types(book, FT):
+            if ty not in _EQUIPMENT_TYPES:
+                continue
+            names = [t["name"] for t in load_truth(book, FT, ty)]
+            keys = [match_key(ty, n) for n in names]
+            assert len(set(keys)) == len(keys), (book, ty)
+
+
+@needs_5etools
+def test_phb_inverted_labels_score_as_found():
+    ents = [_eq("Crossbow, light", "Weapon"), _eq("Padded", "Armor"), _eq("Studded leather", "Armor")]
+    assert score_book("phb", ents, FT, "Weapon")["missing"] == [n for n in score_book("phb", [], FT, "Weapon")["missing"]
+                                                               if n != "Light Crossbow"]
+    r = score_book("phb", ents, FT, "Armor")
+    assert "Padded Armor" not in r["missing"] and "Studded Leather Armor" not in r["missing"]
+
+
+@needs_5etools
+def test_one_printed_row_can_cover_several_5etools_records():
+    r = score_book("phb", [_eq("Donkey or mule"), _eq("1 lb. of iron or 1 sq. yd. of canvas"),
+                           _eq("1 lb. of cinnamon or pepper, or one sheep")], FT, "Item")
+    for n in ("Donkey", "Mule", "Iron", "Canvas (1 sq. yd.)", "Cinnamon", "Pepper", "Sheep"):
+        assert n not in r["missing"], n
+    assert r["extra"] == 0
+    assert any("Donkey or mule" in k and "Mule" in k for k in r["knownDifferences"])
+
+
+@needs_5etools
+def test_dmg_ships_are_vehicle_mount_truth_not_items():
+    assert {"Airship", "Galley", "Sailing Ship", "Apparatus of Kwalish"} <= {
+        t["name"] for t in load_truth("dmg", FT, "VehicleMount")}
+    assert len(load_truth("dmg", FT, "VehicleMount")) == 8
+    assert "Galley" not in {t["name"] for t in load_truth("dmg", FT, "Item")}
+    assert any("Galley" in k for k in dropped_truth_lines("dmg", FT, "Item"))
+    assert any("stored by 5etools as items" in k for k in dropped_truth_lines("dmg", FT, "VehicleMount"))
+
+
+@needs_5etools
+def test_equipment_known_differences_leave_truth_but_stay_listed():
+    from bookextractor.score import dropped_truth_lines as dl
+    assert "Eldritch Cannon, Flamethrower" not in {t["name"] for t in load_truth("tce", FT, "Object")}
+    assert sum("Eldritch Cannon" in k for k in dl("tce", FT, "Object")) == 3
+    assert "Generic Object" not in {t["name"] for t in load_truth("dmg", FT, "Object")}
+    assert any("Generic Object" in k for k in dl("dmg", FT, "Object"))
+    assert "Improvised Damage" not in {t["name"] for t in load_truth("dmg", FT, "Trap")}
+    assert "High Altitude" in {t["name"] for t in load_truth("dmg", FT, "Trap")}  # printed as a hazard heading
+    names = {t["name"] for t in load_truth("phb", FT, "Item")}
+    assert "Arrow" not in names and "Trinket" not in names and "Arrows (20)" in names
+    assert any("Arrow" in k for k in dl("phb", FT, "Item"))
+    assert any("Trinket" in k for k in dl("phb", FT, "Item"))
+
+
+@needs_5etools
+def test_unprinted_item_fields_are_skipped_and_counted_not_wrong():
+    ents = [_eq("Abacus", value=200, weight=2, type="G")]
+    ents[0]["fields"].pop("weight")
+    r = score_book("phb", ents, FT, "Item")
+    assert "weight" not in r["fields"]
+    assert r["skipped"]["weight"] == 1
+    ents[0]["fields"]["weight"] = 99
+    assert score_book("phb", ents, FT, "Item")["fields"]["weight"]["pct"] == 0

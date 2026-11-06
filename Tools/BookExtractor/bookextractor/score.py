@@ -240,6 +240,10 @@ def _split_equipment_truth(src: str, d: Path, etype: str) -> tuple[list[dict], l
         return [r for lst in lists for r in data.get(lst, []) if r.get("source") == src and not r.get("_copy")]
 
     known: list[str] = []
+    ships: list[dict] = []
+    if src == "DMG":  # the extractor emits ships and the airship as vehicle statistics (a design decision)
+        ships = [i for i in read("items.json", "item") if _code(i.get("type")) in ("SHP", "AIR")]
+    ship_names = {i["name"] for i in ships}
     if etype in ("Weapon", "Armor", "Item", "DiseasePoison"):
         base = read("items-base.json", "baseitem")
         mundane = [i for i in read("items.json", "item") if i.get("rarity") in (None, "none")]
@@ -248,19 +252,53 @@ def _split_equipment_truth(src: str, d: Path, etype: str) -> tuple[list[dict], l
         if etype == "Armor":
             return _dedupe([i for i in base + mundane if _is_armor(i)]), known
         if etype == "Item":
-            return _dedupe([i for i in base + mundane
-                            if not _is_weapon(i) and not _is_armor(i) and not _is_poison(i)]), known
+            items = _dedupe([i for i in base + mundane
+                             if not _is_weapon(i) and not _is_armor(i) and not _is_poison(i)])
+            return _drop_equipment_truth(src, etype, items, ship_names)
         poisons = [i for i in mundane if _is_poison(i)]
         diseases = read("conditionsdiseases.json", "disease")
         return _dedupe(diseases + poisons), known
     if etype == "VehicleMount":
-        return _dedupe(read("vehicles.json", "vehicle")), known
+        known = [f"stored by 5etools as items; printed as vehicle statistics: {n}" for n in sorted(ship_names)]
+        return _dedupe(read("vehicles.json", "vehicle") + ships), known
     if etype == "Object":
-        return _dedupe(read("objects.json", "object")), known
+        return _drop_equipment_truth(src, etype, _dedupe(read("objects.json", "object")), ship_names)
     if etype == "Trap":
-        return _dedupe(read("trapshazards.json", "trap", "hazard")), known
+        return _drop_equipment_truth(src, etype, _dedupe(read("trapshazards.json", "trap", "hazard")), ship_names)
     known = [f"status effect, not a condition: {r['name']}" for r in read("conditionsdiseases.json", "status")]
     return _dedupe(read("conditionsdiseases.json", "condition")), known
+
+
+# 5etools records the book prints no entry for: (source, type, 5etools name) -> why
+EQUIPMENT_NOT_AN_ENTRY: dict[tuple[str, str, str], str] = {
+    **{("TCE", "Object", f"Eldritch Cannon, {o}"):
+       "a summon option inside a subclass feature, no stat block of its own"
+       for o in ("Flamethrower", "Force Ballista", "Protector")},
+    ("DMG", "Object", "Generic Object"): "a rules section on object statistics, not an entry",
+    ("DMG", "Trap", "Improvised Damage"): "a rules table of damage suggestions, not an entry",
+}
+_TRINKET_NOTE = "a trinket roll table that only 5etools names as an item"
+
+
+def _drop_equipment_truth(src: str, etype: str, recs: list[dict], ship_names: set[str]) -> tuple[list[dict], list[str]]:
+    """Take out the records the book prints no entry for; one known-difference line per record."""
+    names = [r["name"] for r in recs]
+    keep: list[dict] = []
+    known: list[str] = []
+    for r in recs:
+        n = r["name"]
+        bundle = next((o for o in names if o != n and re.match(rf"{re.escape(n.lower())}s \(", o.lower())), None)
+        if (src, etype, n) in EQUIPMENT_NOT_AN_ENTRY:
+            known.append(f"{n}: not an entry ({EQUIPMENT_NOT_AN_ENTRY[(src, etype, n)]})")
+        elif etype == "Item" and (n == "Trinket" or n.endswith(" Trinket")):
+            known.append(f"{n}: not an entry ({_TRINKET_NOTE})")
+        elif etype == "Item" and bundle:
+            known.append(f"{n}: not printed on its own (the book prints only the bundle row {bundle})")
+        elif etype == "Item" and n in ship_names:
+            known.append(f"stored by 5etools as items; printed as vehicle statistics: {n}")
+        else:
+            keep.append(r)
+    return keep, known
 
 
 def _load_character_truth(src: str, d: Path, etype: str) -> list[dict]:
@@ -561,7 +599,7 @@ def available_types(book: str, fivetools_dir: Path) -> list[str]:
 
 
 def score_record(etype: str, fields: dict, t: dict, src: str | None = None) -> tuple[dict, float | None, float | None]:
-    r: dict[str, bool] = {}
+    r: dict[str, bool | None] = {}
     if etype == "Monster":
         r["ac"] = _first_int(fields.get("ac")) == t_ac(t)
         r["hp"] = (fields.get("hp") or {}).get("average") == t.get("hp", {}).get("average")
@@ -614,8 +652,10 @@ def _score_equipment(etype: str, f: dict, t: dict, r: dict) -> tuple[float | Non
         r["weight"] = f.get("weight") == t.get("weight")
     elif etype == "Item":
         r["value"] = f.get("value") == t.get("value")
-        r["weight"] = f.get("weight") == t.get("weight")
-        r["type"] = _code(f.get("type")) == _code(t.get("type"))
+        # a field our entity omits is one the book prints no value for (pack or coin weight, tack or vehicle type):
+        # not compared, and counted as skipped; a printed value that differs is still wrong
+        r["weight"] = None if f.get("weight") is None else f.get("weight") == t.get("weight")
+        r["type"] = None if f.get("type") is None else _code(f.get("type")) == _code(t.get("type"))
     elif etype == "Trap":
         r["trapHazType"] = f.get("trapHazType") == t.get("trapHazType")
     elif etype == "DiseasePoison":
@@ -654,8 +694,39 @@ def _score_character(etype: str, f: dict, t: dict, r: dict, src: str | None) -> 
     return coverage(flat(t.get("entries")), flat(f.get("entries")))
 
 
+_EQ_STOP = {"of", "a", "an", "the"}
+_EQ_SUFFIX = {"Armor": {"armor"}, "Trap": {"trap"}}  # 5etools adds the word; the book prints the bare name
+# two printed names that are not word permutations of each other: key -> the key of the other spelling
+_EQ_ALIASES = {"sledgehammer": "hammer sledge", "gunpowder horn": "gunpowder horn powder"}
+_EQ_UNITS = _EQ_STOP | {"1", "lb", "sq", "yd", "one", "per"}
+
+
+def _eq_words(name: str | None, etype: str) -> list[str]:
+    ws = re.findall(r"[a-z0-9+]+", (name or "").lower())
+    return sorted(w for w in ws if w not in _EQ_STOP and w not in _EQ_SUFFIX.get(etype, ()))
+
+
+def _eq_key(name: str | None, etype: str) -> str:
+    k = " ".join(_eq_words(name, etype))
+    return _EQ_ALIASES.get(k, k)
+
+
+def _eq_segments(name: str) -> list[str]:
+    """Names a printed row such as "Donkey or mule" or "1 lb. of cinnamon or pepper, or one sheep" stands for."""
+    parts = [p for p in re.split(r"\s*,?\s+or\s+|\s*,\s*", name) if p.strip()]
+    return parts if len(parts) > 1 else [name]
+
+
+def _eq_unit_key(name: str) -> str:
+    """Key with quantity words dropped: "1 sq. yd. of canvas" and "Canvas (1 sq. yd.)" are both "canvas"."""
+    return " ".join(sorted(w for w in re.findall(r"[a-z0-9+]+", name.lower()) if w not in _EQ_UNITS))
+
+
 def match_key(etype: str, name: str | None) -> str:
-    """Name key for matching. Subrace words are order-insensitive: 5etools "Dwarf Hill" is printed "Hill Dwarf"."""
+    """Name key for matching. Subrace words are order-insensitive: 5etools "Dwarf Hill" is printed "Hill Dwarf".
+    Equipment names are word-order, punctuation and bracket insensitive ("Crossbow, light" is "Light Crossbow")."""
+    if etype in _EQUIPMENT_TYPES:
+        return _eq_key(name, etype)
     if etype in ("Race", "Subrace"):
         low = (name or "").lower()
         ws = set(re.findall(r"[a-z0-9+]+", low))
@@ -732,8 +803,25 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
             tkeys[i] = key(bare)
             renamed[i] = idx[key(bare)]["name"]
     matches = match_one_to_one(tkeys, list(idx))
+    multi: dict[int, str] = {}  # truth index -> key of the one printed row that stands for several records
+    if etype in _EQUIPMENT_TYPES:
+        for k in [k for k in idx if k not in {m for m, _ in matches.values()}]:
+            segs = {_eq_unit_key(sg) for sg in _eq_segments(idx[k]["name"])}
+            hit = {i for i, t in enumerate(truth) if i not in matches and i not in multi
+                   and _eq_unit_key(t["name"]) in segs}
+            if hit:
+                for i in hit:
+                    multi[i] = k
+                known.append(f"printed row matched by its quantity-free name: {idx[k]['name']} = "
+                             + ", ".join(truth[i]["name"] for i in sorted(hit)))
+    matches.update({i: (k, False) for i, k in multi.items()})
     elsewhere = printed_elsewhere(book, fivetools_dir, etype)
     claimed = {k for k, _ in matches.values()}
+    for i, t in enumerate(truth):  # a spelling that is more than a word permutation of 5etools' is listed
+        if i in matches and i not in multi and etype in _EQUIPMENT_TYPES:
+            ours = idx[matches[i][0]]["name"]
+            if " ".join(_eq_words(ours, etype)) != " ".join(_eq_words(t["name"], etype)):
+                known.append(f"printed name differs: {ours} (5etools: {t['name']})")
     here = {match_key(etype, n): f"{n}: printed, not a 5etools record ({why})"
             for (b, et, n), why in PRINTED_NOT_IN_5ETOOLS.items() if b == book and et == etype}
     printed_here = [k for k in idx if k not in claimed and (k in elsewhere or k in here)]
@@ -745,6 +833,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     diffs: list[str] = []
     fuzzy: list[str] = []
     text_ok = [0, 0]
+    skipped: dict[str, int] = collections.defaultdict(int)  # comparisons skipped: the book prints no value
     fam = [0, 0]  # multi-rarity families: count, ours == "varies"
     for i, t in enumerate(truth):
         if i not in matches:
@@ -753,6 +842,8 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
         k, exact = matches[i]
         if not exact:
             fuzzy.append(f"{t['name']} ~ {idx[k]['name']}")
+        if i in multi:
+            continue  # the row's own fields are not this record's: found, not field-scored
         fields = idx[k]["fields"]
         if i in renamed:
             t = _rename_subclass(t, renamed[i], known)
@@ -763,6 +854,9 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
             fam[0] += 1
             fam[1] += fields.get("rarity") == "varies"
         for f, ok in res.items():
+            if ok is None:
+                skipped[f] += 1
+                continue
             if not ok and (book, t["name"], f) in KNOWN_DIFFERENCES:
                 ours = [fields.get(k) for k in _ABIL] if f == "abilities" else fields.get(f)
                 want, why = KNOWN_DIFFERENCES[(book, t["name"], f)]
@@ -799,7 +893,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     found = len(matches)
     return {
         "book": book, "type": etype, "truth": len(truth), "found": found,
-        "extra": len(idx) - found - len(printed_here),
+        "extra": len(idx) - len(claimed) - len(printed_here), "skipped": dict(skipped),
         "fields": {f: {"pct": 100 * a / n, "n": n} for f, (a, n) in agg.items() if n},
         "rarityMultiFamilies": {"n": fam[0], "variesAgree": fam[1]} if etype == "MagicItem" else None,
         "textAtLeast90": {"pct": 100 * text_ok[0] / text_ok[1] if text_ok[1] else 0.0, "n": text_ok[1]},
@@ -822,6 +916,9 @@ def format_table(res: dict) -> str:
         m = res["rarityMultiFamilies"]
         out += (f"\nrarity (strict) covers single-rarity items only; multi-rarity families: {m['n']}, "
                 f"book says 'varies' for {m['variesAgree']}")
+    if res.get("skipped"):
+        out += "\nunprinted-field comparisons skipped (our entity omits the field): " + \
+            ", ".join(f"{f} {n}" for f, n in sorted(res["skipped"].items()))
     if res.get("knownDifferences"):
         out += "\nverified book-vs-5etools differences (counted as agreeing with the book):\n  " + \
             "\n  ".join(res["knownDifferences"])
