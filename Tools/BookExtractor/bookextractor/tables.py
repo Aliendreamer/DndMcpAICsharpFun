@@ -175,3 +175,164 @@ def read_table(page: Page, first_header: str) -> Table | None:
         if t:
             return t
     return None
+
+
+# ---------- label-anchored tables (equipment, treasure): one Row per printed row ----------
+_MARK = re.compile(r"\s*([*†‡]+)$")
+
+
+@dataclass
+class Row:
+    label: str
+    cells: dict[str, str]          # header -> cell text ("" when the book prints nothing there)
+    group: str | None              # the sub-heading row the row sits under ("Simple Melee Weapons")
+    marker: str | None             # a footnote marker printed after the label ("*", "†")
+    lines: list[Line]
+
+
+@dataclass
+class RowTable:
+    headers: list[str]
+    rows: list[Row]
+    page: int
+    box: tuple[float, float, float, float]
+
+
+def _header_cells(page: Page, first: Line, headers: list[str]) -> list[Line] | None:
+    """The header cells of a table whose first cell is `first`: the lines on its row, left to right, matching
+    the remaining headers in order (fuzzy: the OCR reads "Cost" as "csst"). A header set on two lines
+    ("Carrying" over "Capacity") matches the two joined."""
+    h = first.height
+    row = sorted((l for l in page.lines if l is not first and l.box[0] > first.box[2] and
+                  abs(_yc(l) - _yc(first)) <= 0.6 * h), key=lambda l: l.box[0])
+    out = [first]
+    for want in headers[1:]:
+        if not row:
+            return None
+        l = row.pop(0)
+        above = [o for o in page.lines if _overlap(o, l.box[0], l.box[2]) and
+                 0.5 * h < l.box[1] - o.box[1] < 2 * h and o.box[3] < _yc(l)]
+        texts = [l.text] + [" ".join(o.text for o in above + [l])] if above else [l.text]
+        if max(fuzz.ratio(t.strip().lower(), want.lower()) for t in texts) < 70:
+            return None
+        out.append(l)
+    return out
+
+
+def _read_one(page: Page, head: list[Line], headers: list[str], right: float) -> tuple[list[Row], tuple] | None:
+    h = median(x.height for x in head)
+    bounds = [(a.box[2] + b.box[0]) / 2 for a, b in zip(head, head[1:])]
+    x_lo, x_hi = head[0].box[0] - 2 * h, min(right, head[-1].box[2] + h)
+    top = max(x.box[3] for x in head)
+    region = sorted((l for l in page.lines if l not in head and _yc(l) > top and x_lo <= l.box[0] < x_hi
+                     and l.height <= 2 * h), key=lambda l: (l.box[1], l.box[0]))
+
+    def column(l: Line) -> int:
+        return sum(_xc(l) > b for b in bounds)
+
+    # the table ends at a footnote ("* See the ..."), a gap of three rows, or the next table: a repeated first
+    # header ("Item") with the title printed just above it ("Waterborne Vehicles")
+    first = [l for l in region if column(l) == 0]
+    end = page.height
+    last = top
+    for l in first:
+        t = l.text.strip()
+        if (len(t) > 2 and t[0] in "*†‡") or l.box[1] - last > 3 * 1.2 * h:
+            end = l.box[1]
+            break
+        if fuzz.ratio(t.lower(), headers[0].lower()) >= 80:
+            end = min([l.box[1]] + [o.box[1] for o in region if o.box[0] < bounds[0] and
+                                     l.box[1] - h <= o.box[3] <= l.box[1] + 0.3 * h and o is not l])
+            break
+        last = l.box[3]
+    region = [l for l in region if l.box[1] < end - 0.3 * h]
+    first = [l for l in region if column(l) == 0]
+    others = [l for l in region if column(l) > 0]
+
+    def own_cells(l: Line) -> list[Line]:
+        return [o for o in others if abs(_yc(o) - _yc(l)) <= 0.6 * h]
+
+    rows: list[tuple[list[Line], str | None]] = []   # label lines, group
+    group: tuple[str, float] | None = None
+    for k, l in enumerate(first):
+        if own_cells(l):
+            if group and l.box[0] <= group[1] + 0.4 * h:
+                group = None
+            rows.append(([l], group[0] if group else None))
+            continue
+        nxt = first[k + 1] if k + 1 < len(first) else None
+        if l.box[2] > head[1].box[0]:      # a cell-less line reaching into the next column is prose: stop
+            break
+        if nxt is not None and nxt.box[0] > l.box[0] + 0.4 * h:
+            group = (l.text.strip(), l.box[0])
+        elif rows and l.box[0] >= rows[-1][0][0].box[0] - 0.4 * h and l.box[1] - rows[-1][0][-1].box[3] < 0.8 * h:
+            rows[-1][0].append(l)          # a label wrapping onto a line with no cells of its own
+        elif nxt is not None:
+            group = (l.text.strip(), l.box[0])
+    if not rows:
+        return None
+    centres = [_yc(r[0][0]) for r in rows]
+    pitch = median(b - a for a, b in zip(centres, centres[1:])) if len(centres) > 1 else 1.2 * h
+    starts = [c - 0.6 * h for c in centres] + [rows[-1][0][-1].box[3] + 0.5 * pitch]
+    cells: list[list[list[Line]]] = [[[] for _ in head[1:]] for _ in rows]
+    for o in others:
+        for i in range(len(rows)):
+            if starts[i] <= _yc(o) < starts[i + 1]:
+                cells[i][column(o) - 1].append(o)
+                break
+    out: list[Row] = []
+    used: list[Line] = list(head)
+    for (labels, grp), cs in zip(rows, cells):
+        label = " ".join(x.text.strip() for x in labels)
+        m = _MARK.search(label)
+        marker = m.group(1) if m else None
+        if m:
+            label = label[:m.start()].strip()
+        texts = {headers[i + 1]: fix_digits(" ".join(x.text.strip() for x in sorted(c, key=lambda x: (x.box[1], x.box[0]))))
+                 for i, c in enumerate(cs)}
+        lines = sorted(labels + [x for c in cs for x in c], key=lambda x: (x.box[1], x.box[0]))
+        used += lines
+        out.append(Row(label=label, cells=texts, group=grp, marker=marker, lines=lines))
+    box = (min(l.box[0] for l in used), min(l.box[1] for l in used), max(l.box[2] for l in used),
+           max(l.box[3] for l in used))
+    return out, box
+
+
+def read_row_tables(page: Page, headers: list[str]) -> list[RowTable]:
+    """Every label-anchored table on `page` whose header row prints `headers` (fuzzy) left to right, top to
+    bottom: one Row per first-column label, with its cells by header, the sub-heading it sits under, and any
+    footnote marker. A table printed twice side by side (the PHB Adventuring Gear table) reads as one, left
+    half first."""
+    cands = sorted((l for l in page.lines if fuzz.ratio(l.text.strip().lower(), headers[0].lower()) >= 80),
+                   key=lambda l: (l.box[1], l.box[0]))
+    seen: list[Line] = []
+    out: list[RowTable] = []
+    for c in cands:
+        if c in seen or _header_cells(page, c, headers) is None:
+            continue
+        heads: list[list[Line]] = []
+        # every copy of the header along the same row is the same table continued
+        for o in sorted((o for o in cands if abs(_yc(o) - _yc(c)) <= 0.6 * c.height), key=lambda o: o.box[0]):
+            seen.append(o)
+            hd = _header_cells(page, o, headers)
+            if hd is not None and not any(hd[0].box[0] < x[-1].box[2] for x in heads):
+                heads.append(hd)
+        rows: list[Row] = []
+        boxes = []
+        for k, hd in enumerate(heads):
+            right = heads[k + 1][0].box[0] - 2 * hd[0].height if k + 1 < len(heads) else page.width
+            got = _read_one(page, hd, headers, right)
+            if got:
+                rows += got[0]
+                boxes.append(got[1])
+        if rows:
+            box = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes),
+                   max(b[3] for b in boxes))
+            out.append(RowTable(headers=list(headers), rows=rows, page=page.number, box=box))
+    return out
+
+
+def read_rows(page: Page, headers: list[str]) -> RowTable | None:
+    """The first table `read_row_tables` finds on `page`, or None when the page prints no such header row."""
+    tables = read_row_tables(page, headers)
+    return tables[0] if tables else None

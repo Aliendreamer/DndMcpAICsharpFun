@@ -87,3 +87,9 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | tce | 059, 060 | Fey Wanderer printed with its heading glued ("Feywanderer"): the assembler's name repair reaches shortName and the refs' ShortName part |
 | tce | 015, 016, 017 | Alchemist, then Armorer: the "Extra Attack" heading OCR-glued ("ExtRAATtaCk"), the sideways art credit "BRIAN VALEZA" merged by reading order into the body row beside it |
 | phb | 086, 087 | Paladin class features, "Sacred Oaths", Oath of Devotion: the "Breaking Your Oath" sidebar (inset box at the top of a column) interrupting the Channel Divinity sentence "It also can't take" / "reactions." |
+| phb | 146 | Armor table (sub-heading rows Light/Medium/Heavy Armor and Shield; "Cost" header OCR'd as "csst") |
+| phb | 150 | Weapons table (Simple/Martial Melee/Ranged sub-headings, wide Properties column) |
+| phb | 151 | Adventuring Gear table printed twice side by side (Ammunition, Arcane focus, Holy symbol groups) |
+| phb | 154 | Container Capacity table beside prose (footnote-marked "Backpack*", ends at its "*" footnote) |
+| phb | 155 | Tools table beside prose (Artisan's tools, Gaming set, Musical instrument groups; a "*" cost cell) |
+| phb | 158 | Mounts (stacked "Carrying Capacity" header), Tack/Harness and Waterborne Vehicles tables in one column |
