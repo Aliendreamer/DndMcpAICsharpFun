@@ -103,3 +103,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | dmg | 151 | Apparatus of Kwalish: "is a Large object with the following statistics:" block with a Speed (an OBJECT vehicle) |
 | dmg | 255, 256 | Siege Equipment stat blocks (Ballista ... Trebuchet; Cannon's description continuing in the next column) |
 | mtf | 090, 091 | Githyanki astral ships described in prose (crew, passengers, speed, size as sentences) |
+| phb | 122 | "CHaPter 4: Personality And Background" chapter heading (set taller than the text), for the chapter-bounded description join |

@@ -14,8 +14,9 @@ from bookextractor.parsers.gear import parse_items_mundane
 FIX = Path(__file__).parent / "fixtures" / "ocr"
 SCHEMAS = Path(__file__).parents[3] / "Schemas" / "canonical"
 BOOKS = {
-    # 128: a chapter 4 background page; 144: "Chapter 5: Equipment" and the coin table; 149-159: the chapter
-    "phb": ("phb14", "PHB", [128, 144, 149, 150, 151, 152, 153, 154, 155, 156, 158, 159]),
+    # 122: "Chapter 4: Personality and Background"; 128: a chapter 4 background page; 144: "Chapter 5: Equipment"
+    # and the coin table; 149-159: the chapter
+    "phb": ("phb14", "PHB", [122, 128, 144, 149, 150, 151, 152, 153, 154, 155, 156, 158, 159]),
     "dmg": ("dmg14", "DMG", [134, 135, 268]),
     "scag": ("scag", "SCAG", [125]),
 }
@@ -48,8 +49,8 @@ def failed(p):
     return [c for c in p.checks if not c.passed]
 
 
-def _edit(book, page, old, new):
-    pages = _pages(book)
+def _edit(book, page, old, new, pages=None):
+    pages = pages or _pages(book)
     pg = pages[page]
     hit = [l for l in pg.lines if l.text == old]
     assert hit, old
@@ -70,8 +71,18 @@ def test_crowbar_row_joined_to_its_description():
 
 # ---------- Review Focus 2: the join stays inside the equipment chapter ----------
 def test_same_name_lead_in_outside_the_chapter_is_not_joined():
-    # page 128 is a chapter 4 background page: an "Abacus." lead-in there is not the gear's description
+    # page 128 sits under the printed "Chapter 4: Personality and Background" heading (p122): an "Abacus." lead-in
+    # there is not the gear's description (chapter 5)
     pages = _edit("phb", 128, "Choose a god, a pantheon of gods, or some other", "Abacus. A frame of beads for counting.")
+    assert "entries" not in get(_run("phb", pages), "Abacus").fields
+
+
+def test_chapter_cross_reference_is_not_a_chapter_heading():
+    # a text line starting "chapter 5 for ..." above the lead-in does not move page 128 into chapter 5
+    pages = _edit("phb", 128, "traits, one ideal, one bond, and one flaw. If you can't find",
+                  "chapter 5: Equipment, for the gear you start with.")
+    pages = _edit("phb", 128, "Choose a god, a pantheon of gods, or some other", "Abacus. A frame of beads for counting.",
+                  pages)
     assert "entries" not in get(_run("phb", pages), "Abacus").fields
 
 
@@ -100,7 +111,29 @@ def test_lead_in_names_the_row_without_its_bracket_and_plural():
     assert get(items(), "Case, map or scroll").fields["entries"][0].startswith("This cylindrical leather case")
     # "Rope." describes both ropes: the lead-in is the part of the label before its comma, and no row is "Rope"
     for name in ("Rope, hempen (50 feet)", "Rope, silk (50 feet)"):
-        assert get(items(), name).fields["entries"][0].startswith("Rope, whether made of hemp or silk")
+        p = get(items(), name)
+        assert p.fields["entries"][0].startswith("Rope, whether made of hemp or silk")
+        # one paragraph on two rows: it goes to review once, naming the lead-in and the rows
+        c = next(c for c in p.checks if c.name == "entries-shared")
+        assert not c.passed and "'Rope'" in c.reason and "'Rope, silk (50 feet)'" in c.reason
+    # a bracket's comma is not the label's comma; an exact lead-in carries no fallback check
+    bb = get(items(), "Ball bearings (bag of 1,000)")
+    assert not {"entries-shared", "entries-from-lead-in"} & {c.name for c in bb.checks}
+
+
+def test_fallback_on_one_row_is_recorded_and_passes():
+    t = get(items(), "Tent, two-person")
+    assert t.fields["entries"][0].startswith("A simple and portable canvas shelter")
+    c = next(c for c in t.checks if c.name == "entries-from-lead-in")
+    assert c.passed and "'Tent'" in c.reason and "'Tent, two-person'" in c.reason
+    assert failed(t) == []
+
+
+def test_saddles_paragraph_on_four_saddles_goes_to_review():
+    for kind in ("exotic", "military", "pack", "riding"):
+        p = get(items(), f"Saddle, {kind}")
+        c = next(c for c in p.checks if c.name == "entries-shared")
+        assert not c.passed and "'Saddles'" in c.reason and "'Saddle, pack'" in c.reason
 
 
 def test_row_without_description_has_no_entries():
@@ -147,6 +180,9 @@ def test_tools_mounts_tack_and_vessels():
     assert saddle.fields["value"] == 6000 and saddle.fields["weight"] == 40 and "type" not in saddle.fields
     # "Saddles." names no row; the rows' names start "Saddle,"
     assert saddle.fields["entries"][0].startswith("A military saddle braces the rider")
+    c = next(c for c in saddle.checks if c.name == "name-from-group")
+    assert c.passed and "'Saddle'" in c.reason and "'Exotic'" in c.reason
+    assert "name-from-group" not in {c.name for c in get(ps, "Saddlebags").checks}
     assert get(ps, "Galley").fields == {"type": "SHP", "value": 3000000}
     assert "Vehicles (land or water)" not in {p.name for p in ps}
 
@@ -179,7 +215,11 @@ def test_dmg_explosives_and_ammunition():
     ps = items("dmg")
     assert get(ps, "Bomb").fields == {"type": "EXP|DMG", "value": 15000, "weight": 1}
     assert get(ps, "Dynamite (stick)").fields["weight"] == 1
-    assert get(ps, "Renaissance bullets (10)").fields == {"type": "AF|DMG", "value": 300, "weight": 2}
+    rb = get(ps, "Renaissance bullets (10)")
+    assert rb.fields == {"type": "AF|DMG", "value": 300, "weight": 2}
+    c = next(c for c in rb.checks if c.name == "name-from-group")
+    assert c.passed and "'Renaissance'" in c.reason and "'Bullets (10)'" in c.reason
+    assert "name-from-group" not in {c.name for c in get(ps, "Energy cell").checks}
     assert get(ps, "Modern bullets (10)").fields == {"type": "AF|DMG", "weight": 1}
     assert get(ps, "Energy cell").fields == {"type": "AF|DMG", "weight": 5 / 16}  # "5 oz."
     assert not any(p.name in ("Pistol", "Musket") for p in ps)

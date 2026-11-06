@@ -126,6 +126,11 @@ def _new(r: Row, seen: set) -> bool:
     return True
 
 
+def _from_group(name: str, where: str, label: str) -> Check:
+    """`name-from-group` (passing, for review visibility): the name joins printed words from two places."""
+    return Check("name-from-group", True, f"name {name!r} is the {where} and the printed row label {label!r}")
+
+
 def _coin_check(cell: str, row: str) -> Check:
     t = cell.strip()
     if _WHOLE.match(t):
@@ -144,11 +149,12 @@ def _table_item(r: Row, t: RowTable, suspect: str | None, title: str | None) -> 
     group = (r.group or "").strip()
     gkey = _norm(group)
     name = r.label
+    checks: list[Check] = []
     if group and gkey not in _GROUPS:
         name = f"{group}, {_lower_first(r.label)}"
+        checks.append(_from_group(name, f"sub-heading {group!r}", r.label))
     f: dict = {}
     _set(f, "type", _GROUPS.get(gkey) or (_TITLES.get(title) if title else None))
-    checks: list[Check] = []
     if "cp" in raw and "Coin" in t.headers:
         if _WHOLE.match(raw["cp"]):
             f["value"] = int(raw["cp"].replace(",", ""))
@@ -195,6 +201,8 @@ def _ammunition(page: Page, seen: set) -> list[Parsed]:
         _set(f, "weight", weight_value(weight))
         p = Parsed(type="Item", name=name, fields=f, text=_row_text(name, r, r.cells), lines=list(r.lines))
         p.checks = [cost_check(c.get("Cost", ""), name), weight_check(weight, name), *_table_checks(r, t, suspect)]
+        if name != r.label:
+            p.checks.append(_from_group(name, f"table age {age!r}", r.label))
         out.append(p)
     return out
 
@@ -308,13 +316,20 @@ def _key(name: str) -> str:
     return " ".join(w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w for w in words)
 
 
+_CHAPTER = re.compile(r"(?i)^chapter\s+(\d+)\s*:\s*[A-Z]")
+
+
 def _chapters(body: list[Line]) -> list[int | None]:
-    """The chapter number each body line sits in (the last "Chapter N" heading above it; None before any)."""
+    """The chapter number each body line sits in (the last chapter heading above it; None before any). A chapter
+    heading reads "Chapter 5: Equipment" and is set taller than the text (1.4 times the median line height), so a
+    cross-reference starting a line ("chapter 9 for ...") or a running foot ("CHAPTER 4 | CLASSES") is not one."""
+    hs = sorted(l.height for l in body)
+    tall = 1.4 * hs[len(hs) // 2] if hs else 0
     out: list[int | None] = []
     cur: int | None = None
     for l in body:
-        m = re.match(r"(?i)^chapter\s+(\d+)\b", l.text.strip())
-        if m:
+        m = _CHAPTER.match(l.text.strip())
+        if m and l.height >= tall:
             cur = int(m.group(1))
         out.append(cur)
     return out
@@ -386,22 +401,34 @@ def _join(items: list[tuple[Parsed, int]], L: list[Line], chapters: list[int | N
     head: dict[str, list[tuple[Parsed, int]]] = {}
     for p, pg in items:
         exact.setdefault(_key(p.name), []).append((p, pg))
-        if "," in p.name:
-            head.setdefault(_key(p.name.split(",")[0]), []).append((p, pg))
+        bare = re.sub(r"\([^)]*\)", "", p.name)  # "Ball bearings (bag of 1,000)": no comma outside the bracket
+        if "," in bare:
+            head.setdefault(_key(bare.split(",")[0]), []).append((p, pg))
     for m, s, e in paras:
         if m.group("paren") and _PACK.match(m.group("name")):
             continue
         k = _key(m.group("name"))
         here = (L[s].page, chapters[s])
         targets = [x for x in exact.get(k, []) if _same_section(here, (x[1], page_chapter(x[1])))]
+        fallback = False
         if not targets and not exact.get(k):
             targets = [x for x in head.get(k, []) if _same_section(here, (x[1], page_chapter(x[1])))]
+            fallback = bool(targets)
+        lead = m.group("name")
+        names = [p.name for p, _ in targets]
         for p, _ in targets:
             if "entries" in p.fields:
                 continue
             ents = _entries(L, s, e, m.group("rest"))
             if not ents:
                 continue
+            if fallback and len(targets) > 1:
+                # one paragraph on several rows it may not all describe ("Saddles." on four saddles): review
+                p.checks.append(Check("entries-shared", False, f"the description led by {lead!r} names no row; it "
+                                      f"is shared by the rows {', '.join(repr(n) for n in names)}"))
+            elif fallback:
+                p.checks.append(Check("entries-from-lead-in", True, f"the description led by {lead!r} is the part "
+                                      f"of {p.name!r} before its comma"))
             p.fields["entries"] = ents
             p.lines = p.lines + L[s:e]
             p.text += "\n" + "\n".join(x if isinstance(x, str) else "\n".join(x.get("items", [])) for x in ents)
