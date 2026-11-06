@@ -153,3 +153,5 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | ggr | 124, 125, 126, 127, 128 | World sections: "Chapter 4: Creating Adventures"; "Involving the Characters" with its own sub-heading "Cross Purposes" (0.63x, title case under a caps heading): no doubt |
 | vrgr | 065 | World sections (W12): "Currency", "Languages", "Religion" under "Chapter 3: Domains of Ravenloft": topics, Lore |
 | mm | 123 | World sections (W14): the Duergar stat block's "Actions" (weapon attacks): never a world section |
+| erlw | 141, 143, 144, 145, 148 | World sections (W16): "Khorvaire" (Faiths of Khorvaire) with the Sovereign Host, Dark Six, the mis-picked "Symbol" (p144, holding RITES / TEMPLES) and the faiths that print Symbol / Rites / Temples again (with erlw 104, 142, 146, 147) |
+| egw | 236, 237 | World sections (W16): "Story Overview" holding an NPC stat block (Slam / Shoulder-Mounted Crossbow): kept and flagged |

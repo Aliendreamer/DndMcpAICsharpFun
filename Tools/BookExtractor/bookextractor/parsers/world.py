@@ -10,8 +10,8 @@ setting and lore chapters, at each chapter's entry level.
   the names as printed; required): a race, a class, a monster, a magic item, a god, a rule, ... is that type's,
   never a world section (ERLW "Changelings" is the race Changeling's; MM "Barbed Devil" the monster "Barbed Devil
   (Hamatula)"'s);
-- a stat block's part: a heading "Actions", "Reactions", "Bonus Actions" or "Legendary Actions", or a text holding
-  a stat block's line ("Melee Weapon Attack", "Hit: 5", "Armor Class 13", "Challenge 1"): the Monster's;
+- a stat block's part: a heading "Actions", "Reactions", "Bonus Actions" or "Legendary Actions" (the Monster's). A
+  section whose text holds a stat block's lines is kept and flagged (`_stat_block`), never dropped;
 - a heading that is OCR debris or a table read as a heading ("N O P Q R S T", "Gp Pp": no word of three letters), or
   that has no prose under it.
 
@@ -54,6 +54,10 @@ kept whole and `text-complete` fails, naming every doubtful heading or the measu
 - the section runs over more than `_MAX_PAGES` pages and over `_PAGE_FACTOR` times its sibling entries' median page
   count (a guild chapter's six-page guilds are alike; a section that ran on over its siblings is not);
 - it runs over `_SIBLING_FACTOR` times its sibling entries' median line count.
+- it holds a stat block's lines (two of its printed forms within a few lines: `_stat_block`).
+
+`entry-level` (ruling W16) fails for a section the entry-level reading picked that is a sub-heading of an entry: its
+container is an entry typed Plane, Faction or Location, or its heading recurs in its chapter (`_entry_check`).
 
 A container's lead text ends at its first sub-section's heading, a heading the reader read: only the first two
 checks apply to it (DMG "Fun Combat Encounters" holds the unread, taller "Random Encounters").
@@ -91,7 +95,7 @@ _PLURAL_TYPES = {
 }
 # any type word, singular or plural, for the conflict check ("Guild Locations")
 _TYPE_WORDS = (
-    ("Plane", re.compile(r"(?i)\b(?:planes?|realms?|layers?|(?<!divine )domains?)\b")),
+    ("Plane", re.compile(r"(?i)\b(?:planes?|realm|layers?|(?<!divine )domains?)\b")),
     ("Faction", re.compile(r"(?i)\b(?:factions?|guilds?|organi[sz]ations?|houses?|orders?|cults?|company|companies)\b")),
     ("Location", re.compile(r"(?i)\b(?:city|cities|regions?|kingdoms?|nations?|settlements?|locations?|places|"
                             r"districts?|islands?)\b")),
@@ -99,8 +103,11 @@ _TYPE_WORDS = (
 _GAP = 1.25  # a sibling group whose heading sizes jump by this factor sets its main entries larger than the rest
 # a monster's stat block or its parts are the Monster's, never a world section
 _STAT_HEADINGS = {"actions", "reactions", "legendaryactions", "bonusactions"}
-_STAT_LINE = re.compile(r"(?i)\b(?:melee|ranged)\s+(?:weapon|spell)\s+attack\b|\bhit:\s*\d|^armou?r\s+class\s+\d|"
-                        r"^challenge\s+\d")
+# a stat block's own forms, case as printed (prose "a melee weapon attack" is none); two within `_STAT_SPAN` lines
+# make a stat block printed inside the section's text
+_STAT_LINE = re.compile(r"\b(?:Melee|Ranged) (?:Weapon|Spell) Attack:|\bHit: \d+ \(|^Armou?r Class \d+|"
+                        r"^Challenge \d+(?:/\d+)? \([\d,]+ XP\)")
+_STAT_SPAN = 6
 _CHAPTER_PREFIX = re.compile(r"^(?:Chapter|Appendix) [^:]+: ")
 _CONTAINER = 3  # a section over this many times its siblings' median span holds the entries
 _CONTAINER_KIDS = 3  # ... when it has this many sub-sections at least
@@ -112,6 +119,12 @@ _SIBLING_FACTOR = 3
 # tall relative to the section's own heading it may be a sibling the reader nested or did not read; under it, it
 # still is one when it is styled like the section's own heading or set larger than the section's own sub-headings
 _DOUBT = 0.65
+_RECURRING = 3  # a heading printed this many times in one chapter is a sub-heading label ("Symbol", "Crime")
+_PEER = 1.05  # a band heading set over this many times its tallest peer sub-heading stands out from them
+# ... and peer sub-headings set this large (reader size, height x character width) relative to the section's own
+# heading are no sub-headings but siblings the reader nested (FTD "Young Dragons" 0.83x under "Wyrmlings", SCAG
+# "Helm's Hold" 0.747x under "Hartsvale"; GGR "Golgari Characters" 0.716x under "Golgari Swarm" is a sub-heading)
+_PEER_SIZE = 0.73
 _NAMED = 3  # a text-complete reason details this many doubtful headings, and names the rest
 _TALL_LINE = 1.15  # a line this many times the section's median line height is set as a heading, not body text
 _MIN_PROSE = 2  # a section holds this many prose lines at least
@@ -122,6 +135,7 @@ class _Entry:
     section: Section
     lines: list[Line]  # the section's own printed lines (before claimed lines and nested entities are taken out)
     lead: bool = False  # a container's lead text, up to its first sub-section
+    container: Section | None = None  # the container whose sub-section this entry is
 
 
 def _bare(heading: str) -> str:
@@ -253,7 +267,7 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
     ("Far Traveler"'s "Ideals")."""
     out: list[_Entry] = []
 
-    def visit(group: list[Section]) -> None:
+    def visit(group: list[Section], parent: Section | None = None) -> None:
         for s in group:
             kids = _kids(s, sections)
             if _container(s, group, kids):
@@ -264,9 +278,9 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
                 first = next(k for k, l in enumerate(s.lines) if id(l) == id(kids[0].lines[0]))
                 if s.parents and first > 1:
                     out.append(_Entry(s, s.lines[:first], lead=True))
-                visit(kids)
+                visit(kids, s)
             elif s.parents:  # a top section with no chapter title over it and no sub-sections: no category
-                out.append(_Entry(s, s.lines))
+                out.append(_Entry(s, s.lines, container=parent))
 
     tops = [s for s in sections if s.level == 1]
     chapters: dict[str, list[Section]] = {}
@@ -307,28 +321,34 @@ def _heading_line(t: str) -> bool:
                                    for x in words)
 
 
-def _doubt(s: Section, own: list[Line], heads: int, starts: dict[int, int]) -> list[str]:
-    """Every heading inside the section's text that may be a sibling (or another section's float) it runs on into. The text is kept whole either way; this names the doubt, so `text-complete` fails on it.
+def _doubt(s: Section, own: list[Line], heads: int, starts: dict[int, int], sizes: dict[int, float]) -> list[str]:
+    """Every heading inside the section's text that may be a sibling (or another section's float) it runs on into.
+    The text is kept whole either way; this names the doubt, so `text-complete` fails on it (rulings W13, W16).
 
     A heading here is heading words in any OCR casing (`_heading_line`) that the reader read as a heading, that is set
     `_TALL_LINE` times the section's median line, or that opens after a finished sentence, a space, or a line that is
     no prose (a table). Inside an unfinished sentence, over lines that are no prose, it is a float (a table's title:
     MTF "Halfling Deities" in "Bad Apples"). Otherwise it is in doubt when it is
 
-    - named in parallel with the section's own heading ("RAKDoS CREATURES" inside "Orzhov Creatures");
+    - named in parallel with the section's own heading, with as many words ("RAKDoS CREATURES" inside "Orzhov
+      Creatures"); a heading of another word count falls through to the checks below;
     - over lines that are no prose (a table) and styled like the section's own heading (all caps / title case, when
       the OCR casing is clear: "SIMIC CREATURES" inside "MERFOLK");
     - over prose (within four lines), and (c) set at least `_DOUBT` as tall as the section's own heading (ERLW
-      "LHAZAAR PRINCIPALITIES" 0.89x inside "Karrnath"), (a) styled like the section's own heading, or (b) set
-      taller than the section's own first sub-headings (those the reader nests one level under it).
+      "LHAZAAR PRINCIPALITIES" 0.89x inside "Karrnath") while it stands out from its peers: no other sub-heading the
+      reader nests one level under the section, or `_PEER` times taller than every such peer, or set (reader size)
+      `_PEER_SIZE` as large as the section's own heading (its peers are then siblings the reader nested); (a) styled
+      like the section's own heading; or (b) set taller than the section's own first sub-headings.
 
-    A smaller, differently styled sub-heading over prose is the section's own and no doubt."""
+    Peer sub-headings set alike and clearly smaller than the section's heading ("Inside the Senate", "Azorius
+    Characters") are the section's own: no doubt."""
     head = own[0].height
     title = " ".join(l.text for l in own[:heads])
     style = _style(title)
     last = squash(title.split()[-1]) if title.split() else ""
     tall = _TALL_LINE * median(l.height for l in own)
-    kids = [l.height for l in own[heads:] if starts.get(id(l)) == s.level + 1]
+    kid_lines = [l for l in own[heads:] if starts.get(id(l)) == s.level + 1]
+    kids = [l.height for l in kid_lines]
     out: list[str] = []
     for k in range(heads, len(own) - 1):
         l, prev = own[k], own[k - 1]
@@ -346,19 +366,35 @@ def _doubt(s: Section, own: list[Line], heads: int, starts: dict[int, int]) -> l
                 f"{head:.1f}; {'read' if id(l) in starts else 'not read'} as a heading by the reader)")
         words = l.text.split()
         same_style = bool(style) and _style(l.text) == style
-        if len(title.split()) > 1 and len(last) >= 4 and len(words) > 1 and squash(words[-1]) == last \
+        peers = [x.height for x in kid_lines if x is not l]
+        if len(words) == len(title.split()) > 1 and len(last) >= 4 and squash(words[-1]) == last \
                 and squash(words[0]) != squash(title.split()[0]):
             out.append(f"{what}: named in parallel with its own heading")
         elif not over_prose:
             if same_style:
                 out.append(f"{what}: styled like its own heading ({style}), over lines that are no prose")
-        elif l.height >= _DOUBT * head:
-            out.append(f"{what}: set at least {_DOUBT}x as tall as its own heading")
+        elif l.height >= _DOUBT * head and (not peers or l.height > _PEER * max(peers)
+                                            or sizes.get(id(l), 0.0) >= _PEER_SIZE * s.size):
+            out.append(f"{what}: set at least {_DOUBT}x as tall as its own heading"
+                       + (", with no peer sub-heading" if not peers else
+                          f" and over {_PEER}x its tallest peer sub-heading ({max(peers):.1f})"
+                          if l.height > _PEER * max(peers) else
+                          f", its reader size {sizes[id(l)]:.2f} at least {_PEER_SIZE}x its own heading's "
+                          f"{s.size:.2f} (its peers are siblings the reader nested)"))
         elif same_style:
             out.append(f"{what}: styled like its own heading ({style})")
         elif kids and starts.get(id(l)) != s.level + 1 and l.height > max(kids):
             out.append(f"{what}: set taller than its own sub-headings ({max(kids):.1f})")
     return out
+
+
+def _stat_block(own: list[Line]) -> list[tuple[str, int]]:
+    """The stat block lines printed inside the text (as printed: "Melee Weapon Attack:", "Hit: 7 (", "Armor Class
+    15", "Challenge 2 (450 XP)"), two at least within `_STAT_SPAN` lines of each other; [] when none. The text keeps
+    them and `text-complete` names them (EGW "Story Overview" holds an NPC's block), never a silent drop."""
+    hits = [k for k, l in enumerate(own) if _STAT_LINE.search(l.text.strip())]
+    near = [k for k in hits if any(j != k and abs(j - k) <= _STAT_SPAN for j in hits)]
+    return [(own[k].text.strip()[:40], own[k].page) for k in near]
 
 
 def _doubtful_tail(own: list[Line], heads: int) -> str:
@@ -380,10 +416,15 @@ def _doubtful_tail(own: list[Line], heads: int) -> str:
 
 
 def _text_check(e: _Entry, own: list[Line], heads: int, sib_lines: list[int], sib_pages: list[int],
-                starts: dict[int, int]) -> Check:
+                starts: dict[int, int], sizes: dict[int, float] | None = None) -> Check:
+    sizes = sizes or {}
     s = e.section
     name = f"section {s.title!r} (p{s.page})"
-    doubts = _doubt(s, own, heads, starts)
+    stat = _stat_block(own)
+    if stat:
+        return Check("text-complete", False, f"{name} holds a stat block's lines, a Monster's not its own: "
+                     + "; ".join(f"{t!r} (p{p})" for t, p in stat[:4]))
+    doubts = _doubt(s, own, heads, starts, sizes)
     if doubts:
         rest = [d.split(" (p", 1)[0] for d in doubts[_NAMED:]]
         return Check("text-complete", False, f"{name} may run on: it holds {len(doubts)} doubtful heading(s): "
@@ -430,6 +471,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     names: set = ctx.cache["claimed_names"]  # required: earlier entities' names as printed
     sections = [s for s in read_sections(body, ctx) if not rules_chapter(s)]
     starts = {id(s.lines[0]): s.level for s in sections}
+    sizes = {id(s.lines[0]): s.size for s in sections}
     picked: list[tuple[_Entry, list[Line]]] = []
 
     plain_names = {_plain(n) for n in names}
@@ -450,8 +492,6 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         own = [l for l in e.lines if id(l) not in nested and line_key(l) not in claimed]
         heads = _heads(own, s.title)
         own = drop_dangling(drop_art(own, ctx), e.lines, heads, set(starts))
-        if any(_STAT_LINE.search(l.text.strip()) for l in own):  # a stat block's text: the Monster's
-            continue
         # a table's header or caption read as a heading has no prose straight under it ("Suggested Domains Symbol")
         if sum(prose(l.text) for l in own[heads:]) < _MIN_PROSE or not e.lead and not any(
                 prose(l.text) for l in own[heads:heads + 2]) and not _sub_heading_over_prose(own, heads, starts):
@@ -467,7 +507,9 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     for x in sections:
         if counts[(tuple(x.parents), squash(x.title))] > 1:
             repeats.setdefault(tuple(x.parents), x.title)
+    in_chapter = Counter((x.parents[0] if x.parents else "", squash(x.title)) for x in sections)
     out: list[Parsed] = []
+    lead_type: dict[int, str] = {}  # a container's emitted lead: its type
     for e, own in picked:
         s = e.section
         sibs = [o for x, o in picked if x is not e and not x.lead and x.section.parents == s.parents]
@@ -478,13 +520,32 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         etype, category, typed = section_type(s.parents, proper_name(s.title, body_text),
                                               s.size >= _main_size(groups[tuple(s.parents)]),
                                               repeats.get(tuple(s.parents), ""))
+        if e.lead:
+            lead_type[id(s)] = etype
         head = " ".join(l.text.strip() for l in own[:heads])
         p = Parsed(type=etype, name=s.title, fields=_fields(etype, category, entries_, setting),
                    text="\n".join([head] + flat), lines=own)
         p.checks = [_text_check(e, own, heads, [len(o) for o in sibs], [o[-1].page - o[0].page + 1 for o in sibs],
-                                starts), typed]
+                                starts, sizes), typed,
+                    _entry_check(e, lead_type, in_chapter[(s.parents[0] if s.parents else "", squash(s.title))])]
         out.append(p)
     return out
+
+
+def _entry_check(e: _Entry, lead_type: dict[int, str], recurs: int) -> Check:
+    """`entry-level`: the section is an entry of its chapter, not a sub-heading of one that the entry-level reading
+    picked (ruling W16). It fails when its container is itself an entry typed Plane, Faction or Location (VRGR
+    Darkon's "Noteworthy Features" is a part of the domain), or when its heading recurs in its chapter
+    (`_RECURRING` times or more: ERLW "Symbol", "Rites", "Temples" under each faith; EGW "Crime" under each city), a
+    sub-heading label every entry prints, never an entry of its own."""
+    s = e.section
+    if e.container is not None and lead_type.get(id(e.container), "Lore") != "Lore":
+        return Check("entry-level", False, f"section {s.title!r} (p{s.page}) is a sub-section of the "
+                     f"{lead_type[id(e.container)]} entry {e.container.title!r}, not an entry of its own")
+    if not e.lead and recurs >= _RECURRING:
+        return Check("entry-level", False, f"the heading {s.title!r} (p{s.page}) recurs {recurs} times in its "
+                     "chapter: a sub-heading label of its entries, not an entry of its own")
+    return Check("entry-level", True, "")
 
 
 def _main_size(sizes: list[float]) -> float:

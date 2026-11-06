@@ -79,8 +79,9 @@ def test_ggr_guild_sections_are_factions():
     assert "inside the senate" in low and "azorius characters" in low and "enemies and allies" in low
     assert "three capitals" not in low  # a sidebar, stripped by the section reader
     assert not any(l.page >= 39 for l in az.lines), "Azorius runs into the Boros Legion"
-    # W13: its sub-headings are set 0.65-0.97 as tall as its own heading, so its end is in doubt: kept, and named
-    assert "'Inside the SeNate'" in failed(az)["text-complete"]
+    # W16: its sub-headings ("Inside the Senate", "Azorius Characters") are peers of one another, set alike: no
+    # doubt, Accepted
+    assert not failed(az)
     boros = one(ents, "Boros Legion")
     assert not any(l.page >= 100 for l in boros.lines)  # it ends at the chapter 3 title
 
@@ -220,10 +221,49 @@ def test_types_come_only_from_a_direct_plural_parent():
 
 
 def test_stat_block_parts_are_no_world_sections():
-    """W14: MM p123's Duergar "Actions" (monster action text) is the Monster's, never Lore, even with no claims."""
+    """W14: MM p123's Duergar "Actions" (monster action text) is the Monster's, never Lore, even with no claims; W16:
+    a section that holds stat block lines is kept and flagged, never dropped."""
     ents, _ = _parse("mm", [123], "mm14", "MM")
     assert not [e for e in ents if e.name in ("Actions", "Reactions", "Legendary Actions")]
-    assert not [e for e in ents if "Weapon Attack" in e.text or "Hit:" in e.text]
+    for e in ents:
+        if "Weapon Attack:" in e.text:
+            assert "stat block" in failed(e).get("text-complete", ""), e.name
+
+
+def test_a_stat_block_inside_lore_is_flagged_not_dropped():
+    """W16: EGW "Story Overview" prints an NPC's stat block inside its lore: the section stays, text-complete names
+    the block's lines."""
+    ents, _ = _parse("egw", [236, 237], "egw", "EGW")
+    so = one(ents, "Story Overview")
+    reason = failed(so)["text-complete"]
+    assert "stat block" in reason and "Melee Weapon Attack" in reason
+
+
+def test_prose_naming_an_attack_is_no_stat_block():
+    """W16: the stat block's own forms only, case as printed, two within a few lines: prose that names "a melee
+    weapon attack" (or one stray "Hit:") keeps its section whole and Accepted."""
+    from bookextractor.model import Line
+    from bookextractor.parsers.world import _stat_block
+
+    def L(t, y):
+        return Line(text=t, box=(0.0, float(y), 500.0, float(y) + 30.0), height=30.0, page=1)
+
+    prose_lines = [L("Champions of the arena", 0), L("A gladiator who makes a melee weapon attack against a", 40),
+                   L("rival earns the crowd's favour. Hit: the crowd roars.", 80)]
+    assert _stat_block(prose_lines) == []
+    block = prose_lines + [L("Slam. Melee Weapon Attack: +6 to hit, reach 5 ft.,", 120),
+                           L("one target. Hit: 9 (1d10 + 4) bludgeoning damage.", 160)]
+    assert len(_stat_block(block)) == 2
+
+
+def test_a_recurring_sub_heading_is_no_entry():
+    """W16: ERLW "Symbol" (p144), a sub-heading every faith prints, read as an entry under "Khorvaire": entry-level
+    fails naming its recurrence (and its RITES / TEMPLES siblings fail text-complete)."""
+    ents, _ = _parse("erlw", [104, 141, 142, 143, 144, 145, 146, 147, 148], "erlw", "ERLW")
+    sym = next(e for e in ents if e.name == "Symbol" and e.lines[0].page == 144)
+    assert "recurs" in failed(sym)["entry-level"]
+    assert "'RITES'" in failed(sym)["text-complete"]
+    assert check(one(ents, "Cults of the Dragon Below"), "entry-level").passed
 
 
 def test_a_lost_chapter_title_types_nothing():
