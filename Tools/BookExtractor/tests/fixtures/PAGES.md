@@ -51,3 +51,10 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | phb | 048 | Barbarian class table (Rages, Rage Damage columns) |
 | phb | 072 | Fighter class table (OCR noise: `416` for 9th, `E+` for a bonus) |
 | phb | 114 | Wizard class table (cantrips known and nine spell slot columns) |
+| phb | 046, 047, 049, 050 | Barbarian chapter: Chapter 3 opener, class heading, class features, Primal Paths heading |
+| phb | 071, 073 | Fighter chapter heading; features and Martial Archetypes heading |
+| phb | 113, 115, 116 | Wizard chapter heading; features and Arcane Traditions heading |
+| phb | 058 | Cleric class table (a long Features cell overhanging its header) |
+| phb | 066 | Druid class table (first-row cell starting above the last header's bottom) |
+| phb | 076, 077, 078, 079, 080 | Monk chapter; table where the OCR dropped the `3rd` level cell |
+| tce | 009, 010, 011, 012, 013, 014, 015 | Artificer class (Class Features heading after the Hit Points block, multiclassing printed) |

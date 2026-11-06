@@ -28,7 +28,7 @@
     "classFeatures": {
       "type": ["array", "null"],
       "items": {
-        "type": "object",
+        "type": ["string", "object"],
         "additionalProperties": true,
         "properties": {
           "classFeature": { "type": "string" },

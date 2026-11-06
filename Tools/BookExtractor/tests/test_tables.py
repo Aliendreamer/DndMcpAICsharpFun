@@ -58,3 +58,24 @@ def test_subclass_levels_match_5etools():
 
 def test_ordinal():
     assert [ordinal(x) for x in ("1st", "lst", "2nd", "3rd", "20th", "x")] == [1, 1, 2, 3, 20, None]
+
+
+def test_line_running_into_next_column_is_split():
+    t = read_table(page(48), "Level")
+    assert t.rows[19][2] == "Primal Champion" and t.rows[19][3] == "Unlimited"
+
+
+def test_long_cell_overhanging_its_header_stays_whole():
+    assert read_table(page(114), "Level").rows[0][2] == "Spellcasting, Arcane Recovery"
+    assert read_table(page(58), "Level").rows[7][2] == \
+        "Ability Score Improvement, Destroy Undead (CR 1), Divine Domain feature"
+
+
+def test_first_row_cell_starting_above_header_bottom():
+    assert read_table(page(66), "Level").rows[0][2] == "Druidic, Spellcasting"
+
+
+def test_dropped_level_cell_keeps_later_rows():
+    t = read_table(page(78), "Level")   # the OCR lost the Monk's "3rd"
+    assert len(t.rows) == 20 and t.rows[2][0] == "" and t.rows[3][0] == "4th"
+    assert t.rows[2][5] == "Monastic Tradition, Deflect Missiles"
