@@ -37,8 +37,8 @@ from dataclasses import dataclass, field
 
 from ..model import Line
 from . import ParseContext
-from .charcommon import (SENTENCE_END, caps_heading, char_width, character_body, median_height, name_case,
-                         set_apart, text_lines, title_case, vertical)
+from .charcommon import (SENTENCE_END, caps_heading, char_width, character_body, heading_like, median_height,
+                         name_case, set_apart, text_lines, title_case, vertical)
 
 # "Chapter 2: Guilds of Ravnica", "CHAPTER 1:", "CHAPTER1", "APPENDIX A: CONDITIONS" (never "chapter 3." in a
 # sentence: the word is capitalised and a bare number is not followed by a full stop or bracket)
@@ -138,7 +138,8 @@ def _heading_text(t: str) -> bool:
     return title_case(t) or caps_heading(t)
 
 
-def _prose(t: str) -> bool:
+def prose(t: str) -> bool:
+    """Prose, not a heading or a table row: three lower-case words at least."""
     return sum(w[:1].islower() for w in t.split()) >= 3
 
 
@@ -155,7 +156,7 @@ def _joined(L: list[Line], i: int) -> int:
     tb = b.text.strip()
     if a.text.rstrip().endswith(",") or a.text.split()[-1].lower() in {"of", "the", "and", "a", "an", "to", "in",
                                                                       "on", "for", "with", "at", "by", "&"}:
-        return 2 if tb[:1].isupper() and not _prose(tb) else 1
+        return 2 if tb[:1].isupper() and not prose(tb) else 1
     return 1
 
 
@@ -176,12 +177,12 @@ def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) 
     if k >= len(L):
         return 0
     # prose under it (an epigraph may open with a line in caps: "OfficeR LaVinia stood Before tHe ENorMous")
-    if _prose(L[k].text) or k + 1 < len(L) and _prose(L[k + 1].text) and not _heading_text(L[k].text):
+    if prose(L[k].text) or k + 1 < len(L) and prose(L[k + 1].text) and not _heading_text(L[k].text):
         return n
     # straight over a smaller heading that is over prose ("Azorius Senate" / "Inside the Senate" / ...)
     nb = _joined(L, k)
     tb = re.sub(r"\s*,$", "", " ".join(L[j].text.strip() for j in range(k, k + nb)))
-    if _heading_text(tb) and _size(L[k], med) < _size(a, med) and k + nb < len(L) and _prose(L[k + nb].text):
+    if _heading_text(tb) and _size(L[k], med) < _size(a, med) and k + nb < len(L) and prose(L[k + nb].text):
         return n
     return 0
 
@@ -227,8 +228,8 @@ def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
         return []
     med = median_height(L)
     # body text's size: the median size of the lines long enough to be prose
-    prose = sorted(_size(l, med) for l in L if len(l.text) >= 30 and _prose(l.text))
-    body_size = prose[len(prose) // 2] if prose else 0.4
+    sized = sorted(_size(l, med) for l in L if len(l.text) >= 30 and prose(l.text))
+    body_size = sized[len(sized) // 2] if sized else 0.4
     # a chapter starts at the first of its title's lines; its title lines are no heading
     starts: dict[str, int] = {}
     for i, l in enumerate(L):
@@ -259,7 +260,7 @@ def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
         # g - 1: the chapter this group opens with (-1: the text before the first chapter title)
         gap = gaps.get(g - 1)
         if gap:
-            chapter = _UNKNOWN_CHAPTER
+            chapter = UNKNOWN_CHAPTER
         hs = [(i, n) for i, n in heads if c0 <= i < c1]
         if not hs:
             continue
@@ -294,7 +295,7 @@ def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
     return out
 
 
-_UNKNOWN_CHAPTER = "Chapter ? (title not found)"
+UNKNOWN_CHAPTER = "Chapter ? (title not found)"
 
 
 def _number(title: str) -> tuple[str, int | None]:
@@ -329,4 +330,62 @@ def _chapter_gaps(names: list[str]) -> dict[int, str]:
             for g in range(prev[0] if prev else -1, k):
                 out[g] = label
         last[word] = (k, n)
+    return out
+
+
+# helpers shared by the world-type parsers (rules, world sections)
+_STEP = re.compile(r"^\d{1,2}\.\s*")  # a numbered step heading: "4. Describe Your Character"
+_ART_INSET = 2.0  # an art caption is set in from its column's text edge by this many line heights
+
+
+def line_key(l: Line) -> tuple:
+    """Printed-line identity, as `assemble._line_keys`."""
+    return l.page, tuple(round(x, 1) for x in l.box)
+
+
+def heading_words(t: str) -> bool:
+    """Short title-case or caps words, a numbered step's included ("4. Describe Your Character"), in any OCR casing
+    ("SkIll VarIants", "TRAINING")."""
+    t = _STEP.sub("", t.strip())
+    return heading_like(t) and (title_case(t) or caps_heading(t))
+
+
+def page_column(l: Line, ctx: ParseContext) -> int:
+    pg = ctx.pages.get(l.page)
+    return int((l.box[0] + l.box[2]) / 2 > (pg.width / 2 if pg else 800))
+
+
+def drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
+    """Without the art text printed in the column (a handwritten note, a picture's words: XGE "when minions come
+    back from"): short lines set well in from the column's text edge, after a wide gap or another such line."""
+    edges: dict[tuple[int, int], float] = {}
+    for l in own:
+        if len(l.text) >= 30 and prose(l.text):
+            k = (l.page, page_column(l, ctx))
+            edges[k] = min(edges.get(k, l.box[0]), l.box[0])
+    out: list[Line] = []
+    art = False
+    for i, l in enumerate(own):
+        edge = edges.get((l.page, page_column(l, ctx)))
+        prev = own[i - 1] if i else None
+        gap = prev is not None and prev.page == l.page and l.box[1] - prev.box[1] >= 3 * l.height
+        inset = edge is not None and l.box[0] - edge > _ART_INSET * l.height and len(l.text.strip()) < 45
+        art = i > 0 and inset and (gap or art)
+        if not art:
+            out.append(l)
+    return out
+
+
+def drop_dangling(own: list[Line], raw: list[Line], heads: int, starts: set[int]) -> list[Line]:
+    """Without a table caption whose rows are not the rule's ("ChelDar's Plans" straight over the "Downtime
+    Activities" heading; "BUilding A STrongholD" at an activity's end): heading words the reader did not read as a
+    heading, that end the rule's text, are followed by a line that is not the next printed one, or are followed by
+    a heading."""
+    nxt = {id(a): b for a, b in zip(raw, raw[1:])}
+    out: list[Line] = []
+    for i, l in enumerate(own):
+        if i >= heads and id(l) not in starts and heading_words(l.text) and not prose(l.text) and \
+                (i + 1 == len(own) or nxt.get(id(l)) is not own[i + 1] or id(own[i + 1]) in starts):
+            continue
+        out.append(l)
     return out

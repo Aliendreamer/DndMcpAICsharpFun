@@ -71,7 +71,7 @@ from .charcommon import SENTENCE_END, caps_heading, heading_like, name_case, pro
 from .equipment import _table_checks
 from .item import _is_type_line
 from .monster import _is_size_line
-from .sections import Section, read_sections
+from .sections import Section, line_key, read_sections
 
 # Every cleric domain the 16 books print (5etools class-cleric.json subclasses of these sources: PHB Knowledge,
 # Life, Light, Nature, Tempest, Trickery, War; DMG Death; SCAG Arcana; XGE Forge, Grave; GGR/TCE Order; TCE Peace,
@@ -433,7 +433,7 @@ def own_span(s: Section, others: list[Section], names: set[str] = frozenset(),
     end, kept = len(lines), []  # kept: (line index, heading)
     for k in range(1, len(lines)):
         l = lines[k]
-        if id(l) in deity or _names_a_god(lines, k, names) or _key(l) in claimed:
+        if id(l) in deity or _names_a_god(lines, k, names) or line_key(l) in claimed:
             end = k
             break
         head = other.get(id(l)) or (l.text.strip() if _inner_heading(lines, k, own_name) else None)
@@ -457,10 +457,6 @@ def own_span(s: Section, others: list[Section], names: set[str] = frozenset(),
                                                                  and tall[k + 1])]
         own = [l for l in own if l not in dropped]
     return Span(own=own, kept=kept_heads, dropped=dropped)
-
-
-def _key(l: Line) -> tuple:
-    return l.page, tuple(round(x, 1) for x in l.box)
 
 
 def _own_lines(s: Section, others: list[Section], names: set[str] = frozenset(),

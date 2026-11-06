@@ -6,7 +6,8 @@ from bookextractor.layout import reading_order
 from bookextractor.model import Line, load_ocr_page
 from bookextractor.pages import classify_page
 from bookextractor.parsers import ParseContext
-from bookextractor.parsers.god import _key, _own_lines, own_span, parse_gods
+from bookextractor.parsers.god import _own_lines, own_span, parse_gods
+from bookextractor.parsers.sections import line_key
 from bookextractor.parsers.sections import Section, read_sections
 from bookextractor.parsers.item import parse_items
 
@@ -237,7 +238,7 @@ def test_a_god_keeps_its_own_sub_sections():
     # a group of gods ends it; so does a line another entity claims
     subs[1].title = "The Gods of Mulhorand"
     assert own_span(host, [host], sections=[host] + subs).own == lines[:lines.index(dogma)]
-    claimed = {_key(prose[5])}
+    claimed = {line_key(prose[5])}
     assert own_span(host, [host], sections=[host], claimed=claimed).own == lines[:lines.index(prose[5])]
 
 
