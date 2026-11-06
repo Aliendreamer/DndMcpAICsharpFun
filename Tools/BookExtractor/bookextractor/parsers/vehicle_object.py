@@ -31,7 +31,7 @@ from ..layout import fix_digits
 from ..model import Line, Page
 from . import ParseContext, Parsed
 from .charcommon import SENTENCE_END, heading_like, indented, squash, tidy_case, title_case
-from .equipment import cost_check, cost_value, weight_value
+from .equipment import cost_check, cost_value, is_heading, weight_value
 from .monster import _after_label, _damage_list, _is_heading_caps, _join_text, _lab, _speed_field, _title
 
 _SIZES = {"tiny": "T", "small": "S", "medium": "M", "large": "L", "huge": "H", "gargantuan": "G"}
@@ -408,6 +408,63 @@ def _prose_vehicles(L: list[Line]) -> list[Parsed]:
     return out
 
 
+_SHIP_LINE = re.compile(r"^(?P<label>[A-Z][A-Za-z ]*?):\s*(?P<value>\S.*)$")
+
+
+def _stat_line_ships(L: list[Line]) -> list[Parsed]:
+    """A heading over "Purchase Cost: / Speed: N mph / Maximum Cargo: N tons / Crew: / Maximum Passenger
+    Occupancy:" lines (EGW Skyship): a SHIP with `cost`, `pace`, `capCargo`, `capPassenger` and `capCrew`. A crew
+    printed as a range ("6-10") sets no `capCrew`; a passing `crew-range` check records it. The other lines
+    (travel and shipping costs) are its `entries`."""
+    out: list[Parsed] = []
+    for i in range(1, len(L)):
+        if not re.match(r"^Purchase Cost:", L[i].text.strip()) or not is_heading(L, i - 1):
+            continue
+        stats: list[tuple[str, str]] = []
+        j = i
+        while j < len(L) and L[j].page == L[i].page and (m := _SHIP_LINE.match(L[j].text.strip())):
+            stats.append((m.group("label").strip().lower(), m.group("value").strip()))
+            j += 1
+        st = dict(stats)
+        name = _title(L[i - 1].text.strip())
+        f: dict = {"vehicleType": "SHIP"}
+        bad: list[str] = []
+        checks = [cost_check(st["purchase cost"], name)]
+        _set(f, "cost", cost_value(st["purchase cost"]))
+        speed = re.fullmatch(r"(\d+)\s*mph", fix_digits(st.get("speed", "")))
+        if speed:
+            f["pace"] = int(speed.group(1))
+        elif "speed" in st:
+            bad.append(f"Speed {st['speed']!r}")
+        cargo = re.fullmatch(r"(\d+(?:\.\d+)?)\s*tons?", fix_digits(st.get("maximum cargo", "")))
+        if cargo:
+            f["capCargo"] = _number(cargo.group(1))
+        elif "maximum cargo" in st:
+            bad.append(f"Maximum Cargo {st['maximum cargo']!r}")
+        pax = st.get("maximum passenger occupancy", "")
+        if re.fullmatch(r"\d+", fix_digits(pax)):
+            f["capPassenger"] = int(fix_digits(pax))
+        elif pax:
+            bad.append(f"Maximum Passenger Occupancy {pax!r}")
+        crew = fix_digits(st.get("crew", ""))
+        if re.fullmatch(r"\d+", crew):
+            f["capCrew"] = int(crew)
+        elif re.fullmatch(r"\d+\s*[-–]\s*\d+", crew):
+            checks.append(Check("crew-range", True, f"the crew of {name!r} is a range ({crew}): no capCrew"))
+        elif crew:
+            bad.append(f"Crew {crew!r}")
+        known = {"purchase cost", "speed", "maximum cargo", "maximum passenger occupancy", "crew"}
+        ents = [L[k].text.strip() for k in range(i, j) if stats[k - i][0] not in known]
+        if ents:
+            f["entries"] = ents
+        checks.append(Check("vehicle-stats-valid", not bad, f"unreadable statistics of {name!r}: {'; '.join(bad)}"
+                            if bad else ""))
+        out.append(Parsed(type="VehicleMount", name=name, fields=f,
+                          text="\n".join([name] + [L[k].text.strip() for k in range(i, j)]), lines=L[i - 1:j],
+                          checks=checks))
+    return out
+
+
 def parse_vehicles(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     out = _ship_tables(ctx)
     for name, size, stats, n, c, e, _ in _blocks(body):
@@ -428,4 +485,5 @@ def parse_vehicles(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         text = f"{name}. " + " ".join(l.text.strip() for l in body[n:e])
         out.append(Parsed(type="VehicleMount", name=name, fields=f, text=text, lines=body[n:e], checks=checks))
     out += _prose_vehicles(body)
+    out += _stat_line_ships(body)
     return out

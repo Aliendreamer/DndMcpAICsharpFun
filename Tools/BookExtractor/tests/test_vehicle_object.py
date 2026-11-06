@@ -18,6 +18,8 @@ BOOKS = {
     "dmg": ("dmg14", "DMG", [119, 151, 255, 256]),
     # 090-091: githyanki astral ships described in prose
     "mtf": ("mtf", "MTF", [90, 91]),
+    # 073: the Skyship heading over "Purchase Cost: / Speed: / Maximum Cargo: / Crew: ..." lines
+    "egw": ("egw", "EGW", [73]),
 }
 
 
@@ -164,5 +166,17 @@ def test_unreadable_object_hit_points_fail():
 
 
 def test_schemas():
-    _validate(vehicles("dmg") + vehicles("mtf"), "VehicleMountFields.schema.json")
+    _validate(vehicles("dmg") + vehicles("mtf") + vehicles("egw"), "VehicleMountFields.schema.json")
     _validate(objects("dmg"), "ObjectFields.schema.json")
+
+
+def test_egw_skyship_statistics_lines():
+    ps = vehicles("egw")
+    assert [p.name for p in ps] == ["Skyship"]
+    f = ps[0].fields
+    assert {k: v for k, v in f.items() if k != "entries"} == {
+        "vehicleType": "SHIP", "cost": 10000000, "pace": 10, "capCargo": 10, "capPassenger": 30}
+    assert "Personal Travel Cost: 2 gp per mile per passenger" in f["entries"]
+    assert failed(ps[0]) == []
+    crew = next(c for c in ps[0].checks if c.name == "crew-range")
+    assert crew.passed and "6-10" in crew.reason

@@ -125,3 +125,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | egw | 071, 153, 226 | Goods sidebars of lead-ins: "Herbs of the Othemoor" (hanging indents, "Cost: 3 gp per dose.", Muroosa Balm's two prices), "Blightshore Contraband" ("is valued at 300 gp per dose."), "Alchemical Items" (no price; beside a monster's run-on adventure text) |
 | erlw | 245 | "Narcotics in Sharn" sidebar: Dragon's Blood and Dreamlily lead-ins, "Sharn. The following drugs" mid-sentence |
 | ggr | 010 | Ravnica Currency matrix (Value \| Azorius \| Boros \| Orzhov; wrapped coin names; the 1 ep cell's first line lost to the OCR) |
+| egw | 073 | Skyship heading over "Purchase Cost / Speed / Maximum Cargo / Crew: 6-10 / Maximum Passenger Occupancy / Personal Travel Cost / Shipping Cost" lines |
