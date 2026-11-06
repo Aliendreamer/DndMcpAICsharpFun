@@ -482,3 +482,10 @@ def test_scag_tiefling_variants_score_against_the_printed_options():
     assert any("Feral" in k for k in res["knownDifferences"])
     assert any("Dwarf Duergar" in k and "MTF" in k for k in res["knownDifferences"])
 
+
+
+@needs_5etools
+def test_mtf_asmodeus_prints_no_trait_block():
+    res = score_book("mtf", [], FT, "Subrace")
+    assert "Tiefling Asmodeus" not in res["missing"]
+    assert any("not printed as a trait block" in k and "Asmodeus" in k for k in res["knownDifferences"])

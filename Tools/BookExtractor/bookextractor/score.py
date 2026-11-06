@@ -61,6 +61,8 @@ NOT_PRINTED: dict[tuple[str, str], str] = {
     ("vrgr", "Isolde"): "the book says she uses the cambion stat block with changes",
     **{("scag", f"Half-Elf Variant; {d} Descent"): _SCAG_HALF_ELF
        for d in ("Aquatic Elf", "Drow", "Moon Elf or Sun Elf", "Wood Elf")},
+    ("mtf", "Tiefling Asmodeus"): ("not printed as a trait block: Asmodeus tieflings use the Player's Handbook "
+                                   "tiefling traits"),
     ("scag", "Tiefling Variant; Infernal Legacy"): (
         "not printed as an option: it stands for the Feral and Appearance options with the Player's Handbook "
         "Infernal Legacy trait"),
