@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 THRESHOLD = 0.95
-TYPES = ("Monster", "Spell", "MagicItem")
+# the extractor's types (assemble.ALL_TYPES), counted even when a run produced none of one
+TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat", "Background")
 
 
 def build_report(book: str, pages_total: int, pages_rules: int, pages_covered: int,

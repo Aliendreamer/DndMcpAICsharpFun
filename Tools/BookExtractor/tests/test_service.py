@@ -117,3 +117,8 @@ def test_service_never_imports_score():
                           "import sys, bookextractor.service; print('bookextractor.score' in sys.modules)"],
                          capture_output=True, text=True, check=True)
     assert out.stdout.strip() == "False"
+
+
+def test_default_types_include_character_types():
+    for t in ("Class", "Subclass", "Race", "Subrace", "Feat", "Background"):
+        assert t in service.ALL_TYPES

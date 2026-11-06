@@ -20,7 +20,7 @@ def main(argv: list[str] | None = None) -> int:
     ex.add_argument("--out", type=Path, required=True)
     ex.add_argument("--threads", type=int, default=4)
     ex.add_argument("--processes", type=int, default=2)
-    ex.add_argument("--types", default=",".join(ALL_TYPES), help="comma list of Monster,Spell,MagicItem")
+    ex.add_argument("--types", default=",".join(ALL_TYPES), help="comma list of " + ",".join(ALL_TYPES))
     sc = sub.add_parser("score", help="dev: score an extract output against 5etools")
     sc.add_argument("book", help="5etools source key, lower case, e.g. mm, phb, dmg, mpmm")
     sc.add_argument("extract_output", type=Path)

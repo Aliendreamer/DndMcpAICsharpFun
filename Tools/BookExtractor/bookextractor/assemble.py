@@ -12,12 +12,18 @@ from .model import Line, Page
 from .names import Vocabulary, build_vocabulary, own_heading_counts, repair_name
 from .pages import classify_page, is_table_page
 from .parsers import ParseContext, Parsed
+from .parsers.background import parse_backgrounds
+from .parsers.charclass import parse_classes
+from .parsers.feat import parse_feats
 from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
+from .parsers.race import parse_races
 from .parsers.spell import parse_spells
+from .parsers.subclass import parse_subclasses
 from .report import build_report
 
-ALL_TYPES = ("Monster", "Spell", "MagicItem")
+ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
+             "Background")
 PROSE_LINES_PER_PAGE = 10
 SOURCE_BY_SLUG = {
     "phb14": "PHB", "mm14": "MM", "dmg14": "DMG", "mpmm": "MPMM", "mtf": "MTF", "ftd": "FTD", "bgg": "BGG",
@@ -28,7 +34,16 @@ _PARSERS: dict[str, Callable[[list[Line], ParseContext], list[Parsed]]] = {
     "Monster": lambda body, ctx: parse_monsters(body),
     "Spell": lambda body, ctx: parse_spells(body),
     "MagicItem": lambda body, ctx: parse_items(body),
+    "Class": parse_classes,
+    "Subclass": parse_subclasses,
+    "Race": lambda body, ctx: [p for p in _races(body, ctx) if p.type == "Race"],
+    "Subrace": lambda body, ctx: [p for p in _races(body, ctx) if p.type == "Subrace"],
+    "Feat": parse_feats,
+    "Background": parse_backgrounds,
 }
+# feature-ref lists whose part 0 (the feature name) is checked against the book vocabulary
+_FEATURE_REFS = {"Class": ("classFeatures", "classFeature"), "Subclass": ("subclassFeatures", "subclassFeature")}
+_DIE_NOTE = re.compile(r"\s+\(d\d+\)$")
 _DICE_LIKE = re.compile(r"\b[0-9SOolIZB]+d[0-9SOolIZB]+\b")
 _MIXED = re.compile(r"\b(?:[0-9]+[SOolIZB]+|[SOolIZB]+[0-9]+)[0-9SOolIZB]*\b")
 _NUMERIC_KEYS = {"formula": re.compile(r"\d+d\d+(?:\s*[+-]\s*\d+)?"), "cr": re.compile(r"[\d/]+")}
@@ -36,6 +51,13 @@ _NUMERIC_KEYS = {"formula": re.compile(r"\d+d\d+(?:\s*[+-]\s*\d+)?"), "cr": re.c
 _PLAIN_NUMBER = re.compile(r"[+-]?\d+(?:[./,]\d+)*")
 _NUMBER_KEYS = {"ac", "average", "passive", "str", "dex", "con", "int", "wis", "cha", "level", "number",
                 "amount", "walk", "fly", "swim", "climb", "burrow", "hover"}
+
+
+def _races(body: list[Line], ctx: ParseContext) -> list[Parsed]:
+    """One parse_races call per extraction gives both the Race and the Subrace records."""
+    if "races" not in ctx.cache:
+        ctx.cache["races"] = parse_races(body, ctx)
+    return ctx.cache["races"]
 
 
 @dataclass
@@ -119,6 +141,50 @@ def _replace_heading(text: str, old_name: str, new_name: str) -> str:
     return text
 
 
+def _feature_name_checks(p: Parsed, vocab: Vocabulary) -> list[Check]:
+    """Repair each feature ref's name (part 0) from the book vocabulary, as entity names are, and flag the
+    names that still hold misread words. Only part 0 changes; the rest of the ref is kept as printed.
+
+    Unlike an entity name, the feature's own heading is not subtracted from the vocabulary: a word is known when
+    the book prints it at least twice in all, heading included. A misread is one-off, so it still fails, while a
+    real word a book prints only in its feature heading and once more (XGE "Hearth", "Duelist") is not flagged."""
+    key, obj_key = _FEATURE_REFS[p.type]
+    refs = p.fields.get(key)
+    if not isinstance(refs, list):
+        return []
+    repaired: list[str] = []
+    unknown: list[str] = []
+    unattested: list[str] = []
+    out = []
+    for r in refs:
+        ref = r.get(obj_key) if isinstance(r, dict) else r
+        if not isinstance(ref, str) or not ref.split("|")[0].strip():
+            out.append(r)
+            continue
+        raw, sep, rest = ref.partition("|")
+        # a printed die annotation ("Song of Rest (d6)", the 5etools ref keeps it) is not a word to check
+        m = _DIE_NOTE.search(raw)
+        word_part, note = (raw[:m.start()], raw[m.start():]) if m else (raw, "")
+        res = repair_name(word_part, vocab, Vocabulary())
+        if res.repaired:
+            repaired.append(f"{word_part!r} -> {res.name!r}")
+            ref = res.name + note + sep + rest
+        if res.unknown:
+            unknown.append(f"{res.name!r} ({', '.join(res.unknown)})")
+        unattested += [w for w in res.unattested if w not in unattested]
+        out.append({**r, obj_key: ref} if isinstance(r, dict) else ref)
+    p.fields[key] = out
+    checks = []
+    if repaired:
+        checks.append(Check("feature-name-repaired", True, "; ".join(repaired)))
+    if unknown:
+        checks.append(Check("feature-names-known", False, "unknown words in feature names: " + "; ".join(unknown)))
+    else:
+        checks.append(Check("feature-names-known", True, "" if not unattested
+                            else "printed only once in the book: " + ", ".join(unattested)))
+    return checks
+
+
 def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) -> tuple[str, list[Check]]:
     p.fields = _repair_digits(p.fields)
     p.text = fix_digits(p.text)
@@ -144,12 +210,17 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
         checks.append(Check("name-words-known", not res.unknown, why))
     else:
         checks.append(Check("name-words-known", False, "no name to check"))
+    if p.type in _FEATURE_REFS:
+        checks += _feature_name_checks(p, vocab)
     checks.append(Check("text-present", len(p.text.strip()) >= 30, "" if len(p.text.strip()) >= 30
                         else "entity text is empty or too short"))
     bad = _numeric_problems(p.fields)
     checks.append(Check("numeric-clean", not bad, "" if not bad else "letters in numeric values: " + "; ".join(bad[:4])))
     page = p.lines[0].page if p.lines else 0
-    base = f"{book_slug}.{p.type.lower()}.{slugify(name) or f'unnamed-{page}'}"
+    # a subrace's id names its race too: "Hill Dwarf" of "Dwarf" -> phb14.subrace.dwarf-hill-dwarf
+    race = p.fields.get("raceName") if p.type == "Subrace" and name.strip() else None
+    id_name = f"{race} {name}" if isinstance(race, str) and race.strip() else name
+    base = f"{book_slug}.{p.type.lower()}.{slugify(id_name) or f'unnamed-{page}'}"
     seen[base] += 1
     eid = base if seen[base] == 1 else f"{base}-{seen[base]}"
     checks.append(Check("unique-id", seen[base] == 1,

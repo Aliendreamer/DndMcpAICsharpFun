@@ -62,7 +62,7 @@ def test_report_warning():
     assert r["passingShare"] == pytest.approx(0.9) and r["coverageShare"] == 1.0
     assert len(r["warnings"]) == 1 and "90.0%" in r["warnings"][0] and "under 95%" in r["warnings"][0]
     assert r["failed"] == [{"id": "b.spell.s0", "checks": ["c"]}]
-    assert r["counts"] == {"Monster": 0, "Spell": 10, "MagicItem": 0}
+    assert r["counts"]["Spell"] == 10 and r["counts"]["Monster"] == 0 and r["counts"]["Class"] == 0
 
 
 def test_non_rules_pages_excluded():
@@ -132,3 +132,112 @@ def test_unrepairable_numeric_still_fails():
 def test_dmg_coverage_counts_tables_and_excludes_maps_and_index():
     r = extract_book(pages("dmg", 95, 137, 163, 310, 317), "dmg14", {"MagicItem"})
     assert r.report["pagesRules"] == 2 and r.report["pagesCovered"] == 2
+
+
+# ---------- character types (Phase 2a) ----------
+CHAR_SCHEMAS = {"Class": "ClassFields", "Subclass": "SubclassFields", "Race": "RaceFields",
+                "Subrace": "SubraceFields", "Feat": "FeatFields", "Background": "BackgroundFields"}
+PHB_CHAR_PAGES = (19, 20, 21, 22, 46, 47, 48, 49, 50, 51, 128, 129, 166, 167, 168)
+
+
+def test_character_types_registered():
+    from bookextractor.assemble import ALL_TYPES
+    assert ALL_TYPES == ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
+                         "Background")
+
+
+def test_phb_character_ids_and_schemas():
+    import json
+
+    import jsonschema
+    from bookextractor.assemble import ALL_TYPES
+    r = extract_book(pages("phb", *PHB_CHAR_PAGES), "phb14", set(ALL_TYPES))
+    for eid in ("phb14.class.barbarian", "phb14.race.dwarf", "phb14.subrace.dwarf-hill-dwarf",
+                "phb14.background.acolyte", "phb14.feat.heavily-armored"):
+        by_id(r, eid)
+    assert by_id(r, "phb14.subrace.dwarf-hill-dwarf")["name"] == "Hill Dwarf"
+    ids = [e["id"] for e in r.entities]
+    assert len(ids) == len(set(ids))
+    root = Path(__file__).parents[3] / "Schemas" / "canonical"
+    for e in r.entities:
+        if e["type"] in CHAR_SCHEMAS:
+            sch = json.loads((root / f"{CHAR_SCHEMAS[e['type']]}.schema.json").read_text(encoding="utf-8"))
+            jsonschema.validate(e["fields"], sch)
+    assert r.report["counts"]["Class"] == 1 and r.report["counts"]["Subrace"] >= 2
+
+
+def test_races_parsed_once_for_race_and_subrace(monkeypatch):
+    from bookextractor import assemble
+    from bookextractor.parsers import race
+    calls = []
+    real = race.parse_races
+
+    def counting(body, ctx):
+        calls.append(1)
+        return real(body, ctx)
+    monkeypatch.setattr(assemble, "parse_races", counting)
+    r = extract_book(pages("phb", 19, 20, 21, 22), "phb14", {"Race", "Subrace"})
+    assert len(calls) == 1
+    assert {e["type"] for e in r.entities} == {"Race", "Subrace"}
+
+
+def _feature_checks(t: str, fields: dict, vocab_text: str):
+    from collections import Counter
+
+    from bookextractor.assemble import _id_and_checks
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import Parsed
+    p = Parsed(type=t, name="Bard", fields=fields, text="Bard " + "x " * 30, lines=[])
+    _eid, checks = _id_and_checks(p, "phb14", Counter(), build_vocabulary([vocab_text] * 3))
+    return p, {c.name: c for c in checks}
+
+
+def test_feature_ref_glue_repaired_from_vocabulary():
+    p, cs = _feature_checks("Class", {"classFeatures": [
+        "Song of Rest|Bard||2",
+        {"classFeature": "Bard College|Bard||3", "gainSubclassFeature": True},
+        "Magical Secretsof|Bard||10"]}, "bard song of rest college magical secrets of")
+    assert p.fields["classFeatures"][2] == "Magical Secrets of|Bard||10"
+    assert p.fields["classFeatures"][1] == {"classFeature": "Bard College|Bard||3", "gainSubclassFeature": True}
+    assert cs["feature-name-repaired"].passed and "Secretsof" in cs["feature-name-repaired"].reason
+    assert cs["feature-names-known"].passed
+
+
+def test_feature_ref_unknown_word_fails_naming_it():
+    _p, cs = _feature_checks("Subclass", {"subclassFeatures": [
+        "College of Lore|Bard||Lore||3", "Additional Magigal Secrets|Bard||Lore||6"]},
+        "bard college of lore additional magical secrets")
+    c = cs["feature-names-known"]
+    assert not c.passed and "Additional Magigal Secrets" in c.reason and "Magigal" in c.reason
+
+
+def test_feature_names_check_only_on_class_and_subclass():
+    _p, cs = _feature_checks("Feat", {"entries": []}, "bard")
+    assert "feature-names-known" not in cs
+
+
+def test_feature_die_annotation_is_not_a_word():
+    p, cs = _feature_checks("Class", {"classFeatures": ["Song of Rest (d6)|Bard||2", "Song of Rest (d8)|Bard||9"]},
+                            "bard song of rest")
+    assert cs["feature-names-known"].passed, cs["feature-names-known"].reason
+    assert p.fields["classFeatures"] == ["Song of Rest (d6)|Bard||2", "Song of Rest (d8)|Bard||9"]
+
+
+def test_feature_word_printed_in_heading_and_once_more_is_known():
+    from collections import Counter
+
+    from bookextractor.assemble import _id_and_checks
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import Parsed
+    # "hearth" (one letter from the common "heart") is printed twice in all: its feature heading and one more
+    # line; "magigal" only once
+    vocab = build_vocabulary(["Hearth of Shadow", "a hearth fire", "Magigal Ambush"]
+                             + ["swashbuckler heart of shadow magical ambush"] * 3)
+    p = Parsed(type="Subclass", name="Swashbuckler", fields={"subclassFeatures": [
+        "Hearth of Shadow|Rogue||Swashbuckler|XGE|17"]}, text="Swashbuckler " + "x " * 30, lines=[])
+    _e, checks = _id_and_checks(p, "xge", Counter(), vocab)
+    assert next(c for c in checks if c.name == "feature-names-known").passed
+    p.fields = {"subclassFeatures": ["Magigal Ambush|Rogue||Swashbuckler|XGE|9"]}
+    _e, checks = _id_and_checks(p, "xge", Counter(), vocab)
+    c = next(c for c in checks if c.name == "feature-names-known")
+    assert not c.passed and "Magigal" in c.reason

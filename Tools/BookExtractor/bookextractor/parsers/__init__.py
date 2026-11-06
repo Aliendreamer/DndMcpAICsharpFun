@@ -24,3 +24,4 @@ class ParseContext:
     slug: str
     source: str  # 5etools source key, e.g. "PHB"
     pages: dict[int, Page]  # raw, un-ordered pages by number
+    cache: dict = field(default_factory=dict)  # per-extraction results shared between types (races)
