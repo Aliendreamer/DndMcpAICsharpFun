@@ -124,6 +124,20 @@ class _Lexicon:
                 return True
         return False
 
+    def inflected_pair(self, a: str, b: str) -> bool:
+        """The two words occur next to each other with the second inflected ("elegant maneuvers" in the body is
+        evidence for a glued heading "Elegantmaneuver")."""
+        return self.pair_count(a, b + "s") >= 1 or (len(b) > 3 and b.endswith("s") and self.pair_count(a, b[:-1]) >= 1)
+
+    def glued(self, w: str) -> tuple[str, str] | None:
+        """Two known words of 4+ letters each that `w` splits into, with no evidence they belong together (a
+        3-letter tail is mostly a suffix: "attract+ion", "bolster+ing")."""
+        w = w.lower()
+        for i in range(4, len(w) - 3):
+            if self.word_known(w[:i]) and self.word_known(w[i:]):
+                return w[:i], w[i:]
+        return None
+
     def split(self, w: str) -> tuple[str, str] | None:
         """Two known words glued together. Accepted only with evidence: either one part is a glued
         'of'/'and'/'the' (the usual lost space) and the other is a word of 3+ letters, or the two words
@@ -137,7 +151,7 @@ class _Lexicon:
             if not (self.word_known(a) and self.word_known(b)):
                 continue
             glued_small = (a in _GLUED_SMALL and len(b) >= 3) or (b in _GLUED_SMALL and len(a) >= 3)
-            if glued_small or self.pair_count(a, b) >= 1:
+            if glued_small or self.pair_count(a, b) >= 1 or self.inflected_pair(a, b):
                 score = min(self.count(a), self.count(b))
                 if best is None or score > best[0]:
                     best = (score, a, b)
@@ -148,6 +162,11 @@ def _cap(word: str, first: bool) -> str:
     if not first and word.lower() in SMALL_WORDS:
         return word.lower()
     return word[:1].upper() + word[1:]
+
+
+def glued_words(token: str, vocab: Vocabulary) -> tuple[str, str] | None:
+    """The two known words an unattested token splits into ("Elegantmaneuver" -> elegant, maneuver), if any."""
+    return _Lexicon(vocab, Vocabulary()).glued(token)
 
 
 def repair_name(name: str, vocab: Vocabulary, own: Vocabulary | None = None) -> NameResult:

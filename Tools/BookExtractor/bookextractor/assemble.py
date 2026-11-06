@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from .checks import Check
 from .layout import fix_digits, reading_order
 from .model import Line, Page
-from .names import Vocabulary, build_vocabulary, own_heading_counts, repair_name
+from .names import Vocabulary, build_vocabulary, glued_words, own_heading_counts, repair_name
 from .pages import classify_page, is_table_page
 from .parsers import ParseContext, Parsed
 from .parsers.background import parse_backgrounds
@@ -169,9 +169,12 @@ def _feature_name_checks(p: Parsed, vocab: Vocabulary) -> list[Check]:
         if res.repaired:
             repaired.append(f"{word_part!r} -> {res.name!r}")
             ref = res.name + note + sep + rest
-        if res.unknown:
-            unknown.append(f"{res.name!r} ({', '.join(res.unknown)})")
-        unattested += [w for w in res.unattested if w not in unattested]
+        # a feature heading printed once that reads as two known words glued (OCR lost the space) is a misread,
+        # not a coined word: a real coined name is rarely two ordinary words run together
+        glued = [f"{w} = {'+'.join(g)}" for w in res.unattested if (g := glued_words(w, vocab))]
+        if res.unknown or glued:
+            unknown.append(f"{res.name!r} ({', '.join(res.unknown + glued)})")
+        unattested += [w for w in res.unattested if w not in unattested and not glued_words(w, vocab)]
         out.append({**r, obj_key: ref} if isinstance(r, dict) else ref)
     p.fields[key] = out
     checks = []

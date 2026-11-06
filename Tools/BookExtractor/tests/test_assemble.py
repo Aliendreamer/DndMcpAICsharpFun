@@ -270,3 +270,30 @@ def test_parser_and_vocabulary_name_repairs_merge_into_one_check():
     _, checks = _id_and_checks(p, "b", Counter(), vocab)
     reps = [c for c in checks if c.name == "name-repaired"]
     assert len(reps) == 1 and "from 2 cues" in reps[0].reason and "then 'Spellscroll' -> 'Spell Scroll'" in reps[0].reason
+
+
+def _glued_checks(vocab_lines):
+    from collections import Counter
+
+    from bookextractor.assemble import _id_and_checks
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import Parsed
+    vocab = build_vocabulary(vocab_lines + ["swashbuckler"] * 3)
+    p = Parsed(type="Subclass", name="Swashbuckler", fields={"subclassFeatures": [
+        "Elegantmaneuver|Rogue||Swashbuckler|SCAG|13"]}, text="Swashbuckler " + "x " * 30, lines=[])
+    _e, checks = _id_and_checks(p, "scag", Counter(), vocab)
+    return p, {c.name: c for c in checks}
+
+
+def test_glued_feature_name_split_on_an_inflected_pair():
+    # SCAG prints "EleGanTManeuVeR" (OCR-glued) and "elegant maneuvers" in the body: the pair evidence is inflected
+    p, cs = _glued_checks(["EleGanTManeuVeR", "elegant maneuvers that fend off harm", "an elegant style",
+                           "a maneuver", "maneuvers"])
+    assert p.fields["subclassFeatures"][0].startswith("Elegant Maneuver|"), p.fields
+    assert cs["feature-names-known"].passed and cs["feature-name-repaired"].passed
+
+
+def test_glued_feature_name_of_two_known_words_without_evidence_is_flagged():
+    p, cs = _glued_checks(["EleGanTManeuVeR", "an elegant style", "elegant", "a maneuver", "maneuver"])
+    c = cs["feature-names-known"]
+    assert not c.passed and "Elegantmaneuver" in c.reason, c
