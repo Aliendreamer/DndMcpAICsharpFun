@@ -179,7 +179,7 @@ def test_tools_mounts_tack_and_vessels():
     assert t.fields == {"type": "T", "value": 2500, "weight": 1, "entries": t.fields["entries"]}
     assert t.fields["entries"][0].startswith("This set of tools includes a small file")
     assert get(ps, "Warhorse").fields == {"type": "MNT", "value": 40000}
-    saddle = get(ps, "Saddle, exotic")  # the table mixes tack and vehicles: no type
+    saddle = get(ps, "Saddle, exotic")
     assert saddle.fields["value"] == 6000 and saddle.fields["weight"] == 40 and "type" not in saddle.fields
     # "Saddles." names no row; the rows' names start "Saddle,"
     assert saddle.fields["entries"][0].startswith("A military saddle braces the rider")
@@ -270,8 +270,10 @@ def test_egw_herbs_contraband_and_alchemical_items():
     t = get(ps, "Theki Root")
     assert "type" not in t.fields and t.fields["entries"][0].startswith("This thick marsh root tastes bitter")
     assert t.fields["entries"][-1].endswith("Cost: 3 gp per dose.")
-    for name in ("Blasting Powder", "Explosive Seed"):
-        assert "value" not in get(ps, name).fields and failed(get(ps, name)) == []
+    for name in ("Blasting Powder", "Explosive Seed"):  # no price printed: review whether it is an item
+        assert "value" not in get(ps, name).fields
+        assert [c.name for c in failed(get(ps, name))] == ["goods-attested"]
+        assert "'Alchemical Items'" in failed(get(ps, name))[0].reason
     assert get(ps, "Explosive Seed").fields["entries"][0].endswith("half as much damage on a successful one.")
 
 
@@ -287,7 +289,8 @@ def test_erlw_narcotics_sidebar():
     ps = items("erlw")
     assert sorted(p.name for p in ps) == ["Dragon's Blood", "Dreamlily"]
     d = get(ps, "Dreamlily")
-    assert "value" not in d.fields and failed(d) == []  # "costs around 1 gp, or up to ten times that": no Cost cue
+    # "costs around 1 gp, or up to ten times that" is no Cost cue: no value, and no price attests the item
+    assert "value" not in d.fields and [c.name for c in failed(d)] == ["goods-attested"]
     assert d.fields["entries"][-1].endswith("the duration or the price might vary accordingly.")
     assert get(ps, "Dragon's Blood").fields["entries"][0].startswith("Introduced into Sharn by Daask")
 
@@ -297,7 +300,7 @@ def test_lead_in_continuing_a_sentence_is_not_an_item():
     assert "Sharn" not in [p.name for p in items("erlw")]
 
 
-def test_goods_word_in_a_heading_that_names_no_goods_kind_is_ignored():
+def test_heading_without_a_goods_word_starts_no_goods_section():
     pages = _edit("erlw", 245, "NaRCotICS in ShaRn", "Crime in Sharn", pages=_pages("erlw"))
     assert _run("erlw", pages) == []
 
@@ -316,6 +319,13 @@ def test_currency_cell_missing_its_first_line_is_not_named():
     """The 1 ep row's cell reads only "zib coin" (its first line, "electrum 50-", is lost to the OCR): a name is
     never made from the part of a cell that survived."""
     assert not [p for p in items("ggr") if "zib coin" == p.name.lower()]
+
+
+def test_coin_name_repeated_with_another_value_fails():
+    pages = _edit("ggr", 10, "gold zino", "gold 5-zino coin")  # now under 1 gp as well as 5 gp
+    c = get(_run("ggr", pages), "Gold 5-zino coin")
+    assert [x.name for x in failed(c)] == ["cost-valid"]
+    assert "100" in failed(c)[0].reason and "500" in failed(c)[0].reason
 
 
 # ---------- schema ----------

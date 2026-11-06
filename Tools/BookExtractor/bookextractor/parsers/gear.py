@@ -45,6 +45,7 @@ from .charcommon import SENTENCE_END, indented, prose_entries, title_case
 from .equipment import (_MONEY, ARMOR_HEADERS, WEAPON_HEADERS, _rows, _table_checks, _weapon_tables, cost_check,
                         cost_value, is_heading, money_check, weight_check, weight_value)
 from .monster import _join_text
+from .monster import _title as title_name
 
 # (headers, label column); a more specific header set first: ["Item", "Cost"] also matches the wider tables
 _TABLES: list[tuple[list[str], int]] = [
@@ -155,7 +156,8 @@ def _table_item(r: Row, t: RowTable, suspect: str | None, title: str | None) -> 
         name = f"{group}, {_lower_first(r.label)}"
         checks.append(_from_group(name, f"sub-heading {group!r}", r.label))
     f: dict = {}
-    _set(f, "type", _GROUPS.get(gkey) or (_TITLES.get(title) if title else None))
+    kind = _GROUPS.get(gkey) or (_TITLES.get(title) if title else None)
+    _set(f, "type", kind)
     if "cp" in raw and "Coin" in t.headers:
         if _WHOLE.match(raw["cp"]):
             f["value"] = int(raw["cp"].replace(",", ""))
@@ -539,6 +541,10 @@ def _goods_sections(L: list[Line]) -> list[Parsed]:
                 if len(amounts) == 1:
                     f["value"] = cost_value(amounts[0])
                 checks.append(money_check(amounts, name, f"the price {cue!r}"))
+                checks.append(Check("goods-attested", True))
+            else:
+                checks.append(Check("goods-attested", False, f"the lead-in {name!r} under the goods heading "
+                                    f"{title_name(L[i].text.strip())!r} prints no price: review that it is an item"))
             f["entries"] = ents
             p = Parsed(type="Item", name=name, fields=f,
                        text="\n".join([name] + [x if isinstance(x, str) else "\n".join(x.get("items", []))
@@ -591,7 +597,7 @@ def _currency_matrix(page: Page) -> list[Parsed]:
                 break
             cols.append(l.box[0])
             right = l.box[2]
-        cells: dict[str, tuple[int, list[Line]]] = {}  # name (lower case) -> (value, lines)
+        cells: dict[str, tuple[list[int], list[Line]]] = {}  # name (lower case) -> (row values, lines)
         for k, v in enumerate(vals):
             top = v.box[1] - 0.3 * h
             nxt = vals[k + 1].box[1] - 0.3 * h if k + 1 < len(vals) else bottom
@@ -607,15 +613,20 @@ def _currency_matrix(page: Page) -> list[Parsed]:
                     continue  # the cell's first line is lost
                 label = re.sub(r"-\s+", "-", " ".join(l.text.strip() for l in ls))
                 key = label[:1].upper() + label[1:]
-                if key.lower() in cells:
-                    cells[key.lower()][1].extend(ls)
-                else:
-                    cells[key.lower()] = (value, list(ls))
-        for key, (value, ls) in cells.items():
+                cells.setdefault(key.lower(), ([], []))
+                cells[key.lower()][0].append(value)
+                cells[key.lower()][1].extend(ls)
+        for key, (values, ls) in cells.items():
             name = key[:1].upper() + key[1:]
-            p = Parsed(type="Item", name=name, fields={"type": "$C", "value": value},
-                       text="\n".join([name, f"Value: {value} cp", title[0].text.strip()]), lines=ls, table_row=True)
-            p.checks = [Check("cost-valid", True)]
+            vs = sorted(set(values))
+            f = {"type": "$C"}
+            if len(vs) == 1:
+                f["value"] = vs[0]
+            p = Parsed(type="Item", name=name, fields=f,
+                       text="\n".join([name] + [f"Value: {v} cp" for v in vs] + [title[0].text.strip()]), lines=ls,
+                       table_row=True)
+            p.checks = [Check("cost-valid", len(vs) == 1, "" if len(vs) == 1 else
+                              f"coin {name!r} is printed in rows of different values ({', '.join(f'{v} cp' for v in vs)})")]
             out.append(p)
     return out
 
