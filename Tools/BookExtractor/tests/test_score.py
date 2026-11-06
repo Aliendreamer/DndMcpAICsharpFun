@@ -510,3 +510,12 @@ def test_subclass_printed_elsewhere_is_scored_against_its_stored_record():
 def test_subrace_printed_elsewhere_is_scored_against_its_stored_record():
     res = score_book("scag", [_ent("Subrace", "Duergar", raceName="Dwarf", ability=[{"str": 2}])], FT, "Subrace")
     assert any(d.startswith("Dwarf Duergar: ability wrong") for d in res["diffs"]), res["diffs"]
+
+
+@needs_5etools
+def test_subclass_short_name_keeps_its_spaces():   # a glued "Feywanderer" is not 5etools "Fey Wanderer"
+    t = next(t for t in load_truth("tce", FT, "Subclass") if t["name"] == "Fey Wanderer")
+    r, *_ = score_record("Subclass", {"className": "Ranger", "shortName": "Feywanderer"}, t)
+    assert r["shortName"] is False
+    r, *_ = score_record("Subclass", {"className": "Ranger", "shortName": "fey  wanderer"}, t)
+    assert r["shortName"] is True

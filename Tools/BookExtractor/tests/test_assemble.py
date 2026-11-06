@@ -297,3 +297,33 @@ def test_glued_feature_name_of_two_known_words_without_evidence_is_flagged():
     p, cs = _glued_checks(["EleGanTManeuVeR", "an elegant style", "elegant", "a maneuver", "maneuver"])
     c = cs["feature-names-known"]
     assert not c.passed and "Elegantmaneuver" in c.reason, c
+
+
+def test_subclass_name_repair_reaches_short_name_and_refs():   # TCE "Feywanderer" -> "Fey Wanderer"
+    r = extract_book(pages("tce", 59, 60), "tce", {"Subclass"})
+    e = by_id(r, "tce.subclass.fey-wanderer")
+    assert e["name"] == "Fey Wanderer" and e["fields"]["shortName"] == "Fey Wanderer"
+    refs = e["fields"]["subclassFeatures"]
+    assert refs[0] == "Fey Wanderer|Ranger||Fey Wanderer|TCE|3"
+    assert all(r.split("|")[3] == "Fey Wanderer" for r in refs), refs
+    rep = next(c for c in e["checks"] if c["name"] == "name-repaired")
+    assert rep["passed"] and "shortName 'Feywanderer' -> 'Fey Wanderer'" in rep["reason"], rep["reason"]
+
+
+def test_subclass_name_repair_rederives_a_prefixed_short_name():
+    from collections import Counter
+
+    from bookextractor.assemble import _id_and_checks
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import Parsed
+    fields = {"className": "Sorcerer", "classSource": "PHB", "shortName": "Clockworksoul",
+              "subclassFeatures": ["Clockworksoul|Sorcerer||Clockworksoul|TCE|1",
+                                   "Bastion of Law|Sorcerer||Clockworksoul|TCE|6"]}
+    p = Parsed(type="Subclass", name="Clockworksoul", fields=fields, text="Clockworksoul\n" + "body text " * 5,
+               lines=[])
+    vocab = build_vocabulary(["a clockwork soul and the clockwork soul of a bastion of law"] * 3)
+    _, checks = _id_and_checks(p, "tce", Counter(), vocab)
+    assert p.name == "Clockwork Soul" and p.fields["shortName"] == "Clockwork Soul"
+    assert p.fields["subclassFeatures"] == ["Clockwork Soul|Sorcerer||Clockwork Soul|TCE|1",
+                                            "Bastion of Law|Sorcerer||Clockwork Soul|TCE|6"]
+    assert any(c.name == "name-repaired" and "shortName" in c.reason for c in checks)

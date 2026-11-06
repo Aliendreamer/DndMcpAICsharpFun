@@ -81,6 +81,11 @@ def key(n: str | None) -> str:
     return re.sub(r"[^a-z0-9+]", "", (n or "").lower())
 
 
+def spaced_key(n: str | None) -> str:
+    """Case-insensitive name key that keeps word boundaries ("Fey Wanderer" != "Feywanderer")."""
+    return " ".join(re.sub(r"[^a-z0-9+\s]", "", (n or "").lower()).split())
+
+
 def untag(e: str) -> str:
     """Expand 5etools {@tag ...} markup to the plain text the printed book shows."""
     e = re.sub(r"\{@atk ([^}]*)\}", lambda m: _ATK.get(m.group(1), m.group(1)), e)
@@ -488,7 +493,8 @@ def _score_character(etype: str, f: dict, t: dict, r: dict, src: str | None) -> 
             feature_levels(t.get("classFeatures"), src, 3, 4)
     elif etype == "Subclass":
         r["className"] = key(f.get("className")) == key(t.get("className"))
-        r["shortName"] = key(f.get("shortName")) == key(t.get("shortName"))
+        # spaces kept: a glued "Feywanderer" is a misread of "Fey Wanderer", not the same short name
+        r["shortName"] = spaced_key(f.get("shortName")) == spaced_key(t.get("shortName"))
         r["features"] = feature_levels(f.get("subclassFeatures"), src, 5, 6) == \
             feature_levels(t.get("subclassFeatures"), src, 5, 6)
     elif etype == "Race":

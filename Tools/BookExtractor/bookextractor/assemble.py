@@ -19,7 +19,7 @@ from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
 from .parsers.race import parse_races
 from .parsers.spell import parse_spells
-from .parsers.subclass import parse_subclasses
+from .parsers.subclass import _short_name, parse_subclasses
 from .report import build_report
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
@@ -188,6 +188,33 @@ def _feature_name_checks(p: Parsed, vocab: Vocabulary) -> list[Check]:
     return checks
 
 
+def _repair_subclass_short(p: Parsed, old: str, new: str) -> str:
+    """A repaired subclass name re-derives its shortName and rewrites every subclassFeatures ref's ShortName
+    (part 3), and the subclass-named ref's part 0, so no field keeps the misread. Returns what changed, for the
+    `name-repaired` check ('' when nothing did)."""
+    f = p.fields
+    cls = f.get("className") or ""
+    old_short = f.get("shortName")
+    new_short = _short_name(new, cls)
+    if not isinstance(old_short, str) or old_short == new_short:
+        return ""
+    f["shortName"] = new_short
+    refs, n = [], 0
+    for r in f.get("subclassFeatures") or []:
+        ref = r.get("subclassFeature") if isinstance(r, dict) else r
+        parts = ref.split("|") if isinstance(ref, str) else []
+        if len(parts) == 6 and parts[3] == old_short:
+            parts[3] = new_short
+            if parts[0] == old:
+                parts[0] = new
+            ref, n = "|".join(parts), n + 1
+            r = {**r, "subclassFeature": ref} if isinstance(r, dict) else ref
+        refs.append(r)
+    if "subclassFeatures" in f:
+        f["subclassFeatures"] = refs
+    return f"shortName {old_short!r} -> {new_short!r} in the shortName and {n} subclassFeatures refs"
+
+
 def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) -> tuple[str, list[Check]]:
     p.fields = _repair_digits(p.fields)
     p.text = fix_digits(p.text)
@@ -197,6 +224,8 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
     checks = list(p.checks)
     if res and res.repaired:
         why = f"{res.original!r} -> {res.name!r}"
+        if p.type == "Subclass" and (short := _repair_subclass_short(p, raw, name)):
+            why += f"; {short}"
         # a parser repair already recorded (a subclass named by its cues) keeps one check telling both steps
         k = next((k for k, c in enumerate(checks) if c.name == "name-repaired"), None)
         if k is None:
