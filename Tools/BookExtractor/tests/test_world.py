@@ -281,3 +281,63 @@ def test_fields_validate_against_the_world_schemas():
     assert {e.type for e in ents} == {"Faction", "Location", "Lore", "Plane"}
     for e in ents:
         jsonschema.validate(e.fields, schema(f"{e.type}Fields"))
+
+
+def _synthetic(spec):
+    """(Section, own lines, starts, sizes) from [(text, height, reader level or None)], one line per entry, 40 apart
+    on page 1; the first entry is the section's heading (level 1)."""
+    from bookextractor.model import Line
+    from bookextractor.parsers.sections import Section
+
+    lines = [Line(text=t, box=(100.0, 40.0 * k, 700.0, 40.0 * k + h), height=h, page=1)
+             for k, (t, h, _) in enumerate(spec)]
+    starts = {id(l): lv for l, (_, _, lv) in zip(lines, spec) if lv is not None}
+    sec = Section(title=spec[0][0], level=1, parents=["Chapter 1: Character Options"], lines=lines, page=1,
+                  complete=True, end_reason="heading", size=1.0)
+    return sec, lines, starts
+
+
+PROSE = "the character's training began in a monastery far from the city walls."
+
+
+def test_a_run_of_same_styled_peers_is_doubted():
+    """W18: XGE "Monk" (title case) holds PALADIN, RANgeR, ROGUE, ... each over its own "d6 I became a ..." table and
+    prose: a run of three or more same-styled peers (OCR casing noise aside) inside one section is doubted, whatever
+    their sizes (0.59-0.72x: under the reader-size cut)."""
+    from bookextractor.parsers.world import _doubt
+
+    spec = [("Monk", 40.0, 1), (PROSE, 30.0, None), (PROSE, 30.0, None)]
+    for name in ("PALADIN", "RANgeR", "ROGUE", "SORCeRER"):
+        spec += [(name, 31.0, 2), (PROSE, 30.0, None), (PROSE, 30.0, None)]
+    sec, own, starts = _synthetic(spec)
+    sizes = {id(l): 0.6 for l in own if id(l) in starts and l is not own[0]}
+    doubts = _doubt(sec, own, 1, starts, sizes)
+    assert any("run of 4 peer sub-headings" in d and "'RANgeR'" in d for d in doubts), doubts
+
+
+def test_a_pair_or_a_mixed_run_of_sub_headings_is_no_doubt():
+    """W18: two peers ("Inside the Senate", "Azorius Characters") or three peers in different styles are the
+    section's own sub-headings: no run doubt."""
+    from bookextractor.parsers.world import _doubt
+
+    pair = [("AZORIUS SENATE", 54.0, 1), (PROSE, 30.0, None), ("Inside the Senate", 34.0, 2), (PROSE, 30.0, None),
+            (PROSE, 30.0, None), ("Azorius Characters", 34.0, 2), (PROSE, 30.0, None), (PROSE, 30.0, None)]
+    sec, own, starts = _synthetic(pair)
+    assert not _doubt(sec, own, 1, starts, {id(l): 0.6 for l in own if id(l) in starts})
+    mixed = pair + [("NOTABLE MEMBERS", 34.0, 2), (PROSE, 30.0, None), (PROSE, 30.0, None)]
+    sec, own, starts = _synthetic(mixed)
+    assert not [d for d in _doubt(sec, own, 1, starts, {id(l): 0.6 for l in own if id(l) in starts})
+                if "run of" in d]
+
+
+def test_a_zero_size_section_and_an_unread_heading_raise_nothing():
+    """W18 minor: a section whose reader size is 0.0, holding a heading the reader did not read beside a peer, is
+    checked without a KeyError and without a size comparison."""
+    from bookextractor.parsers.world import _doubt
+
+    spec = [("Religious Order Contact", 30.0, 1), (PROSE, 30.0, None), ("Contact Peer", 26.0, 2),
+            (PROSE, 30.0, None), ("Contact", 26.0, None), (PROSE, 30.0, None), (PROSE, 30.0, None)]
+    sec, own, starts = _synthetic(spec)
+    sec.size = 0.0
+    doubts = _doubt(sec, own, 1, starts, {id(own[2]): 0.5})
+    assert not [d for d in doubts if "'Contact' (p1" in d and "reader size" in d]

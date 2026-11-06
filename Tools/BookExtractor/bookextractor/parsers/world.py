@@ -120,6 +120,7 @@ _SIBLING_FACTOR = 3
 # still is one when it is styled like the section's own heading or set larger than the section's own sub-headings
 _DOUBT = 0.65
 _RECURRING = 3  # a heading printed this many times in one chapter is a sub-heading label ("Symbol", "Crime")
+_RUN = 3  # a run of this many same-styled peer sub-headings inside a section is doubted (`_peer_runs`)
 _PEER = 1.05  # a band heading set over this many times its tallest peer sub-heading stands out from them
 # ... and peer sub-headings set this large (reader size, height x character width) relative to the section's own
 # heading are no sub-headings but siblings the reader nested (FTD "Young Dragons" 0.83x under "Wyrmlings", SCAG
@@ -374,7 +375,7 @@ def _doubt(s: Section, own: list[Line], heads: int, starts: dict[int, int], size
             if same_style:
                 out.append(f"{what}: styled like its own heading ({style}), over lines that are no prose")
         elif l.height >= _DOUBT * head and (not peers or l.height > _PEER * max(peers)
-                                            or sizes.get(id(l), 0.0) >= _PEER_SIZE * s.size):
+                                            or s.size > 0 and id(l) in sizes and sizes[id(l)] >= _PEER_SIZE * s.size):
             out.append(f"{what}: set at least {_DOUBT}x as tall as its own heading"
                        + (", with no peer sub-heading" if not peers else
                           f" and over {_PEER}x its tallest peer sub-heading ({max(peers):.1f})"
@@ -385,6 +386,45 @@ def _doubt(s: Section, own: list[Line], heads: int, starts: dict[int, int], size
             out.append(f"{what}: styled like its own heading ({style})")
         elif kids and starts.get(id(l)) != s.level + 1 and l.height > max(kids):
             out.append(f"{what}: set taller than its own sub-headings ({max(kids):.1f})")
+    out += _peer_runs(own, heads, kid_lines, out)
+    return out
+
+
+def _run_style(t: str) -> str:
+    """A peer heading's style for `_peer_runs`, through OCR casing noise: "caps" when most of its letters are capitals
+    ("RANgeR", "SORCeRER" among PALADIN and ROGUE), "title" when every word is capitalised and the rest lower case
+    ("Gnome Ideals"), else ""."""
+    letters = [c for c in t if c.isalpha()]
+    if not letters:
+        return ""
+    if sum(c.isupper() for c in letters) >= 0.6 * len(letters):
+        return "caps"
+    return _style(t)
+
+
+def _peer_runs(own: list[Line], heads: int, kid_lines: list[Line], named: list[str]) -> list[str]:
+    """A run of `_RUN` or more consecutive peer sub-headings (those the reader nests one level under the section) set
+    in one style, all caps or all title case, each over prose: several same-styled peers inside one section are
+    probably its siblings the reader nested (ruling W18: XGE "Monk" holds PALADIN, RANGER, ROGUE, SORCERER, WARLOCK,
+    WIZARD, each over its "d6 I became a ... because ..." table). Fires whatever their sizes; a heading already
+    named by another doubt is not named again."""
+    at = {id(l): k for k, l in enumerate(own)}
+    peers = [l for l in kid_lines if at[id(l)] >= heads
+             and any(prose(x.text) for x in own[at[id(l)] + 1:at[id(l)] + 5])]
+    out: list[str] = []
+    run: list[Line] = []
+    for l in peers + [None]:
+        st = _run_style(l.text) if l is not None else ""
+        if l is not None and st and run and _run_style(run[-1].text) == st:
+            run.append(l)
+            continue
+        if len(run) >= _RUN:
+            fresh = [x for x in run if not any(d.startswith(repr(x.text.strip())) for d in named)]
+            if fresh:
+                out.append(f"{run[0].text.strip()!r} (p{run[0].page}) opens a run of {len(run)} peer sub-headings "
+                           f"in one style ({_run_style(run[0].text)}: "
+                           + ", ".join(repr(x.text.strip()) for x in run) + "): siblings the reader nested?")
+        run = [l] if l is not None and st else []
     return out
 
 
