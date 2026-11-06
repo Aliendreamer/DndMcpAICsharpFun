@@ -445,6 +445,42 @@ def _sidekick_end(L: list[Line], i: int, stop: int, med: float) -> int:
     return stop
 
 
+# a feature's text opens with the level it is gained at; a sub-heading inside a feature (a Fighting Style option,
+# a Metamagic option, "Spell Slots") does not
+_HEAD_CUE = re.compile(r"^(?:at|starting at|beginning at|by|by the time you reach|(?:beginning |starting )?when you "
+                       r"reach)\s+(\S+?)[,]?\s+level\b", re.I)
+_SPELL_FEATURES = ("Spellcasting", "Pact Magic")
+
+
+def _cued_headings(L: list[Line], a: int, end: int, sections: list[tuple[str, int]], skip: set[int]) \
+        -> list[tuple[str, str]]:
+    """(heading text, level cue) of each feature heading in the class text that no table name claimed: a heading
+    (one or two heading lines) whose text opens with a level cue ("At 2nd level", "11th-level Expert feature").
+    A 1st-level cue under the Spellcasting feature ("Cantrips": "At 1st level, you know three cantrips") is the
+    feature's own sub-heading, not a feature."""
+    matched = {i for _, i in sections}
+    out = []
+    i = a + 1
+    while i < end:
+        t = L[i].text.strip()
+        if i in matched or i in skip or not _heading_like(t) or any(_like(t, h, 90) for h in _SECTION_HEADS) \
+                or (i - 1 >= 0 and (i - 1) in matched):
+            i += 1
+            continue
+        k = i + 1
+        while k < min(end, i + 2) and k not in skip and _heading_like(L[k].text) and k not in matched:
+            k += 1
+        cue_text = fix_digits(" ".join(L[j].text.strip() for j in range(k, min(end, k + 2))))
+        m = _HEAD_CUE.match(cue_text) or _LABEL_CUE.match(cue_text)
+        lvl = ordinal(fix_digits(m.group(1).replace(" ", "")).rstrip(",")) if m else None
+        if lvl is not None:
+            owner = max(((j, n) for n, j in sections if j < i), default=(0, ""))[1]
+            if not (lvl == 1 and any(_like(owner, s, 85) for s in _SPELL_FEATURES)):
+                out.append((" ".join(L[j].text.strip() for j in range(i, k)), m.group(0)))
+        i = k
+    return out
+
+
 def _build(L: list[Line], ctx: ParseContext, cls: str, start: int, a: int, end: int, table: Table | None,
            src: str, sidekick: bool = False) -> Parsed:
     lines = L[start:end]
@@ -464,7 +500,8 @@ def _build(L: list[Line], ctx: ParseContext, cls: str, start: int, a: int, end: 
         "classFeatures": refs, "entries": _entries(L, sections, end, skip_idx) or None,
     }
     p = Parsed(type="Class", name=cls, fields=fields, text=text, lines=lines)
-    p.checks = class_checks(fields, table, [L[i].text for _, i in sections], text, name=cls, sidekick=sidekick)
+    p.checks = class_checks(fields, table, [L[i].text for _, i in sections], text, name=cls, sidekick=sidekick,
+                            cued_headings=_cued_headings(L, a, end, sections, skip_idx))
     return p
 
 
@@ -512,10 +549,11 @@ def _bonus(cell: str) -> str:
 
 
 def class_checks(fields: dict, table: Table | None, feature_headings: list[str], text: str,
-                 name: str = "", sidekick: bool = False) -> list[Check]:
+                 name: str = "", sidekick: bool = False,
+                 cued_headings: list[tuple[str, str]] | None = None) -> list[Check]:
     who = name or (m.group(1).title() if (m := re.search(r"per (\w+) level", text)) else "this class")
     return [_hit_die(fields, text, sidekick), _table_read(table, who), _bonus_steps(table, who),
-            _features_match(fields, table, feature_headings, who)]
+            _features_match(fields, table, feature_headings, who, cued_headings or [])]
 
 
 def _hit_die(fields: dict, text: str, sidekick: bool = False) -> Check:
@@ -578,7 +616,8 @@ def _bonus_steps(table: Table | None, who: str) -> Check:
     return Check(name, True)
 
 
-def _features_match(fields: dict, table: Table | None, headings: list[str], who: str) -> Check:
+def _features_match(fields: dict, table: Table | None, headings: list[str], who: str,
+                    cued: list[tuple[str, str]] = ()) -> Check:
     name = "features-match-table"
     if table is None:
         return Check(name, False, f"no level table read for {who}, so its features cannot be matched")
@@ -601,6 +640,12 @@ def _features_match(fields: dict, table: Table | None, headings: list[str], who:
     if missing:
         problems.append("no heading in the class text for " + ", ".join(missing))
     problems += differ
+    # and the reverse: every feature heading printed in the class text has its table cell
+    names = [_squash(_base(_ref_name(r))) for r in refs]
+    for h, cue in cued:
+        if not any(fuzz.ratio(_squash(h), n) >= 85 for n in names):
+            problems.append(f"the class text prints the feature heading '{h}' ('{cue}') but the level table "
+                            f"lists no such feature")
     if not any(_ref(r).endswith("|1") for r in refs):
         problems.append("level 1 lists no features")
     problems += _level_cues(fields.get("entries") or [], refs)

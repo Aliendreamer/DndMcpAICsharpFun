@@ -336,3 +336,21 @@ def test_sidekick_printed_hit_dice_space_no_colon_fails():
 
 def test_sidekick_prose_about_hit_dice_passes():
     assert _sidekick_hit_die("EXPERT\nyou can spend Hit Dice to heal\n").passed
+
+
+def test_feature_heading_with_no_table_cell_fails(monkeypatch):
+    # the reverse direction: a Features cell the OCR (or a table filter) dropped leaves a printed feature heading
+    # ("Danger Sense", "At 2nd level, ...") with no table cell; the class must not pass
+    from bookextractor.parsers import charclass
+    orig = charclass._cell_features
+    monkeypatch.setattr(charclass, "_cell_features",
+                        lambda cell: [n for n in orig(cell) if charclass._squash(n) != "dangersense"])
+    p = get_class("Barbarian")
+    assert not any(r.startswith("Danger Sense|") for r in refs(p))
+    c = check(p.checks, "features-match-table")
+    assert not c.passed and "Danger Sense" in c.reason and "2nd level" in c.reason, c.reason
+
+
+def test_option_and_spellcasting_subheadings_need_no_table_cell():
+    # Fighting Style options (Archery, Defense) carry no level cue; they are not class features
+    assert check(get_class("Fighter").checks, "features-match-table").passed
