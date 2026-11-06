@@ -47,7 +47,8 @@ ARMOR_HEADERS = ["Armor", "Cost", "Armor Class (AC)", "Strength", "Stealth", "We
 _COIN = {"cp": 1, "sp": 10, "ep": 50, "gp": 100, "pp": 1000}
 _DASH = re.compile(r"^[-–—]+$")
 _COST = re.compile(r"^(\d{1,3}(?:,\d{3})+|\d+)\s*(cp|sp|ep|gp|pp)\.?$", re.I)
-_WEIGHT = re.compile(r"^(\d+/\d+|\d*\.\d+|\d+)\s*[lI]bs?\.?$")
+# "5 lb. (full)": a bracketed note after the unit (the PHB waterskin)
+_WEIGHT = re.compile(r"^(\d+/\d+|\d*\.\d+|\d+)\s*([lI]bs?|oz)\.?(?:\s*\([a-z ]+\))?$")
 DAMAGE_TYPES = {"acid": "A", "bludgeoning": "B", "cold": "C", "fire": "F", "force": "O", "lightning": "L",
                 "necrotic": "N", "piercing": "P", "poison": "I", "psychic": "Y", "radiant": "R", "slashing": "S",
                 "thunder": "T"}
@@ -97,7 +98,7 @@ def cost_value(cell: str) -> int | None:
 
 
 def weight_check(cell: str, row: str | None = None) -> Check:
-    """`weight-valid`: a number with "lb.", or a printed dash. A blank cell fails."""
+    """`weight-valid`: a number with "lb." (or "oz."), or a printed dash. A blank cell fails."""
     t = cell.strip()
     if not t:
         return Check("weight-valid", False, f"weight cell{_who(row)} is blank{_BLANK}")
@@ -107,13 +108,23 @@ def weight_check(cell: str, row: str | None = None) -> Check:
 
 
 def weight_value(cell: str) -> float | int | None:
+    """The weight in lb ("5 oz." is 5/16 lb.). The OCR reads a printed "1½" as "11/2": a fraction whose numerator
+    has more than one digit and ends in a digit smaller than the denominator is a whole number and a half (or
+    quarter)."""
     m = _WEIGHT.match(cell.strip())
     if not m:
         return None
+    if m.group(2) == "oz":
+        v = weight_value(m.group(1) + " lb.")
+        return v / 16 if v is not None else None
     n = m.group(1)
     if "/" in n:
         a, b = n.split("/")
-        return int(a) / int(b) if int(b) else None
+        if not int(b):
+            return None
+        if len(a) > 1 and int(b) in (2, 4) and int(a[-1]) < int(b):
+            return int(a[:-1]) + int(a[-1]) / int(b)
+        return int(a) / int(b)
     v = float(n)
     return int(v) if v.is_integer() else v
 
@@ -196,10 +207,12 @@ def _like(a: str, b: str) -> float:
 
 def _header_likeness(r: Row, t: RowTable) -> tuple[bool, bool]:
     """(repeats a header, half resembles one) for a table row. A row repeats a header when its label reads as a
-    table's first header ("Modern Item", "Name", "Armor") or two of its cells read as their own header names."""
+    table's first header ("Modern Item", "Name", "Armor") or two of its cells read as their own header names. A row
+    whose cost cell reads as a price is data, however its label reads (the gear row "Totem" against "Item")."""
     label = max(_like(r.label, h) for h in (*_FIRST_HEADERS, t.headers[0]))
     cells = sum(_like(c, h) >= 80 for h, c in r.raw.items() if c.strip())
-    return label >= 80 or cells >= 2, label >= 60 or cells >= 1
+    priced = cost_value(r.raw.get("Cost", "")) is not None
+    return label >= 80 or cells >= 2, (label >= 60 or cells >= 1) and not priced
 
 
 def _rows(tables: list[RowTable], seen: set, age: str | None = None) \

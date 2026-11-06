@@ -94,3 +94,8 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | phb | 155 | Tools table beside prose (Artisan's tools, Gaming set, Musical instrument groups; a "*" cost cell) |
 | phb | 158 | Mounts (stacked "Carrying Capacity" header), Tack/Harness and Waterborne Vehicles tables in one column |
 | dmg | 268 | Renaissance, Modern and Futuristic firearms tables ("Weight Properties" header set as one line; "3 Ib.") |
+| phb | 144 | "Chapter 5: Equipment" heading and the Standard Exchange Rates coin table (Coin, cp ... pp) |
+| phb | 149, 152, 153, 156 | Adventuring gear, pack, tool and tack descriptions as lead-ins ("Crowbar. Using a crowbar ..."), Alchemist's Fire running across the weapon and gear table pages, the Equipment Packs paragraphs, "Saddles." |
+| phb | 159 | Food, Drink, and Lodging table (sub-heading rows Ale, Inn stay (per day), Meals (per day), Wine) |
+| dmg | 134, 135 | Gemstone and art object tables ("d12 \| Stone Description" under "10 gp Gemstones"; the die header OCR'd as "OLP") |
+| scag | 125 | "MUSICAL INSTRUMENTS" heading over "Name: description" lead-ins across both columns, a "CHAPTER 4 \| CLASSES" running foot between them |

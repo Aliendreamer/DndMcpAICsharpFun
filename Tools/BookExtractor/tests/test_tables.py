@@ -200,3 +200,11 @@ def test_stray_line_is_unassigned_not_lost():
     t = _gear(_ln("Chalk", 100, 173, 180), _ln("1 cp", 500, 173, 560), stray)
     assert stray in t.unassigned and all(stray not in r.lines for r in t.rows)
     assert read_rows(page(150), WEAPONS).unassigned == []
+
+
+def test_label_column_printed_second():
+    """The PHB Trade Goods table prints its cost first and the goods (the row label) second."""
+    t = read_rows(page(158), ["Cost", "Goods"], label_col=1)
+    assert t.rows[0].label == "1 lb. of wheat" and t.rows[0].cells == {"Cost": "1 cp"}
+    assert row(t, "1 lb. of cinnamon or pepper, or one sheep").cells == {"Cost": "2 gp"}
+    assert t.rows[-1].label == "1 lb. of platinum" and t.rows[-1].cells == {"Cost": "500 gp"} and len(t.rows) == 13
