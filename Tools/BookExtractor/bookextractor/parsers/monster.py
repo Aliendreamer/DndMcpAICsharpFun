@@ -433,6 +433,53 @@ def _challenge_pairs(lines: list[Line]) -> list[tuple[str, int]]:
 
 
 # ---------- the parser ----------
+def _section_key(t: str) -> str | None:
+    """'Actions', 'Legendary Actions', ... (fuzzy) -> the body section key."""
+    if len(t.split()) <= 3 and not t.endswith("."):
+        hit = process.extractOne(t.lower(), list(SECTIONS), scorer=fuzz.ratio, score_cutoff=85)
+        return SECTIONS[hit[0]] if hit else None
+    return None
+
+
+def _leaves_block(L: list[Line], rel: list[float], j: int, end: int) -> bool:
+    """After a paragraph-sized gap in the same column, a paragraph that cannot continue the stat block ends it.
+
+    Every stat-block paragraph after the fields opens with a "Name." lead-in set flush with the block. A new
+    sentence after a finished one, going on for two or more stacked lines, without one (EGW's adventure text
+    below Yinra Emberwind) or with one indented like a host's paragraph (DMG "Golden Lions (Rare)." below the
+    giant fly) belongs to the page, unless an attack or an Actions-style heading still follows on this page or
+    the next (MM sets lore between a block's two columns).
+    """
+    if j == 0:
+        return False
+    a, b = L[j - 1], L[j]
+    t = b.text.strip()
+    med = b.height / rel[j] if rel[j] else b.height
+    gap = b.box[1] - a.box[3]
+    overlap = min(a.box[2], b.box[2]) - max(a.box[0], b.box[0])
+    if a.page != b.page or overlap <= 0 or gap < med:
+        return False
+    if _section_key(a.text) or _section_key(t) or _is_ability_header(t) or _PAIR.search(fix_digits(t)):
+        return False
+    # a sentence cut short by an OCR-dropped line or by art goes on: only a new sentence after a finished one
+    if not t[:1].isupper() or not re.search(r"[.!?)\-–—]\s*$", a.text.strip()):
+        return False
+    # a paragraph goes on below its first line; a lone line (a running foot "166 GOBLINS") is page furniture
+    c = L[j + 1] if j + 1 < len(L) else None
+    if c is None or c.page != b.page or not -0.3 * med <= c.box[1] - b.box[3] < 0.5 * med \
+            or min(b.box[2], c.box[2]) - max(b.box[0], c.box[0]) <= 0:
+        return False
+    if _LEAD_IN.match(t) and b.box[0] - a.box[0] < 0.5 * b.height:
+        return False
+    # the block may go on in the next column after the page's text (MM: lore set between a block's halves)
+    return not any(L[k].page <= b.page + 1 and (_ATTACK.search(L[k].text) or _section_key(L[k].text))
+                   for k in range(j + 1, min(end, len(L))))
+
+
+_LEAD_IN = re.compile(r"^[A-Z][^.]{0,50}\. ")  # "Curse ofthe Husk. A humanoid ..." (OCR-glued words too)
+_ATTACK = re.compile(r"\b(?:Melee|Ranged)(?: or Ranged)? (?:Weapon|Spell) Attack\b", re.I)
+
+
 def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: int) -> Parsed:
     st_line = _spaced(L[i].text)
     # first comma outside parentheses separates "size type (tags)" from alignment
@@ -447,9 +494,13 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
     cur: str | None = None
     vals: dict[str, str] = {}
     abil_done = 0
+    ended = False
     while j < end:
         t = L[j].text
         f = next((f for f in FIELDS if _lab(t, f)), None)
+        if not f and _leaves_block(L, rel, j, end):
+            ended = True
+            break
         if f and not (f == "Speed" and "Speed" in vals) and f not in vals:
             cur = f
             vals[f] = _after_label(t, f)
@@ -473,15 +524,14 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
 
     body: dict[str, list[str]] = {"trait": [], "action": [], "bonus": [], "reaction": [], "legendary": [], "lair": []}
     sec = "trait"
-    while j < end:
+    while j < end and not ended:
         t = L[j].text
-        key = None
-        if len(t.split()) <= 3 and not t.endswith("."):
-            hit = process.extractOne(t.lower(), list(SECTIONS), scorer=fuzz.ratio, score_cutoff=85)
-            key = SECTIONS[hit[0]] if hit else None
+        key = _section_key(t)
         if key:
             sec = key
         elif _is_heading_caps(t) and rel[j] > 1.0 and len(t.split()) <= 8:
+            break
+        elif _leaves_block(L, rel, j, end):
             break
         else:
             body[sec].append(t)

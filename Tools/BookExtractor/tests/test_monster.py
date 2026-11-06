@@ -374,3 +374,28 @@ def test_alignment_word_inside_a_name_is_still_a_name(name):
     # BGG: "Evil" in the heading made the parser treat it as the alignment line and leave the name empty
     ps = parse_monsters(_block([name], "Huge giant, typically lawful evil"))
     assert [p.name for p in ps] == [name]
+
+
+def _book_lines(book, *ns):
+    d = Path(__file__).parent / "fixtures" / "ocr" / book
+    out = []
+    for n in ns:
+        out += reading_order(load_ocr_page(d / f"{n:03d}.json", n))
+    return out
+
+
+def test_stat_block_without_challenge_ends_before_the_hosts_indented_prose():
+    # DMG Figurine of Wondrous Power prints the giant fly's stat block (no Challenge line) inside the item;
+    # after a gap, the item's next indented lead-in ("Golden Lions (Rare). These ...") is not a trait
+    fly = by_name(parse_monsters(_book_lines("dmg", 169)), "Giant Fly")
+    assert fly.lines[-1].text.startswith("Languages")
+    assert "Golden Lions" not in fly.text and "trait" not in fly.fields
+
+
+def test_stat_block_ends_where_the_adventure_prose_resumes():
+    # EGW prints Yinra Emberwind's stat block at the top of a column; after a gap the column's
+    # adventure text ("The gnome guard does her best ...") continues: not part of the block
+    yinra = by_name(parse_monsters(_book_lines("egw", 224)), "Yinra Emberwind")
+    assert yinra.lines[-1].text.endswith("piercing damage.")
+    assert "gnome guard" not in yinra.text and "Sleese" not in yinra.text
+    assert [a["name"] for a in yinra.fields["action"]] == ["Shortsword", "Longbow"]
