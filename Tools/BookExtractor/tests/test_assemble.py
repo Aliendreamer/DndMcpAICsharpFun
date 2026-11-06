@@ -635,7 +635,8 @@ def _row_checks(name, t="Weapon", table_row=True, cell_ok=True, vocab_lines=("a 
     return p, {c.name: c for c in checks}
 
 
-def test_a_table_row_label_is_attested_by_its_table():   # P4: Greatclub, Flail, Maul printed once, as a row label
+def test_a_table_row_label_is_attested_by_its_table():
+    # P4: Greatclub, Flail, Maul are printed once, as a row label
     for name in ("Greatclub", "Flail", "Maul"):
         _p, cs = _row_checks(name, vocab_lines=["a great hero", "the fail", "mail", "main", "great", "club"] * 3)
         assert cs["name-words-known"].passed, (name, cs["name-words-known"])
@@ -652,14 +653,40 @@ def test_a_prose_entity_name_is_not_attested_by_a_table():
     assert not cs["name-words-known"].passed
 
 
-def test_a_glued_table_row_label_is_repaired_or_flagged():
-    # "Unarmedstrike": the book prints "unarmed strike" spaced, so the glue is a misread
-    p, cs = _row_checks("Unarmedstrike", vocab_lines=["an unarmed strike", "unarmed strikes", "unarmed", "strike"] * 3)
-    assert p.name == "Unarmed Strike" or not cs["name-words-known"].passed, (p.name, cs["name-words-known"])
-    # spaced at least as often as glued, but no adjacent-pair split evidence: flagged, not attested by the table
-    p2, cs2 = _row_checks("Hempenropes", t="Item",
-                          vocab_lines=["hempen rope", "hempen ropes", "hempen", "ropes"] * 3)
-    assert p2.name == "Hempen Ropes" or not cs2["name-words-known"].passed, (p2.name, cs2["name-words-known"])
+def test_a_glued_table_row_label_with_adjacent_pair_evidence_is_repaired():
+    # "Unarmedstrike": the book prints "unarmed strike" spaced, so repair_name splits the glue
+    p, cs = _row_checks("Unarmedstrike",
+                        vocab_lines=["an unarmed strike", "unarmed strikes", "unarmed", "strike"] * 3)
+    assert p.name == "Unarmed Strike" and cs["name-words-known"].passed, (p.name, cs["name-words-known"])
+
+
+def test_a_glued_table_row_label_printed_spaced_but_not_split_is_flagged():
+    # "pole vaulted" is printed spaced (an inflection spaced_pair counts) but never "pole vault" itself, so
+    # repair_name has no adjacent-pair evidence to split on; the label is still a lost space, not attested
+    p, cs = _row_checks("Polevault", t="Item",
+                        vocab_lines=["they pole vaulted", "pole", "vault", "a pole", "the vault"] * 3)
+    assert p.name == "Polevault"
+    c = cs["name-words-known"]
+    assert not c.passed and "printed spaced as 'pole vault'" in c.reason, c
+
+
+def test_a_table_row_label_with_a_non_letter_inside_is_not_attested():   # P17: Gr€ataxe is an OCR misread
+    for name in ("Gr€ataxe", "Gre@taxe"):
+        _p, cs = _row_checks(name, vocab_lines=["a great hero", "great", "axe"] * 3)
+        c = cs["name-words-known"]
+        assert not c.passed and name in c.reason and "table" not in c.reason, c
+
+
+def test_a_table_row_label_needs_a_letter():   # P17 tightening of P15: a bare "7" is not a name
+    _p, cs = _row_checks("7", t="Item")
+    assert not cs["name-found"].passed and not cs["name-words-known"].passed
+
+
+def test_name_words_reasons_drop_trailing_punctuation():   # "Bread,, loaf" read badly
+    _p, cs = _row_checks("Breab, loaf", t="Item", cell_ok=False, table_row=False,
+                         vocab_lines=["bread", "bread", "bread", "a loaf", "loaf"] * 3)
+    c = cs["name-words-known"]
+    assert not c.passed and c.reason == "unknown words in name: Breab", c
 
 
 def test_a_table_row_label_may_start_with_a_digit():   # P15: "10-foot pole" is printed

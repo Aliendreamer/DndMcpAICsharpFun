@@ -211,6 +211,14 @@ def test_dmg_gemstones_and_art_objects():
     assert all(failed(p) == [] for p in gems + art)
 
 
+def test_treasure_rows_are_not_attested_as_table_labels():
+    # P17: a gem/art row's value comes from its tier title, not a cell checked per row, so its label is not
+    # attested by the table (name-words-known judges it like any printed name)
+    ps = items("dmg")
+    treasure = [p for p in ps if p.fields.get("type") in ("$G|DMG", "$A|DMG")]
+    assert treasure and not any(p.table_row for p in treasure)
+
+
 def test_dmg_explosives_and_ammunition():
     ps = items("dmg")
     assert get(ps, "Bomb").fields == {"type": "EXP|DMG", "value": 15000, "weight": 1}

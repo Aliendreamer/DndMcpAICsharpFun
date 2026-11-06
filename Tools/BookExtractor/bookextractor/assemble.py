@@ -9,7 +9,8 @@ from dataclasses import dataclass
 from .checks import Check
 from .layout import fix_digits, reading_order
 from .model import Line, Page
-from .names import Vocabulary, build_vocabulary, glued_words, own_heading_counts, repair_name, spaced_pair
+from .names import (_PLAIN, Vocabulary, build_vocabulary, glued_words, own_heading_counts, repair_name,
+                    spaced_pair)
 from .pages import classify_page, is_table_page
 from .parsers import ParseContext, Parsed
 from .parsers.background import parse_backgrounds
@@ -263,19 +264,26 @@ def _repair_subclass_short(p: Parsed, old: str, new: str) -> str:
 def _name_words_check(res, p: Parsed, vocab: Vocabulary) -> Check:
     """`name-words-known`. A table row's label cell is attested by the printed table itself when the row's own
     (cell) checks pass (P4): a weapon printed once, as a row label ("Greatclub", "Flail", "Maul"), is not a
-    misread for being one letter from a common word or two words run together. A glued label whose words the book
-    prints spaced at least as often ("Unarmedstrike" for "unarmed strike") is still a lost space, and fails."""
-    unknown, why = list(res.unknown), ""
+    misread for being one letter from a common word or two words run together. Only plain-word tokens are
+    attested: a token holding any other character ("Gr€ataxe") is a sure misread and still fails (P17). A glued
+    label whose words the book prints spaced at least as often ("Unarmedstrike" for "unarmed strike") is still a
+    lost space, and fails. A table-row label holding no letter at all ("7") is no name."""
+    bare = lambda ts: [t.strip(".,;:") for t in ts]  # noqa: E731  ("Bread," reads "Bread" in a reason)
+    if p.table_row and not re.search(r"[A-Za-z]", res.name):
+        return Check("name-words-known", False, f"no word in name {res.name!r}")
+    unknown, why = bare(res.unknown), ""
     if unknown and p.table_row and all(c.passed for c in p.checks):
-        glued = {t: sp for t in unknown if (sp := spaced_pair(re.sub(r"[^A-Za-z]", "", t), vocab))}
-        attested = [t for t in unknown if t not in glued]
-        unknown = [f"{t} (printed spaced as {' '.join(glued[t])!r})" for t in glued]
+        glued = {t: sp for t in unknown if _PLAIN.match(t) and (sp := spaced_pair(t, vocab))}
+        attested = [t for t in unknown if _PLAIN.match(t) and t not in glued]
+        unknown = [f"{t} (printed spaced as {' '.join(glued[t])!r})" if t in glued else t
+                   for t in unknown if t not in attested]
         if attested:
             why = "printed only as its table-row label (the table attests it): " + ", ".join(attested)
     if unknown:
         return Check("name-words-known", False, "unknown words in name: " + ", ".join(unknown))
     if res.unattested:
-        why = "; ".join(x for x in (why, "not printed elsewhere in the book: " + ", ".join(res.unattested)) if x)
+        why = "; ".join(x for x in (why, "not printed elsewhere in the book: " + ", ".join(bare(res.unattested)))
+                        if x)
     return Check("name-words-known", True, why)
 
 
@@ -296,10 +304,12 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
             checks.append(Check("name-repaired", True, why))
         else:
             checks[k] = Check("name-repaired", True, f"{checks[k].reason}; then {why}")
-    # a table row's label cell may open with a number ("10-foot pole" is printed so) (P15)
+    # a table row's label cell may open with a number ("10-foot pole" is printed so) (P15), but needs a letter
     first_ok = (lambda c: c.isalnum()) if p.table_row else (lambda c: c.isalpha())
     if not name.strip():
         checks.append(Check("name-found", False, "no entity name found"))
+    elif p.table_row and not re.search(r"[A-Za-z]", name):
+        checks.append(Check("name-found", False, f"table-row label {name!r} holds no letter"))
     elif not first_ok(name.strip()[0]):
         checks.append(Check("name-found", False, f"name {name!r} does not start with a letter"))
     else:
@@ -354,8 +364,8 @@ def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
                        firsts: list[LineKey | None] | None = None,
                        texts: list[list[tuple[LineKey, str]]] | None = None) -> None:
     """Text bleed gate: a character entity (Class ... Background) that shares more than SHARED_LINES_MAX printed
-    lines with an entity of another type holds that entity's text (equipment and hazard types are gated the same way) (a subclass feature running on into the
-    Backgrounds section), so both get a failing `text-not-shared` check naming the other. A stat block the other
+    lines with an entity of another type holds that entity's text (a subclass feature running on into the
+    Backgrounds section; equipment and hazard types are gated the same way), so both get a failing `text-not-shared` check naming the other. A stat block the other
     entity prints is not bleed: its first line is one of the host's lines and the host's text before that line
     names the monster (Drakewarden's Drake Companion, Battle Smith's Steel Defender); a vehicle or object stat block
     the same way (the Apparatus of Kwalish inside its magic item, P10). A stat block parse that runs
@@ -380,7 +390,8 @@ def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
         if n <= SHARED_LINES_MAX:
             continue
         if firsts is not None and texts is not None and any(
-                e["type"] in HOSTED_TYPES and firsts[k] in keys[o] and _names_before(texts[o], firsts[k], e.get("name", ""))
+                e["type"] in HOSTED_TYPES and firsts[k] in keys[o]
+                and _names_before(texts[o], firsts[k], e.get("name", ""))
                 for e, k, o in ((a, i, j), (b, j, i))):
             continue
         bad.setdefault(i, []).append(f"{n} printed lines are also {b['id']} ({b['type']})")

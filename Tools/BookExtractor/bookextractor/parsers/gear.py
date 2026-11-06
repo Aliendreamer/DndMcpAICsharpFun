@@ -268,8 +268,8 @@ def _treasure(page: Page) -> list[Parsed]:
                     name = m.group("name").strip()
                     f["entries"] = [m.group("desc").strip()]
             text = "\n".join([name] + f.get("entries", []) + [title.text.strip()])
-            # a stone's name is its row's printed label, checked by label-read; an art object's row is free text
-            p = Parsed(type="Item", name=name, fields=f, text=text, lines=list(ls), table_row=kind == "gem")
+            # not table_row: the value comes from the tier title, no cell of the row is checked (P17)
+            p = Parsed(type="Item", name=name, fields=f, text=text, lines=list(ls))
             p.checks = checks
             out.append(p)
     return out
