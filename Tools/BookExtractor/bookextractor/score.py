@@ -239,6 +239,26 @@ def _split_character_truth(src: str, d: Path, etype: str) -> tuple[list[dict], l
     return [r for r in recs if not r.get("_copy")], []
 
 
+def printed_elsewhere(book: str, fivetools_dir: Path | str, etype: str) -> dict[str, str]:
+    """Match key -> known-difference line for each Subclass/Subrace this book prints that 5etools stores under
+    another book, listing this one in `otherSources` (SCAG's Way of the Sun Soul is stored under XGE)."""
+    if etype not in ("Subclass", "Subrace"):
+        return {}
+    src, d = book.upper(), Path(fivetools_dir)
+    if etype == "Subclass":
+        recs = [r for f in sorted((d / "class").glob("class-*.json"))
+                for r in json.loads(f.read_text("utf-8")).get("subclass", [])
+                if r.get("classSource") not in ("XPHB", "EFA")]
+    else:
+        recs = [dict(r, name=f"{r['raceName']} {r['name']}")
+                for r in json.loads((d / "races.json").read_text("utf-8"))["subrace"]
+                if r.get("name") and r.get("raceName")]
+    return {match_key(etype, r["name"]): f"printed here, 5etools stores it under {r['source']} "
+                                         f"(otherSources {src}): {r['name']}"
+            for r in recs if r.get("source") != src and not r.get("_copy")
+            and any(o.get("source") == src for o in r.get("otherSources") or [])}
+
+
 def dropped_truth_lines(book: str, fivetools_dir: Path | str, etype: str) -> list[str]:
     """Known-difference lines for the 5etools records load_truth leaves out of `etype`'s truth."""
     if etype not in _CHARACTER_TYPES:
@@ -278,6 +298,20 @@ def _drop_unprinted_features(book: str, t: dict, known: list[str]) -> dict:
         if fld in t:
             out[fld] = kept
     return out
+
+
+def _rename_subclass(t: dict, printed: str, known: list[str]) -> dict:
+    """`t` scored under the name the book prints: 5etools "Purple Dragon Knight (Banneret)" is printed "Purple
+    Dragon Knight" (the parenthetical is a name the book gives in prose); the feature ref holding the subclass's
+    first features, and a short name spelled like the full name, are renamed with it."""
+    known.append(f"{t['name']}: printed '{printed}' (the parenthetical is an alias, not part of the heading)")
+    refs = []
+    for r in t.get("subclassFeatures") or []:
+        s = str(r.get("subclassFeature") if isinstance(r, dict) else r)
+        parts = s.split("|")
+        refs.append("|".join([printed, *parts[1:]]) if key(parts[0]) == key(t["name"]) else r)
+    short = t.get("shortName")
+    return dict(t, subclassFeatures=refs, shortName=printed if short and key(short) == key(t["name"]) else short)
 
 
 def feature_levels(refs, src: str, level_idx: int, source_idx: int) -> set[tuple[str, int]]:
@@ -519,7 +553,17 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
                                  match_key(etype, name))
     tkeys = [match_key(etype, t["name"]) for t in truth]
     tkeys = [alias[k] if k not in idx and k in alias else k for k in tkeys]
+    renamed: dict[int, str] = {}  # truth index -> our printed name, for a truth name whose parenthetical is an alias
+    for i, t in enumerate(truth):
+        bare = re.sub(r"\s*\([^)]*\)\s*$", "", t["name"])
+        if etype == "Subclass" and tkeys[i] not in idx and bare != t["name"] and key(bare) in idx:
+            tkeys[i] = key(bare)
+            renamed[i] = idx[key(bare)]["name"]
     matches = match_one_to_one(tkeys, list(idx))
+    elsewhere = printed_elsewhere(book, fivetools_dir, etype)
+    claimed = {k for k, _ in matches.values()}
+    printed_here = [k for k in idx if k not in claimed and k in elsewhere]
+    known += [elsewhere[k] for k in printed_here]
     agg: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
     covs: list[float] = []
     precs: list[float] = []
@@ -536,6 +580,8 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
         if not exact:
             fuzzy.append(f"{t['name']} ~ {idx[k]['name']}")
         fields = idx[k]["fields"]
+        if i in renamed:
+            t = _rename_subclass(t, renamed[i], known)
         if etype in ("Class", "Subclass"):
             t = _drop_unprinted_features(book, t, known)
         res, cov, prec = score_record(etype, fields, t, book.upper())
@@ -561,7 +607,8 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
             precs.append(prec)
     found = len(matches)
     return {
-        "book": book, "type": etype, "truth": len(truth), "found": found, "extra": len(idx) - found,
+        "book": book, "type": etype, "truth": len(truth), "found": found,
+        "extra": len(idx) - found - len(printed_here),
         "fields": {f: {"pct": 100 * a / n, "n": n} for f, (a, n) in agg.items() if n},
         "rarityMultiFamilies": {"n": fam[0], "variesAgree": fam[1]} if etype == "MagicItem" else None,
         "textAtLeast90": {"pct": 100 * text_ok[0] / text_ok[1] if text_ok[1] else 0.0, "n": text_ok[1]},

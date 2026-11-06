@@ -20,6 +20,7 @@ BOOKS = {
     "bgg": ("bgg", "BGG", [11, 12]),
     "vrgr": ("vrgr", "VRGR", [29, 30, 31, 32]),
     "egw": ("egw", "EGW", [184, 185, 186, 187]),
+    "scag": ("scag", "SCAG", [122, 123]),
 }
 
 
@@ -186,3 +187,16 @@ def test_egw_cue_name_correction_is_recorded():   # R11: a cue-based rename pass
     c = check(e.checks, "name-repaired")
     assert c.passed and "Eco Knight" in c.reason and "Echo Knight" in c.reason and "cues" in c.reason
     assert not any(c.name == "name-repaired" for c in get_sub("Chronurgy Magic", book="egw").checks)
+
+
+def test_scag_battlerager_is_a_subclass():
+    p = get_sub("Path of the Battlerager", book="scag")
+    assert p.fields["className"] == "Barbarian" and p.fields["shortName"] == "Battlerager"
+    assert sorted({int(r.split("|")[-1]) for r in p.fields["subclassFeatures"]}) == [3, 6, 10, 14]
+
+
+def test_scag_totem_warrior_options_are_not_a_subclass():
+    # "If you follow the Path of the Totem Warrior from the Player's Handbook, you have access to the options
+    # presented here": new totem options for a PHB subclass, not a subclass SCAG prints
+    assert get_sub("Path of the Totem Warrior", book="scag") is None
+    assert [p.name for p in parse("scag")] == ["Path of the Battlerager"]

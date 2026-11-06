@@ -429,3 +429,25 @@ def test_sidekick_classes_score_under_their_printed_names():
     assert "Expert: feature Sidekick Class (level 1) not printed" in known
     assert "Expert: feature Inspiring Help Improvement (level 20) is printed 'Inspiring Help (2d6)'" in known
     assert "Expert Sidekick" in known
+
+
+@needs_5etools
+def test_subclass_parenthetical_alias_matches_purple_dragon_knight():
+    refs = ["Purple Dragon Knight|Fighter||Purple Dragon Knight|SCAG|3", "Royal Envoy|Fighter||Purple Dragon Knight|SCAG|7",
+            "Inspiring Surge|Fighter||Purple Dragon Knight|SCAG|10", "Bulwark|Fighter||Purple Dragon Knight|SCAG|15",
+            "Inspiring Surge|Fighter||Purple Dragon Knight|SCAG|18"]
+    res = score_book("scag", [_ent("Subclass", "Purple Dragon Knight", className="Fighter",
+                                   shortName="Purple Dragon Knight", subclassFeatures=refs)],
+                     FT, "Subclass")
+    assert "Purple Dragon Knight (Banneret)" not in res["missing"] and res["extra"] == 0
+    assert res["fields"]["shortName"]["pct"] == 100, res["diffs"]
+    assert not any(d.startswith("Purple Dragon Knight (Banneret): features") for d in res["diffs"]), res["diffs"]
+
+
+@needs_5etools
+def test_subclass_stored_under_another_source_is_a_known_difference_not_an_extra():
+    # SCAG prints Way of the Sun Soul; 5etools stores it under XGE with otherSources SCAG
+    res = score_book("scag", [_ent("Subclass", "Way of the Sun Soul", className="Monk", shortName="Sun Soul")],
+                     FT, "Subclass")
+    assert res["extra"] == 0
+    assert any("Way of the Sun Soul" in k and "XGE" in k for k in res["knownDifferences"])

@@ -81,3 +81,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | tce | 008, 009 | Custom Lineage: traits set with hanging indents under a plain heading, Size and Speed before Ability Score Increase |
 | dmg | 282 | NPC Features table: monster races (ability modifiers, features), "*" rows pointing at PHB races, the Troglodyte row with its name cell lost by the OCR, "Elf*" read as "*113" |
 | tce | 143, 144, 145, 146, 147, 148, 149 | Sidekick classes Expert, Spellcaster, Warrior: no Hit Dice line, "summarized on the X table", "Nth-level X feature" cues, art credits mid-column, then PARLEYING WITH MONSTERS |
+| scag | 122, 123 | "Primal Paths": Path of the Battlerager, then "Path of the Totem Warrior" (new totem options for the PHB subclass, not a subclass) and BARDS |

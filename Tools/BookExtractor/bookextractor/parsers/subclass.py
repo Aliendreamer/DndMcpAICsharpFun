@@ -385,6 +385,17 @@ def _make(L: list[Line], i: int, sec_end: int, name: str, cls: str | None, feats
     return p
 
 
+_OPTIONS_FOR = re.compile(r"\byou have access to the options\b", re.I)
+
+
+def _adds_options(L: list[Line], i: int, feats: list[_Feature]) -> bool:
+    """The heading's introduction says it adds options to a subclass printed in another book (SCAG: "If you
+    follow the Path of the Totem Warrior from the Player's Handbook, you have access to the options presented
+    here"): its "features" are new choices inside that subclass's features, not a subclass of this book."""
+    intro = " ".join(l.text.strip() for l in L[i + 1:feats[0].head]) if feats else ""
+    return bool(_OPTIONS_FOR.search(re.sub(r"\s+", " ", intro)))
+
+
 def parse_subclasses(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     """Parse every subclass in `body` (reading-ordered lines of the whole book)."""
     L = body
@@ -402,6 +413,8 @@ def parse_subclasses(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         end = _group_end(L, g, stop, cls, med)
         spans.append((g, end))
         for i, sec_end, feats in _subclasses(L, g, end, cls):
+            if _adds_options(L, i, feats):
+                continue
             out.append(_make(L, i, sec_end, _tidy_case(L[i].text.strip()), cls, feats, ctx))
     # labels and bare class headings outside every subclass group
     anchors = [a for a in _anchors(L, med) if not any(g <= a.at < e for g, e in spans)]
