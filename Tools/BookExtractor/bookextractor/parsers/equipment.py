@@ -515,7 +515,8 @@ def _armor_blocks(L: list[Line]) -> list[Parsed]:
 _PROSE_WEAPON = re.compile(
     r"^an? (?P<name>[a-z][a-z' -]*?) is an? (?P<cat>simple|martial) (?:(?P<kind>melee|ranged) )?weapon, weighing "
     r"(?P<w>\d+(?:/\d+)?) pounds? and dealing (?P<dmg>\d+d\d+) (?P<dt>[a-z]+) damage on a hit\."
-    r"(?: It has the (?P<props>[a-z, -]+?) propert(?:y|ies)(?P<special> and the following special property)?)?",
+    r"(?: It has the (?P<props>(?:[a-z, -]|\([^()]*\))+?) propert(?:y|ies)"
+    r"(?P<special> and the following special property)?)?",
     re.I)
 
 
@@ -552,7 +553,8 @@ def _prose_weapons(L: list[Line]) -> list[Parsed]:
         parts = [re.sub(r"^and\s+", "", x.strip(), flags=re.I) for x in re.split(r",\s*|\s+and\s+",
                                                                                    m.group("props") or "")]
         parts = [x for x in parts if x]
-        props = [PROPERTIES[x.lower()] for x in parts if x.lower() in PROPERTIES]
+        # a property printed with its bracket ("thrown (range 20/60)") keeps its code
+        props = [PROPERTIES[r[0]] for x in parts if (r := _read_property(x))]
         if m.group("special"):
             props.append("S")
         f: dict = {"weaponCategory": m.group("cat").lower(), "weight": weight_value(m.group("w") + " lb."),

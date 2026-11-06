@@ -316,6 +316,14 @@ def test_prose_weapon_unknown_property_fails():
     assert [c.name for c in failed(w)] == ["properties-known"] and "lihgt" in failed(w)[0].reason
 
 
+def test_prose_weapon_bracketed_property_keeps_the_property():
+    pages = _edit("erlw", 23, "It has the two-handed property and the following spe-",
+                  "It has the two-handed and thrown (range 20/60) properties and the following spe-",
+                  pages=_pages("erlw"))
+    w = _run(parse_weapons, "erlw", pages)[0]
+    assert w.fields["property"] == ["2H", "T", "S"] and failed(w) == []
+
+
 def test_prose_weapon_melee_or_ranged_sets_its_type():
     assert "type" not in weapons("erlw")[0].fields  # "a martial weapon": neither printed
     pages = _edit("erlw", 23, "A double-bladed scimitar is a martial weapon, weigh-",
