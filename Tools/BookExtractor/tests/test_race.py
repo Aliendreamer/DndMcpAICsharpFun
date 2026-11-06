@@ -19,6 +19,7 @@ BOOKS = {
     "erlw": ("erlw", "ERLW", [42, 44]),
     "dmg": ("dmg14", "DMG", [282, 285, 286, 287]),
     "tce": ("tce", "TCE", [8, 9]),
+    "scag": ("scag", "SCAG", [104, 105, 109, 110, 111, 115, 116, 117, 119, 120]),
 }
 
 
@@ -312,3 +313,45 @@ def test_hanging_run_keeps_a_trait_continued_in_the_next_page_column():
     L2 = L[:6] + [_synthetic_line("Darkvision trait wraps onto", 820, 340, 1),
                   _synthetic_line("For example, high elf adventurers have proficiency", 800, 380, 1)]
     assert _hanging_end(_book(L2), 0, len(L2)) == 7
+
+
+def test_scag_subraces_take_their_race_from_the_race_section_heading():
+    # SCAG prints each race as a section ("DWARVES", "HALFLINGS", "GNOMES") holding its subraces; the subrace's own
+    # text names its race only in prose ("has the dwarf traits in the Player's Handbook")
+    for name, race, ability in [("Duergar", "Dwarf", [{"str": 1}]), ("Ghostwise Halflings", "Halfling", [{"wis": 1}]),
+                                ("Svirfneblin", "Gnome", [{"dex": 1}])]:
+        p = get(name, "Subrace", book="scag")
+        assert p is not None, (name, names("Subrace", book="scag"))
+        assert p.fields["raceName"] == race and p.fields["ability"] == ability and not failed(p), (name, failed(p))
+
+
+def test_subrace_traits_heading_drops_the_word_subrace():
+    assert "Duergar Subrace" not in names("Subrace", book="scag")
+
+
+def test_scag_tiefling_variants_are_subraces_with_only_their_printed_fields():
+    subs = {p.name: p for p in parse("scag") if p.type == "Subrace" and p.fields.get("raceName") == "Tiefling"}
+    assert sorted(subs) == ["Devil's Tongue", "Feral", "Hellfire", "Winged"]
+    assert subs["Feral"].fields["ability"] == [{"dex": 2, "int": 1}] or \
+        subs["Feral"].fields["ability"] == [{"int": 1, "dex": 2}]
+    for n in ("Devil's Tongue", "Hellfire", "Winged"):
+        f = subs[n].fields
+        assert "ability" not in f and "speed" not in f, (n, f)  # never inherited from the base race
+        assert f["raceSource"] == "PHB" and f["entries"][0]["name"] == n
+    for p in subs.values():
+        assert not failed(p), (p.name, failed(p))
+        jsonschema.validate(p.fields, schema("SubraceFields"))
+    assert "This trait replaces the Infernal Legacy trait" in subs["Winged"].fields["entries"][0]["entries"][0]
+    assert "descended from Asmodeus" not in subs["Winged"].fields["entries"][0]["entries"][0]
+
+
+def test_scag_half_elf_variants_print_no_trait_blocks():
+    # "A half-elf of wood elf descent can choose the wood elf's Elf Weapon Training, ...": a sentence naming PHB
+    # traits, not a printed trait
+    assert not [p for p in parse("scag") if p.type == "Subrace" and p.fields.get("raceName") == "Half-Elf"]
+
+
+def test_variant_that_replaces_another_trait_passes_ability_check():
+    from bookextractor.parsers.race import VARIANT_KEEPS_ASI
+    c = check(race_checks({"raceName": "Tiefling"}, True, {"Tiefling"}, asi_text=VARIANT_KEEPS_ASI), "ability-increase-parsed")
+    assert c.passed

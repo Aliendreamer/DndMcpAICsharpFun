@@ -16,6 +16,7 @@ from rapidfuzz import fuzz
 
 BOOKS = {"mm": "Monster", "phb": "Spell", "dmg": "MagicItem"}
 
+_SCAG_FERAL = "SCAG prints the increases as the Feral option; 5etools folds Feral into every tiefling variant"
 # Verified book-vs-5etools differences: the printed page (checked against the page image) says what we
 # extracted, and 5etools says otherwise. (book, 5etools name, field) -> (our value, what the book prints).
 # A difference is excused only while our value is still exactly the one listed.
@@ -28,6 +29,8 @@ KNOWN_DIFFERENCES: dict[tuple[str, str, str], tuple[object, str]] = {
         "the page prints 'Range: Self' with no radius (5etools: 30-foot radius)"),
     ("mm", "Orc Eye of Gruumsh", "abilities"): (
         [16, 12, 16, 9, 13, 12], "the stat block prints CON 16 (+3) (5etools: 17)"),
+    **{("scag", f"Tiefling Variant; {v}", "ability"): (None, f"the {v} option prints no increase ({_SCAG_FERAL})")
+       for v in ("Devil's Tongue", "Hellfire", "Winged")},
     ("phb", "Human", "ability"): (
         [{"str": 1, "dex": 1, "con": 1, "int": 1, "wis": 1, "cha": 1}],
         "the race prints +1 to every score (5etools puts it on a nameless Human subrace)"),
@@ -50,10 +53,21 @@ PRINTED_FEATURE_NAMES: dict[tuple[str, str], list[tuple[str, int, str, str]]] = 
                          ("Indomitable Improvement", 18, "Indomitable (2 uses)", _SIDEKICK_TABLE),
                          ("Second Wind Improvement", 20, "Second Wind (2 uses)", _SIDEKICK_TABLE)],
 }
+_SCAG_HALF_ELF = ("a sentence in the 'Half-Elf Variants' sidebar naming a Player's Handbook elf trait to take, "
+                  "not a trait block")
 # entries 5etools builds that the book never prints as their own entry
 NOT_PRINTED: dict[tuple[str, str], str] = {
     ("vrgr", "Elise"): "the book says she uses the flesh golem stat block with changes",
     ("vrgr", "Isolde"): "the book says she uses the cambion stat block with changes",
+    **{("scag", f"Half-Elf Variant; {d} Descent"): _SCAG_HALF_ELF
+       for d in ("Aquatic Elf", "Drow", "Moon Elf or Sun Elf", "Wood Elf")},
+    ("scag", "Tiefling Variant; Infernal Legacy"): (
+        "not printed as an option: it stands for the Feral and Appearance options with the Player's Handbook "
+        "Infernal Legacy trait"),
+}
+# entries the book prints that 5etools does not keep as their own record: (book, etype, printed name) -> why
+PRINTED_NOT_IN_5ETOOLS: dict[tuple[str, str, str], str] = {
+    ("scag", "Subrace", "Tiefling Feral"): _SCAG_FERAL,
 }
 _ABIL = ("str", "dex", "con", "int", "wis", "cha")
 
@@ -497,6 +511,8 @@ def match_key(etype: str, name: str | None) -> str:
         ws = set(re.findall(r"[a-z0-9+]+", low))
         if etype == "Subrace" and "variant;" in low:  # 5etools "Variant; Mark of Detection" is printed without it
             ws.discard("variant")
+        # a plural heading names its race too: "Ghostwise Halflings" (+ raceName Halfling) is "Halfling Ghostwise"
+        ws = {w for w in ws if not (w.endswith("s") and w[:-1] in ws)}
         return "".join(sorted(ws))
     return key(name)
 
@@ -553,6 +569,12 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
                                  match_key(etype, name))
     tkeys = [match_key(etype, t["name"]) for t in truth]
     tkeys = [alias[k] if k not in idx and k in alias else k for k in tkeys]
+    for i, t in enumerate(truth):  # 5etools "Gnome Deep/Svirfneblin" is printed under one of the two names
+        sub = t.get("_subName") or ""
+        if etype == "Subrace" and tkeys[i] not in idx and "/" in sub:
+            alt = [k for part in sub.split("/") if (k := match_key(etype, f"{t['raceName']} {part}")) in idx]
+            if alt:
+                tkeys[i] = alt[0]
     renamed: dict[int, str] = {}  # truth index -> our printed name, for a truth name whose parenthetical is an alias
     for i, t in enumerate(truth):
         bare = re.sub(r"\s*\([^)]*\)\s*$", "", t["name"])
@@ -562,8 +584,10 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     matches = match_one_to_one(tkeys, list(idx))
     elsewhere = printed_elsewhere(book, fivetools_dir, etype)
     claimed = {k for k, _ in matches.values()}
-    printed_here = [k for k in idx if k not in claimed and k in elsewhere]
-    known += [elsewhere[k] for k in printed_here]
+    here = {match_key(etype, n): f"{n}: printed, not a 5etools record ({why})"
+            for (b, et, n), why in PRINTED_NOT_IN_5ETOOLS.items() if b == book and et == etype}
+    printed_here = [k for k in idx if k not in claimed and (k in elsewhere or k in here)]
+    known += [elsewhere.get(k) or here[k] for k in printed_here]
     agg: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
     covs: list[float] = []
     precs: list[float] = []

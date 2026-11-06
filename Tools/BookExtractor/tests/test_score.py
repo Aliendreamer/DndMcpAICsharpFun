@@ -451,3 +451,34 @@ def test_subclass_stored_under_another_source_is_a_known_difference_not_an_extra
                      FT, "Subclass")
     assert res["extra"] == 0
     assert any("Way of the Sun Soul" in k and "XGE" in k for k in res["knownDifferences"])
+
+
+@needs_5etools
+def test_subrace_slash_name_and_plural_heading_match():
+    ents = [_ent("Subrace", "Svirfneblin", raceName="Gnome", ability=[{"dex": 1}]),
+            _ent("Subrace", "Ghostwise Halflings", raceName="Halfling", ability=[{"wis": 1}])]
+    res = score_book("scag", ents, FT, "Subrace")
+    assert "Gnome Deep/Svirfneblin" not in res["missing"] and "Halfling Ghostwise" not in res["missing"]
+    assert res["fuzzyMatches"] == [] and res["diffs"] == [], res
+
+
+@needs_5etools
+def test_scag_half_elf_variant_sentences_are_known_differences():
+    res = score_book("scag", [], FT, "Subrace")
+    assert not any(m.startswith("Half-Elf Variant;") for m in res["missing"])
+    assert sum(k.startswith("Half-Elf Variant;") for k in res["knownDifferences"]) == 4
+    assert "Tiefling Variant; Infernal Legacy" not in res["missing"]
+
+
+@needs_5etools
+def test_scag_tiefling_variants_score_against_the_printed_options():
+    ents = [_ent("Subrace", n, raceName="Tiefling") for n in ("Devil's Tongue", "Hellfire", "Winged")]
+    ents.append(_ent("Subrace", "Feral", raceName="Tiefling", ability=[{"dex": 2, "int": 1}]))
+    ents.append(_ent("Subrace", "Duergar", raceName="Dwarf", ability=[{"str": 1}]))
+    res = score_book("scag", ents, FT, "Subrace")
+    assert res["found"] == 3 and res["extra"] == 0, res
+    assert res["diffs"] == [], res["diffs"]
+    assert any(k.startswith("Tiefling Variant; Winged: ability") for k in res["knownDifferences"])
+    assert any("Feral" in k for k in res["knownDifferences"])
+    assert any("Dwarf Duergar" in k and "MTF" in k for k in res["knownDifferences"])
+

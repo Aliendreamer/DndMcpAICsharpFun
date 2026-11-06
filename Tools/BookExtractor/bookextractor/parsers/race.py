@@ -46,6 +46,12 @@ _CHAPTER = 1.3  # a heading this much taller than the race's Traits heading (a r
 _FOOTER = 0.85  # a line set this much below its page's median height is a running header or footer
 _CHOSEN = re.compile(r"increase\s+one\s+(?:of\s+those\s+|ability\s+)?scores?\s+by\s+2", re.I)
 _BY_SUBRACE = "the increases are printed in each subrace"
+# a race variant that replaces a trait other than Ability Score Increase leaves the race's increases as they are
+VARIANT_KEEPS_ASI = "the variant replaces another trait; the race's Ability Score Increase is unchanged"
+_REPLACES = re.compile(r"\breplaces the\b[^.]{0,80}?\btrait\b", re.I)
+_REPLACES_ASI = re.compile(r"\breplaces the Ability Score Increase trait\b", re.I)
+_SECTION = 1.3  # a race's section heading ("DWARVES") is set this much taller than a subrace heading inside it
+_SECTION_CLOSE = 0.95  # a non-race heading this tall relative to that section heading lies between the two
 _NUMBER_WORDS = {"one": 1, "two": 2, "three": 3}
 _ORDER = list(ABILITIES.values())
 _MODES = {"flying": "fly", "swimming": "swim", "climbing": "climb", "burrowing": "burrow"}
@@ -163,8 +169,9 @@ def _size_speed(label: str | None) -> bool:
 
 
 def _traits_name(t: str) -> str | None:
-    """'Dwarf TraIts' -> 'Dwarf', 'Bugbear Racial Traits' -> 'Bugbear'; None unless a '<Name> Traits' heading."""
-    m = re.match(r"^(.+?)(?:\s+racial)?\s+traits$", t.strip(), re.I)
+    """'Dwarf TraIts' -> 'Dwarf', 'Bugbear Racial Traits' -> 'Bugbear', SCAG 'Duergar Subrace Traits' -> 'Duergar';
+    None unless a '<Name> Traits' heading."""
+    m = re.match(r"^(.+?)(?:\s+racial|\s+subrace)?\s+traits$", t.strip(), re.I)
     return tidy_case(m.group(1)) if m and len(t.split()) <= 5 and squash(m.group(1)) != "racial" else None
 
 
@@ -476,6 +483,70 @@ def _prose_parent(b: _Book, s: int, name: str, races: list[str]) -> str | None:
     return None
 
 
+def _race_word(text: str, races: list[str]) -> str | None:
+    """The race a section heading names, singular or plural: "DWARVES" -> Dwarf, "Half-Elves" -> Half-Elf."""
+    s = squash(text)
+    for r in races:
+        q = squash(r)
+        if s in (q, q + "s", q + "es") or (q.endswith("f") and s == q[:-1] + "ves"):
+            return r
+    return None
+
+
+def _section_parent(b: _Book, s: int, races: list[str]) -> str | None:
+    """The race whose section the subrace heading sits in: the nearest heading above it naming a race ("DWARVES"
+    over "Gray Dwarves (Duergar)" and its "Duergar Subrace Traits"), set at least `_SECTION` times taller than
+    the subrace heading, with no other heading nearly as tall (a chapter title, another section) in between."""
+    hs = b.L[s].height
+    for j in range(s - 1, max(-1, s - 1 - _ENCLOSE_REACH), -1):
+        if not b.heads[j] or b.L[j].height < _SECTION * hs:
+            continue
+        race = _race_word(b.L[j].text, races)
+        if race is None:
+            continue
+        top = _SECTION_CLOSE * b.L[j].height
+        if any(b.heads[k] and b.L[k].height >= top and _race_word(b.L[k].text, races) is None
+               for k in range(j + 1, s)):
+            return None
+        return race
+    return None
+
+
+def _variants(b: _Book, races: list[str], claimed: set[int], source_of) -> list[tuple[Parsed, str | None]]:
+    """Subraces printed as a "<Race> Variants" option list (SCAG "Tiefling Variants"): each trait whose text says
+    which trait it replaces ("This trait replaces the Infernal Legacy trait.") is a variant named by its label.
+    Only what the option prints is a field: an option replacing the Ability Score Increase trait carries its own
+    increases; any other option prints none, keeps the race's, and its `ability` stays absent (never inherited).
+    An option that replaces nothing (SCAG "Appearance") is not a variant. The list ends at the next heading or at
+    the end of the page (the main text resuming after a sidebar)."""
+    out: list[tuple[Parsed, str | None]] = []
+    L = b.L
+    for i, l in enumerate(L):
+        m = re.match(r"^(.+?)\s+variants$", l.text.strip(), re.I)
+        race = _one(m.group(1), races) if m and b.heads[i] and i not in claimed else None
+        if race is None:
+            continue
+        end = next((j for j in range(i + 1, len(L)) if b.heads[j] or L[j].page != l.page), len(L))
+        starts = [j for j in range(i + 1, end) if b.labels[j] is not None]
+        for k, j in enumerate(starts):
+            stop = starts[k + 1] if k + 1 < len(starts) else end
+            traits = _traits(b, j, stop)
+            if not traits or not _REPLACES.search(traits[0][1]):
+                continue
+            lab, text = traits[0]
+            fields: dict = {"raceName": race, "raceSource": source_of(race)}
+            asi = VARIANT_KEEPS_ASI
+            if _REPLACES_ASI.search(text):
+                fields["ability"] = _ability(text)
+                asi = text
+            fields["entries"] = [{"type": "entries", "name": lab, "entries": [text]}]
+            lines = L[j:stop]
+            out.append((Parsed(type="Subrace", name=lab, fields=fields, text="\n".join(x.text for x in lines),
+                               lines=lines), asi))
+        claimed.update(range(i, end))
+    return out
+
+
 def _subrace(b: _Book, s: int, stop: int, race: str | None, name: str, source: str, race_walk: int | None) \
         -> tuple[Parsed, str | None, int]:
     end = _run_end(b, s, stop)
@@ -529,7 +600,8 @@ def parse_races(body: list[Line], ctx: ParseContext) -> list[Parsed]:
             continue
         parents, name = _named_parent(b, s, known)
         if not parents:
-            one = _enclosing_parent(b, s, name, known) or _prose_parent(b, s, name, known)
+            one = _enclosing_parent(b, s, name, known) or _prose_parent(b, s, name, known) or \
+                _section_parent(b, s, known)
             parents = [one] if one else []
         stop = next((a for a in starts if a > s), len(L))
         for race in parents or [None]:  # "Variant Half-Orc Or Human:" prints one block for two races
@@ -537,6 +609,7 @@ def parse_races(body: list[Line], ctx: ParseContext) -> list[Parsed]:
             sp, s_asi, end = _subrace(b, s, stop, race, name, source, None)
             claimed.update(range(s, end))
             subs.append((sp, s_asi))
+    subs += _variants(b, known, claimed, lambda r: ctx.source if squash(r) in in_book else "PHB")
     known_set = set(known)
     for p, asi in races:
         p.checks = race_checks(p.fields, False, known_set, asi_text=asi)
@@ -681,7 +754,7 @@ def _ability_check(fields: dict, asi_text: str | None) -> Check:
     if fields.get("ability"):
         problems = _ability_problems(fields["ability"])
         return Check(name, not problems, "; ".join(problems))
-    if asi_text and (_CHOSEN.search(asi_text) or asi_text == _BY_SUBRACE):
+    if asi_text and (_CHOSEN.search(asi_text) or asi_text in (_BY_SUBRACE, VARIANT_KEEPS_ASI)):
         return Check(name, True)
     if asi_text:
         return Check(name, False, f"could not read the ability score increases from {asi_text!r}")
