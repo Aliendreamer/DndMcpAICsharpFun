@@ -17,6 +17,7 @@ SCHEMAS = Path(__file__).parents[3] / "Schemas" / "canonical"
 BOOKS = {
     "phb": ("phb14", "PHB", [146, 150]),
     "dmg": ("dmg14", "DMG", [268]),
+    "scag": ("scag", "SCAG", [122]),
 }
 
 
@@ -105,7 +106,7 @@ def test_unknown_property_fails_naming_it():
 def test_schema():
     for p in weapons() + weapons("dmg"):
         jsonschema.validate(p.fields, schema("WeaponFields"))
-    for p in armor():
+    for p in armor() + armor("scag"):
         jsonschema.validate(p.fields, schema("ArmorFields"))
 
 
@@ -247,3 +248,19 @@ def test_properties_check():
     assert properties_check(["Finesse", "light", "thrown (range 20/60)"]).passed
     bad = properties_check(["Finesse", "Lihgt"])
     assert not bad.passed and bad.name == "properties-known" and "Lihgt" in bad.reason
+
+
+# ---------- printed outside a table ----------
+def test_scag_spiked_armor_stat_lines_under_a_heading():
+    """SCAG p.121: a "Spiked Armor" heading, a description, then Cost / AC / Stealth / Weight lines."""
+    a = get(armor("scag"), "Spiked Armor")
+    assert a.fields == {"type": "MA", "ac": 14, "stealth": True, "value": 7500, "weight": 45,
+                        "entries": ["Spiked armor is a rare type of medium armor made by dwarves. It consists of a "
+                                    "leather coat and leggings covered with spikes that are usually made of metal."]}
+    assert failed(a) == []
+    assert "Cost: 75 gp" in a.text and len(armor("scag")) == 1
+
+
+def test_armor_stat_lines_without_an_ac_line_are_not_armor():
+    pages = _edit("scag", 122, "AC: 14 + Dexterity modifier (max 2)", "Speed: 30 ft.", pages=_pages("scag"))
+    assert _run(parse_armor, "scag", pages) == []

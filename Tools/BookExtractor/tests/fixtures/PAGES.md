@@ -120,3 +120,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | egw | 126 | "Frigid Woe." disease lead-in under DISEASE LABORATORY, then AEORIAN HUNTERS |
 | mtf | 137 | "RUTTERKIN" lore heading (the name first, then a "Warping Plague." lead-in about a disease that infects): not a disease |
 | mpmm | 210 | The same Rutterkin lore in MPMM: not a disease |
+| scag | 122 | Spiked Armor printed as a heading, a description and Cost / AC / Stealth / Weight lines (no table) |

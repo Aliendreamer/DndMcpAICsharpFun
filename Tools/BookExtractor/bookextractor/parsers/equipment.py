@@ -39,6 +39,8 @@ from ..checks import Check
 from ..model import Line, Page
 from ..tables import Row, RowTable, read_row_tables
 from . import ParseContext, Parsed
+from .charcommon import SENTENCE_END, heading_like, prose_entries, title_case
+from .monster import _join_text, _title
 
 WEAPON_HEADERS = ["Name", "Cost", "Damage", "Weight", "Properties"]
 FIREARM_AGES = ("Renaissance", "Modern", "Futuristic")
@@ -401,4 +403,96 @@ def parse_armor(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     """One Armor per printed armor-table row, on any page of the book."""
     seen: set = set()
     return [_armor(r, t, suspect) for n in sorted(ctx.pages)
-            for r, t, suspect, _ in _rows(read_row_tables(ctx.pages[n], ARMOR_HEADERS), seen)]
+            for r, t, suspect, _ in _rows(read_row_tables(ctx.pages[n], ARMOR_HEADERS), seen)] + _armor_blocks(body)
+
+
+# ---------- printed outside a table ----------
+_MONEY = re.compile(r"\b(\d{1,3}(?:,\d{3})+|\d+)\s*(cp|sp|ep|gp|pp)\b", re.I)
+
+
+def is_heading(L: list[Line], i: int) -> bool:
+    """A short title-case line (OCR small-caps noise allowed) starting a section: the line above ends a sentence,
+    sits in another column or on another page, or is set apart by a blank line's height (a sidebar's heading
+    printed beside a paragraph that runs on around the box)."""
+    t = L[i].text.strip()
+    if not (heading_like(t) and title_case(t)):
+        return False
+    if i == 0:
+        return True
+    prev, cur = L[i - 1], L[i]
+    return prev.page != cur.page or prev.box[1] > cur.box[1] or prev.text.rstrip().endswith(SENTENCE_END) or \
+        cur.box[1] - prev.box[3] > 0.8 * cur.height
+
+
+def money_check(amounts: list[str], name: str, where: str) -> Check:
+    """`cost-valid` for a price read from prose: exactly one amount."""
+    if len(amounts) == 1:
+        return Check("cost-valid", True)
+    return Check("cost-valid", False, f"{where} of {name!r} names {len(amounts)} prices "
+                 f"({', '.join(repr(a) for a in amounts)}); none is taken")
+
+
+_STAT = re.compile(r"^(Cost|AC|Strength|Stealth|Weight):\s*(\S.*)$")
+_ARMOR_KIND = re.compile(r"\b(light|medium|heavy)\s+armou?r\b", re.I)
+
+
+def _armor_blocks(L: list[Line]) -> list[Parsed]:
+    """Armor printed as a heading, a description and "Cost: / AC: / Stealth: / Weight:" lines (SCAG Spiked Armor).
+    A block needs both a Cost and an AC line; its heading is the nearest heading above the description in the same
+    column. `type` comes from the description naming one kind of armor ("a rare type of medium armor")."""
+    out: list[Parsed] = []
+    i = 0
+    while i < len(L):
+        m = _STAT.match(L[i].text.strip())
+        if not m or m.group(1) != "Cost":
+            i += 1
+            continue
+        stats: dict[str, str] = {}
+        j = i
+        while j < len(L) and L[j].page == L[i].page and (mm := _STAT.match(L[j].text.strip())) and \
+                mm.group(1) not in stats:
+            stats[mm.group(1)] = mm.group(2).strip()
+            j += 1
+        h = next((k for k in range(i - 1, max(-1, i - 12), -1) if is_heading(L, k)), None)
+        if "AC" not in stats or h is None or any(L[k].page != L[i].page or abs(L[k].box[0] - L[i].box[0]) >
+                                                 2 * L[i].height for k in range(h, i)):
+            i = j
+            continue
+        name = _title(L[h].text.strip())
+        desc = prose_entries(L, h + 1, i)
+        kinds = {k.lower() for x in desc if isinstance(x, str) for k in _ARMOR_KIND.findall(x)}
+        f: dict = {}
+        kind = _ARMOR_GROUP[next(iter(kinds))] if len(kinds) == 1 else None
+        _set(f, "type", kind)
+        ac = _AC.match(stats["AC"])
+        if ac:
+            f["ac"] = int(ac.group(1))
+        st = stats.get("Strength", "")
+        if sm := _STRENGTH.match(st):
+            f["strength"] = sm.group(1)
+        stealth = stats.get("Stealth", "")
+        if stealth.lower() == "disadvantage":
+            f["stealth"] = True
+        _set(f, "value", cost_value(stats["Cost"]))
+        _set(f, "weight", weight_value(stats.get("Weight", "")))
+        if desc:
+            f["entries"] = desc
+        checks = [
+            Check("category-known", kind is not None, "" if kind else f"the description of {name!r} names "
+                  f"{'no' if not kinds else 'more than one'} kind of armor ({', '.join(sorted(kinds)) or 'none'})"),
+            cost_check(stats["Cost"], name),
+            weight_check(stats.get("Weight", ""), name),
+            Check("ac-valid", ac is not None, "" if ac else f"AC line of {name!r} {stats['AC']!r} is not a number "
+                                                           "(optionally + Dexterity modifier (max 2))"),
+            Check("strength-valid", not st or sm is not None,
+                  "" if not st or sm else f"strength line of {name!r} {st!r} is not 'Str N'"),
+            Check("stealth-valid", not stealth or "stealth" in f,
+                  "" if not stealth or "stealth" in f else f"stealth line of {name!r} {stealth!r} is not "
+                                                            "'Disadvantage'"),
+        ]
+        text = "\n".join([name] + [x for x in desc if isinstance(x, str)] + [L[k].text.strip() for k in range(i, j)])
+        p = Parsed(type="Armor", name=name, fields=f, text=text, lines=L[h:j])
+        p.checks = checks
+        out.append(p)
+        i = j
+    return out
