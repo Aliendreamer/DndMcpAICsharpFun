@@ -333,6 +333,16 @@ def test_coin_name_repeated_with_another_value_fails():
     assert "100" in failed(c)[0].reason and "500" in failed(c)[0].reason
 
 
+def test_moorbounders_heading_with_a_price_range():
+    """EGW p.132: "MOORBOUNDERS" and "Moorbounders can cost anywhere from 300 to 500 gp each": an Item with no
+    value (a range), the range recorded in a passing check."""
+    ps = _run("egw", {n: load_ocr_page(FIX / "egw" / f"{n:03d}.json", n) for n in (133,)})
+    m = get(ps, "Moorbounders")
+    assert "value" not in m.fields and failed(m) == []
+    c = next(c for c in m.checks if c.name == "price-range")
+    assert "300 to 500 gp" in c.reason
+
+
 # ---------- schema ----------
 def test_fields_validate_against_the_item_schema():
     schema = json.loads((SCHEMAS / "ItemFields.schema.json").read_text(encoding="utf-8"))

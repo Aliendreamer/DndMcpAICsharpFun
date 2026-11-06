@@ -126,3 +126,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | erlw | 245 | "Narcotics in Sharn" sidebar: Dragon's Blood and Dreamlily lead-ins, "Sharn. The following drugs" mid-sentence |
 | ggr | 010 | Ravnica Currency matrix (Value \| Azorius \| Boros \| Orzhov; wrapped coin names; the 1 ep cell's first line lost to the OCR) |
 | egw | 073 | Skyship heading over "Purchase Cost / Speed / Maximum Cargo / Crew: 6-10 / Maximum Passenger Occupancy / Personal Travel Cost / Shipping Cost" lines |
+| egw | 133 | MOORBOUNDERS heading; "Moorbounders can cost anywhere from 300 to 500 gp each" (a price range) |

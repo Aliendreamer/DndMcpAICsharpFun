@@ -560,6 +560,47 @@ def _goods_sections(L: list[Line]) -> list[Parsed]:
     return out
 
 
+# ---------- a heading whose section prices it ----------
+_RANGE_PRICE = re.compile(r"(\d{1,3}(?:,\d{3})+|\d+)\s*(?:to|-|–)\s*(\d{1,3}(?:,\d{3})+|\d+)\s*(cp|sp|ep|gp|pp)\b",
+                          re.I)
+
+
+def _priced_headings(L: list[Line]) -> list[Parsed]:
+    """A heading of one to three words whose section prices the thing it names, as the subject of the sentence
+    ("MOORBOUNDERS" ... "Moorbounders can cost anywhere from 300 to 500 gp each", EGW): an Item named by the
+    heading. A price range is no value; a passing `price-range` check records it. Several prices go to review."""
+    out: list[Parsed] = []
+    for i, l in enumerate(L):
+        head = l.text.strip()
+        if not (1 <= len(head.split()) <= 3 and is_heading(L, i)) or _GOODS.search(head):
+            continue
+        end = _section_end(L, i)
+        text = _join_text([x.text.strip() for x in L[i + 1:end]])
+        m = re.search(rf"(?:^|[.!?]\s+){re.escape(head)}\s+(?:can\s+|each\s+)?costs?\b([^.]*)", text, re.I)
+        if not m:
+            continue
+        name = title_name(head)
+        f: dict = {}
+        rng = _RANGE_PRICE.search(m.group(1))
+        if rng:
+            checks = [Check("price-range", True, f"{name!r} is priced as a range ({rng.group(0)}): no value")]
+        else:
+            amounts = [a.group(0) for a in _MONEY.finditer(m.group(1))]
+            if not amounts:
+                continue
+            if len(amounts) == 1:
+                f["value"] = cost_value(amounts[0])
+            checks = [money_check(amounts, name, "the price sentence")]
+        ents = prose_entries(L, i + 1, end)
+        if ents:
+            f["entries"] = ents
+        p = Parsed(type="Item", name=name, fields=f,
+                   text="\n".join([name] + [x for x in ents if isinstance(x, str)]), lines=L[i:end])
+        p.checks = checks
+        out.append(p)
+    return out
+
+
 # ---------- currency matrix ----------
 _COST_CELL = re.compile(r"^(\d{1,3}(?:,\d{3})+|\d+)\s*(cp|sp|ep|gp|pp)$", re.I)
 
@@ -655,4 +696,4 @@ def parse_items_mundane(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         out += _currency_matrix(page)
     L = _outside_tables(body, _table_boxes(ctx))
     _join(table_items, L, _chapters(L), _page_chapters(body))
-    return [p for p, _ in table_items] + out + _packs(L) + _instrument_lists(L) + _goods_sections(L)
+    return [p for p, _ in table_items] + out + _packs(L) + _instrument_lists(L) + _goods_sections(L) + _priced_headings(L)
