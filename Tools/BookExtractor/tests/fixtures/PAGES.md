@@ -60,3 +60,6 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | tce | 009, 010, 011, 012, 013, 014, 015 | Artificer class (Class Features heading after the Hit Points block, multiclassing printed) |
 | phb | 051 | Path of the Berserker ends (Retaliation), Path of the Totem Warrior begins |
 | xge | 010, 011, 012, 013 | XGE "PRIMAL PaTHs" group: Ancestral Guardian, Storm Herald, Zealot (subclass feature tables), then the BARD chapter |
+| phb | 019, 020, 021, 022 | Dwarf: chapter heading and lore, Dwarf Names, Dwarf Traits, Hill and Mountain Dwarf subraces, the Duergar sidebar, then the ELF chapter heading |
+| mpmm | 005 | The book-wide "Ability Score Increases" rule (increases are chosen) |
+| mpmm | 021, 022 | Goliath (no Ability Score Increase trait), then Harengon (Medium or Small) |

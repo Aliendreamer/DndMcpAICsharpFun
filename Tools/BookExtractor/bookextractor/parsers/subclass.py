@@ -29,8 +29,12 @@ from ..checks import Check
 from ..layout import fix_digits
 from ..model import Line
 from . import ParseContext, Parsed
+from .charcommon import SMALL_WORDS as _SMALL
 from .charcommon import SUBCLASS_GROUPS, SUBCLASS_LEVELS, class_source, ordinal, squash
+from .charcommon import heading_like as _heading_like
 from .charcommon import like as _like
+from .charcommon import tidy_case as _tidy_case
+from .charcommon import title_case as _title_case
 from .spell import _paragraphs
 
 # the phrase a group's subclass names carry around their short name ("Path of the Zealot" -> "Zealot"); the
@@ -45,7 +49,6 @@ _NAMING = {"Barbarian": r"^path of\b", "Bard": r"^college of\b", "Cleric": r"\bd
 _NOT_SUBCLASS = re.compile(r"(?:spells?|spell list|features?|^tenets of\b.*|\blevel\b.*)$", re.I)
 _FEATURES_TABLE = re.compile(r"^(.+?)\s+features$", re.I)  # XGE: "Divine Soul Features" table caption
 _TALLER = 1.08  # a subclass heading with no other evidence is set this much taller than its feature headings
-_SMALL = {"of", "the", "and", "a", "an", "to", "in", "on", "from", "for", "with", "at", "by"}
 _CUE_LINES = 2  # a feature's level cue sits in its first lines
 _LEVEL_CUE = re.compile(r"\b(\S{2,5})\s+level\b", re.I)
 # TCE prints the cue as its own line: "3rd-level Alchemist feature"
@@ -57,31 +60,6 @@ _RANK = 1.0  # a heading this tall relative to the group heading ends the group
 def _vertical(l: Line) -> bool:
     """Text set sideways in the margin (an art credit): taller than it is wide."""
     return l.box[2] - l.box[0] < l.box[3] - l.box[1]
-
-
-def _title_case(t: str) -> bool:
-    words = re.findall(r"[A-Za-z][A-Za-z'-]*", t)
-    return bool(words) and not re.search(r"[,.!?]", t) and all(w[:1].isupper() for k, w in enumerate(words)
-                                                if not (k and w.lower() in _SMALL))
-
-
-def _heading_like(t: str) -> bool:
-    t = t.strip()
-    return (0 < len(t.split()) <= 6 and t[:1].isalpha() and t[:1].isupper()
-            and not t.endswith((".", ",", ";", ":", "-")) and not re.search(r"\d", t))
-
-
-def _tidy_case(name: str) -> str:
-    """Undo OCR small-caps noise ('Path Of the ZEALOT', 'FAnaTiCal FOcus') without touching regular words."""
-    out = []
-    for k, w in enumerate(name.split()):
-        if k and w.lower() in _SMALL:
-            out.append(w.lower())
-        elif any(c.isupper() for c in w[1:]):
-            out.append(w[:1].upper() + w[1:].lower())
-        else:
-            out.append(w)
-    return " ".join(out)
 
 
 def _group_class(t: str) -> str | None:

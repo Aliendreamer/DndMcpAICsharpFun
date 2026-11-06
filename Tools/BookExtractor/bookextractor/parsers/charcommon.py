@@ -67,3 +67,31 @@ def like(a: str, b: str, cutoff: int = 85) -> bool:
     """Fuzzy equality of two printed names (on their squashed form)."""
     x, y = squash(a), squash(b)
     return bool(x) and bool(y) and fuzz.ratio(x, y) >= cutoff
+
+
+SMALL_WORDS = {"of", "the", "and", "a", "an", "to", "in", "on", "from", "for", "with", "at", "by"}
+
+
+def title_case(t: str) -> bool:
+    words = re.findall(r"[A-Za-z][A-Za-z'-]*", t)
+    return bool(words) and not re.search(r"[,.!?]", t) and all(w[:1].isupper() for k, w in enumerate(words)
+                                                if not (k and w.lower() in SMALL_WORDS))
+
+
+def heading_like(t: str) -> bool:
+    t = t.strip()
+    return (0 < len(t.split()) <= 6 and t[:1].isalpha() and t[:1].isupper()
+            and not t.endswith((".", ",", ";", ":", "-")) and not re.search(r"\d", t))
+
+
+def tidy_case(name: str) -> str:
+    """Undo OCR small-caps noise ('Path Of the ZEALOT', 'FAnaTiCal FOcus') without touching regular words."""
+    out = []
+    for k, w in enumerate(name.split()):
+        if k and w.lower() in SMALL_WORDS:
+            out.append(w.lower())
+        elif any(c.isupper() for c in w[1:]):
+            out.append(w[:1].upper() + w[1:].lower())
+        else:
+            out.append(w)
+    return " ".join(out)
