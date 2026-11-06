@@ -58,3 +58,5 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | phb | 066 | Druid class table (first-row cell starting above the last header's bottom) |
 | phb | 076, 077, 078, 079, 080 | Monk chapter; table where the OCR dropped the `3rd` level cell |
 | tce | 009, 010, 011, 012, 013, 014, 015 | Artificer class (Class Features heading after the Hit Points block, multiclassing printed) |
+| phb | 051 | Path of the Berserker ends (Retaliation), Path of the Totem Warrior begins |
+| xge | 010, 011, 012, 013 | XGE "PRIMAL PaTHs" group: Ancestral Guardian, Storm Herald, Zealot (subclass feature tables), then the BARD chapter |

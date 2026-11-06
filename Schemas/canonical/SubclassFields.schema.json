@@ -11,7 +11,7 @@
     "subclassFeatures": {
       "type": ["array", "null"],
       "items": {
-        "type": "object",
+        "type": ["string", "object"],
         "additionalProperties": true,
         "properties": {
           "subclassFeature": { "type": "string" },

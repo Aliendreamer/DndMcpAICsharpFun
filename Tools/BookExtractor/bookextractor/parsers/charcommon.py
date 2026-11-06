@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import re
 
+from rapidfuzz import fuzz
+
 SKILLS = ("Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight",
           "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion",
           "Religion", "Sleight of Hand", "Stealth", "Survival")
@@ -54,3 +56,14 @@ def ordinal(text: str) -> int | None:
         return None
     n = int(digits)
     return n if 1 <= n <= 20 else None
+
+
+def squash(s: str) -> str:
+    """Letters only, lower case: the form OCR casing and spacing noise cannot change."""
+    return re.sub(r"[^a-z]", "", s.lower())
+
+
+def like(a: str, b: str, cutoff: int = 85) -> bool:
+    """Fuzzy equality of two printed names (on their squashed form)."""
+    x, y = squash(a), squash(b)
+    return bool(x) and bool(y) and fuzz.ratio(x, y) >= cutoff

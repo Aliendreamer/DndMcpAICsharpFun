@@ -17,6 +17,8 @@ from ..model import Line, Page
 from ..tables import Table, read_table
 from . import ParseContext, Parsed
 from .charcommon import ABILITIES, SKILLS, SUBCLASS_GROUPS, SUBCLASS_LEVELS, class_source, ordinal
+from .charcommon import like as _like
+from .charcommon import squash as _squash
 from .monster import _join_text
 from .spell import _paragraphs
 
@@ -27,15 +29,6 @@ _NUMBER_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
 # a uses marker, not part of the feature's name: "Action Surge (one use)", "Channel Divinity (2/rest)"
 _FIRST_GRANT = re.compile(r"\s*\((?:one use|\d/rest)\)\s*$", re.I)
 _PAREN = re.compile(r"\s*\([^)]*\)\s*$")
-
-
-def _squash(s: str) -> str:
-    return re.sub(r"[^a-z]", "", s.lower())
-
-
-def _like(a: str, b: str, cutoff: int = 85) -> bool:
-    x, y = _squash(a), _squash(b)
-    return bool(x) and bool(y) and fuzz.ratio(x, y) >= cutoff
 
 
 def _heading_like(t: str) -> bool:
