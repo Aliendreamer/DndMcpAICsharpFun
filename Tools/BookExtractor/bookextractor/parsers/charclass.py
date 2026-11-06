@@ -339,6 +339,49 @@ def _feature_sections(L: list[Line], a: int, end: int, names: list[str], skip: s
     return sorted(found.items(), key=lambda kv: kv[1])
 
 
+_MINOR = {"a", "an", "and", "as", "at", "by", "for", "from", "in", "of", "on", "or", "the", "to", "with"}
+
+
+def _printed_spelling(table_name: str, heading: str) -> str:
+    """The feature name as its heading prints it (headings are set larger and read more reliably than table
+    cells). A heading that differs only in case keeps the table's casing; otherwise the heading's words are
+    used, cased from the table word where they share letters (the OCR mixes cases in small-caps headings)."""
+    heading = re.sub(r"\s+", " ", heading).strip()
+    if _squash(heading) == _squash(table_name):
+        return table_name
+    tw = table_name.split()
+    out = []
+    for i, hw in enumerate(heading.split()):
+        t = tw[i] if i < len(tw) else ""
+        if t and hw.lower() == t.lower():
+            out.append(t)
+        elif t and hw.lower().startswith(t.lower()):
+            out.append(t + hw[len(t):].lower())
+        elif i and hw.lower() in _MINOR:
+            out.append(hw.lower())
+        else:
+            out.append(hw[:1].upper() + hw[1:].lower())
+    return " ".join(out)
+
+
+def _respell(refs: list | None, spelling: dict[str, str]) -> list | None:
+    """Refs renamed to the heading spelling of their base name ('Signature Spell' -> 'Signature Spells');
+    a trailing note ('Brutal Critical (1 die)') is kept."""
+    if not refs:
+        return refs
+    by_sq = {_squash(k): v for k, v in spelling.items()}
+    out: list = []
+    for r in refs:
+        ref = _ref(r)
+        name, rest = ref.split("|", 1)
+        base = _base(name)
+        new = by_sq.get(_squash(base))
+        if new and new != base:
+            ref = f"{new}{name[len(base):]}|{rest}"
+        out.append({**r, "classFeature": ref} if isinstance(r, dict) else ref)
+    return out
+
+
 def _entries(L: list[Line], sections: list[tuple[str, int]], end: int) -> list[dict]:
     heads = {i for _, i in sections}
     out = []
@@ -400,6 +443,9 @@ def parse_classes(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         refs = _class_features(table, cls, src) if table is not None and cls else None
         skip_idx = {i for i in range(a, end) if _in_table(L[i], table)}
         sections = _feature_sections(L, a, end, _feature_names(refs), skip_idx)
+        spelling = {n: _printed_spelling(n, L[i].text) for n, i in sections}
+        refs = _respell(refs, spelling)
+        sections = [(spelling[n], i) for n, i in sections]
         saves, sp = _proficiencies(L, a, end)
         fields: dict = {
             "hd": _hd(L[a].text), "proficiency": saves, "startingProficiencies": sp,
@@ -487,12 +533,21 @@ def _features_match(fields: dict, table: Table | None, headings: list[str], who:
     if not refs:
         return Check(name, False, f"no features read from the {who} level table")
     problems = []
-    # the printed heading must spell the table's name (casing aside; 'Signature Spell' / 'Signature Spells')
-    missing = [n for n in _feature_names(refs) if not any(_squash(n).rstrip("s") == _squash(h).rstrip("s")
-                                                          for h in headings)]
+    cls = _ref(refs[0]).split("|")[1]
+    # every table feature needs its heading; the two must spell the name alike (case and a trailing die or
+    # uses note aside). The refs carry the heading spelling, so the table's own names are compared here.
+    missing, differ = [], []
+    for n in _feature_names(_class_features(table, cls, "") or refs):
+        if any(_squash(n) == _squash(h) for h in headings):
+            continue
+        best = max(headings, key=lambda h: fuzz.ratio(_squash(n), _squash(h)), default=None)
+        if best is not None and fuzz.ratio(_squash(n), _squash(best)) >= 85:
+            differ.append(f"the table prints '{n}' but the heading prints '{_printed_spelling(n, best)}'")
+        else:
+            missing.append(n)
     if missing:
         problems.append("no heading in the class text for " + ", ".join(missing))
-    cls = _ref(refs[0]).split("|")[1]
+    problems += differ
     if not any(_ref(r).endswith("|1") for r in refs):
         problems.append("level 1 lists no features")
     problems += _level_cues(fields.get("entries") or [], refs)

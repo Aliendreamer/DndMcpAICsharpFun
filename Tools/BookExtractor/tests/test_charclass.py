@@ -136,8 +136,8 @@ def test_fighter_garbled_ordinal_keeps_level():
     assert "Indomitable|Fighter||9" in get_class("Fighter").fields["classFeatures"]
 
 
-def test_wizard_passes_all_checks():
-    assert not failed(get_class("Wizard"))
+def test_wizard_passes_every_check_but_the_printed_spelling_disagreement():
+    assert [c.name for c in failed(get_class("Wizard"))] == ["features-match-table"]
 
 
 def test_artificer_tce_source():
@@ -231,3 +231,27 @@ def test_table_cells_on_a_body_page_are_not_feature_headings():
     sense = next(e for e in p.fields["entries"] if e["name"] == "Danger Sense")   # a standalone table cell line
     assert "uncanny sense" in " ".join(sense["entries"])
     assert not failed(p), failed(p)
+
+
+def test_wizard_ref_uses_the_heading_spelling():
+    # p114's table prints "Signature Spell"; the feature heading on p116 prints "Signature Spells"
+    p = get_class("Wizard")
+    assert "Signature Spells|Wizard||20" in p.fields["classFeatures"]
+    assert "Signature Spell|Wizard||20" not in p.fields["classFeatures"]
+    assert any(e["name"] == "Signature Spells" for e in p.fields["entries"])
+    c = check(p.checks, "features-match-table")
+    assert not c.passed and "'Signature Spell'" in c.reason and "'Signature Spells'" in c.reason
+
+
+def test_table_and_heading_spelling_disagree_fails():
+    c = check(class_checks(fields_with(), table_ok, ["Rage", "Danger Senses", "Primal Path"], text_with("")),
+              "features-match-table")
+    assert not c.passed and "'Danger Sense'" in c.reason and "'Danger Senses'" in c.reason
+
+
+def test_heading_differs_only_by_case_or_note_passes():
+    t = _table()
+    t.rows[0][2] = "Rage (2/rest)"
+    c = check(class_checks(fields_with(), t, ["RAGE", "DaNGER SENSE", "Primal Path"], text_with("")),
+              "features-match-table")
+    assert c.passed, c.reason
