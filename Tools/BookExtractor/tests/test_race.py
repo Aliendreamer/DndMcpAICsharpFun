@@ -287,3 +287,28 @@ def test_dmg_npc_row_none_modifiers_pass_and_unprinted_size_fails():
 def test_dmg_npc_row_with_no_printed_name_is_emitted_nameless():
     t = [p for p in parse("dmg") if p.type == "Race" and p.lines and p.lines[0].page == 282 and not p.name]
     assert len(t) == 1 and t[0].fields["ability"] == [{"str": 2, "con": 2, "int": -4, "cha": -4}]
+
+
+def _synthetic_line(text, x, y, page):
+    from bookextractor.model import Line
+    return Line(text=text, box=(x, y, x + 600, y + 30), height=30, page=page)
+
+
+def test_hanging_run_keeps_a_trait_continued_in_the_next_page_column():
+    from bookextractor.parsers.race import _book, _hanging_end
+    L = [_synthetic_line("Size. You are Small or Medium (your", 800, 100, 1),
+         _synthetic_line("choice).", 820, 140, 1),
+         _synthetic_line("Speed. Your base walking speed is 30 feet.", 800, 180, 1),
+         _synthetic_line("Ability Score Increase. One ability score of", 800, 220, 1),
+         _synthetic_line("your choice increases by 2.", 820, 260, 1),
+         _synthetic_line("Darkvision. You can see in dim light within", 800, 300, 1),
+         # the trait wraps onto the next page's left column: further left, but not flush with the label
+         _synthetic_line("60 feet of you as if it were bright light.", 100, 100, 2),
+         _synthetic_line("For example, high elf adventurers have proficiency", 100, 140, 2)]
+    b = _book(L)
+    assert 5 in b.hanging
+    assert _hanging_end(b, 0, len(L)) == len(L)  # never cut on another page's line
+    # on the same page, the first line flush with the last label ends the run
+    L2 = L[:6] + [_synthetic_line("Darkvision trait wraps onto", 820, 340, 1),
+                  _synthetic_line("For example, high elf adventurers have proficiency", 800, 380, 1)]
+    assert _hanging_end(_book(L2), 0, len(L2)) == 7

@@ -137,13 +137,17 @@ def _hanging_run(L: list[Line], cand: list[str | None]) -> set[int]:
 
 
 def _hanging_end(b: _Book, start: int, end: int) -> int:
-    """A hanging-indent trait run ends at the first line after its last trait that is not indented under it
-    (TCE Custom Lineage's last trait is followed by the column's next paragraph, "For example, high elf ...")."""
+    """A hanging-indent trait run ends at the first line after its last trait that is set flush with that trait's
+    label on the same page (TCE Custom Lineage's last trait is followed by the column's next paragraph, "For
+    example, high elf ..."). A line on another page or in another column (a trait wrapping onto the next column)
+    never ends it."""
     last = max((j for j in range(start, end) if j in b.hanging), default=None)
     if last is None:
         return end
-    x, h = b.L[last].box[0], b.L[last].height
-    return next((j for j in range(last + 1, end) if b.L[j].box[0] - x <= 0.4 * h), end)
+    lab = b.L[last]
+    x, h = lab.box[0], lab.height
+    return next((j for j in range(last + 1, end) if b.L[j].page == lab.page and abs(b.L[j].box[0] - x) <= 0.4 * h),
+                end)
 
 
 def _is(label: str | None, want: str) -> bool:
