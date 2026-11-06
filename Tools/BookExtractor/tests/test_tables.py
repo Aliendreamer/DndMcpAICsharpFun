@@ -168,3 +168,35 @@ def test_phb_mounts_stacked_header_and_two_tables_in_a_column():
     assert tack.rows[-1].label == "Wagon" and row(tack, "Exotic").group == "Saddle"  # ends at the next table's title
     mounts, boats = read_row_tables(p, ["Item", "Cost", "Speed"])
     assert row(boats, "Galley").cells == {"Cost": "30,000 gp", "Speed": "4 mph"} and len(boats.rows) == 6
+
+
+def _gear(*extra):
+    lines = [_ln("Item", 100, 100, 160), _ln("Cost", 500, 100, 560), _ln("Weight", 650, 100, 740),
+             _ln("Abacus", 100, 140, 200), _ln("2 gp", 500, 140, 560), _ln("2 lb.", 680, 140, 740)] + list(extra)
+    return read_rows(Page(number=1, width=1600, height=2200, lines=lines, source="ocr"), GEAR)
+
+
+def test_last_row_keeps_a_wrapped_cell():
+    t = _gear(_ln("Chalk", 100, 173, 180), _ln("1 cp", 500, 173, 560), _ln("1 lb.", 680, 173, 740),
+              _ln("and more", 650, 206, 740))
+    assert t.rows[-1].label == "Chalk" and t.rows[-1].cells == {"Cost": "1 cp", "Weight": "1 lb. and more"}
+
+
+def test_capitalised_cell_less_line_at_label_indent_is_a_group_heading():
+    t = _gear(_ln("Heavy", 100, 173, 190), _ln("Chalk", 100, 206, 180), _ln("1 cp", 500, 206, 560))
+    assert [r.label for r in t.rows] == ["Abacus", "Chalk"]
+    assert t.rows[0].group is None and t.rows[1].group == "Heavy"
+
+
+def test_wrapped_label_continuations():
+    t = _gear(_ln("Case, crossbow", 100, 173, 300), _ln("1 gp", 500, 173, 560), _ln("bolt", 100, 206, 160),
+              _ln("Rope,", 100, 239, 180), _ln("1 gp", 500, 239, 560), _ln("Hempen (50 feet)", 100, 272, 260),
+              _ln("Chalk", 100, 305, 180), _ln("1 cp", 500, 305, 560))
+    assert [r.label for r in t.rows] == ["Abacus", "Case, crossbow bolt", "Rope, Hempen (50 feet)", "Chalk"]
+
+
+def test_stray_line_is_unassigned_not_lost():
+    stray = _ln("ART", 600, 150, 640, h=70)   # set far taller than the cells: no row takes it
+    t = _gear(_ln("Chalk", 100, 173, 180), _ln("1 cp", 500, 173, 560), stray)
+    assert stray in t.unassigned and all(stray not in r.lines for r in t.rows)
+    assert read_rows(page(150), WEAPONS).unassigned == []

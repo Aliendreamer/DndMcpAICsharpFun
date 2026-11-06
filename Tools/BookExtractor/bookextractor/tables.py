@@ -197,6 +197,17 @@ class RowTable:
     rows: list[Row]
     page: int
     box: tuple[float, float, float, float]
+    # lines inside the table that no row, cell or sub-heading took (an OCR fragment between the header and the
+    # first row, a line set far taller than the cells): text the reader could not place, kept so checks can flag it
+    unassigned: list[Line] = field(default_factory=list)
+
+
+def _continues(prev: str, line: str) -> bool:
+    """Whether a cell-less first-column line reads as the rest of the label above it: it starts in lower case or
+    with "(", or the label above stops mid-phrase (a trailing comma or hyphen, an unclosed parenthesis)."""
+    prev, line = prev.strip(), line.strip()
+    return bool(line) and (line[0].islower() or line[0] == "(" or prev.endswith((",", "-", "(")) or
+                           prev.count("(") > prev.count(")"))
 
 
 def _header_cells(page: Page, first: Line, headers: list[str]) -> list[Line] | None:
@@ -220,7 +231,8 @@ def _header_cells(page: Page, first: Line, headers: list[str]) -> list[Line] | N
     return out
 
 
-def _read_one(page: Page, head: list[Line], headers: list[str], right: float) -> tuple[list[Row], tuple] | None:
+def _read_one(page: Page, head: list[Line], headers: list[str], right: float) \
+        -> tuple[list[Row], tuple, list[Line]] | None:
     h = median(x.height for x in head)
     bounds = [(a.box[2] + b.box[0]) / 2 for a, b in zip(head, head[1:])]
     x_lo, x_hi = head[0].box[0] - 2 * h, min(right, head[-1].box[2] + h)
@@ -254,27 +266,34 @@ def _read_one(page: Page, head: list[Line], headers: list[str], right: float) ->
         return [o for o in others if abs(_yc(o) - _yc(l)) <= 0.6 * h]
 
     rows: list[tuple[list[Line], str | None]] = []   # label lines, group
-    group: tuple[str, float] | None = None
+    group: tuple[str, float, bool] | None = None   # name, x0, rows indented under it
+    headings: list[Line] = []
     for k, l in enumerate(first):
         if own_cells(l):
-            if group and l.box[0] <= group[1] + 0.4 * h:
-                group = None
+            if group and group[2] and l.box[0] <= group[1] + 0.4 * h:
+                group = None               # back at an indented heading's own indent: out of its group
             rows.append(([l], group[0] if group else None))
             continue
         nxt = first[k + 1] if k + 1 < len(first) else None
         if l.box[2] > head[1].box[0]:      # a cell-less line reaching into the next column is prose: stop
+            end = min(end, l.box[1])
             break
+        prev = rows[-1][0] if rows else None
         if nxt is not None and nxt.box[0] > l.box[0] + 0.4 * h:
-            group = (l.text.strip(), l.box[0])
-        elif rows and l.box[0] >= rows[-1][0][0].box[0] - 0.4 * h and l.box[1] - rows[-1][0][-1].box[3] < 0.8 * h:
-            rows[-1][0].append(l)          # a label wrapping onto a line with no cells of its own
-        elif nxt is not None:
-            group = (l.text.strip(), l.box[0])
+            group = (l.text.strip(), l.box[0], True)
+            headings.append(l)
+        elif prev and l.box[0] >= prev[0].box[0] - 0.4 * h and l.box[1] - prev[-1].box[3] < 0.8 * h and \
+                _continues(" ".join(x.text for x in prev), l.text):
+            prev.append(l)                 # a label wrapping onto a line with no cells of its own
+        elif nxt is not None:              # a sub-heading the rows below are not indented under
+            group = (l.text.strip(), l.box[0], False)
+            headings.append(l)
     if not rows:
         return None
     centres = [_yc(r[0][0]) for r in rows]
     pitch = median(b - a for a, b in zip(centres, centres[1:])) if len(centres) > 1 else 1.2 * h
-    starts = [c - 0.6 * h for c in centres] + [rows[-1][0][-1].box[3] + 0.5 * pitch]
+    # the last row reaches to the table end, at most a row pitch past its label (a cell wrapping below it)
+    starts = [c - 0.6 * h for c in centres] + [min(end - 0.3 * h, rows[-1][0][-1].box[3] + pitch + 0.3 * h)]
     cells: list[list[list[Line]]] = [[[] for _ in head[1:]] for _ in rows]
     for o in others:
         for i in range(len(rows)):
@@ -295,9 +314,13 @@ def _read_one(page: Page, head: list[Line], headers: list[str], right: float) ->
         lines = sorted(labels + [x for c in cs for x in c], key=lambda x: (x.box[1], x.box[0]))
         used += lines
         out.append(Row(label=label, cells=texts, group=grp, marker=marker, lines=lines, raw=raw))
-    box = (min(l.box[0] for l in used), min(l.box[1] for l in used), max(l.box[2] for l in used),
-           max(l.box[3] for l in used))
-    return out, box
+    taken = used + headings
+    box = (min(l.box[0] for l in taken), min(l.box[1] for l in taken), max(l.box[2] for l in taken),
+           max(l.box[3] for l in taken))
+    ids = {id(l) for l in taken}
+    unassigned = [l for l in page.lines if id(l) not in ids and box[0] <= _xc(l) <= box[2] and
+                  box[1] <= _yc(l) <= box[3]]
+    return out, box, unassigned
 
 
 def read_row_tables(page: Page, headers: list[str]) -> list[RowTable]:
@@ -321,16 +344,19 @@ def read_row_tables(page: Page, headers: list[str]) -> list[RowTable]:
                 heads.append(hd)
         rows: list[Row] = []
         boxes = []
+        unassigned: list[Line] = []
         for k, hd in enumerate(heads):
             right = heads[k + 1][0].box[0] - 2 * hd[0].height if k + 1 < len(heads) else page.width
             got = _read_one(page, hd, headers, right)
             if got:
                 rows += got[0]
                 boxes.append(got[1])
+                unassigned += got[2]
         if rows:
             box = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes),
                    max(b[3] for b in boxes))
-            out.append(RowTable(headers=list(headers), rows=rows, page=page.number, box=box))
+            out.append(RowTable(headers=list(headers), rows=rows, page=page.number, box=box,
+                                unassigned=sorted(unassigned, key=lambda l: (l.box[1], l.box[0]))))
     return out
 
 
