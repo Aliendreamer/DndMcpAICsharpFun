@@ -527,7 +527,102 @@ def parse_races(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         p.checks = race_checks(p.fields, False, known_set, asi_text=asi)
     for p, asi in subs:
         p.checks = race_checks(p.fields, True, known_set, asi_text=asi)
-    return [p for p, _ in races] + [p for p, _ in subs]
+    return [p for p, _ in races] + npc_table_races(ctx) + [p for p, _ in subs]
+
+
+# ---------- the DMG NPC Features table ----------
+_NPC_MOD = re.compile(r"^([+\-−–])\s*(\d)\s+([A-Za-z]{3})$")
+_NPC_SPEED = re.compile(r"\bspeed (\d+) ft\.?((?:,? (?:fly|swim|climb|burrow) \d+ ft\.?)*)", re.I)
+_NPC_MODE = re.compile(r"\b(fly|swim|climb|burrow) (\d+) ft", re.I)
+_NPC_SIZE = re.compile(r"\b(Tiny|Small|Large|Huge)\s+size\b", re.I)
+
+
+def _npc_modifiers(cell: str) -> list | None:
+    """5etools `ability` from an NPC Features "Ability Modifiers" cell ("+2 Str, -4 Int"); None for "None" or
+    when any part is not a signed modifier of a named ability."""
+    out: dict[str, int] = {}
+    for part in (x.strip() for x in cell.split(",")):
+        m = _NPC_MOD.match(part)
+        key = next((v for v in ABILITIES.values() if m and m.group(3).lower() == v), None)
+        if key is None or key in out:
+            return None
+        out[key] = int(m.group(2)) * (1 if m.group(1) == "+" else -1)
+    return [dict(sorted(out.items(), key=lambda kv: _ORDER.index(kv[0])))] if out else None
+
+
+def _npc_rows(page) -> list[tuple[list[Line], list[Line], list[Line]]]:
+    """(name, ability, features) cell lines of each row of the NPC Features table on `page`, or none. Columns
+    start at the "Race", "Ability Modifiers" and "Features" header cells; a row starts at an ability cell that
+    does not continue the one above it (which ends with a comma); the table ends at its "*" footnote."""
+    lines = page.lines
+    title = next((l for l in lines if squash(l.text) == "npcfeatures"), None)
+    if title is None:
+        return []
+    below = [l for l in lines if l.box[1] > title.box[1]]
+    head = {squash(l.text): l for l in below if abs(l.box[1] - min(x.box[1] for x in below)) < l.height}
+    if not {"race", "abilitymodifiers", "features"} <= head.keys():
+        return []
+    ab, fe = head["abilitymodifiers"].box[0], head["features"].box[0]
+    top = max(h.box[3] for h in head.values())
+    foot = min((l.box[1] for l in below if l.box[1] > top and l.text.strip().startswith("*") and
+                l.box[2] - l.box[0] > fe - ab), default=page.height)
+    cells = [l for l in below if top < (l.box[1] + l.box[3]) / 2 < foot and l.box[0] >= title.box[0] - title.height]
+    tol = 0.5 * min(l.height for l in cells) if cells else 0
+
+    def col(l: Line) -> int:
+        return 0 if l.box[0] < ab - tol else 1 if l.box[0] < fe - tol else 2
+
+    abil = sorted((l for l in cells if col(l) == 1), key=lambda l: l.box[1])
+    starts = [l.box[1] for k, l in enumerate(abil) if k == 0 or not abil[k - 1].text.strip().endswith(",")]
+    rows = []
+    for k, y in enumerate(starts):
+        nxt = starts[k + 1] if k + 1 < len(starts) else foot
+        band = sorted((l for l in cells if y - tol <= l.box[1] < nxt - tol), key=lambda l: l.box[1])
+        rows.append(tuple([l for l in band if col(l) == c] for c in range(3)))
+    return rows
+
+
+def npc_table_races(ctx: ParseContext) -> list[Parsed]:
+    """One Race per monster row of the DMG "NPC Features" table: its printed name, ability modifiers, and the
+    size, speed and darkvision its Features cell prints. A row marked "*" points at the Player's Handbook race
+    and defines nothing here. A row whose name cell the OCR lost is emitted nameless (it fails `name-found`)."""
+    out: list[Parsed] = []
+    for n in sorted(ctx.pages):
+        for names, abil, feats in _npc_rows(ctx.pages[n]):
+            name = " ".join(l.text.strip() for l in names)
+            if "*" in name:
+                continue
+            cell = " ".join(l.text.strip() for l in abil)
+            text = fix_digits(_join_text([l.text.strip() for l in feats]))
+            f: dict = {"size": [SIZES[m.group(1).title()]] if (m := _NPC_SIZE.search(text)) else None}
+            if m := _NPC_SPEED.search(text):
+                modes = {k.lower(): int(v) for k, v in _NPC_MODE.findall(m.group(2))}
+                f["speed"] = {"walk": int(m.group(1)), **modes} if modes else int(m.group(1))
+            f["ability"] = None if squash(cell) == "none" else _npc_modifiers(cell)
+            f["darkvision"] = int(m.group(1)) if (m := re.search(r"\bdarkvision (\d+) ft", text, re.I)) else None
+            f["entries"] = [{"type": "entries", "name": "Features", "entries": [text]}] if text else None
+            rows = sorted(names + abil + feats, key=lambda l: (l.box[1], l.box[0]))
+            p = Parsed(type="Race", name=tidy_case(name), fields=f, lines=rows,
+                       text=f"{name} | Ability Modifiers: {cell} | Features: {text}")
+            p.checks = _npc_checks(f, cell)
+            out.append(p)
+    return out
+
+
+def _npc_checks(f: dict, cell: str) -> list[Check]:
+    ability = f.get("ability")
+    if ability:
+        bad = [f"{k} modifier {v:+d} is not between -6 and +2" for k, v in ability[0].items() if not -6 <= v <= 2 or not v]
+        asi = Check("ability-increase-parsed", not bad, "; ".join(bad))
+    elif squash(cell) == "none":
+        asi = Check("ability-increase-parsed", True)
+    else:
+        asi = Check("ability-increase-parsed", False, f"could not read the ability modifiers from {cell!r}")
+    size = _size_check(f) if f.get("size") else Check(
+        "size-valid", False, "the NPC Features table prints no size for this race (it prints only \"Small size\")")
+    speed = _speed_check(f) if f.get("speed") is not None else Check(
+        "speed-valid", False, "the NPC Features table prints no walking speed for this race")
+    return [asi, size, speed]
 
 
 # ---------- checks ----------

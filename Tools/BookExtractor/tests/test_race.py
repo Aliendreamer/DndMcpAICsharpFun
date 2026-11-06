@@ -230,7 +230,7 @@ def test_dmg_eladrin_example_subrace_names_its_race_in_print():
 
 
 def test_dmg_example_race_takes_its_name_from_the_example_race_heading():
-    assert "" not in names("Race", book="dmg")
+    assert not [p for p in parse("dmg") if p.type == "Race" and not p.name and p.lines[0].page != 282]
     a = get("Aasimar", "Race", book="dmg")
     assert a.fields["ability"] == [{"wis": 1, "cha": 2}] and a.fields["size"] == ["M"]
     assert a.fields["speed"] == 30 and a.fields["darkvision"] == 60 and not failed(a), failed(a)
@@ -244,3 +244,45 @@ def test_tce_custom_lineage_is_a_race_named_by_its_heading():
                                                 "amount": 2}}]
     assert not failed(c), failed(c)
     jsonschema.validate(c.fields, schema("RaceFields"))
+
+
+def _npc(name):
+    return next((p for p in parse("dmg") if p.type == "Race" and p.lines and p.lines[0].page == 282
+                 and _squash(p.name) == _squash(name)), None)
+
+
+def test_dmg_npc_features_table_gives_one_race_per_monster_row():
+    rows = [p for p in parse("dmg") if p.type == "Race" and p.lines and p.lines[0].page == 282]
+    got = {_squash(p.name) for p in rows}
+    for n in ("Aarakocra", "Bullywug", "Gnoll", "Gnome, deep", "Goblin", "Grimlock", "Hobgoblin", "Kenku",
+              "Kobold", "Kuo-toa", "Lizardfolk", "Merfolk", "Orc", "Skeleton", "Zombie"):
+        assert _squash(n) in got, n
+    # rows marked * point at the Player's Handbook race, which this table does not define
+    for n in ("Dragonborn", "Drow", "Dwarf", "Half-elf", "Half-orc", "Halfling", "Tiefling", "Gnome"):
+        assert _squash(n) not in got, n
+    for p in rows:
+        jsonschema.validate(p.fields, schema("RaceFields"))
+
+
+def test_dmg_npc_row_fields_are_read_from_the_printed_cells():
+    a = _npc("Aarakocra")
+    assert a.fields["ability"] == [{"dex": 2, "wis": 2}] and a.fields["speed"] == {"walk": 20, "fly": 50}
+    k = _npc("Kobold")
+    assert k.fields["ability"] == [{"str": -4, "dex": 2}] and k.fields["size"] == ["S"] and k.fields["darkvision"] == 60
+    z = _npc("Zombie")
+    assert z.fields["ability"] == [{"str": 1, "con": 2, "int": -6, "wis": -4, "cha": -4}]
+    d = _npc("Gnome, deep")
+    assert d.fields["size"] == ["S"] and d.fields["speed"] == 20 and d.fields["darkvision"] == 120 and not failed(d)
+
+
+def test_dmg_npc_row_none_modifiers_pass_and_unprinted_size_fails():
+    h = _npc("Hobgoblin")
+    assert h.fields["ability"] is None and check(h.checks, "ability-increase-parsed").passed
+    g = _npc("Gnoll")  # the table prints no size or walking speed for a Medium race: never assumed
+    assert g.fields["size"] is None and not check(g.checks, "size-valid").passed
+    assert not check(g.checks, "speed-valid").passed
+
+
+def test_dmg_npc_row_with_no_printed_name_is_emitted_nameless():
+    t = [p for p in parse("dmg") if p.type == "Race" and p.lines and p.lines[0].page == 282 and not p.name]
+    assert len(t) == 1 and t[0].fields["ability"] == [{"str": 2, "con": 2, "int": -4, "cha": -4}]
