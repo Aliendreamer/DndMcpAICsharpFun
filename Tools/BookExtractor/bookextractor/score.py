@@ -168,7 +168,9 @@ def _load_character_truth(src: str, d: Path, etype: str) -> list[dict]:
         if not files:
             raise FileNotFoundError(str(d / "class"))
         lst = "class" if etype == "Class" else "subclass"
-        return [r for f in files for r in json.loads(f.read_text("utf-8")).get(lst, []) if r.get("source") == src]
+        # 5etools stores each supplement subclass twice; the XPHB (2024 class) and EFA (2024 Artificer) copies are twins
+        return [r for f in files for r in json.loads(f.read_text("utf-8")).get(lst, [])
+                if r.get("source") == src and not (etype == "Subclass" and r.get("classSource") in ("XPHB", "EFA"))]
     if etype in ("Race", "Subrace"):
         data = json.loads((d / "races.json").read_text("utf-8"))
         if etype == "Race":
@@ -177,7 +179,14 @@ def _load_character_truth(src: str, d: Path, etype: str) -> list[dict]:
         return [dict(r, name=f"{r['raceName']} {r['name']}", _subName=r["name"]) for r in data["subrace"]
                 if r.get("source") == src and r.get("name") and r.get("raceName")]
     fname, lst = ("feats.json", "feat") if etype == "Feat" else ("backgrounds.json", "background")
-    return [r for r in json.loads((d / fname).read_text("utf-8"))[lst] if r.get("source") == src]
+    # a `_copy` background is a sidebar variant that modifies a base background, not a printed entry
+    return [r for r in json.loads((d / fname).read_text("utf-8"))[lst] if r.get("source") == src and not r.get("_copy")]
+
+
+def dropped_background_variants(book: str, fivetools_dir: Path | str) -> list[str]:
+    """Names of the `_copy` background variants load_truth leaves out for `book`."""
+    data = json.loads((Path(fivetools_dir) / "backgrounds.json").read_text("utf-8"))["background"]
+    return [r["name"] for r in data if r.get("source") == book.upper() and r.get("_copy")]
 
 
 def feature_levels(refs, src: str, level_idx: int, source_idx: int) -> set[tuple[str, int]]:
@@ -396,6 +405,8 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     known: list[str] = [f"{t['name']}: not printed ({NOT_PRINTED[(book, t['name'])]})"
                         for t in truth if (book, t["name"]) in NOT_PRINTED]
     truth = [t for t in truth if (book, t["name"]) not in NOT_PRINTED]
+    if etype == "Background":
+        known += [f"variant (_copy) not scored: {n}" for n in dropped_background_variants(book, fivetools_dir)]
     idx: dict[str, dict] = {}
     for e in entities:
         if e.get("type") == etype:

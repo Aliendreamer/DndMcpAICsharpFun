@@ -302,3 +302,22 @@ def test_score_book_matches_printed_subrace_names():
     res = score_book("phb", ents, FT, "Subrace")
     assert res["found"] == 4 and res["extra"] == 0
     assert not any(m in res["missing"] for m in ("Dwarf Hill", "Elf High", "Halfling Lightfoot", "Elf Drow"))
+
+
+@needs_5etools
+def test_truth_subclasses_drop_xphb_copies():
+    counts = {b: len(load_truth(b, FT, "Subclass")) for b in ("phb", "xge", "tce")}
+    assert counts == {"phb": 40, "xge": 31, "tce": 30}
+    names = [t["name"] for t in load_truth("xge", FT, "Subclass") if t.get("className") == "Barbarian"]
+    assert sorted(names) == sorted(set(names))
+
+
+@needs_5etools
+def test_truth_backgrounds_drop_copy_variants():
+    from bookextractor.score import dropped_background_variants
+    assert len(load_truth("phb", FT, "Background")) == 14
+    assert len(load_truth("egw", FT, "Background")) == 2
+    assert not any(t.get("_copy") for t in load_truth("phb", FT, "Background"))
+    assert "Variant Criminal (Spy)" in dropped_background_variants("phb", FT)
+    res = score_book("phb", [], FT, "Background")
+    assert any("variant (_copy) not scored: Variant Criminal (Spy)" in k for k in res["knownDifferences"])
