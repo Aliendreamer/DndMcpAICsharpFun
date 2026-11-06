@@ -1,0 +1,701 @@
+{
+ "schemaVersion": "2",
+ "book": {
+  "sourceBook": "PHB",
+  "edition": "Edition2014",
+  "fileHash": "",
+  "displayName": "Phase 2b equipment and hazards sample"
+ },
+ "entities": [
+  {
+   "id": "phb14.weapon.club",
+   "type": "Weapon",
+   "name": "Club",
+   "page": 150,
+   "canonicalText": "Club\nCost: 1 sp\nDamage: 1d4 bludgeoning\nWeight: 2lb.\nProperties: Light\nSimple Melee Weapons",
+   "fields": {
+    "type": "M",
+    "weaponCategory": "simple",
+    "value": 10,
+    "weight": 2,
+    "dmg1": "1d4",
+    "dmgType": "B",
+    "property": [
+     "L"
+    ]
+   },
+   "checks": [
+    {
+     "name": "category-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "cost-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "weight-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "damage-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "properties-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "table-rows-read",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "row-complete",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-not-shared",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 150,
+      "boxes": [
+       {
+        "x0": 178.59512329101562,
+        "y0": 426.5625,
+        "x1": 735.0713500976562,
+        "y1": 463.75
+       },
+       {
+        "x0": 784.0761108398438,
+        "y0": 427.65625,
+        "x1": 926.7344360351562,
+        "y1": 461.5625
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "phb14.armor.padded",
+   "type": "Armor",
+   "name": "Padded",
+   "page": 146,
+   "canonicalText": "Padded\nCost: 5 gp\nArmor Class (AC): 11 + Dex modifier\nStealth: Disadvantage\nWeight: 8lb.\nLight Armor",
+   "fields": {
+    "type": "LA",
+    "ac": 11,
+    "stealth": true,
+    "value": 500,
+    "weight": 8
+   },
+   "checks": [
+    {
+     "name": "category-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "cost-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "weight-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "ac-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "strength-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "stealth-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "table-rows-read",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "row-complete",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-not-shared",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 146,
+      "boxes": [
+       {
+        "x0": 176.41712951660156,
+        "y0": 1453.59375,
+        "x1": 760.1182250976562,
+        "y1": 1492.96875
+       },
+       {
+        "x0": 1091.172607421875,
+        "y0": 1457.96875,
+        "x1": 1420.0489501953125,
+        "y1": 1491.875
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "phb14.item.copper-cp",
+   "type": "Item",
+   "name": "Copper (cp)",
+   "page": 144,
+   "canonicalText": "Copper (cp)\ncp: 1\nsp: 1/10\nep: 1/50\ngp: 1/100\npp: 1/1,000",
+   "fields": {
+    "type": "$C",
+    "value": 1
+   },
+   "checks": [
+    {
+     "name": "cost-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "table-rows-read",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "row-complete",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-not-shared",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 144,
+      "boxes": [
+       {
+        "x0": 852.6828002929688,
+        "y0": 1488.59375,
+        "x1": 1458.163818359375,
+        "y1": 1525.78125
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dmg14.vehiclemount.airship",
+   "type": "VehicleMount",
+   "name": "Airship",
+   "page": 119,
+   "canonicalText": "Airship. Cost: 20,000 gp Speed: 8 mph crew: 10 passengers: 20 cargo: 1 ac: 13 hp: 300",
+   "fields": {
+    "vehicleType": "SHIP",
+    "cost": 2000000,
+    "pace": 8,
+    "capCrew": 10,
+    "capPassenger": 20,
+    "capCargo": 1,
+    "hull": {
+     "ac": 13,
+     "hp": 300
+    }
+   },
+   "checks": [
+    {
+     "name": "cost-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "vehicle-columns-placed",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "vehicle-stats-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-not-shared",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 119,
+      "boxes": [
+       {
+        "x0": 93.5250015258789,
+        "y0": 179.1270294189453,
+        "x1": 746.050048828125,
+        "y1": 220.63206481933594
+       },
+       {
+        "x0": 866.4500122070312,
+        "y0": 183.4959716796875,
+        "x1": 1150.25,
+        "y1": 215.17088317871094
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dmg14.object.ballista",
+   "type": "Object",
+   "name": "Ballista",
+   "page": 255,
+   "canonicalText": "Ballista. Large object Armor Class: 15 Hit Points: 50 Damage Immunities: poison, psychic A ballista is a massive crossbow that fires heavy bolts. Before it can be fired, it must be loaded and aimed. It takes one action to load the weapon, one action to aim it, and one action to fire it. Bolt. Ranged Weapon Attack: +6 to hit, range 120/480 ft., one target. Hit: 16 (3d10) piercing damage.",
+   "fields": {
+    "ac": [
+     15
+    ],
+    "hp": {
+     "average": 50
+    },
+    "immune": [
+     "poison",
+     "psychic"
+    ],
+    "description": "A ballista is a massive crossbow that fires heavy bolts. Before it can be fired, it must be loaded and aimed. It takes one action to load the weapon, one action to aim it, and one action to fire it.",
+    "action": [
+     {
+      "name": "Bolt",
+      "entries": [
+       "Ranged Weapon Attack: +6 to hit, range 120/480 ft., one target. Hit: 16 (3d10) piercing damage."
+      ]
+     }
+    ]
+   },
+   "checks": [
+    {
+     "name": "object-stats-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": "not printed elsewhere in the book: Ballista"
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-not-shared",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 255,
+      "boxes": [
+       {
+        "x0": 91.46666717529297,
+        "y0": 1420.76611328125,
+        "x1": 723.022216796875,
+        "y1": 1784.395263671875
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dmg14.trap.collapsing-roof",
+   "type": "Trap",
+   "name": "Collapsing Roof",
+   "page": 122,
+   "canonicalText": "Collapsing Roof. Mechanical trap This trap uses a trip wire to collapse the supports keeping an unstable section of a ceiling in place. The trip wire is 3 inches off the ground and stretches between two support beams. The DC to spot the trip wire is 10. A successful DC 15 Dexterity check using thieves' tools disables the trip wire harmlessly. A character without thieves' tools can attempt this check with disadvantage using any edged weapon or edged tool. On a failed check, the trap triggers. Anyone who inspects the beams can easily determine that they are merely wedged in place. As an action, a character can knock over a beam, causing the trap to trigger. The ceiling above the trip wire is in bad repair, and anyone who can see it can tell that it's in danger of collapse. When the trap is triggered, the unstable ceiling collapses. Any creature in the area beneath the unstable section must succeed on a DC 15 Dexterity saving throw, taking 22 (4d10) bludgeoning damage on a failed save, or half as much damage on a successful one. Once the trap is triggered, the floor of the area is filled with rubble and becomes difficult terrain.",
+   "fields": {
+    "trapHazType": "MECH",
+    "entries": [
+     "This trap uses a trip wire to collapse the supports keeping an unstable section of a ceiling in place.",
+     "The trip wire is 3 inches off the ground and stretches between two support beams. The DC to spot the trip wire is 10. A successful DC 15 Dexterity check using thieves' tools disables the trip wire harmlessly. A character without thieves' tools can attempt this check with disadvantage using any edged weapon or edged tool. On a failed check, the trap triggers.",
+     "Anyone who inspects the beams can easily determine that they are merely wedged in place. As an action, a character can knock over a beam, causing the trap to trigger.",
+     "The ceiling above the trip wire is in bad repair, and anyone who can see it can tell that it's in danger of collapse.",
+     "When the trap is triggered, the unstable ceiling collapses. Any creature in the area beneath the unstable section must succeed on a DC 15 Dexterity saving throw, taking 22 (4d10) bludgeoning damage on a failed save, or half as much damage on a successful one. Once the trap is triggered, the floor of the area is filled with rubble and becomes difficult terrain."
+    ],
+    "detectDc": 10,
+    "disarmDc": 15
+   },
+   "checks": [
+    {
+     "name": "trap-dcs-parsed",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-not-shared",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 122,
+      "boxes": [
+       {
+        "x0": 151.1708221435547,
+        "y0": 419.1471862792969,
+        "x1": 780.3395385742188,
+        "y1": 1196.649169921875
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "phb14.diseasepoison.poison-basic-vial",
+   "type": "DiseasePoison",
+   "name": "Poison, basic (vial)",
+   "page": 151,
+   "canonicalText": "Poison, basic (vial)\nCost: 100 gp\nPoison, Basic. You can use the poison in this vial to coat one slashing or piercing weapon or up to three pieces of ammunition. Applying the poison takes an action. A creature hit by the poisoned weapon or ammunition must make a DC 10 Constitution saving throw or take 1d4 poison damage. Once applied, the poison retains potency for 1 minute before drying.",
+   "fields": {
+    "value": 10000,
+    "entries": [
+     "You can use the poison in this vial to coat one slashing or piercing weapon or up to three pieces of ammunition. Applying the poison takes an action. A creature hit by the poisoned weapon or ammunition must make a DC 10 Constitution saving throw or take 1d4 poison damage. Once applied, the poison retains potency for 1 minute before drying."
+    ]
+   },
+   "checks": [
+    {
+     "name": "cost-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "table-rows-read",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "row-complete",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "entries-read",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-not-shared",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 151,
+      "boxes": [
+       {
+        "x0": 828.7249145507812,
+        "y0": 1073.274169921875,
+        "x1": 1283.9246826171875,
+        "y1": 1112.540283203125
+       }
+      ]
+     },
+     {
+      "page": 154,
+      "boxes": [
+       {
+        "x0": 155.72622680664062,
+        "y0": 978.6452026367188,
+        "x1": 761.2072143554688,
+        "y1": 1197.0927734375
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "phb14.condition.blinded",
+   "type": "Condition",
+   "name": "Blinded",
+   "page": 291,
+   "canonicalText": "Blinded\n\u2022A blinded creature can't see and automatically fails any ability check that requires sight. \u2022 Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage.",
+   "fields": {
+    "entries": [
+     {
+      "type": "list",
+      "items": [
+       "A blinded creature can't see and automatically fails any ability check that requires sight.",
+       "Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage."
+      ]
+     }
+    ]
+   },
+   "checks": [
+    {
+     "name": "condition-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "entries-read",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-not-shared",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 291,
+      "boxes": [
+       {
+        "x0": 125.23438262939453,
+        "y0": 714.3236083984375,
+        "x1": 744.872314453125,
+        "y1": 872.6981201171875
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}
