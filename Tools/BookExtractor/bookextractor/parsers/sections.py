@@ -21,6 +21,12 @@ line and every text line under it up to its end, its sub-sections included.
   title ("chapter"). It is not `complete` when it runs to the end of the text read ("end of text"), or when the
   heading it stops at is barely larger than its widest sub-heading, so that the stop may be one more sub-heading
   ("close: ...", naming the sizes).
+- **Chapter gaps.** Printed chapter numbers run 1, 2, 3 (appendices A, B, C); a jump means a chapter title the OCR
+  did not read, somewhere between the two titles read. Every section between them is not `complete` ("chapter gap:
+  Chapter 5 title not found (...)") and its outermost parent is "Chapter ? (title not found)", never the chapter
+  before the lost title. A tall "CHAPTER" with no number read (MTF chapter 6) is still a chapter title.
+- **Stripped text.** `Section.stripped` holds the printed lines inside the section's span that are not its text
+  (sidebars, running heads and feet, page numbers, captions, art text), so a check can see what was taken out.
 
 Not used by a registered parser yet (Phase 2c ruling W1).
 """
@@ -38,6 +44,7 @@ from .charcommon import (SENTENCE_END, caps_heading, char_width, character_body,
 # sentence: the word is capitalised and a bare number is not followed by a full stop or bracket)
 _CHAPTER = re.compile(r"^(?P<word>C(?i:hapt[a-z]{2,3})|A(?i:ppendi[a-z]{1,2}))\s*"
                       r"(?P<n>[0-9lIi|O]{1,2}|[A-H])(?![A-Za-z])\s*(?P<p>[:;.)]?)\s*(?P<rest>.*)$")
+_BARE_CHAPTER = re.compile(r"^C(?i:hapt[a-z]{2,3})$")  # "CHAPTER" whose number the OCR lost (MTF chapter 6)
 _CHAPTER_HEIGHT = 1.4  # a chapter title is set at least this many median line heights tall
 _OCR_DIGITS = str.maketrans({"l": "1", "I": "1", "i": "1", "|": "1", "O": "0"})
 _ABILITY_ROW = re.compile(r"(?i)^str\s+dex\s+con\b")  # a stat block's ability header, not a heading
@@ -56,6 +63,9 @@ class Section:
     complete: bool
     end_reason: str
     size: float = field(default=0.0, repr=False)  # height x character width over the body's, for diagnostics
+    # the printed lines inside the section's span that are not its text: sidebars, running heads and feet, page
+    # numbers, captions, art text (art credits are not kept); a check can see what the stripping took out
+    stripped: list[Line] = field(default_factory=list, repr=False)
 
 
 def chapter_titles(B: list[Line]) -> list[tuple[list[int], str]]:
@@ -74,18 +84,22 @@ def chapter_titles(B: list[Line]) -> list[tuple[list[int], str]]:
     for i, l in enumerate(B):
         t = l.text.strip()
         m = _CHAPTER.match(t)
-        if not m or "|" in t or vertical(l.box):
+        bare = not m and bool(_BARE_CHAPTER.match(t))
+        if not (m or bare) or "|" in t or vertical(l.box):
             continue
-        rest = m.group("rest")
-        word = "Chapter" if m.group("word")[0] == "C" else "Appendix"
-        n = m.group("n")
-        n = n if word == "Appendix" and n.isalpha() and n.isupper() and n != "I" else n.translate(_OCR_DIGITS)
+        if bare:
+            rest, word, n, punct = "", "Chapter", "?", ""
+        else:
+            rest, punct = m.group("rest"), m.group("p")
+            word = "Chapter" if m.group("word")[0] == "C" else "Appendix"
+            n = m.group("n")
+            n = n if word == "Appendix" and n.isalpha() and n.isupper() and n != "I" else n.translate(_OCR_DIGITS)
         if rest:
             if l.height < tall or not (title_case(rest) or caps_heading(rest) or rest.isupper()):
                 continue
             out.append(([i], f"{word} {n}: {name_case(rest)}"))
             continue
-        if m.group("p") in (".", ")"):
+        if punct in (".", ")"):
             continue
         # the title in the tall lines printed with it: just below it, or beside it and read first (ERLW), wrapped
         # onto lines of its own size ("NATioNS OF" / "K HORVAIRE"), never the first heading under it
@@ -101,7 +115,7 @@ def chapter_titles(B: list[Line]) -> list[tuple[list[int], str]]:
                         and B[k].box[1] >= min(B[j].box[1] for j in near) and B[k].box[1] <= bottom + 0.6 * h0]
                 near += more
                 grow = bool(more)
-        if not near and l.height < tall:
+        if not near and l.height < tall or bare and (not near or l.height < tall):
             continue
         words = " ".join(B[k].text.strip() for k in sorted(near, key=lambda k: (round(B[k].box[1] / l.height),
                                                                                  B[k].box[0])))
@@ -234,10 +248,18 @@ def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
             i += n
         else:
             i += 1
+    full: list[Line] = ctx.cache["character_lines"]
+    at = {id(l): k for k, l in enumerate(full)}
+    kept = {id(l) for l in L}
+    gaps = _chapter_gaps([chapter_name[c] for c in chapters])
     out: list[Section] = []
     bounds = [0] + chapters + [len(L)]
-    for c0, c1 in zip(bounds, bounds[1:]):
+    for g, (c0, c1) in enumerate(zip(bounds, bounds[1:])):
         chapter = chapter_name.get(c0) if c0 in chapters else None
+        # g - 1: the chapter this group opens with (-1: the text before the first chapter title)
+        gap = gaps.get(g - 1)
+        if gap:
+            chapter = _UNKNOWN_CHAPTER
         hs = [(i, n) for i, n in heads if c0 <= i < c1]
         if not hs:
             continue
@@ -261,8 +283,50 @@ def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
                 end, reason, complete = c1, "chapter", True
             else:
                 end, reason, complete = len(L), "end of text", False
+            if gap:  # a chapter title the OCR lost lies somewhere in this group: no end in it is sure
+                complete, reason = False, f"chapter gap: {gap} title not found ({reason})"
             parents = ([chapter] if chapter else []) + [titles_here[o] for o in open_]
+            span = full[at[id(L[i])]:at[id(L[end])] if end < len(L) else len(full)]
             out.append(Section(title=titles_here[k], level=len(open_) + 1, parents=parents, lines=L[i:end],
-                               page=L[i].page, complete=complete, end_reason=reason, size=sizes[k]))
+                               page=L[i].page, complete=complete, end_reason=reason, size=sizes[k],
+                               stripped=[l for l in span if id(l) not in kept]))
             open_.append(k)
+    return out
+
+
+_UNKNOWN_CHAPTER = "Chapter ? (title not found)"
+
+
+def _number(title: str) -> tuple[str, int | None]:
+    """("Chapter" or "Appendix", its number: an appendix letter counts A = 1; None when unprinted or unread)."""
+    m = re.match(r"^(Chapter|Appendix) ([^:\s]+)", title)
+    if not m:
+        return "", None
+    n = m.group(2)
+    if n.isdigit():
+        return m.group(1), int(n)
+    if len(n) == 1 and n.isalpha() and n.isupper():
+        return m.group(1), ord(n) - ord("A") + 1
+    return m.group(1), None
+
+
+def _chapter_gaps(names: list[str]) -> dict[int, str]:
+    """For each chapter group that a lost chapter title may lie in (index into `names`; -1 for the text before the
+    first title), the lost title's label ("Chapter 5"). Printed numbers run 1, 2, 3 within chapters and within
+    appendices; a jump (4 -> 6, or a first chapter numbered 2) means a title the OCR did not read, somewhere between
+    the two titles read. An unnumbered "CHAPTER" counts as the next number."""
+    out: dict[int, str] = {}
+    last: dict[str, tuple[int, int]] = {}  # word -> (index, number) of the last title of that word
+    for k, name in enumerate(names):
+        word, n = _number(name)
+        if not word:
+            continue
+        prev = last.get(word)
+        expected = prev[1] + 1 if prev else 1
+        n = expected if n is None else n
+        if n > expected:
+            label = f"{word} {expected}" if word == "Chapter" else f"{word} {chr(ord('A') + expected - 1)}"
+            for g in range(prev[0] if prev else -1, k):
+                out[g] = label
+        last[word] = (k, n)
     return out

@@ -52,7 +52,7 @@ from .equipment import _rows, _table_checks, cost_check, cost_value
 from .gear import (_OTHER_TYPE, _chapters, _key, _outside_tables, _page_chapters, _para_entries, _paragraphs,
                    _row_tables, _same_section, _table_boxes)
 from .monster import _is_heading_caps, _join_text, _title
-from .charcommon import median_height as _median, text_lines as _clean
+from .charcommon import RUNNING_HEAD as _RUNNING, median_height as _median, text_lines as _clean
 from .trap import _is_head
 
 POISON_TYPES = ("contact", "ingested", "inhaled", "injury")
@@ -292,7 +292,6 @@ def parse_diseases_poisons(body: list[Line], ctx: ParseContext) -> list[Parsed]:
 # ---------- conditions ----------
 _APPENDIX = re.compile(r"(?i)^appendix\s+\w+\s*:\s*conditions$")
 _SECTION_END = re.compile(r"(?i)^(appendix\s+\w+\s*:|chapter\s+\d+\s*:)")
-_RUNNING = re.compile(r"(?i)^(\d+\s+)?(chapter|part|appendix)\s+\w+\s*\|")
 _TITLE = 1.6  # an appendix or chapter title is set at least this many median line heights tall
 
 

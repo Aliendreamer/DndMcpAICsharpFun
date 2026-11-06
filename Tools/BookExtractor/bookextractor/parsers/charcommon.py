@@ -255,7 +255,7 @@ def text_lines(L: list[Line], ctx: ParseContext, keep=None) -> list[Line]:
         if l.box[0] - edges.get(col(l), l.box[0]) > _OFF_COLUMN * m:
             continue
         out.append(l)
-    return [l for k, l in enumerate(out) if not _caption(out, k)]
+    return [l for k, l in enumerate(out) if not _caption(out, k) or keep is not None and keep(l, m)]
 
 
 def _caption(L: list[Line], k: int) -> bool:

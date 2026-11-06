@@ -8,9 +8,11 @@ from bookextractor.parsers import ParseContext
 from bookextractor.parsers.sections import chapter_titles, read_sections
 
 FIX = Path(__file__).parent / "fixtures" / "ocr"
-# GGR 28: the end of chapter 1 (Circle of Spores); 30-39: "Chapter 2: Guilds of Ravnica", Guild Membership (with
-# "The Guildless" sidebar), the Azorius Senate (with the "Three Capitals" sidebar) and the start of the Boros Legion
-GGR = [28, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+# GGR 12: "Chapter 1: Character Creation"; 28: the end of chapter 1 (Circle of Spores); 30-39: "Chapter 2: Guilds of
+# Ravnica", Guild Membership (with "The Guildless" sidebar), the Azorius Senate (with the "Three Capitals" sidebar)
+# and the start of the Boros Legion; 100: "Chapter 3: The Tenth District"
+GGR = [12, 28, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 100]
+CHAPTER_1 = "Chapter 1: Character Creation"
 CHAPTER_2 = "Chapter 2: Guilds of Ravnica"
 
 
@@ -47,6 +49,11 @@ def test_ggr_guild_sections_with_parents():
     assert "Bringing order from chaos" in text(azorius)
     assert "Boros" not in azorius.lines[-1].text
     assert all(l.page <= 38 for l in azorius.lines)
+    # the sidebar stripper also takes the column line after the "Three Capitals" box (it sits as far in as the box);
+    # the section records it as stripped rather than losing it silently
+    lost = "As an Azorius official, you can call on recruits"
+    assert lost not in text(azorius)
+    assert lost in " ".join(l.text for l in azorius.stripped)
 
     for sub in ("Inside the Senate", "Azorius Characters"):
         s = get(sub)
@@ -66,13 +73,41 @@ def test_a_section_never_crosses_a_chapter_title():
     assert fungal.end_reason == "chapter"
     assert fungal.complete
     assert {l.page for l in fungal.lines} == {28}
-    assert CHAPTER_2 not in fungal.parents  # (chapter 1's title page is not among the fixture pages)
+    assert fungal.parents[0] == CHAPTER_1
     for s in ggr():
         assert not any("Guilds of Ravnica" in l.text for l in s.lines), s.title
-        if s.page == 28:
-            assert all(l.page == 28 for l in s.lines), s.title
-        else:
+        if s.page <= 28:
+            assert all(l.page <= 28 for l in s.lines) and s.parents[0] == CHAPTER_1, s.title
+        elif s.page < 100:
             assert s.parents[0] == CHAPTER_2, s.title
+            assert all(l.page < 100 for l in s.lines), s.title
+        if s.page < 100:  # no chapter gap between chapters 1, 2 and 3
+            assert s.complete or s.end_reason.startswith("close"), (s.title, s.end_reason)
+
+
+def test_a_lost_chapter_title_is_a_chapter_gap():
+    """With the "Chapter 2" title unread, chapter 1 runs on to chapter 3: no section in between claims chapter 1,
+    and none is complete."""
+    body, pages = _body("ggr", GGR)
+    body = [l for l in body if "Guilds of Ravnica" not in l.text]
+    secs = read_sections(body, ParseContext(slug="ggr", source="GGR", pages=pages))
+    between = [s for s in secs if s.page < 100]
+    assert any(s.title == "Azorius Senate" for s in between)
+    for s in between:
+        assert not s.complete, s.title
+        assert s.end_reason.startswith("chapter gap: Chapter 2 title not found"), (s.title, s.end_reason)
+        assert s.parents[0] == "Chapter ? (title not found)", (s.title, s.parents)
+    after = [s for s in secs if s.page >= 100]
+    assert after and all(s.parents[0] == "Chapter 3: The Tenth District" for s in after)
+
+
+def test_stripped_text_is_recorded():
+    """A sidebar inside a section is not its text, but the section records it as stripped."""
+    membership = get("Guild Membership")
+    stripped = " ".join(l.text for l in membership.stripped)
+    assert "The Guildless" in stripped and "guildless are especially common" in stripped
+    assert "Three CApitals" in " ".join(l.text for l in get("Azorius Senate").stripped)
+    assert not any(l in membership.lines for l in membership.stripped)
 
 
 def test_a_sidebar_inside_a_section_is_excluded():
