@@ -651,6 +651,22 @@ def _priced_headings(L: list[Line]) -> list[Parsed]:
 _COST_CELL = re.compile(r"^(\d{1,3}(?:,\d{3})+|\d+)\s*(cp|sp|ep|gp|pp)$", re.I)
 
 
+_METAL = re.compile(r"\b(copper|silver|electrum|gold|platinum)\b", re.I)
+
+
+def _coin_name_check(name: str) -> Check:
+    """`coin-name-read`: a coin cell names one coin. A cell naming two metals ("platinum 10-zino coin platinum
+    100-") or ending on a broken word took in the next row's name: that row's Value cell was lost to the OCR."""
+    metals = [m.group(1).lower() for m in _METAL.finditer(name)]
+    if len(metals) > 1:
+        return Check("coin-name-read", False, f"coin cell {name!r} names {len(metals)} metals "
+                     f"({', '.join(repr(m) for m in metals)}): a row's Value cell may be lost, merging two coins")
+    if name.rstrip().endswith("-"):
+        return Check("coin-name-read", False, f"coin cell {name!r} ends on a broken word: its last line may be "
+                     f"another row's")
+    return Check("coin-name-read", True)
+
+
 def _currency_matrix(page: Page) -> list[Parsed]:
     """A "<...> Currency" table whose first column is a Value ("1 cp") and whose other columns name the coin of
     that value in each issuer's coinage (GGR Ravnica Currency: Value | Azorius | Boros | Orzhov). Each named cell
@@ -718,7 +734,8 @@ def _currency_matrix(page: Page) -> list[Parsed]:
                        text="\n".join([name] + [f"Value: {v} cp" for v in vs] + [title[0].text.strip()]), lines=ls,
                        table_row=True)
             p.checks = [Check("cost-valid", len(vs) == 1, "" if len(vs) == 1 else
-                              f"coin {name!r} is printed in rows of different values ({', '.join(f'{v} cp' for v in vs)})")]
+                              f"coin {name!r} is printed in rows of different values ({', '.join(f'{v} cp' for v in vs)})"),
+                        _coin_name_check(name)]
             out.append(p)
     return out
 

@@ -350,6 +350,18 @@ def test_coin_name_repeated_with_another_value_fails():
     assert "100" in failed(c)[0].reason and "500" in failed(c)[0].reason
 
 
+def test_lost_value_cell_merging_two_coins_fails():
+    """The 10 pp row's Value cell lost to the OCR: its coin's first line ("platinum 100-") falls into the 1 pp
+    row's band under "platinum 10-zino" / "coin". The merged name holds two coins; it must not pass as one coin
+    worth 1 pp."""
+    pages = _edit("ggr", 10, "10 pp", "")
+    merged = [p for p in _run("ggr", pages) if p.fields.get("type") == "$C" and "100" in p.name]
+    assert merged
+    for p in merged:
+        assert [c.name for c in failed(p)] == ["coin-name-read"]
+        assert "'platinum', 'platinum'" in failed(p)[0].reason
+
+
 def test_moorbounders_heading_with_a_price_range():
     """EGW p.132: "MOORBOUNDERS" and "Moorbounders can cost anywhere from 300 to 500 gp each": an Item with no
     value (a range), the range recorded in a passing check."""
