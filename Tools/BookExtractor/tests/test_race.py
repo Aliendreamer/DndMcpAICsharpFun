@@ -144,3 +144,31 @@ def test_later_books_phrase_the_chosen_increase_rule_differently():
     c = check(race_checks({"ability": None, "size": ["M"], "speed": 30}, False, set(), asi_text=vrgr),
               "ability-increase-parsed")
     assert c.passed
+
+
+def test_ability_amount_out_of_range_fails_naming_the_value():
+    for v in (7, 21):
+        c = check(race_checks({"ability": [{"con": v}], "size": ["M"], "speed": 30}, False, set()),
+                  "ability-increase-parsed")
+        assert not c.passed and str(v) in c.reason
+    c = check(race_checks({"ability": [{"choose": {"from": ["str"], "count": 4, "amount": 3}}], "size": ["M"],
+                           "speed": 30}, False, set()), "ability-increase-parsed")
+    assert not c.passed and "4" in c.reason and "3" in c.reason
+
+
+def test_ocr_merged_amount_is_read_but_fails_the_check():
+    from bookextractor.parsers.race import _ability
+    assert _ability("Your Constitution score increases by 7.") == [{"con": 7}]
+    c = check(race_checks({"ability": [{"con": 7}], "size": ["M"], "speed": 30}, False, set()),
+              "ability-increase-parsed")
+    assert not c.passed
+
+
+def test_speed_modes_after_an_options_trait_still_count():
+    from bookextractor.parsers.race import _modes
+    traits = [("Speed", "Your base walking speed is 30 feet."),
+              ("Enhancement", "Choose one of the following options: you have a climbing speed equal to your "
+                              "walking speed."),
+              ("Wings", "You have a flying speed equal to your walking speed."),
+              ("Fins", "You have a swimming speed of 30 feet.")]
+    assert _modes(traits) == {"fly": True, "swim": 30}

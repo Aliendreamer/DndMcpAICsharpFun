@@ -256,13 +256,13 @@ def _walk(text: str) -> int | None:
 
 def _modes(traits: list[tuple[str, str]]) -> dict:
     """Flying/swimming/climbing/burrowing speeds from unconditional "you have a ... speed" sentences. A
-    transformation's "until it ends, you have a flying speed" is not the race's speed, nor is an option the
-    player may choose ("choose one of the following options: ... Nimble Climber.")."""
+    transformation's "until it ends, you have a flying speed" is not the race's speed, nor is the rest of a trait
+    after its "choose one of the following options" sentence."""
     out: dict = {}
     for _, text in traits:
         for sentence in re.split(r"(?<=[.!?:])\s+", fix_digits(re.sub(r"\s+", " ", text))):
             if _OPTIONS.search(sentence):
-                return out
+                break  # the rest of this trait is a choice list; later traits still count
             if _CONDITIONAL.search(sentence):
                 continue
             for word, mode in _MODES.items():
@@ -429,10 +429,33 @@ def race_checks(fields: dict, is_subrace: bool, known_races: set[str], asi_text:
     return out
 
 
+def _ability_problems(ability) -> list[str]:
+    """A race increases a score by 1 or 2, and lets the player choose 1 to 3 scores; anything else is a misread
+    (an OCR digit merge, "by 7")."""
+    out: list[str] = []
+    if not isinstance(ability, list):
+        return [f"ability {ability!r} is not a list"]
+    for entry in ability:
+        if not isinstance(entry, dict):
+            out.append(f"ability entry {entry!r} is not an object")
+            continue
+        for key, v in entry.items():
+            if key == "choose":
+                c = v if isinstance(v, dict) else {}
+                if c.get("count") not in (1, 2, 3):
+                    out.append(f"choose count {c.get('count')!r} is not 1, 2 or 3")
+                if c.get("amount", 1) not in (1, 2):
+                    out.append(f"choose amount {c.get('amount')!r} is not 1 or 2")
+            elif isinstance(v, bool) or v not in (1, 2):
+                out.append(f"{key} increase {v!r} is not 1 or 2")
+    return out
+
+
 def _ability_check(fields: dict, asi_text: str | None) -> Check:
     name = "ability-increase-parsed"
     if fields.get("ability"):
-        return Check(name, True)
+        problems = _ability_problems(fields["ability"])
+        return Check(name, not problems, "; ".join(problems))
     if asi_text and (_CHOSEN.search(asi_text) or asi_text == _BY_SUBRACE):
         return Check(name, True)
     if asi_text:
