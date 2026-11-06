@@ -1,4 +1,6 @@
-"""Subclass parser (the subclass groups of PHB / XGE / TCE class chapters) and its verification checks.
+"""Subclass parser (the subclass groups of PHB / XGE / TCE class chapters, and the "character options" sections
+of other books: "Cleric: Death Domain" labels, or a bare "FIGHTER" heading over subclasses named by their cues)
+and its verification checks.
 
 A subclass group starts at its plural group heading ("Primal Paths"; XGE prints a singular "Arcane Tradition"
 when it offers one option) and runs to the next heading of the group heading's rank, the next class chapter
@@ -51,6 +53,7 @@ _FEATURES_TABLE = re.compile(r"^(.+?)\s+features$", re.I)  # XGE: "Divine Soul F
 _TALLER = 1.08  # a subclass heading with no other evidence is set this much taller than its feature headings
 _CUE_LINES = 2  # a feature's level cue sits in its first lines
 _LEVEL_CUE = re.compile(r"\b(\S{2,5})\s+level\b", re.I)
+_AT_LEVEL = re.compile(r"\bAt (\S{2,5})-level\b")  # DMG: "At 20th-level, the paladin can ..."
 # TCE prints the cue as its own line: "3rd-level Alchemist feature"
 _TAGGED_CUE = re.compile(r"^(\S{2,5})-level\s+([^.]{1,40}?)\s+feature\b", re.I)
 _GROUP_HEIGHT = 1.15  # a group heading is set at least this much above its page's median line height
@@ -92,6 +95,9 @@ def _cue(L: list[Line], i: int, end: int) -> tuple[int | None, str | None]:
         lvl = ordinal(m.group(1).rstrip(",."))
         if lvl is not None:
             return lvl, None
+    m = _AT_LEVEL.search(text)
+    if m and ordinal(m.group(1)) is not None:
+        return ordinal(m.group(1)), None
     return None, None
 
 
@@ -177,10 +183,13 @@ def _features(L: list[Line], g: int, end: int) -> dict[int, _Feature]:
     return out
 
 
-def _subclasses(L: list[Line], g: int, end: int, cls: str) -> list[tuple[int, int, list[_Feature]]]:
-    """(heading index, section end, features) for each subclass in a group."""
+def _subclasses(L: list[Line], g: int, end: int, cls: str,
+                evidence_only: bool = False) -> list[tuple[int, int, list[_Feature]]]:
+    """(heading index, section end, features) for each subclass in a group. `evidence_only` (under a bare class
+    heading): a subclass heading must be named by its features' cues, and a cue naming a class is no evidence."""
     feats = _features(L, g, end)
-    subjects = {i: f.subject for i, f in feats.items() if f.subject}
+    subjects = {i: f.subject for i, f in feats.items()
+                if f.subject and not (evidence_only and _class_named(f.subject, 90))}
     if not feats:
         return []
     fh = statistics.median(L[i].height for i in feats)
@@ -211,6 +220,10 @@ def _subclasses(L: list[Line], g: int, end: int, cls: str) -> list[tuple[int, in
         if heads and any(_like(L[heads[-1][0]].text, n, 90) for n in named_by):
             continue
         pick = next((i for i in pool if any(_like(L[i].text, n) for n in named_by)), None)
+        if evidence_only:
+            if pick is not None and not (heads and _like(L[heads[-1][0]].text, L[pick].text, 90)):
+                heads.append((pick, False))
+            continue
         if pick is None:
             pick = next((i for i in pool if _named(L[i].text, cls)), None)
         if pick is not None:
@@ -247,6 +260,125 @@ def _entries(L: list[Line], feats: list[_Feature], end: int) -> list[dict]:
     return out
 
 
+# ---------- subclasses printed outside a class chapter ----------
+# A "character options" section prints each subclass under a label naming its class ("Cleric: Death Domain",
+# "MONK:" over "Way of the Ascendant Dragon"), or under a bare class heading ("FIGHTER") with the subclass named
+# by its TCE-style cues ("3rd-level Echo Knight feature"). The parent class is the printed label or heading,
+# never guessed.
+_LABEL = re.compile(r"^\s*([A-Za-z]{3,12})\s*[:;]\s*(.*)$")
+_SECTION_HEIGHT = 1.3  # a heading this much above its page's median line height ends an options section
+
+
+def _class_named(word: str, cutoff: int = 85) -> str | None:
+    s = squash(word)
+    if not s:
+        return None
+    best = max(SUBCLASS_GROUPS, key=lambda c: fuzz.ratio(s, squash(c)))
+    # a shorter word is another word, not a misread class ("Range: Self" in a spell is not "Ranger")
+    return best if fuzz.ratio(s, squash(best)) >= cutoff and len(s) >= len(squash(best)) else None
+
+
+@dataclass
+class _Anchor:
+    at: int  # index of the label / class heading line
+    head: int  # index of the subclass name line (the label itself, or the line under "MONK:")
+    name: str | None  # the labelled subclass name; None under a bare class heading
+    cls: str | None  # the class the label or heading prints; None when it names no known class
+
+
+def _anchors(L: list[Line], med: dict[int, float]) -> list[_Anchor]:
+    out = []
+    for i, l in enumerate(L):
+        t = l.text.strip()
+        if _vertical(l):
+            continue
+        m = _LABEL.match(t)
+        if m:
+            rest, head = m.group(2).strip(), i
+            if not rest and i + 1 < len(L):
+                rest, head = L[i + 1].text.strip(), i + 1
+            if rest and _heading_like(rest) and _title_case(rest):
+                out.append(_Anchor(i, head, _tidy_case(rest), _class_named(m.group(1))))
+        elif len(t.split()) == 1 and _heading_like(t) and l.height >= _SECTION_HEIGHT * med[l.page]:
+            cls = _class_named(t, 90)
+            if cls:
+                out.append(_Anchor(i, i, None, cls))
+    return out
+
+
+def _section_heading(L: list[Line], j: int, med: dict[int, float]) -> bool:
+    t = L[j].text.strip()
+    return (_heading_like(t) and _title_case(t) and not _vertical(L[j])
+            and L[j].height >= _SECTION_HEIGHT * med[L[j].page])
+
+
+def _subject_like(subj: str, name: str, cls: str | None) -> bool:
+    return _like(subj, name) or _like(subj, _short_name(name, cls or ""))
+
+
+def _labelled(L: list[Line], a: _Anchor, end: int, med: dict[int, float]) -> tuple[int, list[_Feature]] | None:
+    """(section end, features) of a labelled subclass. With TCE-style cues the section runs while they name
+    the subclass; without them it ends at the next section heading."""
+    feats = [f for _, f in sorted(_features(L, a.head, end).items())]
+    tagged = [f for f in feats if f.subject]
+    if tagged:
+        keep = []
+        for f in feats:
+            if not (f.subject and _subject_like(f.subject, a.name, a.cls)):
+                break
+            keep.append(f)
+        feats = keep
+    else:
+        stop = next((j for j in range(a.head + 1, end) if _section_heading(L, j, med)), end)
+        feats = [f for f in feats if f.head < stop]
+        end = stop
+    if not feats:
+        return None
+    if a.cls is None and not tagged:  # an unknown label is a subclass only when its cues name it
+        return None
+    sec_end = end if not tagged else min(end, next((f.head for f in _features(L, a.head, end).values()
+                                                    if f.head > feats[-1].head), end))
+    return sec_end, feats
+
+
+def _cue_name(L: list[Line], i: int, feats: list[_Feature]) -> str:
+    """The subclass heading's text; when the OCR misread it ("Eco Knight") and two or more of its cues print
+    the same name ("3rd-level Echo Knight feature"), the cues' spelling."""
+    name = _tidy_case(L[i].text.strip())
+    subs = [f.subject for f in feats if f.subject and _like(f.subject, name)]
+    for s in dict.fromkeys(subs):
+        if squash(s) != squash(name) and sum(squash(x) == squash(s) for x in subs) >= 2:
+            return _tidy_case(" ".join(w[:1].upper() + w[1:] if w.lower() not in _SMALL else w for w in s.split()))
+    return name
+
+
+def _make(L: list[Line], i: int, sec_end: int, name: str, cls: str | None, feats: list[_Feature],
+          ctx: ParseContext) -> Parsed:
+    csrc = class_source(cls, ctx.source) if cls else ""
+    ssrc = "" if ctx.source == "PHB" else ctx.source
+    short = _short_name(name, cls or "")
+    first = min(f.level for f in feats)
+    refs = [f"{name}|{cls or ''}|{csrc}|{short}|{ssrc}|{first}"]
+    # the first level's features are held by the subclass ref; one printed after a later level's feature
+    # is kept as its own ref, so the out-of-order levels show (two subclasses read as one)
+    top = first
+    for f in feats:
+        if f.level != first or top > first:
+            refs.append(f"{f.name}|{cls or ''}|{csrc}|{short}|{ssrc}|{f.level}")
+        top = max(top, f.level)
+    lines = L[i:sec_end]
+    fields = {
+        "className": cls, "classSource": (csrc or "PHB") if cls else None, "shortName": short,
+        "subclassFeatures": refs,
+        "entries": _entries(L, feats, sec_end) or None,
+    }
+    if cls is None:  # the label prints no known class: the field stays absent and parent-class-known fails
+        del fields["className"]
+    p = Parsed(type="Subclass", name=name, fields=fields, text="\n".join(l.text for l in lines), lines=lines)
+    p.checks = subclass_checks(fields)
+    return p
+
+
 def parse_subclasses(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     """Parse every subclass in `body` (reading-ordered lines of the whole book)."""
     L = body
@@ -258,33 +390,27 @@ def parse_subclasses(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     med = {p: statistics.median(h) for p, h in by_page.items()}
     groups = _groups(L, med)
     out: list[Parsed] = []
+    spans: list[tuple[int, int]] = []
     for k, (g, cls) in enumerate(groups):
         stop = groups[k + 1][0] if k + 1 < len(groups) else len(L)
         end = _group_end(L, g, stop, cls, med)
-        csrc = class_source(cls, ctx.source)
-        ssrc = "" if ctx.source == "PHB" else ctx.source
+        spans.append((g, end))
         for i, sec_end, feats in _subclasses(L, g, end, cls):
-            name = _tidy_case(L[i].text.strip())
-            short = _short_name(name, cls)
-            first = min(f.level for f in feats)
-            refs = [f"{name}|{cls}|{csrc}|{short}|{ssrc}|{first}"]
-            # the first level's features are held by the subclass ref; one printed after a later level's feature
-            # is kept as its own ref, so the out-of-order levels show (two subclasses read as one)
-            top = first
-            for f in feats:
-                if f.level != first or top > first:
-                    refs.append(f"{f.name}|{cls}|{csrc}|{short}|{ssrc}|{f.level}")
-                top = max(top, f.level)
-            lines = L[i:sec_end]
-            fields = {
-                "className": cls, "classSource": csrc or "PHB", "shortName": short,
-                "subclassFeatures": refs,
-                "entries": _entries(L, feats, sec_end) or None,
-            }
-            p = Parsed(type="Subclass", name=name, fields=fields, text="\n".join(l.text for l in lines),
-                       lines=lines)
-            p.checks = subclass_checks(fields)
-            out.append(p)
+            out.append(_make(L, i, sec_end, _tidy_case(L[i].text.strip()), cls, feats, ctx))
+    # labels and bare class headings outside every subclass group
+    anchors = [a for a in _anchors(L, med) if not any(g <= a.at < e for g, e in spans)]
+    starts = sorted([a.at for a in anchors] + [g for g, _ in groups])
+    for a in anchors:
+        end = next((s for s in starts if s > a.head), len(L))
+        if a.name is not None:
+            got = _labelled(L, a, end, med)
+            if got:
+                out.append(_make(L, a.at, got[0], a.name, a.cls, got[1], ctx))
+            continue
+        end = next((j for j in range(a.at + 1, end) if _section_heading(L, j, med)), end)
+        for i, sec_end, feats in _subclasses(L, a.at, end, a.cls, evidence_only=True):
+            out.append(_make(L, i, sec_end, _cue_name(L, i, feats), a.cls, feats, ctx))
+    out.sort(key=lambda p: L.index(p.lines[0]) if p.lines else 0)
     return out
 
 
@@ -298,6 +424,8 @@ def _parent_known(fields: dict) -> Check:
     cls = fields.get("className")
     if cls in SUBCLASS_GROUPS:
         return Check(name, True)
+    if cls is None:
+        return Check(name, False, "no parent class is printed with this subclass (its label names no known class)")
     return Check(name, False, f"parent class {cls!r} is not a known class ({', '.join(SUBCLASS_GROUPS)})")
 
 

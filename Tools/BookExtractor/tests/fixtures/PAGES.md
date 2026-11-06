@@ -67,3 +67,8 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | xge | 074, 075 | Racial Feats: the Racial Feats table (feat names as rows), then Bountiful Luck to Fey Teleportation |
 | phb | 128, 129 | Backgrounds: Acolyte (label lines, Feature: Shelter of the Faithful), Charlatan (tools, a table before the feature) |
 | scc | 032, 033 | Strixhaven backgrounds: Lorehold Student, Prismari Student (tool line wrapped onto a second line) |
+| dmg | 096, 097, 098 | Villainous Class Options: "Cleric: Death Domain", "PALADIN: OATHBREAKER" (cue "At 20th-level"), then an art page |
+| ftd | 015, 016, 017, 018 | Subclass Options: "MONK:" over "Way of the Ascendant Dragon", "RAnGeR: DRAKeWArDeN" (Drake Companion stat block inside), cues "3rd-Level ... Feature" |
+| bgg | 011, 012 | Subclass Option: "BarBarian: Path of the Giant" set at body height, then BACKGROUNDS |
+| vrgr | 029, 030, 031, 032 | Subclass Options: "BARD: COLLEGE OF SPIRITS", "WArlock: The UndeAd", then BACKGROUNDS |
+| egw | 184, 185, 186, 187 | Subclasses under bare class headings "FIGHTER" ("Eco Knight" OCR, cues "3rd-level Echo Knight feature") and "WIZARD" (Chronurgy, Graviturgy), then Dunamancy Spells |

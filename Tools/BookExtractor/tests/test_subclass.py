@@ -15,6 +15,11 @@ SCHEMAS = Path(__file__).parents[3] / "Schemas" / "canonical"
 BOOKS = {
     "phb": ("phb14", "PHB", [50, 51]),
     "xge": ("xge", "XGE", [10, 11, 12, 13]),
+    "dmg": ("dmg14", "DMG", [96, 97, 98]),
+    "ftd": ("ftd", "FTD", [15, 16, 17, 18]),
+    "bgg": ("bgg", "BGG", [11, 12]),
+    "vrgr": ("vrgr", "VRGR", [29, 30, 31, 32]),
+    "egw": ("egw", "EGW", [184, 185, 186, 187]),
 }
 
 
@@ -101,3 +106,76 @@ def test_parent_class_unknown():
 
 def test_subclass_schema():
     jsonschema.validate(get_sub("Path of the Zealot", book="xge").fields, schema("SubclassFields"))
+
+
+# ---------- subclasses outside a class chapter: "<Class>: <Subclass>" labels and bare class headings ----------
+def test_dmg_class_label_death_domain():   # "Cleric: Death Domain" under "Villainous Class Options"
+    p = get_sub("Death Domain", book="dmg")
+    assert p.fields["className"] == "Cleric" and p.fields["shortName"] == "Death"
+    assert p.fields["subclassFeatures"] == [
+        "Death Domain|Cleric||Death|DMG|1", "Channel Divinity: Touch of Death|Cleric||Death|DMG|2",
+        "Inescapable Destruction|Cleric||Death|DMG|6", "Divine Strike|Cleric||Death|DMG|8",
+        "Improved Reaper|Cleric||Death|DMG|17"]
+    assert not failed(p), failed(p)
+
+
+def test_dmg_class_label_oathbreaker():   # "PALADIN: OATHBREAKER"; Dread Lord's cue is "At 20th-level"
+    p = get_sub("Oathbreaker", book="dmg")
+    assert p.fields["className"] == "Paladin" and p.fields["shortName"] == "Oathbreaker"
+    assert sorted({int(r.split("|")[-1]) for r in p.fields["subclassFeatures"]}) == [3, 7, 15, 20]
+    assert not failed(p), failed(p)
+    assert [q.name for q in parse("dmg")] == ["Death Domain", "Oathbreaker"]
+
+
+def test_ftd_label_split_over_two_lines():   # "MONK:" / "Way of the Ascendant Dragon"; TCE-style cues
+    p = get_sub("Way of the Ascendant Dragon", book="ftd")
+    assert p.fields["className"] == "Monk" and p.fields["shortName"] == "Ascendant Dragon"
+    assert sorted({int(r.split("|")[-1]) for r in p.fields["subclassFeatures"]}) == [3, 6, 11, 17]
+    assert not failed(p), failed(p)
+    d = get_sub("Drakewarden", book="ftd")
+    assert d.fields["className"] == "Ranger" and d.fields["subclassFeatures"][0] == "Drakewarden|Ranger||Drakewarden|FTD|3"
+    assert not failed(d), failed(d)
+
+
+def test_bgg_label_same_height_as_body():
+    p = get_sub("Path of the Giant", book="bgg")
+    assert p.fields["className"] == "Barbarian" and p.fields["shortName"] == "Giant"
+    assert sorted({int(r.split("|")[-1]) for r in p.fields["subclassFeatures"]}) == [3, 6, 10, 14]
+    assert not failed(p), failed(p)
+
+
+def test_vrgr_labels():
+    assert [q.name for q in parse("vrgr")] == ["College of Spirits", "The Undead"]
+    b, w = get_sub("College of Spirits", book="vrgr"), get_sub("The Undead", book="vrgr")
+    assert b.fields["className"] == "Bard" and w.fields["className"] == "Warlock"
+    assert w.fields["shortName"] == "Undead" and w.fields["subclassFeatures"][0] == "The Undead|Warlock||Undead|VRGR|1"
+    assert not failed(b) and not failed(w), (failed(b), failed(w))
+
+
+def test_egw_bare_class_heading():   # "FIGHTER" heading, then "Eco Knight" (OCR) named by "3rd-level Echo Knight feature"
+    assert [q.name for q in parse("egw")] == ["Echo Knight", "Chronurgy Magic", "Graviturgy Magic"]
+    e = get_sub("Echo Knight", book="egw")
+    assert e.fields["className"] == "Fighter" and e.fields["shortName"] == "Echo Knight"
+    assert sorted({int(r.split("|")[-1]) for r in e.fields["subclassFeatures"]}) == [3, 7, 10, 15, 18]
+    g = get_sub("Graviturgy Magic", book="egw")
+    assert g.fields["className"] == "Wizard" and g.fields["shortName"] == "Graviturgy"
+    assert not failed(e) and not failed(g), (failed(e), failed(g))
+
+
+def test_label_with_unknown_class_fails_parent_check():   # never guess the parent class
+    pages = {n: load_ocr_page(FIX / "bgg" / f"{n:03d}.json", n) for n in (11, 12)}
+    body = [l for n in sorted(pages) for l in reading_order(pages[n])]
+    body = [dataclasses.replace(l, text="Gunslinger: Path of the Giant") if _squash(l.text) == "barbarianpathofthegiant"
+            else l for l in body]
+    p = next(q for q in parse_subclasses(body, ParseContext(slug="bgg", source="BGG", pages=pages))
+             if _squash(q.name) == "pathofthegiant")
+    assert "className" not in p.fields and not check(p.checks, "parent-class-known").passed
+    jsonschema.validate(p.fields, schema("SubclassFields"))
+
+
+def test_spell_range_label_is_not_a_ranger_subclass():   # TCE "Range: Self" fuzzily resembles "Ranger: ..."
+    pages = {n: load_ocr_page(FIX / "dmg" / f"{n:03d}.json", n) for n in (96, 97)}
+    body = [l for n in sorted(pages) for l in reading_order(pages[n])]
+    body = [dataclasses.replace(l, text="Range: Self") if _squash(l.text) == "clericdeathdomain" else l for l in body]
+    assert [q.name for q in parse_subclasses(body, ParseContext(slug="dmg14", source="DMG", pages=pages))] == \
+        ["Oathbreaker"]
