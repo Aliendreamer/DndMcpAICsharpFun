@@ -302,3 +302,22 @@ def test_feature_label_level_disagrees_with_table():
                      "entries": ["4th-level Barbarian feature", "You gain an uncanny sense."]}]
     c = check(class_checks(f, table_ok, headings_ok, text_with("")), "features-match-table")
     assert not c.passed and "Danger Sense" in c.reason and "[2]" in c.reason
+
+
+def _sidekick_hit_die(text):
+    return check(class_checks({"hd": None, "classFeatures": fields_with()["classFeatures"]}, table_ok, headings_ok,
+                              text, name="Expert", sidekick=True), "hit-die-consistent")
+
+
+def test_sidekick_printed_hit_dice_with_colon_unread_fails():
+    c = _sidekick_hit_die("EXPERT\nHit Dice: 1d8 per expert level\n")
+    assert not c.passed and "Hit Dice: 1d8" in c.reason
+
+
+def test_sidekick_printed_hit_dice_without_colon_unread_fails():
+    c = _sidekick_hit_die("EXPERT\nHitDice 1d8 per expert level\n")
+    assert not c.passed and "1d8" in c.reason
+
+
+def test_sidekick_without_hit_dice_passes():
+    assert _sidekick_hit_die("EXPERT\nA sidekick gains the following class features.\n").passed

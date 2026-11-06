@@ -524,8 +524,11 @@ def _hit_die(fields: dict, text: str, sidekick: bool = False) -> Check:
     faces = hd.get("faces")
     if sidekick and not faces:
         # a sidekick class prints no Hit Dice: the sidekick rolls the Hit Die in its own stat block
-        if re.search(r"Hit Dice\s*[:;]", text, re.I):
-            return Check(name, False, "a Hit Dice line is printed in the sidekick class but was not read")
+        # at least as broad as _hd: colon optional, "HitDice" glued by the OCR
+        m = re.search(r"Hit\s*Dice\s*[:;]?\s*\S*\d\S*", text, re.I)
+        if m:
+            return Check(name, False, f"a Hit Dice line is printed in the sidekick class ('{m.group(0)}') "
+                                      "but no Hit Dice were read")
         return Check(name, True)
     if not faces:
         return Check(name, False, "Hit Dice not read")
