@@ -259,3 +259,72 @@ def test_schema():
     for book in BOOKS:
         for p in traps(book):
             jsonschema.validate(p.fields, schema)
+
+
+# ---------- fix round 1 (P11) ----------
+def _synthetic(rows):
+    """Body lines from (text, width per character in line heights or None for prose) rows, one column."""
+    from bookextractor.model import Fragment, Line, Page
+    h, y, lines = 30.0, 100.0, []
+    for text, w in rows:
+        x1 = 100 + len(text) * (w if w else 0.4) * h
+        box = (100.0, y, x1, y + h)
+        lines.append(Line(text=text, box=box, height=h, page=1, frags=[Fragment(text, 1.0, box)]))
+        y += 40 if w is None else 70
+    page = Page(number=1, width=1500, height=2100, lines=lines, source="ocr")
+    return parse_traps(lines, ParseContext(slug="x", source="X", pages={1: page}))
+
+
+_PROSE = "The ground here is soft and creatures sink into it slowly."
+
+
+def test_section_stops_at_a_heading_narrower_than_any_absolute_threshold():
+    ps = _synthetic([("Wilderness Hazards", 0.75), (_PROSE, None), ("Mud Pit", 0.62), (_PROSE, None),
+                     ("Old Roads", 0.69), (_PROSE, None), (_PROSE, None)])
+    assert [p.name for p in ps] == ["Mud Pit"]
+    assert ps[0].fields["trapHazType"] == "WLD"
+    assert not failed(ps[0])
+    assert "Old Roads" not in ps[0].text
+
+
+def test_thin_margin_fails_hazard_section_bounded():
+    ps = _synthetic([("Wilderness Hazards", 0.75), (_PROSE, None), ("Mud Pit", 0.62), (_PROSE, None),
+                     ("Sinking Sand", 0.66), (_PROSE, None), ("Old Roads", 0.69), (_PROSE, None)])
+    assert [p.name for p in ps] == ["Mud Pit", "Sinking Sand"]
+    for p in ps:
+        c = [c for c in failed(p) if c.name == "hazard-section-bounded"]
+        assert c and "Old Roads" in c[0].reason and "0.690" in c[0].reason and "0.660" in c[0].reason
+
+
+def test_section_running_to_the_end_of_the_text_fails_hazard_section_bounded():
+    ps = _synthetic([("Wilderness Hazards", 0.75), (_PROSE, None), ("Mud Pit", 0.62), (_PROSE, None)])
+    assert [p.name for p in ps] == ["Mud Pit"]
+    assert [c.name for c in failed(ps[0])] == ["hazard-section-bounded"]
+
+
+def test_dmg_and_tce_hazard_sections_are_bounded():
+    for book in ("dmg", "tce"):
+        for p in traps(book):
+            assert not [c for c in failed(p) if c.name == "hazard-section-bounded"], p.name
+
+
+def test_unread_initiative_fails_its_check():
+    pages = _pages("xge")
+    pg = pages[119]
+    for old, new in (("Initiative. The trap acts on initiative count 20 and ini-", "Initiative. The trap acts "
+                      "whenever it likes and"), ("tiative count 10.", "never sleeps.")):
+        hit = [l for l in pg.lines if l.text == old]
+        assert hit, old
+        i = pg.lines.index(hit[0])
+        pg.lines[i] = replace(hit[0], text=new, frags=[replace(hit[0].frags[0], text=new)])
+    p = get(_run("xge", pages), "Path of Blades")
+    assert "initiative" not in p.fields
+    c = [c for c in failed(p) if c.name == "trap-initiative-parsed"]
+    assert c and "whenever it likes" in c[0].reason
+    assert [c for c in get(traps("xge"), "Path of Blades").checks if c.name == "trap-initiative-parsed"][0].passed
+
+
+def test_sentence_both_detecting_and_disarming_records_neither():
+    fields, check = trap_dcs("A DC 15 Investigation check reveals how the trap can be disabled.")
+    assert fields == {}
+    assert not check.passed and "reveals how the trap can be disabled" in check.reason

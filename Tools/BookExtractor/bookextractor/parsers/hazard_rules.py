@@ -39,7 +39,7 @@ from .equipment import _rows, _table_checks, cost_check, cost_value
 from .gear import (_OTHER_TYPE, _chapters, _entries, _key, _outside_tables, _page_chapters, _paragraphs, _row_tables,
                    _same_section, _table_boxes)
 from .monster import _is_heading_caps, _join_text, _title
-from .trap import _clean, _is_head, _medians
+from .trap import _clean, _is_head, _median
 
 POISON_TYPES = ("contact", "ingested", "inhaled", "injury")
 CONDITIONS = ("blinded", "charmed", "deafened", "exhaustion", "frightened", "grappled", "incapacitated", "invisible",
@@ -191,7 +191,7 @@ def _diseases(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     L = _clean(character_body(body, ctx), ctx)
     if not L:
         return []
-    med = _medians(L)
+    med = _median(L)
     heads = [i for i in range(len(L)) if _is_head(L, i, med)]
     out: list[Parsed] = []
     taken: set[int] = set()

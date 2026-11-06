@@ -14,8 +14,11 @@ Traps are found by the line printed under their heading, which also gives `trapH
 Hazards are the sub-headings (or "Name. ..." lead-in paragraphs, when the section has no sub-headings) of a
 section whose heading names hazards: "Wilderness Hazards" / "Natural Hazards" (WLD), "Weather" (WTH), "Eldritch
 Storms" (EST); "Dungeon Hazards" prints no kind, so `trapHazType` is absent. A heading about the hazards themselves
-("Spell Equivalents of Natural Hazards") is not one. A section ends at a major heading (set wider than a
-sub-heading) or a chapter title.
+("Spell Equivalents of Natural Hazards") is not one. Levels are told apart relative to the section's own heading:
+its sub-headings are set clearly narrower, and the section stops at the first later heading nearer the section
+heading's width than the first sub-heading's, or at a chapter title. `hazard-section-bounded` fails on every hazard
+of a section that runs to the end of the text read, or whose stopping heading is barely wider than its widest
+sub-heading.
 
 Every entity ends at the next heading: a short title-case line after a finished sentence, followed by prose, set
 at heading size (an art caption, set small and narrow, is not one). Running heads and feet, page numbers, art
@@ -26,7 +29,9 @@ deducing the trap ("The DC to spot the trip wire is 10", "A successful DC 15 Wis
 or about disabling it ("A successful DC 15 Dexterity check using thieves' tools disables"); a spell's DC ("dispel
 magic (DC 13) ... destroys the trap") counts for disarming only when no ability check is printed for it. Parts
 printed with different DCs (the four DMG pits) leave the field absent, and say so. `trap-dcs-parsed` fails on a DC
-it cannot read.
+it cannot read, or on a sentence that reads as both finding and disarming the trap ("reveals how the trap can be
+disabled"), which records neither. A printed "Initiative." paragraph with no count read fails
+`trap-initiative-parsed`.
 
 Not registered in assemble yet (Phase 2b ruling P1).
 """
@@ -73,18 +78,20 @@ _SMALL, _LARGE = 0.75, 2.0  # a line set this much smaller (caption) or larger (
 _OFF_COLUMN = 6.0  # a line starting this far right of its column's text edge is a caption beside the art
 _HEAD_WIDTH = 0.45  # a heading's average character width, at least (a narrow art caption is less)
 _GAP = 1.8  # a heading after a table has this much space above it (line tops; rows are about 1.3 apart)
-_MAJOR_WIDTH = 0.70  # a section-level heading's average character width, at least (a sub-heading is less)
+# Heading levels are told apart relative to the section's own heading, never by an absolute width: across the
+# books a sub-heading reaches 0.69 and a section heading goes down to 0.70.
+_SUB_STEP = 0.08  # a section's sub-headings are set at least this much narrower than its heading
+_THIN = 0.05  # a stopping heading closer than this to the widest sub-heading leaves the section's end in doubt
 
 
-def _medians(L: list[Line]) -> dict[int, float]:
-    """The book's median line height, keyed by page (an art page's few huge lines don't set the scale)."""
-    m = statistics.median(l.height for l in L)
-    return {l.page: m for l in L}
+def _median(L: list[Line]) -> float:
+    """The median line height of the lines given (the book's, when given the book): the unit of the geometry."""
+    return statistics.median(l.height for l in L)
 
 
 def _clean(L: list[Line], ctx: ParseContext) -> list[Line]:
     """The body lines that are text: no running head or foot, page number, art text or off-column caption."""
-    med = _medians(L)
+    m = _median(L)
     edges: dict[tuple[int, int], float] = {}
 
     def col(l: Line) -> tuple[int, int]:
@@ -93,12 +100,12 @@ def _clean(L: list[Line], ctx: ParseContext) -> list[Line]:
         return l.page, int((l.box[0] + l.box[2]) / 2 > mid)
 
     for l in L:
-        if _SMALL * med[l.page] <= l.height <= _LARGE * med[l.page] and len(l.text) >= 20:
+        if _SMALL * m <= l.height <= _LARGE * m and len(l.text) >= 20:
             k = col(l)
             edges[k] = min(edges.get(k, l.box[0]), l.box[0])
     out = []
     for l in L:
-        t, m = l.text.strip(), med[l.page]
+        t = l.text.strip()
         if not t or _RUNNING.match(t) or _PAGE_NO.fullmatch(t) or l.height > _LARGE * m:
             continue
         if l.height < _SMALL * m and (not re.search(r"[a-z]", t) or heading_like(t) and title_case(t)):
@@ -134,7 +141,7 @@ def _type_line(t: str) -> bool:
     return bool(_MECH.match(t) or _LEVELLED.match(t) or _HAUNT.match(t))
 
 
-def _is_head(L: list[Line], i: int, med: dict[int, float]) -> bool:
+def _is_head(L: list[Line], i: int, med: float) -> bool:
     """A heading: a short title-case line after a finished sentence, set at heading size, over prose or a trap's
     type line (a table caption sits over the table's header row instead)."""
     t = L[i].text.strip()
@@ -144,7 +151,7 @@ def _is_head(L: list[Line], i: int, med: dict[int, float]) -> bool:
         return False
     if i > 0 and not (L[i - 1].text.rstrip().endswith(SENTENCE_END) or _set_apart(L[i - 1], L[i])):
         return False
-    if _width(L[i], med[L[i].page]) < _HEAD_WIDTH:
+    if _width(L[i], med) < _HEAD_WIDTH:
         return False
     return i + 1 < len(L) and (_prose(L[i + 1].text) or _type_line(L[i + 1].text))
 
@@ -154,8 +161,8 @@ def _set_apart(prev: Line, l: Line) -> bool:
     return prev.page != l.page or prev.box[1] > l.box[1] or l.box[1] - prev.box[1] >= _GAP * l.height
 
 
-def _major(L: list[Line], i: int, med: dict[int, float]) -> bool:
-    return _width(L[i], med[L[i].page]) >= _MAJOR_WIDTH or bool(_CHAPTER.match(L[i].text.strip()))
+def _chapter(L: list[Line], i: int) -> bool:
+    return bool(_CHAPTER.match(L[i].text.strip()))
 
 
 def _name(t: str) -> str:
@@ -186,13 +193,18 @@ def trap_dcs(text: str) -> tuple[dict, Check]:
     """`detectDc` / `disarmDc` from the printed sentences, and the `trap-dcs-parsed` check."""
     found: dict[str, list[tuple[int, bool]]] = {"detectDc": [], "disarmDc": []}
     bad: list[str] = []
+    both: list[str] = []
     for s in _sentences(text):
         if "saving throw" in s.lower():
             continue
         kinds = [k for k, rx in (("disarmDc", _DISARM), ("detectDc", _DETECT)) if rx.search(s)]
         if not kinds:
             continue
-        kind = kinds[0]  # "reveals the trip wire. ... disables" are separate sentences; both words: disarming
+        if len(kinds) > 1:  # "reveals how the trap can be disabled": finding or disarming, the print doesn't say
+            if _DC.search(s):
+                both.append(s[:80])
+            continue
+        kind = kinds[0]
         for m in _DC.finditer(s):
             v = _dc_value(m.group("v"))
             if v is None:
@@ -209,8 +221,10 @@ def trap_dcs(text: str) -> tuple[dict, Check]:
             fields[key] = next(iter(use))
         elif use:
             notes.append(f"{key} not recorded: different DCs printed ({', '.join(map(str, sorted(use)))})")
-    if bad:
-        return fields, Check("trap-dcs-parsed", False, "unreadable " + "; ".join(bad))
+    if bad or both:
+        why = (["unreadable " + "; ".join(bad)] if bad else []) + \
+            ([f"DC for detecting or disarming? {s!r}" for s in both])
+        return fields, Check("trap-dcs-parsed", False, "; ".join(why))
     return fields, Check("trap-dcs-parsed", True, "; ".join(notes))
 
 
@@ -315,6 +329,8 @@ def _trap(L: list[Line], h: int, e: int) -> Parsed:
                 f["initiative"] = code
                 if note:
                     f["initiativeNote"] = note
+            checks.append(Check("trap-initiative-parsed", bool(code),
+                                "" if code else f"no initiative count read in {text[:80]!r}"))
             continue
         f[key] = _element(L, j, end, m.group("rest")) if complex_ else _paras(L, j, end, m.group("rest"))
     dc_text = _flat(f.get("countermeasures")) if "countermeasures" in f else _flat(f.get("entries"))
@@ -330,7 +346,8 @@ def _end(L: list[Line], i: int, heads: list[int]) -> int:
 
 
 # ---------- hazards ----------
-def _hazard(L: list[Line], name: str, s: int, e: int, code: str | None, rest: str | None, lines: list[Line]) -> Parsed:
+def _hazard(L: list[Line], name: str, s: int, e: int, code: str | None, rest: str | None, lines: list[Line],
+            bounded: Check) -> Parsed:
     f: dict = {}
     if code:
         f["trapHazType"] = code
@@ -341,10 +358,37 @@ def _hazard(L: list[Line], name: str, s: int, e: int, code: str | None, rest: st
     f.update(dcs)
     first = [rest] if rest is not None else []
     text = f"{name}. " + _join_text(first + [l.text.strip() for l in L[s + (rest is not None):e]])
-    return Parsed(type="Trap", name=name, fields=f, text=text.strip(), lines=lines, checks=[check])
+    return Parsed(type="Trap", name=name, fields=f, text=text.strip(), lines=lines, checks=[check, bounded])
 
 
-def _hazards(L: list[Line], heads: list[int], med: dict[int, float]) -> list[Parsed]:
+def _section_end(L: list[Line], i: int, later: list[int], med: float) -> tuple[int, list[int], Check]:
+    """(where the section under heading L[i] stops, its sub-headings, `hazard-section-bounded`).
+
+    With sub-headings (set clearly narrower than the section heading), the section stops at the first later heading
+    nearer the section heading's width than the first sub-heading's, or at a chapter title. Without, it is a
+    run of "Name. ..." paragraphs ending at the next heading of any level."""
+    name = "hazard-section-bounded"
+    wi = _width(L[i], med)
+    first = next((j for j in later if not _chapter(L, j)), None)
+    if first is None or _chapter(L, later[0]) or wi - _width(L[first], med) < _SUB_STEP:
+        if not later:
+            return len(L), [], Check(name, False, f"{L[i].text.strip()!r} runs to the end of the text read")
+        return later[0], [], Check(name, True)
+    mid = (wi + _width(L[first], med)) / 2
+    stop = next((j for j in later if _chapter(L, j) or _width(L[j], med) >= mid), None)
+    subs = [j for j in later if stop is None or j < stop]
+    if stop is None:
+        return len(L), subs, Check(name, False, f"{L[i].text.strip()!r} runs to the end of the text read")
+    if _chapter(L, stop):
+        return stop, subs, Check(name, True)
+    ws, widest = _width(L[stop], med), max(_width(L[j], med) for j in subs)
+    if ws - widest < _THIN:
+        return stop, subs, Check(name, False, f"{L[i].text.strip()!r} ({wi:.3f}) stops at {L[stop].text.strip()!r} "
+                                 f"({ws:.3f}), too close to its widest sub-heading ({widest:.3f})")
+    return stop, subs, Check(name, True)
+
+
+def _hazards(L: list[Line], heads: list[int], med: float) -> list[Parsed]:
     out = []
     for i in heads:
         m = _SECTION.match(L[i].text.strip())
@@ -352,25 +396,21 @@ def _hazards(L: list[Line], heads: list[int], med: dict[int, float]) -> list[Par
             continue
         code = "WTH" if m.group("weather") else "EST" if m.group("storm") else \
             _SECTION_CODE.get((m.group("kind") or "").lower())
-        later = [j for j in heads if j > i]
-        if _major(L, i, med):
-            stop = next((j for j in later if _major(L, j, med)), len(L))
-        else:  # a sub-level section ("Eldritch Storms") ends at the next heading of any level
-            stop = later[0] if later else len(L)
-        subs = [j for j in later if j < stop and not (j + 1 < len(L) and _type_line(L[j + 1].text))]
-        if subs and _major(L, i, med):
+        stop, subs, bounded = _section_end(L, i, [j for j in heads if j > i], med)
+        subs = [j for j in subs if not (j + 1 < len(L) and _type_line(L[j + 1].text))]
+        if subs:
             for k, j in enumerate(subs):
                 e = subs[k + 1] if k + 1 < len(subs) else stop
                 if _META.search(L[j].text):
                     continue
-                out.append(_hazard(L, _name(L[j].text), j + 1, e, code, None, L[j:e]))
+                out.append(_hazard(L, _name(L[j].text), j + 1, e, code, None, L[j:e], bounded))
             continue
         leads = [j for j in range(i + 1, stop) if L[j - 1].text.rstrip().endswith(SENTENCE_END)
                  and _LEAD.match(L[j].text.strip()) and _indented(L, j)]
         for k, j in enumerate(leads):
             e = leads[k + 1] if k + 1 < len(leads) else stop
             lm = _LEAD.match(L[j].text.strip())
-            out.append(_hazard(L, _name(lm.group("name")), j, e, code, lm.group("rest"), L[j:e]))
+            out.append(_hazard(L, _name(lm.group("name")), j, e, code, lm.group("rest"), L[j:e], bounded))
     return out
 
 
@@ -384,7 +424,7 @@ def parse_traps(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     L = _clean(character_body(body, ctx), ctx)
     if not L:
         return []
-    med = _medians(L)
+    med = _median(L)
     heads = [i for i in range(len(L)) if _is_head(L, i, med)]
     out = []
     for i in heads:
