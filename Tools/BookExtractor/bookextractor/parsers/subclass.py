@@ -335,6 +335,11 @@ def _labelled(L: list[Line], a: _Anchor, end: int, med: dict[int, float]) -> tup
                 break
             keep.append(f)
         feats = keep
+        # the last kept feature ends at the next section heading or chapter title ("BACKGROUNDS", "Heroes of the
+        # Dragon", "CHAPTER 2"), never running on into the sections the book prints after the subclass
+        if feats:
+            end = next((j for j in range(feats[-1].body, end) if _section_heading(L, j, med) or
+                        (_CHAPTER_TITLE.match(L[j].text.strip()) and not _vertical(L[j]))), end)
     else:
         stop = next((j for j in range(a.head + 1, end) if _section_heading(L, j, med)), end)
         feats = [f for f in feats if f.head < stop]

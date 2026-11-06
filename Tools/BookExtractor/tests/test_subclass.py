@@ -226,3 +226,31 @@ def test_scag_bladesinging_ends_at_the_wrapped_cantrips_heading():
 def test_a_subclass_section_never_runs_past_a_chapter_title():
     text = _song_of_victory(unhead=True)
     assert "CHAPTER 5" not in text.upper() and "background feature" not in text, text[-300:]
+
+
+def _last_feature(name, book):
+    p = get_sub(name, book=book)
+    last = p.fields["entries"][-1]
+    return p, last["name"], " ".join(last["entries"])
+
+
+def test_ftd_last_labelled_subclass_ends_at_the_section_heading():
+    # "Perfected Bond" is followed by "Heroes of the Dragon", then the Draconic Feats: none of it is the feature's
+    p, name, text = _last_feature("Drakewarden", "ftd")
+    assert name == "Perfected Bond"
+    assert "Heroes of the Dragon" not in text and "draconic flavor" not in text, text[-300:]
+    assert "Heroes of the Dragon" not in p.text
+
+
+def test_vrgr_last_labelled_subclass_ends_at_the_backgrounds_heading():
+    p, name, text = _last_feature("The Undead", "vrgr")
+    assert name == "Spirit Projection"
+    assert text.endswith("until you finish a long rest."), text[-300:]
+    assert "BACKGROUNDS" not in p.text and "haunted one" not in p.text
+
+
+def test_bgg_last_labelled_subclass_ends_at_the_backgrounds_heading():
+    p, name, text = _last_feature("Path of the Giant", "bgg")
+    assert name == "Demiurgic Colossus"
+    assert text.endswith("increases to 2d6."), text[-300:]
+    assert "Giant Foundling" not in p.text and "foundling" not in text.lower()
