@@ -99,11 +99,41 @@ def test_trap_without_printed_disarm_dc_passes_with_the_field_absent():
     assert not failed(h)
 
 
-def test_parts_with_different_dcs_leave_the_field_absent_and_say_so():
-    p = get(traps("dmg"), "Pits")  # simple pit spotted at DC 10, hidden pit at DC 15
-    assert "detectDc" not in p.fields
+def test_dcs_printed_by_one_part_are_not_the_whole_entrys():
+    # "Pits" prints four parts: the simple pit is spotted at DC 10, the hidden pit at DC 15, and only the locking
+    # pit's captive disables its spring at DC 15 - none of these is the DC of "Pits"
+    p = get(traps("dmg"), "Pits")
+    assert "detectDc" not in p.fields and "disarmDc" not in p.fields
     c = [c for c in p.checks if c.name == "trap-dcs-parsed"][0]
-    assert c.passed and "10, 15" in c.reason
+    assert c.passed
+    assert "disarmDc not recorded" in c.reason and "'Locking Pit'" in c.reason and "15" in c.reason
+    assert "detectDc not recorded" in c.reason and "'Simple Pit'" in c.reason and "'Hidden Pit'" in c.reason
+
+
+def test_complex_trap_countermeasure_dcs_are_not_the_traps():
+    ps = traps("xge")
+    for name in ("Path of Blades", "Poisoned Tempest", "Sphere of Crushing Doom"):
+        p = get(ps, name)
+        assert "detectDc" not in p.fields and "disarmDc" not in p.fields, name
+        c = [c for c in p.checks if c.name == "trap-dcs-parsed"][0]
+        assert c.passed and "not recorded" in c.reason, name
+    c = [c for c in get(ps, "Poisoned Tempest").checks if c.name == "trap-dcs-parsed"][0]
+    assert "'Open the Doors'" in c.reason and "20" in c.reason
+
+
+def test_dc_printed_before_the_parts_is_the_whole_entrys():
+    fields, check = trap_dcs(["A successful DC 12 Wisdom (Perception) check spots any of these pits.",
+                              "Simple Pit. The DC to spot it is 10.", "Hidden Pit. A DC 15 check spots it."])
+    assert fields == {"detectDc": 12} and check.passed
+    assert "'Simple Pit'" in check.reason and "'Hidden Pit'" in check.reason
+
+
+def test_dc_in_text_after_a_list_of_parts_fails():
+    # which part (if any) a paragraph after the parts belongs to is not printed: a DC there cannot be attributed
+    fields, check = trap_dcs(["The trap can be overcome.",
+                              {"type": "list", "items": [{"type": "item", "name": "Doors", "entry": "Push."}]},
+                              "A DC 15 Dexterity check using thieves' tools disables it."])
+    assert fields == {} and not check.passed and "15" in check.reason
 
 
 def test_unreadable_dc_fails_the_check():

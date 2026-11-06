@@ -189,11 +189,8 @@ def _sentences(text: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.;!?])\s+(?=[A-Z])", text) if s]
 
 
-def trap_dcs(text: str) -> tuple[dict, Check]:
-    """`detectDc` / `disarmDc` from the printed sentences, and the `trap-dcs-parsed` check."""
-    found: dict[str, list[tuple[int, bool]]] = {"detectDc": [], "disarmDc": []}
-    bad: list[str] = []
-    both: list[str] = []
+def _dcs_in(text: str, found: dict, bad: list[str], both: list[str]) -> None:
+    """Add each detect / disarm DC printed in `text` to `found` (value, from a spell's bracket)."""
     for s in _sentences(text):
         if "saving throw" in s.lower():
             continue
@@ -204,13 +201,56 @@ def trap_dcs(text: str) -> tuple[dict, Check]:
             if _DC.search(s):
                 both.append(s[:80])
             continue
-        kind = kinds[0]
         for m in _DC.finditer(s):
             v = _dc_value(m.group("v"))
             if v is None:
                 bad.append(f"DC {m.group('v')!r} in {s[:60]!r}")
             else:
-                found[kind].append((v, bool(m.group("paren"))))
+                found[kinds[0]].append((v, bool(m.group("paren"))))
+
+
+_PART_LEAD = re.compile(r"^(?P<name>[A-Z][A-Za-z'’-]*(?: (?:[A-Z][A-Za-z'’-]*|of|the|and|a|an|in|on|to)){0,5})"
+                        r"\.\s+\S")
+
+
+def _parts(entries: list) -> tuple[list[str], list[tuple[str, str]], list[str]]:
+    """(text of the entry as a whole, (name, text) of each printed part, text after a list of parts).
+
+    Parts are a list's named items (a complex trap's countermeasures) or, when two or more paragraphs open with a
+    title-case lead-in ("Simple Pit. ...", "Hidden Pit. ..."), those paragraphs and the plain ones after each. The
+    text before the first part is the whole entry's; a paragraph after a list belongs to no part the print names."""
+    whole: list[str] = []
+    parts: list[tuple[str, str]] = []
+    after: list[str] = []
+    leads = sum(1 for e in entries if isinstance(e, str) and _PART_LEAD.match(e)) >= 2
+    listed = False
+    for e in entries:
+        if isinstance(e, dict) and e.get("type") == "list":
+            parts += [(it.get("name", ""), _flat(it)) for it in e.get("items", []) if isinstance(it, dict)]
+            listed = True
+        elif leads and isinstance(e, str) and (m := _PART_LEAD.match(e)):
+            parts.append((m.group("name"), e))
+        elif listed:
+            after.append(_flat(e))
+        elif parts:
+            parts[-1] = (parts[-1][0], parts[-1][1] + " " + _flat(e))
+        else:
+            whole.append(_flat(e))
+    return whole, parts, after
+
+
+def trap_dcs(entries: str | list) -> tuple[dict, Check]:
+    """`detectDc` / `disarmDc` from the printed sentences, and the `trap-dcs-parsed` check.
+
+    Only a DC printed for the entry as a whole is its field. A DC printed inside one of its parts (DMG "Pits":
+    the locking pit's captive disables its spring at DC 15; an XGE complex trap's countermeasures) is that part's:
+    the field stays absent and the passing check names the part and its DC. A DC printed after a list of parts,
+    which the print attributes to none of them, fails the check."""
+    whole, parts, after = _parts([entries] if isinstance(entries, str) else entries)
+    found: dict[str, list[tuple[int, bool]]] = {"detectDc": [], "disarmDc": []}
+    bad: list[str] = []
+    both: list[str] = []
+    _dcs_in(" ".join(whole), found, bad, both)
     fields: dict = {}
     notes: list[str] = []
     for key, vals in found.items():
@@ -221,9 +261,26 @@ def trap_dcs(text: str) -> tuple[dict, Check]:
             fields[key] = next(iter(use))
         elif use:
             notes.append(f"{key} not recorded: different DCs printed ({', '.join(map(str, sorted(use)))})")
-    if bad or both:
+    by_part: dict[str, list[str]] = {"detectDc": [], "disarmDc": []}
+    for name, text in parts:
+        got: dict[str, list[tuple[int, bool]]] = {"detectDc": [], "disarmDc": []}
+        _dcs_in(text, got, bad, both)
+        for key, vals in got.items():
+            if vals:
+                by_part[key].append(f"DC {', '.join(str(v) for v in sorted({v for v, _ in vals}))} in {name!r}")
+    for key, where in by_part.items():
+        if where and key in fields:
+            notes.append(f"{key} {fields[key]} is printed for the whole entry; its parts' DCs are theirs "
+                         f"({'; '.join(where)})")
+        elif where:
+            notes.append(f"{key} not recorded: printed only by parts of the entry ({'; '.join(where)})")
+    stray: dict[str, list[tuple[int, bool]]] = {"detectDc": [], "disarmDc": []}
+    _dcs_in(" ".join(after), stray, bad, both)
+    loose = [f"{key} DC {v}" for key, vals in stray.items() for v, _ in vals]
+    if bad or both or loose:
         why = (["unreadable " + "; ".join(bad)] if bad else []) + \
-            ([f"DC for detecting or disarming? {s!r}" for s in both])
+            ([f"DC for detecting or disarming? {s!r}" for s in both]) + \
+            ([f"{', '.join(loose)} printed after the entry's parts, for none of them"] if loose else [])
         return fields, Check("trap-dcs-parsed", False, "; ".join(why))
     return fields, Check("trap-dcs-parsed", True, "; ".join(notes))
 
@@ -333,8 +390,7 @@ def _trap(L: list[Line], h: int, e: int) -> Parsed:
                                 "" if code else f"no initiative count read in {text[:80]!r}"))
             continue
         f[key] = _element(L, j, end, m.group("rest")) if complex_ else _paras(L, j, end, m.group("rest"))
-    dc_text = _flat(f.get("countermeasures")) if "countermeasures" in f else _flat(f.get("entries"))
-    dcs, check = trap_dcs(dc_text)
+    dcs, check = trap_dcs(f.get("countermeasures") if "countermeasures" in f else f.get("entries", []))
     f.update(dcs)
     text = f"{name}. " + _join_text([l.text.strip() for l in L[h + 1:e]])
     return Parsed(type="Trap", name=name, fields=f, text=text, lines=L[h:e], checks=[check] + checks)
@@ -354,7 +410,7 @@ def _hazard(L: list[Line], name: str, s: int, e: int, code: str | None, rest: st
     entries = _paras(L, s, e, rest)
     if entries:
         f["entries"] = entries
-    dcs, check = trap_dcs(_flat(entries))
+    dcs, check = trap_dcs(entries)
     f.update(dcs)
     first = [rest] if rest is not None else []
     text = f"{name}. " + _join_text(first + [l.text.strip() for l in L[s + (rest is not None):e]])
