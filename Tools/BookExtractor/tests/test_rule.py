@@ -5,6 +5,8 @@ from bookextractor.layout import reading_order
 from bookextractor.model import load_ocr_page
 from bookextractor.pages import classify_page
 from bookextractor.parsers import ParseContext
+import pytest
+
 from bookextractor.parsers.rule import parse_rules
 
 FIX = Path(__file__).parent / "fixtures" / "ocr"
@@ -17,7 +19,7 @@ def _pages(book, numbers):
 def _parse(book, numbers, slug, source, cache=None):
     pages = _pages(book, numbers)
     body = [l for n in sorted(pages) if classify_page(pages[n]) in ("rules", "art") for l in reading_order(pages[n])]
-    ctx = ParseContext(slug=slug, source=source, pages=pages, cache=dict(cache or {}))
+    ctx = ParseContext(slug=slug, source=source, pages=pages, cache={"claimed_lines": set(), **(cache or {})})
     return parse_rules(body, ctx), ctx
 
 
@@ -56,6 +58,11 @@ def test_customizing_ability_scores_is_a_variant_rule():
     assert "set of numbers between those extremes." in r.text
     # "4. Describe Your Character" is the next step's heading: the variant's text stops before it
     assert "Describe Your Character" not in r.text
+    # the variant's own Point Cost table stays; the Ability Scores and Modifiers table printed at the head of the
+    # next column, across the variant's last sentence, is not the variant's
+    assert "Ability Score Point Cost" in r.text and "11 3 15 9" in r.text
+    assert "Ability Scores and Modifiers" not in r.text
+    assert "16-17" not in r.text
     assert "Your character needs a name" not in r.text
     assert not failed(r)
     assert all(isinstance(e, (str, dict)) for e in r.fields["entries"])
@@ -75,7 +82,8 @@ def test_a_nested_variant_is_not_in_its_parents_text():
     rules = phb_ability_scores()
     parent = rule(rules, "Using Each Ability")
     enc = rule(rules, "Encumbrance")
-    assert "If you use this variant" not in parent.text or "If you use this variant" in enc.text
+    assert "When you use this variant, ignore the Strength column" in enc.text
+    assert "ignore the Strength column" not in parent.text
     assert not {id(l) for l in parent.lines} & {id(l) for l in enc.lines}
 
 
@@ -150,3 +158,65 @@ def test_a_section_without_a_sure_end_fails_text_complete():
     t = rule(rules, "Training")
     assert "text-complete" in failed(t)
     assert "Training" in failed(t)["text-complete"]
+
+
+def test_claimed_lines_are_required():
+    """The assembler always says which lines earlier types own; a missing set is an error, never 'none'."""
+    pages = _pages("phb", [14])
+    body = [l for n in sorted(pages) for l in reading_order(pages[n])]
+    with pytest.raises(KeyError):
+        parse_rules(body, ParseContext(slug="phb14", source="PHB", pages=pages))
+
+
+@lru_cache(maxsize=None)
+def dmg():
+    return tuple(_parse("dmg", [235, 258, 259, 260, 261, 263, 264], "dmg14", "DMG")[0])
+
+
+def test_a_rule_ends_at_a_tall_heading_in_any_casing():
+    """DMG Proficiency Dice ends before "SkIll VarIants" (set taller than body text, straight under a table row);
+    Madness ends before "Experience Points" (read by the section reader as a sub-heading of MADNESS)."""
+    pd = rule(dmg(), "Proficiency Dice")
+    assert "rolls the character's proficiency die twice" in pd.text
+    assert "Skill" not in pd.text and "SkIll" not in pd.text
+    assert "Ability Check Proficiency" not in pd.text
+    m = rule(dmg(), "Madness")
+    assert "rid a character of indefinite madness." in m.text
+    assert "Experience Points" not in m.text
+    assert "Session-Based Advancement" not in m.text
+    assert not failed(m)
+
+
+@lru_cache(maxsize=None)
+def xge_downtime():
+    return tuple(_parse("xge", list(range(127, 136)), "xge", "XGE")[0])
+
+
+def test_an_activity_ends_before_the_next_after_a_table_footnote():
+    """XGE "TRAINING" and "Work" follow a complications table's footnote ("*Might involve a rival"), not a finished
+    sentence: they are activities of their own, not text of Selling a Magic Item."""
+    rules = xge_downtime()
+    selling = rule(rules, "Selling a Magic Item")
+    assert "Training" not in {x.strip() for x in selling.text.split("\n")}
+    assert "Given enough free time and the services of an instructor" not in selling.text
+    assert "Given enough free time and the services of an instructor" in rule(rules, "Training").text
+    assert "Given enough free time" not in rule(rules, "Work").text
+
+
+def test_a_sidebar_box_ends_at_a_taller_quote_and_drops_running_feet():
+    rules, _ = _parse("mm", [268], "mm14", "MM")
+    pipes = rule(rules, "Satyr Pipes")
+    assert pipes.text.rstrip().endswith("shake the creature awake.")
+    assert "Sonnet" not in pipes.text and "TWIXt" not in pipes.text
+    fam = rule(_parse("mm", [348], "mm14", "MM")[0], "Familiars")
+    assert "APPENDIX" not in fam.text.upper().replace("APPENDIX B", "")
+    assert fam.text.rstrip().endswith("or quasit.")
+    yug = rule(_parse("mm", [312], "mm14", "MM")[0], "Yugoloth Summoning")
+    assert yug.text.rstrip().endswith("to dismiss it.")
+    assert "3I1" not in yug.text
+
+
+def test_a_sidebar_running_off_its_page_mid_sentence_is_not_complete():
+    rules, _ = _parse("mm", [257], "mm14", "MM")
+    t = rule(rules, "Quaggoth Thonot")
+    assert "text-complete" in failed(t) and "overleaf" in failed(t)["text-complete"]

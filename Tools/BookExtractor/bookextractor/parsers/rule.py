@@ -64,7 +64,10 @@ _OPTIONS = re.compile(r"options$", re.I)  # "Combat Options", "Abilityoptions" (
 _COMPLICATIONS = re.compile(r"complications$", re.I)
 _STEP = re.compile(r"^\d{1,2}\.\s*")  # a numbered step heading: "4. Describe Your Character"
 _SIBLING_FACTOR = 3
-_UNREAD_HEIGHT = 0.95  # an unread heading that ends a rule is set at least this tall, relative to its own heading
+_UNREAD_HEIGHT = 0.9  # a heading that ends a rule is set at least this tall, relative to its own heading
+_TALL = 1.15  # a line this many times the rule's median line height is set clearly taller than its body text
+_MAX_PAGES = 3  # a rule printed over more pages than this has no sure end
+_ART_INSET = 2.0  # an art caption is set in from its column's text edge by this many line heights
 _ACTIVITY_HEIGHT = 0.9  # an unread activity heading is set at least this tall, relative to its siblings' smallest
 
 
@@ -88,19 +91,31 @@ def _named(title: str) -> bool:
     return bool(re.search(r"[A-Za-z]{3}", title))
 
 
-def _unread_heading(L: list[Line], k: int, min_h: float, starts: set[int]) -> bool:
-    """L[k] is a heading the section reader did not read: a short title-case (or caps) line, a numbered step's
-    included ("4. Describe Your Character"), set at least `min_h` tall, after a finished sentence (or set apart),
-    over prose. A bold lead-in ends in a full stop and runs on into its paragraph: never one."""
+def _heading_words(t: str) -> bool:
+    """Short title-case or caps words, a numbered step's included ("4. Describe Your Character"), in any OCR casing
+    ("SkIll VarIants", "TRAINING")."""
+    t = _STEP.sub("", t.strip())
+    return heading_like(t) and (title_case(t) or caps_heading(t))
+
+
+def _unread_heading(L: list[Line], k: int, min_h: float, starts: set[int], tall: float) -> bool:
+    """L[k] is a heading the section reader did not read: heading words set at least `min_h` tall, over prose, after
+    a finished sentence, a table's footnote ("*Might involve a rival") or a space; a line set clearly taller than
+    body text (`tall`) needs no sentence before it ("SkIll VarIants" under a table's last row). A bold lead-in ends
+    in a full stop and runs on into its paragraph: never one."""
     if k == 0 or k + 1 >= len(L) or id(L[k]) in starts:
         return False
-    t = _STEP.sub("", L[k].text.strip())
-    if L[k].height < min_h or not (heading_like(t) and (title_case(t) or caps_heading(t))):
+    if L[k].height < min_h or not _heading_words(L[k].text):
         return False
     prev = L[k - 1]
-    if not (prev.text.rstrip().endswith(SENTENCE_END) or set_apart(prev, L[k])):
+    if not (L[k].height >= tall or prev.text.rstrip().endswith(SENTENCE_END) or set_apart(prev, L[k])
+            or prev.text.lstrip().startswith("*")):
         return False
     return _prose(L[k + 1].text)
+
+
+def _tall(L: list[Line]) -> float:
+    return _TALL * median(l.height for l in L)
 
 
 def _hosted_stop(lines: list[Line]) -> int:
@@ -110,8 +125,8 @@ def _hosted_stop(lines: list[Line]) -> int:
         t = lines[i].text.strip()
         if not heading_like(lines[i - 1].text.strip()):
             continue
-        if _is_type_line(t) or _is_size_line(t) and any(re.match(r"(?i)^armou?r\s*class", l.text.strip())
-                                                         for l in lines[i + 1:i + 5]):
+        if _is_type_line(t) or (_is_size_line(t) and any(re.match(r"(?i)^armou?r\s*class", l.text.strip())
+                                                          for l in lines[i + 1:i + 5])):
             return i - 1
     return len(lines)
 
@@ -143,16 +158,23 @@ def _heads(lines: list[Line], title: str) -> int:
     return max(k, 1)
 
 
-def _cut_unread(s: Section, starts: set[int]) -> tuple[list[Line], bool, str]:
-    """(the section's lines up to a heading the reader did not read, set at least as tall as its own; whether its
-    end is sure; the end's reason). Ending at such a heading is a sure end."""
+def _cut_unread(s: Section, starts: set[int], rule_starts: set[int]) -> tuple[list[Line], bool, str]:
+    """(the section's lines up to the first heading set nearly as tall as its own: one the reader did not read, or
+    one it read as a sub-heading although it is set clearly taller than body text (DMG "Experience Points" under
+    MADNESS); whether its end is sure; the end's reason). Ending at such a heading is a sure end. Another rule's
+    heading inside the section is no end: that rule's lines are taken out of this one."""
     L = s.lines
     h = _heads(L, s.title)
     min_h = _UNREAD_HEIGHT * max(l.height for l in L[:h])
-    end = next((k for k in range(h, len(L)) if _unread_heading(L, k, min_h, starts)), None)
-    if end is None:
-        return L, s.complete, s.end_reason
-    return L[:end], True, f"unread heading {L[end].text.strip()!r}"
+    tall = _tall(L)
+    for k in range(h, len(L)):
+        if id(L[k]) in rule_starts:
+            continue
+        sub = (id(L[k]) in starts and L[k].height >= min_h and L[k].height >= tall and _heading_words(L[k].text)
+               and k + 1 < len(L) and _prose(L[k + 1].text))
+        if sub or _unread_heading(L, k, min_h, starts, tall):
+            return L[:k], True, f"heading {L[k].text.strip()!r}"
+    return L, s.complete, s.end_reason
 
 
 def _caption(s: Section) -> bool:
@@ -186,8 +208,9 @@ def _activities(c: Section, sections: list[Section], starts: set[int]) -> list[_
                 and not any(_DOWNTIME.search(p) for p in s.parents[depth:])):
             bounds.append((at[id(s.lines[0])], s.title))
     taken = {k for k, _ in bounds}
+    tall = _tall(L)
     for k in range(1, len(L)):
-        if k not in taken and _unread_heading(L, k, min_h, starts):
+        if k not in taken and _unread_heading(L, k, min_h, starts, tall):
             bounds.append((k, name_case(L[k].text.strip())))
     bounds.sort()
     out: list[_Cand] = []
@@ -202,9 +225,30 @@ def _activities(c: Section, sections: list[Section], starts: set[int]) -> list[_
     return out
 
 
+# a running head or foot the OCR joined ("APPENDIXB:NONPLAYER CHARACTERS", "CHAPTER 7 | TREASURE") and a page number
+# with OCR digit noise ("3I1")
+_RUNNING = re.compile(r"(?i)^(\d+\s*)?(chapter|part|appendix)\s*[0-9A-Za-z]{1,2}\s*[:|]")
+_PAGE_NOISE = re.compile(r"^(?=.*\d)[0-9Il|O]{1,4}\W?$")
+_BOX_GAP = 1.8  # a box ends at a vertical gap this many line heights tall (line tops) after a finished sentence
+_BOX_HEIGHT = 1.4  # ... or at a line set this many times taller than the box's text (a quote or art below it)
+
+
+def _noise(l: Line) -> bool:
+    t = l.text.strip()
+    return bool(RUNNING_HEAD.match(t) or _RUNNING.match(t) or PAGE_NO.fullmatch(t) or _PAGE_NOISE.fullmatch(t))
+
+
+def _column(l: Line, ctx: ParseContext) -> int:
+    pg = ctx.pages.get(l.page)
+    return int((l.box[0] + l.box[2]) / 2 > (pg.width / 2 if pg else 800))
+
+
 def _sidebars(ctx: ParseContext) -> list[_Cand]:
     """The "Variant:" / "Optional Rule:" sidebars: a stripped line opening with the label, and the stripped lines
-    after it on its page (the box), running heads and page numbers out."""
+    after it in its column and on its page (the box), up to a vertical gap, a line set much taller (a quote box or
+    art text under it: MM "Sonnet of a Naughty Satyr") or a column jump; running heads and feet and page numbers
+    out. A box that runs to its page's last line without finishing a sentence may go on overleaf: its end is not
+    sure."""
     full: list[Line] = ctx.cache["character_lines"]
     kept = {id(l) for l in ctx.cache["character_body"]}
     out: list[_Cand] = []
@@ -219,9 +263,33 @@ def _sidebars(ctx: ParseContext) -> list[_Cand]:
         k = i + 1
         while k < len(full) and id(full[k]) not in kept and full[k].page == l.page:
             k += 1
-        box = [x for x in full[i:k] if not (RUNNING_HEAD.match(x.text.strip()) or PAGE_NO.fullmatch(x.text.strip()))]
+        run = [x for x in full[i:k] if not _noise(x)]
+        box = run[:1]
+        body_h = median(x.height for x in run[1:]) if len(run) > 1 else l.height
+        reason = "sidebar box"
+        for x in run[1:]:
+            prev = box[-1]
+            if _column(x, ctx) != _column(l, ctx):
+                reason = "sidebar box (column jump)"
+                break
+            gap = (x.box[1] - prev.box[1]) / max(prev.height, body_h)
+            # a line the OCR lost inside a sentence leaves a gap too: only a finished sentence, or a wide gap, ends
+            if x.box[1] < prev.box[1] or gap > _BOX_GAP and prev.text.rstrip().endswith(SENTENCE_END) \
+                    or gap > 2 * _BOX_GAP:
+                reason = f"sidebar box (gap before {x.text.strip()[:30]!r})"
+                break
+            if x.height > _BOX_HEIGHT * body_h:
+                reason = f"sidebar box (taller line {x.text.strip()[:30]!r})"
+                break
+            box.append(x)
+        complete = True
+        page_lines = [x for x in full if x.page == l.page and _column(x, ctx) == _column(l, ctx) and not _noise(x)]
+        if len(box) == len(run) and page_lines and page_lines[-1] is box[-1] \
+                and not box[-1].text.rstrip().endswith(SENTENCE_END):
+            complete, reason = False, (f"the box runs to the foot of p{l.page} mid-sentence "
+                                       f"({box[-1].text.strip()[-30:]!r}): it may go on overleaf")
         out.append(_Cand(name=name_case(m.group("name").strip()), rule_type=_rule_type(m.group("label")), raw=box,
-                         heads=1, kind="sidebar", complete=True, end_reason="sidebar box"))
+                         heads=1, kind="sidebar", complete=complete, end_reason=reason))
         i = k
     return out
 
@@ -230,11 +298,16 @@ def _candidates(sections: list[Section], ctx: ParseContext) -> list[_Cand]:
     starts = {id(s.lines[0]) for s in sections}
     out: list[_Cand] = []
     options = {id(s) for s in sections if s.level == 1 and _rules_chapter(s) and _OPTIONS.search(s.title)}
+    # the headings that open a rule of their own: labelled sections and downtime containers' activities
+    rule_starts = {id(s.lines[0]) for s in sections if _LABEL.match(s.title)}
+    for s in sections:
+        if _DOWNTIME.search(s.title):
+            rule_starts |= {id(c.raw[0]) for c in _activities(s, sections, starts)} | {id(s.lines[0])}
     for s in sections:
         m = _LABEL.match(s.title)
         if m:
             name = name_case(m.group("name").strip())
-            raw, complete, reason = _cut_unread(s, starts)
+            raw, complete, reason = _cut_unread(s, starts, rule_starts - {id(s.lines[0])})
             out.append(_Cand(name=name, rule_type=_rule_type(m.group("label")), raw=raw, heads=_heads(raw, s.title),
                              kind="label", complete=complete, end_reason=reason))
             continue
@@ -251,7 +324,7 @@ def _candidates(sections: list[Section], ctx: ParseContext) -> list[_Cand]:
             group = f"{s.parents[0]} > {parent.title}" if parent else None
         if group is None:
             continue
-        raw, complete, reason = _cut_unread(s, starts)
+        raw, complete, reason = _cut_unread(s, starts, rule_starts - {id(s.lines[0])})
         out.append(_Cand(name=s.title, rule_type=None, raw=raw, heads=_heads(raw, s.title), kind="entry",
                          complete=complete, end_reason=reason, group=group))
     out += _sidebars(ctx)
@@ -265,9 +338,83 @@ def _candidates(sections: list[Section], ctx: ParseContext) -> list[_Cand]:
     return [c for c in out if best[id(c.raw[0])] is c]
 
 
-def _text_check(c: _Cand, own: list[Line], sizes: dict[str, list[int]]) -> Check:
+def _drop_floats(own: list[Line], heads: int, ctx: ParseContext) -> list[Line]:
+    """Without a table printed in another column across the rule's sentence (PHB's "Ability Scores and Modifiers"
+    table at the head of the column the variant's last sentence goes on in): a run of lines that are no prose, in
+    another column than the prose before it, with that sentence going on (in lower case) after it."""
+    def place(l: Line) -> tuple[int, int]:
+        return l.page, _column(l, ctx)
+
+    drop: set[int] = set()
+    k = heads
+    while k < len(own):
+        if _prose(own[k].text):
+            k += 1
+            continue
+        j = k
+        while j < len(own) and not _prose(own[j].text) and place(own[j]) == place(own[k]):
+            j += 1
+        before = next((own[i] for i in range(k - 1, heads - 1, -1) if _prose(own[i].text)), None)
+        after = own[j] if j < len(own) else None
+        if before is not None and after is not None and place(before) != place(own[k]) \
+                and place(after) == place(own[k]) and after.text.strip()[:1].islower() \
+                and not before.text.rstrip().endswith(SENTENCE_END):
+            drop.update(range(k, j))
+        k = j
+    return [l for i, l in enumerate(own) if i not in drop]
+
+
+def _drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
+    """Without the art text printed in the column (a handwritten note, a picture's words: XGE "when minions come
+    back from"): short lines set well in from the column's text edge, after a wide gap or another such line."""
+    edges: dict[tuple[int, int], float] = {}
+    for l in own:
+        if len(l.text) >= 30 and _prose(l.text):
+            k = (l.page, _column(l, ctx))
+            edges[k] = min(edges.get(k, l.box[0]), l.box[0])
+    out: list[Line] = []
+    art = False
+    for i, l in enumerate(own):
+        edge = edges.get((l.page, _column(l, ctx)))
+        prev = own[i - 1] if i else None
+        gap = prev is not None and prev.page == l.page and l.box[1] - prev.box[1] >= 3 * l.height
+        inset = edge is not None and l.box[0] - edge > _ART_INSET * l.height and len(l.text.strip()) < 45
+        art = i > 0 and inset and (gap or art)
+        if not art:
+            out.append(l)
+    return out
+
+
+def _drop_dangling(own: list[Line], raw: list[Line], heads: int) -> list[Line]:
+    """Without a table caption whose rows are not the rule's ("ChelDar's Plans" over another rule's heading;
+    "BUilding A STrongholD" at an activity's end): heading words that end the rule's text, or are followed by a
+    line that is not the next printed one."""
+    nxt = {id(a): b for a, b in zip(raw, raw[1:])}
+    out: list[Line] = []
+    for i, l in enumerate(own):
+        if i >= heads and _heading_words(l.text) and not _prose(l.text) and \
+                (i + 1 == len(own) or nxt.get(id(l)) is not own[i + 1]):
+            continue
+        out.append(l)
+    return out
+
+
+def _text_check(c: _Cand, own: list[Line], sizes: dict[str, list[int]], heads: int,
+                rule_starts: set[int]) -> Check:
     if not c.complete:
         return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) has no sure end: {c.end_reason}")
+    pages = own[-1].page - own[0].page + 1
+    if pages > _MAX_PAGES:
+        return Check("text-complete", False, f"rule {c.name!r} runs over {pages} pages (p{own[0].page}-"
+                     f"p{own[-1].page}), more than {_MAX_PAGES}")
+    head_h = max(l.height for l in own[:heads])
+    tall = _tall(own)
+    for k in range(heads, len(own) - 1):
+        l = own[k]
+        if id(l) not in rule_starts and l.height >= max(head_h, tall) and _heading_words(l.text) \
+                and _prose(own[k + 1].text):
+            return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) still holds the heading "
+                         f"{l.text.strip()!r} (p{l.page}, height {l.height:.1f} >= its own {head_h:.1f})")
     sib = sizes.get(c.group, []) if c.kind == "entry" else []
     others = list(sib)
     if len(own) in others:
@@ -286,11 +433,12 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         return []
     character_body(body, ctx)  # the unstripped and stripped lines, for the sidebars
     cands = _candidates(sections, ctx)
-    claimed: set = ctx.cache.get("claimed_lines") or set()
+    claimed: set = ctx.cache["claimed_lines"]  # required: the assembler fills it (an empty set when none)
     full = ctx.cache["character_lines"]
     order = {id(l): k for k, l in enumerate(full)}
     cands.sort(key=lambda c: order.get(id(c.raw[0]), 0))
     spans = [{id(l) for l in c.raw} for c in cands]
+    rule_starts = {id(c.raw[0]) for c in cands}
     owned: list[tuple[_Cand, list[Line]]] = []
     for i, c in enumerate(cands):
         # the lines of every other rule that starts inside this one are that rule's
@@ -300,6 +448,7 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         if not own or _key(own[0]) in claimed:
             continue
         own = [l for l in own if _key(l) not in claimed]
+        own = _drop_dangling(_drop_art(_drop_floats(own, c.heads, ctx), ctx), c.raw, c.heads)
         if len(own) <= c.heads:
             continue
         owned.append((c, own))
@@ -317,6 +466,6 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         head = " ".join(l.text.strip() for l in own[:heads])
         flat = [x if isinstance(x, str) else "\n".join(x.get("items", [])) for x in entries]
         p = Parsed(type="Rule", name=c.name, fields=fields, text="\n".join([head] + flat), lines=own)
-        p.checks = [_text_check(c, own, sizes)]
+        p.checks = [_text_check(c, own, sizes, heads, rule_starts)]
         out.append(p)
     return out
