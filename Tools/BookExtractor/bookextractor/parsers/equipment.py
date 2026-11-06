@@ -351,7 +351,7 @@ def parse_weapons(body: list[Line], ctx: ParseContext) -> list[Parsed]:
                 if r.group and re.fullmatch(r"ammunition", r.group.strip(), re.I):
                     continue
                 out.append(_weapon(r, tb, suspect, row_age, firearm))
-    return out
+    return out + _prose_weapons(body)
 
 
 # ---------- armor ----------
@@ -496,3 +496,64 @@ def _armor_blocks(L: list[Line]) -> list[Parsed]:
         out.append(p)
         i = j
     return out
+
+
+_PROSE_WEAPON = re.compile(
+    r"^an? (?P<name>[a-z][a-z' -]*?) is an? (?P<cat>simple|martial) (?:melee |ranged )?weapon, weighing "
+    r"(?P<w>\d+(?:/\d+)?) pounds? and dealing (?P<dmg>\d+d\d+) (?P<dt>[a-z]+) damage on a hit\."
+    r"(?: It has the (?P<props>[a-z, -]+?) propert(?:y|ies)(?P<special> and the following special property)?)?",
+    re.I)
+
+
+def _prose_weapons(L: list[Line]) -> list[Parsed]:
+    """A weapon described in prose (ERLW Double-Bladed Scimitar): a heading naming it, a description, then "A <name>
+    is a martial weapon, weighing 6 pounds and dealing 2d4 slashing damage on a hit. It has the two-handed property
+    and the following special property: ...". The name is the heading's; a weapon sentence under a heading that
+    does not name it is not read. A price printed between the heading and the sentence ("(100 gp)") is the
+    value when it is the only one."""
+    out: list[Parsed] = []
+    for i, l in enumerate(L):
+        if not re.match(r"^an? [a-z].* is an? (simple|martial)\b", l.text.strip(), re.I):
+            continue
+        # the sentences may run over five lines; they end at the line closing "... property:" (or "... hit.")
+        k = i
+        texts: list[str] = []
+        while k < len(L) and k < i + 6 and not (k > i and is_heading(L, k)):
+            texts.append(L[k].text.strip())
+            k += 1
+            if texts[-1].endswith(":"):
+                break
+        m = _PROSE_WEAPON.match(_join_text(texts))
+        if not m or m.group("dt").lower() not in DAMAGE_TYPES:
+            continue
+        h = next((x for x in range(i - 1, max(-1, i - 40), -1) if is_heading(L, x)), None)
+        if h is None or _squash(L[h].text) != _squash(m.group("name")):
+            continue
+        name = _title(L[h].text.strip())
+        # the special property's text: to the next heading
+        e = next((x for x in range(k, len(L)) if is_heading(L, x)), len(L))
+        desc = prose_entries(L, h + 1, i)
+        amounts = [a.group(0) for x in desc if isinstance(x, str) for a in _MONEY.finditer(x)]
+        props = [PROPERTIES[p.strip().lower()] for p in re.split(r",\s*|\s+and\s+", m.group("props") or "")
+                 if p.strip().lower() in PROPERTIES]
+        if m.group("special"):
+            props.append("S")
+        f: dict = {"weaponCategory": m.group("cat").lower(), "weight": weight_value(m.group("w") + " lb."),
+                   "dmg1": m.group("dmg"), "dmgType": DAMAGE_TYPES[m.group("dt").lower()], "property": props}
+        if len(amounts) == 1:
+            f["value"] = cost_value(amounts[0])
+        f["entries"] = desc + prose_entries(L, i, e)
+        checks = [Check("properties-valid", bool(props) or not m.group("props"),
+                        "" if props or not m.group("props") else f"properties of {name!r} {m.group('props')!r} "
+                                                                 "name no known property")]
+        if amounts:
+            checks.append(money_check(amounts, name, "the description"))
+        p = Parsed(type="Weapon", name=name, fields=f,
+                   text="\n".join([name] + [x for x in f["entries"] if isinstance(x, str)]), lines=L[h:e])
+        p.checks = checks
+        out.append(p)
+    return out
+
+
+def _squash(t: str) -> str:
+    return re.sub(r"[^a-z]", "", t.lower())

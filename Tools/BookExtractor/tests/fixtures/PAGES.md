@@ -121,3 +121,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | mtf | 137 | "RUTTERKIN" lore heading (the name first, then a "Warping Plague." lead-in about a disease that infects): not a disease |
 | mpmm | 210 | The same Rutterkin lore in MPMM: not a disease |
 | scag | 122 | Spiked Armor printed as a heading, a description and Cost / AC / Stealth / Weight lines (no table) |
+| erlw | 022, 023 | DOUBLE-BLADED SCIMITAR heading, "(100 gp)" in its description, "is a martial weapon, weighing 6 pounds and dealing 2d4 slashing damage" at the top of the next page, then the Revenant Blade feat |

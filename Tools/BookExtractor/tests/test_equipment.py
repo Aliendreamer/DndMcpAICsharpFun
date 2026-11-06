@@ -18,6 +18,7 @@ BOOKS = {
     "phb": ("phb14", "PHB", [146, 150]),
     "dmg": ("dmg14", "DMG", [268]),
     "scag": ("scag", "SCAG", [122]),
+    "erlw": ("erlw", "ERLW", [22, 23]),
 }
 
 
@@ -104,7 +105,7 @@ def test_unknown_property_fails_naming_it():
 
 
 def test_schema():
-    for p in weapons() + weapons("dmg"):
+    for p in weapons() + weapons("dmg") + weapons("erlw"):
         jsonschema.validate(p.fields, schema("WeaponFields"))
     for p in armor() + armor("scag"):
         jsonschema.validate(p.fields, schema("ArmorFields"))
@@ -264,3 +265,30 @@ def test_scag_spiked_armor_stat_lines_under_a_heading():
 def test_armor_stat_lines_without_an_ac_line_are_not_armor():
     pages = _edit("scag", 122, "AC: 14 + Dexterity modifier (max 2)", "Speed: 30 ft.", pages=_pages("scag"))
     assert _run(parse_armor, "scag", pages) == []
+
+
+def test_erlw_double_bladed_scimitar_described_in_prose():
+    """ERLW p.21-22: a "DOUBLE-BLADED SCIMITAR" heading, its price "(100 gp)" in the description, and "A
+    double-bladed scimitar is a martial weapon, weighing 6 pounds and dealing 2d4 slashing damage on a hit. It has
+    the two-handed property and the following special property:" at the top of the next page."""
+    ws = weapons("erlw")
+    assert [w.name for w in ws] == ["Double-Bladed Scimitar"]
+    w = ws[0]
+    assert {k: v for k, v in w.fields.items() if k != "entries"} == {
+        "weaponCategory": "martial", "weight": 6, "dmg1": "2d4", "dmgType": "S", "property": ["2H", "S"],
+        "value": 10000}
+    assert w.fields["entries"][-1]["items"][0].startswith("If you attack with a double-bladed scimitar")
+    assert w.fields["entries"][-1]["items"][0].endswith("instead of 2d4.")
+    assert failed(w) == []
+
+
+def test_prose_weapon_with_two_prices_leaves_the_value_to_review():
+    pages = _edit("erlw", 22, "to purchase one. A Valenar blade in the hands of a non-",
+                  "to purchase one (or 50 gp used). A Valenar blade in the hands of a non-", pages=_pages("erlw"))
+    w = _run(parse_weapons, "erlw", pages)[0]
+    assert "value" not in w.fields and [c.name for c in failed(w)] == ["cost-valid"]
+
+
+def test_prose_weapon_sentence_without_its_heading_is_not_a_weapon():
+    pages = _edit("erlw", 22, "DOUBLE-BLADED SCIMITAR", "VALENAR BLADES", pages=_pages("erlw"))
+    assert _run(parse_weapons, "erlw", pages) == []
