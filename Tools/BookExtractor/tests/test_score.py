@@ -843,3 +843,60 @@ def test_unmeasured_new_type_text_is_not_reported_as_zero():
     assert r["textPrecisionMedian"] is None
     row = format_table(r).splitlines()[2]
     assert "n/a" in row and " 0%" not in row.split("(")[-1]
+
+
+# ---------------- world types: God, Rule, sections ----------------
+@needs_5etools
+def test_truth_phb_gods_and_anubis():
+    gods = load_truth("phb", FT, "God")
+    assert len(gods) == 195
+    assert [g["name"] for g in gods].count("Silvanus") == 2
+    assert next(g for g in gods if g["name"] == "Anubis")["domains"] == ["Death", "Grave", "Order"]
+
+
+@needs_5etools
+def test_god_fields_subset_domains_and_known_difference():
+    f = {"alignment": ["L", "N"], "domains": ["Death"], "symbol": "Black jackal", "pantheon": "Egyptian"}
+    r = score_book("phb", [{"type": "God", "name": "Anubis", "fields": f}], FT, "God")
+    assert r["found"] == 1 and all(v["pct"] == 100 for v in r["fields"].values())
+    assert any("domains added by later books" in k and "Anubis" in k and "Grave" in k for k in r["knownDifferences"])
+    bad = score_book("phb", [{"type": "God", "name": "Anubis", "fields": dict(f, domains=["War"])}], FT, "God")
+    assert bad["fields"]["domains"]["pct"] == 0
+
+
+@needs_5etools
+def test_repeated_god_names_match_by_pantheon():
+    ents = [{"type": "God", "name": "Silvanus", "fields": {"pantheon": "Celtic"}},
+            {"type": "God", "name": "Silvanus", "fields": {"pantheon": "Forgotten Realms"}}]
+    assert score_book("phb", ents, FT, "God")["found"] == 2
+
+
+@needs_5etools
+def test_truth_phb_rules_and_prefix_free_names():
+    rules = {t["name"]: t for t in load_truth("phb", FT, "Rule")}
+    assert rules["Customizing Ability Scores"]["ruleType"] == "V"
+    e = {"type": "Rule", "name": "Variant: Customizing Ability Scores", "fields": {"ruleType": "V"}}
+    r = score_book("phb", [e], FT, "Rule")
+    assert r["found"] == 1 and r["fields"]["ruleType"]["pct"] == 100
+
+
+@needs_5etools
+def test_section_tree_reader_returns_named_sections_for_ggr():
+    secs = load_truth("ggr", FT, "Section")
+    names = {s["name"] for s in secs}
+    assert {"Azorius Senate", "Precinct One", "Inside the Senate"} <= names
+    azorius = [s for s in secs if s["name"] == "Azorius Senate"]
+    assert {s["_depth"] for s in azorius} == {1} and azorius[0]["_chapter"] == "Chapter 2: Guilds of Ravnica"
+    assert "Section" in available_types("ggr", FT)
+
+
+@needs_5etools
+def test_section_depth_follows_where_the_chapters_entities_match():
+    ents = [{"type": t, "name": n, "fields": {"entries": ["x"]}} for t, n in
+            [("Faction", "Azorius Senate"), ("Faction", "Boros Legion"), ("Location", "Precinct One")]]
+    r = score_book("ggr", ents, FT, "Section")
+    assert r["found"] == 3 and r["perType"] == {"Faction": 2, "Location": 1, "Lore": 0, "Plane": 0}
+    deep = [{"type": "Lore", "name": n, "fields": {}} for n in ("Inside the Senate", "Inside the Legion")]
+    r2 = score_book("ggr", deep, FT, "Section")
+    assert r2["found"] == 2  # Chapter 2 is scored at depth 2 because that is where its entities are
+    assert any("Chapter 2: Guilds of Ravnica" in k and "depth 2" in k for k in r2["knownDifferences"])

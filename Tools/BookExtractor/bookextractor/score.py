@@ -175,8 +175,11 @@ def base_monster_name(n: str) -> str:
 _GENASI_NOTE = "printed as separate races (Air/Earth/Fire/Water Genasi)"
 _CHARACTER_TYPES = ("Class", "Subclass", "Race", "Subrace", "Feat", "Background")
 _EQUIPMENT_TYPES = ("Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition")
+_SECTION_TYPES = ("Plane", "Faction", "Location", "Lore")  # scored together, as "Section": 5etools has no such types
+_WORLD_TYPES = ("God", "Rule", "Section")
+_UNMEASURED_TYPES = _EQUIPMENT_TYPES + _WORLD_TYPES  # truth may carry no text: unmeasured, not 0%
 TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat", "Background",
-         *_EQUIPMENT_TYPES)
+         *_EQUIPMENT_TYPES, *_WORLD_TYPES)
 
 
 def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list[dict]:
@@ -199,6 +202,8 @@ def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list
         return _load_character_truth(book.upper(), d, etype)
     if etype in _EQUIPMENT_TYPES:
         return _split_equipment_truth(book.upper(), d, etype)[0]
+    if etype in _WORLD_TYPES:
+        return _split_world_truth(book.upper(), d, etype)[0]
     seen: dict[str, dict] = {}
     for i in json.loads((d / "items.json").read_text("utf-8"))["item"]:
         if i.get("source") == book.upper() and i.get("rarity") not in (None, "none"):
@@ -207,6 +212,31 @@ def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list
             rec["_rarities"].add(i["rarity"])
             rec["reqAttune"] = rec.get("reqAttune") or i.get("reqAttune")  # the printed entry covers every tier
     return list(seen.values())
+
+
+_RULE_PREFIX = re.compile(r"^(variant|optional rule)\s*:\s*", re.I)
+
+
+def _section_nodes(node: dict, chapter: str, depth: int, out: list[dict]) -> None:
+    """Every named section/entries node under `node` (a heading); depth 1 is a chapter's own sections."""
+    for x in node.get("entries") or []:
+        if isinstance(x, dict) and x.get("type") in ("section", "entries") and x.get("name"):
+            out.append({"name": x["name"], "_chapter": chapter, "_depth": depth, "entries": x.get("entries") or []})
+            _section_nodes(x, chapter, depth + 1, out)
+
+
+def _split_world_truth(src: str, d: Path, etype: str) -> tuple[list[dict], list[str]]:
+    """(records, known-difference lines for the records left out) for God, Rule and the section tree."""
+    if etype == "Section":
+        out: list[dict] = []
+        for ch in json.loads((d / f"book/book-{src.lower()}.json").read_text("utf-8"))["data"]:
+            if isinstance(ch, dict) and ch.get("type") in ("section", "entries") and ch.get("name"):
+                _section_nodes(ch, ch["name"], 1, out)
+        return out, []
+    f, k = ("deities.json", "deity") if etype == "God" else ("variantrules.json", "variantrule")
+    recs = [r for r in json.loads((d / f).read_text("utf-8"))[k] if r.get("source") == src]
+    return ([r for r in recs if not r.get("_copy")],
+            [f"variant (_copy) not scored: {r['name']}" for r in recs if r.get("_copy")])
 
 
 def _is_armor(i: dict) -> bool:
@@ -433,6 +463,8 @@ def dropped_truth_lines(book: str, fivetools_dir: Path | str, etype: str) -> lis
     """Known-difference lines for the 5etools records load_truth leaves out of `etype`'s truth."""
     if etype in _EQUIPMENT_TYPES:
         return _split_equipment_truth(book.upper(), Path(fivetools_dir), etype)[1]
+    if etype in _WORLD_TYPES:
+        return _split_world_truth(book.upper(), Path(fivetools_dir), etype)[1]
     if etype not in _CHARACTER_TYPES:
         return []
     return _split_character_truth(book.upper(), Path(fivetools_dir), etype)[1]
@@ -599,7 +631,7 @@ def available_types(book: str, fivetools_dir: Path) -> list[str]:
     out = []
     for t in TYPES:
         try:
-            if load_truth(book, fivetools_dir, t) or (t in _EQUIPMENT_TYPES and dropped_truth_lines(book, fivetools_dir, t)):
+            if load_truth(book, fivetools_dir, t) or (t in _UNMEASURED_TYPES and dropped_truth_lines(book, fivetools_dir, t)):
                 out.append(t)
         except (FileNotFoundError, KeyError):
             pass
@@ -629,12 +661,33 @@ def score_record(etype: str, fields: dict, t: dict, src: str | None = None, enti
         cov, prec = _score_character(etype, fields, t, r, src)
     elif etype in _EQUIPMENT_TYPES:
         cov, prec = _score_equipment(etype, fields, t, r, entity)
+    elif etype in _WORLD_TYPES:
+        cov, prec = _score_world(etype, fields, t, r)
     else:
         if len(rarity_family(t)) == 1:
             r["rarity"] = same_rarity(t, fields.get("rarity"))
         r["attune"] = attunes(fields.get("reqAttune")) == attunes(t.get("reqAttune"))
         cov, prec = coverage(flat(t.get("entries")), flat(fields.get("entries")))
     return r, cov, prec
+
+
+def extra_god_domains(fields: dict, t: dict) -> list[str]:
+    """Truth domains our god does not print (5etools merges later books' domains into the PHB god)."""
+    ours = {key(x) for x in fields.get("domains") or []}
+    return [x for x in t.get("domains") or [] if ours and key(x) not in ours]
+
+
+def _score_world(etype: str, f: dict, t: dict, r: dict) -> tuple[float | None, float | None]:
+    if etype == "God":
+        r["alignment"] = (f.get("alignment") or None) == (t.get("alignment") or None)
+        r["domains"] = {key(x) for x in f.get("domains") or []} <= {key(x) for x in t.get("domains") or []}
+        ours, want = f.get("symbol"), t.get("symbol")
+        r["symbol"] = None if not ours and not want else bool(ours and want) and \
+            fuzz.ratio(key(ours), key(want)) >= 90
+        r["pantheon"] = (f.get("pantheon") or None) == (t.get("pantheon") or None)
+    elif etype == "Rule":
+        r["ruleType"] = (f.get("ruleType") or None) == (t.get("ruleType") or None)
+    return coverage(flat(t.get("entries")), flat(f.get("entries")))
 
 
 def _code(v) -> str | None:
@@ -825,6 +878,8 @@ def match_key(etype: str, name: str | None) -> str:
     Equipment names are word-order, punctuation and bracket insensitive ("Crossbow, light" is "Light Crossbow")."""
     if etype in _EQUIPMENT_TYPES:
         return _eq_key(name, etype)
+    if etype == "Rule":
+        return key(_RULE_PREFIX.sub("", name or ""))
     if etype in ("Race", "Subrace"):
         low = (name or "").lower()
         ws = set(re.findall(r"[a-z0-9+]+", low))
@@ -861,12 +916,41 @@ def match_one_to_one(truth_keys: list[str], keys: list[str]) -> dict[int, tuple[
     return out
 
 
+def _section_truth_at_chosen_depth(truth: list[dict], entities: list[dict], known: list[str]) -> list[dict]:
+    """The section tree's recall truth: per chapter, the headings at the depth where most of the chapter's entities
+    match (ties go to the shallower depth; a chapter with no match is scored at depth 1). Each heading name counts once.
+
+    5etools has no world-type records, so which headings are 'entities' is read off our own extraction: an entity's
+    name is looked for among a chapter's headings at every depth."""
+    ours = {key(e["name"]) for e in entities if e.get("type") in _SECTION_TYPES}
+    chapters: dict[str, list[dict]] = {}
+    for t in truth:
+        chapters.setdefault(t["_chapter"], []).append(t)
+    out: list[dict] = []
+    seen: dict[str, int] = {}
+    for ch, secs in chapters.items():
+        hits = collections.Counter(s["_depth"] for s in {key(s["name"]): s for s in secs
+                                                         if key(s["name"]) in ours}.values())
+        depth = max(hits, key=lambda d: (hits[d], -d)) if hits else 1
+        known.append(f"{ch}: scored at heading depth {depth} ({'; '.join(f'depth {d}: {n} entities' for d, n in sorted(hits.items())) or 'no entity matches'})")
+        for s in secs:
+            if s["_depth"] == depth:
+                seen[key(s["name"])] = seen.get(key(s["name"]), 0) + 1
+                if seen[key(s["name"])] == 1:
+                    out.append(s)
+    known += [f"heading printed {n} times, scored once: {nm}" for nm, n in sorted(seen.items()) if n > 1
+              for nm in [next(s["name"] for s in out if key(s["name"]) == nm)]]
+    return out
+
+
 PRECISION_FLOOR = 0.7  # an entity whose text precision is under this is listed by name
 
 
 def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype: str | None = None) -> dict:
     """Score extracted entities of one type (default: the core book's type) against 5etools."""
     etype = etype or BOOKS.get(book)
+    if etype in _SECTION_TYPES:
+        etype = "Section"
     if etype not in TYPES:
         raise ValueError(f"book {book!r} needs a type, one of {list(TYPES)}")
     truth = load_truth(book, Path(fivetools_dir), etype)
@@ -874,22 +958,32 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
                         for t in truth if (book, t["name"]) in NOT_PRINTED]
     truth = [t for t in truth if (book, t["name"]) not in NOT_PRINTED]
     known += dropped_truth_lines(book, fivetools_dir, etype)
+    if etype == "Section":
+        truth = _section_truth_at_chosen_depth(truth, entities, known)
+    god_dups = {key(t["name"]) for t in truth if etype == "God"
+                and sum(key(o["name"]) == key(t["name"]) for o in truth) > 1}
+
+    def god_key(name: str, pantheon) -> str:  # a name that repeats in the book is told apart by pantheon
+        return key(name) + ("|" + key(pantheon) if key(name) in god_dups else "")
     idx: dict[str, dict] = {}
     alias: dict[str, str] = {}  # "Dark Elf (Drow)" also answers to "Drow" + race
+    by_type: dict[str, int] = {t: 0 for t in _SECTION_TYPES}
     for e in entities:
-        if e.get("type") == etype:
+        if e.get("type") == etype or (etype == "Section" and e.get("type") in _SECTION_TYPES):
             if book == "mpmm" and etype == "Race" and re.fullmatch(r"(Air|Earth|Fire|Water) Genasi", e["name"]):
                 known.append(f"{_GENASI_NOTE}: {e['name']}")
                 continue
             name = base_item_name(e["name"]) if etype == "MagicItem" else e["name"]
             if etype == "Subrace":  # the printed heading may omit the race word ("Drow" in the Elf section)
                 name = f"{name} {(e.get('fields') or {}).get('raceName') or ''}"
-            idx.setdefault(match_key(etype, name), e)
+            idx.setdefault(god_key(name, (e.get("fields") or {}).get("pantheon")) if etype == "God"
+                           else match_key(etype, name), e)
             par = re.search(r"\(([^)]+)\)", e["name"])
             if etype == "Subrace" and par:
                 alias.setdefault(match_key(etype, f"{par.group(1)} {(e.get('fields') or {}).get('raceName') or ''}"),
                                  match_key(etype, name))
-    tkeys = [match_key(etype, t["name"]) for t in truth]
+    tkeys = [god_key(t["name"], t.get("pantheon")) if etype == "God" else match_key(etype, t["name"])
+             for t in truth]
     tkeys = [alias[k] if k not in idx and k in alias else k for k in tkeys]
     for i, t in enumerate(truth):  # 5etools "Gnome Deep/Svirfneblin" is printed under one of the two names
         sub = t.get("_subName") or ""
@@ -965,6 +1059,10 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
         if etype in ("Class", "Subclass"):
             t = _drop_unprinted_features(book, t, known)
         res, cov, prec = score_record(etype, fields, t, book.upper(), idx[k])
+        if etype == "God" and (extra := extra_god_domains(fields, t)):
+            known.append(f"{t['name']}: domains added by later books, not printed here: {', '.join(extra)}")
+        if etype == "Section":
+            by_type[idx[k].get("type")] += 1
         if etype == "MagicItem" and len(rarity_family(t)) > 1:
             fam[0] += 1
             fam[1] += fields.get("rarity") == "varies"
@@ -1007,7 +1105,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
             if not ok:
                 diffs.append(f"{t['name']}: {f} wrong (scored against the {t['source']} record)")
     found = len(matches)
-    unmeasured = etype in _EQUIPMENT_TYPES  # a new type with no truth text is unmeasured, not 0%
+    unmeasured = etype in _UNMEASURED_TYPES  # a new type with no truth text is unmeasured, not 0%
     return {
         "book": book, "type": etype, "truth": len(truth), "found": found,
         "extra": len(idx) - len(claimed) - len(printed_here), "skipped": dict(skipped),
@@ -1019,6 +1117,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
         "textPrecisionMin": min(precs) if precs else None,
         "textMeasured": len(precs),
         "lowPrecision": sorted(((n, p) for n, p in named_precs if p < PRECISION_FLOOR), key=lambda x: (x[1], x[0])),
+        "perType": by_type if etype == "Section" else None,
         "missing": missing, "fuzzyMatches": fuzzy, "diffs": diffs, "knownDifferences": known,
     }
 
@@ -1036,7 +1135,9 @@ def format_table(res: dict) -> str:
            f"{pct(at90, 8)}  {pct(res['textCoverageMedian'], 10)}  "
            f"{pct(res['textPrecisionMedian'], 12)}")
     out = f"=== {res['book'].upper()} {res['type']}: {res['truth']} entries in 5etools ===\n{head}\n{row}"
-    if res["type"] in _EQUIPMENT_TYPES:
+    if res.get("perType"):
+        out += "\nfound by entity type (informational): " + ", ".join(f"{t} {n}" for t, n in res["perType"].items())
+    if res["type"] in _UNMEASURED_TYPES:
         if res.get("textMeasured"):
             low = res.get("lowPrecision") or []
             out += (f"\ntext precision: min {100 * res['textPrecisionMin']:.0f}%, median "
