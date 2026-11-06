@@ -314,7 +314,7 @@ def test_truth_subclasses_drop_xphb_copies():
 
 @needs_5etools
 def test_truth_backgrounds_drop_copy_variants():
-    assert len(load_truth("phb", FT, "Background")) == 14
+    assert len(load_truth("phb", FT, "Background")) == 13
     assert len(load_truth("egw", FT, "Background")) == 2
     assert not any(t.get("_copy") for t in load_truth("phb", FT, "Background"))
     res = score_book("phb", [], FT, "Background")
@@ -327,3 +327,43 @@ def test_score_book_lists_dropped_subclass_reprints():
     assert "reprint (classSource XPHB) not scored: Path of the Zealot" in res["knownDifferences"]
     assert any(k.startswith("reprint (classSource XPHB)") for k in res["knownDifferences"])
     assert all(t.get("classSource") not in ("XPHB", "EFA") for t in load_truth("xge", FT, "Subclass"))
+
+
+def _ent(t, n, **f):
+    return {"type": t, "name": n, "fields": f}
+
+
+@needs_5etools
+def test_race_match_is_word_order_insensitive_without_parentheses():
+    ents = [_ent("Race", n) for n in ("Chromatic Dragonborn", "Gem Dragonborn", "Metallic Dragonborn")]
+    res = score_book("ftd", ents, FT, "Race")
+    assert res["found"] == 3 and res["missing"] == []
+
+
+@needs_5etools
+def test_subrace_parenthetical_alias_matches_drow():
+    res = score_book("phb", [_ent("Subrace", "Dark Elf (Drow)", raceName="Elf")], FT, "Subrace")
+    assert res["found"] == 1 and "Elf Drow" not in res["missing"] and res["extra"] == 0
+
+
+@needs_5etools
+def test_subrace_variant_prefix_dropped_from_truth():
+    res = score_book("erlw", [_ent("Subrace", "Mark of Detection", raceName="Half-Elf")], FT, "Subrace")
+    assert res["found"] == 1 and res["extra"] == 0
+
+
+@needs_5etools
+def test_mpmm_genasi_printed_as_separate_races():
+    ents = [_ent("Race", f"{e} Genasi") for e in ("Air", "Earth", "Fire", "Water")]
+    res = score_book("mpmm", ents, FT, "Race")
+    assert "Genasi" not in res["missing"] and res["extra"] == 0
+    assert any(k.startswith("printed as separate races (Air/Earth/Fire/Water Genasi): Genasi") for k in res["knownDifferences"])
+    sub = score_book("mpmm", [], FT, "Subrace")
+    assert sub["truth"] == 0 and sum("printed as separate races" in k for k in sub["knownDifferences"]) == 4
+
+
+@needs_5etools
+def test_phb_custom_background_is_rules_not_entry():
+    assert "Custom Background" not in [t["name"] for t in load_truth("phb", FT, "Background")]
+    res = score_book("phb", [], FT, "Background")
+    assert "rules, not a background entry: Custom Background" in res["knownDifferences"]

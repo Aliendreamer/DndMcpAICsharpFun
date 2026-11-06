@@ -130,6 +130,7 @@ def base_monster_name(n: str) -> str:
     return n
 
 
+_GENASI_NOTE = "printed as separate races (Air/Earth/Fire/Water Genasi)"
 _CHARACTER_TYPES = ("Class", "Subclass", "Race", "Subrace", "Feat", "Background")
 TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat", "Background")
 
@@ -188,15 +189,28 @@ def _split_character_truth(src: str, d: Path, etype: str) -> tuple[list[dict], l
     if etype in ("Race", "Subrace"):
         data = json.loads((d / "races.json").read_text("utf-8"))
         if etype == "Race":
-            return [r for r in data["race"] if r.get("source") == src and not r.get("_copy")], []
+            recs = [r for r in data["race"] if r.get("source") == src and not r.get("_copy")]
+            if src == "MPMM":
+                return ([r for r in recs if r["name"] != "Genasi"],
+                        [f"{_GENASI_NOTE}: {r['name']}" for r in recs if r["name"] == "Genasi"])
+            return recs, []
         # nameless base subraces are dropped; the match name carries the race word, like the printed heading
-        return [dict(r, name=f"{r['raceName']} {r['name']}", _subName=r["name"]) for r in data["subrace"]
-                if r.get("source") == src and r.get("name") and r.get("raceName")], []
+        subs = [dict(r, name=f"{r['raceName']} {r['name']}", _subName=r["name"]) for r in data["subrace"]
+                if r.get("source") == src and r.get("name") and r.get("raceName")]
+        if src == "MPMM":
+            return ([r for r in subs if r["raceName"] != "Genasi"],
+                    [f"{_GENASI_NOTE}: {r['name']}" for r in subs if r["raceName"] == "Genasi"])
+        return subs, []
     fname, lst = ("feats.json", "feat") if etype == "Feat" else ("backgrounds.json", "background")
     recs = [r for r in json.loads((d / fname).read_text("utf-8"))[lst] if r.get("source") == src]
     # a `_copy` background is a sidebar variant that modifies a base background, not a printed entry
-    return ([r for r in recs if not r.get("_copy")],
-            [f"variant (_copy) not scored: {r['name']}" for r in recs if r.get("_copy")] if etype == "Background" else [])
+    if etype == "Background":
+        # PHB prints "Customizing a Background" rules, not a background with a Skill Proficiencies line
+        rules = [r for r in recs if src == "PHB" and r["name"] == "Custom Background" and not r.get("_copy")]
+        return ([r for r in recs if not r.get("_copy") and r not in rules],
+                [f"variant (_copy) not scored: {r['name']}" for r in recs if r.get("_copy")]
+                + [f"rules, not a background entry: {r['name']}" for r in rules])
+    return [r for r in recs if not r.get("_copy")], []
 
 
 def dropped_truth_lines(book: str, fivetools_dir: Path | str, etype: str) -> list[str]:
@@ -383,8 +397,12 @@ def _score_character(etype: str, f: dict, t: dict, r: dict, src: str | None) -> 
 
 def match_key(etype: str, name: str | None) -> str:
     """Name key for matching. Subrace words are order-insensitive: 5etools "Dwarf Hill" is printed "Hill Dwarf"."""
-    if etype == "Subrace":
-        return "".join(sorted(set(re.findall(r"[a-z0-9+]+", (name or "").lower()))))
+    if etype in ("Race", "Subrace"):
+        low = (name or "").lower()
+        ws = set(re.findall(r"[a-z0-9+]+", low))
+        if etype == "Subrace" and "variant;" in low:  # 5etools "Variant; Mark of Detection" is printed without it
+            ws.discard("variant")
+        return "".join(sorted(ws))
     return key(name)
 
 
@@ -424,13 +442,23 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     truth = [t for t in truth if (book, t["name"]) not in NOT_PRINTED]
     known += dropped_truth_lines(book, fivetools_dir, etype)
     idx: dict[str, dict] = {}
+    alias: dict[str, str] = {}  # "Dark Elf (Drow)" also answers to "Drow" + race
     for e in entities:
         if e.get("type") == etype:
+            if book == "mpmm" and etype == "Race" and re.fullmatch(r"(Air|Earth|Fire|Water) Genasi", e["name"]):
+                known.append(f"{_GENASI_NOTE}: {e['name']}")
+                continue
             name = base_item_name(e["name"]) if etype == "MagicItem" else e["name"]
             if etype == "Subrace":  # the printed heading may omit the race word ("Drow" in the Elf section)
                 name = f"{name} {(e.get('fields') or {}).get('raceName') or ''}"
             idx.setdefault(match_key(etype, name), e)
-    matches = match_one_to_one([match_key(etype, t["name"]) for t in truth], list(idx))
+            par = re.search(r"\(([^)]+)\)", e["name"])
+            if etype == "Subrace" and par:
+                alias.setdefault(match_key(etype, f"{par.group(1)} {(e.get('fields') or {}).get('raceName') or ''}"),
+                                 match_key(etype, name))
+    tkeys = [match_key(etype, t["name"]) for t in truth]
+    tkeys = [alias[k] if k not in idx and k in alias else k for k in tkeys]
+    matches = match_one_to_one(tkeys, list(idx))
     agg: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
     covs: list[float] = []
     precs: list[float] = []
