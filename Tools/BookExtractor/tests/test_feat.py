@@ -146,3 +146,12 @@ def test_feat_printed_on_its_own():
     got = parse_feats(body, ParseContext(slug="erlw", source="ERLW", pages={}))
     assert [p.name for p in got] == ["Revenant Blade"]
     assert got[0].fields["prerequisite"] == [{"race": [{"name": "elf"}]}] and len(got[0].lines) == 4
+
+
+def test_mixed_and_or_prerequisite():  # review fix: "A, B or C" is A AND (B OR C), never A OR B OR C
+    assert parse_prerequisite("4th level, elf or half-elf") == (
+        [{"level": 4, "race": [{"name": "elf"}, {"name": "half-elf"}]}], [])
+    pre, unread = parse_prerequisite("4th level, elf or spellcasting feature")
+    c = check(feat_checks({"prerequisite": pre}, "Prerequisite: 4th level, elf or spellcasting feature"),
+              "prerequisite-parsed")
+    assert unread and not c.passed and "mixed and/or not understood" in c.reason

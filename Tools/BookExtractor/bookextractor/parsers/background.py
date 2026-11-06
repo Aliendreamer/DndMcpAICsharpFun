@@ -14,7 +14,9 @@ Fields follow the hand-authored 5etools-aligned `BackgroundFields` schema:
   never corrected: one that is not one of the 18 skills is kept as printed (lower case) and fails `skills-valid`.
 - `toolProficiencies`, `languageProficiencies`: 5etools objects ({"disguise kit": true}, {"anyGamingSet": 1},
   {"anyStandard": 2}, {"choose": {"from": [...]}}) only when every part of the printed text is understood;
-  otherwise absent (the printed text stays in `entries`), never guessed.
+  otherwise absent (the printed text stays in `entries`), never guessed. A language choice ("Choose one of
+  Celestial, Draconic, Goblin, or Minotaur") keeps its words as printed; `languages-valid` fails on any word that
+  is not a known language.
 - `entries`: the label lines as a 5etools "list-hang-notitle" list ({"type": "item", "name": "Equipment:",
   "entry": "..."}), then the feature as {"type": "entries", "name": "Feature: Shelter of the Faithful",
   "entries": [...], "data": {"isFeature": true}}. Equipment is carried only here (`startingEquipment` is absent).
@@ -55,6 +57,9 @@ _TOOLS = {"alchemist's supplies", "brewer's supplies", "calligrapher's supplies"
           "shawm", "viol"}
 _LANGUAGES = {"common", "dwarvish", "elvish", "giant", "gnomish", "goblin", "halfling", "orc", "abyssal",
               "celestial", "draconic", "deep speech", "infernal", "primordial", "sylvan", "undercommon"}
+# languages of a setting that backgrounds print by name (GGR guild choices); a word in neither set fails
+_SETTING_LANGUAGES = {"minotaur", "kraul", "vedalken", "loxodon"}
+_LANGUAGE_KEYS = _LANGUAGES | _SETTING_LANGUAGES
 
 
 # ---------- layout ----------
@@ -252,10 +257,21 @@ def parse_backgrounds(body: list[Line], ctx: ParseContext) -> list[Parsed]:
 
 # ---------- checks ----------
 def background_checks(fields: dict) -> list[Check]:
-    return [_skills_check(fields), _feature_check(fields)]
+    return [_skills_check(fields), _languages_check(fields), _feature_check(fields)]
 
 
-def _skill_names(v) -> list[str]:
+def _languages_check(fields: dict) -> Check:
+    """Every language named in `languageProficiencies` is a known language (none read is not a failure: the
+    printed text then stays in the entries only)."""
+    name = "languages-valid"
+    bad = [x for x in _names(fields.get("languageProficiencies")) if x not in _LANGUAGE_KEYS]
+    if bad:
+        return Check(name, False, f"{', '.join(repr(b) for b in bad)} not a known language "
+                                  f"({', '.join(sorted(_LANGUAGE_KEYS))})")
+    return Check(name, True)
+
+
+def _names(v) -> list[str]:
     out: list[str] = []
     for d in v or []:
         if not isinstance(d, dict):
@@ -274,7 +290,7 @@ def _skills_check(fields: dict) -> Check:
     v = fields.get("skillProficiencies")
     if not v:
         return Check(name, False, "no skill proficiencies read from the Skill Proficiencies line")
-    bad = [s for s in _skill_names(v) if s not in _SKILL_KEYS]
+    bad = [s for s in _names(v) if s not in _SKILL_KEYS]
     if bad:
         return Check(name, False, f"{', '.join(repr(b) for b in bad)} not among the 18 skills")
     return Check(name, True)

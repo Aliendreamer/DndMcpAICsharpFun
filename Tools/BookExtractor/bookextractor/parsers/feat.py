@@ -121,6 +121,8 @@ def parse_prerequisite(text: str) -> tuple[list[dict], list[str]]:
         parts.append(got)
     races = [v for k, v in parts if k == "race"]
     rest = [(k, v) for k, v in parts if k != "race"]
+    if either and "," in t and rest:
+        return _mixed(t, held, text)
     if either:  # alternatives: one object each, the races one list
         out = [{"race": races}] if races else []
         out += [{k: _wrap(k, v)} for k, v in rest]
@@ -134,6 +136,30 @@ def parse_prerequisite(text: str) -> tuple[list[dict], list[str]]:
         else:
             obj[k] = _wrap(k, v)
     return [obj], unread
+
+
+def _mixed(t: str, held: dict, printed: str) -> tuple[list[dict], list[str]]:
+    """A line with both commas and "or" whose parts are not all races ("4th level, elf or half-elf"): the
+    comma-separated groups are AND, the "or" inside a group are alternatives. Only alternatives that are all
+    races can sit inside one AND object; anything else is not encoded and fails the check."""
+    obj: dict = {}
+    for group in (g.strip() for g in re.split(r"\s*,\s*(?!or\b)", t, flags=re.I) if g.strip()):
+        alts = [a.strip() for a in re.split(r"\s*,?\s*\bor\s+", group, flags=re.I) if a.strip()]
+        got = [held.get(a) or _part(a) for a in alts]
+        if any(g is None for g in got) or (len(got) > 1 and any(k != "race" for k, _ in got)):
+            why = f"mixed and/or not understood: {printed.strip()}"
+            return [{"other": why}], [why]
+        for k, v in got:
+            if k == "race":
+                obj.setdefault("race", []).append(v)
+            elif k in obj and k in ("proficiency", "feat", "background"):
+                obj[k] += _wrap(k, v)
+            elif k in obj:
+                why = f"mixed and/or not understood: {printed.strip()}"
+                return [{"other": why}], [why]
+            else:
+                obj[k] = _wrap(k, v)
+    return [obj], []
 
 
 def _wrap(key: str, value: object) -> object:

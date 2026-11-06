@@ -9,7 +9,7 @@ from bookextractor.layout import reading_order
 from bookextractor.model import load_ocr_page
 from bookextractor.pages import classify_page
 from bookextractor.parsers import ParseContext
-from bookextractor.parsers.background import background_checks, parse_backgrounds
+from bookextractor.parsers.background import _languages, background_checks, parse_backgrounds
 
 FIX = Path(__file__).parent / "fixtures" / "ocr"
 SCHEMAS = Path(__file__).parents[3] / "Schemas" / "canonical"
@@ -125,3 +125,15 @@ def test_background_schema():
     jsonschema.validate(get("Acolyte").fields, schema("BackgroundFields"))
     jsonschema.validate(get("Charlatan").fields, schema("BackgroundFields"))
     jsonschema.validate(get("Lorehold Student", book="scc").fields, schema("BackgroundFields"))
+
+
+def test_unknown_language_in_choice_fails():  # review fix: OCR'd language names are never accepted
+    fields = {"skillProficiencies": [{"insight": True}], "languageProficiencies":
+              _languages("Choose one of Dwarvlsh, Elvlsh, or Gnomlsh"), "entries": []}
+    c = check(background_checks(fields), "languages-valid")
+    assert not c.passed and "dwarvlsh" in c.reason
+
+
+def test_known_setting_language_choice_passes():
+    fields = {"languageProficiencies": _languages("Choose one of Celestial, Draconic, Goblin, or Minotaur")}
+    assert check(background_checks(fields), "languages-valid").passed
