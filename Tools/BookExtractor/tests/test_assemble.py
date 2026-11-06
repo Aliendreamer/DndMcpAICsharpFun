@@ -445,3 +445,31 @@ def test_an_unrelated_stat_block_swallowed_by_a_subclass_is_bleed():
     mon2["name"] = "Owlbear"
     shared_text_checks([sub2, mon2], [sk, mk], firsts=firsts, texts=[_texts(sk, 150, "Owlbear"), _texts(mk)])
     assert not next(c for c in sub2["checks"] if c["name"] == "text-not-shared")["passed"]
+
+
+def test_glued_feature_name_whose_spaced_pair_is_printed_once_is_split():
+    # XGE prints the heading "VeNgeFULAnceSTORS" once and the table cell "Vengeful Ancestors" once: "vengeful" is
+    # printed nowhere else, but the spaced pair itself attests both words
+    p, cs = _feature_ref_checks(["Vengefulancestors|Barbarian||Ancestral Guardian|XGE|14"],
+                                ["VeNgeFULAnceSTORS", "Vengeful Ancestors, Spirit Shield (4d8)", "your ancestors",
+                                 "the ancestors", "ancestors"])
+    assert p.fields["subclassFeatures"] == ["Vengeful Ancestors|Barbarian||Ancestral Guardian|XGE|14"], p.fields
+    assert cs["feature-names-known"].passed
+
+
+def test_glued_feature_name_with_a_common_word_inside_and_no_split_evidence_is_flagged():
+    # TCE prints "UNIVERSALSPEECH" once and never "universal" elsewhere: no split can be proved, but a common word
+    # of six or more letters ("speech") glued to five or more letters is a lost space, not a coined word
+    p, cs = _feature_ref_checks(["Universalspeech|Bard||Eloquence|TCE|6"],
+                                ["UNIVERSALSPEECH", "speech"] + ["your speech is clear"] * 3)
+    c = cs["feature-names-known"]
+    assert not c.passed and "Universalspeech" in c.reason and "speech" in c.reason, c
+    assert p.fields["subclassFeatures"] == ["Universalspeech|Bard||Eloquence|TCE|6"]   # flagged, never guessed
+
+
+def test_a_coined_word_ending_in_a_line_break_fragment_is_not_flagged():
+    # "-ments" / "-tions" / "-ation" are printed as words where a line breaks; they are not a glued common word
+    p, cs = _feature_ref_checks(["Beguiling Twist|Ranger||Fey Wanderer|TCE|11", "Fey Reinforcements|Ranger||Fey Wanderer|TCE|11"],
+                                ["Beguiling Twist", "Fey Reinforcements", "ments", "ments", "ments", "fey", "fey",
+                                 "a reinforce", "twist", "twist", "beguiling"])
+    assert cs["feature-names-known"].passed, cs["feature-names-known"]

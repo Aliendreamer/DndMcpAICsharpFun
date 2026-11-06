@@ -162,20 +162,18 @@ _INFLECTIONS = ("", "s", "es", "ed", "d", "ing")
 
 
 def spaced_pair(token: str, vocab: Vocabulary) -> tuple[str, str] | None:
-    """The two known words (4+ letters each) a glued token splits into when the book prints them spaced more
-    often than it prints the glued form (either word inflected: "extra attacks" counts for "Extraattack"). OCR
-    glues a small-caps heading the same way every time it is printed, so a misread can be attested several
+    """The two words (4+ letters each) a glued token splits into when the book prints them spaced at least as
+    often as it prints the glued form (either word inflected: "extra attacks" counts for "Extraattack"); the
+    printed pair attests both words, even one printed nowhere else (XGE "Vengeful Ancestors" in a table cell).
+    OCR glues a small-caps heading the same way every time it is printed, so a misread can be attested several
     times; a real compound ("Spellcasting", printed ~150 times, "spell casting" once) is printed glued far more
     often than spaced. None when no split has that evidence."""
     w = token.lower()
     if not w.isalpha():
         return None
-    lex = _Lexicon(vocab, Vocabulary())
     best: tuple[int, str, str] | None = None
     for i in range(4, len(w) - 3):
         a, b = w[:i], w[i:]
-        if not (lex.word_known(a) and lex.word_known(b)):
-            continue
         spaced = sum(vocab.pairs.get((a + x, b + y), 0) for x in ("", "s") for y in _INFLECTIONS)
         if spaced >= max(1, vocab.words.get(w, 0)) and (best is None or spaced > best[0]):
             best = (spaced, a, b)
@@ -188,9 +186,24 @@ def _cap(word: str, first: bool) -> str:
     return word[:1].upper() + word[1:]
 
 
+HALF_GLUED_COMMON = 6  # a common word this long inside an unattested token is a word, not a line-break fragment
+HALF_GLUED_REST = 5
+
+
 def glued_words(token: str, vocab: Vocabulary) -> tuple[str, str] | None:
-    """The two known words an unattested token splits into ("Elegantmaneuver" -> elegant, maneuver), if any."""
-    return _Lexicon(vocab, Vocabulary()).glued(token)
+    """The two words an unattested token splits into, if it reads as a lost space: two known words
+    ("Elegantmaneuver" -> elegant, maneuver), or a common word of six or more letters glued to five or more
+    other letters ("Universalspeech" -> universal, speech, where TCE prints "universal" nowhere else). A shorter
+    common part is mostly a line-break fragment printed as a word ("-ments", "-tions", "-ation")."""
+    lex = _Lexicon(vocab, Vocabulary())
+    if g := lex.glued(token):
+        return g
+    w = token.lower()
+    for i in range(HALF_GLUED_REST, len(w) - HALF_GLUED_REST + 1):
+        a, b = w[:i], w[i:]
+        if (len(b) >= HALF_GLUED_COMMON and lex.common(b)) or (len(a) >= HALF_GLUED_COMMON and lex.common(a)):
+            return a, b
+    return None
 
 
 def repair_name(name: str, vocab: Vocabulary, own: Vocabulary | None = None) -> NameResult:

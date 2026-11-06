@@ -175,7 +175,8 @@ def _feature_name_checks(p: Parsed, vocab: Vocabulary) -> list[Check]:
         words = res.name.split()
         split = [" ".join(w[:1].upper() + w[1:] for w in sp) if (sp := spaced_pair(t, vocab)) else t for t in words]
         if split != words:
-            res.name, res.repaired = " ".join(split), True
+            res = repair_name(" ".join(split), vocab, Vocabulary())
+            res.repaired = True
         if res.repaired:
             repaired.append(f"{word_part!r} -> {res.name!r}")
             ref = res.name + note + sep + rest
