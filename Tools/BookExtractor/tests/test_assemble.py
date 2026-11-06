@@ -511,3 +511,19 @@ def test_entry_names_are_repaired_and_checked_like_refs():
     assert [x["name"] for x in p.fields["entries"]] == ["Full of Stars", "Magigal Armor"]
     assert not checks["feature-names-known"].passed and "Magigal" in checks["feature-names-known"].reason
     assert "Fullof Stars" in checks["feature-name-repaired"].reason
+
+
+def test_a_monster_name_inside_another_word_does_not_name_the_stat_block():
+    # "ape" is inside "shape": an Ape stat block swallowed by a druid subclass is not one it prints
+    from bookextractor.assemble import shared_text_checks
+    sub, mon = _ent("b.subclass.circle-of-x", "Subclass"), _ent("b.monster.ape", "Monster")
+    mon["name"] = "Ape"
+    sk, mk = _keys(0, 200), _keys(50, 140)
+    firsts = [(1, (0.0, 0.0, 10.0, 5.0)), (1, (0.0, 50.0, 10.0, 55.0))]
+    shared_text_checks([sub, mon], [sk, mk], firsts=firsts, texts=[_texts(sk, 10, "Wild Shape"), _texts(mk)])
+    assert not next(c for c in sub["checks"] if c["name"] == "text-not-shared")["passed"]
+    # the name printed as words names it, whatever the case or a line break between its words
+    sub2, mon2 = _ent("b.subclass.circle-of-x", "Subclass"), _ent("b.monster.ape", "Monster")
+    mon2["name"] = "Ape"
+    shared_text_checks([sub2, mon2], [sk, mk], firsts=firsts, texts=[_texts(sk, 10, "summoned APE,"), _texts(mk)])
+    assert next(c for c in sub2["checks"] if c["name"] == "text-not-shared")["passed"]

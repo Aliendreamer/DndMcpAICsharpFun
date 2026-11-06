@@ -308,10 +308,15 @@ def _line_keys(lines: list[Line]) -> set[LineKey]:
 
 def _names_before(host: list[tuple[LineKey, str]], first: LineKey | None, name: str) -> bool:
     """The host's printed text before the stat block's first line names the monster (Drakewarden's "your drake
-    companion" before the Drake Companion stat block), compared on letters only."""
+    companion" before the Drake Companion stat block), compared as whole words, case-insensitive: "Ape" is not
+    named by "shape", nor "Owl" by "knowledge"."""
     at = next((k for k, (key, _) in enumerate(host) if key == first), None)
-    want = re.sub(r"[^a-z]", "", name.lower())
-    return at is not None and bool(want) and want in re.sub(r"[^a-z]", "", " ".join(t for _, t in host[:at]).lower())
+    want = re.findall(r"[a-z]+", name.lower())
+    if at is None or not want:
+        return False
+    words = re.findall(r"[a-z]+", " ".join(t for _, t in host[:at]).lower())
+    n = len(want)
+    return any(words[i:i + n] == want for i in range(len(words) - n + 1))
 
 
 def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
