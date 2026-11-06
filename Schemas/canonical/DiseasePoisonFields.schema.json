@@ -6,6 +6,7 @@
   "additionalProperties": false,
   "properties": {
     "poisonTypes": { "type": ["array", "null"], "items": { "type": "string" } },
+    "value": { "type": ["integer", "null"] },
     "entries": { "type": ["array", "null"], "items": { "type": ["string", "object"] } }
   }
 }

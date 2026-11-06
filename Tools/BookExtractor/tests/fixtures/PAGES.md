@@ -112,3 +112,9 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | tce | 164, 165 | Eldritch Storms as lead-in paragraphs; an "ELDritch StoRm" art caption read mid-sentence; then Emotional Echoes |
 | tce | 170, 171, 172 | Natural Hazards after a table (no sentence end above the heading), "Spell Equivalents of Natural Hazards", a caption, then PUZZLES (set tall) |
 | vrgr | 198, 199 | Sample Haunted Traps ("Haunt Bonus +4"), an art caption beside Danse Macabre ("The Faceless malice / HAUNTED TRAP / CLAIMS AVICTIM."), then SURVIVORS |
+| dmg | 256, 257, 258, 259 | Sample Diseases (Cackle Fever, Sewer Plague, Sight Rot as sub-headings), POISONS with the "Item \| Type \| Price per Dose" table ("150 gP", "1,500 gp") and Sample Poisons lead-ins ("Burnt Othur Fumes (Inhaled).") across a running foot, then Purchasing Poison and MADNESS |
+| phb | 154 | "Poison, Basic." description (for the "Poison, basic (vial)" Adventuring Gear row on 151, its weight dash dropped) |
+| phb | 228 | Contagion: "a disease of your choice from any of the ones described below", six disease lead-ins, then the Contingency spell |
+| phb | 291, 292, 293, 294 | Appendix A: Conditions (caps headings in mixed OCR casing, bullets with dropped glyphs, the Exhaustion "Level Effect" table with its "1" lost, condition names set as art captions beside the pictures), then "Appendix B: Gods of the Multiverse" |
+| vrgr | 154, 155 | "The Gnawing Plague" heading with Transmission / Symptoms / Immunity lead-ins, then "Cycle Of the Plague" |
+| egw | 126 | "Frigid Woe." disease lead-in under DISEASE LABORATORY, then AEORIAN HUNTERS |
