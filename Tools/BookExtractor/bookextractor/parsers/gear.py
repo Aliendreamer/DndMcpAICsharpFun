@@ -549,6 +549,77 @@ def _goods_sections(L: list[Line]) -> list[Parsed]:
     return out
 
 
+# ---------- currency matrix ----------
+_COST_CELL = re.compile(r"^(\d{1,3}(?:,\d{3})+|\d+)\s*(cp|sp|ep|gp|pp)$", re.I)
+
+
+def _currency_matrix(page: Page) -> list[Parsed]:
+    """A "<...> Currency" table whose first column is a Value ("1 cp") and whose other columns name the coin of
+    that value in each issuer's coinage (GGR Ravnica Currency: Value | Azorius | Boros | Orzhov). Each named cell
+    is an Item of type $C worth its row's value; a name wrapping onto a second line is one cell; the same name in
+    two columns is one Item. A cell whose first line sits below its row's value cell lost that line to the OCR:
+    it names nothing and is not read."""
+    out: list[Parsed] = []
+    for hd in page.lines:
+        if not re.match(r"^value\b", hd.text.strip(), re.I):
+            continue
+        h = hd.height
+        title = [l for l in page.lines if l.box[3] <= hd.box[1] + 2 and hd.box[1] - l.box[3] < 3 * h and
+                 abs(l.box[0] - hd.box[0]) < 3 * h and re.search(r"\bcurrency\b", l.text, re.I)]
+        if not title:
+            continue
+        vals = []
+        last = hd.box[3]
+        for l in sorted((l for l in page.lines if l.box[1] > hd.box[3] - 2 and abs(l.box[0] - hd.box[0]) < 1.5 * h),
+                        key=lambda l: l.box[1]):
+            if l.box[1] - last > 2.5 * h:
+                break
+            if _COST_CELL.match(l.text.strip()):
+                vals.append(l)
+                last = l.box[3]
+        if len(vals) < 2:
+            continue
+        x_cells = max(v.box[0] for v in vals) + h  # a name cell starts right of the value cells' left edges
+        bottom = vals[-1].box[3] + 2.5 * h
+        # column starts: the header's own and each header word set apart to its right (a gap of under 5 line
+        # heights; the next text column of the page is not the table's)
+        cols = [hd.box[0]]
+        right = hd.box[2]
+        for l in sorted((l for l in page.lines if abs(l.box[1] - hd.box[1]) < 0.5 * h and l.box[0] > hd.box[2]),
+                        key=lambda l: l.box[0]):
+            if l.box[0] - right > 5 * h:
+                break
+            cols.append(l.box[0])
+            right = l.box[2]
+        cells: dict[str, tuple[int, list[Line]]] = {}  # name (lower case) -> (value, lines)
+        for k, v in enumerate(vals):
+            top = v.box[1] - 0.3 * h
+            nxt = vals[k + 1].box[1] - 0.3 * h if k + 1 < len(vals) else bottom
+            by_col: dict[float, list[Line]] = {}
+            for l in page.lines:
+                if l in vals or l.box[0] < x_cells or not top <= l.box[1] < nxt or l.box[0] > cols[-1] + 2 * h:
+                    continue
+                by_col.setdefault(max([x for x in cols if x <= l.box[0] + h], default=cols[0]), []).append(l)
+            value = cost_value(v.text)
+            for _, ls in sorted(by_col.items()):
+                ls.sort(key=lambda l: l.box[1])
+                if ls[0].box[1] - v.box[1] > 0.5 * h:
+                    continue  # the cell's first line is lost
+                label = re.sub(r"-\s+", "-", " ".join(l.text.strip() for l in ls))
+                key = label[:1].upper() + label[1:]
+                if key.lower() in cells:
+                    cells[key.lower()][1].extend(ls)
+                else:
+                    cells[key.lower()] = (value, list(ls))
+        for key, (value, ls) in cells.items():
+            name = key[:1].upper() + key[1:]
+            p = Parsed(type="Item", name=name, fields={"type": "$C", "value": value},
+                       text="\n".join([name, f"Value: {value} cp", title[0].text.strip()]), lines=ls, table_row=True)
+            p.checks = [Check("cost-valid", True)]
+            out.append(p)
+    return out
+
+
 def parse_items_mundane(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     """Mundane Items from every item table, treasure table, pack paragraph and instrument list in the book."""
     table_items: list[tuple[Parsed, int]] = []
@@ -565,6 +636,7 @@ def parse_items_mundane(body: list[Line], ctx: ParseContext) -> list[Parsed]:
                     table_items.append((p, n))
         out += _ammunition(page, seen)
         out += _treasure(page)
+        out += _currency_matrix(page)
     L = _outside_tables(body, _table_boxes(ctx))
     _join(table_items, L, _chapters(L), _page_chapters(body))
     return [p for p, _ in table_items] + out + _packs(L) + _instrument_lists(L) + _goods_sections(L)

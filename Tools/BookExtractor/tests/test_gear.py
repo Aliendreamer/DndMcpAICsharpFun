@@ -21,6 +21,7 @@ BOOKS = {
     "scag": ("scag", "SCAG", [125]),
     "egw": ("egw", "EGW", [71, 153, 226]),
     "erlw": ("erlw", "ERLW", [245]),
+    "ggr": ("ggr", "GGR", [10]),
 }
 
 
@@ -299,6 +300,22 @@ def test_lead_in_continuing_a_sentence_is_not_an_item():
 def test_goods_word_in_a_heading_that_names_no_goods_kind_is_ignored():
     pages = _edit("erlw", 245, "NaRCotICS in ShaRn", "Crime in Sharn", pages=_pages("erlw"))
     assert _run("erlw", pages) == []
+
+
+def test_ggr_currency_matrix():
+    """GGR p.9 Ravnica Currency: a Value column, then one column of coin names per guild; a name wrapping onto a
+    second line is one cell; the same coin under two guilds is one Item."""
+    coins = {p.name: p for p in items("ggr") if p.fields.get("type") == "$C"}
+    assert {n: p.fields["value"] for n, p in coins.items()} == {
+        "Copper zib": 1, "Copper alms-coin": 1, "Silver 25-zib coin": 25, "Gold zino": 100, "Gold 5-zino coin": 500,
+        "Platinum 10-zino coin": 1000, "Platinum 100-zino coin": 10000}
+    assert all(failed(p) == [] for p in coins.values())
+
+
+def test_currency_cell_missing_its_first_line_is_not_named():
+    """The 1 ep row's cell reads only "zib coin" (its first line, "electrum 50-", is lost to the OCR): a name is
+    never made from the part of a cell that survived."""
+    assert not [p for p in items("ggr") if "zib coin" == p.name.lower()]
 
 
 # ---------- schema ----------
