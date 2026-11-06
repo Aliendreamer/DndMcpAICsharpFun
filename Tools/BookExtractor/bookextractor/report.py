@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 THRESHOLD = 0.95
-# the extractor's types (assemble.ALL_TYPES), counted even when a run produced none of one
-TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat", "Background")
+# the extractor's types, counted even when a run produced none of one; kept equal to assemble.ALL_TYPES by a
+# test (assemble imports this module, so it cannot import ALL_TYPES back)
+TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat", "Background",
+         "Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition")
 
 
 def build_report(book: str, pages_total: int, pages_rules: int, pages_covered: int,

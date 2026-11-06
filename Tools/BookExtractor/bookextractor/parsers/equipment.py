@@ -324,7 +324,7 @@ def _weapon(r: Row, t: RowTable, suspect: str | None, age: str | None, firearm: 
         properties_check(tokens, r.label, firearm=age is not None),
         *_table_checks(r, t, suspect),
     ]
-    p = Parsed(type="Weapon", name=r.label, fields=f, text=_text(r), lines=r.lines)
+    p = Parsed(type="Weapon", name=r.label, fields=f, text=_text(r), lines=r.lines, table_row=True)
     p.checks = checks
     return p
 
@@ -392,7 +392,7 @@ def _armor(r: Row, t: RowTable, suspect: str | None) -> Parsed:
                                                         "'Disadvantage'"),
         *_table_checks(r, t, suspect),
     ]
-    p = Parsed(type="Armor", name=r.label, fields=f, text=_text(r), lines=r.lines)
+    p = Parsed(type="Armor", name=r.label, fields=f, text=_text(r), lines=r.lines, table_row=True)
     p.checks = checks
     return p
 

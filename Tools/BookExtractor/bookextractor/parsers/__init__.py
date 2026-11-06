@@ -16,6 +16,8 @@ class Parsed:
     lines: list[Line]
     checks: list[Check] = field(default_factory=list)
     variant_of: str | None = None
+    # the name is a printed table row's label cell: the table attests it when the row's own checks pass (P4)
+    table_row: bool = False
 
 
 @dataclass

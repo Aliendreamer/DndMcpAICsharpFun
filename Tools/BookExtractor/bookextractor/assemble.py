@@ -14,17 +14,25 @@ from .pages import classify_page, is_table_page
 from .parsers import ParseContext, Parsed
 from .parsers.background import parse_backgrounds
 from .parsers.charclass import parse_classes
+from .parsers.equipment import parse_armor, parse_weapons
 from .parsers.feat import parse_feats
+from .parsers.gear import parse_items_mundane
+from .parsers.hazard_rules import parse_conditions, parse_diseases_poisons
 from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
 from .parsers.race import parse_races
 from .parsers.spell import parse_spells
 from .parsers.subclass import _short_name, parse_subclasses
+from .parsers.trap import parse_traps
+from .parsers.vehicle_object import parse_objects, parse_vehicles
 from .report import build_report
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
-             "Background")
+             "Background", "Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition")
 PHASE1_TYPES = ("Monster", "Spell", "MagicItem")
+# stat blocks a host entity may print inside its own text (Drakewarden's Drake Companion, the Apparatus of Kwalish
+# inside its magic item): exempt from text-not-shared when the host names them before the block
+HOSTED_TYPES = ("Monster", "VehicleMount", "Object")
 PROSE_LINES_PER_PAGE = 10
 # printed lines two entities of different types may share before one is taken to hold the other's text
 # (v19: unrelated character entities share at most a few lines of repeated trait boilerplate)
@@ -44,6 +52,14 @@ _PARSERS: dict[str, Callable[[list[Line], ParseContext], list[Parsed]]] = {
     "Subrace": lambda body, ctx: [p for p in _races(body, ctx) if p.type == "Subrace"],
     "Feat": parse_feats,
     "Background": parse_backgrounds,
+    "Weapon": parse_weapons,
+    "Armor": parse_armor,
+    "Item": parse_items_mundane,
+    "VehicleMount": parse_vehicles,
+    "Object": parse_objects,
+    "Trap": parse_traps,
+    "DiseasePoison": parse_diseases_poisons,
+    "Condition": parse_conditions,
 }
 # feature-ref lists whose part 0 (the feature name) is checked against the book vocabulary
 _FEATURE_REFS = {"Class": ("classFeatures", "classFeature"), "Subclass": ("subclassFeatures", "subclassFeature")}
@@ -244,6 +260,25 @@ def _repair_subclass_short(p: Parsed, old: str, new: str) -> str:
     return f"shortName {old_short!r} -> {new_short!r} in the shortName and {n} subclassFeatures refs"
 
 
+def _name_words_check(res, p: Parsed, vocab: Vocabulary) -> Check:
+    """`name-words-known`. A table row's label cell is attested by the printed table itself when the row's own
+    (cell) checks pass (P4): a weapon printed once, as a row label ("Greatclub", "Flail", "Maul"), is not a
+    misread for being one letter from a common word or two words run together. A glued label whose words the book
+    prints spaced at least as often ("Unarmedstrike" for "unarmed strike") is still a lost space, and fails."""
+    unknown, why = list(res.unknown), ""
+    if unknown and p.table_row and all(c.passed for c in p.checks):
+        glued = {t: sp for t in unknown if (sp := spaced_pair(re.sub(r"[^A-Za-z]", "", t), vocab))}
+        attested = [t for t in unknown if t not in glued]
+        unknown = [f"{t} (printed spaced as {' '.join(glued[t])!r})" for t in glued]
+        if attested:
+            why = "printed only as its table-row label (the table attests it): " + ", ".join(attested)
+    if unknown:
+        return Check("name-words-known", False, "unknown words in name: " + ", ".join(unknown))
+    if res.unattested:
+        why = "; ".join(x for x in (why, "not printed elsewhere in the book: " + ", ".join(res.unattested)) if x)
+    return Check("name-words-known", True, why)
+
+
 def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) -> tuple[str, list[Check]]:
     p.fields = _repair_digits(p.fields)
     p.text = fix_digits(p.text)
@@ -261,20 +296,16 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
             checks.append(Check("name-repaired", True, why))
         else:
             checks[k] = Check("name-repaired", True, f"{checks[k].reason}; then {why}")
+    # a table row's label cell may open with a number ("10-foot pole" is printed so) (P15)
+    first_ok = (lambda c: c.isalnum()) if p.table_row else (lambda c: c.isalpha())
     if not name.strip():
         checks.append(Check("name-found", False, "no entity name found"))
-    elif not name.strip()[0].isalpha():
+    elif not first_ok(name.strip()[0]):
         checks.append(Check("name-found", False, f"name {name!r} does not start with a letter"))
     else:
         checks.append(Check("name-found", True, ""))
     if res:
-        if res.unknown:
-            why = "unknown words in name: " + ", ".join(res.unknown)
-        elif res.unattested:
-            why = "not printed elsewhere in the book: " + ", ".join(res.unattested)
-        else:
-            why = ""
-        checks.append(Check("name-words-known", not res.unknown, why))
+        checks.append(_name_words_check(res, p, vocab))
     else:
         checks.append(Check("name-words-known", False, "no name to check"))
     if p.type in _FEATURE_REFS:
@@ -323,10 +354,11 @@ def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
                        firsts: list[LineKey | None] | None = None,
                        texts: list[list[tuple[LineKey, str]]] | None = None) -> None:
     """Text bleed gate: a character entity (Class ... Background) that shares more than SHARED_LINES_MAX printed
-    lines with an entity of another type holds that entity's text (a subclass feature running on into the
+    lines with an entity of another type holds that entity's text (equipment and hazard types are gated the same way) (a subclass feature running on into the
     Backgrounds section), so both get a failing `text-not-shared` check naming the other. A stat block the other
     entity prints is not bleed: its first line is one of the host's lines and the host's text before that line
-    names the monster (Drakewarden's Drake Companion, Battle Smith's Steel Defender). A stat block parse that runs
+    names the monster (Drakewarden's Drake Companion, Battle Smith's Steel Defender); a vehicle or object stat block
+    the same way (the Apparatus of Kwalish inside its magic item, P10). A stat block parse that runs
     on past its host is then the monster's own problem, which its own checks report; a stat block the host never
     names is another section's, swallowed by a run-on parse. Character entities record a passing check; a
     Monster/Spell/MagicItem gets the check only when it fails, and two of those are never compared (their own
@@ -348,7 +380,7 @@ def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
         if n <= SHARED_LINES_MAX:
             continue
         if firsts is not None and texts is not None and any(
-                e["type"] == "Monster" and firsts[k] in keys[o] and _names_before(texts[o], firsts[k], e.get("name", ""))
+                e["type"] in HOSTED_TYPES and firsts[k] in keys[o] and _names_before(texts[o], firsts[k], e.get("name", ""))
                 for e, k, o in ((a, i, j), (b, j, i))):
             continue
         bad.setdefault(i, []).append(f"{n} printed lines are also {b['id']} ({b['type']})")

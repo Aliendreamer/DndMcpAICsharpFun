@@ -88,7 +88,8 @@ def _poison_row(r: Row, t: RowTable, suspect: str | None) -> Parsed:
     checks.append(cost_check(price, name))
     checks += _table_checks(r, t, suspect)
     cells = [f"{h}: {c}" for h, c in r.cells.items() if c.strip() and h != "Weight"]
-    p = Parsed(type="DiseasePoison", name=name, fields=f, text="\n".join([name] + cells), lines=list(r.lines))
+    p = Parsed(type="DiseasePoison", name=name, fields=f, text="\n".join([name] + cells), lines=list(r.lines),
+               table_row=True)
     p.checks = checks
     return p
 

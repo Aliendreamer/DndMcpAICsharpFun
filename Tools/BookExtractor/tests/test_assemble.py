@@ -142,8 +142,8 @@ PHB_CHAR_PAGES = (19, 20, 21, 22, 46, 47, 48, 49, 50, 51, 128, 129, 166, 167, 16
 
 def test_character_types_registered():
     from bookextractor.assemble import ALL_TYPES
-    assert ALL_TYPES == ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
-                         "Background")
+    assert ALL_TYPES[:9] == ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
+                             "Background")
 
 
 def test_phb_character_ids_and_schemas():
@@ -527,3 +527,162 @@ def test_a_monster_name_inside_another_word_does_not_name_the_stat_block():
     mon2["name"] = "Ape"
     shared_text_checks([sub2, mon2], [sk, mk], firsts=firsts, texts=[_texts(sk, 10, "summoned APE,"), _texts(mk)])
     assert next(c for c in sub2["checks"] if c["name"] == "text-not-shared")["passed"]
+
+
+# ---------- equipment and hazard types (Phase 2b) ----------
+NEW_TYPES = ("Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition")
+PHB_EQUIP_PAGES = (144, 146, 149, 150, 151, 152, 153, 154, 155, 156, 158, 159, 228, 291, 292, 293, 294)
+DMG_EQUIP_PAGES = (105, 106, 109, 110, 111, 119, 122, 123, 124, 125, 134, 135, 151, 255, 256, 257, 258, 259, 268)
+
+
+def test_equipment_and_hazard_types_registered():
+    from bookextractor.assemble import ALL_TYPES, _PARSERS
+    assert ALL_TYPES[9:] == NEW_TYPES
+    assert set(_PARSERS) == set(ALL_TYPES)
+
+
+def test_report_types_are_the_extractor_types():
+    from bookextractor import report
+    from bookextractor.assemble import ALL_TYPES
+    assert report.TYPES == ALL_TYPES
+
+
+def _validate_all(r):
+    import json
+
+    import jsonschema
+    root = Path(__file__).parents[3] / "Schemas" / "canonical"
+    for e in r.entities:
+        sch = json.loads((root / f"{e['type']}Fields.schema.json").read_text(encoding="utf-8"))
+        jsonschema.validate(e["fields"], sch)
+
+
+@pytest.fixture(scope="module")
+def phb_equipment():
+    from bookextractor.assemble import ALL_TYPES
+    return extract_book(pages("phb", *PHB_EQUIP_PAGES), "phb14", set(ALL_TYPES))
+
+
+@pytest.fixture(scope="module")
+def dmg_equipment():
+    from bookextractor.assemble import ALL_TYPES
+    return extract_book(pages("dmg", *DMG_EQUIP_PAGES), "dmg14", set(ALL_TYPES))
+
+
+def test_phb_equipment_ids_and_schemas(phb_equipment):
+    r = phb_equipment
+    for eid in ("phb14.weapon.longsword", "phb14.armor.chain-mail", "phb14.item.crowbar", "phb14.condition.poisoned"):
+        by_id(r, eid)
+    ids = [e["id"] for e in r.entities]
+    assert len(ids) == len(set(ids))
+    _validate_all(r)
+    for t in ("Weapon", "Armor", "Item", "Condition", "DiseasePoison"):
+        assert r.report["counts"][t] > 0, t
+
+
+def test_dmg_equipment_and_hazard_ids_and_schemas(dmg_equipment):
+    r = dmg_equipment
+    types = {e["type"] for e in r.entities}
+    assert {"Weapon", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison"} <= types, types
+    ids = [e["id"] for e in r.entities]
+    assert len(ids) == len(set(ids))
+    _validate_all(r)
+    by_id(r, "dmg14.vehiclemount.apparatus-of-kwalish")
+    by_id(r, "dmg14.diseasepoison.burnt-othur-fumes")
+    by_id(r, "dmg14.trap.collapsing-roof")
+
+
+def test_text_not_shared_runs_over_new_types(phb_equipment, dmg_equipment):
+    for r in (phb_equipment, dmg_equipment):
+        for e in r.entities:
+            if e["type"] in NEW_TYPES:
+                assert any(c["name"] == "text-not-shared" for c in e["checks"]), e["id"]
+
+
+def test_new_types_sharing_lines_with_another_type_fail():
+    from bookextractor.assemble import shared_text_checks
+    item, trap = _ent("b.item.x", "Item"), _ent("b.trap.y", "Trap")
+    shared_text_checks([item, trap], [_keys(0, 60), _keys(40, 90)])
+    assert not next(c for c in item["checks"] if c["name"] == "text-not-shared")["passed"]
+    assert not next(c for c in trap["checks"] if c["name"] == "text-not-shared")["passed"]
+
+
+def test_no_printed_row_is_emitted_as_two_types(phb_equipment, dmg_equipment):
+    # each table row is one entity: a DMG poison row is a DiseasePoison, not also an Item; the Apparatus of Kwalish
+    # (MagicItem hosting its VehicleMount stat block) is the one intended overlap
+    for r in (phb_equipment, dmg_equipment):
+        names = {}
+        for e in r.entities:
+            if e["type"] in NEW_TYPES:
+                names.setdefault(e["name"].lower(), set()).add(e["type"])
+        twice = {n: ts for n, ts in names.items() if len(ts) > 1}
+        assert not twice, twice
+    poisons = [e for e in dmg_equipment.entities if e["type"] == "DiseasePoison"]
+    items = {e["name"].lower() for e in dmg_equipment.entities if e["type"] == "Item"}
+    assert poisons and not any(p["name"].lower() in items for p in poisons)
+
+
+def _row_checks(name, t="Weapon", table_row=True, cell_ok=True, vocab_lines=("a club and an axe",) * 3):
+    from collections import Counter
+
+    from bookextractor.assemble import _id_and_checks
+    from bookextractor.checks import Check
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import Parsed
+    p = Parsed(type=t, name=name, fields={}, text=f"{name}\n" + "cell " * 10, lines=[],
+               checks=[Check("cost-read", cell_ok, "" if cell_ok else "cost cell blank")], table_row=table_row)
+    _e, checks = _id_and_checks(p, "phb14", Counter(), build_vocabulary(list(vocab_lines)))
+    return p, {c.name: c for c in checks}
+
+
+def test_a_table_row_label_is_attested_by_its_table():   # P4: Greatclub, Flail, Maul printed once, as a row label
+    for name in ("Greatclub", "Flail", "Maul"):
+        _p, cs = _row_checks(name, vocab_lines=["a great hero", "the fail", "mail", "main", "great", "club"] * 3)
+        assert cs["name-words-known"].passed, (name, cs["name-words-known"])
+        assert "table" in cs["name-words-known"].reason
+
+
+def test_a_table_row_label_whose_cells_fail_is_not_attested():
+    _p, cs = _row_checks("Flail", cell_ok=False, vocab_lines=["the fail", "fail"] * 3)
+    assert not cs["name-words-known"].passed
+
+
+def test_a_prose_entity_name_is_not_attested_by_a_table():
+    _p, cs = _row_checks("Flail", table_row=False, vocab_lines=["the fail", "fail"] * 3)
+    assert not cs["name-words-known"].passed
+
+
+def test_a_glued_table_row_label_is_repaired_or_flagged():
+    # "Unarmedstrike": the book prints "unarmed strike" spaced, so the glue is a misread
+    p, cs = _row_checks("Unarmedstrike", vocab_lines=["an unarmed strike", "unarmed strikes", "unarmed", "strike"] * 3)
+    assert p.name == "Unarmed Strike" or not cs["name-words-known"].passed, (p.name, cs["name-words-known"])
+    # spaced at least as often as glued, but no adjacent-pair split evidence: flagged, not attested by the table
+    p2, cs2 = _row_checks("Hempenropes", t="Item",
+                          vocab_lines=["hempen rope", "hempen ropes", "hempen", "ropes"] * 3)
+    assert p2.name == "Hempen Ropes" or not cs2["name-words-known"].passed, (p2.name, cs2["name-words-known"])
+
+
+def test_a_table_row_label_may_start_with_a_digit():   # P15: "10-foot pole" is printed
+    _p, cs = _row_checks("10-foot pole", t="Item", vocab_lines=["a foot pole", "foot pole"] * 3)
+    assert cs["name-found"].passed
+    _p, cs = _row_checks("10-foot pole", t="Item", table_row=False, vocab_lines=["a foot pole"] * 3)
+    assert not cs["name-found"].passed
+
+
+def test_a_vehicle_stat_block_inside_its_magic_item_is_not_bleed():   # P10: Apparatus of Kwalish
+    from bookextractor.assemble import shared_text_checks
+    for t in ("VehicleMount", "Object"):
+        item, veh = _ent("dmg14.magicitem.apparatus-of-kwalish", "MagicItem"), _ent("dmg14.x.apparatus", t)
+        veh["name"] = "Apparatus of Kwalish"
+        ik, vk = _keys(0, 200), _keys(50, 140)
+        firsts = [(1, (0.0, 0.0, 10.0, 5.0)), (1, (0.0, 50.0, 10.0, 55.0))]
+        shared_text_checks([item, veh], [ik, vk], firsts=firsts,
+                           texts=[_texts(ik, 10, "Apparatus of Kwalish"), _texts(vk)])
+        assert not item["checks"], item   # the MagicItem's disposition is untouched
+        assert next(c for c in veh["checks"] if c["name"] == "text-not-shared")["passed"]
+    # a stat block the item never names before it is bleed
+    item, veh = _ent("dmg14.magicitem.x", "MagicItem"), _ent("dmg14.vehiclemount.galley", "VehicleMount")
+    veh["name"] = "Galley"
+    shared_text_checks([item, veh], [ik, vk], firsts=firsts, texts=[_texts(ik, 10, "Apparatus"), _texts(vk)])
+    assert not next(c for c in veh["checks"] if c["name"] == "text-not-shared")["passed"]
+    assert not next(c for c in item["checks"] if c["name"] == "text-not-shared")["passed"]

@@ -166,7 +166,8 @@ def _table_item(r: Row, t: RowTable, suspect: str | None, title: str | None) -> 
         _set(f, "weight", weight_value(raw["Weight"]))
         checks.append(weight_check(raw["Weight"], name))
     checks += _table_checks(r, t, suspect)
-    p = Parsed(type="Item", name=name, fields=f, text=_row_text(name, r, r.cells), lines=list(r.lines))
+    p = Parsed(type="Item", name=name, fields=f, text=_row_text(name, r, r.cells), lines=list(r.lines),
+                   table_row=True)
     p.checks = checks
     return p
 
@@ -199,7 +200,8 @@ def _ammunition(page: Page, seen: set) -> list[Parsed]:
         f: dict = {"type": "AF|DMG"}
         _set(f, "value", cost_value(c.get("Cost", "")))
         _set(f, "weight", weight_value(weight))
-        p = Parsed(type="Item", name=name, fields=f, text=_row_text(name, r, r.cells), lines=list(r.lines))
+        p = Parsed(type="Item", name=name, fields=f, text=_row_text(name, r, r.cells), lines=list(r.lines),
+                   table_row=True)
         p.checks = [cost_check(c.get("Cost", ""), name), weight_check(weight, name), *_table_checks(r, t, suspect)]
         if name != r.label:
             p.checks.append(_from_group(name, f"table age {age!r}", r.label))
@@ -266,7 +268,8 @@ def _treasure(page: Page) -> list[Parsed]:
                     name = m.group("name").strip()
                     f["entries"] = [m.group("desc").strip()]
             text = "\n".join([name] + f.get("entries", []) + [title.text.strip()])
-            p = Parsed(type="Item", name=name, fields=f, text=text, lines=list(ls))
+            # a stone's name is its row's printed label, checked by label-read; an art object's row is free text
+            p = Parsed(type="Item", name=name, fields=f, text=text, lines=list(ls), table_row=kind == "gem")
             p.checks = checks
             out.append(p)
     return out

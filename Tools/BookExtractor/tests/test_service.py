@@ -122,3 +122,8 @@ def test_service_never_imports_score():
 def test_default_types_include_character_types():
     for t in ("Class", "Subclass", "Race", "Subrace", "Feat", "Background"):
         assert t in service.ALL_TYPES
+
+
+def test_default_types_include_equipment_and_hazard_types():
+    for t in ("Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition"):
+        assert t in service.ALL_TYPES

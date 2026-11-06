@@ -197,7 +197,8 @@ def _ship(label: str, toks: list[tuple[str, float]], lines: list[Line], cols: li
                         if bad else ""))
     text = f"{label}. " + " ".join(f"{k}: {v}" for k, v in [("Cost", cost_tok), ("Speed", f"{speed_tok} mph")] +
                                    list(cells.items()))
-    return Parsed(type="VehicleMount", name=label, fields=f, text=text, lines=list(lines), checks=checks)
+    return Parsed(type="VehicleMount", name=label, fields=f, text=text, lines=list(lines), checks=checks,
+                  table_row=True)
 
 
 def _ship_tables(ctx: ParseContext) -> list[Parsed]:
