@@ -65,3 +65,5 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | mpmm | 021, 022 | Goliath (no Ability Score Increase trait), then Harengon (Medium or Small) |
 | phb | 166, 167, 168 | Feats section: FEATS heading after the multiclass table, Alert to Lucky (bullets OCR'd as `.` or lost), Heavily Armored |
 | xge | 074, 075 | Racial Feats: the Racial Feats table (feat names as rows), then Bountiful Luck to Fey Teleportation |
+| phb | 128, 129 | Backgrounds: Acolyte (label lines, Feature: Shelter of the Faithful), Charlatan (tools, a table before the feature) |
+| scc | 032, 033 | Strixhaven backgrounds: Lorehold Student, Prismari Student (tool line wrapped onto a second line) |

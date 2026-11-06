@@ -6,6 +6,7 @@ import re
 from rapidfuzz import fuzz
 
 from ..model import Line
+from .monster import _join_text
 
 SKILLS = ("Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight",
           "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion",
@@ -71,6 +72,9 @@ def like(a: str, b: str, cutoff: int = 85) -> bool:
     return bool(x) and bool(y) and fuzz.ratio(x, y) >= cutoff
 
 
+BULLET = re.compile(r"^(?:[•·]\s*|\.\s*(?=[A-Z]))")  # OCR reads some bullets as "."
+SENTENCE_END = (".", ":", "!", "?", ")", '"', "'")
+
 SMALL_WORDS = {"of", "the", "and", "a", "an", "to", "in", "on", "from", "for", "with", "at", "by"}
 
 
@@ -106,3 +110,55 @@ def indented(L: list[Line], i: int) -> bool:
     near = [L[j].box[0] for j in range(max(0, i - 6), min(len(L), i + 7))
             if L[j].page == l.page and abs(L[j].box[0] - l.box[0]) < 3 * l.height]
     return l.box[0] - min(near) > 0.4 * l.height
+
+
+def prose_entries(L: list[Line], start: int, end: int) -> list:
+    """Prose paragraphs and the bullet list, in printed order. A list opens at a bullet or after a line ending
+    with ':' ("you gain the following benefits:"); inside it a new item starts at a bullet, or at a capitalised
+    line after one ending a sentence (OCR often drops the bullet glyph)."""
+    out: list = []
+    para: list[str] = []
+    items: list[list[str]] = []
+    in_list = False
+
+    def flush_para() -> None:
+        if para:
+            out.append(_join_text(para))
+            para.clear()
+
+    def flush_list() -> None:
+        if items:
+            out.append({"type": "list", "items": [_join_text(it) for it in items]})
+            items.clear()
+
+    prev = ""
+    for j in range(start, end):
+        if L[j].box[2] - L[j].box[0] < L[j].box[3] - L[j].box[1]:
+            continue  # an art credit set sideways in the margin
+        raw = L[j].text.strip()
+        bullet = bool(BULLET.match(raw))
+        text = BULLET.sub("", raw)
+        if not text:
+            continue
+        new_sentence = prev.endswith(SENTENCE_END) and text[:1].isupper()
+        if bullet or (in_list and new_sentence):
+            if not in_list:
+                flush_para()
+                in_list = True
+            items.append([text])
+        elif in_list and items and not new_sentence:
+            items[-1].append(text)
+        else:
+            if in_list:
+                flush_list()
+                in_list = False
+            if para and prev.endswith(SENTENCE_END) and indented(L, j):
+                flush_para()
+            para.append(text)
+            if text.endswith(":"):
+                flush_para()
+                in_list = True
+        prev = text
+    flush_para()
+    flush_list()
+    return out

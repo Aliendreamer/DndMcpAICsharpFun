@@ -92,7 +92,8 @@ def test_xge_racial_feats_table_rows_are_not_feats():
 
 
 def test_xge_or_races():
-    assert get("Elven Accuracy", book="xge").fields["prerequisite"] == [{"race": [{"name": "elf"}, {"name": "half-elf"}]}]
+    elven = get("Elven Accuracy", book="xge")
+    assert elven.fields["prerequisite"] == [{"race": [{"name": "elf"}, {"name": "half-elf"}]}]
     assert get("Drow High Magic", book="xge").fields["prerequisite"] == [{"race": [{"name": "elf", "subrace": "drow"}]}]
 
 
@@ -105,7 +106,8 @@ def test_prerequisite_parsing():
     assert parse_prerequisite("Intelligence or Wisdom 13 or higher") == ([{"ability": [{"int": 13}, {"wis": 13}]}], [])
     assert parse_prerequisite("Half-elf, half-orc, or human") == (
         [{"race": [{"name": "half-elf"}, {"name": "half-orc"}, {"name": "human"}]}], [])
-    assert parse_prerequisite("4th Level, Strixhaven Initiate Feat") == ([{"level": 4, "feat": ["strixhaven initiate"]}], [])
+    assert parse_prerequisite("4th Level, Strixhaven Initiate Feat") == (
+        [{"level": 4, "feat": ["strixhaven initiate"]}], [])
     assert parse_prerequisite("Spellcasting or Pact Magic feature") == ([{"spellcasting2020": True}], [])
     assert parse_prerequisite("Proficiency with a martial weapon") == ([{"proficiency": [{"weapon": "martial"}]}], [])
 

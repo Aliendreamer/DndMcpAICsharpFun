@@ -27,7 +27,7 @@ from ..checks import Check
 from ..layout import fix_digits
 from ..model import Line
 from . import ParseContext, Parsed
-from .charcommon import ABILITIES, heading_like, indented, squash, title_case
+from .charcommon import ABILITIES, SENTENCE_END, heading_like, prose_entries, squash, title_case
 from .monster import _join_text
 from .race import CORE_RACES, tidy_case
 
@@ -38,8 +38,6 @@ _TALL = 0.95  # a title this close to the section heading's height (or taller) e
 _CHAPTER = re.compile(r"^(?:chapter|part)\s*\d", re.I)
 _NAMED = re.compile(r"^feat\s*:\s*(.+)$", re.I)
 _PREREQ = re.compile(r"^prerequisites?\s*[:;.]\s*(.*)$", re.I)
-_BULLET = re.compile(r"^(?:[•·]\s*|\.\s*(?=[A-Z]))")  # OCR reads some bullets as "."
-_SENTENCE_END = (".", ":", "!", "?", ")", '"', "'")
 _ORDER = list(ABILITIES.values())
 _ABILITY_WORD = "|".join(ABILITIES)
 _ABILITY_LIST = rf"((?:{_ABILITY_WORD})(?:(?:\s*,\s*(?:or\s+)?|\s+or\s+)(?:{_ABILITY_WORD}))*)"
@@ -229,7 +227,7 @@ def _feat_head(L: list[Line], i: int, start: int) -> bool:
     k = i - 1
     while k > start and (squash(L[k].text) == squash(t) or _caption(L[k].text)):
         k -= 1
-    if k != start and not L[k].text.strip().endswith(_SENTENCE_END):
+    if k != start and not L[k].text.strip().endswith(SENTENCE_END):
         return False
     nxt = L[i + 1].text.strip()
     return _prose(nxt) and nxt[:1].isupper()  # "HE MAGIC WOVEN ..." over "of the Material Plane" is a sentence
@@ -289,58 +287,6 @@ def _prerequisite_line(L: list[Line], i: int, end: int) -> tuple[str | None, int
     return text, j
 
 
-def _entries(L: list[Line], start: int, end: int) -> list:
-    """Prose paragraphs and the bullet list, in printed order. A list opens at a bullet or after a line ending
-    with ':' ("you gain the following benefits:"); inside it a new item starts at a bullet, or at a capitalised
-    line after one ending a sentence (OCR often drops the bullet glyph)."""
-    out: list = []
-    para: list[str] = []
-    items: list[list[str]] = []
-    in_list = False
-
-    def flush_para() -> None:
-        if para:
-            out.append(_join_text(para))
-            para.clear()
-
-    def flush_list() -> None:
-        if items:
-            out.append({"type": "list", "items": [_join_text(it) for it in items]})
-            items.clear()
-
-    prev = ""
-    for j in range(start, end):
-        if L[j].box[2] - L[j].box[0] < L[j].box[3] - L[j].box[1]:
-            continue  # an art credit set sideways in the margin
-        raw = L[j].text.strip()
-        bullet = bool(_BULLET.match(raw))
-        text = _BULLET.sub("", raw)
-        if not text:
-            continue
-        new_sentence = prev.endswith(_SENTENCE_END) and text[:1].isupper()
-        if bullet or (in_list and new_sentence):
-            if not in_list:
-                flush_para()
-                in_list = True
-            items.append([text])
-        elif in_list and items and not new_sentence:
-            items[-1].append(text)
-        else:
-            if in_list:
-                flush_list()
-                in_list = False
-            if para and prev.endswith(_SENTENCE_END) and indented(L, j):
-                flush_para()
-            para.append(text)
-            if text.endswith(":"):
-                flush_para()
-                in_list = True
-        prev = text
-    flush_para()
-    flush_list()
-    return out
-
-
 def parse_feats(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     """Parse every feat in `body` (reading-ordered lines of the whole book)."""
     out: list[Parsed] = []
@@ -349,7 +295,7 @@ def parse_feats(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         fields: dict = {}
         if prereq is not None:
             fields["prerequisite"] = parse_prerequisite(prereq)[0] or None
-        entries = _entries(body, after, end)
+        entries = prose_entries(body, after, end)
         ability = _ability(" ".join(x if isinstance(x, str) else " ".join(x["items"]) for x in entries))
         if ability:
             fields["ability"] = ability
