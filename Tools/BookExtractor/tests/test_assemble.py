@@ -740,3 +740,31 @@ def test_a_short_table_row_whose_cells_fail_still_lacks_text():
 
 def test_a_short_prose_entity_still_lacks_text():
     assert not _short_row_checks(table_row=False, cell_ok=True)["text-present"].passed
+
+
+def test_equipment_row_sharing_a_few_lines_with_another_type_is_bleed():
+    # a 1-3 line equipment row never reaches 10 shared lines: the gate for the Phase 2b types is relative to the
+    # smaller entity (at least half its lines, at least 2, at most the old 9)
+    from bookextractor.assemble import shared_text_checks
+    row, bg = _ent("b.item.rope", "Item"), _ent("b.background.sailor", "Background")
+    shared_text_checks([row, bg], [_keys(0, 3), _keys(1, 40)])
+    assert not next(c for c in row["checks"] if c["name"] == "text-not-shared")["passed"]
+    # the background keeps its own (older) gate: its disposition does not change
+    assert next(c for c in bg["checks"] if c["name"] == "text-not-shared")["passed"]
+    trap, sub = _ent("b.trap.pits", "Trap"), _ent("b.subclass.x", "Subclass")
+    shared_text_checks([trap, sub], [_keys(0, 40), _keys(31, 80)])  # 9 lines: the old gate let it pass
+    assert not next(c for c in trap["checks"] if c["name"] == "text-not-shared")["passed"]
+    assert next(c for c in sub["checks"] if c["name"] == "text-not-shared")["passed"]
+    item, weapon = _ent("b.item.bullets", "Item"), _ent("b.weapon.pistol", "Weapon")
+    shared_text_checks([item, weapon], [_keys(0, 2), _keys(0, 3)])  # two Phase 2b types: both fail
+    assert not any(c["passed"] for e in (item, weapon) for c in e["checks"] if c["name"] == "text-not-shared")
+
+
+def test_one_shared_line_or_old_type_pairs_keep_the_old_gate():
+    from bookextractor.assemble import shared_text_checks
+    row, bg = _ent("b.item.rope", "Item"), _ent("b.background.sailor", "Background")
+    shared_text_checks([row, bg], [_keys(0, 3), _keys(2, 40)])  # one line of a 3-line row
+    assert all(c["passed"] for e in (row, bg) for c in e["checks"] if c["name"] == "text-not-shared")
+    sub, bg2 = _ent("b.subclass.x", "Subclass"), _ent("b.background.y", "Background")
+    shared_text_checks([sub, bg2], [_keys(0, 4), _keys(1, 40)])  # 3 lines between character types: unchanged
+    assert all(c["passed"] for e in (sub, bg2) for c in e["checks"] if c["name"] == "text-not-shared")

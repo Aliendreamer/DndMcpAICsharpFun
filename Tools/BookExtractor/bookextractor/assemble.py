@@ -38,6 +38,9 @@ PROSE_LINES_PER_PAGE = 10
 # printed lines two entities of different types may share before one is taken to hold the other's text
 # (v19: unrelated character entities share at most a few lines of repeated trait boilerplate)
 SHARED_LINES_MAX = 9
+# the Phase 2b types (an equipment row is 1 to 3 lines, never 10): a pair with one of them is bleed once it shares
+# half the smaller entity's lines, at least 2 and at most SHARED_LINES_MAX
+PHASE2B_TYPES = ("Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition")
 SOURCE_BY_SLUG = {
     "phb14": "PHB", "mm14": "MM", "dmg14": "DMG", "mpmm": "MPMM", "mtf": "MTF", "ftd": "FTD", "bgg": "BGG",
     "vrgr": "VRGR", "egw": "EGW", "erlw": "ERLW", "ggr": "GGR", "scc": "SCC", "xge": "XGE", "tce": "TCE",
@@ -374,14 +377,16 @@ def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
                        texts: list[list[tuple[LineKey, str]]] | None = None) -> None:
     """Text bleed gate: a character entity (Class ... Background) that shares more than SHARED_LINES_MAX printed
     lines with an entity of another type holds that entity's text (a subclass feature running on into the
-    Backgrounds section; equipment and hazard types are gated the same way), so both get a failing `text-not-shared` check naming the other. A stat block the other
+    Backgrounds section), so both get a failing `text-not-shared` check naming the other. A stat block the other
     entity prints is not bleed: its first line is one of the host's lines and the host's text before that line
     names the monster (Drakewarden's Drake Companion, Battle Smith's Steel Defender); a vehicle or object stat block
     the same way (the Apparatus of Kwalish inside its magic item, P10). A stat block parse that runs
     on past its host is then the monster's own problem, which its own checks report; a stat block the host never
     names is another section's, swallowed by a run-on parse. Character entities record a passing check; a
     Monster/Spell/MagicItem gets the check only when it fails, and two of those are never compared (their own
-    checks gate them). `texts` holds each entity's printed lines in print order (key, text)."""
+    checks gate them). An equipment or hazard entity (an equipment row is 1 to 3 lines) fails from fewer shared
+    lines: half the smaller entity's lines, at least 2 and at most SHARED_LINES_MAX; its partner of an older type
+    keeps its own gate. `texts` holds each entity's printed lines in print order (key, text)."""
     owner: dict[LineKey, list[int]] = {}
     for i, ks in enumerate(keys):
         for k in ks:
@@ -396,15 +401,20 @@ def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
         a, b = entities[i], entities[j]
         if a["type"] == b["type"] or (a["type"] in PHASE1_TYPES and b["type"] in PHASE1_TYPES):
             continue
-        if n <= SHARED_LINES_MAX:
+        # the Phase 1/2a entity of a pair keeps the old gate; a Phase 2b entity fails from the relative one
+        relative = min(SHARED_LINES_MAX, max(2, -(-min(len(keys[i]), len(keys[j])) // 2)))
+        fail_a, fail_b = (n >= (relative if e["type"] in PHASE2B_TYPES else SHARED_LINES_MAX + 1) for e in (a, b))
+        if not (fail_a or fail_b):
             continue
         if firsts is not None and texts is not None and any(
                 e["type"] in HOSTED_TYPES and firsts[k] in keys[o]
                 and _names_before(texts[o], firsts[k], e.get("name", ""))
                 for e, k, o in ((a, i, j), (b, j, i))):
             continue
-        bad.setdefault(i, []).append(f"{n} printed lines are also {b['id']} ({b['type']})")
-        bad.setdefault(j, []).append(f"{n} printed lines are also {a['id']} ({a['type']})")
+        if fail_a:
+            bad.setdefault(i, []).append(f"{n} printed lines are also {b['id']} ({b['type']})")
+        if fail_b:
+            bad.setdefault(j, []).append(f"{n} printed lines are also {a['id']} ({a['type']})")
     for i, e in enumerate(entities):
         if i in bad:
             e["checks"].append({"name": "text-not-shared", "passed": False,
