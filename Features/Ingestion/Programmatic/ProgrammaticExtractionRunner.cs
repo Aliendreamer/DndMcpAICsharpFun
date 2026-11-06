@@ -79,7 +79,7 @@ public sealed partial class ProgrammaticExtractionRunner(
 
         // The swap + ingest is one write on the book: the review page's saves wait for it (and vice versa).
         using (await locks.AcquireAsync(slug, ct))
-            await SwapAndIngestAsync(record, bookId, slug, dir, file, result, ct);
+            await SwapAndIngestAsync(record, bookId, slug, dir, file, result, sourceBook, ct);
 
         var accepted = merged.Entities.Count(e => e.Disposition == EntityDisposition.Accepted);
         var needsReview = merged.Entities.Count(e => e.Disposition == EntityDisposition.NeedsReview);
@@ -89,7 +89,7 @@ public sealed partial class ProgrammaticExtractionRunner(
 
     private async Task SwapAndIngestAsync(
         DndMcpAICsharpFun.Domain.IngestionRecord record, int bookId, string slug, string dir, CanonicalJsonFile file,
-        ExtractorResult result, CancellationToken ct)
+        ExtractorResult result, string sourceBook, CancellationToken ct)
     {
         // Point of no return: everything above can fail without touching existing files or points.
         // Report first (tmp + move), then the canonical file (atomic overwrite), then stale sidecars,
@@ -129,6 +129,12 @@ public sealed partial class ProgrammaticExtractionRunner(
             // are deliberately not indexed, so those stale points would otherwise keep answering for them.
             if (!string.IsNullOrWhiteSpace(record.FivetoolsSourceKey))
                 await FivetoolsImportedPoints.PurgeAsync(entityStore, record.FivetoolsSourceKey, ct);
+            // Ingestion only deletes by this record's file hash, so points an earlier LLM extraction wrote for the
+            // book (empty or different hash) would survive. Points carry source_book = FivetoolsSourceKey ?? the
+            // derived source book, so purge everything for that key that this run did not write.
+            await entityStore.DeleteStaleForBookAsync(
+                string.IsNullOrWhiteSpace(record.FivetoolsSourceKey) ? sourceBook : record.FivetoolsSourceKey,
+                record.FileHash, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

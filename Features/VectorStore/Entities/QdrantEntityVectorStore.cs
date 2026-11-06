@@ -47,6 +47,18 @@ public sealed class QdrantEntityVectorStore(
         await client.DeleteAsync(_collection, filter, cancellationToken: ct);
     }
 
+    public async Task DeleteStaleForBookAsync(string sourceBook, string keepFileHash, CancellationToken ct = default)
+    {
+        // source_book == X AND NOT (file_hash == keep AND data_source == "programmatic")
+        var current = new Filter();
+        current.Must.Add(KW(EntityPayloadFields.FileHash, keepFileHash));
+        current.Must.Add(KW(EntityPayloadFields.DataSource, DataSources.Programmatic));
+        var filter = new Filter();
+        filter.Must.Add(KW(EntityPayloadFields.SourceBook, sourceBook));
+        filter.MustNot.Add(new Condition { Filter = current });
+        await client.DeleteAsync(_collection, filter, cancellationToken: ct);
+    }
+
     public async Task<EntityEnvelope?> GetByIdAsync(string id, CancellationToken ct = default)
     {
         var filter = MatchKeyword(EntityPayloadFields.Id, id);

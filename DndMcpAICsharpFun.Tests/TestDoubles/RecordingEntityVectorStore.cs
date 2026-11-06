@@ -68,6 +68,20 @@ public sealed class RecordingEntityVectorStore : IEntityVectorStore
         return Task.CompletedTask;
     }
 
+    /// <summary>Each (sourceBook, keepFileHash) passed to DeleteStaleForBookAsync.</summary>
+    public List<(string SourceBook, string KeepFileHash)> DeleteStaleForBookCalls { get; } = [];
+
+    public Task DeleteStaleForBookAsync(string sourceBook, string keepFileHash, CancellationToken ct = default)
+    {
+        DeleteStaleForBookCalls.Add((sourceBook, keepFileHash));
+        foreach (var id in _store
+                     .Where(kv => kv.Value.Env.SourceBook == sourceBook
+                                  && !(kv.Value.FileHash == keepFileHash && kv.Value.Env.DataSource == DataSources.Programmatic))
+                     .Select(kv => kv.Key).ToList())
+            _store.Remove(id);
+        return Task.CompletedTask;
+    }
+
     public Task<EntityEnvelope?> GetByIdAsync(string id, CancellationToken ct = default)
         => Task.FromResult(_store.TryGetValue(id, out var v) ? v.Env : (EntityEnvelope?)null);
 

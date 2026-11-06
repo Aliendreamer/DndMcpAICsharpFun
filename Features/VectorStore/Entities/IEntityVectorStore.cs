@@ -24,6 +24,14 @@ public interface IEntityVectorStore
 
     Task DeleteByFileHashExceptAsync(
         string fileHash, IReadOnlyCollection<string> keepEntityIds, CancellationToken ct = default);
+
+    /// <summary>
+    /// Deletes every point whose <c>source_book</c> is <paramref name="sourceBook"/> unless it carries BOTH
+    /// <paramref name="keepFileHash"/> and <c>data_source = "programmatic"</c> (i.e. was written by the current
+    /// programmatic run). Never touches other books' points.
+    /// </summary>
+    Task DeleteStaleForBookAsync(string sourceBook, string keepFileHash, CancellationToken ct = default);
+
     Task<EntityEnvelope?> GetByIdAsync(string id, CancellationToken ct = default);
     Task<IList<EntitySearchHit>> SearchAsync(float[] queryVector, EntityFilters filters, int topK, CancellationToken ct = default);
     Task<IReadOnlyDictionary<string, string>> GetDataSourcesAsync(

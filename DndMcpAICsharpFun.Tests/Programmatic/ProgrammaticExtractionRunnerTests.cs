@@ -267,8 +267,9 @@ public class ProgrammaticExtractionRunnerTests : IDisposable
     [Fact]
     public async Task Success_purges_prior_5etools_import_points_for_the_book()
     {
-        static EntityPoint Pt(string id, string hash) => new(new EntityEnvelope(id, EntityType.Monster, id, "MM",
-            "Edition2014", null, new FirstAppearance("MM", "Edition2014"), [], [], "", default, "5etools"), new float[4], hash);
+        static EntityPoint Pt(string id, string hash) => new(new EntityEnvelope(id, EntityType.Monster, id, hash.EndsWith("PHB") ? "PHB" : "MM",
+            "Edition2014", null, new FirstAppearance("MM", "Edition2014"), [], [], "", default,
+            hash == "hash1" ? "programmatic" : "5etools"), new float[4], hash);
         await _store.UpsertAsync([
             Pt("mm14.monster.orc", "5etools:MM"),     // flagged programmatic entity: stale 5etools point must go
             Pt("mm14.monster.kobold", "5etools:MM"),
@@ -279,6 +280,40 @@ public class ProgrammaticExtractionRunnerTests : IDisposable
         await Runner().RunAsync(1, CancellationToken.None);
 
         _store.Ids.Should().BeEquivalentTo(["phb14.spell.fireball", "mm14.monster.goblin"]);
+    }
+
+    private static EntityPoint StalePt(string id, string book, string hash, string dataSource) => new(
+        new EntityEnvelope(id, EntityType.Monster, id, book, "Edition2014", null,
+            new FirstAppearance(book, "Edition2014"), [], [], "", default, dataSource), new float[4], hash);
+
+    [Fact]
+    public async Task Success_purges_stale_non_programmatic_points_of_the_book_by_source_key()
+    {
+        await _store.UpsertAsync([
+            StalePt("mm14.monster.old-llm", "MM", "", "llm"),                  // empty hash, old extraction
+            StalePt("mm14.monster.other-hash", "MM", "oldhash", "programmatic"), // different hash
+            StalePt("mm14.monster.goblin", "MM", "hash1", "programmatic"),      // this run's point: kept
+            StalePt("phb14.spell.fireball", "PHB", "", "llm"),                  // other book: kept
+        ]);
+
+        await Runner().RunAsync(1, CancellationToken.None);
+
+        _store.DeleteStaleForBookCalls.Should().Equal(("MM", "hash1"));
+        _store.Ids.Should().BeEquivalentTo(["mm14.monster.goblin", "phb14.spell.fireball"]);
+    }
+
+    [Fact]
+    public async Task Ingestion_failure_does_not_purge_stale_points()
+    {
+        _ingestion.IngestEntitiesAsync(1, Arg.Any<CancellationToken>())
+            .Returns<Task<EntityIngestionResult>>(_ => throw new InvalidOperationException("qdrant down"));
+        await _store.UpsertAsync([StalePt("mm14.monster.old-llm", "MM", "", "llm")]);
+
+        var act = () => Runner().RunAsync(1, CancellationToken.None);
+
+        await act.Should().ThrowAsync<PostSwapIngestionException>();
+        _store.DeleteStaleForBookCalls.Should().BeEmpty();
+        _store.Ids.Should().Contain("mm14.monster.old-llm");
     }
 
     [Fact]
