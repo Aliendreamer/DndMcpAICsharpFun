@@ -17,10 +17,21 @@ Diseases are found three ways, each by print evidence:
 - the lead-in paragraphs after a sentence that offers "the diseases described below" (PHB Contagion: "Blinding
   Sickness. ..."), up to the next heading.
 
-Conditions are the headings of the conditions appendix ("Appendix A: Conditions"), which ends at the next appendix
-or chapter title (so "Unconscious" stops before "Appendix B"). A heading is a short capitalised line with its text
-directly below it; the same names set alone around the art ("BLINDED" beside a picture) are captions and are not
-text. The Exhaustion levels table is a table entry. `condition-known` passes for one of the 15 PHB conditions.
+A disease name that holds a disease word ("Sewer Plague") is no evidence by itself: the first sentence's disease word
+must lie outside the name, or the entity's own text (its name taken out) must speak of disease and infection.
+`disease-evidence` fails when the entity's own text - not its name, not the sentence that offered it - prints no
+disease, infection or symptom vocabulary (a non-disease lead-in after an offer, "At Higher Levels.", goes to
+review; so do the Contagion diseases, which describe only their effects).
+
+Conditions are the headings of the conditions appendix ("Appendix A: Conditions"). The appendix ends at the next
+appendix or chapter title (so "Unconscious" stops before "Appendix B"), read by its words or, when the OCR garbles
+them, by its size; or at the first capitalised heading that names no condition (a misread "STUNNEX" still resembles
+one). A heading is a short capitalised line with its text directly below it; the same names set alone around the
+art ("BLINDED" beside a picture) are captions and are not text. The Exhaustion levels table is a table entry; a
+"Level Effect" header with no rows under it is read as text and fails `table-rows-read`. A condition with no text
+fails `entries-read`; `condition-known` passes for one of the 15 PHB conditions.
+
+A poison row whose lead-in matches more than one description is not joined, and fails `entries-read` naming them.
 
 Not registered in assemble yet (Phase 2b ruling P1).
 """
@@ -29,6 +40,8 @@ from __future__ import annotations
 import re
 import statistics
 from dataclasses import replace
+
+from rapidfuzz import fuzz
 
 from ..checks import Check
 from ..model import Line
@@ -105,6 +118,11 @@ def _join_poisons(items: list[tuple[Parsed, int]], body: list[Line], ctx: ParseC
         if not hits:
             p.checks.append(Check("entries-read", False, f"no description whose lead-in names {p.name!r} was found"))
             continue
+        if len(hits) > 1:
+            where = ", ".join(f"{m.group('name')!r} on page {L[s].page}" for m, s, _ in hits)
+            p.checks.append(Check("entries-read", False, f"several descriptions could be the one for {p.name!r}: "
+                                  f"{where}; none was joined"))
+            continue
         m, s, e = hits[0]
         ents = _entries(L, s, e, m.group("rest"))
         p.fields["entries"] = ents
@@ -125,6 +143,7 @@ def _join_poisons(items: list[tuple[Parsed, int]], body: list[Line], ctx: ParseC
 _DISEASE_WORD = r"(?:disease|infection|illness|plague|sickness|affliction)"
 _SELF = re.compile(rf"(?i)^this(?:\s+[a-z-]+){{0,2}}\s+{_DISEASE_WORD}\b")
 _INFECT = re.compile(r"(?i)\binfect")
+_EVIDENCE = re.compile(r"(?i)\b(disease|infect\w*|illness\w*|plague\w*|sickness\w*|symptom\w*|contagio\w*)")
 _DISEASE = re.compile(rf"(?i)\b{_DISEASE_WORD}")
 _OFFER = re.compile(r"(?i)\bdiseases?\b[^.]*\b(?:described|listed|detailed|presented) below\b|"
                     r"\bthe following diseases\b")
@@ -153,7 +172,33 @@ def _names_itself(name: str, text: str) -> bool:
     first = _first_sentence(text.strip())
     bare = re.sub(r"(?i)^the\s+", "", name).lower()
     named = re.sub(r"(?i)^the\s+", "", first).lower().startswith(bare)
-    return bool(_SELF.match(first)) or named and bool(_DISEASE.search(first))
+    if _SELF.match(first):
+        return True
+    if not named:
+        return False
+    # the disease word must be the sentence's own, not the name's ("Sewer plague is ... illnesses"); a name that
+    # is itself a disease's ("The Gnawing Plague, also known as ...") needs the evidence of its own text
+    return bool(_DISEASE.search(_without_name(name, first))) or \
+        bool(_DISEASE.search(name)) and _evidence(name, text)
+
+
+def _without_name(name: str, text: str) -> str:
+    bare = re.sub(r"(?i)^the\s+", "", name)
+    return re.sub(re.escape(bare), " ", text, flags=re.I) if bare else text
+
+
+def _evidence(name: str, text: str) -> bool:
+    """The entity's own text (its name taken out) speaks of disease and of infection."""
+    own = _without_name(name, text)
+    return bool(_DISEASE.search(own)) and bool(_INFECT.search(own))
+
+
+def _evidence_check(name: str, text: str) -> Check:
+    """`disease-evidence`: the entity's own text (not its name, not the sentence that offered it) prints disease,
+    infection or symptom vocabulary."""
+    hit = _EVIDENCE.search(_without_name(name, text))
+    return Check("disease-evidence", bool(hit), f"its own text prints {hit.group(0)!r}" if hit else
+                 f"the text of {name!r} prints no disease, infection or symptom vocabulary")
 
 
 def _indented(L: list[Line], j: int) -> bool:
@@ -183,12 +228,14 @@ def _disease(name: str, L: list[Line], s: int, e: int, rest: str | None, lines: 
         f["entries"] = ents
     text = f"{name}. " + _join_text([l.text.strip() for l in sub])
     p = Parsed(type="DiseasePoison", name=name, fields=f, text=text, lines=lines)
-    p.checks = [Check("entries-read", bool(ents), how if ents else f"no text read for {name!r}")]
+    p.checks = [Check("entries-read", bool(ents), how if ents else f"no text read for {name!r}"),
+                _evidence_check(name, _join_text([l.text.strip() for l in sub]))]
     return p
 
 
 def _diseases(body: list[Line], ctx: ParseContext) -> list[Parsed]:
-    L = _clean(character_body(body, ctx), ctx)
+    B = character_body(body, ctx)
+    L = _clean(B, ctx) if B else []
     if not L:
         return []
     med = _median(L)
@@ -204,7 +251,7 @@ def _diseases(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         e = end_at(i)
         text = _join_text([l.text.strip() for l in L[i + 1:e]])
         name = _title(L[i].text.strip())
-        if _names_itself(name, text) and _INFECT.search(text) and _DISEASE.search(text):
+        if _names_itself(name, text) and _evidence(name, text):
             out.append(_disease(name, L, i + 1, e, None, L[i:e], f"heading {name!r} describes a disease"))
             taken |= set(range(i, e))
     prev_head = 0
@@ -224,7 +271,7 @@ def _diseases(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         text = _join_text([rest] + [l.text.strip() for l in L[i + 1:stop]])
         intro = _join_text([l.text.strip() for l in L[prev_head:i]])
         offered = bool(_OFFER.search(intro))
-        own = _names_itself(name, text) and _INFECT.search(text) and _DISEASE.search(text)
+        own = _names_itself(name, text) and _evidence(name, text)
         if offered or own:
             how = f"lead-in {name!r} follows {_OFFER.search(intro).group(0)!r}" if offered else \
                 f"lead-in {name!r} describes a disease"
@@ -244,6 +291,7 @@ def parse_diseases_poisons(body: list[Line], ctx: ParseContext) -> list[Parsed]:
 _APPENDIX = re.compile(r"(?i)^appendix\s+\w+\s*:\s*conditions$")
 _SECTION_END = re.compile(r"(?i)^(appendix\s+\w+\s*:|chapter\s+\d+\s*:)")
 _RUNNING = re.compile(r"(?i)^(\d+\s+)?(chapter|part|appendix)\s+\w+\s*\|")
+_TITLE = 1.6  # an appendix or chapter title is set at least this many median line heights tall
 
 
 def _squash(t: str) -> str:
@@ -258,6 +306,16 @@ def _directly_below(a: Line, b: Line) -> bool:
 
 def _cond_heading(t: str) -> bool:
     return heading_like(t) and (_is_heading_caps(t) or title_case(t)) and len(t.split()) <= 2
+
+
+def _resembles_condition(t: str) -> bool:
+    return max(fuzz.ratio(_squash(t), c) for c in CONDITIONS) >= 80
+
+
+def _other_heading(t: str) -> bool:
+    """A heading set like the appendix's own (capitals) that names no condition, nor resembles one (a misread
+    "STUNNEX" is still a condition heading; the title-case "Level Effect" table header is not a heading)."""
+    return heading_like(t) and _is_heading_caps(t) and not _resembles_condition(t)
 
 
 def _level_table(lines: list[Line]) -> tuple[dict, list[Line]] | None:
@@ -275,24 +333,35 @@ def _level_table(lines: list[Line]) -> tuple[dict, list[Line]] | None:
     return {"type": "table", "colLabels": ["Level", "Effect"], "rows": rows}, lines[k:]
 
 
-def _condition_entries(lines: list[Line]) -> tuple[list, list[str]]:
+def _condition_entries(lines: list[Line]) -> tuple[list, list[str], list[str]]:
+    """(entries, rows whose level cell is blank, table headers no rows could be read under)."""
     out: list = []
     blank: list[str] = []
+    bad: list[str] = []
     k = 0
     while k < len(lines):
         j = next((x for x in range(k, len(lines)) if _squash(lines[x].text) == "leveleffect"), len(lines))
         out += prose_entries(lines[k:j], 0, j - k) if j > k else []
         if j == len(lines):
             break
-        tab, rest = _level_table(lines[j:])
+        got = _level_table(lines[j:])
+        if got is None:  # a "Level Effect" header with no rows under it: read as text, and say so
+            bad.append(lines[j].text.strip())
+            nxt = next((x for x in range(j + 1, len(lines)) if _squash(lines[x].text) == "leveleffect"), len(lines))
+            out += prose_entries(lines[j:nxt], 0, nxt - j)
+            k = nxt
+            continue
+        tab, rest = got
         out.append(tab)
         blank += [r[1] for r in tab["rows"] if not r[0]]
         k = len(lines) - len(rest)
-    return out, blank
+    return out, blank, bad
 
 
 def parse_conditions(body: list[Line], ctx: ParseContext) -> list[Parsed]:
-    """The conditions appendix: one Condition per heading, ending at the next appendix or chapter title."""
+    """The conditions appendix: one Condition per heading. The appendix ends at the next appendix or chapter title
+    (read by its words, or by its size when the OCR garbles them) or at the first heading that names no
+    condition."""
     L = [l for l in body if l.text.strip() and not _RUNNING.match(l.text.strip())
          and not re.fullmatch(r"\d{1,3}\W?", l.text.strip())]
     if not L:
@@ -301,8 +370,18 @@ def parse_conditions(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     starts = [i for i, l in enumerate(L) if _APPENDIX.match(l.text.strip()) and l.height >= 1.4 * med]
     out: list[Parsed] = []
     for s in starts:
-        e = next((j for j in range(s + 1, len(L)) if _SECTION_END.match(L[j].text.strip())
-                  and L[j].height >= 1.4 * med), len(L))
+        e = len(L)
+        seen_head = False
+        for j in range(s + 1, len(L)):
+            t = L[j].text.strip()
+            if (_SECTION_END.match(t) and L[j].height >= 1.4 * med) or L[j].height >= _TITLE * med:
+                break  # the next appendix or chapter title, however the OCR read its words
+            if seen_head and _other_heading(t):
+                break  # a heading naming no condition ("D&D PANTHEONS"): the appendix is over
+            seen_head = seen_head or _cond_heading(t)
+        else:
+            j = len(L)
+        e = j
         sec = L[s + 1:e]
         heads: list[int] = []
         captions: set[int] = set()
@@ -319,10 +398,14 @@ def parse_conditions(body: list[Line], ctx: ParseContext) -> list[Parsed]:
             stop = heads[n + 1] if n + 1 < len(heads) else len(sec)
             lines = [l for k, l in enumerate(sec[h + 1:stop], h + 1) if k not in captions]
             name = _title(sec[h].text.strip())
-            ents, blank = _condition_entries(lines)
+            ents, blank, bad = _condition_entries(lines)
             known = _squash(name) in CONDITIONS
             checks = [Check("condition-known", known, "" if known else
-                            f"{name!r} is not one of the 15 PHB conditions")]
+                            f"{name!r} is not one of the 15 PHB conditions"),
+                      Check("entries-read", bool(ents), "" if ents else f"no text read under {name!r}")]
+            if bad:
+                checks.append(Check("table-rows-read", False, f"no rows read under the table header "
+                                    f"{', '.join(repr(b) for b in bad)} of {name!r}; read as text"))
             if blank:
                 checks.append(Check("table-rows-read", False, f"level cell of {name!r} table row(s) "
                                     f"{', '.join(repr(b) for b in blank)} is blank"))

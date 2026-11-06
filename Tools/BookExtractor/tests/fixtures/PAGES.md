@@ -118,3 +118,5 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | phb | 291, 292, 293, 294 | Appendix A: Conditions (caps headings in mixed OCR casing, bullets with dropped glyphs, the Exhaustion "Level Effect" table with its "1" lost, condition names set as art captions beside the pictures), then "Appendix B: Gods of the Multiverse" |
 | vrgr | 154, 155 | "The Gnawing Plague" heading with Transmission / Symptoms / Immunity lead-ins, then "Cycle Of the Plague" |
 | egw | 126 | "Frigid Woe." disease lead-in under DISEASE LABORATORY, then AEORIAN HUNTERS |
+| mtf | 137 | "RUTTERKIN" lore heading (the name first, then a "Warping Plague." lead-in about a disease that infects): not a disease |
+| mpmm | 210 | The same Rutterkin lore in MPMM: not a disease |

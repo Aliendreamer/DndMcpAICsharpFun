@@ -6,7 +6,7 @@ from pathlib import Path
 import jsonschema
 
 from bookextractor.layout import reading_order
-from bookextractor.model import load_ocr_page
+from bookextractor.model import Fragment, Line, Page, load_ocr_page
 from bookextractor.pages import classify_page
 from bookextractor.parsers import ParseContext
 from bookextractor.parsers.hazard_rules import CONDITIONS, parse_conditions, parse_diseases_poisons
@@ -25,6 +25,10 @@ BOOKS = {
     "vrgr": ("vrgr", "VRGR", [154, 155]),
     # 126: "Frigid Woe." lead-in under Disease Laboratory, then AEORIAN HUNTERS
     "egw": ("egw", "EGW", [126]),
+    # corpus false positives the disease rule must not emit: a "RUTTERKIN" lore heading whose text names the
+    # monster first and later speaks of a disease that infects (MTF 137, MPMM 210)
+    "mtf": ("mtf", "MTF", [137]),
+    "mpmm": ("mpmm", "MPMM", [210]),
 }
 
 
@@ -230,3 +234,113 @@ def test_schemas():
             jsonschema.validate(p.fields, dp)
     for p in conditions():
         jsonschema.validate(p.fields, co)
+
+
+# ---------- fix round 1 (P12) ----------
+def _synthetic(rows, slug="tst", h=30.0):
+    """A one-page book from (text, x, y[, width, height]) rows."""
+    lines = []
+    for r in rows:
+        text, x, y = r[:3]
+        w = r[3] if len(r) > 3 else 20 * len(text)
+        hh = r[4] if len(r) > 4 else h
+        box = (x, y, x + w, y + hh)
+        lines.append(Line(text=text, box=box, height=hh, page=1, frags=[Fragment(text, 1.0, box)]))
+    page = Page(number=1, width=1600, height=2200, lines=lines, source="ocr")
+    return lines, ParseContext(slug=slug, source="TST", pages={1: page})
+
+
+def test_rutterkin_lore_headings_are_not_diseases():
+    assert dps("mtf") == ()
+    assert dps("mpmm") == ()
+
+
+def test_a_heading_named_with_a_disease_word_needs_disease_evidence_in_its_own_text():
+    body, ctx = _synthetic([
+        ("Their houses stand empty and the streets are quiet.", 100, 100, 900),
+        ("Plague Ward", 100, 160, 260),
+        ("The Plague Ward is a hospital wing in the old quarter of", 100, 200, 900),
+        ("the city. Patients who are infected by rot grubs are kept", 100, 232, 900),
+        ("here until the priests of the temple can see to them.", 100, 264, 900),
+    ])
+    got = parse_diseases_poisons(body, ctx)
+    assert all(failed(p) for p in got if p.name == "Plague Ward"), [(p.name, p.checks) for p in got]
+
+
+def test_a_lead_in_after_an_offer_without_disease_text_is_not_accepted():
+    body, ctx = _synthetic([
+        ("Your touch inflicts a disease of your choice from any of", 100, 100, 900),
+        ("the ones described below, on a creature you touch.", 100, 132, 900),
+        ("Blight Pox. The creature's skin breaks out in sores, and", 130, 164, 870),
+        ("the infection spreads to its hands and feet.", 100, 196, 900),
+        ("At Higher Levels. When you cast this spell using a spell", 130, 228, 870),
+        ("slot of 6th level or higher, the range doubles.", 100, 260, 900),
+    ])
+    got = {p.name: p for p in parse_diseases_poisons(body, ctx)}
+    assert not failed(got["Blight Pox"])
+    if "At Higher Levels" in got:
+        assert [c.name for c in failed(got["At Higher Levels"])] == ["disease-evidence"]
+        assert "At Higher Levels" in failed(got["At Higher Levels"])[0].reason
+
+
+def test_level_table_header_with_no_rows_is_text_and_fails():
+    pages = _pages("phb")
+    p = pages[292]
+    rows = {"Disadvantage on ability checks", "2 Speed halved", "3 Disadvantage on attack rolls and saving throws",
+            "4 Hit point maximum halved", "5 Speed reduced to 0", "6 Death"}
+    pages[292] = replace(p, lines=[l for l in p.lines if l.text not in rows])
+    cs = parse_conditions(*_ctx("phb", pages))
+    ex = get(cs, "Exhaustion")
+    assert not [e for e in ex.fields["entries"] if isinstance(e, dict) and e.get("type") == "table"]
+    assert any(c.name == "table-rows-read" and "Level Effect" in c.reason for c in failed(ex))
+    assert len(cs) == 15  # the parse goes on past it
+
+
+def test_ambiguous_poison_description_is_not_joined():
+    pages = _pages("dmg")
+    p = pages[258]
+    pages[258] = replace(p, lines=[replace(l, text=l.text.replace("Malice (Inhaled)", "Burnt Othur Fumes (Inhaled)"))
+                                   for l in p.lines])
+    got = get(parse_diseases_poisons(*_ctx("dmg", pages)), "Burnt othur fumes")
+    assert "entries" not in got.fields
+    bad = [c for c in failed(got) if c.name == "entries-read"]
+    assert bad and bad[0].reason.count("'Burnt Othur Fumes' on page 258") == 2
+
+
+def _appendix_b(text, shrink=False):
+    pages = _pages("phb")
+    p = pages[294]
+    out = []
+    for l in p.lines:
+        if l.text.startswith("APPeNdiX B"):
+            box = (l.box[0], l.box[1], l.box[2], l.box[1] + 30) if shrink else l.box
+            l = replace(l, text=text, box=box, height=box[3] - box[1])
+        out.append(l)
+    pages[294] = replace(p, lines=out)
+    return parse_conditions(*_ctx("phb", pages))
+
+
+def test_misread_appendix_b_title_still_ends_the_conditions():
+    for cs in (_appendix_b("appendlx b: gods of the multiverse"),  # read by its size
+               _appendix_b("APPENDLX B GODS OF THE MULTIVERSE", shrink=True)):  # a heading naming no condition
+        u = get(cs, "Unconscious")
+        assert flat(u.fields["entries"]).endswith("within 5 feet of the creature."), flat(u.fields["entries"])[-80:]
+        assert "MULTIVERSE" not in u.text.upper() and "ELIGION" not in u.text
+        assert len(cs) == 15
+
+
+def test_condition_with_no_text_fails_entries_read():
+    body, ctx = _synthetic([
+        ("APPENDIX A: CONDITIONS", 100, 60, 700, 60),
+        ("BLINDED", 100, 200, 200),
+        ("A blinded creature can't see and automatically fails", 100, 232, 900),
+        ("any ability check that requires sight.", 100, 264, 700),
+        ("DEAFENED", 100, 330, 220),
+        ("CHARMED", 100, 362, 210),
+        ("A charmed creature can't attack the charmer or target", 100, 394, 900),
+        ("the charmer with harmful abilities or magical effects.", 100, 426, 900),
+    ])
+    cs = {p.name: p for p in parse_conditions(body, ctx)}
+    assert set(cs) == {"Blinded", "Deafened", "Charmed"}
+    assert [c.name for c in failed(cs["Deafened"])] == ["entries-read"]
+    assert not failed(cs["Blinded"]) and not failed(cs["Charmed"])
