@@ -519,3 +519,23 @@ def test_subclass_short_name_keeps_its_spaces():   # a glued "Feywanderer" is no
     assert r["shortName"] is False
     r, *_ = score_record("Subclass", {"className": "Ranger", "shortName": "fey  wanderer"}, t)
     assert r["shortName"] is True
+
+
+@needs_5etools
+def test_subclass_text_scored_against_its_subclass_features():
+    # 5etools keeps subclass prose in subclassFeature records; text bleed shows as low precision
+    t = next(t for t in load_truth("xge", FT, "Subclass") if t["name"] == "Path of the Zealot")
+    good = [{"type": "entries", "name": "Fanatical Focus", "entries": [
+        "Starting at 6th level, the divine power that fuels your rage can protect you. If you fail a saving throw "
+        "while you're raging, you can reroll it, and you must use the new roll. You can use this ability only "
+        "once per rage."]}]
+    _, cov, prec = score_record("Subclass", {"className": "Barbarian", "entries": good}, t)
+    assert cov is not None and cov > 0.05 and prec > 0.9, (cov, prec)
+    bleed = good + [{"type": "entries", "name": "Zealous Presence", "entries": [
+        "This section presents two backgrounds that provide options linking characters to the ancient magic of "
+        "giants. The giant foundling background represents a life spent around titanic creatures and their "
+        "supernatural might. Skill Proficiencies: Intimidation, Survival. Languages: Giant and one other "
+        "language of your choice. Equipment: A backpack, a set of traveler's clothes, a small stone or sprig "
+        "that reminds you of home, and a pouch containing 10 gp."]}]
+    _, _, prec2 = score_record("Subclass", {"className": "Barbarian", "entries": bleed}, t)
+    assert prec2 < 0.7, prec2

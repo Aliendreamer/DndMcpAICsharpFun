@@ -209,6 +209,48 @@ def _load_character_truth(src: str, d: Path, etype: str) -> list[dict]:
     return _split_character_truth(src, d, etype)[0]
 
 
+def _feature_key(ref: str) -> tuple:
+    """(name, class, class source, short name, subclass source, level) of a 5etools subclassFeature ref."""
+    p = ref.split("|")
+    return (key(p[0]), key(p[1]), (p[2] or "PHB").upper(), key(p[3]), (p[4] or "PHB").upper(), p[5]) \
+        if len(p) >= 6 else ()
+
+
+def _subclass_feature_index(files: list[Path]) -> dict[tuple, dict]:
+    out: dict[tuple, dict] = {}
+    for f in files:
+        for r in json.loads(f.read_text("utf-8")).get("subclassFeature", []):
+            k = (key(r["name"]), key(r["className"]), (r.get("classSource") or "PHB").upper(),
+                 key(r["subclassShortName"]), (r.get("subclassSource") or "PHB").upper(), str(r["level"]))
+            out.setdefault(k, r)
+    return out
+
+
+def _feature_text(refs, index: dict[tuple, dict], seen: set | None = None) -> str:
+    """The prose of a subclass's features: each ref's subclassFeature record, with the refSubclassFeature
+    entries the first-level record holds expanded in place."""
+    seen = set() if seen is None else seen
+    parts = []
+
+    def walk(e) -> str:
+        if isinstance(e, dict) and e.get("type") == "refSubclassFeature":
+            return _feature_text([e["subclassFeature"]], index, seen)
+        if isinstance(e, list):
+            return " ".join(walk(x) for x in e)
+        if isinstance(e, dict) and isinstance(e.get("entries"), list):
+            return " ".join(x for x in (flat(e.get("name")), walk(e["entries"])) if x)
+        return flat(e)
+
+    for r in refs or []:
+        ref = r.get("subclassFeature") if isinstance(r, dict) else r
+        k = _feature_key(str(ref))
+        if not k or k in seen or k not in index:
+            continue
+        seen.add(k)
+        parts.append(walk(index[k].get("entries")))
+    return " ".join(parts)
+
+
 def _split_character_truth(src: str, d: Path, etype: str) -> tuple[list[dict], list[str]]:
     """(truth records, known-difference lines for the records left out of the truth)."""
     if etype in ("Class", "Subclass"):
@@ -216,6 +258,7 @@ def _split_character_truth(src: str, d: Path, etype: str) -> tuple[list[dict], l
         if not files:
             raise FileNotFoundError(str(d / "class"))
         lst = "class" if etype == "Class" else "subclass"
+        feats = _subclass_feature_index(files) if etype == "Subclass" else {}
         kept, dropped = [], []
         for f in files:
             for r in json.loads(f.read_text("utf-8")).get(lst, []):
@@ -230,6 +273,8 @@ def _split_character_truth(src: str, d: Path, etype: str) -> tuple[list[dict], l
                 # copies are twins of the printed one
                 if etype == "Subclass" and r.get("classSource") in ("XPHB", "EFA"):
                     dropped.append(f"reprint (classSource {r['classSource']}) not scored: {r['name']}")
+                elif etype == "Subclass":
+                    kept.append(dict(r, _featureText=_feature_text(r.get("subclassFeatures"), feats)))
                 else:
                     kept.append(r)
         return kept, dropped
@@ -497,6 +542,8 @@ def _score_character(etype: str, f: dict, t: dict, r: dict, src: str | None) -> 
         r["shortName"] = spaced_key(f.get("shortName")) == spaced_key(t.get("shortName"))
         r["features"] = feature_levels(f.get("subclassFeatures"), src, 5, 6) == \
             feature_levels(t.get("subclassFeatures"), src, 5, 6)
+        # the subclass's prose lives in its subclassFeature records (joined at load time)
+        return coverage(t.get("_featureText") or "", flat(f.get("entries")))
     elif etype == "Race":
         r["size"] = set(f.get("size") or []) == set(t.get("size") or [])
         r["speed"] = t_walk(f.get("speed")) == t_walk(t.get("speed"))
