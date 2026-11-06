@@ -28,6 +28,17 @@ KNOWN_DIFFERENCES: dict[tuple[str, str, str], tuple[object, str]] = {
         "the page prints 'Range: Self' with no radius (5etools: 30-foot radius)"),
     ("mm", "Orc Eye of Gruumsh", "abilities"): (
         [16, 12, 16, 9, 13, 12], "the stat block prints CON 16 (+3) (5etools: 17)"),
+    ("phb", "Human", "ability"): (
+        [{"str": 1, "dex": 1, "con": 1, "int": 1, "wis": 1, "cha": 1}],
+        "the race prints +1 to every score (5etools puts it on a nameless Human subrace)"),
+}
+_TCE_BLESSED = "TCE prints it as a Cleric class option, not inside the domain section"
+# 5etools feature refs the book does not print in that entry: (book, entry name) -> [(feature, level, why)].
+# They are left out of the features comparison only.
+NOT_PRINTED_FEATURES: dict[tuple[str, str], list[tuple[str, int, str]]] = {
+    ("tce", "Artificer"): [("Optional Rule: Firearm Proficiency", 1, "a sidebar, not a class feature")],
+    **{("tce", d): [("Blessed Strikes", 8, _TCE_BLESSED)]
+       for d in ("Order Domain", "Peace Domain", "Twilight Domain")},
 }
 # entries 5etools builds that the book never prints as their own entry
 NOT_PRINTED: dict[tuple[str, str], str] = {
@@ -220,6 +231,30 @@ def dropped_truth_lines(book: str, fivetools_dir: Path | str, etype: str) -> lis
     return _split_character_truth(book.upper(), Path(fivetools_dir), etype)[1]
 
 
+_DIE_NOTE = re.compile(r"\s*\(d\d+\)\s*$", re.I)
+
+
+def _drop_unprinted_features(book: str, t: dict, known: list[str]) -> dict:
+    """`t` without the feature refs NOT_PRINTED_FEATURES lists for it; each one dropped adds a known line."""
+    drop = NOT_PRINTED_FEATURES.get((book, t["name"]))
+    if not drop:
+        return t
+    out = dict(t)
+    for fld, lvl_idx in (("classFeatures", 3), ("subclassFeatures", 5)):
+        kept = []
+        for r in t.get(fld) or []:
+            parts = str(r.get("classFeature") or r.get("subclassFeature") if isinstance(r, dict) else r).split("|")
+            hit = next((d for d in drop if key(parts[0]) == key(d[0]) and len(parts) > lvl_idx
+                        and parts[lvl_idx] == str(d[1])), None)
+            if hit:
+                known.append(f"{t['name']}: feature {hit[0]} (level {hit[1]}) not printed in the entry ({hit[2]})")
+            else:
+                kept.append(r)
+        if fld in t:
+            out[fld] = kept
+    return out
+
+
 def feature_levels(refs, src: str, level_idx: int, source_idx: int) -> set[tuple[str, int]]:
     """(name, level) of the feature refs that belong to `src`: a ref carrying a different source in its
     optional trailing part (a TCE optional feature in the PHB class) is left out. Refs are 5etools strings
@@ -236,7 +271,8 @@ def feature_levels(refs, src: str, level_idx: int, source_idx: int) -> set[tuple
         if lvl is None and len(parts) > level_idx and parts[level_idx].isdigit():
             lvl = int(parts[level_idx])
         if parts[0] and lvl is not None:
-            out.add((key(parts[0]), int(lvl)))
+            # a trailing die note is the table's, not the name's: "Bardic Inspiration (d6)"
+            out.add((key(_DIE_NOTE.sub("", parts[0])), int(lvl)))
     return out
 
 
@@ -475,6 +511,8 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
         if not exact:
             fuzzy.append(f"{t['name']} ~ {idx[k]['name']}")
         fields = idx[k]["fields"]
+        if etype in ("Class", "Subclass"):
+            t = _drop_unprinted_features(book, t, known)
         res, cov, prec = score_record(etype, fields, t, book.upper())
         if etype == "MagicItem" and len(rarity_family(t)) > 1:
             fam[0] += 1

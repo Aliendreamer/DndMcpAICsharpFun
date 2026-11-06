@@ -367,3 +367,46 @@ def test_phb_custom_background_is_rules_not_entry():
     assert "Custom Background" not in [t["name"] for t in load_truth("phb", FT, "Background")]
     res = score_book("phb", [], FT, "Background")
     assert "rules, not a background entry: Custom Background" in res["knownDifferences"]
+
+
+def test_feature_names_ignore_case_and_a_trailing_die_note():
+    from bookextractor.score import feature_levels
+    assert feature_levels(["Bardic Inspiration (d6)|Bard||1", "Artificer Specialist feature|Artificer|TCE|5"],
+                          "TCE", 3, 4) == {("bardicinspiration", 1), ("artificerspecialistfeature", 5)}
+    assert feature_levels(["Brutal Critical (1 die)|Barbarian||9"], "PHB", 3, 4) == {("brutalcritical1die", 9)}
+
+
+def _truth_refs(book, etype, name):
+    t = next(t for t in load_truth(book, FT, etype) if t["name"] == name)
+    return t, t["classFeatures" if etype == "Class" else "subclassFeatures"]
+
+
+@needs_5etools
+def test_artificer_firearm_sidebar_is_a_known_difference():
+    t, refs = _truth_refs("tce", "Class", "Artificer")
+    ours = [r for r in refs if not str(r).startswith("Optional Rule: Firearm Proficiency")]
+    res = score_book("tce", [_ent("Class", "Artificer", hd=t["hd"], proficiency=t["proficiency"],
+                                  subclassTitle=t["subclassTitle"], classFeatures=ours)], FT, "Class")
+    assert res["fields"]["features"]["pct"] == 100, res["diffs"]
+    assert any("Artificer" in k and "Optional Rule: Firearm Proficiency" in k for k in res["knownDifferences"])
+
+
+@needs_5etools
+def test_tce_domain_blessed_strikes_is_a_known_difference():
+    t, refs = _truth_refs("tce", "Subclass", "Order Domain")
+    ours = [r for r in refs if not str(r).startswith("Blessed Strikes")]
+    res = score_book("tce", [_ent("Subclass", "Order Domain", className="Cleric", shortName="Order",
+                                  subclassFeatures=ours)], FT, "Subclass")
+    assert not any(d.startswith("Order Domain: features") for d in res["diffs"]), res["diffs"]
+    assert any("Order Domain" in k and "Blessed Strikes" in k for k in res["knownDifferences"])
+
+
+@needs_5etools
+def test_phb_human_ability_on_the_race_is_a_known_difference():
+    allp1 = [{"str": 1, "dex": 1, "con": 1, "int": 1, "wis": 1, "cha": 1}]
+    res = score_book("phb", [_ent("Race", "Human", size=["M"], speed=30, ability=allp1)], FT, "Race")
+    assert not any(d.startswith("Human: ability") for d in res["diffs"]), res["diffs"]
+    assert any(k.startswith("Human: ability") for k in res["knownDifferences"])
+    # excused only while our value is the printed one
+    res = score_book("phb", [_ent("Race", "Human", size=["M"], speed=30, ability=[{"str": 2}])], FT, "Race")
+    assert any(d.startswith("Human: ability") for d in res["diffs"])
