@@ -547,3 +547,59 @@ def test_feature_names_keep_word_boundaries():   # a glued "Extraattack" is a mi
         feature_levels(["Extra Attack|Artificer|TCE|Armorer|TCE|5"], "TCE", 5, 6)
     assert feature_levels(["EXTRA attack|Artificer|TCE|Armorer|TCE|5"], "TCE", 5, 6) == \
         feature_levels(["Extra Attack|Artificer|TCE|Armorer|TCE|5"], "TCE", 5, 6)
+
+
+@needs_5etools
+def test_truth_phb_weapons():
+    assert {t["name"] for t in load_truth("phb", FT, "Weapon")} >= {"Longsword", "Shortbow", "Net"}
+
+
+@needs_5etools
+def test_truth_phb_armor():
+    assert len(load_truth("phb", FT, "Armor")) == 13
+
+
+@needs_5etools
+def test_truth_conditions():
+    assert len(load_truth("phb", FT, "Condition")) == 15
+
+
+@needs_5etools
+def test_truth_dmg_poisons():
+    assert "Burnt Othur Fumes" in {t["name"] for t in load_truth("dmg", FT, "DiseasePoison")}
+
+
+@needs_5etools
+def test_score_longsword():
+    t = next(t for t in load_truth("phb", FT, "Weapon") if t["name"] == "Longsword")
+    r, *_ = score_record("Weapon", {"value": 1500, "weight": 3, "dmg1": "1d8", "dmgType": "S", "property": ["V"],
+                                    "weaponCategory": "martial"}, t)
+    assert all(r.values())
+
+
+@needs_5etools
+def test_equipment_truth_never_double_counts_an_item():
+    for book in ("phb", "dmg", "xge", "erlw", "scag"):
+        seen: dict[str, str] = {}
+        for ty in ("Weapon", "Armor", "Item", "DiseasePoison", "MagicItem"):
+            for t in load_truth(book, FT, ty):
+                assert seen.setdefault(t["name"], ty) == ty, (book, t["name"], seen[t["name"]], ty)
+
+
+@needs_5etools
+def test_items_leave_out_poisons_weapons_and_armor():
+    names = {t["name"] for t in load_truth("phb", FT, "Item")}
+    assert "Abacus" in names and not names & {"Longsword", "Plate Armor", "Basic Poison (vial)"}
+
+
+@needs_5etools
+def test_status_records_are_known_not_truth():
+    from bookextractor.score import dropped_truth_lines
+    assert "Surprised" not in {t["name"] for t in load_truth("phb", FT, "Condition")}
+    assert any("Surprised" in line for line in dropped_truth_lines("phb", FT, "Condition"))
+
+
+@needs_5etools
+def test_available_types_lists_equipment():
+    assert {"Weapon", "Armor", "Item", "Condition"} <= set(available_types("phb", FT))
+    assert {"Trap", "VehicleMount", "Object", "DiseasePoison"} <= set(available_types("dmg", FT))

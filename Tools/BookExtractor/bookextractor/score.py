@@ -174,7 +174,9 @@ def base_monster_name(n: str) -> str:
 
 _GENASI_NOTE = "printed as separate races (Air/Earth/Fire/Water Genasi)"
 _CHARACTER_TYPES = ("Class", "Subclass", "Race", "Subrace", "Feat", "Background")
-TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat", "Background")
+_EQUIPMENT_TYPES = ("Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition")
+TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat", "Background",
+         *_EQUIPMENT_TYPES)
 
 
 def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list[dict]:
@@ -195,6 +197,8 @@ def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list
         return json.loads((d / f"spells/spells-{book}.json").read_text("utf-8"))["spell"]
     if etype in _CHARACTER_TYPES:
         return _load_character_truth(book.upper(), d, etype)
+    if etype in _EQUIPMENT_TYPES:
+        return _split_equipment_truth(book.upper(), d, etype)[0]
     seen: dict[str, dict] = {}
     for i in json.loads((d / "items.json").read_text("utf-8"))["item"]:
         if i.get("source") == book.upper() and i.get("rarity") not in (None, "none"):
@@ -203,6 +207,60 @@ def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list
             rec["_rarities"].add(i["rarity"])
             rec["reqAttune"] = rec.get("reqAttune") or i.get("reqAttune")  # the printed entry covers every tier
     return list(seen.values())
+
+
+def _is_armor(i: dict) -> bool:
+    return bool(i.get("armor")) or str(i.get("type") or "").split("|")[0] in ("LA", "MA", "HA", "S")
+
+
+def _is_weapon(i: dict) -> bool:
+    # a spellcasting focus (type SCF) may carry a weaponCategory, but the book prints it as a focus
+    return (bool(i.get("weapon")) or bool(i.get("weaponCategory"))) and not _is_armor(i) \
+        and str(i.get("type") or "").split("|")[0] != "SCF"
+
+
+def _is_poison(i: dict) -> bool:
+    return bool(i.get("poisonTypes")) or bool(i.get("poison"))
+
+
+def _dedupe(recs: list[dict]) -> list[dict]:
+    """First record per name key: 5etools repeats a name for a printed entry's reprints and variants."""
+    seen: dict[str, dict] = {}
+    for r in recs:
+        seen.setdefault(key(r["name"]), r)
+    return list(seen.values())
+
+
+def _split_equipment_truth(src: str, d: Path, etype: str) -> tuple[list[dict], list[str]]:
+    """(truth records, known-difference lines for the records left out of the truth) for the equipment and
+    hazard types. Weapon, Armor, Item, DiseasePoison and MagicItem partition the 5etools item records: an
+    `items.json` record is MagicItem when its rarity is set, else a poison, a weapon, armor or an Item."""
+    def read(fname: str, *lists: str) -> list[dict]:
+        data = json.loads((d / fname).read_text("utf-8"))
+        return [r for lst in lists for r in data.get(lst, []) if r.get("source") == src and not r.get("_copy")]
+
+    known: list[str] = []
+    if etype in ("Weapon", "Armor", "Item", "DiseasePoison"):
+        base = read("items-base.json", "baseitem")
+        mundane = [i for i in read("items.json", "item") if i.get("rarity") in (None, "none")]
+        if etype == "Weapon":
+            return _dedupe([i for i in base + mundane if _is_weapon(i)]), known
+        if etype == "Armor":
+            return _dedupe([i for i in base + mundane if _is_armor(i)]), known
+        if etype == "Item":
+            return _dedupe([i for i in base + mundane
+                            if not _is_weapon(i) and not _is_armor(i) and not _is_poison(i)]), known
+        poisons = [i for i in mundane if _is_poison(i)]
+        diseases = read("conditionsdiseases.json", "disease")
+        return _dedupe(diseases + poisons), known
+    if etype == "VehicleMount":
+        return _dedupe(read("vehicles.json", "vehicle")), known
+    if etype == "Object":
+        return _dedupe(read("objects.json", "object")), known
+    if etype == "Trap":
+        return _dedupe(read("trapshazards.json", "trap", "hazard")), known
+    known = [f"status effect, not a condition: {r['name']}" for r in read("conditionsdiseases.json", "status")]
+    return _dedupe(read("conditionsdiseases.json", "condition")), known
 
 
 def _load_character_truth(src: str, d: Path, etype: str) -> list[dict]:
@@ -327,6 +385,8 @@ def printed_elsewhere(book: str, fivetools_dir: Path | str, etype: str) -> dict[
 
 def dropped_truth_lines(book: str, fivetools_dir: Path | str, etype: str) -> list[str]:
     """Known-difference lines for the 5etools records load_truth leaves out of `etype`'s truth."""
+    if etype in _EQUIPMENT_TYPES:
+        return _split_equipment_truth(book.upper(), Path(fivetools_dir), etype)[1]
     if etype not in _CHARACTER_TYPES:
         return []
     return _split_character_truth(book.upper(), Path(fivetools_dir), etype)[1]
@@ -521,12 +581,46 @@ def score_record(etype: str, fields: dict, t: dict, src: str | None = None) -> t
         cov, prec = coverage(flat(t.get("entries")) + " " + flat(t.get("entriesHigherLevel")), got)
     elif etype in _CHARACTER_TYPES:
         cov, prec = _score_character(etype, fields, t, r, src)
+    elif etype in _EQUIPMENT_TYPES:
+        cov, prec = _score_equipment(etype, fields, t, r)
     else:
         if len(rarity_family(t)) == 1:
             r["rarity"] = same_rarity(t, fields.get("rarity"))
         r["attune"] = attunes(fields.get("reqAttune")) == attunes(t.get("reqAttune"))
         cov, prec = coverage(flat(t.get("entries")), flat(fields.get("entries")))
     return r, cov, prec
+
+
+def _code(v) -> str | None:
+    """A 5etools code without its source suffix: 'AF|DMG' -> 'AF'."""
+    return str(v).split("|")[0] if v is not None else None
+
+
+def _codes(v) -> set[str]:
+    return {_code(x) for x in (v or [])}
+
+
+def _score_equipment(etype: str, f: dict, t: dict, r: dict) -> tuple[float | None, float | None]:
+    if etype == "Weapon":
+        for fld in ("value", "weight", "dmg1", "dmgType", "weaponCategory"):
+            r[fld] = f.get(fld) == t.get(fld)
+        r["property"] = _codes(f.get("property")) == _codes(t.get("property"))
+    elif etype == "Armor":
+        r["ac"] = f.get("ac") == t.get("ac")
+        r["strength"] = (str(f["strength"]) if f.get("strength") is not None else None) == \
+            (str(t["strength"]) if t.get("strength") is not None else None)
+        r["stealth"] = bool(f.get("stealth")) == bool(t.get("stealth"))
+        r["value"] = f.get("value") == t.get("value")
+        r["weight"] = f.get("weight") == t.get("weight")
+    elif etype == "Item":
+        r["value"] = f.get("value") == t.get("value")
+        r["weight"] = f.get("weight") == t.get("weight")
+        r["type"] = _code(f.get("type")) == _code(t.get("type"))
+    elif etype == "Trap":
+        r["trapHazType"] = f.get("trapHazType") == t.get("trapHazType")
+    elif etype == "DiseasePoison":
+        r["poisonTypes"] = set(f.get("poisonTypes") or []) == set(t.get("poisonTypes") or [])
+    return coverage(flat(t.get("entries")), flat(f.get("entries")))
 
 
 def _score_character(etype: str, f: dict, t: dict, r: dict, src: str | None) -> tuple[float | None, float | None]:
