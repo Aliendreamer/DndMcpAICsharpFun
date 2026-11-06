@@ -169,15 +169,35 @@ def _name(raw: str) -> str:
     return _title(re.sub(r"^\s*magic item\s*:\s*", "", re.sub(r"\s+", " ", raw), flags=re.I))
 
 
+def _leaves_inset(prev: Line, l: Line, nxt: Line | None, margin: float, med: float) -> bool:
+    """`l` sits below `prev` after a gap but starts well left of the item's own left edge, and its paragraph
+    goes on below it: the item was an inset sidebar (MTF "Magic Item: Greater Silver Sword") and the column's
+    own text resumes below it. A lone line there (a page-edge mark, a running foot) is not that text."""
+    g = _gap(prev, l)
+    if g is None or g < 0.6 * med or margin - l.box[0] < 0.5 * l.height:
+        return False
+    g2 = _gap(l, nxt) if nxt is not None else None
+    return g2 is not None and g2 < 0.5 * med and min(l.box[2], nxt.box[2]) > max(l.box[0], nxt.box[0])
+
+
 def _parse_item(L: list[Line], med: float, caps: set[int], ns: int, ti: int, nxt: int, end: int) -> Parsed:
     printed = " ".join(L[x].text for x in range(ti, nxt))
     t = _type_fields(printed)
     body: list[Line] = []
+    prev = L[nxt - 1]
+    first_column = True
+    margin = min(L[x].box[0] for x in range(ns, nxt) if L[x].page == prev.page)
     for x in range(nxt, end):
         if x in caps or _FURNITURE.match(L[x].text):
             continue
-        if _section_break(L, x, med):
+        below = L[x + 1] if x + 1 < len(L) else None
+        if _section_break(L, x, med) or (first_column and _leaves_inset(prev, L[x], below, margin, med)):
             break
+        # an inset sidebar is told by its own column only: once the text moves to another column or page
+        # (art captions, tables and quotes there set their own edges) the check stops
+        first_column = first_column and _gap(prev, L[x]) is not None
+        margin = min(margin, L[x].box[0])
+        prev = L[x]
         body.append(L[x])
     entries = _paragraphs(body) if body else []
     fields: dict = {"type": t["type"], "rarity": t["rarity"], "reqAttune": t["reqAttune"],

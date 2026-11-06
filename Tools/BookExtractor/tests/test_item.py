@@ -197,3 +197,16 @@ def test_sidebar_label_is_not_part_of_the_item_name():
     from bookextractor.parsers.item import _name
     assert _name("Magic Item: Infernal Tack") == "Infernal Tack"
     assert _name("MAGIC ITEM: GREATER SILVER SWORD") == "Greater Silver Sword"
+
+
+def test_sidebar_item_ends_where_the_column_text_resumes():
+    # MTF prints Greater Silver Sword in an inset sidebar; below it the column's githyanki lore resumes
+    # further left ("riders and fulfill their terms ..."), which is not part of the item
+    mtf = Path(__file__).parent / "fixtures" / "ocr" / "mtf"
+    src = []
+    for n in (90, 91):
+        src += reading_order(load_ocr_page(mtf / f"{n:03d}.json", n))
+    sword = next(p for p in parse_items(src) if p.name == "Greater Silver Sword")
+    assert sword.lines[-1].text == "body, instead of dealing damage."
+    assert "riders" not in sword.text and "Astral Skiff" not in sword.text
+    assert not failed(sword), failed(sword)
