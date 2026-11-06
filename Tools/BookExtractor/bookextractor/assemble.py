@@ -287,6 +287,16 @@ def _name_words_check(res, p: Parsed, vocab: Vocabulary) -> Check:
     return Check("name-words-known", True, why)
 
 
+def _text_present(p: Parsed) -> Check:
+    """`text-present`: at least 30 characters. A short table row ("Bell | 1 gp | -") has no other text than its
+    printed cells, so it passes when the row's own cell checks all pass; unreadable cells still fail."""
+    if len(p.text.strip()) >= 30:
+        return Check("text-present", True, "")
+    if p.table_row and p.text.strip() and p.checks and all(c.passed for c in p.checks):
+        return Check("text-present", True, "short table row: its printed cells are its whole text")
+    return Check("text-present", False, "entity text is empty or too short")
+
+
 def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) -> tuple[str, list[Check]]:
     p.fields = _repair_digits(p.fields)
     p.text = fix_digits(p.text)
@@ -320,8 +330,7 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
         checks.append(Check("name-words-known", False, "no name to check"))
     if p.type in _FEATURE_REFS:
         checks += _feature_name_checks(p, vocab)
-    checks.append(Check("text-present", len(p.text.strip()) >= 30, "" if len(p.text.strip()) >= 30
-                        else "entity text is empty or too short"))
+    checks.append(_text_present(p))
     bad = _numeric_problems(p.fields)
     checks.append(Check("numeric-clean", not bad, "" if not bad else "letters in numeric values: " + "; ".join(bad[:4])))
     page = p.lines[0].page if p.lines else 0

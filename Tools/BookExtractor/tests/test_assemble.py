@@ -713,3 +713,30 @@ def test_a_vehicle_stat_block_inside_its_magic_item_is_not_bleed():   # P10: App
     shared_text_checks([item, veh], [ik, vk], firsts=firsts, texts=[_texts(ik, 10, "Apparatus"), _texts(vk)])
     assert not next(c for c in veh["checks"] if c["name"] == "text-not-shared")["passed"]
     assert not next(c for c in item["checks"] if c["name"] == "text-not-shared")["passed"]
+
+
+def _short_row_checks(table_row, cell_ok):
+    from collections import Counter
+
+    from bookextractor.assemble import _id_and_checks
+    from bookextractor.checks import Check
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import Parsed
+    p = Parsed(type="Item", name="Bell", fields={}, text="Bell\n1 gp\n- lb.", lines=[],
+               checks=[Check("cost-read", cell_ok, "" if cell_ok else "cost cell blank")], table_row=table_row)
+    _e, checks = _id_and_checks(p, "phb14", Counter(), build_vocabulary(["a bell rings", "the bell"] * 3))
+    return {c.name: c for c in checks}
+
+
+def test_a_short_table_row_whose_cells_read_has_its_text():
+    # PHB "Bell | 1 gp | -": the row's printed cells are all the text the book has for it
+    c = _short_row_checks(table_row=True, cell_ok=True)["text-present"]
+    assert c.passed and "cells" in c.reason, c
+
+
+def test_a_short_table_row_whose_cells_fail_still_lacks_text():
+    assert not _short_row_checks(table_row=True, cell_ok=False)["text-present"].passed
+
+
+def test_a_short_prose_entity_still_lacks_text():
+    assert not _short_row_checks(table_row=False, cell_ok=True)["text-present"].passed
