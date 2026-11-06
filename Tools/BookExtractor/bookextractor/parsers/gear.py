@@ -64,6 +64,9 @@ _TITLES: dict[str, str | None] = {
     "food, drink, and lodging": "FD", "trade goods": "TG", "standard exchange rates": "$C", "explosives": "EXP|DMG",
     "tack, harness, and drawn vehicles": None,
 }
+# the "Tack, Harness, and Drawn Vehicles" table: a row naming one of the drawn vehicles is VEH, any other row
+# (bridles, saddles, barding, feed, stabling) TAH
+_DRAWN = {"carriage", "cart", "chariot", "sled", "wagon"}
 # a sub-heading naming a kind of gear -> its type code; any other sub-heading starts its rows' names
 _GROUPS = {"ammunition": "A", "arcane focus": "SCF", "druidic focus": "SCF", "holy symbol": "SCF",
            "artisan's tools": "AT", "gaming set": "GS", "musical instrument": "INS"}
@@ -157,6 +160,8 @@ def _table_item(r: Row, t: RowTable, suspect: str | None, title: str | None) -> 
         checks.append(_from_group(name, f"sub-heading {group!r}", r.label))
     f: dict = {}
     kind = _GROUPS.get(gkey) or (_TITLES.get(title) if title else None)
+    if title == "tack, harness, and drawn vehicles":
+        kind = "VEH" if _norm(name).split(",")[0].strip() in _DRAWN else "TAH"
     _set(f, "type", kind)
     if "cp" in raw and "Coin" in t.headers:
         if _WHOLE.match(raw["cp"]):

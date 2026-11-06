@@ -180,13 +180,18 @@ def test_tools_mounts_tack_and_vessels():
     assert t.fields["entries"][0].startswith("This set of tools includes a small file")
     assert get(ps, "Warhorse").fields == {"type": "MNT", "value": 40000}
     saddle = get(ps, "Saddle, exotic")
-    assert saddle.fields["value"] == 6000 and saddle.fields["weight"] == 40 and "type" not in saddle.fields
+    assert saddle.fields["value"] == 6000 and saddle.fields["weight"] == 40 and saddle.fields["type"] == "TAH"
     # "Saddles." names no row; the rows' names start "Saddle,"
     assert saddle.fields["entries"][0].startswith("A military saddle braces the rider")
     c = next(c for c in saddle.checks if c.name == "name-from-group")
     assert c.passed and "'Saddle'" in c.reason and "'Exotic'" in c.reason
     assert "name-from-group" not in {c.name for c in get(ps, "Saddlebags").checks}
     assert get(ps, "Galley").fields == {"type": "SHP", "value": 3000000}
+    # the "Tack, Harness, and Drawn Vehicles" table: a row naming a drawn vehicle is VEH, any other row tack
+    for name in ("Carriage", "Cart", "Chariot", "Sled", "Wagon"):
+        assert get(ps, name).fields["type"] == "VEH", name
+    for name in ("Bit and bridle", "Feed (per day)", "Saddlebags", "Stabling (per day)", "Barding"):
+        assert get(ps, name).fields["type"] == "TAH", name
     assert "Vehicles (land or water)" not in {p.name for p in ps}
 
 
