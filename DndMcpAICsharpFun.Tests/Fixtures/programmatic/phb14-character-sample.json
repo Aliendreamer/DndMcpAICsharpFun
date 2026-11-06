@@ -1,0 +1,428 @@
+{
+ "schemaVersion": "2",
+ "book": {
+  "sourceBook": "PHB",
+  "edition": "Edition2014",
+  "fileHash": "",
+  "displayName": "Player's Handbook 2014"
+ },
+ "entities": [
+  {
+   "id": "phb14.race.dwarf",
+   "type": "Race",
+   "name": "Dwarf",
+   "page": 21,
+   "canonicalText": "Dwarf TraIts\nYour dwarf character has an assortment of inborn\nabilities, part and parcel of dwarven nature.\nAbility Score Increase. Your Constitution score\nincreases by 2.\nAge. Dwarves mature at the same rate as humans, but\nthey're considered young until they reach the age of 50.\nOn average, they live about 350 years.\nAlignment. Most dwarves are lawful, believing firmly\nin the benefits of a well-ordered society. They tend\ntoward good as well, with a strong sense of fair play and\na belief that everyone deserves to share in the benefits of\na just order.\nSize. Dwarves stand between 4 and 5 feet tall and\naverage about 150 pounds. Your size is Medium.\nSpeed. Your base walking speed is 25 feet. Your\nspeed is not reduced by wearing heavy armor.\nDarkvision. Accustomed to life underground, you\nhave superior vision in dark and dim conditions. You\ncan see in dim light within 60 feet of you as if it were\nbright light, and in darkness as if it were dim light. You\ncan't discern color in darkness, only shades of gray.\nDwarven Resilience. You have advantage on saving\nthrows against poison, and you have resistance against\npoison damage (explained in chapter 9).\nDwarven Combat Training. You have proficiency\nwith the battleaxe, handaxe,throwing hammer,\nand warhammer.\nTool Proficiency. You gain proficiency with the\nartisan's tools of your choice: smith's tools, brewer's\nsupplies, or mason's tools.\nStonecunning. Whenever you make an Intelligence\n(History) check related to the origin of stonework, you\nare considered proficient in the History skill and add\ndouble your proficiency bonus to the check, instead of\nyour normal proficiency bonus.\nLanguages. You can speak, read, and write Common\nand Dwarvish. Dwarvish is full of hard consonants and\nguttural sounds, and those characteristics spill over into\nwhatever other language a dwarf might speak.\nSubrace. Two main subraces of dwarves populate the\nworlds of D&D: hill dwarves and mountain dwarves.\nChoose one of these subraces.",
+   "fields": {
+    "size": [
+     "M"
+    ],
+    "speed": 25,
+    "ability": [
+     {
+      "con": 2
+     }
+    ],
+    "darkvision": 60,
+    "entries": [
+     {
+      "type": "entries",
+      "name": "Age",
+      "entries": [
+       "Dwarves mature at the same rate as humans, but they're considered young until they reach the age of 50. On average, they live about 350 years."
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Alignment",
+      "entries": [
+       "Most dwarves are lawful, believing firmly in the benefits of a well-ordered society. They tend toward good as well, with a strong sense of fair play and a belief that everyone deserves to share in the benefits of a just order."
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Size",
+      "entries": [
+       "Dwarves stand between 4 and 5 feet tall and average about 150 pounds. Your size is Medium."
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Speed",
+      "entries": [
+       "Your base walking speed is 25 feet. Your speed is not reduced by wearing heavy armor."
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Darkvision",
+      "entries": [
+       "Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray."
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Dwarven Resilience",
+      "entries": [
+       "You have advantage on saving throws against poison, and you have resistance against poison damage (explained in chapter 9)."
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Dwarven Combat Training",
+      "entries": [
+       "You have proficiency with the battleaxe, handaxe,throwing hammer, and warhammer."
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Tool Proficiency",
+      "entries": [
+       "You gain proficiency with the artisan's tools of your choice: smith's tools, brewer's supplies, or mason's tools."
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Stonecunning",
+      "entries": [
+       "Whenever you make an Intelligence (History) check related to the origin of stonework, you are considered proficient in the History skill and add double your proficiency bonus to the check, instead of your normal proficiency bonus."
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Languages",
+      "entries": [
+       "You can speak, read, and write Common and Dwarvish. Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak."
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Subrace",
+      "entries": [
+       "Two main subraces of dwarves populate the worlds of D&D: hill dwarves and mountain dwarves. Choose one of these subraces."
+      ]
+     }
+    ]
+   },
+   "checks": [
+    {
+     "name": "ability-increase-parsed",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "size-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "speed-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 21,
+      "boxes": [
+       {
+        "x0": 123.05638885498047,
+        "y0": 814.7721557617188,
+        "x1": 762.2962646484375,
+        "y1": 1699.3507080078125
+       },
+       {
+        "x0": 817.8349609375,
+        "y0": 104.70967102050781,
+        "x1": 1450.5408935546875,
+        "y1": 570.4495849609375
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "phb14.subrace.dwarf-hill-dwarf",
+   "type": "Subrace",
+   "name": "Hill Dwarf",
+   "page": 21,
+   "canonicalText": "Hill Dwarf\nAs a hill dwarf, you have keen senses, deep intuition,\nand remarkable resilience. The gold dwarves of Faer\u00fbn\nin their mighty southern kingdom are hill dwarves, as\nare the exiled Neidar and the debased Klar of Krynn in\nthe Dragonlance setting.\nAbility Score Increase. Your Wisdom score\nincreases by 1.\nDwarven Toughness. Your hit point maximum\nincreases by 1, and it increases by 1 every time you\ngain a level.",
+   "fields": {
+    "raceName": "Dwarf",
+    "raceSource": "PHB",
+    "ability": [
+     {
+      "wis": 1
+     }
+    ],
+    "darkvision": null,
+    "entries": [
+     {
+      "type": "entries",
+      "name": "Dwarven Toughness",
+      "entries": [
+       "Your hit point maximum increases by 1, and it increases by 1 every time you gain a level."
+      ]
+     }
+    ]
+   },
+   "checks": [
+    {
+     "name": "ability-increase-parsed",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "parent-race-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 21,
+      "boxes": [
+       {
+        "x0": 818.9239501953125,
+        "y0": 593.3547973632812,
+        "x1": 1441.828857421875,
+        "y1": 939.1148681640625
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "phb14.feat.alert",
+   "type": "Feat",
+   "name": "Alert",
+   "page": 166,
+   "canonicalText": "ALERT\nAlways on the lookout for danger, you gain the\nfollowing benefits:\n\u2022 You gain a +5 bonus to initiative.\nYou can't be surprised while you are conscious.\n\u2022 Other creatures don't gain advantage on attack rolls\nagainst you as a result of being hidden from you.",
+   "fields": {
+    "entries": [
+     "Always on the lookout for danger, you gain the following benefits:",
+     {
+      "type": "list",
+      "items": [
+       "You gain a +5 bonus to initiative.",
+       "You can't be surprised while you are conscious.",
+       "Other creatures don't gain advantage on attack rolls against you as a result of being hidden from you."
+      ]
+     }
+    ]
+   },
+   "checks": [
+    {
+     "name": "prerequisite-parsed",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 166,
+      "boxes": [
+       {
+        "x0": 148.9130401611328,
+        "y0": 1535.557373046875,
+        "x1": 753.2608642578125,
+        "y1": 1787.4676513671875
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "phb14.background.acolyte",
+   "type": "Background",
+   "name": "Acolyte",
+   "page": 128,
+   "canonicalText": "Acolyte\nYou have spent your life in the service of a temple\nto a specific god or pantheon of gods. You act as an\nintermediary between the realm of the holy and the\nmortal world, performing sacred rites and offering\nsacrifices in order to conduct worshipers into the\npresence of the divine. You are not necessarily a\ncleric-performing sacred rites is not the same thing as\nchanneling divine power.\nChoose a god, a pantheon of gods, or some other\nquasi-divine being from among those listed in appendix\nB or those specified by your DM, and work with your\nDM to detail the nature of your religious service.\nWere you a lesser functionary in a temple, raised from\nchildhood to assist the priests in the sacred rites? Or\nwere you a high priest who suddenly experienced a call\nto serve your god in a different way? Perhaps you were\nthe leader of a small cult outside of any established\ntemple structure, or even an occult group that served a\nfiendish master that you now deny.\nSkill Proficiencies: Insight, Religion\nLanguages: Two of your choice\nEquipment: A holy symbol (a gift to you when you\nentered the priesthood), a prayer book or prayer\nwheel, 5 sticks of incense, vestments, a set of common\nclothes, and a belt pouch containing 15 gp\nFeature: Shelter of the Faithful\nAs an acolyte, you command the respect of those who\nshare your faith, and you can perform the religious\nceremonies of your deity. You and your adventuring\ncompanions can expect to receive free healing and\ncare at a temple, shrine, or other established presence\nof your faith, though you must provide any material\ncomponents needed for spells. Those who share\nyour religion will support you (but only you) at a\nmodest lifestyle.\nYou might also have ties to a specific temple dedicated\nto your chosen deity or pantheon, and you have a\nresidence there. This could be the temple where you\nused to serve, if you remain on good terms with it, or a\ntemple where you have found a new home. While near\nyour temple, you can call upon the priests for assistance,\nprovided the assistance you ask for is not hazardous and\nyou remain in good standing with your temple.",
+   "fields": {
+    "skillProficiencies": [
+     {
+      "insight": true,
+      "religion": true
+     }
+    ],
+    "languageProficiencies": [
+     {
+      "anyStandard": 2
+     }
+    ],
+    "entries": [
+     {
+      "type": "list",
+      "style": "list-hang-notitle",
+      "items": [
+       {
+        "type": "item",
+        "name": "Skill Proficiencies:",
+        "entry": "Insight, Religion"
+       },
+       {
+        "type": "item",
+        "name": "Languages:",
+        "entry": "Two of your choice"
+       },
+       {
+        "type": "item",
+        "name": "Equipment:",
+        "entry": "A holy symbol (a gift to you when you entered the priesthood), a prayer book or prayer wheel, 5 sticks of incense, vestments, a set of common clothes, and a belt pouch containing 15 gp"
+       }
+      ]
+     },
+     {
+      "type": "entries",
+      "name": "Feature: Shelter of the Faithful",
+      "entries": [
+       "As an acolyte, you command the respect of those who share your faith, and you can perform the religious ceremonies of your deity. You and your adventuring companions can expect to receive free healing and care at a temple, shrine, or other established presence of your faith, though you must provide any material components needed for spells. Those who share your religion will support you (but only you) at a modest lifestyle.",
+       "You might also have ties to a specific temple dedicated to your chosen deity or pantheon, and you have a residence there. This could be the temple where you used to serve, if you remain on good terms with it, or a temple where you have found a new home. While near your temple, you can call upon the priests for assistance, provided the assistance you ask for is not hazardous and you remain in good standing with your temple."
+      ],
+      "data": {
+       "isFeature": true
+      }
+     }
+    ]
+   },
+   "checks": [
+    {
+     "name": "skills-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "languages-valid",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "feature-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-found",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "name-words-known",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "text-present",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "numeric-clean",
+     "passed": true,
+     "reason": ""
+    },
+    {
+     "name": "unique-id",
+     "passed": true,
+     "reason": ""
+    }
+   ],
+   "provenance": {
+    "pages": [
+     {
+      "page": 128,
+      "boxes": [
+       {
+        "x0": 144.56521606445312,
+        "y0": 217.06149291992188,
+        "x1": 781.521728515625,
+        "y1": 1645.5015869140625
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}
