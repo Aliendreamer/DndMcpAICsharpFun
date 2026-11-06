@@ -99,3 +99,7 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | phb | 159 | Food, Drink, and Lodging table (sub-heading rows Ale, Inn stay (per day), Meals (per day), Wine) |
 | dmg | 134, 135 | Gemstone and art object tables ("d12 \| Stone Description" under "10 gp Gemstones"; the die header OCR'd as "OLP") |
 | scag | 125 | "MUSICAL INSTRUMENTS" heading over "Name: description" lead-ins across both columns, a "CHAPTER 4 \| CLASSES" running foot between them |
+| dmg | 119 | Airborne and Waterborne Vehicles table (one OCR line per cell, dashes dropped on the right, the "Sailing ship" label lost) |
+| dmg | 151 | Apparatus of Kwalish: "is a Large object with the following statistics:" block with a Speed (an OBJECT vehicle) |
+| dmg | 255, 256 | Siege Equipment stat blocks (Ballista ... Trebuchet; Cannon's description continuing in the next column) |
+| mtf | 090, 091 | Githyanki astral ships described in prose (crew, passengers, speed, size as sentences) |

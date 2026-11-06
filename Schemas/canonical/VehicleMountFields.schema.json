@@ -16,6 +16,15 @@
     "wis": { "type": ["integer", "null"], "format": "int32" },
     "cha": { "type": ["integer", "null"], "format": "int32" },
     "hp": { "type": ["object", "null"], "additionalProperties": true },
-    "ac": { "type": ["array", "null"], "items": { "type": ["integer", "object"] } }
+    "ac": { "type": ["array", "null"], "items": { "type": ["integer", "object"] } },
+    "size": { "type": ["null", "string"] },
+    "immune": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "cost": { "type": ["integer", "null"], "format": "int32" },
+    "pace": { "type": ["number", "object", "null"] },
+    "capCrew": { "type": ["integer", "null"], "format": "int32" },
+    "capPassenger": { "type": ["integer", "null"], "format": "int32" },
+    "capCargo": { "type": ["number", "null"] },
+    "dimensions": { "type": ["array", "null"], "items": { "type": "string" } },
+    "hull": { "type": ["object", "null"], "additionalProperties": true }
   }
 }
