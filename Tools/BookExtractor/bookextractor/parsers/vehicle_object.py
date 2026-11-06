@@ -378,23 +378,65 @@ def _prose_heading(L: list[Line], i: int) -> bool:
         (i == 0 or L[i - 1].text.rstrip().endswith(SENTENCE_END))
 
 
+def _jump(a: Line, b: Line) -> bool:
+    return b.page != a.page or b.box[1] < a.box[1] - a.height
+
+
+def _prose_section(L: list[Line], h: int, e: int) -> tuple[int, list[str]]:
+    """(end, problems) of the prose under heading L[h], before the next heading at e. The section is set at one
+    size in one column: it stops at a column or page jump after a finished sentence, or at a line set at another
+    size (a quote or art text, set much larger: MTF p92 "I have been to Tunarath ..."). Stopping mid-sentence is a
+    problem: the section did not end cleanly."""
+    med = median(l.height for l in L[h + 1:min(e, h + 5)])
+    j = h + 1
+    while j < e:
+        a, b = L[j - 1], L[j]
+        if not 0.7 * med <= b.height <= 1.4 * med:
+            break
+        if j > h + 1 and _jump(a, b) and a.text.rstrip().endswith(SENTENCE_END):
+            break
+        j += 1
+    bad = []
+    if not L[j - 1].text.rstrip().endswith(SENTENCE_END):
+        stop = f"before {L[j].text.strip()!r}" if j < len(L) else "at the end of the text read"
+        bad.append(f"the section ends mid-sentence ({L[j - 1].text.strip()!r}, {stop})")
+    return j, bad
+
+
+def _one(rx: re.Pattern, text: str, what: str, bad: list[str]) -> re.Match | None:
+    """The one statement of a figure; printed with different values, it is none and a problem."""
+    ms = list(rx.finditer(text))
+    if len({m.group(1).lower() for m in ms}) > 1:
+        bad.append(f"{what} printed as {', '.join(repr(m.group(1)) for m in ms)}")
+        return None
+    return ms[0] if ms else None
+
+
 def _prose_vehicles(L: list[Line]) -> list[Parsed]:
+    """A heading whose prose states a crew and a speed. `vehicle-stats-valid` fails when the crew, the speed or
+    the passengers are stated with different values, or the section does not end cleanly."""
     heads = [i for i in range(len(L)) if _prose_heading(L, i)]
     out = []
     for k, h in enumerate(heads):
         e = heads[k + 1] if k + 1 < len(heads) else len(L)
         if e - h > 25 or e - h < 3:
             continue
+        e, bad = _prose_section(L, h, e)
         paras = _paragraphs(L, h + 1, e)
         text = " ".join(paras)
-        crew, pace = _CREW.search(text), _PACE.search(text)
-        if not (crew and pace and _count(crew.group(1))):
+        if not (_CREW.search(text) and _PACE.search(text)):
             continue
-        f: dict = {"capCrew": _count(crew.group(1))}
-        pas = _PASSENGERS.search(text)
+        crew, pace = _one(_CREW, text, "crew", bad), _one(_PACE, text, "speed", bad)
+        pas = _one(_PASSENGERS, text, "passengers", bad)
+        if crew and not _count(crew.group(1)):
+            continue
+        f: dict = {}
+        if crew:
+            f["capCrew"] = _count(crew.group(1))
         if pas:
             _set(f, "capPassenger", _count(pas.group(1)))
-        f["pace"] = int(pace.group(1))
+        if pace:
+            f["pace"] = int(pace.group(1))
         lw, wl = _LONG_WIDE.search(text), _WIDE_LONG.search(text)
         if lw:
             f["dimensions"] = [f"{lw.group(1)} ft.", f"{lw.group(2)} ft."]
@@ -403,8 +445,10 @@ def _prose_vehicles(L: list[Line]) -> list[Parsed]:
         f["entries"] = paras
         name = tidy_case(_title(L[h].text.strip())) if _is_heading_caps(L[h].text.strip()) else \
             tidy_case(L[h].text.strip())
+        check = Check("vehicle-stats-valid", not bad, f"unreadable statistics of {name!r}: {'; '.join(bad)}"
+                      if bad else "")
         out.append(Parsed(type="VehicleMount", name=name, fields=f, text=f"{name}. {text}", lines=L[h:e],
-                          checks=[Check("vehicle-stats-valid", True)]))
+                          checks=[check]))
     return out
 
 

@@ -16,8 +16,8 @@ SCHEMAS = Path(__file__).parents[3] / "Schemas" / "canonical"
 BOOKS = {
     # 119: Airborne and Waterborne Vehicles table; 151: Apparatus of Kwalish; 255-256: Siege Equipment
     "dmg": ("dmg14", "DMG", [119, 151, 255, 256]),
-    # 090-091: githyanki astral ships described in prose
-    "mtf": ("mtf", "MTF", [90, 91]),
+    # 090-091: githyanki astral ships described in prose; 092: a large-type quote after Planar Raider
+    "mtf": ("mtf", "MTF", [90, 91, 92]),
     # 073: the Skyship heading over "Purchase Cost: / Speed: / Maximum Cargo: / Crew: ..." lines
     "egw": ("egw", "EGW", [73]),
 }
@@ -128,6 +128,32 @@ def test_prose_vehicles_read_their_stated_crew_passengers_and_speed():
     assert raider.fields["capCrew"] == 10 and "capPassenger" not in raider.fields
     assert raider.fields["dimensions"] == ["120 ft.", "40 ft."]  # printed "40 feet wide and 120 feet long"
     assert all(failed(p) == [] for p in vs)
+
+
+def test_prose_vehicle_section_ends_at_the_column_before_the_next_page_quote():
+    # p092 opens with a quote set in large type ("I have been to Tunarath. ...") and OCR debris ("a vsibe"):
+    # not the ship's text, which ends at p091's column bottom
+    raider = get(vehicles("mtf"), "Planar Raider")
+    assert raider.fields["entries"][-1].endswith("is equipped with three ballistae and a catapult.")
+    assert "Tunarath" not in raider.text and "vsibe" not in raider.text
+    assert {l.page for l in raider.lines} == {91}
+    assert failed(raider) == []
+
+
+def test_prose_vehicle_printing_two_crews_fails():
+    pages = _edit("mtf", 91, "is equipped with three ballistae and a catapult.",
+                  "is equipped with a crew of four and a catapult.")
+    raider = get(_run(parse_vehicles, "mtf", pages), "Planar Raider")
+    c = [c for c in failed(raider) if c.name == "vehicle-stats-valid"]
+    assert c and "crew" in c[0].reason and "ten" in c[0].reason and "four" in c[0].reason
+
+
+def test_prose_vehicle_section_ending_mid_sentence_fails():
+    # the column ends mid-sentence and the next page's text is set in another size: the section cannot end cleanly
+    pages = _edit("mtf", 91, "is equipped with three ballistae and a catapult.", "is equipped with three ballistae and")
+    raider = get(_run(parse_vehicles, "mtf", pages), "Planar Raider")
+    c = [c for c in failed(raider) if c.name == "vehicle-stats-valid"]
+    assert c and "mid-sentence" in c[0].reason
 
 
 # ---------- spec scenario: a siege object with its printed stat block ----------

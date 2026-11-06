@@ -103,6 +103,7 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | dmg | 151 | Apparatus of Kwalish: "is a Large object with the following statistics:" block with a Speed (an OBJECT vehicle) |
 | dmg | 255, 256 | Siege Equipment stat blocks (Ballista ... Trebuchet; Cannon's description continuing in the next column) |
 | mtf | 090, 091 | Githyanki astral ships described in prose (crew, passengers, speed, size as sentences) |
+| mtf | 092 | A large-type quote and its OCR debris at the top of the page after Planar Raider (the ship's section ends at p091's column) |
 | phb | 122 | "CHaPter 4: Personality And Background" chapter heading (set taller than the text), for the chapter-bounded description join |
 | dmg | 105, 106 | Dungeon Hazards (Brown Mold ... Yellow Mold; sub-headings in mixed OCR casing), ending at the WILDERNESS chapter heading |
 | dmg | 109, 110, 111 | Weather (its table first, Extreme Cold heading a new page), High Altitude (a section of its own), Wilderness Hazards to Thin Ice, then FORAGING |
