@@ -438,10 +438,9 @@ def money_check(amounts: list[str], name: str, where: str) -> Check:
 
 
 def price_amounts(text: str, name: str) -> list[str]:
-    """The prices a description prints for its subject: a bracketed amount ("(100 gp)"), "Cost: N gp" or "<name>
-    is valued at N gp". An amount in passing ("set with a 50 gp gem") is none."""
-    amount = r"(?:\d{1,3}(?:,\d{3})+|\d+)\s*(?:cp|sp|ep|gp|pp)\b"
-    out = [m.group(1) for m in re.finditer(rf"\(\s*({amount})\s*\)", text, re.I)]
+    """The prices a description prints for its subject: any amount inside brackets ("(100 gp)", "(or 50 gp used)"),
+    "Cost: N gp" or "<name> is valued at N gp". An amount in passing ("set with a 50 gp gem") is none."""
+    out = [a.group(0) for m in re.finditer(r"\(([^()]*)\)", text) for a in _MONEY.finditer(m.group(1))]
     for m in re.finditer(rf"\bCost:\s*([^.]*)|\b{re.escape(name)}\s+(?:is|are)\s+valued at\s+([^.]*)", text, re.I):
         out += [a.group(0) for a in _MONEY.finditer(m.group(1) or m.group(2) or "")]
     return out

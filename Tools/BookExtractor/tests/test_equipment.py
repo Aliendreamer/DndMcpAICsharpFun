@@ -284,7 +284,7 @@ def test_erlw_double_bladed_scimitar_described_in_prose():
 
 def test_prose_weapon_with_two_prices_leaves_the_value_to_review():
     pages = _edit("erlw", 22, "to purchase one. A Valenar blade in the hands of a non-",
-                  "to purchase one (50 gp). A Valenar blade in the hands of a non-", pages=_pages("erlw"))
+                  "to purchase one (or 50 gp used). A Valenar blade in the hands of a non-", pages=_pages("erlw"))
     w = _run(parse_weapons, "erlw", pages)[0]
     assert "value" not in w.fields and [c.name for c in failed(w)] == ["cost-valid"]
 
