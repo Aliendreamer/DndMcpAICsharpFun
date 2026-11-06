@@ -19,6 +19,8 @@ BOOKS = {
     "phb": ("phb14", "PHB", [122, 128, 144, 149, 150, 151, 152, 153, 154, 155, 156, 158, 159]),
     "dmg": ("dmg14", "DMG", [134, 135, 268]),
     "scag": ("scag", "SCAG", [125]),
+    "egw": ("egw", "EGW", [71, 153, 226]),
+    "erlw": ("erlw", "ERLW", [245]),
 }
 
 
@@ -249,6 +251,54 @@ def test_instrument_words_in_a_proficiency_line_are_not_a_list_heading():
     body = [ln("Tool Proficiencies: Disguise kit, one type of", 100), ln("musical instrument", 132, 130),
             ln("Saving Throws: Strength, Dexterity", 164), ln("Skills: Choose two", 196)]
     assert parse_items_mundane(body, ParseContext(slug="phb14", source="PHB", pages={})) == []
+
+
+# ---------- goods sidebars: lead-ins under a heading naming a kind of goods ----------
+def test_egw_herbs_contraband_and_alchemical_items():
+    """EGW "Herbs of the Othemoor" (p.70, "Cost: 3 gp per dose."), "Blightshore Contraband" (p.152, "Black sap is
+    valued at 300 gp per dose.") and "Alchemical Items" (p.225, no price) sidebars: each lead-in is an Item."""
+    ps = items("egw")
+    assert sorted(p.name for p in ps) == ["Black Sap", "Blasting Powder", "Blight Ichor", "Explosive Seed",
+                                          "Muroosa Balm", "Olisuba Leaf", "Soothsalts", "Theki Root",
+                                          "Willowshade Oil"]
+    want = {"Theki Root": 300, "Olisuba Leaf": 5000, "Willowshade Oil": 3000, "Black Sap": 30000,
+            "Blight Ichor": 20000, "Soothsalts": 15000}
+    for name, value in want.items():
+        assert get(ps, name).fields.get("value") == value, name
+        assert failed(get(ps, name)) == [], name
+    t = get(ps, "Theki Root")
+    assert "type" not in t.fields and t.fields["entries"][0].startswith("This thick marsh root tastes bitter")
+    assert t.fields["entries"][-1].endswith("Cost: 3 gp per dose.")
+    for name in ("Blasting Powder", "Explosive Seed"):
+        assert "value" not in get(ps, name).fields and failed(get(ps, name)) == []
+    assert get(ps, "Explosive Seed").fields["entries"][0].endswith("half as much damage on a successful one.")
+
+
+def test_two_prices_in_a_cost_sentence_go_to_review():
+    """Muroosa Balm: "Cost: 1 gp per dose for sunburn, 100 gp for a full application against fire." names two
+    prices: no value, and the entity goes to review."""
+    m = get(items("egw"), "Muroosa Balm")
+    assert "value" not in m.fields
+    assert [c.name for c in failed(m)] == ["cost-valid"] and "1 gp" in failed(m)[0].reason
+
+
+def test_erlw_narcotics_sidebar():
+    ps = items("erlw")
+    assert sorted(p.name for p in ps) == ["Dragon's Blood", "Dreamlily"]
+    d = get(ps, "Dreamlily")
+    assert "value" not in d.fields and failed(d) == []  # "costs around 1 gp, or up to ten times that": no Cost cue
+    assert d.fields["entries"][-1].endswith("the duration or the price might vary accordingly.")
+    assert get(ps, "Dragon's Blood").fields["entries"][0].startswith("Introduced into Sharn by Daask")
+
+
+def test_lead_in_continuing_a_sentence_is_not_an_item():
+    """"Sharn. The following drugs ..." continues the sentence above it: not a lead-in."""
+    assert "Sharn" not in [p.name for p in items("erlw")]
+
+
+def test_goods_word_in_a_heading_that_names_no_goods_kind_is_ignored():
+    pages = _edit("erlw", 245, "NaRCotICS in ShaRn", "Crime in Sharn", pages=_pages("erlw"))
+    assert _run("erlw", pages) == []
 
 
 # ---------- schema ----------

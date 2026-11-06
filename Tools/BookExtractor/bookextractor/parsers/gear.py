@@ -42,8 +42,9 @@ from ..model import Line, Page
 from ..tables import Row, RowTable, read_row_tables
 from . import ParseContext, Parsed
 from .charcommon import SENTENCE_END, indented, prose_entries, title_case
-from .equipment import (ARMOR_HEADERS, WEAPON_HEADERS, _rows, _table_checks, _weapon_tables, cost_check, cost_value,
-                        weight_check, weight_value)
+from .equipment import (_MONEY, ARMOR_HEADERS, WEAPON_HEADERS, _rows, _table_checks, _weapon_tables, cost_check,
+                        cost_value, is_heading, money_check, weight_check, weight_value)
+from .monster import _join_text
 
 # (headers, label column); a more specific header set first: ["Item", "Cost"] also matches the wider tables
 _TABLES: list[tuple[list[str], int]] = [
@@ -486,6 +487,68 @@ def _instrument_lists(L: list[Line]) -> list[Parsed]:
     return out
 
 
+# ---------- goods sidebars ----------
+# a heading naming a kind of goods sold as doses or pouches: its lead-ins are Items (EGW "Herbs of the Othemoor",
+# "Blightshore Contraband", "Alchemical Items"; ERLW "Narcotics in Sharn")
+_GOODS = re.compile(r"\b(narcotics|drugs|herbs|contraband|alchemical items)\b", re.I)
+
+
+def _section_end(L: list[Line], i: int) -> int:
+    """The end of the section under the heading at i: the next heading, or the end of the column (a sidebar's
+    text stops there; the next column goes on with other text)."""
+    for j in range(i + 1, len(L)):
+        a, b = L[j - 1], L[j]
+        if b.page != a.page or b.box[1] < a.box[1] - a.height or is_heading(L, j):
+            return j
+    return len(L)
+
+
+def _price(name: str, text: str) -> tuple[list[str], str] | None:
+    """(amounts, cue) of the price a goods paragraph prints: "Cost: 3 gp per dose." or "Black sap is valued at
+    300 gp per dose." (the paragraph's own name as the subject). None when it prints neither."""
+    m = re.search(r"\bCost:\s*([^.]*)", text) or \
+        re.search(rf"\b{re.escape(name)}\s+(?:is|are)\s+valued at\s+([^.]*)", text, re.I)
+    if not m:
+        return None
+    return [a.group(0) for a in _MONEY.finditer(m.group(1))], m.group(0)
+
+
+def _goods_sections(L: list[Line]) -> list[Parsed]:
+    """Under a heading naming a kind of goods, each lead-in paragraph ("Theki Root. This thick marsh root ...") is
+    an Item. A lead-in starts a line after one ending a sentence (a word ending a wrapped sentence, "Sharn. The
+    following drugs", is not one). The value is the one price after "Cost:" or "<name> is valued at"; a paragraph
+    with no such cue prints no price, and one whose cue names several prices goes to review."""
+    out: list[Parsed] = []
+    for i, l in enumerate(L):
+        if not (_GOODS.search(l.text) and is_heading(L, i)):
+            continue
+        end = _section_end(L, i)
+        starts = [k for k in range(i + 1, end) if (m := _LEAD.match(L[k].text.strip())) and
+                  len(m.group("name").split()) <= 6 and not m.group("paren") and
+                  L[k - 1].text.rstrip().endswith(SENTENCE_END)]
+        for n, s in enumerate(starts):
+            e = starts[n + 1] if n + 1 < len(starts) else end
+            m = _LEAD.match(L[s].text.strip())
+            name = m.group("name")
+            ents = _entries(L, s, e, m.group("rest"))
+            f: dict = {}
+            checks: list[Check] = []
+            price = _price(name, _join_text([L[s].text.strip()] + [x.text.strip() for x in L[s + 1:e]]))
+            if price:
+                amounts, cue = price
+                if len(amounts) == 1:
+                    f["value"] = cost_value(amounts[0])
+                checks.append(money_check(amounts, name, f"the price {cue!r}"))
+            f["entries"] = ents
+            p = Parsed(type="Item", name=name, fields=f,
+                       text="\n".join([name] + [x if isinstance(x, str) else "\n".join(x.get("items", []))
+                                                for x in ents]), lines=L[s:e])
+            p.checks = checks + [Check("entries-read", bool(ents), "" if ents else f"no description read for "
+                                                                                    f"{name!r}")]
+            out.append(p)
+    return out
+
+
 def parse_items_mundane(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     """Mundane Items from every item table, treasure table, pack paragraph and instrument list in the book."""
     table_items: list[tuple[Parsed, int]] = []
@@ -504,4 +567,4 @@ def parse_items_mundane(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         out += _treasure(page)
     L = _outside_tables(body, _table_boxes(ctx))
     _join(table_items, L, _chapters(L), _page_chapters(body))
-    return [p for p, _ in table_items] + out + _packs(L) + _instrument_lists(L)
+    return [p for p, _ in table_items] + out + _packs(L) + _instrument_lists(L) + _goods_sections(L)
