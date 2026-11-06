@@ -15,6 +15,10 @@ SCHEMAS = Path(__file__).parents[3] / "Schemas" / "canonical"
 BOOKS = {
     "phb": ("phb14", "PHB", [19, 20, 21, 22]),
     "mpmm": ("mpmm", "MPMM", [5, 21, 22]),
+    "mtf": ("mtf", "MTF", [22, 23, 24, 62, 63, 64, 82]),
+    "erlw": ("erlw", "ERLW", [42, 44]),
+    "dmg": ("dmg14", "DMG", [282, 285, 286, 287]),
+    "tce": ("tce", "TCE", [8, 9]),
 }
 
 
@@ -172,3 +176,71 @@ def test_speed_modes_after_an_options_trait_still_count():
               ("Wings", "You have a flying speed equal to your walking speed."),
               ("Fins", "You have a swimming speed of 30 feet.")]
     assert _modes(traits) == {"fly": True, "swim": 30}
+
+
+# ---------- fix round 9d ----------
+TIEFLING_SUBRACES = {"Baalzebul": {"int": 1, "cha": 2}, "Dispater": {"dex": 1, "cha": 2},
+                     "Fierna": {"wis": 1, "cha": 2}, "Glasya": {"dex": 1, "cha": 2},
+                     "Levistus": {"con": 1, "cha": 2}, "Mammon": {"int": 1, "cha": 2},
+                     "Mephistopheles": {"int": 1, "cha": 2}, "Zariel": {"str": 1, "cha": 2}}
+
+
+def test_mtf_tiefling_subraces_take_their_race_from_the_enclosing_subraces_heading():
+    for name, ability in TIEFLING_SUBRACES.items():
+        s = get(name, "Subrace", book="mtf")
+        assert s is not None, name
+        assert s.fields["raceName"] == "Tiefling" and s.fields["raceSource"] == "PHB", (name, s.fields["raceName"])
+        assert s.fields["ability"] == [ability] and not failed(s), (name, failed(s))
+
+
+def test_mtf_asmodeus_prints_no_traits_so_it_is_not_a_subrace():
+    assert "Asmodeus" not in names("Subrace", book="mtf")
+
+
+def test_mtf_elf_subraces_take_their_race_from_the_enclosing_subraces_heading():
+    for name, ability in {"Eladrin": {"cha": 1}, "Sea Elf": {"con": 1}, "Shadar-Kai": {"con": 1}}.items():
+        s = get(name, "Subrace", book="mtf")
+        assert s is not None, name
+        assert s.fields["raceName"] == "Elf" and s.fields["ability"] == [ability] and not failed(s), name
+
+
+def test_mtf_duergar_prints_no_parent_race_heading_and_stays_flagged():
+    d = get("Duergar", "Subrace", book="mtf")
+    assert d.fields["raceName"] is None
+    assert not check(d.checks, "parent-race-known").passed
+
+
+def test_erlw_mark_of_finding_is_one_subrace_per_printed_race():
+    marks = [p for p in parse("erlw") if p.type == "Subrace" and p.name == "Mark of Finding"]
+    assert sorted(p.fields["raceName"] for p in marks) == ["Half-Orc", "Human"]
+    for p in marks:
+        assert p.fields["ability"] == [{"con": 1, "wis": 2}] and not failed(p), failed(p)
+        jsonschema.validate(p.fields, schema("SubraceFields"))
+
+
+def test_erlw_mark_of_healing_reads_past_an_art_credit_inside_the_ability_line():
+    h = get("Mark of Healing", "Subrace", book="erlw")
+    assert h.fields["raceName"] == "Halfling" and h.fields["ability"] == [{"wis": 1}] and not failed(h), failed(h)
+
+
+def test_dmg_eladrin_example_subrace_names_its_race_in_print():
+    e = get("Eladrin", "Subrace", book="dmg")
+    assert e.fields["raceName"] == "Elf" and e.fields["ability"] == [{"int": 1}] and not failed(e), failed(e)
+    assert "speed" not in e.fields and "Aasimar" not in e.text
+
+
+def test_dmg_example_race_takes_its_name_from_the_example_race_heading():
+    assert "" not in names("Race", book="dmg")
+    a = get("Aasimar", "Race", book="dmg")
+    assert a.fields["ability"] == [{"wis": 1, "cha": 2}] and a.fields["size"] == ["M"]
+    assert a.fields["speed"] == 30 and a.fields["darkvision"] == 60 and not failed(a), failed(a)
+
+
+def test_tce_custom_lineage_is_a_race_named_by_its_heading():
+    c = get("Custom Lineage", "Race", book="tce")
+    assert c is not None
+    assert c.fields["size"] == ["S", "M"] and c.fields["speed"] == 30
+    assert c.fields["ability"] == [{"choose": {"from": ["str", "dex", "con", "int", "wis", "cha"], "count": 1,
+                                                "amount": 2}}]
+    assert not failed(c), failed(c)
+    jsonschema.validate(c.fields, schema("RaceFields"))

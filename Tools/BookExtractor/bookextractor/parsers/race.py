@@ -51,6 +51,11 @@ _ORDER = list(ABILITIES.values())
 _MODES = {"flying": "fly", "swimming": "swim", "climbing": "climb", "burrowing": "burrow"}
 _CONDITIONAL = re.compile(r"\b(?:until|while|when|whenever|if|for \d+ (?:minute|hour)s?)\b", re.I)
 _OPTIONS = re.compile(r"\bof the following(?: options)?\b", re.I)
+_ENCLOSE = 1.2  # a "<Race> Subraces" heading this much taller than the headings under it encloses them
+_ENCLOSE_REACH = 700  # lines searched back from a subrace heading for its enclosing "<Race> Subraces" heading
+_PROSE_REACH = 15  # lines before a subrace heading searched for "an elf subrace: the eladrin"
+_EXAMPLE_RACE = re.compile(r"^.*?\brace\s*:\s*(.+)$", re.I)  # DMG "Example Race: Aasimar"
+_ART_CREDIT = re.compile(r"^(?:[A-Z][A-Z'.]+\s+){2,}(?=[a-z])")  # "RON LEMEN creases by 1." after "in-"
 # the races a subrace printed outside its race's chapter may name (the PHB races)
 CORE_RACES = ("Dragonborn", "Dwarf", "Elf", "Gnome", "Half-Elf", "Half-Orc", "Halfling", "Human", "Tiefling")
 
@@ -76,16 +81,58 @@ def _book(L: list[Line]) -> _Book:
     med = {p: statistics.median(h) for p, h in by_page.items()}
     labels: list[str | None] = []
     heads: list[bool] = []
+    cand = [_label(l.text) for l in L]
+    hanging = _hanging_run(L, cand)
     for i, l in enumerate(L):
         t = l.text.strip()
-        m = _TRAIT.match(t)
-        lab = m.group(1).strip() if m else ""
-        ok = bool(m) and 0 < len(lab.split()) <= 6 and title_case(lab) and _indented(L, i)
+        lab = cand[i]
+        ok = bool(lab) and (_indented(L, i) or i in hanging)
         labels.append(tidy_case(lab) if ok else None)
         vertical = l.box[2] - l.box[0] < l.box[3] - l.box[1]  # an art credit set sideways in the margin
         heads.append(not ok and heading_like(t) and title_case(t) and "|" not in t and not vertical
                      and l.height >= _FOOTER * med[l.page])
     return _Book(L, labels, heads)
+
+
+def _label(t: str) -> str | None:
+    """The label a line opens if it reads as a trait ("Size. Your size is Medium."), before layout checks."""
+    m = _TRAIT.match(t.strip())
+    lab = m.group(1).strip() if m else ""
+    return lab if m and 0 < len(lab.split()) <= 6 and title_case(lab) else None
+
+
+def _hanging(L: list[Line], i: int) -> bool:
+    """The trait is set with a hanging indent (TCE "Custom Lineage"): its label line starts left of the line it
+    wraps onto, which is indented."""
+    l, n = L[i], L[i + 1] if i + 1 < len(L) else None
+    return n is not None and n.page == l.page and n.box[0] - l.box[0] > 0.4 * l.height and \
+        abs(n.box[0] - l.box[0]) < 3 * l.height
+
+
+def _hanging_run(L: list[Line], cand: list[str | None]) -> set[int]:
+    """Trait lines of a race's trait block set with hanging indents (TCE "Custom Lineage"): runs of trait lines
+    flush with each other, a few lines apart, at least one wrapping onto an indented line. A one-line trait
+    ("Size.", "Speed.") is in the run by being flush with it. A run counts only when it holds a Size or Speed
+    trait and an Ability Score Increase trait (a feat's hanging "Ability Score Increase." list item does not)."""
+    out: set[int] = set()
+    run: list[int] = []
+
+    def flush() -> None:
+        labs = [cand[j] for j in run]
+        if any(_hanging(L, j) for j in run) and any(_is_asi(x) for x in labs) and \
+                any(_size_speed(x) for x in labs):
+            out.update(run)
+        run.clear()
+
+    for i, lab in enumerate(cand):
+        if not lab:
+            continue
+        if run and (i - run[-1] > 4 or L[i].page != L[run[-1]].page or
+                    abs(L[i].box[0] - L[run[-1]].box[0]) >= 0.4 * L[i].height):
+            flush()
+        run.append(i)
+    flush()
+    return out
 
 
 def _is(label: str | None, want: str) -> bool:
@@ -168,11 +215,36 @@ def _race_anchors(b: _Book) -> list[tuple[int, str]]:
             out.append((i, name))
             spans.append((i, end))
     for i, lab in enumerate(b.labels):
-        if _is_asi(lab) and any(_size_speed(x) for x in b.labels[i + 1:i + 1 + _ANCHOR_REACH]) and \
-                not any(a < i < e for a, e in spans) and \
-                not any(b.heads[j] for j in range(max(0, i - _SUB_REACH), i)):
+        if not _is_asi(lab) or any(a < i < e for a, e in spans):
+            continue
+        h = next((j for j in range(i - 1, max(-1, i - 1 - _LOOKAHEAD), -1) if b.heads[j]), None)
+        before = range(max(0 if h is None else h + 1, i - _ANCHOR_REACH), i)
+        if not (any(_size_speed(x) for x in b.labels[i + 1:i + 1 + _ANCHOR_REACH]) or
+                any(_size_speed(b.labels[j]) for j in before)):
+            continue
+        anchor = _headed_race(b, h, i)
+        if anchor is not None:
+            if not any(a == anchor[0] for a, _ in out):
+                out.append(anchor)
+        elif not any(b.heads[j] for j in range(max(0, i - _SUB_REACH), i)):
             out.append((i, ""))
     return sorted(out)
+
+
+def _headed_race(b: _Book, h: int | None, i: int) -> tuple[int, str] | None:
+    """(heading index, name) of a race whose trait run (holding the Ability Score Increase trait at `i`) sits
+    under a heading other than "<Name> Traits": TCE "Custom Lineage" directly above its traits, DMG "Example
+    Race: Aasimar" above a few paragraphs of design notes. None when no such heading names it."""
+    if h is None:
+        return None
+    first = next(j for j in range(h + 1, i + 1) if b.labels[j] is not None)
+    title = b.L[h].text.strip()
+    m = _EXAMPLE_RACE.match(title)
+    if m:
+        return h, tidy_case(m.group(1).strip())
+    if first - h <= _FIRST_TRAIT and not re.search(r"\bsubraces?\b", title, re.I):
+        return h, tidy_case(title)
+    return None
 
 
 def _traits(b: _Book, start: int, end: int) -> list[tuple[str, str]]:
@@ -183,7 +255,10 @@ def _traits(b: _Book, start: int, end: int) -> list[tuple[str, str]]:
         if lab is not None and m:
             out.append((lab, [m.group(2)]))
         elif out:
-            out[-1][1].append(b.L[j].text.strip())
+            t = b.L[j].text.strip()
+            if out[-1][1][-1].endswith("-"):  # an art credit OCR'd into the line a hyphenated word wraps onto
+                t = _ART_CREDIT.sub("", t)
+            out[-1][1].append(t)
     return [(lab, _join_text([p for p in parts if p]).strip()) for lab, parts in out]
 
 
@@ -323,26 +398,67 @@ def _walk_of(speed) -> int | None:
 
 
 # ---------- subraces ----------
-def _named_parent(b: _Book, s: int, races: list[str]) -> tuple[str | None, str]:
-    """(raceName, subrace name) for a subrace heading printed outside its race's section. The race is the one
-    the heading (or a "Variant <Race>:" line over it) names; None when it names none, or more than one."""
+def _one(word: str, races: list[str]) -> str | None:
+    hit = [r for r in races if squash(r) == squash(word)]
+    return hit[0] if len(hit) == 1 else None
+
+
+def _races_named(text: str, races: list[str]) -> list[str]:
+    """The races a heading names: "Half-Elf" -> [Half-Elf]; "Half-Orc Or Human" -> [Half-Orc, Human] (one
+    printed trait block for two races). Empty unless every part is a race."""
+    parts = re.split(r"\s+(?:or|and)\s+|\s*[,/]\s*", text.strip(), flags=re.I)
+    hits = [_one(p, races) for p in parts]
+    return [h for h in hits if h] if all(hits) else []
+
+
+def _named_parent(b: _Book, s: int, races: list[str]) -> tuple[list[str], str]:
+    """(raceNames, subrace name) for a subrace heading printed outside its race's section. The races are the
+    ones the heading (or a "Variant <Race>:" line over it) names; empty when it names none."""
     title = _traits_name(b.L[s].text) or tidy_case(b.L[s].text.strip())  # MTF "Sea Elf Traits"
-
-    def one(word: str) -> str | None:
-        hit = [r for r in races if squash(r) == squash(word)]
-        return hit[0] if len(hit) == 1 else None
-
     # "Dragonborn Variant: Draconblood", "Variant Human: Mark of Passage", "Elf Subrace: Mark of Shadow"
     m = re.match(r"^(?:variant\s+)?(.+?)(?:\s+(?:variant|subrace))?\s*:\s*(.+)$", title, re.I)
     if m:
-        return one(m.group(1)), tidy_case(m.group(2))
-    # a "Variant Half-Elf:" or "HALFLING SUBRACE:" line over "Mark of Detection"
+        return _races_named(m.group(1), races), tidy_case(m.group(2))
+    # a "Variant Half-Elf:", "Variant Half-Orc Or Human:" or "HALFLING SUBRACE:" line over "Mark of Detection"
     prev = b.L[s - 1].text.strip() if s else ""
     m = re.match(r"^(?:variant\s+)?(.+?)(?:\s+(?:variant|subrace))?\s*:$", prev, re.I)
     if m:
-        return one(m.group(1)), title
+        return _races_named(m.group(1), races), title
     words = title.split()
-    return (one(words[-1]) if len(words) > 1 else None), title  # "Pallid Elf"
+    one = _one(words[-1], races) if len(words) > 1 else None  # "Pallid Elf"
+    return ([one] if one else []), title
+
+
+def _enclosing_parent(b: _Book, s: int, name: str, races: list[str]) -> str | None:
+    """The race of an enclosing "<Race> Subraces" heading (MTF "TIEFLING SUBRACES" over "BAALZEBUL", "Elf
+    Subraces" over "Eladrin Traits"): the nearest heading above `s` set taller than every heading between them
+    (the subrace's own title, "SHADAR-KAI" over "SHADAR-KAI TRAITS", aside). Any other such heading closes the
+    search."""
+    tallest = b.L[s].height
+    for j in range(s - 1, max(-1, s - 1 - _ENCLOSE_REACH), -1):
+        if not b.heads[j]:
+            continue
+        h = b.L[j].height
+        if h >= _ENCLOSE * tallest and squash(b.L[j].text) != squash(name):
+            m = re.match(r"^(.+?)\s+subraces?$", b.L[j].text.strip(), re.I)
+            return _one(m.group(1), races) if m else None
+        tallest = max(tallest, h)
+    return None
+
+
+def _prose_parent(b: _Book, s: int, name: str, races: list[str]) -> str | None:
+    """The race a sentence just above the subrace heading names it a subrace of: DMG "... walks through the
+    creation of an elf subrace: the eladrin." The sentence must name this subrace."""
+    lines = []
+    for j in range(s - 1, max(-1, s - 1 - _PROSE_REACH), -1):
+        if b.heads[j] or b.labels[j] is not None:
+            break
+        lines.insert(0, b.L[j].text.strip())
+    for m in re.finditer(r"\b([A-Za-z][A-Za-z-]*)\s+subrace\s*:\s*the\s+([A-Za-z][A-Za-z' -]*?)[.,;]",
+                         _join_text(lines), re.I):
+        if like(m.group(2), name, 90):
+            return _one(m.group(1), races)
+    return None
 
 
 def _subrace(b: _Book, s: int, stop: int, race: str | None, name: str, source: str, race_walk: int | None) \
@@ -391,15 +507,21 @@ def parse_races(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     known = [p.name for p, _ in races if p.name]
     known += [r for r in CORE_RACES if not any(squash(r) == squash(k) for k in known)]
     in_book = {squash(p.name) for p, _ in races if p.name}
-    # subraces printed apart from their race ("Pallid Elf", the ERLW dragonmarks)
+    starts = sorted(a for a, _ in anchors)
+    # subraces printed apart from their race ("Pallid Elf", the ERLW dragonmarks, MTF "Tiefling Subraces")
     for s in range(len(L)):
         if s in claimed or not _subrace_head(b, s):
             continue
-        race, name = _named_parent(b, s, known)
-        source = ctx.source if race is None or squash(race) in in_book else "PHB"
-        sp, s_asi, end = _subrace(b, s, len(L), race, name, source, None)
-        claimed.update(range(s, end))
-        subs.append((sp, s_asi))
+        parents, name = _named_parent(b, s, known)
+        if not parents:
+            one = _enclosing_parent(b, s, name, known) or _prose_parent(b, s, name, known)
+            parents = [one] if one else []
+        stop = next((a for a in starts if a > s), len(L))
+        for race in parents or [None]:  # "Variant Half-Orc Or Human:" prints one block for two races
+            source = ctx.source if race is None or squash(race) in in_book else "PHB"
+            sp, s_asi, end = _subrace(b, s, stop, race, name, source, None)
+            claimed.update(range(s, end))
+            subs.append((sp, s_asi))
     known_set = set(known)
     for p, asi in races:
         p.checks = race_checks(p.fields, False, known_set, asi_text=asi)

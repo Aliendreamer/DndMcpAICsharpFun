@@ -72,3 +72,10 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | bgg | 011, 012 | Subclass Option: "BarBarian: Path of the Giant" set at body height, then BACKGROUNDS |
 | vrgr | 029, 030, 031, 032 | Subclass Options: "BARD: COLLEGE OF SPIRITS", "WArlock: The UndeAd", then BACKGROUNDS |
 | egw | 184, 185, 186, 187 | Subclasses under bare class headings "FIGHTER" ("Eco Knight" OCR, cues "3rd-level Echo Knight feature") and "WIZARD" (Chronurgy, Graviturgy), then Dunamancy Spells |
+| mtf | 022, 023, 024 | "TIEFLING SUBRACES" heading over the archdevil subraces (Asmodeus prints no traits), then Devil Customization |
+| mtf | 062, 063, 064 | "Elf Subraces" heading over Eladrin, Sea Elf and Shadar-Kai (its own "SHADAR-KAI" title over "SHADAR-KAI TRAITS"), then Elf Tables |
+| mtf | 082 | Duergar Traits under "DUERGAR CHARACTERS": no heading names its race |
+| erlw | 042 | "Variant Half-Orc Or Human:" over Mark of Finding (one trait block for two races) |
+| erlw | 044 | "HALFLING SUBRACE:" over Mark of Healing; an art credit OCR'd into the Ability Score Increase line |
+| dmg | 285, 286, 287 | "Example Subrace: Eladrin" (prose names it an elf subrace), "Example Race: Aasimar" with its traits after design notes |
+| tce | 008, 009 | Custom Lineage: traits set with hanging indents under a plain heading, Size and Speed before Ability Score Increase |
