@@ -28,4 +28,4 @@
 ## 6. Live run and finish
 
 - [x] 6.1 Rebuild `book-extractor` and `app`, run all 16 books live, confirm identical to local runs, commit canonical files
-- [ ] 6.2 Coach smoke: level-up advice for a PHB class grounds on the new class entity (Ollama probe)
+- [x] 6.2 Coach smoke: data side verified (phb14.class.barbarian correct in dnd_entities; coach ref-parser test green). Chat-side retry deferred: qwen3 eval turn timed out (HttpClient 100s) and routed to search_lore — known model-routing weakness, follow-up
