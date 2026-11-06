@@ -360,6 +360,14 @@ def _entries(L: list[Line], sections: list[tuple[str, int]], end: int) -> list[d
     return out
 
 
+def _in_table(l: Line, t: Table | None) -> bool:
+    """A body line printed inside the level table (by position: reading order rebuilds Line objects)."""
+    if t is None or t.box is None or l.page != t.page:
+        return False
+    x, y = (l.box[0] + l.box[2]) / 2, (l.box[1] + l.box[3]) / 2
+    return t.box[0] <= x <= t.box[2] and t.box[1] <= y <= t.box[3]
+
+
 def _find_table(ctx: ParseContext, first: int, last: int) -> Table | None:
     for n in range(first, last + 1):
         pg: Page | None = ctx.pages.get(n)
@@ -397,8 +405,7 @@ def parse_classes(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         table = _find_table(ctx, L[start].page, L[a].page + 1)
         src = class_source(cls, ctx.source) if cls else ""
         refs = _class_features(table, cls, src) if table is not None and cls else None
-        skip = {id(l) for l in table.lines} if table is not None else set()
-        skip_idx = {i for i in range(a, end) if id(L[i]) in skip}
+        skip_idx = {i for i in range(a, end) if _in_table(L[i], table)}
         sections = _feature_sections(L, a, end, _feature_names(refs), skip_idx)
         saves, sp = _proficiencies(L, a, end)
         fields: dict = {

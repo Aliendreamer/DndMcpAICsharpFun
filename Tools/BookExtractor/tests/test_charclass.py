@@ -212,3 +212,22 @@ def test_empty_first_level_fails():
     f["classFeatures"] = f["classFeatures"][1:]
     c = check(class_checks(f, table_ok, headings_ok, text_with("")), "features-match-table")
     assert not c.passed and "level 1 lists no features" in c.reason
+
+
+def test_table_cells_on_a_body_page_are_not_feature_headings():
+    pages = load("phb", BOOKS["phb"][2]["Barbarian"])
+    # the table page 48 is in the body, and its table is read AFTER the Hit Dice block (a table printed in the
+    # column after "Class Features", as other books lay it out)
+    body = []
+    for n in sorted(pages):
+        lines = reading_order(pages[n])
+        if n == 48:
+            table = [l for l in lines if l.box[0] < 700 and l.box[1] < 1320]
+            lines = [l for l in lines if l not in table] + table
+        body += lines
+    p = next(p for p in parse_classes(body, ctx_for("phb", pages)) if p.name == "Barbarian")
+    rage = next(e for e in p.fields["entries"] if e["name"] == "Rage")
+    assert "In battle, you fight with primal ferocity" in " ".join(rage["entries"])
+    sense = next(e for e in p.fields["entries"] if e["name"] == "Danger Sense")   # a standalone table cell line
+    assert "uncanny sense" in " ".join(sense["entries"])
+    assert not failed(p), failed(p)

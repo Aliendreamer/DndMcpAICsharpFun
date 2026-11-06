@@ -20,6 +20,9 @@ class Table:
     rows: list[list[str]]
     page: int
     lines: list[Line]
+    # page-pixel extent (x0, y0, x1, y1) from the header top to the last row's bottom, across the columns the
+    # header spans (a cell may overhang to the right; prose beside the table is outside it)
+    box: tuple[float, float, float, float] | None = None
 
 
 def _yc(l: Line) -> float:
@@ -153,7 +156,10 @@ def _try_table(page: Page, anchor: Line) -> Table | None:
                 break
     rows = [[fix_digits(" ".join(x.text for x in sorted(c, key=lambda x: (x.box[1], x.box[0])))) for c in r]
             for r in cells]
-    return Table(headers=headers, rows=rows, page=page.number, lines=used)
+    x0 = min(c[0] for c in cols)
+    inside = [l for l in used if l.box[0] < cols[-1][1]]
+    box = (x0, min(m.box[1] for m in header_lines), max(l.box[2] for l in inside), max(l.box[3] for l in inside))
+    return Table(headers=headers, rows=rows, page=page.number, lines=used, box=box)
 
 
 def read_table(page: Page, first_header: str) -> Table | None:
