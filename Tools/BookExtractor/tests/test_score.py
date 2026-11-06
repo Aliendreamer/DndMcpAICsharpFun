@@ -489,3 +489,24 @@ def test_mtf_asmodeus_prints_no_trait_block():
     res = score_book("mtf", [], FT, "Subrace")
     assert "Tiefling Asmodeus" not in res["missing"]
     assert any("not printed as a trait block" in k and "Asmodeus" in k for k in res["knownDifferences"])
+
+
+@needs_5etools
+def test_subclass_printed_elsewhere_is_scored_against_its_stored_record():
+    t = next(r for r in json.loads((FT / "class" / "class-monk.json").read_text("utf-8"))["subclass"]
+             if r["name"] == "Way of the Sun Soul" and r.get("classSource") == "PHB")
+    good = [str(r).replace("|XGE|", "|SCAG|") for r in t["subclassFeatures"]]
+    res = score_book("scag", [_ent("Subclass", "Way of the Sun Soul", className="Monk", shortName="Sun Soul",
+                                   subclassFeatures=good)], FT, "Subclass")
+    assert not any(d.startswith("Way of the Sun Soul") for d in res["diffs"]), res["diffs"]
+    bad = [r.replace("Searing Arc Strike", "Searing Arc Spike") for r in good]
+    res = score_book("scag", [_ent("Subclass", "Way of the Sun Soul", className="Monk", shortName="Sun Soul",
+                                   subclassFeatures=bad)], FT, "Subclass")
+    assert any(d.startswith("Way of the Sun Soul: features wrong") for d in res["diffs"]), res["diffs"]
+    assert res["extra"] == 0 and res["truth"] == 6 and res["found"] == 0  # recall numbers unchanged
+
+
+@needs_5etools
+def test_subrace_printed_elsewhere_is_scored_against_its_stored_record():
+    res = score_book("scag", [_ent("Subrace", "Duergar", raceName="Dwarf", ability=[{"str": 2}])], FT, "Subrace")
+    assert any(d.startswith("Dwarf Duergar: ability wrong") for d in res["diffs"]), res["diffs"]

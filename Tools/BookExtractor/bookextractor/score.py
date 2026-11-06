@@ -255,9 +255,9 @@ def _split_character_truth(src: str, d: Path, etype: str) -> tuple[list[dict], l
     return [r for r in recs if not r.get("_copy")], []
 
 
-def printed_elsewhere(book: str, fivetools_dir: Path | str, etype: str) -> dict[str, str]:
-    """Match key -> known-difference line for each Subclass/Subrace this book prints that 5etools stores under
-    another book, listing this one in `otherSources` (SCAG's Way of the Sun Soul is stored under XGE)."""
+def printed_elsewhere(book: str, fivetools_dir: Path | str, etype: str) -> dict[str, tuple[str, dict]]:
+    """Match key -> (known-difference line, stored record) for each Subclass/Subrace this book prints that 5etools
+    stores under another book, listing this one in `otherSources` (SCAG's Way of the Sun Soul is under XGE)."""
     if etype not in ("Subclass", "Subrace"):
         return {}
     src, d = book.upper(), Path(fivetools_dir)
@@ -269,8 +269,8 @@ def printed_elsewhere(book: str, fivetools_dir: Path | str, etype: str) -> dict[
         recs = [dict(r, name=f"{r['raceName']} {r['name']}")
                 for r in json.loads((d / "races.json").read_text("utf-8"))["subrace"]
                 if r.get("name") and r.get("raceName")]
-    return {match_key(etype, r["name"]): f"printed here, 5etools stores it under {r['source']} "
-                                         f"(otherSources {src}): {r['name']}"
+    return {match_key(etype, r["name"]): (f"printed here, 5etools stores it under {r['source']} "
+                                          f"(otherSources {src}): {r['name']}", r)
             for r in recs if r.get("source") != src and not r.get("_copy")
             and any(o.get("source") == src for o in r.get("otherSources") or [])}
 
@@ -589,7 +589,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     here = {match_key(etype, n): f"{n}: printed, not a 5etools record ({why})"
             for (b, et, n), why in PRINTED_NOT_IN_5ETOOLS.items() if b == book and et == etype}
     printed_here = [k for k in idx if k not in claimed and (k in elsewhere or k in here)]
-    known += [elsewhere.get(k) or here[k] for k in printed_here]
+    known += [elsewhere[k][0] if k in elsewhere else here[k] for k in printed_here]
     agg: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
     covs: list[float] = []
     precs: list[float] = []
@@ -631,6 +631,23 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
             text_ok[1] += 1
         if prec is not None:
             precs.append(prec)
+    # an entry printed here but stored under another book is scored against that record: its diffs show (and
+    # reach the wrong-and-accepted audit), while the book's own truth counts above stay as they are
+    for k in printed_here:
+        if k not in elsewhere:
+            continue
+        t = elsewhere[k][1]
+        fields = idx[k]["fields"]
+        if etype == "Subclass":
+            t = _drop_unprinted_features(book, t, known)
+        res, _, _ = score_record(etype, fields, t, book.upper())
+        for f, ok in res.items():
+            if not ok and (book, t["name"], f) in KNOWN_DIFFERENCES and \
+                    fields.get(f) == KNOWN_DIFFERENCES[(book, t["name"], f)][0]:
+                known.append(f"{t['name']}: {f} ({KNOWN_DIFFERENCES[(book, t['name'], f)][1]})")
+                continue
+            if not ok:
+                diffs.append(f"{t['name']}: {f} wrong (scored against the {t['source']} record)")
     found = len(matches)
     return {
         "book": book, "type": etype, "truth": len(truth), "found": found,
