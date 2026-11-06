@@ -573,8 +573,8 @@ def test_truth_dmg_poisons():
 def test_score_longsword():
     t = next(t for t in load_truth("phb", FT, "Weapon") if t["name"] == "Longsword")
     r, *_ = score_record("Weapon", {"value": 1500, "weight": 3, "dmg1": "1d8", "dmgType": "S", "property": ["V"],
-                                    "weaponCategory": "martial"}, t)
-    assert all(r.values())
+                                    "weaponCategory": "martial", "dmg2": "1d10", "type": "M"}, t)
+    assert all(r.values()) and {"dmg2", "type", "range"} <= set(r)
 
 
 @needs_5etools
@@ -751,3 +751,95 @@ def test_p19_known_differences_and_ocr_lost_names():
     assert "Sailing Ship" in r["missing"] and any("Sailing Ship" in k and "lost in OCR" in k
                                                  for k in r["knownDifferences"])
     assert "Electrum 50-Zib Coin" in score_book("ggr", [], FT, "Item")["missing"]
+
+
+# ---------- final review: vehicles, objects, weapon and poison fields, text precision floor ----------
+@needs_5etools
+def test_weapon_range_dmg2_and_type_are_scored():
+    t = next(t for t in load_truth("phb", FT, "Weapon") if t["name"] == "Dagger")
+    ok = {"value": 200, "weight": 1, "dmg1": "1d4", "dmgType": "P", "weaponCategory": "simple", "type": "M",
+          "range": "20/60", "property": ["F", "L", "T"]}
+    r, *_ = score_record("Weapon", ok, t)
+    assert r["range"] and r["type"] and r["dmg2"]
+    r, *_ = score_record("Weapon", dict(ok, range="20/30", type="R"), t)
+    assert r["range"] is False and r["type"] is False
+    no_type = {k: v for k, v in ok.items() if k != "type"}  # printed "a simple weapon", no melee or ranged word
+    assert score_record("Weapon", no_type, t)[0]["type"] is None
+
+
+@needs_5etools
+def test_poison_value_is_scored_and_a_disease_without_one_is_skipped():
+    t = next(t for t in load_truth("dmg", FT, "DiseasePoison") if t["name"] == "Assassin's Blood")
+    assert score_record("DiseasePoison", {"value": 15000, "poisonTypes": ["ingested"]}, t)[0]["value"] is True
+    assert score_record("DiseasePoison", {"value": 1500, "poisonTypes": ["ingested"]}, t)[0]["value"] is False
+    d = next(t for t in load_truth("dmg", FT, "DiseasePoison") if t["name"] == "Sight Rot")
+    assert score_record("DiseasePoison", {}, d)[0].get("value") is None
+
+
+@needs_5etools
+def test_ship_fields_against_the_5etools_item_record():
+    t = next(t for t in load_truth("dmg", FT, "VehicleMount") if t["name"] == "Galley")
+    f = {"vehicleType": "SHIP", "cost": 3000000, "pace": 4, "capCrew": 80, "capCargo": 150,
+         "hull": {"ac": 15, "hp": 500, "dt": 20}}
+    r, *_ = score_record("VehicleMount", f, t)
+    assert {k: v for k, v in r.items() if v is not None} == {
+        "cost": True, "pace": True, "capCrew": True, "capCargo": True, "hull.ac": True, "hull.hp": True,
+        "hull.dt": True}
+    r, *_ = score_record("VehicleMount", dict(f, pace=5, hull={"ac": 15, "hp": 50, "dt": 20}), t)
+    assert r["pace"] is False and r["hull.hp"] is False
+    assert r.get("capPassenger") is None  # printed by neither: not compared
+
+
+@needs_5etools
+def test_prose_ship_and_object_vehicle_fields():
+    raider = next(t for t in load_truth("mtf", FT, "VehicleMount") if t["name"] == "Planar Raider")
+    r, cov, prec = score_record("VehicleMount", {"capCrew": 10, "pace": 12, "entries": ["It needs a crew of ten."]},
+                                raider)
+    assert r["capCrew"] and r["pace"] and r.get("capPassenger") is None  # ours omits it: skipped
+    assert prec is None  # 5etools prints no text for the ship: unmeasured, not 0
+    app = next(t for t in load_truth("dmg", FT, "VehicleMount") if t["name"] == "Apparatus of Kwalish")
+    r, *_ = score_record("VehicleMount", {"vehicleType": "OBJECT", "ac": [20], "hp": {"average": 200},
+                                          "immune": ["poison", "psychic"]}, app)
+    assert r["ac"] and r["hp"] and r["immune"]
+    r, *_ = score_record("VehicleMount", {"vehicleType": "OBJECT", "ac": [19], "hp": {"average": 200}}, app)
+    assert r["ac"] is False
+
+
+@needs_5etools
+def test_object_fields_and_text_from_description_and_actions():
+    t = next(t for t in load_truth("dmg", FT, "Object") if t["name"] == "Ballista")
+    f = {"ac": [15], "hp": {"average": 50}, "immune": ["poison", "psychic"],
+         "description": "A ballista is a massive crossbow that fires heavy bolts. Before it can be fired, it must be "
+                        "loaded and aimed. It takes one action to load the weapon, one action to aim it, and one "
+                        "action to fire it.",
+         "action": [{"name": "Bolt", "entries": ["Ranged Weapon Attack: +6 to hit, range 120/480 ft., one target. "
+                                                 "Hit: 16 (3d10) piercing damage."]}]}
+    r, cov, prec = score_record("Object", f, t)
+    assert r == {"ac": True, "hp": True, "immune": True}
+    assert prec is not None and prec > 0.9 and cov is not None and cov > 0.9
+    _, _, bled = score_record("Object", dict(f, description=f["description"] + " I have been to Tunarath. A heaven "
+                                             "for the githyanki it is not. Their frustration manifest as war."), t)
+    assert bled < prec
+
+
+@needs_5etools
+def test_score_book_lists_entities_under_the_precision_floor():
+    good = {"type": "Object", "name": "Ballista", "fields": {"description": "A ballista is a massive crossbow that "
+            "fires heavy bolts. Before it can be fired, it must be loaded and aimed."}}
+    bad = {"type": "Object", "name": "Cannon", "fields": {"description": "I have been to Tunarath. A heaven for the "
+           "githyanki it is not. Their frustration manifest as a githyanki ready for war."}}
+    r = score_book("dmg", [good, bad], FT, "Object")
+    assert r["textPrecisionMin"] == 0.0 and [n for n, _ in r["lowPrecision"]] == ["Cannon"]
+    from bookextractor.score import format_table
+    out = format_table(r)
+    assert "text precision: min 0%" in out and "Cannon (0%)" in out
+
+
+@needs_5etools
+def test_unmeasured_new_type_text_is_not_reported_as_zero():
+    from bookextractor.score import format_table
+    r = score_book("mtf", [{"type": "VehicleMount", "name": "Planar Raider", "fields": {"capCrew": 10}}], FT,
+                   "VehicleMount")
+    assert r["textPrecisionMedian"] is None
+    row = format_table(r).splitlines()[2]
+    assert "n/a" in row and " 0%" not in row.split("(")[-1]

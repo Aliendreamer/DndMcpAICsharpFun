@@ -659,10 +659,79 @@ def _printed(e: dict | None, label: str) -> bool:
                for c in e.get("checks") or [])
 
 
+def _all_text(e) -> str:
+    """Every printed string of a 5etools record part (attack and hit entries too), tags expanded."""
+    if e is None:
+        return ""
+    if isinstance(e, str):
+        return untag(e)
+    if isinstance(e, list):
+        return " ".join(_all_text(x) for x in e)
+    if isinstance(e, dict):
+        kind = _ATTACK_KINDS.get(str(e.get("attackType", "")).upper(), "")
+        parts = [kind] if kind else []
+        for k, v in e.items():
+            if k in ("type", "attackType", "style"):
+                continue
+            parts.append(("Hit: " if k == "hitEntries" else "") + _all_text(v))
+        return " ".join(parts)
+    return ""
+
+
+# the printed words a 5etools attackType stands for ("Ranged Weapon Attack: +6 to hit ...")
+_ATTACK_KINDS = {"MW": "Melee Weapon Attack:", "RW": "Ranged Weapon Attack:", "MS": "Melee Spell Attack:",
+                 "RS": "Ranged Spell Attack:"}
+
+
+def _number_of(v):
+    """A 5etools number that may be stored bare or as {"average": n} / [n] / {"ac": n}."""
+    if isinstance(v, list):
+        return _number_of(v[0]) if v else None
+    if isinstance(v, dict):
+        return v.get("average", v.get("ac"))
+    return v
+
+
+# (our field, its 5etools keys in order: vehicles.json, then the item record of a ship)
+_VEHICLE_FIELDS = [("cost", ("cost", "value")), ("pace", ("pace", "vehSpeed")), ("capCrew", ("capCrew", "crew")),
+                   ("capPassenger", ("capPassenger",)), ("capCargo", ("capCargo",)),
+                   ("hull.ac", ("hull.ac", "vehAc")), ("hull.hp", ("hull.hp", "vehHp")),
+                   ("hull.dt", ("hull.dt", "vehDmgThresh")), ("ac", ("ac",)), ("hp", ("hp",))]
+
+
+def _get(d: dict, path: str):
+    for part in path.split("."):
+        d = d.get(part) if isinstance(d, dict) else None
+    return d
+
+
+def _score_vehicle_object(etype: str, f: dict, t: dict, r: dict) -> tuple[float | None, float | None]:
+    """VehicleMount and Object fields; a field is compared only when both sides hold it. Text: entries (and an
+    Object's description and actions) against the 5etools entries and action entries; None when 5etools prints
+    no text for the record (unmeasured)."""
+    for ours, theirs in _VEHICLE_FIELDS:
+        got = _number_of(_get(f, ours))
+        want = next((_number_of(_get(t, k)) for k in theirs if _get(t, k) is not None), None)
+        if got is not None and want is not None:
+            r[ours] = got == want
+    if f.get("immune") is not None and t.get("immune") is not None:
+        r["immune"] = {str(x).lower() for x in f["immune"]} == {str(x).lower() for x in t["immune"]}
+    truth = _all_text([t.get("entries"), t.get("actionEntries")])
+    if not shingles(truth):
+        return None, None  # 5etools prints no text for it: unmeasured
+    got = _all_text([f.get("entries"), f.get("description"), f.get("action")])
+    return coverage(truth, got)
+
+
 def _score_equipment(etype: str, f: dict, t: dict, r: dict, e: dict | None = None) -> tuple[float | None, float | None]:
+    if etype in ("VehicleMount", "Object"):
+        return _score_vehicle_object(etype, f, t, r)
     if etype == "Weapon":
-        for fld in ("value", "weight", "dmg1", "dmgType", "weaponCategory"):
+        for fld in ("value", "weight", "dmg1", "dmgType", "weaponCategory", "dmg2", "range"):
             r[fld] = f.get(fld) == t.get(fld)
+        # a weapon described in prose may print no melee or ranged word ("a martial weapon"): our type is absent,
+        # and that comparison is skipped
+        r["type"] = _code(f.get("type")) == _code(t.get("type")) if f.get("type") is not None else None
         r["property"] = _codes(f.get("property")) == _codes(t.get("property"))
     elif etype == "Armor":
         r["ac"] = f.get("ac") == t.get("ac")
@@ -685,6 +754,10 @@ def _score_equipment(etype: str, f: dict, t: dict, r: dict, e: dict | None = Non
         r["trapHazType"] = f.get("trapHazType") == t.get("trapHazType")
     elif etype == "DiseasePoison":
         r["poisonTypes"] = set(f.get("poisonTypes") or []) == set(t.get("poisonTypes") or [])
+        r["value"] = f.get("value") == t.get("value") if f.get("value") is not None or t.get("value") is not None \
+            else None
+    if not shingles(flat(t.get("entries"))):
+        return None, None  # 5etools prints no text for it: unmeasured, not 0%
     return coverage(flat(t.get("entries")), flat(f.get("entries")))
 
 
@@ -788,6 +861,9 @@ def match_one_to_one(truth_keys: list[str], keys: list[str]) -> dict[int, tuple[
     return out
 
 
+PRECISION_FLOOR = 0.7  # an entity whose text precision is under this is listed by name
+
+
 def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype: str | None = None) -> dict:
     """Score extracted entities of one type (default: the core book's type) against 5etools."""
     etype = etype or BOOKS.get(book)
@@ -856,6 +932,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     agg: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
     covs: list[float] = []
     precs: list[float] = []
+    named_precs: list[tuple[str, float]] = []  # (our name, text precision) per measured entity
     missing: list[str] = []
     diffs: list[str] = []
     fuzzy: list[str] = []
@@ -911,6 +988,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
             text_ok[1] += 1
         if prec is not None:
             precs.append(prec)
+            named_precs.append((idx[k]["name"], prec))
     # an entry printed here but stored under another book is scored against that record: its diffs show (and
     # reach the wrong-and-accepted audit), while the book's own truth counts above stay as they are
     for k in printed_here:
@@ -929,14 +1007,18 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
             if not ok:
                 diffs.append(f"{t['name']}: {f} wrong (scored against the {t['source']} record)")
     found = len(matches)
+    unmeasured = etype in _EQUIPMENT_TYPES  # a new type with no truth text is unmeasured, not 0%
     return {
         "book": book, "type": etype, "truth": len(truth), "found": found,
         "extra": len(idx) - len(claimed) - len(printed_here), "skipped": dict(skipped),
         "fields": {f: {"pct": 100 * a / n, "n": n} for f, (a, n) in agg.items() if n},
         "rarityMultiFamilies": {"n": fam[0], "variesAgree": fam[1]} if etype == "MagicItem" else None,
         "textAtLeast90": {"pct": 100 * text_ok[0] / text_ok[1] if text_ok[1] else 0.0, "n": text_ok[1]},
-        "textCoverageMedian": 100 * statistics.median(covs) if covs else 0.0,
-        "textPrecisionMedian": 100 * statistics.median(precs) if precs else 0.0,
+        "textCoverageMedian": 100 * statistics.median(covs) if covs else (None if unmeasured else 0.0),
+        "textPrecisionMedian": 100 * statistics.median(precs) if precs else (None if unmeasured else 0.0),
+        "textPrecisionMin": min(precs) if precs else None,
+        "textMeasured": len(precs),
+        "lowPrecision": sorted(((n, p) for n, p in named_precs if p < PRECISION_FLOOR), key=lambda x: (x[1], x[0])),
         "missing": missing, "fuzzyMatches": fuzzy, "diffs": diffs, "knownDifferences": known,
     }
 
@@ -946,10 +1028,23 @@ def format_table(res: dict) -> str:
     head = f"{'found':>9} {'extra':>6} " + " ".join(f"{f:>11}" for f in fields) + \
         "  text>=90%  text-median  text-precision"
     cells = " ".join(f"{res['fields'][f]['pct']:>6.0f}% ({res['fields'][f]['n']})".rjust(11) for f in fields)
+
+    def pct(v, w: int) -> str:
+        return f"{v:{w}.0f}%" if v is not None else "n/a".rjust(w + 1)
+    at90 = res["textAtLeast90"]["pct"] if res["textAtLeast90"]["n"] or res["textCoverageMedian"] is not None else None
     row = (f"{res['found']:>4}/{res['truth']:<4} {res['extra']:>6} {cells}  "
-           f"{res['textAtLeast90']['pct']:8.0f}%  {res['textCoverageMedian']:10.0f}%  "
-           f"{res['textPrecisionMedian']:12.0f}%")
+           f"{pct(at90, 8)}  {pct(res['textCoverageMedian'], 10)}  "
+           f"{pct(res['textPrecisionMedian'], 12)}")
     out = f"=== {res['book'].upper()} {res['type']}: {res['truth']} entries in 5etools ===\n{head}\n{row}"
+    if res["type"] in _EQUIPMENT_TYPES:
+        if res.get("textMeasured"):
+            low = res.get("lowPrecision") or []
+            out += (f"\ntext precision: min {100 * res['textPrecisionMin']:.0f}%, median "
+                    f"{res['textPrecisionMedian']:.0f}% over {res['textMeasured']} entities with 5etools text; "
+                    f"under {100 * PRECISION_FLOOR:.0f}%: " +
+                    (", ".join(f"{n} ({100 * p:.0f}%)" for n, p in low) if low else "none"))
+        else:
+            out += "\ntext precision: unmeasured (5etools prints no text for any matched entity)"
     if res.get("rarityMultiFamilies"):
         m = res["rarityMultiFamilies"]
         out += (f"\nrarity (strict) covers single-rarity items only; multi-rarity families: {m['n']}, "
