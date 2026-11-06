@@ -155,3 +155,53 @@ def test_a_nested_hosted_item_ends_the_god_text_at_its_heading():
     own = _own_lines(hosting, [hosting])
     assert own == sec.lines
     assert _own_lines(sec, [sec]) == sec.lines
+
+
+def test_a_lower_case_label_fails_name_capitalised():
+    """Fix I1: the OCR reads a capital I as l the same way every time ("luz", "loun"), so no name repair sees it; a
+    deity label opening in lower case fails `name-capitalised`, naming it, and is never repaired."""
+    pages = _pages("phb", [300])
+    isis = next(l for l in pages[300].lines if l.text.startswith("Isis,"))
+    isis.text = "l" + isis.text[1:]
+    g = god(_parse("phb", pages, "phb14", "PHB")[0], "lsis")
+    assert "'lsis'" in failed(g)["name-capitalised"]
+    assert "name-capitalised" not in failed(god(phb(), "Isis"))
+
+
+def _entries_text(g):
+    return " ".join(x for x in g.fields["entries"] if isinstance(x, str))
+
+
+def test_no_table_title_footnote_sidebar_or_pull_quote_in_mtf_god_prose():
+    """Fix I2: the MTF deity tables sit inside the gods' prose. Their titles ("Dwarf Deities (The Mordinsamman)")
+    and footnotes ("*Appears in ...") are table text; a sidebar in the god's column ("Drow Trance: Entering the
+    Void") ends the god's text and, since Lolth's text resumes after it, fails `text-complete` naming it; a pull
+    quote set far taller than the body (beside Laduguer) is no part of the prose."""
+    gods = _parse("mtf", _pages("mtf", [54, 74, 80]), "mtf", "MTF")[0]
+    berronar = god(gods, "Berronar Truesilver")
+    text = _entries_text(berronar)
+    assert "As Mora- din provides the example" in text or "As Moradin provides the example" in text
+    assert berronar.fields["category"] == "The Mordinsamman"
+    lolth = god(gods, "Lolth")
+    assert lolth.fields["category"] == "The Dark Seldarine"
+    assert "'Drow Trance: Entering the Void'" in failed(lolth)["text-complete"]
+    laduguer = god(gods, "Laduguer")
+    for g in (berronar, lolth, laduguer):
+        t = _entries_text(g)
+        for bad in ("Deities", "Appears in", "Drow Trance", "Drow enter trance", "The mental power"):
+            assert bad not in t, (g.name, bad)
+    assert "Laduguer maintain the internal functions" in _entries_text(laduguer)
+
+
+def test_a_misread_accent_in_the_pantheon_is_repaired_to_the_book_spelling():
+    """Fix I3: SCAG prints "The Faerûnian Pantheon"; the OCR reads "Faerúnian" there, but the book's text spells
+    the stem "Faerûn" more often. The pantheon takes the book's spelling and a passing `pantheon-repaired` check
+    names both."""
+    gods = _parse("scag", _pages("scag", [21, 22]), "scag", "SCAG")[0]
+    akadi = god(gods, "Amaunator")
+    assert akadi.fields["pantheon"] == "Faerûnian"
+    rep = next(c for c in akadi.checks if c.name == "pantheon-repaired")
+    assert rep.passed and "'Faerúnian' -> 'Faerûnian'" in rep.reason and "'û'" in rep.reason and "'ú'" in rep.reason
+    assert not failed(akadi)
+    # a pantheon the book spells as read is left alone, with no check
+    assert all(c.name != "pantheon-repaired" for c in god(phb(), "Anubis").checks)

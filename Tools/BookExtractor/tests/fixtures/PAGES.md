@@ -137,3 +137,5 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | phb | 145 | Rule: the "Variant: Equipment Sizes" sidebar (stripped from the section text) between Selling Treasure and Armor and Shields |
 | phb | 174, 175, 176, 177 | Rule: "Chapter 7: Using Ability Scores" entry-level sections, "Variant: Skills with Different Abilities" and "Variant: Encumbrance" nested in Using Each Ability, bold lead-ins ("Lifting and Carrying.", "Push, Drag, or Lift.") |
 | phb | 187, 188 | Rule: Resting, Between Adventures and its Downtime Activities (CRafTInG, the unread "Practicing a Profession" heading, RecuPerAting, RESEARChING, TRAINING) |
+| mtf | 054, 074, 080 | Deity tables inside god prose: Lolth with the "Drow Deities (The Dark Seldarine)" title, "*Appears in" footnote and the "Drow Trance: Entering the Void" sidebar; Berronar Truesilver with "Dwarf Deities (The Mordinsamman)" splitting "Mora-/din"; Laduguer beside a pull quote |
+| scag | 021, 022 | "The Faerúnian Pantheon" table (OCR accent) with p21 text spelling "Faerûn" more often |

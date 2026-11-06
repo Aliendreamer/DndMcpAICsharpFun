@@ -27,7 +27,8 @@ character offsets before the table is read (`tables.read_row_tables`, one Row pe
   Betrayers" in chapter 6 is not the lesser idol's text). The deity's text stops at another deity's section nested
   inside it (the reader's levels are noisy: SCAG Jergal under Hoar) and at a magic item or stat block printed inside
   it (the hosted entity's own heading): the god never absorbs another entity's text. Deity-table lines inside the
-  section are no part of it.
+  section, with their titles and footnotes, and display text (pull quotes) are no part of it. A sidebar title or
+  other heading inside the section that does not name the deity ends its text.
 - **Rows**: a table ends at the next header row, and at the first line laid across a column it does not start in
   (prose under the table taken into the last row). A label wrapped onto a line the table reader took for a row ("Arms
   of the" / "Betrayers") or for a sub-heading ("Cults of the Dragon" / "Below") is joined back.
@@ -39,10 +40,15 @@ Checks (each names the values involved):
   blank; "no clerics" passes with no domains;
 - `symbol-present`: the symbol cell is not blank and opens in capitals (a lower-case start is a wrapped symbol whose
   first line the OCR lost);
+- `name-capitalised`: the label opens in capitals; the OCR reads a capital I as l the same way every time ("luz",
+  "loun"), which no name repair sees, so a lower-case label fails, named, and is never repaired;
+- `pantheon-repaired` (passing, only when it changed): an accented letter of the pantheon spelled as the book most
+  often spells the words sharing its stem (SCAG "Faerúnian" -> "Faerûnian"), both spellings and counts named;
 - `table-rows-read` / `row-complete`: as for the equipment tables (`equipment._table_checks`);
 - `text-complete` (when the deity has a prose section): the section ends at a heading or chapter title the reader is
   sure of (`Section.complete`), and is not far longer than its sibling sections (a heading the OCR misread as larger
-  than it is runs on over its siblings).
+  than it is runs on over its siblings), and its text did not stop at a heading inside it that does not name the
+  deity (a sidebar) with prose naming the deity again after it.
 
 Not registered in the assembler yet (Phase 2c ruling W1): Task 6 does that.
 """
@@ -58,7 +64,7 @@ from ..checks import Check
 from ..model import Line, Page
 from ..tables import Row, RowTable, read_row_tables
 from . import ParseContext, Parsed
-from .charcommon import caps_heading, heading_like, name_case, prose_entries, squash, title_case
+from .charcommon import SENTENCE_END, caps_heading, heading_like, name_case, prose_entries, squash, title_case
 from .equipment import _table_checks
 from .item import _is_type_line
 from .monster import _is_size_line
@@ -83,6 +89,7 @@ _MERGED = re.compile(r"^(Alignment)\s+(.+)$", re.I)
 _EPITHET = re.compile(r"^(?P<name>[^,]+?),\s+(?P<title>[a-z].*|(?:\S+\s+){0,3}(?:god|goddess|deity|deities)\b.*)$")
 # a title naming a rank or kind of gods, not a people or a world: the category, never the pantheon
 _RANKS = {"prime", "lesser", "greater", "intermediate", "minor", "major", "betrayer", "elder", "old", "new"}
+_DISPLAY = 1.4  # a line this many times taller than the section's median is display text (a pull quote)
 _SIBLING_FACTOR = 3  # a deity section this many times longer than its siblings' median ran on over them
 
 
@@ -195,8 +202,49 @@ def _pantheon(title: str) -> tuple[str | None, str | None]:
     if m := re.match(r"^(.+?) Deities(?:\s*\((.+)\))?$", t, re.I):
         if m.group(1).lower() in _RANKS:
             return None, t
-        return m.group(1), m.group(2)
+        # the group inside the brackets keeps its printed casing ("(The Dark Seldarine)")
+        inner = re.search(r"\((.+)\)\s*$", title.strip())
+        return m.group(1), inner.group(1).strip() if m.group(2) and inner else m.group(2)
     return None, t
+
+
+_WORD = re.compile(r"[^\W\d_]+")
+
+
+def repair_accents(pantheon: str, body: list[Line]) -> tuple[str, Check | None]:
+    """The pantheon with each accented letter spelled as the book most often spells it in the words sharing its stem
+    (the OCR reads SCAG's "Faerûnian" as "Faerúnian", but prints "Faerûn" 125 times against "Faerún" 48), and a
+    passing `pantheon-repaired` check naming both spellings when it changed; (pantheon, None) otherwise."""
+    words = [w for l in body for w in _WORD.findall(l.text)]
+    out: list[str] = []
+    notes: list[str] = []
+    for w in _WORD.findall(pantheon):
+        pos = [k for k, c in enumerate(w) if not c.isascii()]
+        if not pos:
+            out.append(w)
+            continue
+        fw = _ascii(w).lower()
+        votes: dict[str, int] = {}
+        for t in words:
+            ft = _ascii(t).lower()
+            if len(t) > pos[-1] and len(ft) == len(t) and fw.startswith(ft) and len(ft) >= pos[-1] + 2:
+                key = "".join(t[k] for k in pos)
+                votes[key] = votes.get(key, 0) + 1
+        mine = "".join(w[k] for k in pos)
+        best = max(votes, key=lambda k: (votes[k], k == mine)) if votes else mine
+        if best != mine and votes[best] > votes.get(mine, 0):
+            fixed = "".join(best[pos.index(k)] if k in pos else c for k, c in enumerate(w))
+            notes.append(f"{w!r} -> {fixed!r} (the book spells the stem with {best!r} {votes[best]} times, with "
+                         f"{mine!r} {votes.get(mine, 0)})")
+            out.append(fixed)
+        else:
+            out.append(w)
+    if not notes:
+        return pantheon, None
+    fixed = pantheon
+    for a, b in zip(_WORD.findall(pantheon), out):
+        fixed = fixed.replace(a, b)
+    return fixed, Check("pantheon-repaired", True, "; ".join(notes))
 
 
 def _section_pantheon(sections: list[Section], at: Line) -> str | None:
@@ -266,6 +314,15 @@ def symbol_check(cell: str, name: str) -> Check:
     return Check("symbol-present", True)
 
 
+def name_check(name: str) -> Check:
+    """`name-capitalised`: a deity's name is printed capitalised. A label opening in lower case is a misread the
+    book repeats ("luz" for Iuz, "loun" for Ioun: the OCR reads a capital I as l), so the name-word checks cannot
+    see it; it is named, never repaired."""
+    if name[:1].islower():
+        return Check("name-capitalised", False, f"deity label {name!r} opens in lower case (a misread capital?)")
+    return Check("name-capitalised", True)
+
+
 def _name(label: str) -> tuple[str, str | None]:
     """('Anubis', 'god of judgment and death') from the label cell; (label, None) when it prints no epithet."""
     m = _EPITHET.match(label.strip())
@@ -303,9 +360,6 @@ def _section_for(name: str, sections: list[Section], chapter: str | None) -> Sec
     return min(hits, key=lambda s: s.level) if hits else None
 
 
-_GROUP_OF_GODS = re.compile(r"\b(gods|deities|pantheons?)\b", re.I)
-
-
 def _names_a_god(L: list[Line], k: int, names: set[str]) -> bool:
     """L[k] is a heading naming another deity of the book ("ILMATER", "Uk'otoa, the Leviathan Lord"), set after a
     finished sentence (or at a column or page top), whether or not the section reader read it as a heading."""
@@ -316,20 +370,61 @@ def _names_a_god(L: list[Line], k: int, names: set[str]) -> bool:
     return prev.page != L[k].page or prev.box[1] > L[k].box[1] or prev.text.rstrip().endswith((".", "!", "?", '"'))
 
 
+def _inner_heading(L: list[Line], k: int, own: str) -> bool:
+    """L[k] is a heading the reader may have missed, inside a deity's section and not naming the deity (`own`,
+    squashed): a sidebar title ("Drow Trance: Entering the Void"). Short, title case or capitals, after a finished
+    sentence or at a column or page top, over prose."""
+    t = L[k].text.strip()
+    if not (0 < len(t.split()) <= 8 and t[:1].isupper() and not t.endswith((".", ",", ";", "-"))):
+        return False
+    if own in squash(t) or not (title_case(_ascii(t.replace(":", " "))) or caps_heading(t)):
+        return False
+    prev, nxt = L[k - 1], L[k + 1] if k + 1 < len(L) else None
+    after = prev.page != L[k].page or prev.box[1] > L[k].box[1] or prev.text.rstrip().endswith(SENTENCE_END)
+    return after and nxt is not None and sum(w[:1].islower() for w in nxt.text.split()) >= 3
+
+
+def own_span(s: Section, others: list[Section], names: set[str] = frozenset(),
+             boxes: dict[int, list[tuple]] | None = None,
+             sections: list[Section] = ()) -> tuple[list[Line], list[Line], str | None]:
+    """(the deity section's own lines, the lines after them, the heading of a section or sidebar that does not name
+    the deity where they stop, or None when they stop at another deity, a hosted entity or the section's end).
+
+    The own lines leave out the deity-table lines printed inside the section (`boxes`: rows, title, footnotes) and
+    display text set far taller than its body (a pull quote: MTF beside Laduguer). They run up to the first of:
+
+    - a section inside it that is another deity's (the reader may nest a sibling under it: SCAG Jergal under Hoar);
+    - a heading naming another deity (`names`, squashed), read as one or not (SCAG "ILMATER");
+    - a section, or a heading the reader missed, inside it that does not name the deity: a sidebar or another topic
+      ("Drow Trance: Entering the Void" in Lolth's column, "The Gods of Mulhorand" under Waukeen);
+      "Commandments of Avandra" names its deity and stays;
+    - a hosted magic item or stat block."""
+    own_name = squash(s.title.split(",")[0])
+    deity = {id(o.lines[0]) for o in others if o is not s}
+    other = {id(o.lines[0]): o.title for o in sections if o is not s and own_name not in squash(o.title)}
+    lines = [l for l in s.lines if not boxes or not _in_box(l, boxes)]
+    if len(lines) > 2:
+        med = median(l.height for l in lines[1:])
+        lines = lines[:1] + [l for l in lines[1:] if l.height <= _DISPLAY * med]
+    end, why = len(lines), None
+    for k in range(1, len(lines)):
+        l = lines[k]
+        if id(l) in deity or _names_a_god(lines, k, names):
+            end = k
+            break
+        if id(l) in other or _inner_heading(lines, k, own_name):
+            end, why = k, other.get(id(l)) or l.text.strip()
+            break
+    own = lines[:end]
+    cut = _hosted_stop(own)
+    if cut < len(own):
+        return own[:cut], lines[cut:], None
+    return own, lines[end:], why
+
+
 def _own_lines(s: Section, others: list[Section], names: set[str] = frozenset(),
                boxes: dict[int, list[tuple]] | None = None, sections: list[Section] = ()) -> list[Line]:
-    """The deity section's own lines, without the deity-table lines printed inside it (`boxes`): up to the first
-    section inside it that is another deity's or names a group of gods (the reader may nest a sibling under it:
-    SCAG Jergal under Hoar, "The Gods of Mulhorand" under Waukeen), the first heading naming another deity (`names`,
-    squashed; the reader may miss it: SCAG "ILMATER"), or a hosted magic item or stat block."""
-    starts = {id(o.lines[0]) for o in others if o is not s}
-    starts |= {id(o.lines[0]) for o in sections if o is not s and _GROUP_OF_GODS.search(o.title)}
-    lines = [l for l in s.lines if not boxes or not _in_box(l, boxes)]
-    end = next((k for k, l in enumerate(lines) if k and (id(l) in starts or _names_a_god(lines, k, names))),
-               len(lines))
-    own = lines[:end]
-    return own[:_hosted_stop(own)]
-
+    return own_span(s, others, names, boxes, sections)[0]
 
 
 def _size_check(s: Section, own: list[Line], sections: list[Section]) -> Check:
@@ -374,6 +469,7 @@ def _god(r: Row, t: RowTable, roles: dict[str, str], pantheon: str | None, categ
         f["province"] = province
     if category:
         f["category"] = category
+    checks.append(name_check(name))
     checks += _table_checks(r, t, None)
     f["entries"] = []
     p = Parsed(type="God", name=name, fields=f, text=_row_text(label, {h: c[h] for h in roles if h in c}, r.group),
@@ -396,14 +492,29 @@ def _attach_prose(gods: list[Parsed], sections: list[Section], boxes: dict[int, 
         if s is None:
             continue
         names = {squash(o.name) for o in gods} - {squash(g.name)}
-        own = _own_lines(s, god_sections, names, boxes, sections)
+        own, rest, why = own_span(s, god_sections, names, boxes, sections)
         # the heading may wrap onto a second line ("Avandra, the" / "Change Bringer")
         heads = next((k for k in range(1, len(own) + 1) if k == len(own) or own[k].text.strip() not in s.title),
                      1)
         g.fields["entries"] = prose_entries(own, heads, len(own))
         g.lines = g.lines + own
         g.text += "\n" + "\n".join(x for x in g.fields["entries"] if isinstance(x, str))
-        g.checks.append(_size_check(s, own, sections))
+        check = _size_check(s, own, sections)
+        g.checks.append(check if not check.passed else _resumes(g.name, rest, why))
+
+
+def _resumes(name: str, rest: list[Line], why: str | None) -> Check:
+    """`text-complete` fails when the deity's text stopped at a heading inside its section that does not name it (a
+    sidebar: "Drow Trance: Entering the Void" in Lolth's column) and prose after that heading names the deity
+    again: its text may resume after the inserted part, and the reader cannot tell where."""
+    word = squash(name)
+    again = [l for l in rest[1:] if word in squash(l.text) and len(l.text) >= 30
+             and sum(w[:1].islower() for w in l.text.split()) >= 3]
+    if why is None or not again:
+        return Check("text-complete", True)
+    return Check("text-complete", False, f"the text of {name!r} stops at {why!r} (p{rest[0].page}), a heading "
+                 f"inside its section that does not name it, but a later line names {name!r} again "
+                 f"(p{again[0].page}: {again[0].text.strip()!r}): its text may resume after it")
 
 
 def _crosses(l: Line, head: list[Line]) -> bool:
@@ -495,6 +606,24 @@ def _wrapped_groups(t: RowTable, page: Page) -> None:
                 o.group = prev.group
 
 
+_FOOTNOTE = re.compile(r"^(?:[*†‡]+|Appears in\b)")
+
+
+def _footnotes(page: Page, t: RowTable, head: list[Line]) -> list[Line]:
+    """The footnote lines printed under the table ("*Appears in Sword Coast Adventurer's Guide"): a run of lines
+    opening with a marker or "Appears in", below the last row, in the table's columns."""
+    h = head[0].height
+    x0, x1 = min(l.box[0] for l in head), max(l.box[2] for l in head)
+    bottom = max(l.box[3] for r in t.rows for l in r.lines)
+    out: list[Line] = []
+    for l in sorted((l for l in page.lines if l.box[1] >= bottom - 0.3 * h and x0 - 2 * h <= l.box[0] <= x1),
+                    key=lambda l: l.box[1]):
+        if not _FOOTNOTE.match(l.text.strip()):
+            break
+        out.append(l)
+    return out
+
+
 def parse_gods(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     """One God per printed deity-table row, on any page of the book, with its prose section as its text."""
     sections = read_sections(body, ctx)
@@ -524,10 +653,16 @@ def parse_gods(body: list[Line], ctx: ParseContext) -> list[Parsed]:
                 pantheon, category = last if done else (_section_pantheon(sections, head[0]), None)
             group = head[0].text.strip()
             first = None if _best(group, _PLAIN_FIRST) else name_case(group)
+            fix = repair_accents(pantheon, body) if pantheon else (pantheon, None)
             for r in t.rows:
-                out.append(_god(r, t, roles, pantheon, r.group and name_case(r.group) or first or category))
+                g = _god(r, t, roles, fix[0], r.group and name_case(r.group) or first or category)
+                if fix[1] is not None:
+                    g.checks.append(fix[1])
+                out.append(g)
             done.append((head, t))
-            rows = [l for r in t.rows for l in r.lines] + head
+            # the table's title and its footnotes ("*Appears in ...") are table text too, never a god's prose
+            rows = [l for r in t.rows for l in r.lines] + head + ([title] if title is not None else [])
+            rows += _footnotes(page, t, head)
             boxes.setdefault(n, []).append((min(l.box[0] for l in rows), min(l.box[1] for l in rows),
                                             max(l.box[2] for l in rows), max(l.box[3] for l in rows)))
     _attach_prose(out, sections, boxes)
