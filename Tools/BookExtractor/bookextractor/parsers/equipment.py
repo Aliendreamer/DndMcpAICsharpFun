@@ -437,10 +437,17 @@ def money_check(amounts: list[str], name: str, where: str) -> Check:
                  f"({', '.join(repr(a) for a in amounts)}); none is taken")
 
 
+# a bracket that is an item's own price: the amount alone, or with "or" and a short note ("(or 50 gp used)")
+_PRICE_BRACKET = re.compile(r"^\s*(?:or\s+)?(?:\d{1,3}(?:,\d{3})+|\d+)\s*(?:cp|sp|ep|gp|pp)"
+                            r"(?:\s+(?:each|apiece|used|new|per\s+\w+))?\s*$", re.I)
+
+
 def price_amounts(text: str, name: str) -> list[str]:
-    """The prices a description prints for its subject: any amount inside brackets ("(100 gp)", "(or 50 gp used)"),
-    "Cost: N gp" or "<name> is valued at N gp". An amount in passing ("set with a 50 gp gem") is none."""
-    out = [a.group(0) for m in re.finditer(r"\(([^()]*)\)", text) for a in _MONEY.finditer(m.group(1))]
+    """The prices a description prints for its subject: a bracket holding only an amount ("(100 gp)", "(or 50 gp
+    used)"), "Cost: N gp" or "<name> is valued at N gp". An amount in passing ("set with a 50 gp gem", "(worth at
+    least 50 gp)") is none."""
+    out = [a.group(0) for m in re.finditer(r"\(([^()]*)\)", text) if _PRICE_BRACKET.match(m.group(1))
+           for a in _MONEY.finditer(m.group(1))]
     for m in re.finditer(rf"\bCost:\s*([^.]*)|\b{re.escape(name)}\s+(?:is|are)\s+valued at\s+([^.]*)", text, re.I):
         out += [a.group(0) for a in _MONEY.finditer(m.group(1) or m.group(2) or "")]
     return out

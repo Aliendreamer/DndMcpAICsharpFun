@@ -324,6 +324,14 @@ def test_prose_weapon_bracketed_property_keeps_the_property():
     assert w.fields["property"] == ["2H", "T", "S"] and failed(w) == []
 
 
+def test_prose_weapon_amount_in_passing_inside_brackets_is_no_price():
+    # "(worth at least 50 gp)" mentions an amount; it is not the weapon's own price form "(100 gp)"
+    pages = _edit("erlw", 22, "weapon (100 gp)-few though ever have the opportunity",
+                  "weapon (worth at least 50 gp)-few though ever have the opportunity", pages=_pages("erlw"))
+    w = _run(parse_weapons, "erlw", pages)[0]
+    assert "value" not in w.fields and failed(w) == []
+
+
 def test_prose_weapon_melee_or_ranged_sets_its_type():
     assert "type" not in weapons("erlw")[0].fields  # "a martial weapon": neither printed
     pages = _edit("erlw", 23, "A double-bladed scimitar is a martial weapon, weigh-",
