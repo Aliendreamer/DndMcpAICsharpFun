@@ -64,7 +64,8 @@ _OPTIONS = re.compile(r"options$", re.I)  # "Combat Options", "Abilityoptions" (
 _COMPLICATIONS = re.compile(r"complications$", re.I)
 _STEP = re.compile(r"^\d{1,2}\.\s*")  # a numbered step heading: "4. Describe Your Character"
 _SIBLING_FACTOR = 3
-_UNREAD_HEIGHT = 0.9  # a heading that ends a rule is set at least this tall, relative to its own heading
+_UNREAD_HEIGHT = 0.97  # a heading the reader did not read ends a rule when set at least this tall, relative to
+# the rule's own heading (OCR heading heights vary by about 10%: a sub-heading may be set 0.9x as tall)
 _TALL = 1.15  # a line this many times the rule's median line height is set clearly taller than its body text
 _MAX_PAGES = 3  # a rule printed over more pages than this has no sure end
 _ART_INSET = 2.0  # an art caption is set in from its column's text edge by this many line heights
@@ -141,6 +142,7 @@ class _Cand:
     complete: bool
     end_reason: str
     group: str = ""  # entry rules: the chapter (and options heading) they are siblings in
+    conflict: str = ""  # a heading the rule may end at but the reader nests under it (`_cut_unread`)
 
 
 def _rule_type(label: str) -> str:
@@ -158,23 +160,37 @@ def _heads(lines: list[Line], title: str) -> int:
     return max(k, 1)
 
 
-def _cut_unread(s: Section, starts: set[int], rule_starts: set[int]) -> tuple[list[Line], bool, str]:
-    """(the section's lines up to the first heading set nearly as tall as its own: one the reader did not read, or
-    one it read as a sub-heading although it is set clearly taller than body text (DMG "Experience Points" under
-    MADNESS); whether its end is sure; the end's reason). Ending at such a heading is a sure end. Another rule's
-    heading inside the section is no end: that rule's lines are taken out of this one."""
+def _cut_unread(s: Section, starts: dict[int, int], rule_starts: set[int]) -> tuple[list[Line], bool, str, str]:
+    """(the section's lines up to the first heading it may end at; whether its end is sure; the end's reason; a
+    conflict: a heading that may end it but that the reader nests under it, "" when none).
+
+    A rule ends at (a) a heading the section reader placed at the rule's own level or shallower, or (b) a heading the
+    reader did not read, set at least `_UNREAD_HEIGHT` as tall as the rule's own, over prose ("4. Describe Your
+    Character" after the variant, "SkIll VarIants" under PROFICIENCY DICE's table). A heading the reader nests
+    under the rule is a sub-heading and stays in, however tall (OCR heights vary: "HORROR" under FEAR AND HORROR);
+    when one is set as tall as that, the evidence conflicts and the text is kept whole, never silently cut: the
+    conflict fails `text-complete` naming it. Another rule's heading inside the section is no end: that rule's lines
+    are taken out of this one."""
     L = s.lines
     h = _heads(L, s.title)
     min_h = _UNREAD_HEIGHT * max(l.height for l in L[:h])
     tall = _tall(L)
+    conflict = ""
     for k in range(h, len(L)):
         if id(L[k]) in rule_starts:
             continue
-        sub = (id(L[k]) in starts and L[k].height >= min_h and L[k].height >= tall and _heading_words(L[k].text)
-               and k + 1 < len(L) and _prose(L[k + 1].text))
-        if sub or _unread_heading(L, k, min_h, starts, tall):
-            return L[:k], True, f"heading {L[k].text.strip()!r}"
-    return L, s.complete, s.end_reason
+        level = starts.get(id(L[k]))
+        if level is not None:
+            if level <= s.level:
+                return L[:k], True, f"heading {L[k].text.strip()!r}", conflict
+            if not conflict and L[k].height >= min_h and _heading_words(L[k].text) and k + 1 < len(L) \
+                    and _prose(L[k + 1].text):
+                conflict = (f"{L[k].text.strip()!r} (p{L[k].page}) is set as tall as the rule's own heading "
+                            f"({L[k].height:.1f} vs {min_h / _UNREAD_HEIGHT:.1f}) but the reader nests it under it")
+            continue
+        if _unread_heading(L, k, min_h, set(starts), tall):
+            return L[:k], True, f"heading {L[k].text.strip()!r}", conflict
+    return L, s.complete, s.end_reason, conflict
 
 
 def _caption(s: Section) -> bool:
@@ -296,6 +312,7 @@ def _sidebars(ctx: ParseContext) -> list[_Cand]:
 
 def _candidates(sections: list[Section], ctx: ParseContext) -> list[_Cand]:
     starts = {id(s.lines[0]) for s in sections}
+    levels = {id(s.lines[0]): s.level for s in sections}
     out: list[_Cand] = []
     options = {id(s) for s in sections if s.level == 1 and _rules_chapter(s) and _OPTIONS.search(s.title)}
     # the headings that open a rule of their own: labelled sections and downtime containers' activities
@@ -307,9 +324,9 @@ def _candidates(sections: list[Section], ctx: ParseContext) -> list[_Cand]:
         m = _LABEL.match(s.title)
         if m:
             name = name_case(m.group("name").strip())
-            raw, complete, reason = _cut_unread(s, starts, rule_starts - {id(s.lines[0])})
+            raw, complete, reason, conflict = _cut_unread(s, levels, rule_starts - {id(s.lines[0])})
             out.append(_Cand(name=name, rule_type=_rule_type(m.group("label")), raw=raw, heads=_heads(raw, s.title),
-                             kind="label", complete=complete, end_reason=reason))
+                             kind="label", complete=complete, end_reason=reason, conflict=conflict))
             continue
         if _DOWNTIME.search(s.title):
             out += _activities(s, sections, starts)
@@ -324,9 +341,9 @@ def _candidates(sections: list[Section], ctx: ParseContext) -> list[_Cand]:
             group = f"{s.parents[0]} > {parent.title}" if parent else None
         if group is None:
             continue
-        raw, complete, reason = _cut_unread(s, starts, rule_starts - {id(s.lines[0])})
+        raw, complete, reason, conflict = _cut_unread(s, levels, rule_starts - {id(s.lines[0])})
         out.append(_Cand(name=s.title, rule_type=None, raw=raw, heads=_heads(raw, s.title), kind="entry",
-                         complete=complete, end_reason=reason, group=group))
+                         complete=complete, end_reason=reason, group=group, conflict=conflict))
     out += _sidebars(ctx)
     # one rule per printed heading: a labelled section beats an activity beats an entry-level section
     rank = {"label": 0, "sidebar": 0, "activity": 1, "entry": 2}
@@ -385,15 +402,16 @@ def _drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
     return out
 
 
-def _drop_dangling(own: list[Line], raw: list[Line], heads: int) -> list[Line]:
-    """Without a table caption whose rows are not the rule's ("ChelDar's Plans" over another rule's heading;
-    "BUilding A STrongholD" at an activity's end): heading words that end the rule's text, or are followed by a
-    line that is not the next printed one."""
+def _drop_dangling(own: list[Line], raw: list[Line], heads: int, starts: set[int]) -> list[Line]:
+    """Without a table caption whose rows are not the rule's ("ChelDar's Plans" straight over the "Downtime
+    Activities" heading; "BUilding A STrongholD" at an activity's end): heading words the reader did not read as a
+    heading, that end the rule's text, are followed by a line that is not the next printed one, or are followed by
+    a heading."""
     nxt = {id(a): b for a, b in zip(raw, raw[1:])}
     out: list[Line] = []
     for i, l in enumerate(own):
-        if i >= heads and _heading_words(l.text) and not _prose(l.text) and \
-                (i + 1 == len(own) or nxt.get(id(l)) is not own[i + 1]):
+        if i >= heads and id(l) not in starts and _heading_words(l.text) and not _prose(l.text) and \
+                (i + 1 == len(own) or nxt.get(id(l)) is not own[i + 1] or id(own[i + 1]) in starts):
             continue
         out.append(l)
     return out
@@ -403,6 +421,8 @@ def _text_check(c: _Cand, own: list[Line], sizes: dict[str, list[int]], heads: i
                 rule_starts: set[int]) -> Check:
     if not c.complete:
         return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) has no sure end: {c.end_reason}")
+    if c.conflict:
+        return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) may end before {c.conflict}")
     pages = own[-1].page - own[0].page + 1
     if pages > _MAX_PAGES:
         return Check("text-complete", False, f"rule {c.name!r} runs over {pages} pages (p{own[0].page}-"
@@ -439,6 +459,7 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     cands.sort(key=lambda c: order.get(id(c.raw[0]), 0))
     spans = [{id(l) for l in c.raw} for c in cands]
     rule_starts = {id(c.raw[0]) for c in cands}
+    starts = {id(x.lines[0]) for x in sections}
     owned: list[tuple[_Cand, list[Line]]] = []
     for i, c in enumerate(cands):
         # the lines of every other rule that starts inside this one are that rule's
@@ -448,7 +469,7 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         if not own or _key(own[0]) in claimed:
             continue
         own = [l for l in own if _key(l) not in claimed]
-        own = _drop_dangling(_drop_art(_drop_floats(own, c.heads, ctx), ctx), c.raw, c.heads)
+        own = _drop_dangling(_drop_art(_drop_floats(own, c.heads, ctx), ctx), c.raw, c.heads, starts)
         if len(own) <= c.heads:
             continue
         owned.append((c, own))

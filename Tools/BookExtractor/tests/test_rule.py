@@ -173,18 +173,68 @@ def dmg():
     return tuple(_parse("dmg", [235, 258, 259, 260, 261, 263, 264], "dmg14", "DMG")[0])
 
 
-def test_a_rule_ends_at_a_tall_heading_in_any_casing():
-    """DMG Proficiency Dice ends before "SkIll VarIants" (set taller than body text, straight under a table row);
-    Madness ends before "Experience Points" (read by the section reader as a sub-heading of MADNESS)."""
+def test_a_rule_ends_at_a_tall_heading_the_reader_did_not_read():
+    """DMG Proficiency Dice ends before "SkIll VarIants": a heading the section reader did not read, set taller than
+    the rule's own, straight under the table's last row (W10 b)."""
     pd = rule(dmg(), "Proficiency Dice")
     assert "rolls the character's proficiency die twice" in pd.text
     assert "Skill" not in pd.text and "SkIll" not in pd.text
     assert "Ability Check Proficiency" not in pd.text
+    assert not failed(pd)
+
+
+def test_a_heading_the_reader_nests_stays_in_and_a_long_rule_fails():
+    """W10: "Experience Points" is read as a sub-heading of MADNESS (0.93x its height): it stays in, never a silent
+    cut. Madness then runs over four pages: text-complete fails naming them."""
     m = rule(dmg(), "Madness")
     assert "rid a character of indefinite madness." in m.text
-    assert "Experience Points" not in m.text
-    assert "Session-Based Advancement" not in m.text
-    assert not failed(m)
+    assert "Experience points (XP) fuel level advancement" in m.text
+    reason = failed(m)["text-complete"]
+    assert "4 pages" in reason and "p258-p261" in reason
+
+
+@lru_cache(maxsize=None)
+def dmg_workshop():
+    return tuple(_parse("dmg", [263, 264, 265, 266, 267, 270, 271], "dmg14", "DMG")[0])
+
+
+def test_a_rule_keeps_its_own_tall_sub_headings():
+    """W10: OCR heading heights vary by about 10%; a sub-heading the reader nests under the rule stays in it."""
+    fear = rule(dmg_workshop(), "Fear and Horror")
+    assert "make a Charisma saving throw to resist the horror" in fear.text  # under its "HORROR" sub-heading
+    assert not failed(fear)
+    init = rule(dmg_workshop(), "Initiative Variants")
+    assert "try using the side initiative rule" in init.text
+    assert "Under this variant, the players roll a d20" in init.text  # under "Side Initiative"
+    actions = rule(_parse("phb", [190, 193, 194, 195], "phb14", "PHB")[0], "Actions in Combat")
+    for sub in ("Ready", "Search", "Use An Object"):
+        assert sub.lower() in actions.text.lower()
+    assert "You normally interact with an object while doing something else" in actions.text
+    checks = rule(phb_ability_scores(), "Ability Checks")
+    assert "Sometimes one character's or monster's efforts are directly opposed" in checks.text  # CONteSTS
+
+
+def test_art_text_and_a_caption_over_another_heading_are_dropped():
+    """XGE Downtime Revisited: the handwritten art note ("when minions come back from ...") and the "ChelDar's
+    Plans" caption printed straight over the "Downtime Activities" heading are not the rule's text."""
+    rules, _ = _parse("xge", [78, 124, 125, 126, 127], "xge", "XGE")
+    r = rule(rules, "Downtime Revisited")
+    assert "Cheldar wants to make the temple of Pholtus" in r.text
+    assert "minions" not in r.text
+    assert "ChelDar's Plans" not in r.text and "Cheldar's Plans" not in r.text
+    assert "Downtime activities are tasks that usually take" in r.text
+
+
+def test_a_heading_left_in_a_rule_fails_text_complete():
+    """A heading-like line set at least as tall as the rule's own heading and clearly taller than its body text,
+    over prose, still inside the rule: text-complete fails naming it."""
+    pages = _pages("mm", [268])
+    line = next(l for l in pages[268].lines if l.text.startswith("Charming Melody."))
+    line.text, line.height = "Charming Melody", 40.0
+    body = [l for n in sorted(pages) for l in reading_order(pages[n])]
+    ctx = ParseContext(slug="mm14", source="MM", pages=pages, cache={"claimed_lines": set()})
+    r = rule(parse_rules(body, ctx), "Satyr Pipes")
+    assert "'Charming Melody'" in failed(r)["text-complete"]
 
 
 @lru_cache(maxsize=None)
