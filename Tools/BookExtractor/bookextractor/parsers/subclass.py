@@ -58,6 +58,7 @@ _AT_LEVEL = re.compile(r"\bAt (\S{2,5})-level\b")  # DMG: "At 20th-level, the pa
 _TAGGED_CUE = re.compile(r"^(\S{2,5})-level\s+([^.]{1,40}?)\s+feature\b", re.I)
 _GROUP_HEIGHT = 1.15  # a group heading is set at least this much above its page's median line height
 _RANK = 1.0  # a heading this tall relative to the group heading ends the group
+_CHAPTER_TITLE = re.compile(r"^chapter\s+[0-9lIi|]{1,2}\s*[:;.]", re.I)
 
 
 def _vertical(l: Line) -> bool:
@@ -122,6 +123,12 @@ def _group_end(L: list[Line], g: int, stop: int, cls: str, med: dict[int, float]
         t = L[i].text.strip()
         if re.match(r"^\s*Hit Dice\s*[:;]", t, re.I):
             return i
+        # a chapter title always ends the group, however its OCR reads ("CHAPTER 5: BACkGrouNdS")
+        if _CHAPTER_TITLE.match(t) and L[i].height >= _GROUP_HEIGHT * med[L[i].page] and not _vertical(L[i]):
+            return i
+        # a heading wrapped after a comma ("Cantrips foR SorcereRs," / "WARLoCKS, AND WIZARDS") is read on its
+        # first line without the comma
+        t = re.sub(r"\s*,$", "", t) if L[i].height >= _RANK * gh else t
         if not _heading_like(t) or not _title_case(t) or _vertical(L[i]):
             continue
         if L[i].height >= _RANK * gh and not _named(t, cls):

@@ -21,6 +21,7 @@ BOOKS = {
     "vrgr": ("vrgr", "VRGR", [29, 30, 31, 32]),
     "egw": ("egw", "EGW", [184, 185, 186, 187]),
     "scag": ("scag", "SCAG", [122, 123]),
+    "scag-wizard": ("scag", "SCAG", [142, 143, 144, 146]),
 }
 
 
@@ -200,3 +201,28 @@ def test_scag_totem_warrior_options_are_not_a_subclass():
     # presented here": new totem options for a PHB subclass, not a subclass SCAG prints
     assert get_sub("Path of the Totem Warrior", book="scag") is None
     assert [p.name for p in parse("scag")] == ["Path of the Battlerager"]
+
+
+def _song_of_victory(unhead=False):
+    slug, source, ns = BOOKS["scag-wizard"]
+    pages = {n: load_ocr_page(FIX / "scag" / f"{n:03d}.json", n) for n in ns}
+    body = [l for n in sorted(pages) if classify_page(pages[n]) in ("rules", "art") for l in reading_order(pages[n])]
+    if unhead:  # the wrapped cantrips heading not read as a heading at all: the chapter title must still end it
+        body = [dataclasses.replace(l, text=l.text.lower()) if _squash(l.text).startswith(("cantripsfor", "warlocksand"))
+                else l for l in body]
+    subs = parse_subclasses(body, ParseContext(slug=slug, source=source, pages=pages))
+    p = next(p for p in subs if p.name == "Bladesinging")
+    last = p.fields["entries"][-1]
+    assert last["name"] == "Song of Victory"
+    return " ".join(last["entries"])
+
+
+def test_scag_bladesinging_ends_at_the_wrapped_cantrips_heading():
+    # "Cantrips foR SorcereRs," / "WARLoCKS, AND WIZARDS": a heading wrapped after a comma
+    text = _song_of_victory()
+    assert text.endswith("while your Bladesong is active."), text[-300:]
+
+
+def test_a_subclass_section_never_runs_past_a_chapter_title():
+    text = _song_of_victory(unhead=True)
+    assert "CHAPTER 5" not in text.upper() and "background feature" not in text, text[-300:]
