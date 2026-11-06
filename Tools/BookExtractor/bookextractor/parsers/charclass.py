@@ -16,7 +16,7 @@ from ..layout import fix_digits
 from ..model import Line, Page
 from ..tables import Table, read_table
 from . import ParseContext, Parsed
-from .charcommon import ABILITIES, SKILLS, SUBCLASS_GROUPS, SUBCLASS_LEVELS, character_body, class_source, ordinal
+from .charcommon import ABILITIES, SKILLS, SUBCLASS_GROUPS, SUBCLASS_LEVELS, character_body, class_source, ordinal, with_sidebars
 from .charcommon import like as _like
 from .charcommon import squash as _squash
 from .monster import _join_text
@@ -495,7 +495,8 @@ def _build(L: list[Line], ctx: ParseContext, cls: str, start: int, a: int, end: 
     group = SUBCLASS_GROUPS.get(cls)
     fields: dict = {
         "hd": _hd(L[a].text), "proficiency": saves, "startingProficiencies": sp,
-        "multiclassing": _multiclassing(text),
+        # TCE prints the multiclassing rules in a sidebar, which the entries leave out
+        "multiclassing": _multiclassing("\n".join(l.text for l in with_sidebars(ctx, L[start], L[end - 1]))),
         "subclassTitle": group[0] if group and _squash(group[0]) in _squash(text) else None,
         "classFeatures": refs, "entries": _entries(L, sections, end, skip_idx) or None,
     }

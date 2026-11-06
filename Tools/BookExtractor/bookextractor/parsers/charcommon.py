@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import statistics
 from dataclasses import replace
 
 from rapidfuzz import fuzz
@@ -101,11 +102,100 @@ def without_art_credits(L: list[Line]) -> list[Line]:
     return out
 
 
+# ---------- sidebars ----------
+# A sidebar ("Breaking Your Oath", "Druids and the Gods", "Mage Sigils") is printed in a shaded box inside a
+# column. The OCR keeps no shading, but the box shows in the geometry: its title and every line under it start
+# inset from the column's text edge (by about half a line height in PHB/DMG, a full one in TCE/SCAG/VRGR), while
+# a body paragraph only indents its first line. Measured on the class and subclass sections of all 16 books.
+_SIDEBAR_INSET = 0.25  # x inset from the column's text edge, in page-median line heights
+_SIDEBAR_MAX_INSET = 1.5  # a title set further in is centred (a table caption, a spell-save formula)
+_SIDEBAR_MIN_LINES = 3
+_PROSE_WORDS = 3
+_ROW_START = re.compile(r"^\S{0,2}\d")  # a table row opens with its number or level ("3rd", "1 Crime.", "d6")
+_CUE_START = re.compile(r"(?i)^\S{2,5}-level\b|\b\S{2,5} level\b")  # a feature heading's level cue
+
+
+def _prose_line(t: str, min_len: int) -> bool:
+    return len(t) >= min_len and sum(w[:1].islower() for w in t.split()) >= _PROSE_WORDS
+
+
+def _page_sidebars(rows: list[tuple[int, Line]], mid: float) -> set[int]:
+    """Indices (into the book's lines) of one page's sidebar lines."""
+    h = statistics.median(l.height for _, l in rows) or 1.0
+
+    def col(l: Line) -> int:
+        return 1 if (l.box[0] + l.box[2]) / 2 > mid else 0
+
+    # the column's text edge: the leftmost x0 shared by at least three prose lines (one stray line is not an edge)
+    edge: dict[int, float] = {}
+    for c in (0, 1):
+        xs = sorted(l.box[0] for _, l in rows if col(l) == c and _prose_line(l.text, 40))
+        cl = [x for x in xs if sum(abs(y - x) <= 0.25 * h for y in xs) >= 3]
+        if cl:
+            edge[c] = cl[0]
+    out: set[int] = set()
+    i = 0
+    while i < len(rows):
+        l = rows[i][1]
+        c, t = col(l), l.text.strip()
+        # a sidebar title may list things ("CAVALIERS, SAMURAI, AND HISTORY")
+        if c not in edge or vertical(l.box) or not (heading_like(t) and title_case(t.replace(",", ""))) \
+                or "level" in t.lower() \
+                or not _SIDEBAR_INSET * h <= l.box[0] - edge[c] <= _SIDEBAR_MAX_INSET * h:
+            i += 1
+            continue
+        # the box: the title and the lines under it in its column, none starting left of the title
+        k = i + 1
+        while k < len(rows) and col(rows[k][1]) == c and rows[k][1].box[0] >= l.box[0] - _SIDEBAR_INSET * h \
+                and rows[k][1].box[1] >= rows[k - 1][1].box[1]:
+            k += 1
+        body = [x for _, x in rows[i + 1:k]]
+        inner = min(x.box[0] for _, x in rows[i:k])
+        # the text around the box sits at the column edge (a skewed scan shifts a whole column, not one block)
+        around = [[x for _, x in rows[j0:j1] if col(x) == c and _prose_line(x.text, 30)]
+                  for j0, j1 in ((max(0, i - 3), i), (k, k + 3))]
+        around = [a for a in around if a]
+        if (len(body) >= _SIDEBAR_MIN_LINES
+                and sum(_prose_line(x.text, 30) for x in body) >= max(_SIDEBAR_MIN_LINES, len(body) // 2)
+                and 3 * sum(bool(_ROW_START.match(x.text.strip())) for x in body) < len(body)
+                and not _CUE_START.search(" ".join(x.text for x in body[:2])[:80])
+                and around and all(inner - min(x.box[0] for x in a) >= _SIDEBAR_INSET * h for a in around)):
+            out.update(n for n, _ in rows[i:k])
+            i = k
+        else:
+            i += 1
+    return out
+
+
+def without_sidebars(L: list[Line], ctx: ParseContext) -> list[Line]:
+    """The lines with every sidebar box (title and text) taken out, so a sidebar printed beside a feature never
+    becomes part of the feature; a sentence the box interrupted ("It also can't take" / "reactions.") reads on."""
+    pages: dict[int, list[tuple[int, Line]]] = {}
+    for n, l in enumerate(L):
+        pages.setdefault(l.page, []).append((n, l))
+    drop: set[int] = set()
+    for number, rows in pages.items():
+        pg = ctx.pages.get(number)
+        mid = pg.width / 2 if pg else (min(l.box[0] for _, l in rows) + max(l.box[2] for _, l in rows)) / 2
+        drop |= _page_sidebars(rows, mid)
+    return [l for n, l in enumerate(L) if n not in drop]
+
+
 def character_body(body: list[Line], ctx: ParseContext) -> list[Line]:
-    """The book's lines as the class and subclass parsers read them (art credits out), computed once per book."""
+    """The book's lines as the class and subclass parsers read them (art credits and sidebars out), computed once
+    per book."""
     if "character_body" not in ctx.cache:
-        ctx.cache["character_body"] = without_art_credits(body)
+        ctx.cache["character_lines"] = without_art_credits(body)
+        ctx.cache["character_body"] = without_sidebars(ctx.cache["character_lines"], ctx)
     return ctx.cache["character_body"]
+
+
+def with_sidebars(ctx: ParseContext, first: Line, last: Line) -> list[Line]:
+    """Every printed line from `first` to `last` (lines of `character_body`), the sidebars between them included:
+    a class's rules printed in a sidebar ("Multiclassing and the Artificer") are still read as fields."""
+    full: list[Line] = ctx.cache["character_lines"]
+    at = {id(l): k for k, l in enumerate(full)}
+    return full[at[id(first)]:at[id(last)] + 1]
 
 
 BULLET = re.compile(r"^(?:[•·]\s*|\.\s*(?=[A-Z]))")  # OCR reads some bullets as "."

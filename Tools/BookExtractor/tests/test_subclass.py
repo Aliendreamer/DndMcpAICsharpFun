@@ -339,3 +339,26 @@ def test_art_credit_rule_keeps_horizontal_all_caps_lines():
     out = without_art_credits([head, body])
     assert [l.text for l in out] == ["ARMORER SPELLS", "whenever"]
     assert out[1].box == body.box   # printed-line identity (page, box) is kept for the text-bleed gate
+
+
+def test_a_sidebar_inside_a_subclass_feature_is_not_kept():   # PHB "Breaking Your Oath" inside Channel Divinity
+    p = get_sub("Oath of Devotion", book="phb-paladin")
+    text = _all_text(p)
+    assert "Breaking Your Oath" not in text and "Oathbreaker paladin option" not in text, text
+    cd = json.dumps(next(e for e in p.fields["entries"] if e["name"] == "Channel Divinity"))
+    # the feature's sentence the sidebar interrupted reads on: "It also can't take" / "reactions."
+    assert "It also can't take reactions." in cd, cd
+    assert not failed(p), failed(p)
+
+
+def test_a_sidebar_is_dropped_but_a_table_in_the_feature_is_kept():   # VRGR College of Spirits
+    p = get_sub("College of Spirits", book="vrgr")
+    text = _all_text(p)
+    assert "Storytellers, like bards" not in text   # the "Spirit Tales" sidebar
+    assert "Tale of the Brute" in text and "Tale of the Mind-Bender" in text.replace("ofthe", "of the")
+
+
+def test_scag_bladesinging_sidebars_are_not_kept():   # "Mage Sigils", "Bladesinger Styles"
+    p = get_sub("Bladesinging", book="scag-wizard")
+    text = _all_text(p)
+    assert "Mage Sigils" not in text and "Bladesinger Styles".lower() not in text.lower(), text[-800:]

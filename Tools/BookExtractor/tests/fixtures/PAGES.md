@@ -86,3 +86,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | scag | 142, 143, 144, 146 | "ARCANE TRAdITION": Bladesinging, then the wrapped heading "Cantrips foR SorcereRs," / "WARLoCKS, AND WIZARDS", the new cantrips, and "CHAPTER 5: BACkGrouNdS" |
 | tce | 059, 060 | Fey Wanderer printed with its heading glued ("Feywanderer"): the assembler's name repair reaches shortName and the refs' ShortName part |
 | tce | 015, 016, 017 | Alchemist, then Armorer: the "Extra Attack" heading OCR-glued ("ExtRAATtaCk"), the sideways art credit "BRIAN VALEZA" merged by reading order into the body row beside it |
+| phb | 086, 087 | Paladin class features, "Sacred Oaths", Oath of Devotion: the "Breaking Your Oath" sidebar (inset box at the top of a column) interrupting the Channel Divinity sentence "It also can't take" / "reactions." |
