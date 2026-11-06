@@ -48,8 +48,7 @@ _CHOSEN = re.compile(r"increase\s+one\s+(?:of\s+those\s+|ability\s+)?scores?\s+b
 _BY_SUBRACE = "the increases are printed in each subrace"
 # a race variant that replaces a trait other than Ability Score Increase leaves the race's increases as they are
 VARIANT_KEEPS_ASI = "the variant replaces another trait; the race's Ability Score Increase is unchanged"
-_REPLACES = re.compile(r"\breplaces the\b[^.]{0,80}?\btrait\b", re.I)
-_REPLACES_ASI = re.compile(r"\breplaces the Ability Score Increase trait\b", re.I)
+_REPLACES = re.compile(r"\breplaces the\s+([^.]{1,80}?)\s+trait\b", re.I)
 _SECTION = 1.3  # a race's section heading ("DWARVES") is set this much taller than a subrace heading inside it
 _SECTION_CLOSE = 0.95  # a non-race heading this tall relative to that section heading lies between the two
 _NUMBER_WORDS = {"one": 1, "two": 2, "three": 3}
@@ -512,6 +511,19 @@ def _section_parent(b: _Book, s: int, races: list[str]) -> str | None:
     return None
 
 
+def _variant_ability(text: str) -> tuple[list | None, str]:
+    """(ability, asi text) of a variant option. Only an option whose replaced trait is clearly not the Ability
+    Score Increase (fuzzy, so an OCR slip "Ability Score lncrease" does not count as another trait) and that prints
+    no increase gets the VARIANT_KEEPS_ASI marker; any other goes the normal way, so an unread increase fails
+    `ability-increase-parsed`."""
+    t = re.sub(r"\s+", " ", text)
+    names = [m.group(1) for m in _REPLACES.finditer(t)]
+    if names and not any(like(n, "Ability Score Increase", 85) for n in names) and \
+            not re.search(r"\bin-? ?creases? by\b", t, re.I):
+        return None, VARIANT_KEEPS_ASI
+    return _ability(t), t
+
+
 def _variants(b: _Book, races: list[str], claimed: set[int], source_of) -> list[tuple[Parsed, str | None]]:
     """Subraces printed as a "<Race> Variants" option list (SCAG "Tiefling Variants"): each trait whose text says
     which trait it replaces ("This trait replaces the Infernal Legacy trait.") is a variant named by its label.
@@ -535,10 +547,9 @@ def _variants(b: _Book, races: list[str], claimed: set[int], source_of) -> list[
                 continue
             lab, text = traits[0]
             fields: dict = {"raceName": race, "raceSource": source_of(race)}
-            asi = VARIANT_KEEPS_ASI
-            if _REPLACES_ASI.search(text):
-                fields["ability"] = _ability(text)
-                asi = text
+            ability, asi = _variant_ability(text)
+            if asi != VARIANT_KEEPS_ASI:
+                fields["ability"] = ability
             fields["entries"] = [{"type": "entries", "name": lab, "entries": [text]}]
             lines = L[j:stop]
             out.append((Parsed(type="Subrace", name=lab, fields=fields, text="\n".join(x.text for x in lines),

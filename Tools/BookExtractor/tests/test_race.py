@@ -355,3 +355,19 @@ def test_variant_that_replaces_another_trait_passes_ability_check():
     from bookextractor.parsers.race import VARIANT_KEEPS_ASI
     c = check(race_checks({"raceName": "Tiefling"}, True, {"Tiefling"}, asi_text=VARIANT_KEEPS_ASI), "ability-increase-parsed")
     assert c.passed
+
+
+def test_variant_ocr_slipped_asi_replacement_is_not_granted_the_keep_marker():
+    from bookextractor.parsers.race import VARIANT_KEEPS_ASI, _variant_ability
+    ok = ("Your Intelligence score increases by 1, and your Dexterity score increases by 2. "
+          "This trait replaces the Ability Score Increase trait.")
+    assert _variant_ability(ok) == ([{"dex": 2, "int": 1}], ok)
+    # an OCR slip in the replaced trait's name must not hide the printed increases behind the marker
+    slip = ("Your Intelligence score increases by 1, and your Dexterity score in- creases by Z. "
+            "This trait replaces the Ability Score lncrease trait.")
+    ability, asi = _variant_ability(slip)
+    assert asi != VARIANT_KEEPS_ASI and ability is None
+    c = check(race_checks({"raceName": "Tiefling"}, True, {"Tiefling"}, asi_text=asi), "ability-increase-parsed")
+    assert not c.passed
+    keep = "You know the vicious mockery cantrip. This trait replaces the Infernal Legacy trait."
+    assert _variant_ability(keep) == (None, VARIANT_KEEPS_ASI)
