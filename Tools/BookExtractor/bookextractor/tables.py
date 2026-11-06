@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from statistics import median
 
 from rapidfuzz import fuzz
@@ -188,6 +188,7 @@ class Row:
     group: str | None              # the sub-heading row the row sits under ("Simple Melee Weapons")
     marker: str | None             # a footnote marker printed after the label ("*", "†")
     lines: list[Line]
+    raw: dict[str, str] = field(default_factory=dict)  # the cells as the OCR read them, before the digit repair
 
 
 @dataclass
@@ -288,11 +289,12 @@ def _read_one(page: Page, head: list[Line], headers: list[str], right: float) ->
         marker = m.group(1) if m else None
         if m:
             label = label[:m.start()].strip()
-        texts = {headers[i + 1]: fix_digits(" ".join(x.text.strip() for x in sorted(c, key=lambda x: (x.box[1], x.box[0]))))
-                 for i, c in enumerate(cs)}
+        raw = {headers[i + 1]: " ".join(x.text.strip() for x in sorted(c, key=lambda x: (x.box[1], x.box[0])))
+               for i, c in enumerate(cs)}
+        texts = {h: fix_digits(t) for h, t in raw.items()}
         lines = sorted(labels + [x for c in cs for x in c], key=lambda x: (x.box[1], x.box[0]))
         used += lines
-        out.append(Row(label=label, cells=texts, group=grp, marker=marker, lines=lines))
+        out.append(Row(label=label, cells=texts, group=grp, marker=marker, lines=lines, raw=raw))
     box = (min(l.box[0] for l in used), min(l.box[1] for l in used), max(l.box[2] for l in used),
            max(l.box[3] for l in used))
     return out, box

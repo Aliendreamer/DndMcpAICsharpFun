@@ -93,3 +93,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | phb | 154 | Container Capacity table beside prose (footnote-marked "Backpack*", ends at its "*" footnote) |
 | phb | 155 | Tools table beside prose (Artisan's tools, Gaming set, Musical instrument groups; a "*" cost cell) |
 | phb | 158 | Mounts (stacked "Carrying Capacity" header), Tack/Harness and Waterborne Vehicles tables in one column |
+| dmg | 268 | Renaissance, Modern and Futuristic firearms tables ("Weight Properties" header set as one line; "3 Ib.") |
