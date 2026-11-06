@@ -24,11 +24,12 @@ character offsets before the table is read (`tables.read_row_tables`, one Row pe
   []).
 - **Text**: the row as printed, then the prose of the section whose heading names the deity ("Avandra, the Change
   Bringer"), as `entries`. Only a section in the table's own chapter counts (EGW's magic item "Arms of the
-  Betrayers" in chapter 6 is not the lesser idol's text). The deity's text stops at another deity's section nested
-  inside it (the reader's levels are noisy: SCAG Jergal under Hoar) and at a magic item or stat block printed inside
-  it (the hosted entity's own heading): the god never absorbs another entity's text. Deity-table lines inside the
-  section, with their titles and footnotes, and display text (pull quotes) are no part of it. A sidebar title or
-  other heading inside the section that does not name the deity ends its text.
+  Betrayers" in chapter 6 is not the lesser idol's text). The deity's text stops only where what follows is provably
+  another entity's: another deity's section or heading (the reader's levels are noisy: SCAG Jergal under Hoar), a
+  heading naming a group of gods, a line an earlier type owns (`ctx.cache["claimed_lines"]`), or a magic item or
+  stat block printed inside it (the hosted entity's own heading). Any other heading inside it ("Symbol", "Rites", an
+  unstripped sidebar title) is kept, never a silent cut, and named by `text-complete`. Deity-table lines inside the
+  section, with their titles and footnotes, and display text (a run of pull-quote lines) are no part of it.
 - **Rows**: a table ends at the next header row, and at the first line laid across a column it does not start in
   (prose under the table taken into the last row). A label wrapped onto a line the table reader took for a row ("Arms
   of the" / "Betrayers") or for a sub-heading ("Cults of the Dragon" / "Below") is joined back.
@@ -47,8 +48,9 @@ Checks (each names the values involved):
 - `table-rows-read` / `row-complete`: as for the equipment tables (`equipment._table_checks`);
 - `text-complete` (when the deity has a prose section): the section ends at a heading or chapter title the reader is
   sure of (`Section.complete`), and is not far longer than its sibling sections (a heading the OCR misread as larger
-  than it is runs on over its siblings), and its text did not stop at a heading inside it that does not name the
-  deity (a sidebar) with prose naming the deity again after it.
+  than it is runs on over its siblings), and its text runs through no heading that does not name the deity (its
+  own sub-section, or a sidebar the reader cannot bound: the check names them);
+- `display-lines-dropped` (passing note): the pull-quote lines left out of the text.
 
 Not registered in the assembler yet (Phase 2c ruling W1): Task 6 does that.
 """
@@ -56,6 +58,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from dataclasses import dataclass, field
 from statistics import median
 
 from rapidfuzz import fuzz
@@ -348,7 +351,12 @@ def _hosted_stop(lines: list[Line]) -> int:
 def _chapter(sections: list[Section], at: Line) -> str | None:
     """The chapter title the line is printed under: that of the last section starting at or before it."""
     before = [s for s in sections if (s.page, s.lines[0].box[1]) <= (at.page, at.box[1])]
-    return before[-1].parents[0] if before and before[-1].parents else None
+    return _chapter_of(before[-1]) if before else None
+
+
+def _chapter_of(s: Section) -> str | None:
+    """The section's chapter title (its outermost parent, when that is a chapter or appendix title)."""
+    return s.parents[0] if s.parents and re.match(r"^(Chapter|Appendix) ", s.parents[0]) else None
 
 
 def _section_for(name: str, sections: list[Section], chapter: str | None) -> Section | None:
@@ -356,7 +364,7 @@ def _section_for(name: str, sections: list[Section], chapter: str | None) -> Sec
     Bringer" names Avandra); never a same-named section elsewhere (EGW's magic item "Arms of the Betrayers")."""
     want = squash(name)
     hits = [s for s in sections if squash(s.title.split(",")[0]) == want
-            and (s.parents[0] if s.parents else None) == chapter]
+            and _chapter_of(s) == chapter]
     return min(hits, key=lambda s: s.level) if hits else None
 
 
@@ -364,7 +372,9 @@ def _names_a_god(L: list[Line], k: int, names: set[str]) -> bool:
     """L[k] is a heading naming another deity of the book ("ILMATER", "Uk'otoa, the Leviathan Lord"), set after a
     finished sentence (or at a column or page top), whether or not the section reader read it as a heading."""
     t = L[k].text.strip()
-    if not (0 < len(t.split()) <= 8 and not t.endswith((".", ",", ";")) and squash(t.split(",")[0]) in names):
+    # a heading opens with a letter (a quote's attribution "-Diancastra" is none)
+    if not (0 < len(t.split()) <= 8 and t[:1].isalpha() and not t.endswith((".", ",", ";"))
+            and squash(t.split(",")[0]) in names):
         return False
     prev = L[k - 1]
     return prev.page != L[k].page or prev.box[1] > L[k].box[1] or prev.text.rstrip().endswith((".", "!", "?", '"'))
@@ -384,47 +394,78 @@ def _inner_heading(L: list[Line], k: int, own: str) -> bool:
     return after and nxt is not None and sum(w[:1].islower() for w in nxt.text.split()) >= 3
 
 
+_GROUP_OF_GODS = re.compile(r"\b(gods|deities|pantheons?)\b", re.I)
+_DISPLAY_MIN = 6  # a section this short has too few lines for a median to tell display text from body text
+
+
+@dataclass
+class Span:
+    own: list[Line]  # the deity's own lines
+    kept: list[str] = field(default_factory=list)  # headings inside them that do not name the deity
+    dropped: list[Line] = field(default_factory=list)  # display text left out (a pull quote)
+
+
 def own_span(s: Section, others: list[Section], names: set[str] = frozenset(),
-             boxes: dict[int, list[tuple]] | None = None,
-             sections: list[Section] = ()) -> tuple[list[Line], list[Line], str | None]:
-    """(the deity section's own lines, the lines after them, the heading of a section or sidebar that does not name
-    the deity where they stop, or None when they stop at another deity, a hosted entity or the section's end).
+             boxes: dict[int, list[tuple]] | None = None, sections: list[Section] = (),
+             claimed: set | None = None) -> Span:
+    """The deity section's own lines.
 
-    The own lines leave out the deity-table lines printed inside the section (`boxes`: rows, title, footnotes) and
-    display text set far taller than its body (a pull quote: MTF beside Laduguer). They run up to the first of:
+    They leave out the deity-table lines printed inside the section (`boxes`: rows, title, footnotes), lines an
+    earlier type's entity owns (`claimed`, line keys as `assemble._line_keys`), and, when the text under the heading
+    runs at least `_DISPLAY_MIN` lines, display text: a run of two or more lines set far taller than its body (a
+    pull quote beside MTF's Laduguer; listed in `dropped`, never the heading's own lines). They stop only where the
+    lines after are provably another entity's:
 
-    - a section inside it that is another deity's (the reader may nest a sibling under it: SCAG Jergal under Hoar);
-    - a heading naming another deity (`names`, squashed), read as one or not (SCAG "ILMATER");
-    - a section, or a heading the reader missed, inside it that does not name the deity: a sidebar or another topic
-      ("Drow Trance: Entering the Void" in Lolth's column, "The Gods of Mulhorand" under Waukeen);
-      "Commandments of Avandra" names its deity and stays;
-    - a hosted magic item or stat block."""
+    - a section inside it that is another deity's (the reader may nest a sibling under it: SCAG Jergal under Hoar),
+      or a heading naming another deity (`names`, squashed), read as one or not (SCAG "ILMATER");
+    - a heading naming a group of gods ("The Gods of Mulhorand" under Waukeen);
+    - a claimed line;
+    - a hosted magic item or stat block.
+
+    Any other heading inside the section that does not name the deity (a section the reader nested under it, or a
+    heading it missed: "Worshipers", "Symbol", but also an unstripped sidebar title such as "Drow Trance: Entering
+    the Void") does not end the text: it is kept, and listed in `kept`, so `text-complete` can name it."""
     own_name = squash(s.title.split(",")[0])
     deity = {id(o.lines[0]) for o in others if o is not s}
     other = {id(o.lines[0]): o.title for o in sections if o is not s and own_name not in squash(o.title)}
-    lines = [l for l in s.lines if not boxes or not _in_box(l, boxes)]
-    if len(lines) > 2:
-        med = median(l.height for l in lines[1:])
-        lines = lines[:1] + [l for l in lines[1:] if l.height <= _DISPLAY * med]
-    end, why = len(lines), None
+    claimed = claimed or set()
+    lines = [l for l in s.lines if (not boxes or not _in_box(l, boxes))]
+    end, kept = len(lines), []  # kept: (line index, heading)
     for k in range(1, len(lines)):
         l = lines[k]
-        if id(l) in deity or _names_a_god(lines, k, names):
+        if id(l) in deity or _names_a_god(lines, k, names) or _key(l) in claimed:
             end = k
             break
-        if id(l) in other or _inner_heading(lines, k, own_name):
-            end, why = k, other.get(id(l)) or l.text.strip()
+        head = other.get(id(l)) or (l.text.strip() if _inner_heading(lines, k, own_name) else None)
+        if head is None:
+            continue
+        if _GROUP_OF_GODS.search(head):
+            end = k
             break
+        kept.append((k, head))
     own = lines[:end]
-    cut = _hosted_stop(own)
-    if cut < len(own):
-        return own[:cut], lines[cut:], None
-    return own, lines[end:], why
+    own = own[:_hosted_stop(own)]
+    kept_heads = [h for k, h in kept if k < len(own)]
+    dropped: list[Line] = []
+    heads = next((k for k in range(1, len(own)) if squash(own[k].text) not in squash(s.title)), len(own))
+    if len(own) - heads >= _DISPLAY_MIN:
+        # the heading's own lines ("CulTS OF THE" / "DRAGON BELOW") are never display text; display text is a run
+        # of at least two lines set far taller than the body (one tall line is OCR noise or a heading)
+        med = median(l.height for l in own[heads:])
+        tall = [k >= heads and l.height > _DISPLAY * med for k, l in enumerate(own)]
+        dropped = [l for k, l in enumerate(own) if tall[k] and (k > 0 and tall[k - 1] or k + 1 < len(own)
+                                                                 and tall[k + 1])]
+        own = [l for l in own if l not in dropped]
+    return Span(own=own, kept=kept_heads, dropped=dropped)
+
+
+def _key(l: Line) -> tuple:
+    return l.page, tuple(round(x, 1) for x in l.box)
 
 
 def _own_lines(s: Section, others: list[Section], names: set[str] = frozenset(),
                boxes: dict[int, list[tuple]] | None = None, sections: list[Section] = ()) -> list[Line]:
-    return own_span(s, others, names, boxes, sections)[0]
+    return own_span(s, others, names, boxes, sections).own
 
 
 def _size_check(s: Section, own: list[Line], sections: list[Section]) -> Check:
@@ -483,7 +524,8 @@ def _in_box(l: Line, boxes: dict[int, list[tuple]]) -> bool:
     return any(b[0] <= x <= b[2] and b[1] <= y <= b[3] for b in boxes.get(l.page, []))
 
 
-def _attach_prose(gods: list[Parsed], sections: list[Section], boxes: dict[int, list[tuple]]) -> None:
+def _attach_prose(gods: list[Parsed], sections: list[Section], boxes: dict[int, list[tuple]],
+                  claimed: set | None = None) -> None:
     """Each deity's prose section (in its table's chapter) as its `entries` and the rest of its text and lines. The
     deity tables printed inside a section (`boxes`, per page: header row to last row) are no part of its prose."""
     found = [(g, _section_for(g.name, sections, _chapter(sections, g.lines[0]))) for g in gods]
@@ -492,7 +534,8 @@ def _attach_prose(gods: list[Parsed], sections: list[Section], boxes: dict[int, 
         if s is None:
             continue
         names = {squash(o.name) for o in gods} - {squash(g.name)}
-        own, rest, why = own_span(s, god_sections, names, boxes, sections)
+        span = own_span(s, god_sections, names, boxes, sections, claimed)
+        own = span.own
         # the heading may wrap onto a second line ("Avandra, the" / "Change Bringer")
         heads = next((k for k in range(1, len(own) + 1) if k == len(own) or own[k].text.strip() not in s.title),
                      1)
@@ -500,21 +543,15 @@ def _attach_prose(gods: list[Parsed], sections: list[Section], boxes: dict[int, 
         g.lines = g.lines + own
         g.text += "\n" + "\n".join(x for x in g.fields["entries"] if isinstance(x, str))
         check = _size_check(s, own, sections)
-        g.checks.append(check if not check.passed else _resumes(g.name, rest, why))
-
-
-def _resumes(name: str, rest: list[Line], why: str | None) -> Check:
-    """`text-complete` fails when the deity's text stopped at a heading inside its section that does not name it (a
-    sidebar: "Drow Trance: Entering the Void" in Lolth's column) and prose after that heading names the deity
-    again: its text may resume after the inserted part, and the reader cannot tell where."""
-    word = squash(name)
-    again = [l for l in rest[1:] if word in squash(l.text) and len(l.text) >= 30
-             and sum(w[:1].islower() for w in l.text.split()) >= 3]
-    if why is None or not again:
-        return Check("text-complete", True)
-    return Check("text-complete", False, f"the text of {name!r} stops at {why!r} (p{rest[0].page}), a heading "
-                 f"inside its section that does not name it, but a later line names {name!r} again "
-                 f"(p{again[0].page}: {again[0].text.strip()!r}): its text may resume after it")
+        if check.passed and span.kept:
+            check = Check("text-complete", False, f"the text of {g.name!r} runs on through "
+                          + ", ".join(repr(h) for h in span.kept) + ", heading(s) inside its section that do not "
+                          "name it: its own sub-sections, or another entity's text (a sidebar) the reader cannot "
+                          "bound")
+        g.checks.append(check)
+        if span.dropped:
+            g.checks.append(Check("display-lines-dropped", True, "display text set far taller than the section's "
+                                  "body left out: " + "; ".join(repr(l.text.strip()) for l in span.dropped)))
 
 
 def _crosses(l: Line, head: list[Line]) -> bool:
@@ -665,5 +702,5 @@ def parse_gods(body: list[Line], ctx: ParseContext) -> list[Parsed]:
             rows += _footnotes(page, t, head)
             boxes.setdefault(n, []).append((min(l.box[0] for l in rows), min(l.box[1] for l in rows),
                                             max(l.box[2] for l in rows), max(l.box[3] for l in rows)))
-    _attach_prose(out, sections, boxes)
+    _attach_prose(out, sections, boxes, ctx.cache.get("claimed_lines"))
     return out

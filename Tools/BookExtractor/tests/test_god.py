@@ -6,7 +6,7 @@ from bookextractor.layout import reading_order
 from bookextractor.model import Line, load_ocr_page
 from bookextractor.pages import classify_page
 from bookextractor.parsers import ParseContext
-from bookextractor.parsers.god import _own_lines, parse_gods
+from bookextractor.parsers.god import _key, _own_lines, own_span, parse_gods
 from bookextractor.parsers.sections import Section, read_sections
 from bookextractor.parsers.item import parse_items
 
@@ -174,9 +174,10 @@ def _entries_text(g):
 
 def test_no_table_title_footnote_sidebar_or_pull_quote_in_mtf_god_prose():
     """Fix I2: the MTF deity tables sit inside the gods' prose. Their titles ("Dwarf Deities (The Mordinsamman)")
-    and footnotes ("*Appears in ...") are table text; a sidebar in the god's column ("Drow Trance: Entering the
-    Void") ends the god's text and, since Lolth's text resumes after it, fails `text-complete` naming it; a pull
-    quote set far taller than the body (beside Laduguer) is no part of the prose."""
+    and footnotes ("*Appears in ...") are table text; a pull quote set far taller than the body (beside Laduguer)
+    is no part of the prose, and a passing `display-lines-dropped` check lists it. A sidebar in the god's column
+    ("Drow Trance: Entering the Void", unstripped) cannot be bounded: Lolth's text runs on through it, and
+    `text-complete` fails naming it (never a silent Accepted bleed, never a silent cut)."""
     gods = _parse("mtf", _pages("mtf", [54, 74, 80]), "mtf", "MTF")[0]
     berronar = god(gods, "Berronar Truesilver")
     text = _entries_text(berronar)
@@ -185,12 +186,16 @@ def test_no_table_title_footnote_sidebar_or_pull_quote_in_mtf_god_prose():
     lolth = god(gods, "Lolth")
     assert lolth.fields["category"] == "The Dark Seldarine"
     assert "'Drow Trance: Entering the Void'" in failed(lolth)["text-complete"]
+    assert "In return for victims and adoration, Lolth grants" in _entries_text(lolth)
     laduguer = god(gods, "Laduguer")
     for g in (berronar, lolth, laduguer):
         t = _entries_text(g)
-        for bad in ("Deities", "Appears in", "Drow Trance", "Drow enter trance", "The mental power"):
+        for bad in ("Deities", "Appears in", "The mental power"):
             assert bad not in t, (g.name, bad)
     assert "Laduguer maintain the internal functions" in _entries_text(laduguer)
+    note = next(c for c in laduguer.checks if c.name == "display-lines-dropped")
+    assert note.passed and "The mental power that duergar wield was" in note.reason
+    assert not failed(laduguer) and not failed(berronar)
 
 
 def test_a_misread_accent_in_the_pantheon_is_repaired_to_the_book_spelling():
@@ -205,3 +210,44 @@ def test_a_misread_accent_in_the_pantheon_is_repaired_to_the_book_spelling():
     assert not failed(akadi)
     # a pantheon the book spells as read is left alone, with no check
     assert all(c.name != "pantheon-repaired" for c in god(phb(), "Anubis").checks)
+
+
+def test_a_god_keeps_its_own_sub_sections():
+    """Ruling W8: sub-headings inside a god's section that do not name it ("Worshipers", "Dogma") are no proof of
+    another entity: the god's text runs on through them (never cut silently), and `text-complete` names them. A
+    heading naming a group of gods, or a claimed line, does end the text."""
+    pages = _pages("egw", [21, 22])
+    _, body = egw()
+    sec = next(x for x in read_sections(body, ParseContext(slug="egw", source="EGW", pages=pages))
+               if x.title.startswith("Avandra"))
+    head, prose = sec.lines[0], sec.lines[1:]
+    def heading(text, at):
+        return Line(text=text, box=(at.box[0], at.box[1], at.box[0] + 200, at.box[3]), height=at.height,
+                    page=at.page)
+    worshipers, dogma = heading("Worshipers", prose[3]), heading("Dogma", prose[8])
+    lines = [head] + prose[:3] + [worshipers] + prose[3:8] + [dogma] + prose[8:]
+    subs = [Section(title=t, level=sec.level + 1, parents=sec.parents + [sec.title], lines=lines[lines.index(h):],
+                    page=sec.page, complete=True, end_reason="heading") for t, h in (("Worshipers", worshipers),
+                                                                                   ("Dogma", dogma))]
+    host = Section(title=sec.title, level=sec.level, parents=sec.parents, lines=lines, page=sec.page,
+                   complete=True, end_reason="heading")
+    span = own_span(host, [host], sections=[host] + subs)
+    assert span.own == lines
+    assert span.kept == ["Worshipers", "Dogma"]
+    # a group of gods ends it; so does a line another entity claims
+    subs[1].title = "The Gods of Mulhorand"
+    assert own_span(host, [host], sections=[host] + subs).own == lines[:lines.index(dogma)]
+    claimed = {_key(prose[5])}
+    assert own_span(host, [host], sections=[host], claimed=claimed).own == lines[:lines.index(prose[5])]
+
+
+def test_erlw_cults_text_is_not_cut_at_its_own_sub_headings():
+    """Ruling W8: ERLW "Cults of the Dragon Below" prints its own "Symbol", "Rites" and "Temples" sub-sections; its
+    text keeps them (round 1 stopped silently at "Symbol" and was Accepted with a part of its text), and
+    `text-complete` names them."""
+    gods, _ = _parse("erlw", _pages("erlw", [142, 146, 147]), "erlw", "ERLW")
+    cults = god(gods, "Cults of the Dragon Below")
+    text = " ".join(l.text for l in cults.lines)
+    assert "Many cultists carry pieces of volcanic glass" in text and "Cult rituals are intense" in text
+    reason = failed(cults)["text-complete"]
+    assert "'Symbol'" in reason and "'Rites'" in reason
