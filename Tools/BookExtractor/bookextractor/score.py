@@ -214,7 +214,8 @@ def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list
     return list(seen.values())
 
 
-_RULE_PREFIX = re.compile(r"^(variant rule|variant|optional rule)\s*:\s*", re.I)
+# 5etools names a downtime activity "Downtime Activity: Crafting"; the book prints the heading "Crafting"
+_RULE_PREFIX = re.compile(r"^(variant rule|variant|optional rule|downtime activity)\s*:\s*", re.I)
 
 
 def _section_nodes(node: dict, chapter: str, depth: int, out: list[dict]) -> None:

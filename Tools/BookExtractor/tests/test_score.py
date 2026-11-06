@@ -933,3 +933,10 @@ def test_shallow_depth_chosen_when_half_its_headings_match():
     r = score_book("ggr", [{"type": "Faction", "name": n, "fields": {}} for n in names], FT, "Section")
     assert r["found"] == 10
     assert any(k.startswith("Chapter 2: Guilds of Ravnica: scored at heading depth 1") for k in r["knownDifferences"])
+
+
+@needs_5etools
+def test_rule_key_strips_downtime_activity_prefix():
+    """5etools names PHB's printed "Crafting" downtime activity "Downtime Activity: Crafting"."""
+    e = {"type": "Rule", "name": "Crafting", "fields": {}}
+    assert score_book("phb", [e], FT, "Rule")["found"] == 1

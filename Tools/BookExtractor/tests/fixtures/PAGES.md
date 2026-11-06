@@ -133,3 +133,7 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | ggr | 012, 100 | Section reader: "Chapter 1: Character Creation" and "Chapter 3: The Tenth District" title pages around the chapter 2 fixtures (a chapter gap when the chapter 2 title is removed) |
 | phb | 300 | Appendix B: Egyptian Deities table (Anubis) and Norse Deities table (Aegir, Odin) on one page |
 | egw | 021, 022 | Pantheon of Exandria: "Avandra, the Change Bringer" prose section, Prime Deities table (merged "Alignment Province" header, footnoted domains) |
+| phb | 014 | Rule: "Variant: Customizing Ability Scores" (Ability Score Point Cost table), the Ability Scores and Modifiers table beside it, then the "4. Describe Your Character" step heading the section reader does not read |
+| phb | 145 | Rule: the "Variant: Equipment Sizes" sidebar (stripped from the section text) between Selling Treasure and Armor and Shields |
+| phb | 174, 175, 176, 177 | Rule: "Chapter 7: Using Ability Scores" entry-level sections, "Variant: Skills with Different Abilities" and "Variant: Encumbrance" nested in Using Each Ability, bold lead-ins ("Lifting and Carrying.", "Push, Drag, or Lift.") |
+| phb | 187, 188 | Rule: Resting, Between Adventures and its Downtime Activities (CRafTInG, the unread "Practicing a Profession" heading, RecuPerAting, RESEARChING, TRAINING) |
