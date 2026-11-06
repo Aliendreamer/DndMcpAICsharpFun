@@ -254,3 +254,64 @@ def test_bgg_last_labelled_subclass_ends_at_the_backgrounds_heading():
     assert name == "Demiurgic Colossus"
     assert text.endswith("increases to 2d6."), text[-300:]
     assert "Giant Foundling" not in p.text and "foundling" not in text.lower()
+
+
+def _synthetic(spec):
+    """Lines on one page from (text, height) pairs, stacked top to bottom."""
+    from bookextractor.model import Line
+    out, y = [], 0.0
+    for t, h in spec:
+        out.append(Line(text=t, box=(100.0, y, 700.0, y + h), height=float(h), page=1))
+        y += h + 4
+    return out
+
+
+_PROSE = ("Some text about this option and how it is used in play.", 30)
+
+
+def _fighter_feature(name, cue):
+    return [(name, 30), (f"{cue}, you gain a benefit that lasts until you finish a long rest.", 30), _PROSE]
+
+
+def test_height_only_heading_whose_features_continue_the_levels_continues_the_subclass():
+    # a taller heading with no naming evidence ("Terrain Notes", a stat block's name) inside a subclass whose
+    # features carry on from the previous subclass's last level is not a subclass of its own
+    spec = [("Martial Archetypes", 50), _PROSE, _PROSE, ("Champion", 40), _PROSE, _PROSE]
+    spec += _fighter_feature("Improved Critical", "Beginning at 3rd level")
+    spec += _fighter_feature("Remarkable Athlete", "Starting at 7th level")
+    spec += _fighter_feature("Additional Fighting Style", "At 10th level")
+    spec += [("Terrain Notes", 40), _PROSE, _PROSE]
+    spec += _fighter_feature("Superior Critical", "Starting at 15th level")
+    spec += _fighter_feature("Survivor", "At 18th level")
+    subs = parse_subclasses(_synthetic(spec), ParseContext(slug="x", source="XGE", pages={}))
+    assert [p.name for p in subs] == ["Champion"]
+    assert sorted({int(r.split("|")[-1]) for r in subs[0].fields["subclassFeatures"]}) == [3, 7, 10, 15, 18]
+    assert not failed(subs[0]), failed(subs[0])
+
+
+def test_height_only_heading_whose_features_restart_starts_a_new_subclass():
+    spec = [("Martial Archetypes", 50), _PROSE, _PROSE, ("Champion", 40), _PROSE, _PROSE]
+    spec += _fighter_feature("Improved Critical", "Beginning at 3rd level")
+    spec += _fighter_feature("Remarkable Athlete", "Starting at 7th level")
+    spec += [("Battle Master", 40), _PROSE, _PROSE]
+    spec += _fighter_feature("Combat Superiority", "At 3rd level")
+    spec += _fighter_feature("Know Your Enemy", "Starting at 7th level")
+    subs = parse_subclasses(_synthetic(spec), ParseContext(slug="x", source="XGE", pages={}))
+    assert [p.name for p in subs] == ["Champion", "Battle Master"]
+    # neither holds the other's features, and both fail on their missing levels instead of merging
+    assert [r.split("|")[0] for r in subs[1].fields["subclassFeatures"]] == ["Battle Master", "Know Your Enemy"]
+    assert all(not check(p.checks, "feature-levels-match-class").passed for p in subs)
+
+
+def test_height_only_heading_overlapping_the_previous_levels_is_not_merged():
+    # features at levels the previous subclass already reached (its cue lost on the first feature) are not
+    # folded into it: the merge needs every level to come after the previous subclass's last
+    spec = [("Martial Archetypes", 50), _PROSE, _PROSE, ("Champion", 40), _PROSE, _PROSE]
+    spec += _fighter_feature("Improved Critical", "Beginning at 3rd level")
+    spec += _fighter_feature("Remarkable Athlete", "Starting at 7th level")
+    spec += _fighter_feature("Additional Fighting Style", "At 10th level")
+    spec += [("Battle Master", 40), _PROSE, _PROSE, ("Combat Superiority", 30), _PROSE]  # cue lost
+    spec += _fighter_feature("Know Your Enemy", "Starting at 7th level")
+    subs = parse_subclasses(_synthetic(spec), ParseContext(slug="x", source="XGE", pages={}))
+    assert [p.name for p in subs] == ["Champion", "Battle Master"]
+    assert not any("Know Your Enemy" in r for r in subs[0].fields["subclassFeatures"])
