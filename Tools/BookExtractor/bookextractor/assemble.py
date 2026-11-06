@@ -145,9 +145,29 @@ def _replace_heading(text: str, old_name: str, new_name: str) -> str:
     return text
 
 
+def _repair_feature_name(name: str, vocab: Vocabulary):
+    """(repaired name, repaired?, unknown note or '', unattested words) for one printed feature name."""
+    res = repair_name(name, vocab, Vocabulary())
+    # a glued word the book prints spaced more often than glued is split, however often the glued form occurs
+    # (TCE prints its small-caps "Extra Attack" heading as "ExtRAATtaCk" three times)
+    words = res.name.split()
+    split = [" ".join(w[:1].upper() + w[1:] for w in sp) if (sp := spaced_pair(t, vocab)) else t for t in words]
+    if split != words:
+        res = repair_name(" ".join(split), vocab, Vocabulary())
+        res.repaired = True
+    # a feature heading printed once that reads as two known words glued (OCR lost the space) is a misread,
+    # not a coined word: a real coined name is rarely two ordinary words run together
+    glued = [f"{w} = {'+'.join(g)}" for w in res.unattested if (g := glued_words(w, vocab))]
+    unknown = f"{res.name!r} ({', '.join(res.unknown + glued)})" if res.unknown or glued else ""
+    return res.name, res.repaired, unknown, [w for w in res.unattested if not glued_words(w, vocab)]
+
+
 def _feature_name_checks(p: Parsed, vocab: Vocabulary) -> list[Check]:
-    """Repair each feature ref's name (part 0) from the book vocabulary, as entity names are, and flag the
-    names that still hold misread words. Only part 0 changes; the rest of the ref is kept as printed.
+    """Repair each feature ref's name (part 0) and each feature entry's heading (`entries[].name`) from the book
+    vocabulary, as entity names are, and flag the names that still hold misread words. Only the name changes;
+    the rest of the ref is kept as printed. Refs and entry headings go through the same repair, so a feature's
+    ref and its entry heading agree (the first-level features are folded into the subclass-named ref, so their
+    headings are checked only as entries).
 
     Unlike an entity name, the feature's own heading is not subtracted from the vocabulary: a word is known when
     the book prints it at least twice in all, heading included. A misread is one-off, so it still fails, while a
@@ -159,6 +179,19 @@ def _feature_name_checks(p: Parsed, vocab: Vocabulary) -> list[Check]:
     repaired: list[str] = []
     unknown: list[str] = []
     unattested: list[str] = []
+
+    def fix(raw: str) -> str:
+        # a printed die annotation ("Song of Rest (d6)", the 5etools ref keeps it) is not a word to check
+        m = _DIE_NOTE.search(raw)
+        word_part, note = (raw[:m.start()], raw[m.start():]) if m else (raw, "")
+        name, rep, unk, unatt = _repair_feature_name(word_part, vocab)
+        if rep and (msg := f"{word_part!r} -> {name!r}") not in repaired:
+            repaired.append(msg)
+        if unk and unk not in unknown:
+            unknown.append(unk)
+        unattested.extend(w for w in unatt if w not in unattested)
+        return (name if rep else word_part) + note
+
     out = []
     for r in refs:
         ref = r.get(obj_key) if isinstance(r, dict) else r
@@ -166,28 +199,13 @@ def _feature_name_checks(p: Parsed, vocab: Vocabulary) -> list[Check]:
             out.append(r)
             continue
         raw, sep, rest = ref.partition("|")
-        # a printed die annotation ("Song of Rest (d6)", the 5etools ref keeps it) is not a word to check
-        m = _DIE_NOTE.search(raw)
-        word_part, note = (raw[:m.start()], raw[m.start():]) if m else (raw, "")
-        res = repair_name(word_part, vocab, Vocabulary())
-        # a glued word the book prints spaced more often than glued is split, however often the glued form occurs
-        # (TCE prints its small-caps "Extra Attack" heading as "ExtRAATtaCk" three times)
-        words = res.name.split()
-        split = [" ".join(w[:1].upper() + w[1:] for w in sp) if (sp := spaced_pair(t, vocab)) else t for t in words]
-        if split != words:
-            res = repair_name(" ".join(split), vocab, Vocabulary())
-            res.repaired = True
-        if res.repaired:
-            repaired.append(f"{word_part!r} -> {res.name!r}")
-            ref = res.name + note + sep + rest
-        # a feature heading printed once that reads as two known words glued (OCR lost the space) is a misread,
-        # not a coined word: a real coined name is rarely two ordinary words run together
-        glued = [f"{w} = {'+'.join(g)}" for w in res.unattested if (g := glued_words(w, vocab))]
-        if res.unknown or glued:
-            unknown.append(f"{res.name!r} ({', '.join(res.unknown + glued)})")
-        unattested += [w for w in res.unattested if w not in unattested and not glued_words(w, vocab)]
+        ref = fix(raw) + sep + rest
         out.append({**r, obj_key: ref} if isinstance(r, dict) else ref)
     p.fields[key] = out
+    entries = p.fields.get("entries")
+    if isinstance(entries, list):
+        p.fields["entries"] = [{**e, "name": fix(e["name"])} if isinstance(e, dict) and isinstance(e.get("name"), str)
+                               and e["name"].strip() else e for e in entries]
     checks = []
     if repaired:
         checks.append(Check("feature-name-repaired", True, "; ".join(repaired)))

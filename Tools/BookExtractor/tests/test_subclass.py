@@ -326,7 +326,8 @@ def _all_text(p):
 def test_an_art_credit_ocr_merged_into_a_body_line_is_not_kept():   # TCE: "whenever BRIAN VALEZA" (sideways credit)
     p = get_sub("Armorer", book="tce-armorer")
     assert "VALEZA" not in _all_text(p), [e for e in p.fields["entries"] if "VALEZA" in json.dumps(e)]
-    extra = next(e for e in p.fields["entries"] if _squash(e["name"]) == "extraattack")
+    # the parser keeps the printed (OCR-glued) heading; the assembler repairs it (test_assemble)
+    extra = next(e for e in p.fields["entries"] if e["name"] == "Extraattack")
     assert "whenever you take the Attack action" in json.dumps(extra), extra
 
 

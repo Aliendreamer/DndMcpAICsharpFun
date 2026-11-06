@@ -473,3 +473,41 @@ def test_a_coined_word_ending_in_a_line_break_fragment_is_not_flagged():
                                 ["Beguiling Twist", "Fey Reinforcements", "ments", "ments", "ments", "fey", "fey",
                                  "a reinforce", "twist", "twist", "beguiling"])
     assert cs["feature-names-known"].passed, cs["feature-names-known"]
+
+
+def test_a_repaired_feature_name_reaches_the_entry_heading():   # TCE Armorer "ExtRAATtaCk"
+    from collections import Counter
+
+    from bookextractor.assemble import _id_and_checks
+    from bookextractor.layout import reading_order
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import ParseContext
+    from bookextractor.parsers.subclass import parse_subclasses
+    ps = {p.number: p for p in pages("tce", 15, 16, 17, 148)}
+    body = [l for n in (15, 16, 17) for l in reading_order(ps[n])]
+    sub = next(p for p in parse_subclasses(body, ParseContext(slug="tce", source="TCE", pages=ps)) if p.name == "Armorer")
+    # the vocabulary is the book's: page 148 (the Warrior sidekick) prints "Extra Attack" spaced
+    vocab = build_vocabulary(l.text for n in (15, 16, 17, 148) for l in reading_order(ps[n]))
+    _id_and_checks(sub, "tce", Counter(), vocab)
+    names = [x["name"] for x in sub.fields["entries"]]
+    assert names[4] == "Extra Attack" and "Extraattack" not in names, names
+    assert "Extra Attack|Artificer|TCE|Armorer|TCE|5" in sub.fields["subclassFeatures"]
+
+
+def test_entry_names_are_repaired_and_checked_like_refs():
+    # the first-level features are folded into the subclass-named ref, so their entry headings are checked on their own
+    p, cs = _feature_ref_checks(["Armorer|Artificer|TCE|Armorer|TCE|3"],
+                                ["armorer", "tools of the trade", "tools of the trade", "fullof", "full of stars",
+                                 "full of stars"] + ["magigal"])
+    p.fields["entries"] = [{"type": "entries", "name": "Fullof Stars", "entries": []},
+                           {"type": "entries", "name": "Magigal Armor", "entries": []}]
+    from collections import Counter
+
+    from bookextractor.assemble import _feature_name_checks
+    from bookextractor.names import build_vocabulary
+    vocab = build_vocabulary(["full of stars", "full of stars", "magical armor", "magical armor", "magical", "armor",
+                              "Magigal Armor"])
+    checks = {c.name: c for c in _feature_name_checks(p, vocab)}
+    assert [x["name"] for x in p.fields["entries"]] == ["Full of Stars", "Magigal Armor"]
+    assert not checks["feature-names-known"].passed and "Magigal" in checks["feature-names-known"].reason
+    assert "Fullof Stars" in checks["feature-name-repaired"].reason
