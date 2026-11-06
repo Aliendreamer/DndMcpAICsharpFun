@@ -5,6 +5,8 @@ import re
 
 from rapidfuzz import fuzz
 
+from ..model import Line
+
 SKILLS = ("Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight",
           "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion",
           "Religion", "Sleight of Hand", "Stealth", "Survival")
@@ -95,3 +97,12 @@ def tidy_case(name: str) -> str:
         else:
             out.append(w)
     return " ".join(out)
+
+
+def indented(L: list[Line], i: int) -> bool:
+    """The line starts indented from its column's left edge (the lines around it in the column): a trait label,
+    a paragraph's first line, a wrapped list item's continuation."""
+    l = L[i]
+    near = [L[j].box[0] for j in range(max(0, i - 6), min(len(L), i + 7))
+            if L[j].page == l.page and abs(L[j].box[0] - l.box[0]) < 3 * l.height]
+    return l.box[0] - min(near) > 0.4 * l.height

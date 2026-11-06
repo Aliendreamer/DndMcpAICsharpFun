@@ -63,3 +63,5 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | phb | 019, 020, 021, 022 | Dwarf: chapter heading and lore, Dwarf Names, Dwarf Traits, Hill and Mountain Dwarf subraces, the Duergar sidebar, then the ELF chapter heading |
 | mpmm | 005 | The book-wide "Ability Score Increases" rule (increases are chosen) |
 | mpmm | 021, 022 | Goliath (no Ability Score Increase trait), then Harengon (Medium or Small) |
+| phb | 166, 167, 168 | Feats section: FEATS heading after the multiclass table, Alert to Lucky (bullets OCR'd as `.` or lost), Heavily Armored |
+| xge | 074, 075 | Racial Feats: the Racial Feats table (feat names as rows), then Bountiful Luck to Fey Teleportation |
