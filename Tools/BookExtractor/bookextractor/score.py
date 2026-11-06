@@ -130,7 +130,8 @@ def base_monster_name(n: str) -> str:
     return n
 
 
-TYPES = ("Monster", "Spell", "MagicItem")
+_CHARACTER_TYPES = ("Class", "Subclass", "Race", "Subrace", "Feat", "Background")
+TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat", "Background")
 
 
 def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list[dict]:
@@ -149,6 +150,8 @@ def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list
         return list(out.values())
     if etype == "Spell":
         return json.loads((d / f"spells/spells-{book}.json").read_text("utf-8"))["spell"]
+    if etype in _CHARACTER_TYPES:
+        return _load_character_truth(book.upper(), d, etype)
     seen: dict[str, dict] = {}
     for i in json.loads((d / "items.json").read_text("utf-8"))["item"]:
         if i.get("source") == book.upper() and i.get("rarity") not in (None, "none"):
@@ -157,6 +160,53 @@ def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list
             rec["_rarities"].add(i["rarity"])
             rec["reqAttune"] = rec.get("reqAttune") or i.get("reqAttune")  # the printed entry covers every tier
     return list(seen.values())
+
+
+def _load_character_truth(src: str, d: Path, etype: str) -> list[dict]:
+    if etype in ("Class", "Subclass"):
+        files = sorted((d / "class").glob("class-*.json"))
+        if not files:
+            raise FileNotFoundError(str(d / "class"))
+        lst = "class" if etype == "Class" else "subclass"
+        return [r for f in files for r in json.loads(f.read_text("utf-8")).get(lst, []) if r.get("source") == src]
+    if etype in ("Race", "Subrace"):
+        data = json.loads((d / "races.json").read_text("utf-8"))
+        if etype == "Race":
+            return [r for r in data["race"] if r.get("source") == src and not r.get("_copy")]
+        # nameless base subraces are dropped; the match name carries the race word, like the printed heading
+        return [dict(r, name=f"{r['raceName']} {r['name']}", _subName=r["name"]) for r in data["subrace"]
+                if r.get("source") == src and r.get("name") and r.get("raceName")]
+    fname, lst = ("feats.json", "feat") if etype == "Feat" else ("backgrounds.json", "background")
+    return [r for r in json.loads((d / fname).read_text("utf-8"))[lst] if r.get("source") == src]
+
+
+def feature_levels(refs, src: str, level_idx: int, source_idx: int) -> set[tuple[str, int]]:
+    """(name, level) of the feature refs that belong to `src`: a ref carrying a different source in its
+    optional trailing part (a TCE optional feature in the PHB class) is left out. Refs are 5etools strings
+    or dicts holding one under `classFeature`/`subclassFeature`; our dicts may carry `level` instead."""
+    out: set[tuple[str, int]] = set()
+    for r in refs or []:
+        lvl = None
+        if isinstance(r, dict):
+            lvl = r.get("level")
+            r = r.get("classFeature") or r.get("subclassFeature") or ""
+        parts = str(r).split("|")
+        if len(parts) > source_idx and parts[source_idx] and parts[source_idx].upper() != src:
+            continue
+        if lvl is None and len(parts) > level_idx and parts[level_idx].isdigit():
+            lvl = int(parts[level_idx])
+        if parts[0] and lvl is not None:
+            out.add((key(parts[0]), int(lvl)))
+    return out
+
+
+def t_walk(speed):
+    return speed.get("walk") if isinstance(speed, dict) else speed
+
+
+def skill_set(v) -> set[str]:
+    """Skill names of a 5etools skillProficiencies list: [{"insight": true, ...}] -> {"insight", ...}."""
+    return {k.lower() for d in (v or []) if isinstance(d, dict) for k, on in d.items() if on is True}
 
 
 # ---------------- truth-side field renderers ----------------
@@ -237,20 +287,18 @@ def attunes(v) -> bool:
 
 # ---------------- scoring ----------------
 def available_types(book: str, fivetools_dir: Path) -> list[str]:
-    """The core books score their one type; any other book scores every type 5etools has for it."""
-    if book in BOOKS:
-        return [BOOKS[book]]
+    """Every type 5etools has truth for in this book (a core book keeps its Phase 1 type as well)."""
     out = []
     for t in TYPES:
         try:
             if load_truth(book, fivetools_dir, t):
                 out.append(t)
-        except FileNotFoundError:
+        except (FileNotFoundError, KeyError):
             pass
     return out
 
 
-def score_record(etype: str, fields: dict, t: dict) -> tuple[dict, float | None, float | None]:
+def score_record(etype: str, fields: dict, t: dict, src: str | None = None) -> tuple[dict, float | None, float | None]:
     r: dict[str, bool] = {}
     if etype == "Monster":
         r["ac"] = _first_int(fields.get("ac")) == t_ac(t)
@@ -269,12 +317,42 @@ def score_record(etype: str, fields: dict, t: dict) -> tuple[dict, float | None,
         r["duration"] = same_duration(t, fields.get("duration"), fields.get("concentration"))
         got = flat(fields.get("entries")) + " " + flat(fields.get("entriesHigherLevel"))
         cov, prec = coverage(flat(t.get("entries")) + " " + flat(t.get("entriesHigherLevel")), got)
+    elif etype in _CHARACTER_TYPES:
+        cov, prec = _score_character(etype, fields, t, r, src)
     else:
         if len(rarity_family(t)) == 1:
             r["rarity"] = same_rarity(t, fields.get("rarity"))
         r["attune"] = attunes(fields.get("reqAttune")) == attunes(t.get("reqAttune"))
         cov, prec = coverage(flat(t.get("entries")), flat(fields.get("entries")))
     return r, cov, prec
+
+
+def _score_character(etype: str, f: dict, t: dict, r: dict, src: str | None) -> tuple[float | None, float | None]:
+    src = (src or t.get("source") or "").upper()
+    if etype == "Class":
+        r["hd"] = (f.get("hd") or {}).get("faces") == (t.get("hd") or {}).get("faces")
+        r["proficiency"] = sorted(f.get("proficiency") or []) == sorted(t.get("proficiency") or [])
+        r["subclassTitle"] = f.get("subclassTitle") == t.get("subclassTitle")
+        r["features"] = feature_levels(f.get("classFeatures"), src, 3, 4) == \
+            feature_levels(t.get("classFeatures"), src, 3, 4)
+    elif etype == "Subclass":
+        r["className"] = key(f.get("className")) == key(t.get("className"))
+        r["shortName"] = key(f.get("shortName")) == key(t.get("shortName"))
+        r["features"] = feature_levels(f.get("subclassFeatures"), src, 5, 6) == \
+            feature_levels(t.get("subclassFeatures"), src, 5, 6)
+    elif etype == "Race":
+        r["size"] = set(f.get("size") or []) == set(t.get("size") or [])
+        r["speed"] = t_walk(f.get("speed")) == t_walk(t.get("speed"))
+        r["ability"] = (f.get("ability") or None) == (t.get("ability") or None)
+        r["darkvision"] = f.get("darkvision") == t.get("darkvision")
+    elif etype == "Subrace":
+        r["raceName"] = key(f.get("raceName")) == key(t.get("raceName"))
+        r["ability"] = (f.get("ability") or None) == (t.get("ability") or None)
+    elif etype == "Feat":
+        r["prerequisite"] = bool(f.get("prerequisite")) == bool(t.get("prerequisite"))
+    else:
+        r["skillProficiencies"] = skill_set(f.get("skillProficiencies")) == skill_set(t.get("skillProficiencies"))
+    return coverage(flat(t.get("entries")), flat(f.get("entries")))
 
 
 def match_one_to_one(truth_keys: list[str], keys: list[str]) -> dict[int, tuple[str, bool]]:
@@ -315,6 +393,10 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     for e in entities:
         if e.get("type") == etype:
             name = base_item_name(e["name"]) if etype == "MagicItem" else e["name"]
+            if etype == "Subrace":
+                rn = (e.get("fields") or {}).get("raceName")
+                if rn and key(rn) not in key(name):
+                    name = f"{rn} {name}"
             idx.setdefault(key(name), e)
     matches = match_one_to_one([key(t["name"]) for t in truth], list(idx))
     agg: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
@@ -333,7 +415,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
         if not exact:
             fuzzy.append(f"{t['name']} ~ {idx[k]['name']}")
         fields = idx[k]["fields"]
-        res, cov, prec = score_record(etype, fields, t)
+        res, cov, prec = score_record(etype, fields, t, book.upper())
         if etype == "MagicItem" and len(rarity_family(t)) > 1:
             fam[0] += 1
             fam[1] += fields.get("rarity") == "varies"

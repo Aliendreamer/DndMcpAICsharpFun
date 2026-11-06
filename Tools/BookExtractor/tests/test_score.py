@@ -208,3 +208,87 @@ def test_entries_the_book_never_prints_are_not_counted_missing(tmp_path):
     res = score_book("vrgr", [_ours_monster("Loup Garou")], tmp_path, "Monster")
     assert res["truth"] == 1 and res["found"] == 1 and res["missing"] == []
     assert any(k.startswith("Elise: not printed") for k in res["knownDifferences"])
+
+
+# ---------------- character types (read the real 5etools directory) ----------------
+from pathlib import Path  # noqa: E402
+
+import pytest  # noqa: E402
+
+from bookextractor.score import available_types, load_truth, score_record  # noqa: E402
+
+FT = Path(__file__).resolve().parents[3] / "5etools"
+needs_5etools = pytest.mark.skipif(not (FT / "races.json").exists(), reason="5etools directory not present")
+
+
+@needs_5etools
+def test_truth_phb_classes():
+    names = {t["name"] for t in load_truth("phb", FT, "Class")}
+    assert names >= {"Barbarian", "Wizard"} and len(load_truth("phb", FT, "Class")) == 12
+
+
+@needs_5etools
+def test_truth_xge_subclasses():
+    assert "Path of the Zealot" in {t["name"] for t in load_truth("xge", FT, "Subclass")}
+
+
+@needs_5etools
+def test_truth_phb_subraces_named():
+    truth = load_truth("phb", FT, "Subrace")
+    assert truth and all(t.get("name") for t in truth)
+    assert "Dwarf Hill" in {t["name"] for t in truth}
+
+
+@needs_5etools
+def test_truth_phb_feats_backgrounds():
+    assert len(load_truth("phb", FT, "Feat")) == 42
+    assert "Acolyte" in {t["name"] for t in load_truth("phb", FT, "Background")}
+
+
+@needs_5etools
+def test_score_class_fields():
+    t = next(t for t in load_truth("phb", FT, "Class") if t["name"] == "Barbarian")
+    r, *_ = score_record("Class", {"hd": {"number": 1, "faces": 12}, "proficiency": ["str", "con"],
+                                   "subclassTitle": "Primal Path", "classFeatures": t["classFeatures"]}, t)
+    assert all(r.values())
+
+
+@needs_5etools
+def test_score_class_features_ignore_other_sources_and_detect_wrong_level():
+    t = next(t for t in load_truth("phb", FT, "Class") if t["name"] == "Barbarian")
+    f = {"hd": {"faces": 12}, "proficiency": ["con", "str"], "subclassTitle": "Primal Path",
+         "classFeatures": [{"classFeature": "Rage|Barbarian||1"}]}
+    assert score_record("Class", f, t)[0]["features"] is False
+    assert score_record("Class", {**f, "hd": {"faces": 8}}, t)[0]["hd"] is False
+    refs = ["Rage|Barbarian||1", "Primal Knowledge|Barbarian||3|TCE"]
+    from bookextractor.score import feature_levels
+    assert feature_levels(refs, "PHB", 3, 4) == {("rage", 1)}
+    assert feature_levels(refs, "TCE", 3, 4) == {("rage", 1), ("primalknowledge", 3)}
+
+
+@needs_5etools
+def test_score_other_character_types():
+    sub = next(t for t in load_truth("phb", FT, "Subrace") if t["name"] == "Dwarf Hill")
+    r, *_ = score_record("Subrace", {"raceName": "Dwarf", "ability": sub["ability"]}, sub)
+    assert all(r.values())
+    race = next(t for t in load_truth("phb", FT, "Race") if t["name"] == "Dwarf")
+    r, *_ = score_record("Race", {"size": ["M"], "speed": 25, "ability": [{"con": 2}], "darkvision": 60}, race)
+    assert all(r.values())
+    bg = next(t for t in load_truth("phb", FT, "Background") if t["name"] == "Acolyte")
+    r, *_ = score_record("Background", {"skillProficiencies": [{"insight": True, "religion": True}]}, bg)
+    assert r["skillProficiencies"]
+    feat = load_truth("phb", FT, "Feat")[0]
+    r, *_ = score_record("Feat", {"prerequisite": [{"x": 1}] if not feat.get("prerequisite") else None}, feat)
+    assert r["prerequisite"] is False
+
+
+@needs_5etools
+def test_available_types_core_book_includes_character_types():
+    assert {"Spell", "Class", "Feat"} <= set(available_types("phb", FT))
+    assert "Monster" in available_types("mm", FT)
+
+
+def test_score_type_choices_come_from_score_types(capsys):
+    with pytest.raises(SystemExit):
+        main(["score", "phb", "x.json", "--fivetools", ".", "--type", "Nope"])
+    assert "Subrace" in capsys.readouterr().err

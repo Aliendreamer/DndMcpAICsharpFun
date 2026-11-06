@@ -22,10 +22,14 @@ def main(argv: list[str] | None = None) -> int:
     ex.add_argument("--processes", type=int, default=2)
     ex.add_argument("--types", default=",".join(ALL_TYPES), help="comma list of Monster,Spell,MagicItem")
     sc = sub.add_parser("score", help="dev: score an extract output against 5etools")
-    sc.add_argument("book", help="5etools source key: mm, phb, dmg (one type each) or any other, e.g. mpmm")
+    sc.add_argument("book", help="5etools source key, lower case, e.g. mm, phb, dmg, mpmm")
     sc.add_argument("extract_output", type=Path)
     sc.add_argument("--fivetools", type=Path, required=True, help="5etools data directory")
-    sc.add_argument("--type", choices=list(ALL_TYPES), default=None,
+    # score.py is dev-only and must stay off the extraction path: load it only for the score subcommand
+    score_types = None
+    if (argv if argv is not None else sys.argv[1:])[:1] == ["score"]:
+        from .score import TYPES as score_types
+    sc.add_argument("--type", choices=list(score_types) if score_types else None, default=None,
                     help="score only this type (default: every type 5etools has for the book)")
     sc.add_argument("--diffs", type=Path, default=None, help="write missing/wrong list here")
     args = ap.parse_args(argv)
