@@ -29,7 +29,6 @@ PROSE_LINES_PER_PAGE = 10
 # printed lines two entities of different types may share before one is taken to hold the other's text
 # (v19: unrelated character entities share at most a few lines of repeated trait boilerplate)
 SHARED_LINES_MAX = 9
-_EMBEDDED = 0.9  # a stat block this much inside another entity is printed in it (Steel Defender in Battle Smith)
 SOURCE_BY_SLUG = {
     "phb14": "PHB", "mm14": "MM", "dmg14": "DMG", "mpmm": "MPMM", "mtf": "MTF", "ftd": "FTD", "bgg": "BGG",
     "vrgr": "VRGR", "egw": "EGW", "erlw": "ERLW", "ggr": "GGR", "scc": "SCC", "xge": "XGE", "tce": "TCE",
@@ -288,14 +287,26 @@ def _line_keys(lines: list[Line]) -> set[LineKey]:
     return {(l.page, tuple(round(x, 1) for x in l.box)) for l in lines}
 
 
+def _names_before(host: list[tuple[LineKey, str]], first: LineKey | None, name: str) -> bool:
+    """The host's printed text before the stat block's first line names the monster (Drakewarden's "your drake
+    companion" before the Drake Companion stat block), compared on letters only."""
+    at = next((k for k, (key, _) in enumerate(host) if key == first), None)
+    want = re.sub(r"[^a-z]", "", name.lower())
+    return at is not None and bool(want) and want in re.sub(r"[^a-z]", "", " ".join(t for _, t in host[:at]).lower())
+
+
 def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
-                       firsts: list[LineKey | None] | None = None) -> None:
+                       firsts: list[LineKey | None] | None = None,
+                       texts: list[list[tuple[LineKey, str]]] | None = None) -> None:
     """Text bleed gate: a character entity (Class ... Background) that shares more than SHARED_LINES_MAX printed
     lines with an entity of another type holds that entity's text (a subclass feature running on into the
-    Backgrounds section), so both get a failing `text-not-shared` check naming the other. A stat block printed
-    inside the other entity (its first line, or nearly all its lines, are the other's) is not bleed: a stat
-    block parse that runs on past its host is the monster's own problem, which its own checks report. Character entities record a passing check; a Monster/Spell/MagicItem
-    gets the check only when it fails, and two of those are never compared (their own checks gate them)."""
+    Backgrounds section), so both get a failing `text-not-shared` check naming the other. A stat block the other
+    entity prints is not bleed: its first line is one of the host's lines and the host's text before that line
+    names the monster (Drakewarden's Drake Companion, Battle Smith's Steel Defender). A stat block parse that runs
+    on past its host is then the monster's own problem, which its own checks report; a stat block the host never
+    names is another section's, swallowed by a run-on parse. Character entities record a passing check; a
+    Monster/Spell/MagicItem gets the check only when it fails, and two of those are never compared (their own
+    checks gate them). `texts` holds each entity's printed lines in print order (key, text)."""
     owner: dict[LineKey, list[int]] = {}
     for i, ks in enumerate(keys):
         for k in ks:
@@ -312,9 +323,9 @@ def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
             continue
         if n <= SHARED_LINES_MAX:
             continue
-        if any(e["type"] == "Monster" and (n >= _EMBEDDED * len(keys[k])
-                                            or (firsts is not None and firsts[k] in keys[o]))
-               for e, k, o in ((a, i, j), (b, j, i))):
+        if firsts is not None and texts is not None and any(
+                e["type"] == "Monster" and firsts[k] in keys[o] and _names_before(texts[o], firsts[k], e.get("name", ""))
+                for e, k, o in ((a, i, j), (b, j, i))):
             continue
         bad.setdefault(i, []).append(f"{n} printed lines are also {b['id']} ({b['type']})")
         bad.setdefault(j, []).append(f"{n} printed lines are also {a['id']} ({a['type']})")
@@ -342,6 +353,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     seen: Counter = Counter()
     keys: list[set[LineKey]] = []
     firsts: list[LineKey | None] = []
+    texts: list[list[tuple[LineKey, str]]] = []
     for t in ALL_TYPES:
         if t not in types:
             continue
@@ -350,6 +362,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
             covered.update(l.page for l in p.lines)
             keys.append(_line_keys(p.lines))
             firsts.append(next(iter(_line_keys(p.lines[:1])), None))
+            texts.append([(next(iter(_line_keys([l]))), l.text) for l in p.lines])
             entities.append({
                 "id": eid, "type": p.type, "name": p.name,
                 "page": p.lines[0].page if p.lines else 0,
@@ -358,7 +371,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 "provenance": _provenance(p.lines, by_number),
             })
 
-    shared_text_checks(entities, keys, firsts)
+    shared_text_checks(entities, keys, firsts, texts)
     for p in rules:
         if sum(_is_prose(l.text) for l in ordered[p.number]) >= PROSE_LINES_PER_PAGE or is_table_page(p):
             covered.add(p.number)
