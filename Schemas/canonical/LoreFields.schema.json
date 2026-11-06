@@ -4,7 +4,7 @@
   "title": "LoreFields",
   "type": "object",
   "additionalProperties": false,
-  "required": ["category", "entries"],
+  "required": ["entries"],
   "properties": {
     "category": { "type": "string" },
     "settingContext": { "type": ["null", "string"] },

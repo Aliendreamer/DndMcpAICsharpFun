@@ -149,3 +149,7 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | ggr | 040, 041, 042, 043, 044, 045 | World sections: the rest of the Boros Legion (with the chapter 2 pages above and the chapter 3 title on p100: the guild ends at the chapter title); guild sections are Factions typed by "Chapter 2: Guilds of Ravnica" |
 | erlw | 104, 105, 106, 107, 108, 109, 110, 111, 112 | World sections: "Chapter 2: Khorvaire Gazetteer", the "NATioNS OF" / "K HORVAIRE" container heading over Aundair, Breland, Cyre and Darguun (Locations). Keep p111-112: with fewer pages the median line height drops and the 2x art-text cut drops the container heading (56.51 vs 2 x 28.25) |
 | vrgr | 062, 089, 090 | World sections: "Chapter 3: Domains of Ravenloft" title page, then Darkon's opening pages (a container: its lead is a Plane typed by "Domains") |
+| erlw | 113, 114, 118, 119, 120, 121 | World sections (W13): Darguun running on into the unread "Demon Wastes" (0.93x), Karrnath running on into "LHAZAAR PRINCIPALITIES" (0.89x), Mror Holds starting p121 (with erlw 104-112) |
+| ggr | 124, 125, 126, 127, 128 | World sections: "Chapter 4: Creating Adventures"; "Involving the Characters" with its own sub-heading "Cross Purposes" (0.63x, title case under a caps heading): no doubt |
+| vrgr | 065 | World sections (W12): "Currency", "Languages", "Religion" under "Chapter 3: Domains of Ravenloft": topics, Lore |
+| mm | 123 | World sections (W14): the Duergar stat block's "Actions" (weapon attacks): never a world section |
