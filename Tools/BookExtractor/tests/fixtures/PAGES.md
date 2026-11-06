@@ -104,3 +104,11 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | dmg | 255, 256 | Siege Equipment stat blocks (Ballista ... Trebuchet; Cannon's description continuing in the next column) |
 | mtf | 090, 091 | Githyanki astral ships described in prose (crew, passengers, speed, size as sentences) |
 | phb | 122 | "CHaPter 4: Personality And Background" chapter heading (set taller than the text), for the chapter-bounded description join |
+| dmg | 105, 106 | Dungeon Hazards (Brown Mold ... Yellow Mold; sub-headings in mixed OCR casing), ending at the WILDERNESS chapter heading |
+| dmg | 109, 110, 111 | Weather (its table first, Extreme Cold heading a new page), High Altitude (a section of its own), Wilderness Hazards to Thin Ice, then FORAGING |
+| dmg | 122, 123, 124, 125 | Sample Traps ("Mechanical trap" / "Magic trap" under each heading, DCs in prose, a running foot between columns), an art page and "Chapter 6: Between Adventures" after Sphere of Annihilation |
+| xge | 115, 116 | Simple traps ("Simple trap (level 1-4, dangerous threat)", "level 1116" for 11-16; Trigger/Effect/Countermeasures lead-ins; a speech-bubble art text beside Net Trap) |
+| xge | 119, 120, 121, 122 | Complex traps (Initiative, Active/Dynamic/Constant Elements with named parts, the "Tempest Effects" table), then Designing Complex Traps |
+| tce | 164, 165 | Eldritch Storms as lead-in paragraphs; an "ELDritch StoRm" art caption read mid-sentence; then Emotional Echoes |
+| tce | 170, 171, 172 | Natural Hazards after a table (no sentence end above the heading), "Spell Equivalents of Natural Hazards", a caption, then PUZZLES (set tall) |
+| vrgr | 198, 199 | Sample Haunted Traps ("Haunt Bonus +4"), an art caption beside Danse Macabre ("The Faceless malice / HAUNTED TRAP / CLAIMS AVICTIM."), then SURVIVORS |

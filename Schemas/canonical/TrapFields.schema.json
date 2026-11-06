@@ -20,6 +20,15 @@
     "detectDc": { "type": ["integer", "null"], "format": "int32" },
     "disarmDc": { "type": ["integer", "null"], "format": "int32" },
     "entries": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "trigger": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "effect": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "countermeasures": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "initiative": { "type": ["integer", "null"], "format": "int32" },
+    "initiativeNote": { "type": ["null", "string"] },
+    "eActive": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "eDynamic": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "eConstant": { "type": ["array", "null"], "items": { "type": ["string", "object"] } },
+    "hauntBonus": { "type": ["null", "string"] },
     "variants": {
       "type": ["array", "null"],
       "items": {
