@@ -49,8 +49,8 @@ from ..tables import Row, RowTable, read_row_tables
 from . import ParseContext, Parsed
 from .charcommon import SENTENCE_END, character_body, heading_like, prose_entries, title_case
 from .equipment import _rows, _table_checks, cost_check, cost_value
-from .gear import (_OTHER_TYPE, _chapters, _entries, _key, _outside_tables, _page_chapters, _paragraphs, _row_tables,
-                   _same_section, _table_boxes)
+from .gear import (_OTHER_TYPE, _chapters, _key, _outside_tables, _page_chapters, _para_entries, _paragraphs,
+                   _row_tables, _same_section, _table_boxes)
 from .monster import _is_heading_caps, _join_text, _title
 from .trap import _clean, _is_head, _median
 
@@ -114,7 +114,7 @@ def _join_poisons(items: list[tuple[Parsed, int]], body: list[Line], ctx: ParseC
     paras = _paragraphs(L)
     for p, pg in items:
         k = _key(p.name)
-        hits = [(m, s, e) for m, s, e in paras if _key(m.group("name")) == k and
+        hits = [(m, s, idx) for m, s, idx in paras if _key(m.group("name")) == k and
                 _same_section((L[s].page, chapters[s]), (pg, page_chapter(pg)))]
         if not hits:
             p.checks.append(Check("entries-read", False, f"no description whose lead-in names {p.name!r} was found"))
@@ -124,8 +124,8 @@ def _join_poisons(items: list[tuple[Parsed, int]], body: list[Line], ctx: ParseC
             p.checks.append(Check("entries-read", False, f"several descriptions could be the one for {p.name!r}: "
                                   f"{where}; none was joined"))
             continue
-        m, s, e = hits[0]
-        ents = _entries(L, s, e, m.group("rest"))
+        m, s, idx = hits[0]
+        ents = _para_entries(L, idx, m.group("rest"))
         p.fields["entries"] = ents
         p.checks.append(Check("entries-read", bool(ents), "" if ents else f"description of {p.name!r} is empty"))
         lead = m.group("name")
@@ -135,7 +135,7 @@ def _join_poisons(items: list[tuple[Parsed, int]], body: list[Line], ctx: ParseC
         if paren and p.fields.get("poisonTypes") and [paren] != p.fields["poisonTypes"]:
             p.checks.append(Check("poison-type-known", False, f"the description of {p.name!r} prints type "
                                   f"{paren!r}, the table {p.fields['poisonTypes'][0]!r}"))
-        p.lines = p.lines + L[s:e]
+        p.lines = p.lines + [L[i] for i in idx]
         head = f"{lead} ({m.group('paren')})" if m.group("paren") else lead
         p.text = "\n".join([p.text, head + ". " + _flat(ents)])
 

@@ -154,6 +154,23 @@ def test_explorers_pack_lists_its_contents():
     assert len([q for q in items() if q.name.endswith("Pack")]) == 7
 
 
+def test_last_pack_of_the_sidebar_stops_where_the_column_text_resumes():
+    # p152: the inset "Equipment Packs" sidebar ends the right column inside the Holy Water description; the text
+    # that resumes on p153 ("A cleric or paladin may create holy water ...") is Holy Water's, not Scholar's Pack's
+    ps = items()
+    scholar = get(ps, "Scholar's Pack")
+    assert scholar.fields["entries"] == [scholar.fields["entries"][0]]
+    assert scholar.fields["entries"][0].endswith("a small knife.")
+    assert "holy water" not in scholar.text.lower()
+    assert {l.page for l in scholar.lines} == {152}
+    water = get(ps, "Holy water (flask)")
+    assert water.fields["entries"][0].startswith("As an action, you can splash the contents")
+    assert water.fields["entries"][1].startswith("A cleric or paladin may create holy water by performing")
+    assert water.fields["entries"][1].endswith("expend a 1st-level spell slot.")
+    assert not any(l.text.startswith("Equipment Packs") or "Pack (" in l.text for l in water.lines)
+    assert failed(water) == [] and failed(scholar) == []
+
+
 # ---------- type codes from the table and its sub-headings ----------
 def test_gear_type_codes():
     ps = items()

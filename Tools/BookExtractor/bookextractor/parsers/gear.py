@@ -301,23 +301,69 @@ def _heading(L: list[Line], i: int) -> bool:
     return title_case(t) and (i == 0 or L[i - 1].text.rstrip().endswith(SENTENCE_END))
 
 
-def _paragraphs(L: list[Line]) -> list[tuple[re.Match, int, int]]:
-    """(lead-in match, first line, end) for each lead-in paragraph: it runs to the next lead-in, heading or
-    footnote ("* You can also strap items ...")."""
-    starts = [i for i in range(len(L)) if _lead(L, i)]
-    out = []
-    for k, s in enumerate(starts):
-        e = starts[k + 1] if k + 1 < len(starts) else len(L)
-        for j in range(s + 1, e):
-            if _heading(L, j) or L[j].text.lstrip()[:1] in "*†‡":
-                e = j
+def _jump(a: Line, b: Line) -> bool:
+    """`b` starts another column or page than `a` (reading order moves up or to the next page)."""
+    return b.page != a.page or b.box[1] < a.box[1] - a.height
+
+
+def _sidebars(L: list[Line]) -> list[tuple[int, int]]:
+    """(heading, end) of each inset sidebar printed inside a column's text: a heading whose section, down to the
+    next column or page jump, sits right of the column text above it by 0.3 line heights or more (PHB p152
+    "Equipment Packs" inside the Holy Water description). The column's own text resumes after the jump."""
+    out: list[tuple[int, int]] = []
+    for h in range(1, len(L)):
+        if not _heading(L, h):
+            continue
+        above: list[Line] = []
+        for j in range(h - 1, max(-1, h - 12), -1):
+            if _jump(L[j], L[j + 1]):
                 break
-        out.append((_lead(L, s), s, e))
+            above.append(L[j])
+        e = h + 1
+        while e < len(L) and not _jump(L[e - 1], L[e]):
+            e += 1
+        if len(above) < 2 or e - h < 2:
+            continue
+        if min(l.box[0] for l in L[h:e]) - min(l.box[0] for l in above) >= 0.3 * L[h].height:
+            out.append((h, e))
+    return out
+
+
+def _paragraphs(L: list[Line]) -> list[tuple[re.Match, int, list[int]]]:
+    """(lead-in match, first line, line indices) for each lead-in paragraph: it runs to the next lead-in, heading
+    or footnote ("* You can also strap items ..."). Layout bounds it too: a lead-in inside an inset sidebar ends
+    where the sidebar does, and a paragraph of the column's text reads past a sidebar printed inside it (the text
+    resuming after the sidebar is the interrupted paragraph's, never the sidebar's last entry's)."""
+    span: dict[int, tuple[int, int]] = {}
+    for h, e in _sidebars(L):
+        for i in range(h, e):
+            span.setdefault(i, (h, e))
+    leads = {i: m for i in range(len(L)) if (m := _lead(L, i))}
+    out = []
+    for s, m in leads.items():
+        box = span.get(s)
+        idx = [s]
+        j = s + 1
+        while j < len(L):
+            if box and j >= box[1]:
+                break
+            if not box and j in span:
+                j = span[j][1]
+                continue
+            if j in leads or _heading(L, j) or L[j].text.lstrip()[:1] in "*†‡":
+                break
+            idx.append(j)
+            j += 1
+        out.append((m, s, idx))
     return out
 
 
 def _entries(L: list[Line], s: int, e: int, rest: str) -> list:
-    sub = [replace(L[s], text=rest)] + L[s + 1:e]
+    return _para_entries(L, list(range(s, e)), rest)
+
+
+def _para_entries(L: list[Line], idx: list[int], rest: str) -> list:
+    sub = [replace(L[idx[0]], text=rest)] + [L[i] for i in idx[1:]]
     return prose_entries(sub, 0, len(sub))
 
 
@@ -415,7 +461,7 @@ def _join(items: list[tuple[Parsed, int]], L: list[Line], chapters: list[int | N
         bare = re.sub(r"\([^)]*\)", "", p.name)  # "Ball bearings (bag of 1,000)": no comma outside the bracket
         if "," in bare:
             head.setdefault(_key(bare.split(",")[0]), []).append((p, pg))
-    for m, s, e in paras:
+    for m, s, idx in paras:
         if m.group("paren") and _PACK.match(m.group("name")):
             continue
         k = _key(m.group("name"))
@@ -430,7 +476,7 @@ def _join(items: list[tuple[Parsed, int]], L: list[Line], chapters: list[int | N
         for p, _ in targets:
             if "entries" in p.fields:
                 continue
-            ents = _entries(L, s, e, m.group("rest"))
+            ents = _para_entries(L, idx, m.group("rest"))
             if not ents:
                 continue
             if fallback and len(targets) > 1:
@@ -441,24 +487,24 @@ def _join(items: list[tuple[Parsed, int]], L: list[Line], chapters: list[int | N
                 p.checks.append(Check("entries-from-lead-in", True, f"the description led by {lead!r} is the part "
                                       f"of {p.name!r} before its comma"))
             p.fields["entries"] = ents
-            p.lines = p.lines + L[s:e]
+            p.lines = p.lines + [L[i] for i in idx]
             p.text += "\n" + "\n".join(x if isinstance(x, str) else "\n".join(x.get("items", [])) for x in ents)
 
 
 def _packs(L: list[Line]) -> list[Parsed]:
     """"<Name> Pack (<cost>). Includes ..." paragraphs: one Item per pack, its contents as entries."""
     out = []
-    for m, s, e in _paragraphs(L):
+    for m, s, idx in _paragraphs(L):
         paren = m.group("paren")
         if not paren or not _PACK.match(m.group("name")) or not m.group("rest").startswith("Includes"):
             continue
         name = m.group("name")
         f: dict = {"type": "G"}
         _set(f, "value", cost_value(paren))
-        f["entries"] = _entries(L, s, e, m.group("rest"))
+        f["entries"] = _para_entries(L, idx, m.group("rest"))
         p = Parsed(type="Item", name=name, fields=f,
                    text="\n".join([f"{name} ({paren})"] + [x for x in f["entries"] if isinstance(x, str)]),
-                   lines=L[s:e])
+                   lines=[L[i] for i in idx])
         p.checks = [cost_check(paren, name)]
         out.append(p)
     return out
