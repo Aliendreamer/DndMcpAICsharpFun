@@ -9,7 +9,7 @@ from rapidfuzz import fuzz
 
 from ..model import Line
 from . import ParseContext
-from .monster import _join_text
+from .monster import _is_heading_caps, _join_text, _title
 
 SKILLS = ("Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight",
           "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion",
@@ -196,6 +196,77 @@ def with_sidebars(ctx: ParseContext, first: Line, last: Line) -> list[Line]:
     full: list[Line] = ctx.cache["character_lines"]
     at = {id(l): k for k, l in enumerate(full)}
     return full[at[id(first)]:at[id(last)] + 1]
+
+
+# ---------- text lines and headings ----------
+# Shared by the trap, hazard/rules and section readers. Geometry is in book-median line heights (measured on DMG,
+# XGE, TCE and VRGR).
+RUNNING_HEAD = re.compile(r"(?i)^(\d+\s+)?(chapter|part|appendix)\s+\w+\s*\|")  # "CHAPTER 4 | CLASSES"
+PAGE_NO = re.compile(r"^\d{1,3}\W?$")
+_SMALL, _LARGE = 0.75, 2.0  # a line set this much smaller (caption) or larger (art text) is not body text
+_OFF_COLUMN = 6.0  # a line starting this far right of its column's text edge is a caption beside the art
+GAP = 1.8  # a heading after a table has this much space above it (line tops; rows are about 1.3 apart)
+
+caps_heading = _is_heading_caps  # an all-caps heading ("WILDERNESS")
+name_case = _title  # a printed name with OCR casing noise undone ("GOBLIn BOss" -> "Goblin Boss")
+
+
+def median_height(L: list[Line]) -> float:
+    """The median line height of the lines given (the book's, when given the book): the unit of the geometry."""
+    return statistics.median(l.height for l in L)
+
+
+def char_width(l: Line, med: float) -> float:
+    """The line's average character width, in median line heights: a heading is set wider than body text."""
+    return (l.box[2] - l.box[0]) / max(len(l.text.strip()), 1) / med
+
+
+def set_apart(prev: Line, l: Line) -> bool:
+    """`l` opens a page or column, or has space above it (a heading after a table)."""
+    return prev.page != l.page or prev.box[1] > l.box[1] or l.box[1] - prev.box[1] >= GAP * l.height
+
+
+def text_lines(L: list[Line], ctx: ParseContext, keep=None) -> list[Line]:
+    """The body lines that are text: no running head or foot, page number, art text or off-column caption.
+    `keep(line, median)` names lines kept whatever their size (a chapter title set larger than art text)."""
+    m = median_height(L)
+    edges: dict[tuple[int, int], float] = {}
+
+    def col(l: Line) -> tuple[int, int]:
+        pg = ctx.pages.get(l.page)
+        mid = pg.width / 2 if pg else 800
+        return l.page, int((l.box[0] + l.box[2]) / 2 > mid)
+
+    for l in L:
+        if _SMALL * m <= l.height <= _LARGE * m and len(l.text) >= 20:
+            k = col(l)
+            edges[k] = min(edges.get(k, l.box[0]), l.box[0])
+    out = []
+    for l in L:
+        t = l.text.strip()
+        if keep is not None and keep(l, m):
+            out.append(l)
+            continue
+        if not t or RUNNING_HEAD.match(t) or PAGE_NO.fullmatch(t) or l.height > _LARGE * m:
+            continue
+        if l.height < _SMALL * m and (not re.search(r"[a-z]", t) or heading_like(t) and title_case(t)):
+            continue  # a caption set small ("HAUNTED TRAP", "ELDritch StoRm"); a paragraph's short last line
+            # ("can escape.") is text
+        if l.box[0] - edges.get(col(l), l.box[0]) > _OFF_COLUMN * m:
+            continue
+        out.append(l)
+    return [l for k, l in enumerate(out) if not _caption(out, k)]
+
+
+def _caption(L: list[Line], k: int) -> bool:
+    """An art caption read into the middle of a sentence ("... the area in the storm" / "ELDritch StoRm" / "is
+    heavily obscured"): a title-case line between a sentence's halves, set well apart from the line after it."""
+    t = L[k].text.strip()
+    if not (0 < k < len(L) - 1 and heading_like(t) and title_case(t)):
+        return False
+    prev, nxt = L[k - 1], L[k + 1]
+    return not prev.text.rstrip().endswith(SENTENCE_END) and nxt.text.strip()[:1].islower() and \
+        nxt.page == L[k].page and nxt.box[1] - L[k].box[1] >= GAP * L[k].height
 
 
 BULLET = re.compile(r"^(?:[•·]\s*|\.\s*(?=[A-Z]))")  # OCR reads some bullets as "."

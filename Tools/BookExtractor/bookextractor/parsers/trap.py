@@ -39,13 +39,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import replace
-import statistics
 
 from ..checks import Check
 from ..layout import fix_digits
 from ..model import Line
 from . import ParseContext, Parsed
-from .charcommon import SENTENCE_END, character_body, heading_like, prose_entries, title_case
+from .charcommon import (SENTENCE_END, char_width, character_body, heading_like, median_height, prose_entries,
+                         set_apart, text_lines, title_case)
 from .monster import _is_heading_caps, _join_text, _title
 
 _MECH = re.compile(r"^(mechanical|magic|magical) trap$", re.I)
@@ -69,67 +69,20 @@ _PART = re.compile(r"^(?P<name>[A-Z][^.]{1,70}?)\.\s+(?P<rest>[A-Z(\"'].*)$")
 _LEAD = re.compile(r"^(?P<name>[A-Z][A-Za-z'’-]*(?: (?:[A-Z][A-Za-z'’-]*|of|and|the|a|an|in|on|to)){0,4})\.\s+"
                    r"(?P<rest>\S.*)$")
 
-_RUNNING = re.compile(r"(?i)^(\d+\s+)?(chapter|part|appendix)\s+\w+\s*\|")
 _CHAPTER = re.compile(r"(?i)^chapter\s+\d+\s*:\s*[A-Z]")
-_PAGE_NO = re.compile(r"^\d{1,3}\W?$")
 
-# geometry, in book-median line heights (measured on DMG, XGE, TCE and VRGR)
-_SMALL, _LARGE = 0.75, 2.0  # a line set this much smaller (caption) or larger (art text) is not body text
-_OFF_COLUMN = 6.0  # a line starting this far right of its column's text edge is a caption beside the art
+# geometry, in book-median line heights (shared with charcommon: text_lines, char_width, set_apart)
 _HEAD_WIDTH = 0.45  # a heading's average character width, at least (a narrow art caption is less)
-_GAP = 1.8  # a heading after a table has this much space above it (line tops; rows are about 1.3 apart)
 # Heading levels are told apart relative to the section's own heading, never by an absolute width: across the
 # books a sub-heading reaches 0.69 and a section heading goes down to 0.70.
 _SUB_STEP = 0.08  # a section's sub-headings are set at least this much narrower than its heading
 _THIN = 0.05  # a stopping heading closer than this to the widest sub-heading leaves the section's end in doubt
 
 
-def _median(L: list[Line]) -> float:
-    """The median line height of the lines given (the book's, when given the book): the unit of the geometry."""
-    return statistics.median(l.height for l in L)
-
-
-def _clean(L: list[Line], ctx: ParseContext) -> list[Line]:
-    """The body lines that are text: no running head or foot, page number, art text or off-column caption."""
-    m = _median(L)
-    edges: dict[tuple[int, int], float] = {}
-
-    def col(l: Line) -> tuple[int, int]:
-        pg = ctx.pages.get(l.page)
-        mid = pg.width / 2 if pg else 800
-        return l.page, int((l.box[0] + l.box[2]) / 2 > mid)
-
-    for l in L:
-        if _SMALL * m <= l.height <= _LARGE * m and len(l.text) >= 20:
-            k = col(l)
-            edges[k] = min(edges.get(k, l.box[0]), l.box[0])
-    out = []
-    for l in L:
-        t = l.text.strip()
-        if not t or _RUNNING.match(t) or _PAGE_NO.fullmatch(t) or l.height > _LARGE * m:
-            continue
-        if l.height < _SMALL * m and (not re.search(r"[a-z]", t) or heading_like(t) and title_case(t)):
-            continue  # a caption set small ("HAUNTED TRAP", "ELDritch StoRm"); a paragraph's short last line
-            # ("can escape.") is text
-        if l.box[0] - edges.get(col(l), l.box[0]) > _OFF_COLUMN * m:
-            continue
-        out.append(l)
-    return [l for k, l in enumerate(out) if not _caption(out, k)]
-
-
-def _caption(L: list[Line], k: int) -> bool:
-    """An art caption read into the middle of a sentence ("... the area in the storm" / "ELDritch StoRm" / "is
-    heavily obscured"): a title-case line between a sentence's halves, set well apart from the line after it."""
-    t = L[k].text.strip()
-    if not (0 < k < len(L) - 1 and heading_like(t) and title_case(t)):
-        return False
-    prev, nxt = L[k - 1], L[k + 1]
-    return not prev.text.rstrip().endswith(SENTENCE_END) and nxt.text.strip()[:1].islower() and \
-        nxt.page == L[k].page and nxt.box[1] - L[k].box[1] >= _GAP * L[k].height
-
-
-def _width(l: Line, med: float) -> float:
-    return (l.box[2] - l.box[0]) / max(len(l.text.strip()), 1) / med
+_median = median_height
+_clean = text_lines
+_width = char_width
+_set_apart = set_apart
 
 
 def _prose(t: str) -> bool:
@@ -154,11 +107,6 @@ def _is_head(L: list[Line], i: int, med: float) -> bool:
     if _width(L[i], med) < _HEAD_WIDTH:
         return False
     return i + 1 < len(L) and (_prose(L[i + 1].text) or _type_line(L[i + 1].text))
-
-
-def _set_apart(prev: Line, l: Line) -> bool:
-    """`l` opens a page or column, or has space above it (a heading after a table)."""
-    return prev.page != l.page or prev.box[1] > l.box[1] or l.box[1] - prev.box[1] >= _GAP * l.height
 
 
 def _chapter(L: list[Line], i: int) -> bool:

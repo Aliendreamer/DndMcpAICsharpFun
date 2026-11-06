@@ -1,0 +1,268 @@
+"""Shared section reader: the book's printed heading tree, for the world-type parsers (gods, rules, planes,
+factions, locations, lore).
+
+`read_sections(body, ctx)` returns one `Section` per printed heading, in reading order. A section is its heading
+line and every text line under it up to its end, its sub-sections included.
+
+- **Text.** Art credits and sidebars are out (`character_body`), as are running heads and feet, page numbers, art
+  text and captions (`text_lines`). A chapter title is kept whatever its size.
+- **Chapter titles** ("Chapter 2: Guilds of Ravnica", "Appendix A: Conditions", in any OCR casing, or a "CHAPTER 1"
+  line over its title) are set at least 1.4 times the median line height (`chapter_titles`). They are no section
+  of their own: each is the outermost parent of the sections under it, and every section ends at the next one.
+- **Headings** are short title-case or all-caps lines set larger or wider than body text, after a finished
+  sentence or set apart, over prose (or over a smaller heading that is over prose). A heading wrapped onto a second
+  line ("Cantrips for Sorcerers," / "Warlocks, and Wizards"; "NATioNS OF" / "K HORVAIRE") is read as one.
+- **Levels** are told apart per chapter, relative to each other and never by an absolute size, as
+  `trap._section_end` does. A heading's size is its height times its average character width (OCR casing noise
+  moves the one and the other in opposite directions). A heading's sub-headings are set clearly smaller than it
+  (`_SUB_STEP`); with sub-headings, it stops at the first later heading nearer its own size than its first
+  sub-heading's, without, at the next heading. Its level is one more than the number of headings enclosing it.
+- **Ends.** A section ends at the next heading of equal or greater level (`end_reason` "heading") or at a chapter
+  title ("chapter"). It is not `complete` when it runs to the end of the text read ("end of text"), or when the
+  heading it stops at is barely larger than its widest sub-heading, so that the stop may be one more sub-heading
+  ("close: ...", naming the sizes).
+
+Not used by a registered parser yet (Phase 2c ruling W1).
+"""
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+
+from ..model import Line
+from . import ParseContext
+from .charcommon import (SENTENCE_END, caps_heading, char_width, character_body, median_height, name_case,
+                         set_apart, text_lines, title_case, vertical)
+
+# "Chapter 2: Guilds of Ravnica", "CHAPTER 1:", "CHAPTER1", "APPENDIX A: CONDITIONS" (never "chapter 3." in a
+# sentence: the word is capitalised and a bare number is not followed by a full stop or bracket)
+_CHAPTER = re.compile(r"^(?P<word>C(?i:hapt[a-z]{2,3})|A(?i:ppendi[a-z]{1,2}))\s*"
+                      r"(?P<n>[0-9lIi|O]{1,2}|[A-H])(?![A-Za-z])\s*(?P<p>[:;.)]?)\s*(?P<rest>.*)$")
+_CHAPTER_HEIGHT = 1.4  # a chapter title is set at least this many median line heights tall
+_OCR_DIGITS = str.maketrans({"l": "1", "I": "1", "i": "1", "|": "1", "O": "0"})
+_ABILITY_ROW = re.compile(r"(?i)^str\s+dex\s+con\b")  # a stat block's ability header, not a heading
+_HEAD_SIZE = 1.25  # a heading's size (height x character width) is at least this many times body text's
+_SUB_STEP = 0.12  # a sub-heading is set at least this much (relative) smaller than its section's heading
+_CLOSE = 0.06  # a stopping heading within this (relative) of the widest sub-heading leaves the end in doubt
+
+
+@dataclass
+class Section:
+    title: str
+    level: int
+    parents: list[str]  # the printed enclosing headings, outermost first (the chapter title first, when any)
+    lines: list[Line]  # the heading line(s), then the text up to the section's end, sub-sections included
+    page: int
+    complete: bool
+    end_reason: str
+    size: float = field(default=0.0, repr=False)  # height x character width over the body's, for diagnostics
+
+
+def chapter_titles(B: list[Line]) -> list[tuple[list[int], str]]:
+    """(the indices of its lines, its printed title) of each chapter title in the lines B, in reading order.
+
+    The title is one line ("Chapter 2: Guilds of Ravnica", set at least 1.4 median line heights tall, or the
+    OCR's "CHaPter 4: Personality And Background"), or a "CHAPTER 1" line, of any size, with the title set that
+    tall in the lines just under it ("CHARACTER" / "CREATION"; ERLW's reading order puts part of it first). A
+    running foot ("CHAPTER 7 | TREASURE", "APPENDIX A: MISCELLANEOUS CREATURES" at the page foot) is set small."""
+    med = median_height(B)
+    tall = _CHAPTER_HEIGHT * med
+    out: list[tuple[list[int], str]] = []
+    on_page: dict[int, list[int]] = {}
+    for i, l in enumerate(B):
+        on_page.setdefault(l.page, []).append(i)
+    for i, l in enumerate(B):
+        t = l.text.strip()
+        m = _CHAPTER.match(t)
+        if not m or "|" in t or vertical(l.box):
+            continue
+        rest = m.group("rest")
+        word = "Chapter" if m.group("word")[0] == "C" else "Appendix"
+        n = m.group("n")
+        n = n if word == "Appendix" and n.isalpha() and n.isupper() and n != "I" else n.translate(_OCR_DIGITS)
+        if rest:
+            if l.height < tall or not (title_case(rest) or caps_heading(rest) or rest.isupper()):
+                continue
+            out.append(([i], f"{word} {n}: {name_case(rest)}"))
+            continue
+        if m.group("p") in (".", ")"):
+            continue
+        # the title in the tall lines printed with it: just below it, or beside it and read first (ERLW), wrapped
+        # onto lines of its own size ("NATioNS OF" / "K HORVAIRE"), never the first heading under it
+        page = [k for k in on_page[l.page] if k != i and B[k].height >= tall and not vertical(B[k].box)
+                and re.search(r"[A-Za-z]{3}", B[k].text)]
+        near = [k for k in page if l.box[1] - l.height <= B[k].box[1] <= l.box[3] + 2 * l.height]
+        if near:
+            h0 = max(B[k].height for k in near)
+            grow = True
+            while grow:
+                bottom = max(B[k].box[3] for k in near)
+                more = [k for k in page if k not in near and abs(B[k].height - h0) <= 0.1 * h0
+                        and B[k].box[1] >= min(B[j].box[1] for j in near) and B[k].box[1] <= bottom + 0.6 * h0]
+                near += more
+                grow = bool(more)
+        if not near and l.height < tall:
+            continue
+        words = " ".join(B[k].text.strip() for k in sorted(near, key=lambda k: (round(B[k].box[1] / l.height),
+                                                                                 B[k].box[0])))
+        out.append(([i] + near, f"{word} {n}: {name_case(words)}" if words else f"{word} {n}"))
+    return out
+
+
+def _size(l: Line, med: float) -> float:
+    return l.height / med * char_width(l, med)
+
+
+def _heading_text(t: str) -> bool:
+    """A printed heading's words: short, capitalised, title-case or all caps; digits only after the first word
+    ("Rank 1: Official"), never a table row ("3 Crime")."""
+    t = t.strip()
+    if not (0 < len(t.split()) <= 8 and t[:1].isalpha() and t[:1].isupper()) or _ABILITY_ROW.match(t):
+        return False
+    if t.endswith((".", ",", ";", ":", "-")) or re.match(r"^\S+\d", t):
+        return False
+    return title_case(t) or caps_heading(t)
+
+
+def _prose(t: str) -> bool:
+    return sum(w[:1].islower() for w in t.split()) >= 3
+
+
+def _joined(L: list[Line], i: int) -> int:
+    """How many lines the heading at L[i] takes: 2 when it wraps ("Cantrips for Sorcerers," / "Warlocks, and
+    Wizards"; "The Lady of" / "Pain"), else 1."""
+    if i + 1 >= len(L):
+        return 1
+    a, b = L[i], L[i + 1]
+    if b.page != a.page or abs(b.height - a.height) > 0.12 * a.height or not 0 < b.box[1] - a.box[1] < 1.8 * a.height:
+        return 1
+    if abs(b.box[0] - a.box[0]) > 2 * a.height:
+        return 1
+    tb = b.text.strip()
+    if a.text.rstrip().endswith(",") or a.text.split()[-1].lower() in {"of", "the", "and", "a", "an", "to", "in",
+                                                                      "on", "for", "with", "at", "by", "&"}:
+        return 2 if tb[:1].isupper() and not _prose(tb) else 1
+    return 1
+
+
+def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) -> int:
+    """How many lines the heading starting at L[i] takes; 0 when L[i] opens no heading."""
+    a = L[i]
+    if vertical(a.box):
+        return 0
+    n = _joined(L, i)
+    text = " ".join(L[k].text.strip() for k in range(i, i + n))
+    text = re.sub(r"\s*,$", "", text)
+    if not _heading_text(text) or _size(a, med) < _HEAD_SIZE * body_size:
+        return 0
+    if i > 0 and not (L[i - 1].text.rstrip().endswith(SENTENCE_END) or set_apart(L[i - 1], a)
+                      or id(L[i - 1]) in titles):
+        return 0
+    k = i + n
+    if k >= len(L):
+        return 0
+    # prose under it (an epigraph may open with a line in caps: "OfficeR LaVinia stood Before tHe ENorMous")
+    if _prose(L[k].text) or k + 1 < len(L) and _prose(L[k + 1].text) and not _heading_text(L[k].text):
+        return n
+    # straight over a smaller heading that is over prose ("Azorius Senate" / "Inside the Senate" / ...)
+    nb = _joined(L, k)
+    tb = re.sub(r"\s*,$", "", " ".join(L[j].text.strip() for j in range(k, k + nb)))
+    if _heading_text(tb) and _size(L[k], med) < _size(a, med) and k + nb < len(L) and _prose(L[k + nb].text):
+        return n
+    return 0
+
+
+def _ends(sizes: list[float]) -> list[tuple[int | None, float | None]]:
+    """For each of a chapter's headings, (the heading it stops at, or None to run to the chapter's end; the size of
+    its widest sub-heading, or None without one).
+
+    As `trap._section_end`: a heading's sub-headings are set clearly smaller than it (by `_SUB_STEP` at least).
+    With sub-headings, it stops at the first later heading nearer its own size than its first sub-heading's;
+    without, at the next heading."""
+    out: list[tuple[int | None, float | None]] = []
+    for k, s in enumerate(sizes):
+        if k + 1 == len(sizes):
+            out.append((None, None))
+            continue
+        first = sizes[k + 1]
+        if (s - first) / s < _SUB_STEP:
+            out.append((k + 1, None))
+            continue
+        mid = (s + first) / 2
+        stop = next((j for j in range(k + 1, len(sizes)) if sizes[j] >= mid), None)
+        out.append((stop, max(sizes[k + 1:stop if stop is not None else len(sizes)])))
+    return out
+
+
+def read_sections(body: list[Line], ctx: ParseContext) -> list[Section]:
+    if "sections" in ctx.cache:
+        return ctx.cache["sections"]
+    B = character_body(body, ctx)
+    out: list[Section] = []
+    if B:
+        out = _read(B, ctx)
+    ctx.cache["sections"] = out
+    return out
+
+
+def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
+    titles = chapter_titles(B)
+    title_of = {id(B[k]): t for ks, t in titles for k in ks}
+    L = text_lines(B, ctx, keep=lambda l, m: id(l) in title_of)
+    if not L:
+        return []
+    med = median_height(L)
+    # body text's size: the median size of the lines long enough to be prose
+    prose = sorted(_size(l, med) for l in L if len(l.text) >= 30 and _prose(l.text))
+    body_size = prose[len(prose) // 2] if prose else 0.4
+    # a chapter starts at the first of its title's lines; its title lines are no heading
+    starts: dict[str, int] = {}
+    for i, l in enumerate(L):
+        if id(l) in title_of:
+            starts.setdefault(title_of[id(l)] + f"@{l.page}", i)
+    chapters = sorted(starts.values())
+    chapter_name = {i: k.rsplit("@", 1)[0] for k, i in starts.items()}
+    heads: list[tuple[int, int]] = []  # (first line, line count)
+    i = 0
+    while i < len(L):
+        if id(L[i]) in title_of:
+            i += 1
+            continue
+        n = _head_at(L, i, med, body_size, title_of)
+        if n:
+            heads.append((i, n))
+            i += n
+        else:
+            i += 1
+    out: list[Section] = []
+    bounds = [0] + chapters + [len(L)]
+    for c0, c1 in zip(bounds, bounds[1:]):
+        chapter = chapter_name.get(c0) if c0 in chapters else None
+        hs = [(i, n) for i, n in heads if c0 <= i < c1]
+        if not hs:
+            continue
+        sizes = [_size(L[i], med) for i, _ in hs]
+        ends = _ends(sizes)
+        titles_here = [name_case(re.sub(r"\s*,$", "", " ".join(L[j].text.strip() for j in range(i, i + n))))
+                       for i, n in hs]
+        open_: list[int] = []  # the enclosing headings (indices into hs), outermost first
+        for k, (i, n) in enumerate(hs):
+            open_ = [o for o in open_ if ends[o][0] is None or ends[o][0] > k]
+            stop, widest = ends[k]
+            if stop is not None:
+                end, reason, complete = hs[stop][0], "heading", True
+                so = sizes[stop]
+                # a stopping heading barely larger than the widest sub-heading may be one more sub-heading
+                if widest is not None and (so - widest) / so < _CLOSE:
+                    complete, reason = False, (f"close: stops at {L[end].text.strip()!r} (size {so:.2f}), barely "
+                                               f"larger than its widest sub-heading ({widest:.2f}); its own heading "
+                                               f"is {sizes[k]:.2f}")
+            elif c1 < len(L):
+                end, reason, complete = c1, "chapter", True
+            else:
+                end, reason, complete = len(L), "end of text", False
+            parents = ([chapter] if chapter else []) + [titles_here[o] for o in open_]
+            out.append(Section(title=titles_here[k], level=len(open_) + 1, parents=parents, lines=L[i:end],
+                               page=L[i].page, complete=complete, end_reason=reason, size=sizes[k]))
+            open_.append(k)
+    return out

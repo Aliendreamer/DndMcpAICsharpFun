@@ -52,7 +52,8 @@ from .equipment import _rows, _table_checks, cost_check, cost_value
 from .gear import (_OTHER_TYPE, _chapters, _key, _outside_tables, _page_chapters, _para_entries, _paragraphs,
                    _row_tables, _same_section, _table_boxes)
 from .monster import _is_heading_caps, _join_text, _title
-from .trap import _clean, _is_head, _median
+from .charcommon import median_height as _median, text_lines as _clean
+from .trap import _is_head
 
 POISON_TYPES = ("contact", "ingested", "inhaled", "injury")
 CONDITIONS = ("blinded", "charmed", "deafened", "exhaustion", "frightened", "grappled", "incapacitated", "invisible",

@@ -129,3 +129,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | egw | 073 | Skyship heading over "Purchase Cost / Speed / Maximum Cargo / Crew: 6-10 / Maximum Passenger Occupancy / Personal Travel Cost / Shipping Cost" lines |
 | egw | 133 | MOORBOUNDERS heading; "Moorbounders can cost anywhere from 300 to 500 gp each" (a price range) |
 | egw | 224 | YINRA EMBERWIND stat block at the top of a column, then (after a gap) the column's adventure text "The gnome guard does her best ...": the block ends at its last action |
+| ggr | 028, 030, 031, 032, 033, 034, 035, 036, 037, 038, 039 | Section reader: the end of chapter 1 (Fungal Body), "Chapter 2: Guilds of Ravnica", Guild Membership with "The Guildless" sidebar, the Azorius Senate (Inside the Senate / Goals of the Azorius, Azorius Characters, ..., Enemies and Allies; the "Three Capitals" sidebar) and the start of the Boros Legion |
