@@ -18,18 +18,23 @@ from .parsers.charclass import parse_classes
 from .parsers.equipment import parse_armor, parse_weapons
 from .parsers.feat import parse_feats
 from .parsers.gear import parse_items_mundane
+from .parsers.god import parse_gods
 from .parsers.hazard_rules import parse_conditions, parse_diseases_poisons
 from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
 from .parsers.race import parse_races
+from .parsers.rule import parse_rules
+from .parsers.sections import read_sections
 from .parsers.spell import parse_spells
 from .parsers.subclass import _short_name, parse_subclasses
 from .parsers.trap import parse_traps
 from .parsers.vehicle_object import parse_objects, parse_vehicles
+from .parsers.world import _bare, parse_world
 from .report import build_report
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
-             "Background", "Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition")
+             "Background", "Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition",
+             "God", "Rule", "Plane", "Faction", "Location", "Lore")
 PHASE1_TYPES = ("Monster", "Spell", "MagicItem")
 # stat blocks a host entity may print inside its own text (Drakewarden's Drake Companion, the Apparatus of Kwalish
 # inside its magic item): exempt from text-not-shared when the host names them before the block
@@ -41,6 +46,12 @@ SHARED_LINES_MAX = 9
 # the Phase 2b types (an equipment row is 1 to 3 lines, never 10): a pair with one of them is bleed once it shares
 # half the smaller entity's lines, at least 2 and at most SHARED_LINES_MAX
 PHASE2B_TYPES = ("Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition")
+# the Phase 2c types. Each sees the printed lines and names of every entity emitted before it
+# (`ctx.cache["claimed_lines"]`, `ctx.cache["claimed_names"]`), so God and Rule run before the world types.
+# Their text-not-shared gate is one-sided against the earlier types (only the new entity fails; the earlier
+# entity's disposition never changes) and two-sided among themselves.
+WORLD_TYPES = ("God", "Rule", "Plane", "Faction", "Location", "Lore")
+WORLD_SECTION_TYPES = ("Plane", "Faction", "Location", "Lore")
 SOURCE_BY_SLUG = {
     "phb14": "PHB", "mm14": "MM", "dmg14": "DMG", "mpmm": "MPMM", "mtf": "MTF", "ftd": "FTD", "bgg": "BGG",
     "vrgr": "VRGR", "egw": "EGW", "erlw": "ERLW", "ggr": "GGR", "scc": "SCC", "xge": "XGE", "tce": "TCE",
@@ -64,6 +75,12 @@ _PARSERS: dict[str, Callable[[list[Line], ParseContext], list[Parsed]]] = {
     "Trap": parse_traps,
     "DiseasePoison": parse_diseases_poisons,
     "Condition": parse_conditions,
+    "God": parse_gods,
+    "Rule": parse_rules,
+    "Plane": lambda body, ctx: [p for p in _world(body, ctx) if p.type == "Plane"],
+    "Faction": lambda body, ctx: [p for p in _world(body, ctx) if p.type == "Faction"],
+    "Location": lambda body, ctx: [p for p in _world(body, ctx) if p.type == "Location"],
+    "Lore": lambda body, ctx: [p for p in _world(body, ctx) if p.type == "Lore"],
 }
 # feature-ref lists whose part 0 (the feature name) is checked against the book vocabulary
 _FEATURE_REFS = {"Class": ("classFeatures", "classFeature"), "Subclass": ("subclassFeatures", "subclassFeature")}
@@ -82,6 +99,14 @@ def _races(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     if "races" not in ctx.cache:
         ctx.cache["races"] = parse_races(body, ctx)
     return ctx.cache["races"]
+
+
+def _world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
+    """One parse_world call per extraction gives the Plane, Faction, Location and Lore records; it sees the claims
+    of every type before the first world type (the world types never claim from each other)."""
+    if "world" not in ctx.cache:
+        ctx.cache["world"] = parse_world(body, ctx)
+    return ctx.cache["world"]
 
 
 @dataclass
@@ -351,6 +376,76 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
     return eid, checks
 
 
+def _parent_heading(p: Parsed, owners: dict[LineKey, tuple[int, str, str | None]]) -> str | None:
+    """The printed heading enclosing the entity: the parent of the section its first line opens, else the
+    innermost section holding that line (a sidebar rule inside its section)."""
+    if not p.lines:
+        return None
+    hit = owners.get(next(iter(_line_keys(p.lines[:1]))))
+    if hit is None:
+        return None
+    level, title, parent = hit
+    return parent if level < 0 else title
+
+
+def _world_ids(parsed: list[Parsed], checks: list[list[Check]], book_slug: str, ctx: ParseContext,
+               body: list[Line]) -> list[tuple[str, list[Check]]]:
+    """Ids for one God, Rule or world type, unique and deterministic over the book, with a passing `unique-id`
+    check naming how a repeated name was told apart. A name printed once is `<name>`. A name that repeats is,
+    for every occurrence (none is "first wins"): a god's `<name>-<pantheon>` (ruling W4), any other's
+    `<parent-heading>-<name>` (ruling W11, as subraces); still repeated, `-p<page>` is appended (ruling W19);
+    still repeated, an ordinal in print order (and `unique-id` fails: one heading printed twice on one page
+    under one parent is probably read twice)."""
+    if not parsed:
+        return []
+    owners: dict[LineKey, tuple[int, str, str | None]] = {}
+    if parsed[0].type != "God":
+        for sec in read_sections(body, ctx):
+            parent = _bare(sec.parents[-1]) if sec.parents else None
+            for k, l in enumerate(sec.lines):
+                key = next(iter(_line_keys([l])))
+                # the section's own heading line: (-1, ..) names its parent; a deeper section's line wins
+                level = -1 if k == 0 else sec.level
+                old = owners.get(key)
+                if old is None or old[0] != -1 and (level == -1 or level >= old[0]):
+                    owners[key] = (level, _bare(sec.title), parent)
+    pages = [p.lines[0].page if p.lines else 0 for p in parsed]
+    stems = [slugify(p.name) or f"unnamed-{pg}" for p, pg in zip(parsed, pages)]
+    why = ["" for _ in parsed]
+
+    def spread(qualify) -> None:
+        counts = Counter(stems)
+        for i, p in enumerate(parsed):
+            if counts[stems[i]] > 1 and (q := qualify(i, p)):
+                stems[i], why[i] = q
+
+    def by_parent(i: int, p: Parsed):
+        if p.type == "God":
+            pan = p.fields.get("pantheon")
+            return (f"{stems[i]}-{slugify(pan)}", f"name repeats in the book: pantheon {pan!r} added") \
+                if isinstance(pan, str) and slugify(pan) else None
+        par = _parent_heading(p, owners)
+        return (f"{slugify(par)}-{stems[i]}", f"name repeats in the book: parent heading {par!r} added") \
+            if par and slugify(par) else None
+
+    spread(by_parent)
+    spread(lambda i, p: (f"{stems[i]}-p{pages[i]}", "; ".join(x for x in (why[i], f"page {pages[i]} added") if x)))
+    counts, nth = Counter(stems), Counter()
+    out = []
+    for i, p in enumerate(parsed):
+        cs = [c for c in checks[i] if c.name != "unique-id"]
+        stem = stems[i]
+        if counts[stem] > 1:
+            nth[stem] += 1
+            stem = f"{stem}-{nth[stem]}"
+            cs.append(Check("unique-id", False, f"id {book_slug}.{p.type.lower()}.{stems[i]} printed "
+                                                f"{counts[stems[i]]} times; ordinal -{nth[stems[i]]} appended"))
+        else:
+            cs.append(Check("unique-id", True, why[i]))
+        out.append((f"{book_slug}.{p.type.lower()}.{stem}", cs))
+    return out
+
+
 LineKey = tuple[int, tuple[float, ...]]
 
 
@@ -386,7 +481,8 @@ def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
     Monster/Spell/MagicItem gets the check only when it fails, and two of those are never compared (their own
     checks gate them). An equipment or hazard entity (an equipment row is 1 to 3 lines) fails from fewer shared
     lines: half the smaller entity's lines, at least 2 and at most SHARED_LINES_MAX; its partner of an older type
-    keeps its own gate. `texts` holds each entity's printed lines in print order (key, text)."""
+    keeps its own gate. A God, Rule or world entity fails from SHARED_LINES_MAX + 1 shared lines; its partner of an
+    earlier type never fails for it, and a magic item it names before the item's first line is hosted. `texts` holds each entity's printed lines in print order (key, text)."""
     owner: dict[LineKey, list[int]] = {}
     for i, ks in enumerate(keys):
         for k in ks:
@@ -404,10 +500,16 @@ def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
         # the Phase 1/2a entity of a pair keeps the old gate; a Phase 2b entity fails from the relative one
         relative = min(SHARED_LINES_MAX, max(2, -(-min(len(keys[i]), len(keys[j])) // 2)))
         fail_a, fail_b = (n >= (relative if e["type"] in PHASE2B_TYPES else SHARED_LINES_MAX + 1) for e in (a, b))
+        # a world-type entity paired with an earlier type's: only the world entity fails (one-sided), so no earlier
+        # disposition changes; two world-type entities both fail
+        new_a, new_b = a["type"] in WORLD_TYPES, b["type"] in WORLD_TYPES
+        fail_a, fail_b = fail_a and (new_a or not new_b), fail_b and (new_b or not new_a)
         if not (fail_a or fail_b):
             continue
+        # a magic item printed inside a god, rule or world section is hosted as a stat block is (the host names it)
         if firsts is not None and texts is not None and any(
-                e["type"] in HOSTED_TYPES and firsts[k] in keys[o]
+                (e["type"] in HOSTED_TYPES or e["type"] == "MagicItem" and entities[o]["type"] in WORLD_TYPES)
+                and firsts[k] in keys[o]
                 and _names_before(texts[o], firsts[k], e.get("name", ""))
                 for e, k, o in ((a, i, j), (b, j, i))):
             continue
@@ -440,11 +542,20 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     keys: list[set[LineKey]] = []
     firsts: list[LineKey | None] = []
     texts: list[list[tuple[LineKey, str]]] = []
+    claimed_lines: set[LineKey] = set()
+    claimed_names: set[str] = set()
     for t in ALL_TYPES:
         if t not in types:
             continue
-        for p in _PARSERS[t](body, ctx):
-            eid, checks = _id_and_checks(p, book_slug, seen, vocab)
+        ctx.cache["claimed_lines"], ctx.cache["claimed_names"] = set(claimed_lines), set(claimed_names)
+        parsed = _PARSERS[t](body, ctx)
+        claimed_names.update(p.name for p in parsed if p.name.strip())  # as printed, before the name repair
+        # a world type's ids are assigned over the whole type at once (rulings W4, W11, W19)
+        named = ([_id_and_checks(p, book_slug, seen, vocab) for p in parsed] if t not in WORLD_TYPES else
+                 _world_ids(parsed, [_id_and_checks(p, book_slug, Counter(), vocab)[1] for p in parsed],
+                            book_slug, ctx, body))
+        for p, (eid, checks) in zip(parsed, named):
+            claimed_lines |= _line_keys(p.lines)
             covered.update(l.page for l in p.lines)
             keys.append(_line_keys(p.lines))
             firsts.append(next(iter(_line_keys(p.lines[:1])), None))

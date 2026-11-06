@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from bookextractor.assemble import ExtractionResult, extract_book, slugify
-from bookextractor.model import load_ocr_page
+from bookextractor.model import Line, load_ocr_page
 from bookextractor.report import build_report
 
 FIX = Path(__file__).parent / "fixtures" / "ocr"
@@ -537,7 +537,7 @@ DMG_EQUIP_PAGES = (105, 106, 109, 110, 111, 119, 122, 123, 124, 125, 134, 135, 1
 
 def test_equipment_and_hazard_types_registered():
     from bookextractor.assemble import ALL_TYPES, _PARSERS
-    assert ALL_TYPES[9:] == NEW_TYPES
+    assert ALL_TYPES[9:17] == NEW_TYPES
     assert set(_PARSERS) == set(ALL_TYPES)
 
 
@@ -768,3 +768,163 @@ def test_one_shared_line_or_old_type_pairs_keep_the_old_gate():
     sub, bg2 = _ent("b.subclass.x", "Subclass"), _ent("b.background.y", "Background")
     shared_text_checks([sub, bg2], [_keys(0, 4), _keys(1, 40)])  # 3 lines between character types: unchanged
     assert all(c["passed"] for e in (sub, bg2) for c in e["checks"] if c["name"] == "text-not-shared")
+
+
+WORLD_TYPES = ("God", "Rule", "Plane", "Faction", "Location", "Lore")
+
+
+def test_world_types_registered_after_the_earlier_types():
+    # God and Rule run before the world section types, which see their claims
+    from bookextractor.assemble import ALL_TYPES, _PARSERS
+    assert ALL_TYPES[17:] == WORLD_TYPES
+    assert set(_PARSERS) == set(ALL_TYPES)
+
+
+@pytest.fixture(scope="module")
+def phb_world():
+    from bookextractor.assemble import ALL_TYPES
+    return extract_book(pages("phb", 14, 19, 20, 21, 22, 300), "phb14", set(ALL_TYPES))
+
+
+def test_phb_god_and_rule_ids_and_schemas(phb_world):
+    r = phb_world
+    anubis = by_id(r, "phb14.god.anubis")
+    assert anubis["fields"]["pantheon"] == "Egyptian"
+    rule = by_id(r, "phb14.rule.customizing-ability-scores")
+    assert rule["name"] == "Customizing Ability Scores"
+    ids = [e["id"] for e in r.entities]
+    assert len(ids) == len(set(ids))
+    _validate_all(r)
+    assert r.report["counts"]["God"] > 0 and r.report["counts"]["Rule"] > 0
+
+
+def test_text_not_shared_runs_over_world_types(phb_world):
+    for e in phb_world.entities:
+        if e["type"] in WORLD_TYPES:
+            assert any(c["name"] == "text-not-shared" for c in e["checks"]), e["id"]
+
+
+def test_no_printed_line_is_both_an_earlier_and_a_world_entity(phb_world):
+    # the world parsers take the claimed lines and names of every earlier type: the Dwarf race (p19-22) is not
+    # also a Lore section, and no god or rule holds a race's lines
+    old, new = set(), set()
+    for e in phb_world.entities:
+        (new if e["type"] in WORLD_TYPES else old).add(e["name"].lower())
+    assert "dwarf" in old and not {"dwarf", "dwarves"} & new
+    assert not {e["id"] for e in phb_world.entities if e["type"] in WORLD_TYPES
+                for c in e["checks"] if c["name"] == "text-not-shared" and not c["passed"]}
+
+
+def test_claims_reach_the_world_parsers(monkeypatch):
+    # every earlier entity's printed lines and names, as printed, are claimed before each world type parses
+    from bookextractor import assemble
+    from bookextractor.parsers import Parsed
+    line = Line("Dwarf", (0.0, 0.0, 10.0, 5.0), 5.0, 19)
+    seen = {}
+
+    def race(body, ctx):
+        return [Parsed(type="Race", name="Dwarf", fields={}, text="Dwarf " + "x " * 20, lines=[line])]
+
+    def god(body, ctx):
+        seen["god"] = (set(ctx.cache["claimed_lines"]), set(ctx.cache["claimed_names"]))
+        return []
+
+    monkeypatch.setitem(assemble._PARSERS, "Race", race)
+    monkeypatch.setitem(assemble._PARSERS, "God", god)
+    assemble.extract_book(pages("phb", 19), "phb14", {"Race", "God"})
+    assert seen["god"] == ({(19, (0.0, 0.0, 10.0, 5.0))}, {"Dwarf"})
+
+
+def test_world_entity_sharing_lines_with_an_earlier_type_fails_alone():
+    # one-sided: the earlier entity's disposition never changes for a world entity
+    from bookextractor.assemble import shared_text_checks
+    cls, lore = _ent("b.class.x", "Class"), _ent("b.lore.y", "Lore")
+    shared_text_checks([cls, lore], [_keys(0, 60), _keys(30, 90)])
+    assert next(c for c in cls["checks"] if c["name"] == "text-not-shared")["passed"]
+    bad = next(c for c in lore["checks"] if c["name"] == "text-not-shared")
+    assert not bad["passed"] and "b.class.x" in bad["reason"]
+    mon = _ent("b.monster.z", "Monster")
+    shared_text_checks([mon, _ent("b.lore.y", "Lore")], [_keys(0, 60), _keys(30, 90)])
+    assert not any(c["name"] == "text-not-shared" for c in mon["checks"])
+
+
+def test_two_world_entities_sharing_lines_both_fail():
+    from bookextractor.assemble import shared_text_checks
+    rule, lore = _ent("b.rule.x", "Rule"), _ent("b.lore.y", "Lore")
+    shared_text_checks([rule, lore], [_keys(0, 60), _keys(30, 90)])
+    assert not next(c for c in rule["checks"] if c["name"] == "text-not-shared")["passed"]
+    assert not next(c for c in lore["checks"] if c["name"] == "text-not-shared")["passed"]
+
+
+def test_a_magic_item_a_god_names_is_hosted():
+    from bookextractor.assemble import shared_text_checks
+    host = [((1, (0.0, float(y), 10.0, float(y) + 5)), "the god's blade is the Sword of Kas" if y == 0 else "x")
+            for y in range(0, 40)]
+    keys = [{k for k, _ in host}, {k for k, _ in host[10:]}]
+    god, item = _ent("b.god.vecna", "God"), _ent("b.magicitem.sword-of-kas", "MagicItem")
+    item["name"] = "Sword of Kas"
+    shared_text_checks([god, item], keys, [host[0][0], host[10][0]], [host, host[10:]])
+    assert next(c for c in god["checks"] if c["name"] == "text-not-shared")["passed"]
+    other = _ent("b.magicitem.wand-of-orcus", "MagicItem")
+    other["name"] = "Wand of Orcus"
+    god = _ent("b.god.vecna", "God")
+    shared_text_checks([god, other], keys, [host[0][0], host[10][0]], [host, host[10:]])
+    assert not next(c for c in god["checks"] if c["name"] == "text-not-shared")["passed"]
+
+
+def _world(name, t, page, y, **fields):
+    from bookextractor.parsers import Parsed
+    line = Line(name, (0.0, float(y), 10.0, float(y) + 5), 5.0, page)
+    return Parsed(type=t, name=name, fields=fields, text=name + " text " * 10, lines=[line])
+
+
+def _ids(parsed, sections=()):
+    from bookextractor.assemble import _world_ids
+    from bookextractor.parsers import ParseContext
+    ctx = ParseContext(slug="b", source="B", pages={}, cache={"sections": list(sections)})
+    out = _world_ids(parsed, [[] for _ in parsed], "b", ctx, [])
+    return [eid for eid, _ in out], [next(c for c in cs if c.name == "unique-id") for _, cs in out]
+
+
+def _section(title, parents, lines, level=2):
+    from bookextractor.parsers.sections import Section
+    return Section(title=title, level=level, parents=parents, lines=lines, page=lines[0].page, complete=True,
+                   end_reason="")
+
+
+def test_a_repeated_god_name_takes_its_pantheon_everywhere():   # W4
+    gods = [_world("Lugh", "God", 1, 0, pantheon="Celtic"), _world("Lugh", "God", 2, 0, pantheon="Gods of Eberron"),
+            _world("Anubis", "God", 3, 0, pantheon="Egyptian")]
+    ids, checks = _ids(gods)
+    assert ids == ["b.god.lugh-celtic", "b.god.lugh-gods-of-eberron", "b.god.anubis"]
+    assert all(c.passed for c in checks) and "Celtic" in checks[0].reason
+
+
+def test_a_repeated_heading_takes_its_parent_heading_everywhere():   # W11
+    a, b, c = (_world("Crime", "Lore", 1, 10), _world("Crime", "Lore", 5, 10), _world("Breland", "Location", 1, 0))
+    secs = [_section("Breland", ["Nations of Khorvaire"], c.lines + a.lines, level=1),
+            _section("Crime", ["Nations of Khorvaire", "Breland"], a.lines),
+            _section("Karrnath", ["Nations of Khorvaire"], [Line("Karrnath", (0, 0, 10, 5), 5.0, 5)] + b.lines, 1),
+            _section("Crime", ["Nations of Khorvaire", "Karrnath"], b.lines)]
+    ids, checks = _ids([a, b], secs)
+    assert ids == ["b.lore.breland-crime", "b.lore.karrnath-crime"]
+    assert all(x.passed for x in checks) and "'Breland'" in checks[0].reason
+    assert _ids([c], secs)[0] == ["b.location.breland"]
+
+
+def test_a_heading_repeated_under_one_parent_takes_its_page_then_an_ordinal():   # W19: TCE p100
+    a, b = _world("Religious Order Contact", "Lore", 100, 10), _world("Religious Order Contact", "Lore", 101, 10)
+    secs = [_section("Religious Order Contact", ["Patrons", "Religious Order"], a.lines),
+            _section("Religious Order Contact", ["Patrons", "Religious Order"], b.lines)]
+    ids, checks = _ids([a, b], secs)
+    assert ids == ["b.lore.religious-order-religious-order-contact-p100",
+                   "b.lore.religious-order-religious-order-contact-p101"]
+    assert all(c.passed for c in checks)
+    c, d = _world("Religious Order Contact", "Lore", 100, 10), _world("Religious Order Contact", "Lore", 100, 40)
+    secs = [_section("Religious Order Contact", ["Patrons", "Religious Order"], c.lines),
+            _section("Religious Order Contact", ["Patrons", "Religious Order"], d.lines)]
+    ids, checks = _ids([c, d], secs)
+    assert ids == ["b.lore.religious-order-religious-order-contact-p100-1",
+                   "b.lore.religious-order-religious-order-contact-p100-2"]
+    assert len(set(ids)) == 2 and not any(x.passed for x in checks)
+    assert _ids([c, d], secs)[0] == ids  # deterministic
