@@ -292,3 +292,13 @@ def test_score_type_choices_come_from_score_types(capsys):
     with pytest.raises(SystemExit):
         main(["score", "phb", "x.json", "--fivetools", ".", "--type", "Nope"])
     assert "Subrace" in capsys.readouterr().err
+
+
+@needs_5etools
+def test_score_book_matches_printed_subrace_names():
+    ents = [{"type": "Subrace", "name": n, "fields": {"raceName": r}}
+            for n, r in [("Hill Dwarf", "Dwarf"), ("High Elf", "Elf"), ("Lightfoot Halfling", "Halfling"),
+                         ("Drow", "Elf")]]
+    res = score_book("phb", ents, FT, "Subrace")
+    assert res["found"] == 4 and res["extra"] == 0
+    assert not any(m in res["missing"] for m in ("Dwarf Hill", "Elf High", "Halfling Lightfoot", "Elf Drow"))

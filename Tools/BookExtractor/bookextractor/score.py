@@ -355,6 +355,13 @@ def _score_character(etype: str, f: dict, t: dict, r: dict, src: str | None) -> 
     return coverage(flat(t.get("entries")), flat(f.get("entries")))
 
 
+def match_key(etype: str, name: str | None) -> str:
+    """Name key for matching. Subrace words are order-insensitive: 5etools "Dwarf Hill" is printed "Hill Dwarf"."""
+    if etype == "Subrace":
+        return "".join(sorted(set(re.findall(r"[a-z0-9+]+", (name or "").lower()))))
+    return key(name)
+
+
 def match_one_to_one(truth_keys: list[str], keys: list[str]) -> dict[int, tuple[str, bool]]:
     """truth index -> (entity key, exact). Exact key matches first, then fuzzy (ratio >= 90) by best
     score first; every entity is claimed at most once."""
@@ -393,12 +400,10 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     for e in entities:
         if e.get("type") == etype:
             name = base_item_name(e["name"]) if etype == "MagicItem" else e["name"]
-            if etype == "Subrace":
-                rn = (e.get("fields") or {}).get("raceName")
-                if rn and key(rn) not in key(name):
-                    name = f"{rn} {name}"
-            idx.setdefault(key(name), e)
-    matches = match_one_to_one([key(t["name"]) for t in truth], list(idx))
+            if etype == "Subrace":  # the printed heading may omit the race word ("Drow" in the Elf section)
+                name = f"{name} {(e.get('fields') or {}).get('raceName') or ''}"
+            idx.setdefault(match_key(etype, name), e)
+    matches = match_one_to_one([match_key(etype, t["name"]) for t in truth], list(idx))
     agg: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
     covs: list[float] = []
     precs: list[float] = []
