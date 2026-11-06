@@ -72,6 +72,7 @@ class _Book:
     L: list[Line]
     labels: list[str | None]  # the trait label a line opens, if any
     heads: list[bool]  # the line is a heading (not a trait, not a running header or footer)
+    hanging: set[int]  # trait lines set with hanging indents (TCE Custom Lineage)
 
 
 def _book(L: list[Line]) -> _Book:
@@ -91,7 +92,7 @@ def _book(L: list[Line]) -> _Book:
         vertical = l.box[2] - l.box[0] < l.box[3] - l.box[1]  # an art credit set sideways in the margin
         heads.append(not ok and heading_like(t) and title_case(t) and "|" not in t and not vertical
                      and l.height >= _FOOTER * med[l.page])
-    return _Book(L, labels, heads)
+    return _Book(L, labels, heads, hanging)
 
 
 def _label(t: str) -> str | None:
@@ -133,6 +134,16 @@ def _hanging_run(L: list[Line], cand: list[str | None]) -> set[int]:
         run.append(i)
     flush()
     return out
+
+
+def _hanging_end(b: _Book, start: int, end: int) -> int:
+    """A hanging-indent trait run ends at the first line after its last trait that is not indented under it
+    (TCE Custom Lineage's last trait is followed by the column's next paragraph, "For example, high elf ...")."""
+    last = max((j for j in range(start, end) if j in b.hanging), default=None)
+    if last is None:
+        return end
+    x, h = b.L[last].box[0], b.L[last].height
+    return next((j for j in range(last + 1, end) if b.L[j].box[0] - x <= 0.4 * h), end)
 
 
 def _is(label: str | None, want: str) -> bool:
@@ -484,7 +495,7 @@ def parse_races(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     claimed: set[int] = set()  # lines inside a race's section (its traits and its subraces)
     for k, (a, name) in enumerate(anchors):
         nxt = anchors[k + 1][0] if k + 1 < len(anchors) else min(len(L), a + _SUB_WINDOW)
-        end = _run_end(b, a, nxt)
+        end = _hanging_end(b, a, _run_end(b, a, nxt))
         traits = _traits(b, a, end)
         fields = _race_fields(traits)
         lines = L[a:end]

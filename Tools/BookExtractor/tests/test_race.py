@@ -243,6 +243,7 @@ def test_tce_custom_lineage_is_a_race_named_by_its_heading():
     assert c.fields["ability"] == [{"choose": {"from": ["str", "dex", "con", "int", "wis", "cha"], "count": 1,
                                                 "amount": 2}}]
     assert not failed(c), failed(c)
+    assert "high elf" not in c.text and "Languages" in [e["name"] for e in c.fields["entries"]]
     jsonschema.validate(c.fields, schema("RaceFields"))
 
 
