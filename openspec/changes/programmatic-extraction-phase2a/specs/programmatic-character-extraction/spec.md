@@ -5,14 +5,14 @@
 The extractor SHALL produce one Class entity per class defined in a book, anchored on the "Hit Dice:" line under its
 "Class Features" heading and named only from the class's chapter heading. It SHALL fill `ClassFields`: `hd`,
 saving-throw `proficiency`, `startingProficiencies`, `multiclassing` when printed, `subclassTitle` and `entries`.
-`classFeatures` SHALL hold one `Name|Class|SOURCE|Level` ref per feature, where SOURCE is the defining book's 5etools
-key.
+`classFeatures` SHALL hold one ref per feature in the 5etools convention: `Name|Class|ClassSource|Level`, with
+`ClassSource` empty for PHB, and the subclass-gaining features as `{"classFeature": ref, "gainSubclassFeature": true}`.
 
 #### Scenario: PHB barbarian
 
 - **WHEN** the PHB is extracted
 - **THEN** `phb14.class.barbarian` has `hd` 1d12, saving throws Strength and Constitution, `subclassTitle` "Primal
-  Path", and a `Rage|Barbarian|PHB|1` feature ref
+  Path", and a `Rage|Barbarian||1` feature ref
 
 #### Scenario: Coach can read the refs
 
@@ -40,7 +40,8 @@ NeedsReview with whatever was read, not drop the class.
 
 The extractor SHALL produce one Subclass entity per subclass found under a class's subclass-group heading, in the
 class's own book or in a supplement. It SHALL fill `className`, `classSource` (the 5etools key of the book defining
-the parent class), `shortName`, `entries` and 6-part `subclassFeatures` refs with the level of each feature.
+the parent class), `shortName`, `entries` and 6-part `subclassFeatures` refs
+(`Name|Class|ClassSource|ShortName|SubclassSource|Level`, `ClassSource` empty for PHB) with the level of each feature.
 
 #### Scenario: Supplement subclass of a PHB class
 

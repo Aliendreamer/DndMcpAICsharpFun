@@ -62,8 +62,9 @@ Owner decisions that bind this change:
    measured it as unreliable on these scans.
 
 3. **Features as synthesized refs.** `classFeatures` is built from the level table's Features column, plus feature
-   headings found in the text, as `Name|Class|<SOURCE>|Level`. The subclass refs use the 6-part form. `SOURCE` is the
-   5etools key of the defining book. A subclass's `classSource` is the key of the book that defines the parent class
+   headings found in the text, in the exact 5etools convention: `Rage|Barbarian||1` (class source empty for PHB),
+   subclass-gaining levels as `{"classFeature": ref, "gainSubclassFeature": true}`, and 6-part subclass refs
+   `Name|Class|ClassSource|ShortName|SubclassSource|Level`. A subclass's `classSource` is the key of the book that defines the parent class
    (an XGE subclass of a PHB class gets `PHB`). Feature text goes into `entries`. There is no new ClassFeature entity
    type.
 
