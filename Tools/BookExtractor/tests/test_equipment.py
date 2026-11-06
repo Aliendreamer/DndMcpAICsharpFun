@@ -284,7 +284,7 @@ def test_erlw_double_bladed_scimitar_described_in_prose():
 
 def test_prose_weapon_with_two_prices_leaves_the_value_to_review():
     pages = _edit("erlw", 22, "to purchase one. A Valenar blade in the hands of a non-",
-                  "to purchase one (or 50 gp used). A Valenar blade in the hands of a non-", pages=_pages("erlw"))
+                  "to purchase one (50 gp). A Valenar blade in the hands of a non-", pages=_pages("erlw"))
     w = _run(parse_weapons, "erlw", pages)[0]
     assert "value" not in w.fields and [c.name for c in failed(w)] == ["cost-valid"]
 
@@ -292,3 +292,43 @@ def test_prose_weapon_with_two_prices_leaves_the_value_to_review():
 def test_prose_weapon_sentence_without_its_heading_is_not_a_weapon():
     pages = _edit("erlw", 22, "DOUBLE-BLADED SCIMITAR", "VALENAR BLADES", pages=_pages("erlw"))
     assert _run(parse_weapons, "erlw", pages) == []
+
+
+def test_prose_weapon_price_is_bracketed_or_cued():
+    """An amount in passing ("set with a 50 gp gem") is not the weapon's price."""
+    pages = _edit("erlw", 22, "to purchase one. A Valenar blade in the hands of a non-",
+                  "to purchase one set with a 50 gp gem. A Valenar blade in the hands of a non-", pages=_pages("erlw"))
+    w = _run(parse_weapons, "erlw", pages)[0]
+    assert w.fields["value"] == 10000 and failed(w) == []
+
+
+def test_prose_weapon_serial_comma_properties():
+    pages = _edit("erlw", 23, "It has the two-handed property and the following spe-",
+                  "It has the finesse, light, and thrown properties and the following spe-", pages=_pages("erlw"))
+    w = _run(parse_weapons, "erlw", pages)[0]
+    assert w.fields["property"] == ["F", "L", "T", "S"] and failed(w) == []
+
+
+def test_prose_weapon_unknown_property_fails():
+    pages = _edit("erlw", 23, "It has the two-handed property and the following spe-",
+                  "It has the finesse, lihgt properties and the following spe-", pages=_pages("erlw"))
+    w = _run(parse_weapons, "erlw", pages)[0]
+    assert [c.name for c in failed(w)] == ["properties-known"] and "lihgt" in failed(w)[0].reason
+
+
+def test_prose_weapon_melee_or_ranged_sets_its_type():
+    assert "type" not in weapons("erlw")[0].fields  # "a martial weapon": neither printed
+    pages = _edit("erlw", 23, "A double-bladed scimitar is a martial weapon, weigh-",
+                  "A double-bladed scimitar is a martial melee weapon, weigh-", pages=_pages("erlw"))
+    assert _run(parse_weapons, "erlw", pages)[0].fields["type"] == "M"
+
+
+def test_caption_set_apart_by_blank_gaps_is_not_an_armor_name():
+    """A caption between the description and the stat lines, set apart above and below, is not a heading."""
+    def ln(text, y, x=100):
+        return Line(text=text, box=(x, y, x + 500, y + 30), height=30, page=1)
+    body = [ln("Spiked Armor", 100), ln("Spiked armor is a rare type of medium armor made by", 132),
+            ln("dwarves, covered with spikes and", 164), ln("Forged Spikes", 240), ln("Cost: 75 gp", 320),
+            ln("AC: 14 + Dexterity modifier (max 2)", 352), ln("Weight: 45 lb.", 384)]
+    ps = parse_armor(body, ParseContext(slug="scag", source="SCAG", pages={}))
+    assert [p.name for p in ps] == ["Spiked Armor"]

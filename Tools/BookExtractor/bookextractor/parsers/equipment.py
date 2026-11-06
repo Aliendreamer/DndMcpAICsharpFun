@@ -420,8 +420,13 @@ def is_heading(L: list[Line], i: int) -> bool:
     if i == 0:
         return True
     prev, cur = L[i - 1], L[i]
-    return prev.page != cur.page or prev.box[1] > cur.box[1] or prev.text.rstrip().endswith(SENTENCE_END) or \
-        cur.box[1] - prev.box[3] > 0.8 * cur.height
+    if prev.page != cur.page or prev.box[1] > cur.box[1] or prev.text.rstrip().endswith(SENTENCE_END):
+        return True
+    # set apart above by a blank line's height, and leading the text right below it (a caption set apart below
+    # too is not a heading)
+    nxt = L[i + 1] if i + 1 < len(L) else None
+    return cur.box[1] - prev.box[3] > 0.8 * cur.height and nxt is not None and nxt.page == cur.page and \
+        0 <= nxt.box[1] - cur.box[3] < 0.8 * cur.height
 
 
 def money_check(amounts: list[str], name: str, where: str) -> Check:
@@ -430,6 +435,16 @@ def money_check(amounts: list[str], name: str, where: str) -> Check:
         return Check("cost-valid", True)
     return Check("cost-valid", False, f"{where} of {name!r} names {len(amounts)} prices "
                  f"({', '.join(repr(a) for a in amounts)}); none is taken")
+
+
+def price_amounts(text: str, name: str) -> list[str]:
+    """The prices a description prints for its subject: a bracketed amount ("(100 gp)"), "Cost: N gp" or "<name>
+    is valued at N gp". An amount in passing ("set with a 50 gp gem") is none."""
+    amount = r"(?:\d{1,3}(?:,\d{3})+|\d+)\s*(?:cp|sp|ep|gp|pp)\b"
+    out = [m.group(1) for m in re.finditer(rf"\(\s*({amount})\s*\)", text, re.I)]
+    for m in re.finditer(rf"\bCost:\s*([^.]*)|\b{re.escape(name)}\s+(?:is|are)\s+valued at\s+([^.]*)", text, re.I):
+        out += [a.group(0) for a in _MONEY.finditer(m.group(1) or m.group(2) or "")]
+    return out
 
 
 _STAT = re.compile(r"^(Cost|AC|Strength|Stealth|Weight):\s*(\S.*)$")
@@ -499,7 +514,7 @@ def _armor_blocks(L: list[Line]) -> list[Parsed]:
 
 
 _PROSE_WEAPON = re.compile(
-    r"^an? (?P<name>[a-z][a-z' -]*?) is an? (?P<cat>simple|martial) (?:melee |ranged )?weapon, weighing "
+    r"^an? (?P<name>[a-z][a-z' -]*?) is an? (?P<cat>simple|martial) (?:(?P<kind>melee|ranged) )?weapon, weighing "
     r"(?P<w>\d+(?:/\d+)?) pounds? and dealing (?P<dmg>\d+d\d+) (?P<dt>[a-z]+) damage on a hit\."
     r"(?: It has the (?P<props>[a-z, -]+?) propert(?:y|ies)(?P<special> and the following special property)?)?",
     re.I)
@@ -533,19 +548,22 @@ def _prose_weapons(L: list[Line]) -> list[Parsed]:
         # the special property's text: to the next heading
         e = next((x for x in range(k, len(L)) if is_heading(L, x)), len(L))
         desc = prose_entries(L, h + 1, i)
-        amounts = [a.group(0) for x in desc if isinstance(x, str) for a in _MONEY.finditer(x)]
-        props = [PROPERTIES[p.strip().lower()] for p in re.split(r",\s*|\s+and\s+", m.group("props") or "")
-                 if p.strip().lower() in PROPERTIES]
+        amounts = price_amounts(" ".join(x for x in desc if isinstance(x, str)), name)
+        # "finesse, light, and thrown": a serial comma leaves "and thrown"; every part is checked
+        parts = [re.sub(r"^and\s+", "", x.strip(), flags=re.I) for x in re.split(r",\s*|\s+and\s+",
+                                                                                   m.group("props") or "")]
+        parts = [x for x in parts if x]
+        props = [PROPERTIES[x.lower()] for x in parts if x.lower() in PROPERTIES]
         if m.group("special"):
             props.append("S")
         f: dict = {"weaponCategory": m.group("cat").lower(), "weight": weight_value(m.group("w") + " lb."),
                    "dmg1": m.group("dmg"), "dmgType": DAMAGE_TYPES[m.group("dt").lower()], "property": props}
+        if m.group("kind"):
+            f["type"] = "M" if m.group("kind").lower() == "melee" else "R"
         if len(amounts) == 1:
             f["value"] = cost_value(amounts[0])
         f["entries"] = desc + prose_entries(L, i, e)
-        checks = [Check("properties-valid", bool(props) or not m.group("props"),
-                        "" if props or not m.group("props") else f"properties of {name!r} {m.group('props')!r} "
-                                                                 "name no known property")]
+        checks = [properties_check(parts, name)]
         if amounts:
             checks.append(money_check(amounts, name, "the description"))
         p = Parsed(type="Weapon", name=name, fields=f,
