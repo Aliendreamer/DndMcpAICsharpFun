@@ -321,3 +321,18 @@ def test_sidekick_printed_hit_dice_without_colon_unread_fails():
 
 def test_sidekick_without_hit_dice_passes():
     assert _sidekick_hit_die("EXPERT\nA sidekick gains the following class features.\n").passed
+
+
+def test_sidekick_printed_hit_dice_garbled_token_fails():
+    for token in ("ld", "Id"):
+        c = _sidekick_hit_die(f"EXPERT\nHit Dice: {token} per expert level\n")
+        assert not c.passed and f"Hit Dice: {token}" in c.reason
+
+
+def test_sidekick_printed_hit_dice_space_no_colon_fails():
+    c = _sidekick_hit_die("EXPERT\nHit Dice 1d8 per expert level\n")
+    assert not c.passed and "Hit Dice 1d8" in c.reason
+
+
+def test_sidekick_prose_about_hit_dice_passes():
+    assert _sidekick_hit_die("EXPERT\nyou can spend Hit Dice to heal\n").passed
