@@ -314,10 +314,16 @@ def test_truth_subclasses_drop_xphb_copies():
 
 @needs_5etools
 def test_truth_backgrounds_drop_copy_variants():
-    from bookextractor.score import dropped_background_variants
     assert len(load_truth("phb", FT, "Background")) == 14
     assert len(load_truth("egw", FT, "Background")) == 2
     assert not any(t.get("_copy") for t in load_truth("phb", FT, "Background"))
-    assert "Variant Criminal (Spy)" in dropped_background_variants("phb", FT)
     res = score_book("phb", [], FT, "Background")
     assert any("variant (_copy) not scored: Variant Criminal (Spy)" in k for k in res["knownDifferences"])
+
+
+@needs_5etools
+def test_score_book_lists_dropped_subclass_reprints():
+    res = score_book("xge", [], FT, "Subclass")
+    assert "reprint (classSource XPHB) not scored: Path of the Zealot" in res["knownDifferences"]
+    assert any(k.startswith("reprint (classSource XPHB)") for k in res["knownDifferences"])
+    assert all(t.get("classSource") not in ("XPHB", "EFA") for t in load_truth("xge", FT, "Subclass"))

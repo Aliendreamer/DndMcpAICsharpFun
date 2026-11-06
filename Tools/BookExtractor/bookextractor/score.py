@@ -163,30 +163,47 @@ def load_truth(book: str, fivetools_dir: Path, etype: str | None = None) -> list
 
 
 def _load_character_truth(src: str, d: Path, etype: str) -> list[dict]:
+    return _split_character_truth(src, d, etype)[0]
+
+
+def _split_character_truth(src: str, d: Path, etype: str) -> tuple[list[dict], list[str]]:
+    """(truth records, known-difference lines for the records left out of the truth)."""
     if etype in ("Class", "Subclass"):
         files = sorted((d / "class").glob("class-*.json"))
         if not files:
             raise FileNotFoundError(str(d / "class"))
         lst = "class" if etype == "Class" else "subclass"
-        # 5etools stores each supplement subclass twice; the XPHB (2024 class) and EFA (2024 Artificer) copies are twins
-        return [r for f in files for r in json.loads(f.read_text("utf-8")).get(lst, [])
-                if r.get("source") == src and not (etype == "Subclass" and r.get("classSource") in ("XPHB", "EFA"))]
+        kept, dropped = [], []
+        for f in files:
+            for r in json.loads(f.read_text("utf-8")).get(lst, []):
+                if r.get("source") != src:
+                    continue
+                # 5etools stores each supplement subclass twice; the XPHB (2024 class) and EFA (2024 Artificer)
+                # copies are twins of the printed one
+                if etype == "Subclass" and r.get("classSource") in ("XPHB", "EFA"):
+                    dropped.append(f"reprint (classSource {r['classSource']}) not scored: {r['name']}")
+                else:
+                    kept.append(r)
+        return kept, dropped
     if etype in ("Race", "Subrace"):
         data = json.loads((d / "races.json").read_text("utf-8"))
         if etype == "Race":
-            return [r for r in data["race"] if r.get("source") == src and not r.get("_copy")]
+            return [r for r in data["race"] if r.get("source") == src and not r.get("_copy")], []
         # nameless base subraces are dropped; the match name carries the race word, like the printed heading
         return [dict(r, name=f"{r['raceName']} {r['name']}", _subName=r["name"]) for r in data["subrace"]
-                if r.get("source") == src and r.get("name") and r.get("raceName")]
+                if r.get("source") == src and r.get("name") and r.get("raceName")], []
     fname, lst = ("feats.json", "feat") if etype == "Feat" else ("backgrounds.json", "background")
+    recs = [r for r in json.loads((d / fname).read_text("utf-8"))[lst] if r.get("source") == src]
     # a `_copy` background is a sidebar variant that modifies a base background, not a printed entry
-    return [r for r in json.loads((d / fname).read_text("utf-8"))[lst] if r.get("source") == src and not r.get("_copy")]
+    return ([r for r in recs if not r.get("_copy")],
+            [f"variant (_copy) not scored: {r['name']}" for r in recs if r.get("_copy")] if etype == "Background" else [])
 
 
-def dropped_background_variants(book: str, fivetools_dir: Path | str) -> list[str]:
-    """Names of the `_copy` background variants load_truth leaves out for `book`."""
-    data = json.loads((Path(fivetools_dir) / "backgrounds.json").read_text("utf-8"))["background"]
-    return [r["name"] for r in data if r.get("source") == book.upper() and r.get("_copy")]
+def dropped_truth_lines(book: str, fivetools_dir: Path | str, etype: str) -> list[str]:
+    """Known-difference lines for the 5etools records load_truth leaves out of `etype`'s truth."""
+    if etype not in _CHARACTER_TYPES:
+        return []
+    return _split_character_truth(book.upper(), Path(fivetools_dir), etype)[1]
 
 
 def feature_levels(refs, src: str, level_idx: int, source_idx: int) -> set[tuple[str, int]]:
@@ -405,8 +422,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     known: list[str] = [f"{t['name']}: not printed ({NOT_PRINTED[(book, t['name'])]})"
                         for t in truth if (book, t["name"]) in NOT_PRINTED]
     truth = [t for t in truth if (book, t["name"]) not in NOT_PRINTED]
-    if etype == "Background":
-        known += [f"variant (_copy) not scored: {n}" for n in dropped_background_variants(book, fivetools_dir)]
+    known += dropped_truth_lines(book, fivetools_dir, etype)
     idx: dict[str, dict] = {}
     for e in entities:
         if e.get("type") == etype:
