@@ -680,12 +680,74 @@ def test_equipment_known_differences_leave_truth_but_stay_listed():
     assert any("Trinket" in k for k in dl("phb", FT, "Item"))
 
 
+def _item(name, text, fields, failed=()):
+    e = _eq(name, **fields)
+    e["canonicalText"] = text
+    e["checks"] = [{"name": c, "passed": False, "reason": "x"} for c in failed]
+    return e
+
+
 @needs_5etools
-def test_unprinted_item_fields_are_skipped_and_counted_not_wrong():
-    ents = [_eq("Abacus", value=200, weight=2, type="G")]
-    ents[0]["fields"].pop("weight")
+def test_unprinted_item_weight_is_skipped_and_counted_not_wrong():
+    ents = [_item("Abacus", "Abacus\nCost: 2 gp", {"value": 200, "type": "G"})]  # the text shows no weight cell
     r = score_book("phb", ents, FT, "Item")
-    assert "weight" not in r["fields"]
-    assert r["skipped"]["weight"] == 1
-    ents[0]["fields"]["weight"] = 99
+    assert "weight" not in r["fields"] and r["skipped"]["weight"] == 1
+    ents = [_item("Abacus", "Abacus\nCost: 2 gp\nWeight: 2 lb.", {"value": 200, "weight": 99, "type": "G"})]
     assert score_book("phb", ents, FT, "Item")["fields"]["weight"]["pct"] == 0
+
+
+@needs_5etools
+def test_a_weight_cell_we_could_not_read_is_wrong_not_skipped():
+    ents = [_item("Abacus", "Abacus\nCost: 2 gp\nWeight: 21b.", {"value": 200, "type": "G"}, ["weight-valid"])]
+    r = score_book("phb", ents, FT, "Item")
+    assert r["fields"]["weight"] == {"pct": 0.0, "n": 1} and "weight" not in r["skipped"]
+    ents = [_item("Abacus", "Abacus\nCost: 2 gp\nWeight: 2 lb.", {"value": 200, "type": "G"})]  # text shows it
+    assert score_book("phb", ents, FT, "Item")["fields"]["weight"]["pct"] == 0
+
+
+@needs_5etools
+def test_tack_and_vehicle_type_is_scored_even_when_omitted():
+    ents = [_item("Cart", "Cart\nCost: 15 gp\nWeight: 200 lb.", {"value": 1500, "weight": 200})]
+    r = score_book("phb", ents, FT, "Item")
+    assert r["fields"]["type"] == {"pct": 0.0, "n": 1} and "type" not in r["skipped"]
+
+
+@needs_5etools
+def test_a_garbled_or_unrelated_row_claims_no_truth():
+    r = score_book("phb", [_eq("Pouch, qwzx garbled"), _eq("Torch or something unrelated entirely")], FT, "Item")
+    assert "Pouch" in r["missing"] and "Torch" in r["missing"]
+    assert r["extra"] == 2
+
+
+@needs_5etools
+def test_every_phb_or_row_still_matches():
+    rows = ["Flask or tankard", "Jug or pitcher", "Donkey or mule", "1 lb. of flour or one chicken",
+            "1 lb. of iron or 1 sq. yd. of canvas", "1 lb. of copper or 1 sq. yd. of cotton cloth",
+            "1 lb. of ginger or one goat", "1 lb. of cinnamon or pepper, or one sheep", "1 lb. of cloves or one pig",
+            "1 lb. of silver or 1 sq. yd. of linen", "1 sq. yd. of silk or one cow", "1 lb. of saffron or one ox",
+            "1 lb. of wheat", "1 lb. of salt", "1 lb. of gold", "1 lb. of platinum"]
+    r = score_book("phb", [_eq(n) for n in rows], FT, "Item")
+    assert r["extra"] == 0
+    for n in ("Flask", "Tankard", "Jug", "Pitcher", "Donkey", "Mule", "Flour", "Chicken", "Iron", "Canvas (1 sq. yd.)",
+              "Pepper", "Sheep", "Salt", "Wheat", "Gold", "Platinum"):
+        assert n not in r["missing"], n
+
+
+@needs_5etools
+def test_a_type_whose_truth_is_all_known_differences_stays_available():
+    assert "Item" in available_types("mtf", FT)
+    r = score_book("mtf", [], FT, "Item")
+    assert r["truth"] == 0 and any("Trinket" in k for k in r["knownDifferences"])
+
+
+@needs_5etools
+def test_p19_known_differences_and_ocr_lost_names():
+    from bookextractor.score import dropped_truth_lines as dl
+    names = {t["name"] for t in load_truth("vrgr", FT, "Item")}
+    assert "Monster Hunter's Pack" not in names and any("Monster Hunter" in k for k in dl("vrgr", FT, "Item"))
+    assert {"Pride Silk", "Pride Silk Outfit", "Skyship"}.isdisjoint({t["name"] for t in load_truth("egw", FT, "Item")})
+    assert "Skyship" in {t["name"] for t in load_truth("egw", FT, "VehicleMount")}
+    r = score_book("dmg", [], FT, "VehicleMount")
+    assert "Sailing Ship" in r["missing"] and any("Sailing Ship" in k and "lost in OCR" in k
+                                                 for k in r["knownDifferences"])
+    assert "Electrum 50-Zib Coin" in score_book("ggr", [], FT, "Item")["missing"]

@@ -241,8 +241,8 @@ def _split_equipment_truth(src: str, d: Path, etype: str) -> tuple[list[dict], l
 
     known: list[str] = []
     ships: list[dict] = []
-    if src == "DMG":  # the extractor emits ships and the airship as vehicle statistics (a design decision)
-        ships = [i for i in read("items.json", "item") if _code(i.get("type")) in ("SHP", "AIR")]
+    # the extractor emits ships and airships as vehicle statistics (a design decision)
+    ships = [i for i in read("items.json", "item") if _code(i.get("type")) in ("SHP", "AIR")]
     ship_names = {i["name"] for i in ships}
     if etype in ("Weapon", "Armor", "Item", "DiseasePoison"):
         base = read("items-base.json", "baseitem")
@@ -275,7 +275,15 @@ EQUIPMENT_NOT_AN_ENTRY: dict[tuple[str, str, str], str] = {
        "a summon option inside a subclass feature, no stat block of its own"
        for o in ("Flamethrower", "Force Ballista", "Protector")},
     ("DMG", "Object", "Generic Object"): "a rules section on object statistics, not an entry",
+    ("VRGR", "Item", "Monster Hunter's Pack"): "printed only inside a background's equipment line, not as an entry",
+    ("EGW", "Item", "Pride Silk"): "priced only in running prose, no entry",
+    ("EGW", "Item", "Pride Silk Outfit"): "priced only in running prose, no entry",
     ("DMG", "Trap", "Improvised Damage"): "a rules table of damage suggestions, not an entry",
+}
+# entries the book prints but whose name the OCR lost: they stay in the truth and stay misses, with a visible line
+OCR_LOST_NAME: dict[tuple[str, str, str], str] = {
+    ("DMG", "VehicleMount", "Sailing Ship"): "the ships table row has no label cell in the OCR text",
+    ("GGR", "Item", "Electrum 50-Zib Coin"): "the coin row's name is not legible in the OCR text",
 }
 _TRINKET_NOTE = "a trinket roll table that only 5etools names as an item"
 
@@ -591,14 +599,14 @@ def available_types(book: str, fivetools_dir: Path) -> list[str]:
     out = []
     for t in TYPES:
         try:
-            if load_truth(book, fivetools_dir, t):
+            if load_truth(book, fivetools_dir, t) or (t in _EQUIPMENT_TYPES and dropped_truth_lines(book, fivetools_dir, t)):
                 out.append(t)
         except (FileNotFoundError, KeyError):
             pass
     return out
 
 
-def score_record(etype: str, fields: dict, t: dict, src: str | None = None) -> tuple[dict, float | None, float | None]:
+def score_record(etype: str, fields: dict, t: dict, src: str | None = None, entity: dict | None = None) -> tuple[dict, float | None, float | None]:
     r: dict[str, bool | None] = {}
     if etype == "Monster":
         r["ac"] = _first_int(fields.get("ac")) == t_ac(t)
@@ -620,7 +628,7 @@ def score_record(etype: str, fields: dict, t: dict, src: str | None = None) -> t
     elif etype in _CHARACTER_TYPES:
         cov, prec = _score_character(etype, fields, t, r, src)
     elif etype in _EQUIPMENT_TYPES:
-        cov, prec = _score_equipment(etype, fields, t, r)
+        cov, prec = _score_equipment(etype, fields, t, r, entity)
     else:
         if len(rarity_family(t)) == 1:
             r["rarity"] = same_rarity(t, fields.get("rarity"))
@@ -638,7 +646,20 @@ def _codes(v) -> set[str]:
     return {_code(x) for x in (v or [])}
 
 
-def _score_equipment(etype: str, f: dict, t: dict, r: dict) -> tuple[float | None, float | None]:
+_TYPED_ROWS = {"TAH", "VEH", "MNT", "SHP", "AIR"}  # tack, drawn vehicles, mounts, ships: the type is always scored
+
+
+def _printed(e: dict | None, label: str) -> bool:
+    """True when our entity shows the cell: a `<label>:` line in its text, or a failed check on it."""
+    if not e:
+        return False
+    if re.search(rf"^{label}:", e.get("canonicalText") or "", re.M):
+        return True
+    return any(not c.get("passed") and c.get("name", "").lower().startswith(label.lower())
+               for c in e.get("checks") or [])
+
+
+def _score_equipment(etype: str, f: dict, t: dict, r: dict, e: dict | None = None) -> tuple[float | None, float | None]:
     if etype == "Weapon":
         for fld in ("value", "weight", "dmg1", "dmgType", "weaponCategory"):
             r[fld] = f.get(fld) == t.get(fld)
@@ -652,10 +673,14 @@ def _score_equipment(etype: str, f: dict, t: dict, r: dict) -> tuple[float | Non
         r["weight"] = f.get("weight") == t.get("weight")
     elif etype == "Item":
         r["value"] = f.get("value") == t.get("value")
-        # a field our entity omits is one the book prints no value for (pack or coin weight, tack or vehicle type):
-        # not compared, and counted as skipped; a printed value that differs is still wrong
-        r["weight"] = None if f.get("weight") is None else f.get("weight") == t.get("weight")
-        r["type"] = None if f.get("type") is None else _code(f.get("type")) == _code(t.get("type"))
+        # a field our entity omits is skipped (and counted) only when the book prints no cell for it: our
+        # canonical text shows no such line and the value check did not fail. A cell we could not read
+        # (a failed weight-valid), and the type of tack or vehicle rows, are wrong, not skipped.
+        r["weight"] = f.get("weight") == t.get("weight") if f.get("weight") is not None or _printed(e, "Weight") \
+            else None
+        printed_type = _code(t.get("type")) in _TYPED_ROWS
+        r["type"] = _code(f.get("type")) == _code(t.get("type")) if f.get("type") is not None or printed_type \
+            else None
     elif etype == "Trap":
         r["trapHazType"] = f.get("trapHazType") == t.get("trapHazType")
     elif etype == "DiseasePoison":
@@ -713,7 +738,7 @@ def _eq_key(name: str | None, etype: str) -> str:
 
 def _eq_segments(name: str) -> list[str]:
     """Names a printed row such as "Donkey or mule" or "1 lb. of cinnamon or pepper, or one sheep" stands for."""
-    parts = [p for p in re.split(r"\s*,?\s+or\s+|\s*,\s*", name) if p.strip()]
+    parts = [p for p in re.split(r"\s*,?\s+or\s+", name) if p.strip()]
     return parts if len(parts) > 1 else [name]
 
 
@@ -806,10 +831,12 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     multi: dict[int, str] = {}  # truth index -> key of the one printed row that stands for several records
     if etype in _EQUIPMENT_TYPES:
         for k in [k for k in idx if k not in {m for m, _ in matches.values()}]:
-            segs = {_eq_unit_key(sg) for sg in _eq_segments(idx[k]["name"])}
-            hit = {i for i, t in enumerate(truth) if i not in matches and i not in multi
-                   and _eq_unit_key(t["name"]) in segs}
-            if hit:
+            segs = [_eq_unit_key(sg) for sg in _eq_segments(idx[k]["name"])]
+            # every segment of the row must name an unmatched truth record, else the row claims nothing
+            per = [[i for i, t in enumerate(truth) if i not in matches and i not in multi
+                    and _eq_unit_key(t["name"]) == sg] for sg in segs]
+            if per and all(per):
+                hit = {i for h in per for i in h}
                 for i in hit:
                     multi[i] = k
                 known.append(f"printed row matched by its quantity-free name: {idx[k]['name']} = "
@@ -838,18 +865,29 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     for i, t in enumerate(truth):
         if i not in matches:
             missing.append(t["name"])
+            if (book.upper(), etype, t["name"]) in OCR_LOST_NAME:
+                known.append(f"{t['name']}: missing, printed name lost in OCR "
+                             f"({OCR_LOST_NAME[(book.upper(), etype, t['name'])]})")
             continue
         k, exact = matches[i]
         if not exact:
             fuzzy.append(f"{t['name']} ~ {idx[k]['name']}")
         if i in multi:
-            continue  # the row's own fields are not this record's: found, not field-scored
+            # the row's own fields are not this record's; its cost is when every record of the row shares it
+            row = [truth[j] for j, (m, _) in matches.items() if m == k]
+            if etype == "Item" and len({r.get("value") for r in row}) == 1:
+                ok = idx[k]["fields"].get("value") == t.get("value")
+                agg["value"][0] += ok
+                agg["value"][1] += 1
+                if not ok:
+                    diffs.append(f"{t['name']}: value wrong (one printed row: {idx[k]['name']})")
+            continue
         fields = idx[k]["fields"]
         if i in renamed:
             t = _rename_subclass(t, renamed[i], known)
         if etype in ("Class", "Subclass"):
             t = _drop_unprinted_features(book, t, known)
-        res, cov, prec = score_record(etype, fields, t, book.upper())
+        res, cov, prec = score_record(etype, fields, t, book.upper(), idx[k])
         if etype == "MagicItem" and len(rarity_family(t)) > 1:
             fam[0] += 1
             fam[1] += fields.get("rarity") == "varies"
