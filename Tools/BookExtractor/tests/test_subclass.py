@@ -179,3 +179,10 @@ def test_spell_range_label_is_not_a_ranger_subclass():   # TCE "Range: Self" fuz
     body = [dataclasses.replace(l, text="Range: Self") if _squash(l.text) == "clericdeathdomain" else l for l in body]
     assert [q.name for q in parse_subclasses(body, ParseContext(slug="dmg14", source="DMG", pages=pages))] == \
         ["Oathbreaker"]
+
+
+def test_egw_cue_name_correction_is_recorded():   # R11: a cue-based rename passes but is never silent
+    e = get_sub("Echo Knight", book="egw")
+    c = check(e.checks, "name-repaired")
+    assert c.passed and "Eco Knight" in c.reason and "Echo Knight" in c.reason and "cues" in c.reason
+    assert not any(c.name == "name-repaired" for c in get_sub("Chronurgy Magic", book="egw").checks)

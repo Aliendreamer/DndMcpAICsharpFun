@@ -241,3 +241,26 @@ def test_feature_word_printed_in_heading_and_once_more_is_known():
     _e, checks = _id_and_checks(p, "xge", Counter(), vocab)
     c = next(c for c in checks if c.name == "feature-names-known")
     assert not c.passed and "Magigal" in c.reason
+
+
+def test_subclass_cue_name_repair_recorded_once():   # R11: the parser's cue-based rename reaches the entity
+    r = extract_book(pages("egw", 184, 185, 186, 187), "egw", {"Subclass"})
+    e = by_id(r, "egw.subclass.echo-knight")
+    reps = [c for c in e["checks"] if c["name"] == "name-repaired"]
+    assert len(reps) == 1 and reps[0]["passed"]
+    assert "Eco Knight" in reps[0]["reason"] and "Echo Knight" in reps[0]["reason"]
+
+
+def test_parser_and_vocabulary_name_repairs_merge_into_one_check():
+    from collections import Counter
+
+    from bookextractor.assemble import _id_and_checks
+    from bookextractor.checks import Check
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import Parsed
+    p = Parsed(type="Subclass", name="Spellscroll", fields={}, text="Spellscroll\n" + "body text " * 5, lines=[])
+    p.checks = [Check("name-repaired", True, "'Spel Scroll' -> 'Spellscroll' (from 2 cues)")]
+    vocab = build_vocabulary(["a spell scroll and a spell scroll and the spell scroll"] * 3)
+    _, checks = _id_and_checks(p, "b", Counter(), vocab)
+    reps = [c for c in checks if c.name == "name-repaired"]
+    assert len(reps) == 1 and "from 2 cues" in reps[0].reason and "then 'Spellscroll' -> 'Spell Scroll'" in reps[0].reason

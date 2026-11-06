@@ -193,7 +193,13 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
     name = res.name if res else ""
     checks = list(p.checks)
     if res and res.repaired:
-        checks.append(Check("name-repaired", True, f"{res.original!r} -> {res.name!r}"))
+        why = f"{res.original!r} -> {res.name!r}"
+        # a parser repair already recorded (a subclass named by its cues) keeps one check telling both steps
+        k = next((k for k, c in enumerate(checks) if c.name == "name-repaired"), None)
+        if k is None:
+            checks.append(Check("name-repaired", True, why))
+        else:
+            checks[k] = Check("name-repaired", True, f"{checks[k].reason}; then {why}")
     if not name.strip():
         checks.append(Check("name-found", False, "no entity name found"))
     elif not name.strip()[0].isalpha():

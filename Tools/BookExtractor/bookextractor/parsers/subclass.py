@@ -341,19 +341,25 @@ def _labelled(L: list[Line], a: _Anchor, end: int, med: dict[int, float]) -> tup
     return sec_end, feats
 
 
-def _cue_name(L: list[Line], i: int, feats: list[_Feature]) -> str:
+def _cue_name(L: list[Line], i: int, feats: list[_Feature]) -> tuple[str, Check | None]:
     """The subclass heading's text; when the OCR misread it ("Eco Knight") and two or more of its cues print
-    the same name ("3rd-level Echo Knight feature"), the cues' spelling."""
+    the same name ("3rd-level Echo Knight feature"), the cues' spelling, with a passing `name-repaired` check
+    naming the printed heading, the new name and the cue evidence."""
     name = _tidy_case(L[i].text.strip())
-    subs = [f.subject for f in feats if f.subject and _like(f.subject, name)]
-    for s in dict.fromkeys(subs):
-        if squash(s) != squash(name) and sum(squash(x) == squash(s) for x in subs) >= 2:
-            return _tidy_case(" ".join(w[:1].upper() + w[1:] if w.lower() not in _SMALL else w for w in s.split()))
-    return name
+    subs = [(f.subject, f) for f in feats if f.subject and _like(f.subject, name)]
+    for s in dict.fromkeys(x for x, _ in subs):
+        agree = [f for x, f in subs if squash(x) == squash(s)]
+        if squash(s) != squash(name) and len(agree) >= 2:
+            fixed = _tidy_case(" ".join(w if k and w.lower() in _SMALL else w[:1].upper() + w[1:]
+                                        for k, w in enumerate(s.split())))
+            cues = ", ".join(repr(L[f.body].text.strip()) for f in agree[:2])
+            return fixed, Check("name-repaired", True,
+                                f"{name!r} -> {fixed!r} (from {len(agree)} cues: {cues})")
+    return name, None
 
 
 def _make(L: list[Line], i: int, sec_end: int, name: str, cls: str | None, feats: list[_Feature],
-          ctx: ParseContext) -> Parsed:
+          ctx: ParseContext, repaired: Check | None = None) -> Parsed:
     csrc = class_source(cls, ctx.source) if cls else ""
     ssrc = "" if ctx.source == "PHB" else ctx.source
     short = _short_name(name, cls or "")
@@ -375,7 +381,7 @@ def _make(L: list[Line], i: int, sec_end: int, name: str, cls: str | None, feats
     if cls is None:  # the label prints no known class: the field stays absent and parent-class-known fails
         del fields["className"]
     p = Parsed(type="Subclass", name=name, fields=fields, text="\n".join(l.text for l in lines), lines=lines)
-    p.checks = subclass_checks(fields)
+    p.checks = subclass_checks(fields) + ([repaired] if repaired else [])
     return p
 
 
@@ -409,7 +415,8 @@ def parse_subclasses(body: list[Line], ctx: ParseContext) -> list[Parsed]:
             continue
         end = next((j for j in range(a.at + 1, end) if _section_heading(L, j, med)), end)
         for i, sec_end, feats in _subclasses(L, a.at, end, a.cls, evidence_only=True):
-            out.append(_make(L, i, sec_end, _cue_name(L, i, feats), a.cls, feats, ctx))
+            name, repaired = _cue_name(L, i, feats)
+            out.append(_make(L, i, sec_end, name, a.cls, feats, ctx, repaired))
     out.sort(key=lambda p: L.index(p.lines[0]) if p.lines else 0)
     return out
 
