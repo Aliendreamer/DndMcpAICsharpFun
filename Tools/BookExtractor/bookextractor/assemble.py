@@ -31,6 +31,7 @@ from .parsers.trap import parse_traps
 from .parsers.vehicle_object import parse_objects, parse_vehicles
 from .parsers.world import bare_heading, chapter_pages, has_sentence, parent_section, parse_world, placement_doubts
 from .report import build_report
+from .residual import recurring_labels, residual_checks
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
              "Background", "Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition",
@@ -617,6 +618,8 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     keys: list[set[LineKey]] = []
     firsts: list[LineKey | None] = []
     texts: list[list[tuple[LineKey, str]]] = []
+    heights = {n: pg.height for n, pg in by_number.items()}
+    recurring = recurring_labels(body)
     claimed_lines: set[LineKey] = set()
     claimed_names: set[str] = set()
     god_names: set[str] = set()  # the gods' printed names: a world section naming one is a part of its text
@@ -634,6 +637,8 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                  _world_ids(parsed, [_unseen_long_word_check(p, _id_and_checks(p, book_slug, Counter(), vocab)[1], vocab)
                                      for p in parsed], book_slug, ctx, body))
         for p, (eid, checks) in zip(parsed, named):
+            if t in WORLD_TYPES:
+                checks = [*checks, *residual_checks(p, heights, recurring)]
             claimed_lines |= _line_keys(p.lines)
             covered.update(l.page for l in p.lines)
             keys.append(_line_keys(p.lines))
