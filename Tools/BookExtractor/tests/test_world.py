@@ -80,8 +80,10 @@ def test_ggr_guild_sections_are_factions():
     assert "three capitals" not in low  # a sidebar, stripped by the section reader
     assert not any(l.page >= 39 for l in az.lines), "Azorius runs into the Boros Legion"
     # W16: its sub-headings ("Inside the Senate", "Azorius Characters") are peers of one another, set alike: no
-    # doubt, Accepted
-    assert not failed(az)
+    # doubt. W25: with no claims in this fixture, the guild background's caps feature lines ("FUNCTIONARY") inside
+    # its text are headings set at body size the reader did not read, and the structural net names them; the
+    # assembler's claims take those lines out in a whole-book run
+    assert set(failed(az)) <= {"text-complete"} and "'FUNCTIONARY'" in failed(az).get("text-complete", "'FUNCTIONARY'")
     boros = one(ents, "Boros Legion")
     assert not any(l.page >= 100 for l in boros.lines)  # it ends at the chapter 3 title
 
@@ -469,3 +471,22 @@ def test_a_sibling_group_of_long_listings_is_a_group_of_containers():   # W24 (v
                   ("Dragonlance", 2, 2, 4)], chapter="Appendix B: Gods of the Multiverse")
     kinds = {e.section.title: e.lead for e in _entries(lone, lambda *a, **k: False)}
     assert kinds["D&D Pantheons"] and "Greyhawk" in kinds
+
+
+def test_a_section_with_a_sibling_sized_part_is_doubted_itself():   # W25: PHB Fantasy-Historical Pantheons
+    """"Fantasy-Historical Pantheons" (0.71) is read under "D&D Pantheons", and its parts (Celtic 0.54 ... Norse
+    0.61) are set like the pantheons beside it (median 0.58): it sits a level too deep, so its place (and its
+    category "D&d Pantheons") is doubted; its parts keep their own place."""
+    ents, _ = _parse("phb", [293, 294, 295, 296, 297, 298, 299, 300], "phb14", "PHB")
+    fhp = one(ents, "Fantasy-Historical Pantheons")
+    why = failed(fhp)["entry-level"]
+    assert "'The Celtic Pantheon'" in why and "set like its parent's siblings" in why and "level too deep" in why
+    assert "is doubted" not in failed(one(ents, "The Greek Pantheon")).get("entry-level", "")  # not inherited
+
+
+def test_a_containers_one_sentence_lead_is_kept_and_flagged():   # W25: DMG Other Planes p67
+    ents, _ = _parse("dmg", [61, 62, 63, 64, 65, 66, 67, 68], "dmg14", "DMG")
+    lead = one(ents, "Other Planes")
+    assert "A variety of realms exist" in lead.text
+    assert "one prose line only" in failed(lead)["entry-level"]
+    assert one(ents, "Demiplanes").fields.get("category") == "Other Planes"

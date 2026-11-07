@@ -166,3 +166,8 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | phb | 015, 016 | Section reader (W24): "5. Choose Equipment", then "Beyond lst Level" (the OCR's ordinal) over Tiers of Play |
 | erlw | 185, 186 | World sections (W24): "The Villain You Know" (p185) and its d6 table "Villain You Know" (p186, "d6 Villain" header) read as a sibling heading |
 | scc | 005, 006, 007 | World sections (W24): the display title "Welcome to Strixhaven" (77.5 tall) over the running foot "WELCOME TO STRIXHAVEN" the reader measures (36.2), then About This Book and Strixhaven's World set between the two |
+| phb | 196, 197, 198, 199 | Rule (W25): "COVER" (p197) set larger than its peers, so "Damage and Healing" and its parts are read under it |
+| phb | 295, 296, 297, 298, 299 | World sections (W25): the rest of Appendix B: Nonhuman Deities, then "Fantasy-Historical Pantheons" (p298) read under "D&D Pantheons" with its Celtic, Greek, Egyptian and Norse parts |
+| scag | 030, 031, 032, 040, 041, 042 | God prose (W25): Hoar (the "SYmBol OF HOAR" caption read across the p30-31 break), Jergal (the unbounded "The Legend of Knucklebones, Skull Bowling, And the Empty Throne" sidebar spliced in on p32), Tymora (the "Legend of Tyche" sidebar at the top of p41) |
+| egw | 032, 033, 034, 035 | God prose (W25): the Betrayer Gods table (p32), then Xalicas, with the display caption "Inspired by the light of the Luxon, the Bright Queen and / HER COURT CHART THE DESTINY OF A CONTINENT." read into it |
+| dmg | 067, 068 | World sections (W25): "Other Planes" (p67), a container whose lead is one sentence, over The Outlands and Sigil, Demiplanes and The Far Realm |

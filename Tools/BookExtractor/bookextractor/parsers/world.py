@@ -63,7 +63,11 @@ kept whole and `text-complete` fails, naming every doubtful heading or the measu
 - the section runs over more than `_MAX_PAGES` pages and over `_PAGE_FACTOR` times its sibling entries' median page
   count (a guild chapter's six-page guilds are alike; a section that ran on over its siblings is not);
 - it runs over `_SIBLING_FACTOR` times its sibling entries' median line count.
-- it holds a stat block's lines (two of its printed forms within a few lines: `_stat_block`).
+- it holds a stat block's lines (two of its printed forms within a few lines: `_stat_block`);
+- it holds a sub-section set like its own siblings (`held_siblings`: at least (1 - `_SUB_STEP`) times the median
+  size of its sibling group), a sibling the reader nested (ruling W25);
+- it holds a line the reader would classify as a title, a caption or display text that does not name it
+  (`sections.foreign_lines`: an unbounded sidebar's title, a caption read into the text; ruling W25).
 
 `entry-level` (ruling W16) fails for a section the entry-level reading picked that is a sub-heading of an entry: its
 container is an entry typed Plane, Faction or Location, or its heading recurs in its chapter (`_entry_check`).
@@ -71,8 +75,8 @@ container is an entry typed Plane, Faction or Location, or its heading recurs in
 A container's lead text ends at its first sub-section's heading, a heading the reader read: only the first two
 checks apply to it (DMG "Fun Combat Encounters" holds the unread, taller "Random Encounters").
 
-`entry-level` also fails (rulings W21, W22) when the section's place in the reader's tree, from which its parent
-heading, category, type and W11 id come, is not verified (`placement_doubts`): its page prints another chapter's
+`entry-level` also fails (rulings W21, W22, W25) when the section's place in the reader's tree, from which its
+parent heading, category, type and W11 id come, is not verified (`placement_doubts`): its page prints another chapter's
 title, it follows a section whose end is in doubt and is set like that section's sub-headings, or its parent heading
 is OCR debris, repeats the section's heading, prints it more than once (or the section comes after a repeated
 sub-heading's second print), or holds no sentence of its own (a table caption or title); a doubted parent doubts
@@ -90,8 +94,8 @@ from ..model import Line
 from . import ParseContext, Parsed
 from .charcommon import SENTENCE_END, SMALL_WORDS, character_body, prose_entries, set_apart, squash
 from .rule import rules_chapter
-from .sections import (_SUB_STEP, UNKNOWN_CHAPTER, Section, chapter_titles, drop_art, drop_dangling,
-                       heading_words, line_key, prose, read_sections)
+from .sections import (_SUB_STEP, UNKNOWN_CHAPTER, Section, chapter_titles, drop_art, drop_dangling, foreign_lines,
+                       heading_words, line_key, name_words, prose, read_sections)
 
 # the book's setting, for the setting books (a dev-time constant, by 5etools source key)
 SETTINGS = {"ERLW": "Eberron", "EGW": "Exandria", "GGR": "Ravnica", "SCAG": "Forgotten Realms", "VRGR": "Ravenloft",
@@ -491,7 +495,8 @@ def _doubtful_tail(own: list[Line], heads: int) -> str:
 
 
 def _text_check(e: _Entry, own: list[Line], heads: int, sib_lines: list[int], sib_pages: list[int],
-                starts: dict[int, int], sizes: dict[int, float] | None = None) -> Check:
+                starts: dict[int, int], sizes: dict[int, float] | None = None,
+                sections: list[Section] = ()) -> Check:
     sizes = sizes or {}
     s = e.section
     name = f"section {s.title!r} (p{s.page})"
@@ -519,6 +524,14 @@ def _text_check(e: _Entry, own: list[Line], heads: int, sib_lines: list[int], si
     if len(sib_lines) >= 2 and len(own) > _SIBLING_FACTOR * max(median(sib_lines), 10):
         return Check("text-complete", False, f"{name} runs {len(own)} lines, over {_SIBLING_FACTOR}x its "
                      f"{len(sib_lines)} sibling sections' median of {median(sib_lines):g}")
+    # ruling W25: a held sub-section set like its parent's siblings (a sibling it ran on into), or a line the
+    # reader classifies as a title, caption or display text that does not name the section
+    if held := held_siblings(s, sections, own):
+        return Check("text-complete", False, f"{name} holds {held[0].title!r} (p{held[0].page}, size "
+                     f"{held[0].size:.2f}), a sub-section set like its parent's siblings: a sibling it ran on into")
+    if foreign := foreign_lines(own, heads, name_words(s.title), set(starts)):
+        return Check("text-complete", False, f"{name} holds {len(foreign)} line(s) that are no body text of its "
+                     "own: " + "; ".join(foreign[:_NAMED]))
     return Check("text-complete", True, f"ends at {s.end_reason}")
 
 
@@ -567,12 +580,16 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         own = [l for l in e.lines if id(l) not in nested and line_key(l) not in claimed]
         heads = _heads(own, s.title)
         own = drop_dangling(drop_art(own, ctx), e.lines, heads, set(starts))
-        if sum(prose(l.text) for l in own[heads:]) < _MIN_PROSE:
+        n_prose = sum(prose(l.text) for l in own[heads:])
+        if n_prose < _MIN_PROSE and not (e.lead and n_prose):
             continue  # no prose of its own: nothing to read (a table's caption over its rows)
         # a section with prose is never dropped in silence (ruling W24): one the reading cannot vouch for is emitted
         # with a failing `entry-level` check naming why
         why = ""
-        if squash(s.title) in _STAT_HEADINGS:
+        if n_prose < _MIN_PROSE:  # a container's one-sentence lead (DMG "Other Planes"; ruling W25)
+            why = (f"the lead of {s.title!r} (p{s.page}) holds one prose line only, under {_MIN_PROSE}: too short to "
+                   "vouch for")
+        elif squash(s.title) in _STAT_HEADINGS:
             why = f"the heading {s.title!r} (p{s.page}) is a stat block's part, a Monster's not a section of its own"
         elif not e.lead and not any(prose(l.text) for l in own[heads:heads + 2]) \
                 and not _sub_heading_over_prose(own, heads, starts):
@@ -611,7 +628,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         p = Parsed(type=etype, name=s.title, fields=_fields(etype, category, entries_, setting),
                    text="\n".join([head] + flat), lines=own)
         p.checks = [_text_check(e, own, heads, [len(o) for o in sibs], [o[-1].page - o[0].page + 1 for o in sibs],
-                                starts, sizes), typed,
+                                starts, sizes, sections), typed,
                     _entry_check(e, lead_type, in_chapter[(s.parents[0] if s.parents else "", squash(s.title))],
                                  placed[id(s)] or why
                                  or ("" if has_sentence(own[heads:]) else
@@ -728,6 +745,24 @@ def _names_a_god(title: str, gods: dict[str, list[str]]) -> str | None:
     return None
 
 
+HELD_SIBLING = "set like its parent's siblings"  # the reason of a section holding one: its own, never inherited
+
+
+def held_siblings(s: Section, sections: list[Section], lines: list[Line] | None = None) -> list[Section]:
+    """The sections opening inside the section `s` (or inside the entity's own `lines`, when given) that are set like
+    `s`'s own siblings: at least (1 - `_SUB_STEP`) times the median size of `s`'s sibling group (the sections sharing
+    its parents and level, two at least besides it). A section holding one holds a sibling the reader nested (PHB
+    "Cover" holding "Damage and Healing", SCAG "Bards" holding "Clerics") or sits a level too deep (PHB
+    "Fantasy-Historical Pantheons" under "D&D Pantheons", its parts set like the pantheons); ruling W25. A
+    sub-section set like the parts of its own level (GGR "Rank and Renown" under "Azorius Characters") is none."""
+    sizes = [o.size for o in sections if o is not s and o.level == s.level and o.parents == s.parents and o.size]
+    if len(sizes) < 2:
+        return []
+    bound = (1 - _SUB_STEP) * median(sizes)
+    inside = {id(l) for l in (lines if lines is not None else s.lines)[1:]}
+    return [c for c in sections if c is not s and id(c.lines[0]) in inside and c.size and c.size >= bound]
+
+
 def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
                      claimed: set = frozenset(), gods: set = frozenset(), body: list[Line] = ()) -> dict[int, str]:
     """For each section (by `id`), why its place in the reader's tree, and so its parent heading, category, type and
@@ -754,7 +789,13 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
       "WELCOME TO STRIXHAVEN" at the page foot under the title "Welcome to Strixhaven"). The siblings after it set
       clearly smaller than that copy may be its sub-sections (ruling W24); the run ends at the first sibling as tall;
     - it is set like the siblings of its parent: at least (1 - `_SUB_STEP`) times the smallest earlier sibling of its
-      parent (SCAG "Clerics" under "Bards", after "Barbarians"; ruling W23);
+      parent (SCAG "Clerics" under "Bards", after "Barbarians"; ruling W23); and a section with such a sub-section
+      is doubted itself: it sits a level too deep, or holds a sibling (PHB "Fantasy-Historical Pantheons" under
+      "D&D Pantheons"; ruling W25);
+    - it is a top section of a chapter whose title was read late, set clearly smaller (by `_SUB_STEP`) than the
+      section before it that is filed under the previous chapter (the chapter opener, doubted for printing another
+      chapter's title): it may be that opener's sub-section (SCC "A Strixhaven Campaign" after "RUNNING THE
+      ADVENTURES"; ruling W25). The run ends at the first top section as large as the opener;
     - its parent heading is OCR debris (`garbage_heading`), repeats its own heading (a table title read under its
       section), holds no sentence of its own before its first sub-section (a table caption or title read as a
       heading), or prints the section's heading more than once among its sub-sections;
@@ -842,6 +883,22 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
             else:
                 copied.pop(key)
         g.append(x)
+    # a chapter opener filed under the previous chapter (its page prints the new chapter's title): the new
+    # chapter's top sections after it, set clearly smaller than it, may be its sub-sections
+    def misfiled(s: Section) -> bool:
+        here = chapters.get(s.page, set())
+        return bool(here and s.parents and s.parents[0] != UNKNOWN_CHAPTER and squash(s.parents[0]) not in here)
+    after_opener: dict[int, Section] = {}
+    for x in sections:
+        if x.level != 1 or not x.size or not misfiled(x):
+            continue
+        for o in sections[order[id(x)] + 1:]:
+            if o.level != 1:
+                continue
+            if o.parents == x.parents or not o.size or o.size >= (1 - _SUB_STEP) * x.size:
+                break
+            after_opener.setdefault(id(o), x)
+    held_by_parent = {id(c) for p in sections for c in held_siblings(p, sections)}
     god_words = {g: re.findall(r"[a-z]+", re.split(r",| \(", g)[0].lower()) for g in gods}
     memo: dict[int, tuple[str, str]] = {}
 
@@ -850,6 +907,10 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
         if here and s.parents and s.parents[0] != UNKNOWN_CHAPTER and squash(s.parents[0]) not in here:
             return (f"the page of {s.title!r} (p{s.page}) prints another chapter's title than its chapter "
                     f"{s.parents[0]!r}: it is filed under the wrong chapter")
+        if (x := after_opener.get(id(s))) is not None:
+            return (f"the heading {s.title!r} (p{s.page}, size {s.size:.2f}) is set clearly smaller than {x.title!r} "
+                    f"(p{x.page}, size {x.size:.2f}), the chapter opener filed under {x.parents[0]!r}: it may be a "
+                    f"sub-section of {x.title!r}, not of {s.parents[-1]!r}")
         if garbage_heading(s.title):
             return f"the heading {s.title!r} (p{s.page}) is no heading (OCR debris or a table row)"
         if t := table_title(s.lines, s.title):
@@ -890,11 +951,14 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
             if s.parents and (n := counts[(tuple(s.parents), squash(s.title))]) > 1:
                 return (f"the heading {s.title!r} (p{s.page}) is printed {n} times at the top of its chapter "
                         f"{s.parents[-1]!r}: an entry heading over it was not read")
-            return ""
+            return holds(s)
         where = f"its parent heading {par.title!r} (p{par.page})"
         if (least := sib_min.get(id(par))) is not None and s.size and s.size >= (1 - _SUB_STEP) * least.size:
             return (f"the heading {s.title!r} (p{s.page}, size {s.size:.2f}) is set like the siblings of {where} "
                     f"({least.title!r}, size {least.size:.2f}): a sibling of it, not its sub-section")
+        if id(s) in held_by_parent:  # ruling W25: by the median of the parent's siblings (SCAG "Trielta Hills")
+            return (f"the heading {s.title!r} (p{s.page}, size {s.size:.2f}) is set like the siblings of {where} "
+                    "(their median size): a sibling of it, not its sub-section")
         if garbage_heading(par.title):
             return f"{where} over {s.title!r} (p{s.page}) is no heading (OCR debris or a table row)"
         if squash(par.title) == squash(s.title):
@@ -908,16 +972,34 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
         if not has_sentence(par.lines[_heads(par.lines, par.title):k]):
             return (f"{where} holds no sentence of its own before {s.title!r} (p{s.page}): a table caption or title "
                     "read as a heading, not the heading enclosing it")
-        return ""
+        return holds(s)
+
+    def holds(s: Section) -> str:
+        """The section holds a sub-section set like its parent's siblings (ruling W25): it sits a level too deep
+        (PHB "Fantasy-Historical Pantheons" under "D&D Pantheons") or holds a sibling (SCAG "Bards" holding
+        "Clerics"). Its own doubt, not inherited (`doubt`)."""
+        if parent_type(s.title)[0] is not None:
+            return ""  # a heading that lists entries by its own words holds parts set like entries
+        held = held_siblings(s, sections)
+        if not held:
+            return ""
+        c = held[0]
+        return (f"the section {s.title!r} (p{s.page}, size {s.size:.2f}) holds {c.title!r} (p{c.page}, size "
+                f"{c.size:.2f}), {HELD_SIBLING}" + (f" under {s.parents[-1]!r}" if s.parents else "")
+                + ": it sits a level too deep, or holds a sibling")
 
     def doubt(s: Section) -> tuple[str, str]:
-        """(the reason, the doubted ancestor's own reason)."""
+        """(the reason, the reason the section's descendants inherit). A held-sibling doubt is the section's own
+        (its level or its extent): its other sub-sections keep their verified place, so it is not inherited; an
+        ancestor's doubt still passes through it."""
         if id(s) in memo:
             return memo[id(s)]
         memo[id(s)] = ("", "")  # no cycles in a tree; a guard all the same
+        par = parent_of[id(s)]
+        up = doubt(par) if par is not None else ("", "")
         if r := own(s):
-            memo[id(s)] = (r, r)
-        elif (par := parent_of[id(s)]) is not None and (up := doubt(par))[0]:
+            memo[id(s)] = (r, up[1] if HELD_SIBLING in r else r)
+        elif up[1]:
             memo[id(s)] = (f"its parent heading {par.title!r} (p{par.page}) over {s.title!r} (p{s.page}) is "
                            f"doubted: {up[1]}", up[1])
         return memo[id(s)]

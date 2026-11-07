@@ -1023,10 +1023,10 @@ def test_ftd_section_filed_under_the_previous_chapter_fails():   # W22 (c): FTD 
     lairs = next(e for e in r.entities if e["name"] == "Dragon Lairs")
     c = _entry_level(lairs)
     assert not c["passed"] and "another chapter's title" in c["reason"] and "Dragons in Play" in c["reason"]
-    # the right-column entry under the new chapter is not touched by the chapter doubt (W24: it is a table's title,
-    # "d10 Unusual Feature" straight under it, and fails for that)
+    # the right-column entry under the new chapter (W25): set clearly smaller than the misfiled opener "Dragon
+    # Lairs", it may be that opener's sub-section (it is: the Lair Location table sits inside Dragon Lairs)
     c = _entry_level(next(e for e in r.entities if e["name"] == "Lair Location"))
-    assert "another chapter" not in c["reason"] and "die-table header" in c["reason"]
+    assert not c["passed"] and "chapter opener" in c["reason"] and "'Dragon Lairs'" in c["reason"]
 
 
 def test_egw_coast_entries_nest_under_the_coast():   # W22 (d), W23: EGW Menagerie Coast
@@ -1037,7 +1037,12 @@ def test_egw_coast_entries_nest_under_the_coast():   # W22 (d), W23: EGW Menager
     named = {e["name"]: e for e in r.entities if e["type"] in WORLD_TYPES}
     # W23: the end midpoint uses the widest sub-heading so far, so the city heading DARKTOW no longer ends the coast
     for n in ("Copia Lake", "Darktow Isle", "Darktow"):
-        assert named[n]["fields"]["category"] == "Menagerie Coast" and _entry_level(named[n])["passed"], n
+        assert named[n]["fields"]["category"] == "Menagerie Coast", n
+    for n in ("Copia Lake", "Darktow Isle"):
+        assert _entry_level(named[n])["passed"], n
+    # W25: Darktow holds "Doralle Woods" (1.00) and "Diver's Grave" (0.88), set like the coast's cities (median
+    # 0.98): it may hold a sibling, so its place is doubted (review load, never a wrong category)
+    assert "set like its parent's siblings" in _entry_level(named["Darktow"])["reason"]
     # the coast's entries the reader still nests under Darktow are set like Darktow's siblings: doubted
     for n in ("Diver's Grave", "Doralle Woods"):
         c = _entry_level(named[n])
@@ -1254,3 +1259,37 @@ def test_a_taller_copy_of_a_heading_on_its_page_doubts_the_siblings_set_smaller(
         assert "taller copy (77.5)" in out[id(s)] and "'Welcome to Strixhaven'" in out[id(s)], s.title
     assert out[id(b)] == "" and out[id(welcome)] == ""
     assert placement_doubts([welcome, a, w, b], {})[id(a)] == ""  # without the page lines, no copy is known
+
+
+def test_the_top_sections_after_a_misfiled_chapter_opener_are_doubted():   # W25: SCC "RUNNING THE ADVENTURES"
+    from bookextractor.parsers.charcommon import squash
+    from bookextractor.parsers.world import placement_doubts
+    old, new = ["Chapter 2: Character Options"], ["Chapter 3: School Is in Session"]
+    opener = _sec("Running the Adventures", old, [_ln("Running the Adventures", 42, 0)], 1, size=1.9)
+    kids = [_sec(t, new, [_ln(t, 42 + k, 10)], 1, size=1.1) for k, t in
+            enumerate(("A Strixhaven Campaign", "Character Creation", "Standalone Adventures"))]
+    big = _sec("Extracurriculars", new, [_ln("Extracurriculars", 46, 0)], 1, size=1.8)
+    later = _sec("Jobs", new, [_ln("Jobs", 47, 0)], 1, size=1.1)
+    out = placement_doubts([opener] + kids + [big, later], {42: {squash("Chapter 3: School Is in Session")}})
+    assert "another chapter's title" in out[id(opener)]
+    for k in kids:
+        assert "chapter opener" in out[id(k)] and "'Running the Adventures'" in out[id(k)], k.title
+    assert out[id(big)] == "" and out[id(later)] == ""  # the run ends at the first top section as large
+
+
+def test_a_section_holding_a_sibling_sized_part_is_doubted_but_its_other_parts_are_not():   # W25
+    from bookextractor.parsers.world import held_siblings, placement_doubts
+    p = ["Chapter 5: Classes"]
+    bl, cl, lore = _ln("Bards", 123, 0), _ln("Clerics", 126, 0), _ln("College of Lore", 124, 0)
+    text = _ln("Bards travel the realms and sing of old deeds.", 123, 10)
+    barb = _sec("Barbarians", p, [_ln("Barbarians", 120, 0)], 1, size=1.54)
+    fighters = _sec("Fighters", p, [_ln("Fighters", 130, 0)], 1, size=1.5)
+    bards = _sec("Bards", p, [bl, text, lore, cl], 1, size=1.94)
+    college = _sec("College of Lore", p + ["Bards"], [lore], 2, size=0.9)
+    clerics = _sec("Clerics", p + ["Bards"], [cl], 2, size=1.48)
+    secs = [barb, bards, college, clerics, fighters]
+    assert [c.title for c in held_siblings(bards, secs)] == ["Clerics"]
+    out = placement_doubts(secs, {})
+    assert "holds 'Clerics'" in out[id(bards)] and "set like its parent's siblings" in out[id(bards)]
+    assert out[id(college)] == ""  # the held-sibling doubt is the section's own, never inherited
+    assert "set like the siblings" in out[id(clerics)]

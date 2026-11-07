@@ -284,3 +284,18 @@ def test_a_rule_holding_a_sibling_sized_heading_fails_text_complete_naming_it():
     assert "The rules for short and long rests" in healing.text
     reason = failed(healing)["text-complete"]
     assert "'Rest VarianTs'" in reason and "holds" in reason
+
+
+def test_a_rule_holding_a_sibling_sized_section_fails_text_complete():   # W25: PHB Cover
+    """"COVER" (p197, 1.70) is set larger than its peers (median 1.39), so the reader nests "Damage and Healing"
+    (1.33) under it: the rule keeps the text whole, and `text-complete` names the held section."""
+    rules = _parse("phb", [190, 193, 194, 195, 196, 197, 198, 199], "phb14", "PHB")[0]
+    cover = rule(rules, "Cover")
+    assert "Temporary Hit Points" in cover.text  # kept, never a silent cut
+    why = failed(cover)["text-complete"]
+    assert "'Damage and Healing'" in why and "set like its parent's siblings" in why
+    assert "set like its parent's siblings" not in failed(rule(rules, "Making an Attack")).get("text-complete", "")
+    # an activity's complications sub-heading, set like the activities, is its own part, never a held sibling
+    research = rule(_parse("xge", [127, 128, 129, 130, 131, 132, 133, 134, 135], "xge", "XGE")[0], "Research")
+    assert "Research Complications" in research.text.replace("\n", " ") or "Complications" in research.text
+    assert "set like its parent's siblings" not in failed(research).get("text-complete", "")

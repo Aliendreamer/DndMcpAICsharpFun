@@ -32,6 +32,9 @@ line and every text line under it up to its end, its sub-sections included.
   before the lost title. A tall "CHAPTER" with no number read (MTF chapter 6) is still a chapter title.
 - **Stripped text.** `Section.stripped` holds the printed lines inside the section's span that are not its text
   (sidebars, running heads and feet, page numbers, captions, art text), so a check can see what was taken out.
+- **The structural net** (`foreign_lines`, ruling W25): the lines of an entity's text the reader would classify as
+  a title, a caption or display text that do not name the entity, for the God, Rule and world parsers'
+  `text-complete` checks.
 
 Read by the God, Rule and world parsers (Phase 2c).
 """
@@ -458,4 +461,134 @@ def drop_dangling(own: list[Line], raw: list[Line], heads: int, starts: set[int]
                 (i + 1 == len(own) or nxt.get(id(l)) is not own[i + 1] or id(own[i + 1]) in starts):
             continue
         out.append(l)
+    return out
+
+
+# ---------- the structural net (ruling W25) ----------
+# An entity's text must hold no line the reader would classify as a heading, a sidebar or box title, a caption or
+# display text, unless that line names the entity. `foreign_lines` names every such line, so the entity's
+# `text-complete` check can fail on it: an unbounded sidebar spliced into a god's prose (SCAG Jergal's "The Legend
+# of Knucklebones, Skull Bowling, And the Empty Throne"), an art caption read across a page break ("SYmBol OF HOAR"
+# inside "the hand of Hoar ... is given credit"), a display caption (EGW "HER COURT CHART THE DESTINY OF A
+# CONTINENT."), or a heading of any size the section reader did not read.
+_NET_WORDS = 12  # a title or caption holds this many words at most
+_NET_DISPLAY = 1.4  # a line this many times the text's median line height is display text, not body text
+_NET_CAPS = 3  # a line of this many words in capitals and none in lower case is a caption or a display line
+
+
+def _title_like(t: str) -> bool:
+    """Title words, commas allowed ("The Legend of Tyche and Her Twin Daughters", "SYmBol OF HOAR"): short,
+    opening with a capital, no closing full stop or semicolon, no colon (a labelled field), every word capitalised
+    but the small ones, fewer than three words in lower case (prose)."""
+    t = t.strip()
+    words = re.findall(r"[A-Za-z][A-Za-z'’-]*", t)
+    # a colon labels a field ("Skill Proficiencies: Insight, Intimidation"), a digit is a table's ("Huge -5"), a
+    # full stop inside is a bold lead-in's ("Conflict Shapes the World's History. Powerful"): never a title here
+    if not words or len(t.split()) > _NET_WORDS or not t[:1].isupper() or t.endswith((".", ";")) or ":" in t \
+            or re.search(r"\d", t) or ". " in t:
+        return False
+    if prose(t) or not any(len(w) >= 3 for w in words):
+        return False
+    return all(w[:1].isupper() or w.lower() in _OPEN_END or w.lower() in ("her", "his", "its", "their", "or")
+               for w in words)
+
+
+def _names(t: str, names: set[str]) -> bool:
+    """The line names the entity: one of its name words (squashed, three letters at least) is in it."""
+    s = squash_text(t)
+    return any(n in s for n in names)
+
+
+def squash_text(t: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", t.lower())
+
+
+def name_words(name: str) -> set[str]:
+    """The words a line must hold to name the entity: its name's words of three letters or more, squashed, and the
+    whole name ("Avandra, the Change Bringer" -> avandra, change, bringer, ...)."""
+    words = {squash_text(w) for w in re.findall(r"[A-Za-z][A-Za-z'’-]*", name) if len(w) >= 3}
+    words -= {squash_text(w) for w in _OPEN_END} | {"the"}
+    return words | {squash_text(name)} - {""}
+
+
+_ROW_LINE = re.compile(r"^(?:\d|d\d)")  # a table row opens with its number, range or die ("1-5 Character ...")
+
+
+def _table_row(t: str) -> bool:
+    """A table's row or header: opens with a number or a die, or holds two numbers or more ("Dungeon 20 sq./min.
+    30 sq./min.")."""
+    t = t.strip()
+    return bool(_ROW_LINE.match(t)) or len(re.findall(r"(?<![A-Za-z])[+-]?\d+", t)) >= 2
+
+
+def _body_prose(t: str) -> bool:
+    return prose(t) and not _table_row(t)
+
+
+def foreign_lines(own: list[Line], heads: int, names: set[str], starts: set[int] = frozenset()) -> list[str]:
+    """Every line of the entity's text (`own`, after its `heads` heading lines) that the reader would classify as
+    something other than the entity's body text and that does not name the entity (`names`, from `name_words`):
+
+    - a title: a title-like line set apart from the text flow (at a page or column top, under a space, or after a
+      finished sentence), over prose (one more title line may wrap under it), that the section reader did not read
+      as a heading (`starts`: those are the caller's to judge) and that does not name the entity: a sidebar or
+      box title the stripper could not bound, a caption, a heading set at body size;
+    - a float naming the entity: a title-like line set apart by its place alone (a page or column top, a space:
+      never merely after a sentence end) that interrupts an unfinished sentence (the line before is prose with no
+      sentence end) over prose: a caption read into the text ("SYmBol OF HOAR" between "the hand of Hoar" and "is
+      given credit"); a wrapped line of a sentence in the flow ("... in the" / "Azorius Senate") is none;
+    - a caption: a line of `_NET_CAPS` words or more in capitals and none in lower case, not a table's header
+      (digits), not naming the entity;
+    - display text: a line that is no prose, set `_NET_DISPLAY` times the text's median line height or taller,
+      not naming the entity (OCR height noise on a prose line is none).
+
+    A title-like line straight under the heading is the entity's subtitle (a deity's epithets: "The Final Scribe,
+    the Pitiless One"), never foreign; nor is the entity's own table or list: a title the text names just before it
+    ("roll on the Carousing table" / "CAROUSING"), a header over rows (digits), a list after a colon, or the wrapped
+    second line of a heading the reader read. Each reason names the line and its page."""
+    body = own[heads:]
+    if len(body) < 2:
+        return []
+    med = median_height(body)
+    out: list[str] = []
+    for k in range(heads, len(own)):
+        l, t = own[k], own[k].text.strip()
+        prev = own[k - 1] if k else None
+        nxt = own[k + 1] if k + 1 < len(own) else None
+        what = f"{t[:80]!r} (p{l.page})"
+        named = _names(t, names)
+        if id(l) in starts or k == heads and _title_like(t):
+            continue  # a subtitle straight under the heading is the entity's own (a deity's epithets)
+        if l.height >= _NET_DISPLAY * med and not named and len(t) >= 3 and not prose(t):
+            out.append(f"{what} is set {l.height / med:.1f}x the text's line height: display text or a caption")
+            continue
+        words = t.split()
+        if (len(words) >= _NET_CAPS and not named and not re.search(r"\d", t)
+                and all(w.isupper() for w in words if re.search(r"[A-Za-z]", w))
+                and sum(bool(re.search(r"[A-Za-z]", w)) for w in words) >= _NET_CAPS):
+            out.append(f"{what} is set in capitals: a caption or display text")
+            continue
+        if prev is None or nxt is None or not _title_like(t):
+            continue
+        # the entity's own table or list: a title the text names just before it ("roll on the Carousing table" /
+        # "CAROUSING"), a header over rows, a list after a colon, or the wrapped second line of a heading the
+        # reader read ("Moving Around Other" / "CREATURES")
+        before = squash_text(" ".join(x.text for x in own[max(heads, k - 4):k]))
+        if squash_text(t) in before or _table_row(nxt.text) or prev.text.rstrip().endswith(":") \
+                or id(prev) in starts:
+            continue
+        over = _body_prose(nxt.text) or (_title_like(nxt.text) and k + 2 < len(own)
+                                         and _body_prose(own[k + 2].text) and not _table_row(nxt.text))
+        if not over:
+            continue
+        placed = prev.page != l.page or prev.box[1] > l.box[1] or set_apart(prev, l)
+        unfinished = prose(prev.text) and not prev.text.rstrip().endswith(SENTENCE_END)
+        if named:
+            if placed and unfinished:
+                out.append(f"{what} interrupts an unfinished sentence, set apart from it: a caption read into the "
+                           "text")
+        elif placed or not unfinished:
+            out.append(f"{what} is a title over prose the reader did not read as a heading: a sidebar or box "
+                       "title, a caption or a heading set at body size, not naming the entity"
+                       + (" (it interrupts an unfinished sentence)" if unfinished else ""))
     return out

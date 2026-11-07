@@ -69,7 +69,7 @@ from .charcommon import SENTENCE_END, caps_heading, heading_like, name_case, pro
 from .equipment import _table_checks
 from .item import _is_type_line
 from .monster import _is_size_line
-from .sections import Section, line_key, read_sections
+from .sections import Section, foreign_lines, line_key, name_words, read_sections
 
 # Every cleric domain the 16 books print (5etools class-cleric.json subclasses of these sources: PHB Knowledge,
 # Life, Light, Nature, Tempest, Trickery, War; DMG Death; SCAG Arcana; XGE Forge, Grave; GGR/TCE Order; TCE Peace,
@@ -542,6 +542,12 @@ def _attach_prose(gods: list[Parsed], sections: list[Section], boxes: dict[int, 
                           + ", ".join(repr(h) for h in span.kept) + ", heading(s) inside its section that do not "
                           "name it: its own sub-sections, or another entity's text (a sidebar) the reader cannot "
                           "bound")
+        # ruling W25: a sidebar's or box's title, a caption or display text inside the deity's text that does not
+        # name the deity (SCAG Jergal's spliced "The Legend of Knucklebones, Skull Bowling, And the Empty Throne")
+        if check.passed and (foreign := foreign_lines(own, heads, name_words(g.name),
+                                                      {id(o.lines[0]) for o in sections})):
+            check = Check("text-complete", False, f"the text of {g.name!r} holds {len(foreign)} line(s) that are no "
+                          "body text of its own: " + "; ".join(foreign[:3]))
         g.checks.append(check)
         if span.dropped:
             g.checks.append(Check("display-lines-dropped", True, "display text set far taller than the section's "

@@ -34,7 +34,9 @@ rule.
 Check (naming the values involved): `text-complete`: the section ends at a heading or chapter title the reader is
 sure of (`Section.complete`; a chapter gap counts as unsure), an activity's end is its container's when it is the
 last one, and an entry-level rule is not far longer than its sibling rules (a heading the OCR read as larger than it
-is runs on over its siblings). A sidebar ends with its box.
+is runs on over its siblings). A sidebar ends with its box. Ruling W25: the rule holds no sub-section set like its
+own siblings (`world.held_siblings`: PHB "Cover" holding "Damage and Healing") and no line the reader would
+classify as a title, a caption or display text that does not name it (`sections.foreign_lines`).
 """
 from __future__ import annotations
 
@@ -49,8 +51,8 @@ from .charcommon import (PAGE_NO, RUNNING_HEAD, SENTENCE_END, caps_heading, char
                          name_case, prose_entries, set_apart, squash, title_case)
 from .item import _is_type_line
 from .monster import _is_size_line
-from .sections import (Section, drop_art, drop_dangling, heading_words, line_key, page_column, prose,
-                       read_sections)
+from .sections import (Section, drop_art, drop_dangling, foreign_lines, heading_words, line_key, name_words,
+                       page_column, prose, read_sections)
 
 _RULES_CHAPTERS = ("Using Ability Scores", "Adventuring", "Combat", "Spellcasting", "Running the Game",
                    "Dungeon Master's Workshop", "Dungeon Master's Tools")
@@ -359,7 +361,7 @@ def _drop_floats(own: list[Line], heads: int, ctx: ParseContext) -> list[Line]:
 
 
 def _text_check(c: _Cand, own: list[Line], sizes: dict[str, list[int]], heads: int,
-                rule_starts: set[int]) -> Check:
+                rule_starts: set[int], held: list = (), starts: set[int] = frozenset()) -> Check:
     if not c.complete:
         return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) has no sure end: {c.end_reason}")
     if c.conflict:
@@ -383,6 +385,15 @@ def _text_check(c: _Cand, own: list[Line], sizes: dict[str, list[int]], heads: i
     if len(others) >= 2 and len(own) > _SIBLING_FACTOR * max(median(others), 10):
         return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) runs {len(own)} lines, over "
                      f"{_SIBLING_FACTOR}x its {len(others)} sibling rules' median of {median(others):g}")
+    # ruling W25: a held sub-section set like its parent's siblings (PHB "Cover" holding "Damage and Healing"), or
+    # a line the reader classifies as a title, caption or display text not naming the rule
+    if held:
+        return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) holds {held[0].title!r} "
+                     f"(p{held[0].page}, size {held[0].size:.2f}), a sub-section set like its parent's siblings: a "
+                     "sibling it ran on into")
+    if foreign := foreign_lines(own, heads, name_words(c.name), starts | rule_starts):
+        return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) holds {len(foreign)} line(s) "
+                     "that are no body text of its own: " + "; ".join(foreign[:3]))
     return Check("text-complete", True, "ends with its sidebar box" if c.kind == "sidebar" else "")
 
 
@@ -418,6 +429,8 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     for c, own in owned:
         if c.kind == "entry":
             sizes.setdefault(c.group, []).append(len(own))
+    from .world import held_siblings  # the world module imports this one
+    section_of = {id(s.lines[0]): s for s in sections}
     out: list[Parsed] = []
     for c, own in owned:
         heads = min(c.heads, len(own))
@@ -428,6 +441,9 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         head = " ".join(l.text.strip() for l in own[:heads])
         flat = [x if isinstance(x, str) else "\n".join(x.get("items", [])) for x in entries]
         p = Parsed(type="Rule", name=c.name, fields=fields, text="\n".join([head] + flat), lines=own)
-        p.checks = [_text_check(c, own, sizes, heads, rule_starts)]
+        sec = section_of.get(id(c.raw[0]))
+        # a complications sub-heading is an activity's own part (`_activities`), however it is set
+        held = [h for h in held_siblings(sec, sections, own) if not _COMPLICATIONS.search(h.title)] if sec else []
+        p.checks = [_text_check(c, own, sizes, heads, rule_starts, held, starts)]
         out.append(p)
     return out

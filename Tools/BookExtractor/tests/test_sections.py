@@ -197,3 +197,45 @@ def test_a_section_holding_a_near_midpoint_heading_is_not_complete():   # W24: D
     healing = next(s for s in secs if s.title == "Healing")
     assert not healing.complete and healing.end_reason.startswith("holds 'Rest VarianTs'"), healing.end_reason
     assert any(l.text.strip() == "Rest VarianTs" for l in healing.lines)  # kept whole, never a silent cut
+
+
+def test_the_structural_net_names_titles_captions_and_display_lines():   # W25
+    """`foreign_lines`: a sidebar's title at a page top mid-sentence over prose; a caption naming the entity set
+    apart inside a sentence; a caps caption; a display line; and the lines that are body text: a wrapped
+    continuation naming the entity, a labelled field, a table's title over its rows."""
+    from bookextractor.model import Line
+    from bookextractor.parsers.sections import foreign_lines, name_words
+
+    def ln(t, page, y, h=30.0, x=100.0):
+        return Line(t, (x, y, x + 600.0, y + h), h, page)
+
+    prose = "the god records the passing of the living and the dead alike."
+    own = [ln("JERGAL", 31, 100.0, 40.0), ln(prose, 31, 140.0), ln("ment and placing it in the corpse's mouth. This rite is", 31, 180.0),
+           ln("The Legend of Knucklebones, Skull Bowling, And the Empty Throne", 32, 80.0),
+           ln("Long ago there was but one god of strife, death, and the", 32, 115.0), ln(prose, 32, 150.0),
+           ln("but is then accidentally slain himself-the hand of Hoar", 32, 190.0),
+           ln("SYmBol OF JERGAL", 32, 340.0, x=300.0),  # set apart (a gap), naming the god, mid-sentence
+           ln("is given credit. When one hears three rolls of thunder", 32, 380.0),
+           ln("Prerequisite: Rank 2 and renown 25 or higher in the", 32, 420.0), ln("Lord Jergal", 32, 450.0),
+           ln("Your new title depends on your previous role.", 32, 480.0),
+           ln("Skill Proficiencies: Insight, Intimidation", 32, 520.0), ln(prose, 32, 550.0),
+           ln("Ability Score Point Cost", 32, 600.0), ln("Score Cost", 32, 630.0), ln("8 0", 32, 660.0), ln(prose, 32, 690.0),
+           ln("HER COURT CHART THE DESTINY OF A CONTINENT.", 32, 730.0), ln(prose, 32, 760.0),
+           ln("A Pull Quote Set Large", 32, 800.0, 48.0), ln(prose, 32, 850.0),
+           # the entity's own tables and lists: a title the text names just before it, a header over rows, a
+           # list after a colon, a row with digits
+           ln("The character makes a check using the Carousing table.", 32, 900.0), ln("CAROUSING", 32, 930.0),
+           ln("Check Total Result", 32, 960.0), ln("1-5 Character has made a hostile contact.", 32, 990.0),
+           ln("To determine the earnings, the character makes an ability check:", 32, 1030.0),
+           ln("Strength (Athletics), Dexterity (Acrobatics), Intelligence", 32, 1060.0), ln(prose, 32, 1090.0),
+           ln("Creature Size Initiative Modifier", 32, 1130.0), ln("Huge -5", 32, 1160.0), ln(prose, 32, 1190.0)]
+    out = foreign_lines(own, 1, name_words("Jergal"))
+    flagged = [o.split(" (p")[0] for o in out]
+    assert "'The Legend of Knucklebones, Skull Bowling, And the Empty Throne'" in flagged
+    assert "'SYmBol OF JERGAL'" in flagged  # names the god, but a caption set apart inside its sentence
+    assert "'HER COURT CHART THE DESTINY OF A CONTINENT.'" in flagged and "'A Pull Quote Set Large'" in flagged
+    for ok in ("'Lord Jergal'", "'Skill Proficiencies: Insight, Intimidation'", "'Ability Score Point Cost'",
+               "'CAROUSING'", "'Check Total Result'", "'Strength (Athletics), Dexterity (Acrobatics), Intelligence'",
+               "'Creature Size Initiative Modifier'", "'Huge -5'"):
+        assert ok not in flagged, out
+    assert len(out) == 4, out

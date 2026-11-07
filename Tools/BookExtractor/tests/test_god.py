@@ -252,3 +252,22 @@ def test_erlw_cults_text_is_not_cut_at_its_own_sub_headings():
     assert "Many cultists carry pieces of volcanic glass" in text and "Cult rituals are intense" in text
     reason = failed(cults)["text-complete"]
     assert "'Symbol'" in reason and "'Rites'" in reason
+
+
+def test_a_god_text_holding_an_unbounded_sidebar_or_a_caption_fails():   # W25: SCAG Jergal, Tymora, Hoar
+    """The sidebar "The Legend of Knucklebones, Skull Bowling, And the Empty Throne" (p32) is spliced into Jergal's
+    prose mid-sentence, "The Legend of Tyche and Her Twin Daughters" (p41) into Tymora's, and the caption
+    "SYmBol OF HOAR" (p30) into Hoar's across a page break: each `text-complete` fails naming the line."""
+    gods, _ = _parse("scag", _pages("scag", [21, 22, 30, 31, 32, 40, 41, 42]), "scag", "SCAG")
+    for name, line in (("Jergal", "'The Legend of Knucklebones, Skull Bowling, And the Empty Throne'"),
+                       ("Tymora", "'The Legend of Tyche and Her Twin'"), ("Hoar", "'SYmBol OF HOAR'")):
+        why = failed(god(gods, name)).get("text-complete", "")
+        assert line in why, (name, why)
+    # the EGW caption "HER COURT CHART THE DESTINY OF A CONTINENT." read into Xalicas's text (the fixture ends on
+    # its page, so the section has no sure end there; the net is checked on the god's own lines)
+    from bookextractor.parsers.sections import foreign_lines, name_words
+    gods, _ = _parse("egw", _pages("egw", [32, 33, 34, 35]), "egw", "EGW")
+    x = god(gods, "Xalicas")
+    prose_lines = [l for l in x.lines if l.page >= 34]
+    out = foreign_lines(prose_lines, 1, name_words("Xalicas"))
+    assert any("'HER COURT CHART THE DESTINY OF A CONTINENT.'" in o for o in out), out
