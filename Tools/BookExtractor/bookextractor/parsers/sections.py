@@ -47,9 +47,14 @@ _CHAPTER = re.compile(r"^(?P<word>C(?i:hapt[a-z]{2,3})|A(?i:ppendi[a-z]{1,2}))\s
 _BARE_CHAPTER = re.compile(r"^C(?i:hapt[a-z]{2,3})$")  # "CHAPTER" whose number the OCR lost (MTF chapter 6)
 _CHAPTER_HEIGHT = 1.4  # a chapter title is set at least this many median line heights tall
 _OCR_DIGITS = str.maketrans({"l": "1", "I": "1", "i": "1", "|": "1", "O": "0"})
+_MAP_CAPTION = re.compile(r"(?i)^map\s*\d+(?:\.\d+)?\s*:")  # "MAP 3.4: DEMENTLIEU", "MAP3.4: DEMeNTLiEU"
 _ABILITY_ROW = re.compile(r"(?i)^str\s+dex\s+con\b")  # a stat block's ability header, not a heading
 _HEAD_SIZE = 1.25  # a heading's size (height x character width) is at least this many times body text's
 _SUB_STEP = 0.12  # a sub-heading is set at least this much (relative) smaller than its section's heading
+_OPEN_END = {"of", "the", "and", "a", "an", "to", "in", "on", "for", "with", "at", "by", "&"}
+_OPEN_DROP = 0.35  # an unfinished heading line's second line may be set this much (relative) smaller or larger
+_DISPLAY = 3.0  # a heading set this many times body text's size is a display title (a domain's, a chapter part's)
+_DISPLAY_LINES = 4  # ... whose prose may start this many lines below it, after a block of short lines
 _CLOSE = 0.06  # a stopping heading within this (relative) of the widest sub-heading leaves the end in doubt
 
 
@@ -149,13 +154,16 @@ def _joined(L: list[Line], i: int) -> int:
     if i + 1 >= len(L):
         return 1
     a, b = L[i], L[i + 1]
-    if b.page != a.page or abs(b.height - a.height) > 0.12 * a.height or not 0 < b.box[1] - a.box[1] < 1.8 * a.height:
+    # a first line ending in a function word or a comma is unfinished: its second line may be set smaller ("The
+    # Raven Queen and" / "THE SHADAR-KAI", "Church of the" / "SILVER FLAME")
+    open_end = a.text.rstrip().endswith(",") or a.text.split()[-1].lower() in _OPEN_END
+    if b.page != a.page or abs(b.height - a.height) > (_OPEN_DROP if open_end else 0.12) * a.height \
+            or not 0 < b.box[1] - a.box[1] < 1.8 * a.height:
         return 1
     if abs(b.box[0] - a.box[0]) > 2 * a.height:
         return 1
     tb = b.text.strip()
-    if a.text.rstrip().endswith(",") or a.text.split()[-1].lower() in {"of", "the", "and", "a", "an", "to", "in",
-                                                                      "on", "for", "with", "at", "by", "&"}:
+    if open_end:
         return 2 if tb[:1].isupper() and not prose(tb) else 1
     return 1
 
@@ -176,6 +184,9 @@ def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) 
     k = i + n
     if k >= len(L):
         return 0
+    # a map's label over its caption ("DEMENTLIEU" / "MAP 3.4: DEMENTLIEU"): art text, no heading
+    if _MAP_CAPTION.match(L[k].text.strip()):
+        return 0
     # prose under it (an epigraph may open with a line in caps: "OfficeR LaVinia stood Before tHe ENorMous")
     if prose(L[k].text) or k + 1 < len(L) and prose(L[k + 1].text) and not _heading_text(L[k].text):
         return n
@@ -184,6 +195,17 @@ def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) 
     tb = re.sub(r"\s*,$", "", " ".join(L[j].text.strip() for j in range(k, k + nb)))
     if _heading_text(tb) and _size(L[k], med) < _size(a, med) and k + nb < len(L) and prose(L[k + nb].text):
         return n
+    # a display title over a block of short lines set far smaller (by `_DISPLAY`), then prose (VRGR "FALKOVNIA" / "Domain
+    # Besieged by the Dead" / "Darklord: Vladeska Drakov" / "Genre: Disaster horror" / "Hallmarks: ...")
+    if _size(a, med) >= _DISPLAY * body_size:
+        block = L[k:k + _DISPLAY_LINES]
+        at = next((j for j, l in enumerate(block) if prose(l.text)), None)
+        run = [a] + block[:at + 1] if at is not None else []
+        # the block is set straight under the title, line after line (a map's label sits over scattered labels)
+        if run and all(l.page == a.page and _size(l, med) < _size(a, med) / _DISPLAY for l in run[1:]) and all(
+                0 <= y.box[1] - x.box[3] < a.height and not _MAP_CAPTION.match(y.text.strip())
+                for x, y in zip(run, run[1:])):
+            return n
     return 0
 
 
@@ -192,8 +214,8 @@ def _ends(sizes: list[float]) -> list[tuple[int | None, float | None]]:
     its widest sub-heading, or None without one).
 
     As `trap._section_end`: a heading's sub-headings are set clearly smaller than it (by `_SUB_STEP` at least).
-    With sub-headings, it stops at the first later heading nearer its own size than its first sub-heading's;
-    without, at the next heading."""
+    With sub-headings, it stops at the first later heading nearer its own size than the widest sub-heading before
+    it; without, at the next heading."""
     out: list[tuple[int | None, float | None]] = []
     for k, s in enumerate(sizes):
         if k + 1 == len(sizes):
@@ -203,8 +225,15 @@ def _ends(sizes: list[float]) -> list[tuple[int | None, float | None]]:
         if (s - first) / s < _SUB_STEP:
             out.append((k + 1, None))
             continue
-        mid = (s + first) / 2
-        stop = next((j for j in range(k + 1, len(sizes)) if sizes[j] >= mid), None)
+        # the stop is the first later heading nearer its own size than the widest sub-heading so far (a region's
+        # first sub-heading may be a small one: EGW "Menagerie Coast" over "Barren Shores", then the larger
+        # city headings "Brokenbank" and "Darktow")
+        stop, widest = None, first
+        for j in range(k + 1, len(sizes)):
+            if sizes[j] >= (s + widest) / 2:
+                stop = j
+                break
+            widest = max(widest, sizes[j])
         out.append((stop, max(sizes[k + 1:stop if stop is not None else len(sizes)])))
     return out
 

@@ -163,8 +163,9 @@ def test_a_nation_running_on_into_the_next_fails():
     """W13: the reader nests the next nation under a nation; the text is kept whole and text-complete fails, naming
     the sibling's heading: "Demon Wastes" (0.93x) inside Darguun, "LHAZAAR PRINCIPALITIES" (0.89x) inside Karrnath."""
     ents = erlw_nations()
-    dg = failed(one(ents, "Darguun"))["text-complete"]
-    assert "'Demon Wastes'" in dg
+    # W23: the reader ends Darguun at "Demon Wastes" (set nearer Darguun's size than its widest sub-heading), so
+    # Darguun no longer holds it; the run-on into the unread "LHAZAAR PRINCIPALITIES" is still a doubt
+    assert not any("demon wastes" in l.text.lower() for l in one(ents, "Darguun").lines[1:])
     kr = failed(one(ents, "Karrnath"))["text-complete"]
     assert "'LHAZAAR PRINCIPALITIES'" in kr
     assert any("Lhazaar" in l.text or "LHAZAAR" in l.text for l in one(ents, "Karrnath").lines)  # kept, not cut
@@ -262,8 +263,11 @@ def test_a_recurring_sub_heading_is_no_entry():
     ents, _ = _parse("erlw", [104, 141, 142, 143, 144, 145, 146, 147, 148], "erlw", "ERLW")
     sym = next(e for e in ents if e.name == "Symbol" and e.lines[0].page == 144)
     assert "recurs" in failed(sym)["entry-level"]
-    assert "'RITES'" in failed(sym)["text-complete"]
-    assert check(one(ents, "Cults of the Dragon Below"), "entry-level").passed
+    # W23: "Church of the" / "SILVER FLAME" is read as one heading; the faith after it, set like its siblings, is
+    # doubted as its sub-section
+    assert any(e.name == "Church of the Silver Flame" for e in ents)
+    cults = check(one(ents, "Cults of the Dragon Below"), "entry-level")
+    assert not cults.passed and "'Church of the Silver Flame'" in cults.reason and "siblings" in cults.reason
 
 
 def test_a_lost_chapter_title_types_nothing():

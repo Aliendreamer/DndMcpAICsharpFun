@@ -134,3 +134,13 @@ def test_chapter_titles_in_their_printed_forms():
     # a running foot ("APPENDIX A: MISCELLANEOUS CREATURES" at the page foot, set small) is not one
     body, _ = _body("mm", [338])
     assert chapter_titles(body) == []
+
+
+def test_display_titles_are_read_and_map_labels_are_not():   # W23 (c): VRGR domains
+    """A domain's display title over its short "Domain of ..." / "Darklord: ..." block is a heading (FALKOVNIA,
+    KALAKERI, MORDENT); the "DEMENTLIEU" label over its "MAP 3.4: DEMENTLIEU" caption is art text."""
+    body, pages = _body("vrgr", [96, 97, 98, 101, 124, 125, 144, 145])
+    secs = read_sections(body, ParseContext(slug="vrgr", source="VRGR", pages=pages))
+    tops = {(s.title, s.page) for s in secs if s.level == 1}
+    assert {("Falkovnia", 101), ("Kalakeri", 125), ("Mordent", 145)} <= tops
+    assert not any(s.title == "Dementlieu" and s.page == 96 for s in secs)

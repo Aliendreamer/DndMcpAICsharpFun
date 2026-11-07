@@ -994,39 +994,27 @@ def _entry_level(e):
 
 def test_dmg_caption_parent_never_lets_a_world_entity_through(dmg_downtime):   # W21: DMG p128
     r = dmg_downtime
-    table = _entry_level(by_id(r, "dmg14.lore.stronghold-cost-time"))
-    assert not table["passed"] and "no sentence" in table["reason"]
-    carousing = _entry_level(by_id(r, "dmg14.lore.stronghold-cost-time-carousing"))
-    assert not carousing["passed"] and "'Stronghold Cost Time'" in carousing["reason"] \
-        and "'Carousing'" in carousing["reason"]
-    title = _entry_level(by_id(r, "dmg14.lore.carousing-carousing"))
-    assert not title["passed"] and "repeats its parent heading 'Carousing'" in title["reason"]
-    for eid in ("dmg14.lore.gaining-renown", "dmg14.lore.performing-sacred-rites"):
-        c = _entry_level(by_id(r, eid))
-        assert not c["passed"] and "'Carousing'" in c["reason"] and "'Stronghold Cost Time'" in c["reason"], eid
-    # the activity under the caption is NeedsReview, never Accepted as Lore under a table caption
-    assert not any(all(c["passed"] for c in e["checks"]) for e in r.entities
-                   if e["type"] in WORLD_TYPES and e["fields"].get("category") in ("Stronghold Cost Time", "Carousing"))
+    # the "Stronghold Cost Time" caption read as a level-1 heading, over the downtime activities: nothing on p128-131
+    # is Accepted as a world entity under it or its "Carousing" table title
+    late = [e for e in r.entities if e["type"] in WORLD_TYPES and e["type"] != "Rule" and e["page"] >= 128]
+    assert late and not any(all(c["passed"] for c in e["checks"]) for e in late)
     # a section under a real parent with prose of its own is still an entry
     assert _entry_level(by_id(r, "dmg14.lore.campaign-tracking"))["passed"]
 
 
-def test_vrgr_parent_printing_a_heading_twice_is_not_its_enclosing_heading():   # W21, W22: VRGR
+def test_vrgr_domains_are_read_as_their_own_sections():   # W21-W23: VRGR Falkovnia, Kalakeri, Mordent
+    """The domain titles (a display title over a short "Domain of ..." / "Darklord: ..." block) are read, and the
+    "DEMENTLIEU" map label over its "MAP 3.4" caption is not: no entity after Dementlieu's pages is filed under it."""
     from bookextractor.assemble import ALL_TYPES
     r = extract_book(pages("vrgr", 96, 97, 98, 101, 124, 125, 144, 145), "vrgr", set(ALL_TYPES))
-    mordent = by_id(r, "vrgr.lore.dementlieu-noteworthy-features-p145")
-    assert not _entry_level(mordent)["passed"] and "'Noteworthy Features'" in _entry_level(mordent)["reason"]
+    world = [e for e in r.entities if e["type"] in WORLD_TYPES]
+    assert not [e["id"] for e in world if e["page"] >= 101 and e["fields"].get("category") == "Dementlieu"]
+    cats = {e["fields"].get("category") for e in world if e["page"] >= 101}
+    assert {"Falkovnia", "Kalakeri", "Mordent"} <= cats
+    mordent = by_id(r, "vrgr.lore.mordent-noteworthy-features")
     assert "Mordent" in mordent["canonicalText"]
-    kalakeri = by_id(r, "vrgr.lore.dementlieu-settlements-and-sites-p125")
-    c = _entry_level(kalakeri)
-    assert not c["passed"] and "'Settlements and Sites'" in c["reason"] and "'Dementlieu'" in c["reason"]
+    kalakeri = by_id(r, "vrgr.lore.kalakeri-settlements-and-sites")
     assert "Kalakeri" in kalakeri["canonicalText"]
-    # inherited: Jadurai takes its category from the doubted "Settlements and Sites" (p125)
-    j = _entry_level(by_id(r, "vrgr.lore.jadurai"))
-    assert not j["passed"] and "is doubted" in j["reason"] and "'Settlements and Sites'" in j["reason"]
-    # Dementlieu's own sub-section, before any repeated heading's second print, is still an entry
-    chateau = by_id(r, "vrgr.lore.chateaufaux")
-    assert chateau["fields"]["category"] == "Dementlieu" and all(c["passed"] for c in chateau["checks"])
 
 
 def test_ftd_section_filed_under_the_previous_chapter_fails():   # W22 (c): FTD p65
@@ -1039,17 +1027,17 @@ def test_ftd_section_filed_under_the_previous_chapter_fails():   # W22 (c): FTD 
     assert _entry_level(next(e for e in r.entities if e["name"] == "Lair Location"))["passed"]
 
 
-def test_egw_entries_after_a_close_end_are_doubted():   # W22 (d): EGW Menagerie Coast
+def test_egw_coast_entries_nest_under_the_coast():   # W22 (d), W23: EGW Menagerie Coast
     from bookextractor.assemble import ALL_TYPES
     r = extract_book(pages("egw", 59, 60, 61, 62, 63, 64, 65), "egw", set(ALL_TYPES))
     named = {e["name"]: e for e in r.entities if e["type"] in WORLD_TYPES}
-    for n in ("Darktow", "Doralle Woods"):
-        c = _entry_level(named[n])
-        assert not c["passed"] and "'Menagerie Coast'" in c["reason"] and f"{n!r}" in c["reason"], n
-    assert not _entry_level(named["Government"])["passed"]  # under Darktow: inherited
-    # the coast's own entries, read under it, are untouched by the doubt
-    for n in ("Copia Lake", "Darktow Isle"):
+    # W23: the end midpoint uses the widest sub-heading so far, so the city heading DARKTOW no longer ends the coast
+    for n in ("Copia Lake", "Darktow Isle", "Darktow"):
         assert named[n]["fields"]["category"] == "Menagerie Coast" and _entry_level(named[n])["passed"], n
+    # the coast's entries the reader still nests under Darktow are set like Darktow's siblings: doubted
+    for n in ("Diver's Grave", "Doralle Woods"):
+        c = _entry_level(named[n])
+        assert not c["passed"] and "set like the siblings" in c["reason"] and "'Darktow'" in c["reason"], n
 
 
 def test_garbage_heading():   # W22 (b)
@@ -1085,7 +1073,7 @@ def test_a_doubted_parent_doubts_every_section_under_it():   # W22 (a)
         and "'Q Yes B3'" in out[id(grand)]
 
 
-def test_sections_after_a_repeated_sub_headings_second_print_are_doubted():   # W22 (a)
+def test_a_section_printing_a_sub_heading_twice_doubts_everything_under_it():   # W22 (a), W23
     from bookextractor.parsers.world import placement_doubts
     text = lambda p, y: _ln("Mist rolls over the quiet village every night.", p, y)  # noqa: E731
     heads = [("Chateaufaux", 1), ("Noteworthy Features", 2), ("Noteworthy Features", 5), ("Klorr", 6)]
@@ -1095,9 +1083,11 @@ def test_sections_after_a_repeated_sub_headings_second_print_are_doubted():   # 
     top = _sec("Dementlieu", ["Chapter 3: Domains"], lines, 1, size=2.0)
     kids = [_sec(t, ["Chapter 3: Domains", "Dementlieu"], list(pair), 2) for (t, _), pair in zip(heads, hl)]
     out = placement_doubts([top] + kids, {})
-    assert out[id(kids[0])] == ""  # before the second print: still Dementlieu's
+    # W23: the parent printing a sub-heading twice is itself unverified, and every section under it inherits that
+    assert "prints its sub-heading 'Noteworthy Features' more than once" in out[id(top)]
     assert "printed 2 times" in out[id(kids[1])] and "printed 2 times" in out[id(kids[2])]
-    assert "after the second print of 'Noteworthy Features'" in out[id(kids[3])] and "'Dementlieu'" in out[id(kids[3])]
+    for k in (kids[0], kids[3]):
+        assert "is doubted" in out[id(k)] and "'Dementlieu'" in out[id(k)]
 
 
 def test_a_section_whose_page_opens_another_chapter_is_doubted():   # W22 (c)
@@ -1109,3 +1099,104 @@ def test_a_section_whose_page_opens_another_chapter_is_doubted():   # W22 (c)
     out = placement_doubts([a, b, c], {65: {squash("Chapter 4: Lairs and Hoards")}})
     assert "another chapter's title" in out[id(a)] and "'Chapter 3: Dragons in Play'" in out[id(a)]
     assert out[id(b)] == "" and out[id(c)] == ""
+
+
+def test_a_child_set_like_its_parents_siblings_is_doubted():   # W23 (b): SCAG Clerics under Bards
+    from bookextractor.parsers.world import placement_doubts
+    text = lambda p: _ln("Bards travel the realms and sing of old deeds.", p, 50)  # noqa: E731
+    barb = _sec("Barbarians", ["Chapter 5: Classes"], [_ln("Barbarians", 120, 0), text(120)], 1, size=1.54)
+    bl = [_ln("Bards", 123, 0), text(123)]
+    sub = [_ln("College of Lore", 124, 0), text(124)]
+    cl = [_ln("Clerics", 126, 0), text(126)]
+    bards = _sec("Bards", ["Chapter 5: Classes"], bl + sub + cl, 1, size=1.94)
+    lore = _sec("College of Lore", ["Chapter 5: Classes", "Bards"], sub, 2, size=0.9)
+    clerics = _sec("Clerics", ["Chapter 5: Classes", "Bards"], cl, 2, size=1.48)
+    out = placement_doubts([barb, bards, lore, clerics], {})
+    assert "set like the siblings" in out[id(clerics)] and "'Barbarians'" in out[id(clerics)] \
+        and "'Bards'" in out[id(clerics)]
+    assert out[id(lore)] == ""
+
+
+def test_a_clipped_parent_heading_is_doubted():   # W23 (f)
+    from bookextractor.parsers.world import clipped_heading, placement_doubts
+    assert clipped_heading("Fizban's Treasury of") and clipped_heading("Welcome to") and clipped_heading("Church of the")
+    assert not clipped_heading("Treasury of Dragons") and not clipped_heading("Chapter 2: Guilds of Ravnica")
+    a = _sec("Seven Secrets of Ravenloft", ["Welcome to"], [_ln("Seven Secrets of Ravenloft", 7, 0)], 1)
+    assert "clipped" in placement_doubts([a], {})[id(a)] and "'Welcome to'" in placement_doubts([a], {})[id(a)]
+
+
+def test_a_close_end_run_stops_at_a_sibling_set_larger_than_its_sub_headings():   # W23 (d): MM Chuul
+    from bookextractor.parsers.world import placement_doubts
+    p = ["Monsters"]
+    line = lambda t, pg: _ln(t, pg, 0)  # noqa: E731
+    chuul_l, sub_l = line("Chuul", 41), line("Chuul Lair", 41)
+    chuul = _sec("Chuul", p, [chuul_l, sub_l], 1, size=2.0, end="close: stops at 'COUATL'")
+    sub = _sec("Chuul Lair", p + ["Chuul"], [sub_l], 2, size=1.0)
+    small = _sec("Crawling Claw", p, [line("Crawling Claw", 42)], 1, size=1.05)
+    big = _sec("Couatl", p, [line("Couatl", 43)], 1, size=1.67)
+    after = _sec("Cyclops", p, [line("Cyclops", 44)], 1, size=1.05)
+    out = placement_doubts([chuul, sub, small, big, after], {})
+    assert "'Chuul'" in out[id(small)]
+    assert out[id(big)] == "" and out[id(after)] == ""  # the run ends at Couatl, set larger than Chuul's sub-headings
+
+
+def test_section_end_uses_the_widest_sub_heading_so_far():   # W23 (a)
+    from bookextractor.parsers.sections import _ends
+    # Menagerie Coast 1.51; Barren Shores 0.78; Brokenbank 1.14; Darktow 1.15; Marrow Valley 1.56
+    ends = _ends([1.51, 0.78, 1.14, 1.15, 1.56])
+    assert ends[0][0] == 4  # the coast runs to Marrow Valley, not to Darktow
+
+
+def test_a_rule_whose_parent_is_doubted_fails_entry_level():   # W23 (e)
+    from bookextractor.assemble import _rule_parent_doubt
+    from bookextractor.parsers import Parsed
+    sec = _sec("Q Yes B3", ["Chapter 5"], [_ln("Q Yes B3", 9, 0), _ln("A sentence of prose is here.", 9, 10)], 1)
+    p = Parsed(type="Rule", name="Demon Summoning", fields={}, text="x", lines=[_ln("Demon Summoning", 9, 20)])
+    why = _rule_parent_doubt(p, sec, False, {id(sec): "its page prints another chapter's title"})
+    assert "'Q Yes B3'" in why and "is doubted" in why
+    assert _rule_parent_doubt(p, sec, False, {}) == ""
+
+
+def test_a_section_after_another_entitys_sibling_section_is_doubted():   # W23: EGW Commandments of Avandra
+    from bookextractor.parsers.sections import line_key
+    from bookextractor.parsers.world import placement_doubts
+    p = ["Chapter 1: Story of Wildemount", "Pantheon of Exandria"]
+    god = _sec("Avandra, the Change Bringer", p, [_ln("Avandra, the Change Bringer", 21, 0)], 2, size=0.64)
+    cmd = _sec("Commandments of Avandra", p, [_ln("Commandments of Avandra", 22, 0)], 2, size=0.63)
+    big = _sec("Betrayer Gods", p, [_ln("Betrayer Gods", 27, 0)], 2, size=0.88)
+    out = placement_doubts([god, cmd], {}, {line_key(god.lines[0])})
+    assert "'Avandra, the Change Bringer'" in out[id(cmd)] and "another entity's section" in out[id(cmd)]
+    assert placement_doubts([god, big], {}, {line_key(god.lines[0])})[id(big)] == ""
+    assert placement_doubts([god, cmd], {})[id(cmd)] == ""
+
+
+def test_a_top_heading_printed_twice_in_its_chapter_is_doubted():   # W23: XGE "MONK"
+    from bookextractor.parsers.world import placement_doubts
+    p = ["Chapter 1: Character Options"]
+    a = _sec("Monk", p, [_ln("Monk", 31, 0)], 1)
+    b = _sec("Monk", p, [_ln("Monk", 68, 0)], 1)
+    c = _sec("Origins", p, [_ln("Origins", 62, 0)], 1)
+    out = placement_doubts([a, c, b], {})
+    assert "printed 2 times at the top of its chapter" in out[id(b)] and out[id(c)] == ""
+
+
+def test_a_section_naming_a_god_is_a_part_of_the_gods_text():   # W23: EGW Commandments of Melora
+    from bookextractor.parsers.world import placement_doubts
+    p = ["Chapter 1: Story of Wildemount", "Pantheon of Exandria"]
+    cmd = _sec("Commandments of Melora", p, [_ln("Commandments of Melora", 25, 0)], 2)
+    other = _sec("Prime Deities", p, [_ln("Prime Deities", 21, 0)], 2)
+    out = placement_doubts([other, cmd], {}, set(), {"Melora", "Avandra, the Change Bringer"})
+    assert "names the god 'Melora'" in out[id(cmd)] and out[id(other)] == ""
+
+
+def test_a_sibling_ending_its_predecessor_barely_over_the_midpoint_is_doubted():   # W23: XGE Origins
+    from bookextractor.parsers.world import placement_doubts
+    p = ["Chapter 1: Character Options"]
+    tl, sb = _ln("This Is Your Life", 62, 0), _ln("Section by Section", 62, 10)
+    tiyl = _sec("This Is Your Life", p, [tl, sb], 1, size=1.04)
+    sub = _sec("Section by Section", p + ["This Is Your Life"], [sb], 2, size=0.44)
+    origins = _sec("Origins", p, [_ln("Origins", 62, 20)], 1, size=0.77)
+    big = _sec("Wizard", p, [_ln("Wizard", 70, 0)], 1, size=1.4)
+    out = placement_doubts([tiyl, sub, origins], {})
+    assert "barely over the midpoint" in out[id(origins)] and "'This Is Your Life'" in out[id(origins)]
+    assert placement_doubts([tiyl, sub, big], {})[id(big)] == ""

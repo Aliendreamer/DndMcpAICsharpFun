@@ -29,7 +29,7 @@ from .parsers.spell import parse_spells
 from .parsers.subclass import _short_name, parse_subclasses
 from .parsers.trap import parse_traps
 from .parsers.vehicle_object import parse_objects, parse_vehicles
-from .parsers.world import bare_heading, has_sentence, parent_section, parse_world
+from .parsers.world import bare_heading, chapter_pages, has_sentence, parent_section, parse_world, placement_doubts
 from .report import build_report
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
@@ -435,6 +435,12 @@ def _world_ids(parsed: list[Parsed], checks: list[list[Check]], book_slug: str, 
     spread(by_parent)
     before = list(stems)
     spread(lambda i, p: (f"{stems[i]}-p{pages[i]}", "; ".join(x for x in (why[i], f"page {pages[i]} added") if x)))
+    memo: list[dict[int, str]] = []
+
+    def placed() -> dict[int, str]:  # the reader-tree doubts, computed once and only when a rule needs them
+        if not memo:
+            memo.append(placement_doubts(sections, chapter_pages(body, ctx), ctx.cache.get("claimed_lines", set())))
+        return memo[0]
     counts, nth = Counter(stems), Counter()
     out = []
     for i, p in enumerate(parsed):
@@ -449,18 +455,21 @@ def _world_ids(parsed: list[Parsed], checks: list[list[Check]], book_slug: str, 
             cs.append(Check("unique-id", True, why[i]))
         # a rule's W11 parent is verified here (a world section's by its own `entry-level`, ruling W21)
         if p.type == "Rule" and i in parent_used and (doubt := _rule_parent_doubt(p, parent_used[i], before[i] !=
-                                                                                    stems[i])):
+                                                                                    stems[i], placed())):
             cs.append(Check("entry-level", False, doubt))
         out.append((f"{book_slug}.{p.type.lower()}.{stem}", cs))
     return out
 
 
-def _rule_parent_doubt(p: Parsed, sec, repeated: bool) -> str:
-    """Why the parent heading a rule's id names is not verified (ruling W21; '' when it is): the parent prints the
-    rule's heading more than once (entry headings between them were not read), or holds no sentence outside the
-    rule (a table caption or title read as a heading)."""
+def _rule_parent_doubt(p: Parsed, sec, repeated: bool, placed: dict[int, str]) -> str:
+    """Why the parent heading a rule's id names is not verified (rulings W21, W23; '' when it is): the parent's own
+    place in the reader's tree is doubted (`placement_doubts`), the parent prints the rule's heading more than once
+    (entry headings between them were not read), or it holds no sentence outside the rule (a table caption or title
+    read as a heading)."""
     if sec is None:
         return ""
+    if placed.get(id(sec)):
+        return f"its parent heading {sec.title!r} (p{sec.page}) is doubted: {placed[id(sec)]}"
     if repeated:
         return (f"the heading {p.name!r} is printed more than once under its parent heading {sec.title!r} "
                 f"(p{sec.page}): the parent is not its nearest enclosing heading")
@@ -569,12 +578,16 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     texts: list[list[tuple[LineKey, str]]] = []
     claimed_lines: set[LineKey] = set()
     claimed_names: set[str] = set()
+    god_names: set[str] = set()  # the gods' printed names: a world section naming one is a part of its text
     for t in ALL_TYPES:
         if t not in types:
             continue
         ctx.cache["claimed_lines"], ctx.cache["claimed_names"] = set(claimed_lines), set(claimed_names)
+        ctx.cache["god_names"] = set(god_names)
         parsed = _PARSERS[t](body, ctx)
         claimed_names.update(p.name for p in parsed if p.name.strip())  # as printed, before the name repair
+        if t == "God":
+            god_names.update(p.name for p in parsed if p.name.strip())
         # a world type's ids are assigned over the whole type at once (rulings W4, W11, W19)
         named = ([_id_and_checks(p, book_slug, seen, vocab) for p in parsed] if t not in WORLD_TYPES else
                  _world_ids(parsed, [_id_and_checks(p, book_slug, Counter(), vocab)[1] for p in parsed],
