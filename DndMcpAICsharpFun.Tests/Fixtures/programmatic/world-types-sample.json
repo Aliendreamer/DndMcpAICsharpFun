@@ -1,0 +1,288 @@
+{
+  "schemaVersion": "2",
+  "book": {
+    "sourceBook": "PHB",
+    "edition": "Edition2014",
+    "fileHash": "",
+    "displayName": "Six world types sample"
+  },
+  "entities": [
+    {
+      "id": "phb14.god.anubis",
+      "type": "God",
+      "name": "Anubis",
+      "page": 300,
+      "fields": {
+        "alignment": [
+          "L",
+          "N"
+        ],
+        "domains": [
+          "Death"
+        ],
+        "symbol": "Black jackal",
+        "pantheon": "Egyptian",
+        "province": "god of judgment and death",
+        "entries": []
+      },
+      "checks": [
+        {
+          "name": "alignment-known",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "name": "domains-known",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "name": "symbol-present",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "provenance": {
+        "pages": [
+          {
+            "page": 300,
+            "boxes": [
+              {
+                "x0": 158.9932098388672,
+                "y0": 215.17088317871094,
+                "x1": 748.1392822265625,
+                "y1": 246.8457794189453
+              }
+            ]
+          }
+        ]
+      },
+      "dataSource": "programmatic"
+    },
+    {
+      "id": "phb14.rule.customizing-ability-scores",
+      "type": "Rule",
+      "name": "Customizing Ability Scores",
+      "page": 14,
+      "fields": {
+        "entries": [
+          "At your Dungeon Master's option, you can use this variant for determining your ability scores. The method described here allows you to build a character with a set of ability scores you choose individually."
+        ],
+        "ruleType": "V"
+      },
+      "checks": [
+        {
+          "name": "text-complete",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "name": "name-found",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "name": "name-words-known",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "provenance": {
+        "pages": [
+          {
+            "page": 14,
+            "boxes": [
+              {
+                "x0": 147.5645294189453,
+                "y0": 1309.961669921875,
+                "x1": 782.6385498046875,
+                "y1": 1968.760009765625
+              }
+            ]
+          }
+        ]
+      },
+      "dataSource": "programmatic"
+    },
+    {
+      "id": "phb14.plane.the-material-plane",
+      "type": "Plane",
+      "name": "The Material Plane",
+      "page": 301,
+      "fields": {
+        "entries": [
+          "The Material Plane is the nexus where the philosophical and elemental forces that define the other planes collide in the jumbled existence of mortal life and mundane matter. All the worlds of D&D exist within the Material Plane, making it the starting point for most campaigns and adventures. The res"
+        ],
+        "category": "The Planes of Existence"
+      },
+      "checks": [
+        {
+          "name": "text-complete",
+          "passed": false,
+          "reason": "section 'The Material Plane' (p301) may run on: it holds 1 doubtful heading(s): 'MaterialEchoes' (p301, height 38.2, 0.81x its own heading's 46.9; read as a heading by the reader): set at least 0.65x as tall as its own heading, with no peer sub-heading"
+        },
+        {
+          "name": "type-from-context",
+          "passed": true,
+          "reason": "Plane: 'planes', the plural head noun of its parent heading 'Appendix C: The Planes of Existence'"
+        },
+        {
+          "name": "entry-level",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "provenance": {
+        "pages": [
+          {
+            "page": 301,
+            "boxes": [
+              {
+                "x0": 127.41236877441406,
+                "y0": 866.0362548828125,
+                "x1": 761.2072143554688,
+                "y1": 1385.2216796875
+              }
+            ]
+          }
+        ]
+      },
+      "dataSource": "programmatic"
+    },
+    {
+      "id": "ggr.faction.azorius-senate",
+      "type": "Faction",
+      "name": "Azorius Senate",
+      "page": 33,
+      "fields": {
+        "entries": [
+          "OfficeR LaVinia stood Before tHe ENorMous double doors that led into the highest spire of New Prahu, the lair of the guildmaster. To look at her, nothing would seem out of place: her cape spilled elegantly from her officer's armor, her sword shone like a decorative piece one would hang above a mante"
+        ]
+      },
+      "checks": [
+        {
+          "name": "text-complete",
+          "passed": true,
+          "reason": "the lead text up to its first sub-section"
+        },
+        {
+          "name": "type-from-context",
+          "passed": true,
+          "reason": "Faction: 'guilds', the plural head noun of its parent heading 'Chapter 2: Guilds of Ravnica'"
+        },
+        {
+          "name": "entry-level",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "provenance": {
+        "pages": [
+          {
+            "page": 33,
+            "boxes": [
+              {
+                "x0": 137.21742248535156,
+                "y0": 720.24951171875,
+                "x1": 778.2971801757812,
+                "y1": 1567.6663818359375
+              }
+            ]
+          }
+        ]
+      },
+      "dataSource": "programmatic"
+    },
+    {
+      "id": "erlw.location.the-treaty-of-thronehold",
+      "type": "Location",
+      "name": "The Treaty of Thronehold",
+      "page": 7,
+      "fields": {
+        "entries": [
+          "The Treaty of Thronehold officially ended the Last War. The treaty recognized the following nations as sovereign states: Aundair, Breland, Darguun, the Eldeen Reaches, Karrnath, the Lhazaar Principalities, the Mror Holds, Q'barra, the Talenta Plains, Thrane, Valenar, and Zilargo. These nations abide"
+        ],
+        "category": "The Five Nations",
+        "setting": "Eberron"
+      },
+      "checks": [
+        {
+          "name": "text-complete",
+          "passed": false,
+          "reason": "section 'The Treaty of Thronehold' (p7) may run on: it holds 2 doubtful heading(s): 'Reaches, Karrnath, the Lhazaar Principalities, the Mror' (p7) interrupts an unfinished sentence over lines that are no prose: a float (a table or sidebar) printed inside its text; \"Holds, Q'barra, the Talenta Plains, Thrane, Valenar, and\" (p7, height 25.0, 0.82x its own heading's 30.4; not read as a heading by the reader): set at least 0.65x as tall as its own heading, with no peer sub-heading"
+        },
+        {
+          "name": "type-from-context",
+          "passed": true,
+          "reason": "Location: 'nations', the plural head noun of its parent heading 'The Five Nations'"
+        },
+        {
+          "name": "entry-level",
+          "passed": false,
+          "reason": "its parent heading 'The Five Nations' (p7) over 'The Treaty of Thronehold' (p7) is doubted: the heading 'The Five Nations' (p7, size 0.86) is set like the siblings of its parent heading 'History of Eberron' (p6) ('Using This Book', size 0.90): a sibling of it, not its sub-section"
+        }
+      ],
+      "provenance": {
+        "pages": [
+          {
+            "page": 7,
+            "boxes": [
+              {
+                "x0": 129.509521484375,
+                "y0": 748.7318115234375,
+                "x1": 757.4674072265625,
+                "y1": 1088.866943359375
+              }
+            ]
+          }
+        ]
+      },
+      "dataSource": "programmatic"
+    },
+    {
+      "id": "erlw.lore.rising-from-the-last-war",
+      "type": "Lore",
+      "name": "Rising from the Last War",
+      "page": 1,
+      "fields": {
+        "entries": [
+          "Explore the lands of Eberron in this campaign sourcebook"
+        ],
+        "settingContext": "Eberron"
+      },
+      "checks": [
+        {
+          "name": "text-complete",
+          "passed": false,
+          "reason": "section 'Rising from the Last War' (p1): the text ends in a sentence that is not finished ('s of Eberron in this campaign sourcebook', p1): the rest of it is printed elsewhere"
+        },
+        {
+          "name": "type-from-context",
+          "passed": false,
+          "reason": "no printed parent heading to type the section by: its chapter title was not read"
+        },
+        {
+          "name": "entry-level",
+          "passed": false,
+          "reason": "the lead of 'Rising from the Last War' (p1) holds one prose line only, under 2: too short to vouch for"
+        }
+      ],
+      "provenance": {
+        "pages": [
+          {
+            "page": 1,
+            "boxes": [
+              {
+                "x0": 271.4361877441406,
+                "y0": 350.2318420410156,
+                "x1": 1481.1702880859375,
+                "y1": 2054.39501953125
+              }
+            ]
+          }
+        ]
+      },
+      "dataSource": "programmatic"
+    }
+  ]
+}
