@@ -62,12 +62,12 @@ container is an entry typed Plane, Faction or Location, or its heading recurs in
 A container's lead text ends at its first sub-section's heading, a heading the reader read: only the first two
 checks apply to it (DMG "Fun Combat Encounters" holds the unread, taller "Random Encounters").
 
-`entry-level` also fails (ruling W21) when the parent heading that types the section, names its category and tells
-its id apart (ruling W11) is not verified as the heading enclosing it (`parent_doubt`): the parent repeats the
-section's own heading (a table title read under its section), the parent prints the section's heading more than once
-(entry headings between them were not read: VRGR's unread domain titles), the parent holds no sentence of its own (a
-table caption or title read as a heading: DMG "Stronghold Cost Time"), or the parent itself sits under one. It fails
-too for a section whose own text holds no sentence (a table read as a section).
+`entry-level` also fails (rulings W21, W22) when the section's place in the reader's tree, from which its parent
+heading, category, type and W11 id come, is not verified (`placement_doubts`): its page prints another chapter's
+title, it follows a section whose end is in doubt and is set like that section's sub-headings, or its parent heading
+is OCR debris, repeats the section's heading, prints it more than once (or the section comes after a repeated
+sub-heading's second print), or holds no sentence of its own (a table caption or title); a doubted parent doubts
+every section under it. It fails too for a section whose own text holds no sentence (a table read as a section).
 """
 from __future__ import annotations
 
@@ -79,10 +79,10 @@ from statistics import median
 from ..checks import Check
 from ..model import Line
 from . import ParseContext, Parsed
-from .charcommon import SENTENCE_END, SMALL_WORDS, prose_entries, set_apart, squash
+from .charcommon import SENTENCE_END, SMALL_WORDS, character_body, prose_entries, set_apart, squash
 from .rule import rules_chapter
-from .sections import (UNKNOWN_CHAPTER, Section, drop_art, drop_dangling, heading_words, line_key, prose,
-                       read_sections)
+from .sections import (_SUB_STEP, UNKNOWN_CHAPTER, Section, chapter_titles, drop_art, drop_dangling,
+                       heading_words, line_key, prose, read_sections)
 
 # the book's setting, for the setting books (a dev-time constant, by 5etools source key)
 SETTINGS = {"ERLW": "Eberron", "EGW": "Exandria", "GGR": "Ravnica", "SCAG": "Forgotten Realms", "VRGR": "Ravenloft",
@@ -554,6 +554,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         if counts[(tuple(x.parents), squash(x.title))] > 1:
             repeats.setdefault(tuple(x.parents), x.title)
     in_chapter = Counter((x.parents[0] if x.parents else "", squash(x.title)) for x in sections)
+    placed = placement_doubts(sections, chapter_pages(body, ctx))
     out: list[Parsed] = []
     lead_type: dict[int, str] = {}  # a container's emitted lead: its type
     for e, own in picked:
@@ -574,7 +575,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         p.checks = [_text_check(e, own, heads, [len(o) for o in sibs], [o[-1].page - o[0].page + 1 for o in sibs],
                                 starts, sizes), typed,
                     _entry_check(e, lead_type, in_chapter[(s.parents[0] if s.parents else "", squash(s.title))],
-                                 parent_doubt(s, sections, counts)
+                                 placed[id(s)]
                                  or ("" if has_sentence(own[heads:]) else
                                      f"the text of {s.title!r} (p{s.page}) holds no sentence: a table read as a "
                                      "section"))]
@@ -610,7 +611,10 @@ def has_sentence(lines: list[Line]) -> bool:
 
 
 def parent_section(s: Section, sections: list[Section]) -> Section | None:
-    """The section of the printed heading enclosing `s` (`s.parents[-1]`); None when that is a chapter title."""
+    """The section of the printed heading enclosing `s` (`s.parents[-1]`); None when that is a chapter title.
+
+    Lines are matched by `id()`: `read_sections` hands the same `Line` objects to a section and to the sections it
+    encloses (every span is a slice of one list), so identity is the printed line's identity here."""
     if len(s.parents) < 2 and s.level <= 1:
         return None
     first = id(s.lines[0])
@@ -621,36 +625,110 @@ def parent_section(s: Section, sections: list[Section]) -> Section | None:
     return None
 
 
-def parent_doubt(s: Section, sections: list[Section], counts: Counter) -> str:
-    """Why the parent heading of `s` is not verified as the heading enclosing it ('' when it is). `counts` holds how
-    many times each (parents, squashed heading) is printed. Every reason names both headings."""
-    return _parent_doubt(s, sections, counts)[0]
+def garbage_heading(title: str) -> bool:
+    """A heading that holds more noise tokens (no letter, or a lone letter) than words of three letters or more: OCR
+    debris or a table row read as a heading ("Q Yes 83"), never a heading that encloses sections."""
+    toks = bare_heading(title).split()
+    words = sum(bool(re.fullmatch(r"[^A-Za-z]*[A-Za-z][A-Za-z'’-]{2,}[^A-Za-z]*", t)) for t in toks)
+    noise = sum(not re.search(r"[A-Za-z]{2}", t) for t in toks)
+    return words == 0 or noise > words
 
 
-def _parent_doubt(s: Section, sections: list[Section], counts: Counter) -> tuple[str, bool]:
-    """(the reason, whether it reaches the sub-sections). A parent set under a caption was shifted a level down with
-    its siblings, so it is no parent of its own sub-sections either (DMG "Gaining Renown" under "Carousing" under the
-    "Stronghold Cost Time" caption); a parent printed twice under its own parent (an entry heading above it unread)
-    still encloses its sub-sections."""
-    par = parent_section(s, sections)
-    if par is None:
-        return "", False
-    where = f"its parent heading {par.title!r} (p{par.page})"
-    if squash(par.title) == squash(s.title):
-        return f"the heading {s.title!r} (p{s.page}) repeats {where}: a table title read as a sub-section", True
-    if (n := counts[(tuple(s.parents), squash(s.title))]) > 1:
-        return (f"the heading {s.title!r} (p{s.page}) is printed {n} times under {where}: the parent is not its "
-                "nearest enclosing heading (an entry heading between them was not read)", False)
-    span = {id(l) for l in s.lines}
-    starts = {id(c.lines[0]) for c in sections if c.level == s.level and c.parents == s.parents}
-    k = next((i for i, l in enumerate(par.lines) if id(l) in starts or id(l) in span), len(par.lines))
-    if not has_sentence(par.lines[_heads(par.lines, par.title):k]):
-        return (f"{where} holds no sentence of its own before {s.title!r} (p{s.page}): a table caption or title "
-                "read as a heading, not the heading enclosing it", True)
-    up, reaches = _parent_doubt(par, sections, counts)
-    if up and reaches:
-        return f"{where}, over {s.title!r} (p{s.page}), is itself unverified: {up}", True
-    return "", False
+def chapter_pages(body: list[Line], ctx: ParseContext) -> dict[int, set[str]]:
+    """The squashed chapter titles printed on each page (`chapter_titles`)."""
+    B = character_body(body, ctx)
+    out: dict[int, set[str]] = {}
+    for ks, title in chapter_titles(B):
+        out.setdefault(B[ks[0]].page, set()).add(squash(title))
+    return out
+
+
+def placement_doubts(sections: list[Section], chapters: dict[int, set[str]]) -> dict[int, str]:
+    """For each section (by `id`), why its place in the reader's tree, and so its parent heading, category, type and
+    W11 id, is not verified ('' when it is; ruling W21, W22). Every reason names the headings involved.
+
+    - its first page prints a chapter title that is not its own chapter (a chapter title read after the column it
+      opens: the section is filed under the previous chapter);
+    - it follows a section whose end is in doubt (`close`: the stopping heading is barely larger than that section's
+      widest sub-heading) and is set clearly smaller than that section, as its sub-headings are (EGW "Darktow" and
+      the gazetteer entries after it, under "Menagerie Coast");
+    - its parent heading is OCR debris (`garbage_heading`), repeats its own heading (a table title read under its
+      section), holds no sentence of its own before its first sub-section (a table caption or title read as a
+      heading), or prints the section's heading more than once among its sub-sections, or it comes at or after the
+      second print of any repeated sub-heading of its parent (entry headings between them were not read: VRGR's
+      domains under "Dementlieu");
+    - its parent is doubted (inherited: a doubted parent doubts every section under it)."""
+    parent_of = {id(s): parent_section(s, sections) for s in sections}
+    counts = Counter((tuple(x.parents), squash(x.title)) for x in sections)
+    late: dict[int, str] = {}  # a parent's sub-section at or after the second print of a repeated sub-heading
+    kids: dict[int, list[Section]] = {}
+    for s in sections:
+        if (par := parent_of[id(s)]) is not None:
+            kids.setdefault(id(par), []).append(s)
+    for ks in kids.values():
+        seen: set[str] = set()
+        again = None
+        for c in ks:
+            if again is None and squash(c.title) in seen:
+                again = c
+            seen.add(squash(c.title))
+            if again is not None:
+                late[id(c)] = again.title
+    after_close: dict[int, Section] = {}  # a section set like the sub-headings of a section ended in doubt before it
+    for x in sections:
+        if not x.end_reason.startswith("close") or not x.size:
+            continue
+        sibs = [o for o in sections if o.level == x.level and o.parents == x.parents and o.page >= x.page]
+        for o in sibs[next((k for k, o in enumerate(sibs) if o is x), len(sibs)) + 1:]:
+            if not (o.size and o.size < (1 - _SUB_STEP) * x.size):
+                break
+            after_close.setdefault(id(o), x)
+    memo: dict[int, tuple[str, str]] = {}
+
+    def own(s: Section) -> str:
+        here = chapters.get(s.page, set())
+        if here and s.parents and s.parents[0] != UNKNOWN_CHAPTER and squash(s.parents[0]) not in here:
+            return (f"the page of {s.title!r} (p{s.page}) prints another chapter's title than its chapter "
+                    f"{s.parents[0]!r}: it is filed under the wrong chapter")
+        if (x := after_close.get(id(s))) is not None:
+            return (f"the heading {s.title!r} (p{s.page}) is set like the sub-headings of {x.title!r} (p{x.page}), "
+                    f"whose end is in doubt: it may be a sub-section of {x.title!r}, not of {s.parents[-1]!r}"
+                    if s.parents else f"the heading {s.title!r} (p{s.page}) may be a sub-section of {x.title!r}")
+        par = parent_of[id(s)]
+        if par is None:
+            return ""
+        where = f"its parent heading {par.title!r} (p{par.page})"
+        if garbage_heading(par.title):
+            return f"{where} over {s.title!r} (p{s.page}) is no heading (OCR debris or a table row)"
+        if squash(par.title) == squash(s.title):
+            return f"the heading {s.title!r} (p{s.page}) repeats {where}: a table title read as a sub-section"
+        if (n := counts[(tuple(s.parents), squash(s.title))]) > 1:
+            return (f"the heading {s.title!r} (p{s.page}) is printed {n} times under {where}: the parent is not its "
+                    "nearest enclosing heading (an entry heading between them was not read)")
+        if id(s) in late:
+            return (f"{s.title!r} (p{s.page}) comes after the second print of {late[id(s)]!r} under {where}: the "
+                    "parent is not its nearest enclosing heading (an entry heading between them was not read)")
+        span = {id(l) for l in s.lines}
+        starts = {id(c.lines[0]) for c in sections if c.level == s.level and c.parents == s.parents}
+        k = next((i for i, l in enumerate(par.lines) if id(l) in starts or id(l) in span), len(par.lines))
+        if not has_sentence(par.lines[_heads(par.lines, par.title):k]):
+            return (f"{where} holds no sentence of its own before {s.title!r} (p{s.page}): a table caption or title "
+                    "read as a heading, not the heading enclosing it")
+        return ""
+
+    def doubt(s: Section) -> tuple[str, str]:
+        """(the reason, the doubted ancestor's own reason)."""
+        if id(s) in memo:
+            return memo[id(s)]
+        memo[id(s)] = ("", "")  # no cycles in a tree; a guard all the same
+        if r := own(s):
+            memo[id(s)] = (r, r)
+        elif (par := parent_of[id(s)]) is not None and (up := doubt(par))[0]:
+            memo[id(s)] = (f"its parent heading {par.title!r} (p{par.page}) over {s.title!r} (p{s.page}) is "
+                           f"doubted: {up[1]}", up[1])
+        return memo[id(s)]
+
+    return {id(s): doubt(s)[0] for s in sections}
 
 
 def _main_size(sizes: list[float]) -> float:

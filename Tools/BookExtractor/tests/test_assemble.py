@@ -1011,11 +1011,101 @@ def test_dmg_caption_parent_never_lets_a_world_entity_through(dmg_downtime):   #
     assert _entry_level(by_id(r, "dmg14.lore.campaign-tracking"))["passed"]
 
 
-def test_vrgr_parent_printing_a_heading_twice_is_not_its_enclosing_heading():   # W21: VRGR Mordent
+def test_vrgr_parent_printing_a_heading_twice_is_not_its_enclosing_heading():   # W21, W22: VRGR
     from bookextractor.assemble import ALL_TYPES
-    r = extract_book(pages("vrgr", 96, 124, 125, 144, 145), "vrgr", set(ALL_TYPES))
+    r = extract_book(pages("vrgr", 96, 97, 98, 101, 124, 125, 144, 145), "vrgr", set(ALL_TYPES))
     mordent = by_id(r, "vrgr.lore.dementlieu-noteworthy-features-p145")
-    c = _entry_level(mordent)
-    assert not c["passed"] and "'Noteworthy Features'" in c["reason"] and "'Dementlieu'" in c["reason"]
+    assert not _entry_level(mordent)["passed"] and "'Noteworthy Features'" in _entry_level(mordent)["reason"]
     assert "Mordent" in mordent["canonicalText"]
-    assert not _entry_level(by_id(r, "vrgr.lore.dementlieu-noteworthy-features-p125"))["passed"]
+    kalakeri = by_id(r, "vrgr.lore.dementlieu-settlements-and-sites-p125")
+    c = _entry_level(kalakeri)
+    assert not c["passed"] and "'Settlements and Sites'" in c["reason"] and "'Dementlieu'" in c["reason"]
+    assert "Kalakeri" in kalakeri["canonicalText"]
+    # inherited: Jadurai takes its category from the doubted "Settlements and Sites" (p125)
+    j = _entry_level(by_id(r, "vrgr.lore.jadurai"))
+    assert not j["passed"] and "is doubted" in j["reason"] and "'Settlements and Sites'" in j["reason"]
+    # Dementlieu's own sub-section, before any repeated heading's second print, is still an entry
+    chateau = by_id(r, "vrgr.lore.chateaufaux")
+    assert chateau["fields"]["category"] == "Dementlieu" and all(c["passed"] for c in chateau["checks"])
+
+
+def test_ftd_section_filed_under_the_previous_chapter_fails():   # W22 (c): FTD p65
+    from bookextractor.assemble import ALL_TYPES
+    r = extract_book(pages("ftd", 33, 64, 65), "ftd", set(ALL_TYPES))
+    lairs = next(e for e in r.entities if e["name"] == "Dragon Lairs")
+    c = _entry_level(lairs)
+    assert not c["passed"] and "another chapter's title" in c["reason"] and "Dragons in Play" in c["reason"]
+    # the right-column entry under the new chapter is not touched
+    assert _entry_level(next(e for e in r.entities if e["name"] == "Lair Location"))["passed"]
+
+
+def test_egw_entries_after_a_close_end_are_doubted():   # W22 (d): EGW Menagerie Coast
+    from bookextractor.assemble import ALL_TYPES
+    r = extract_book(pages("egw", 59, 60, 61, 62, 63, 64, 65), "egw", set(ALL_TYPES))
+    named = {e["name"]: e for e in r.entities if e["type"] in WORLD_TYPES}
+    for n in ("Darktow", "Doralle Woods"):
+        c = _entry_level(named[n])
+        assert not c["passed"] and "'Menagerie Coast'" in c["reason"] and f"{n!r}" in c["reason"], n
+    assert not _entry_level(named["Government"])["passed"]  # under Darktow: inherited
+    # the coast's own entries, read under it, are untouched by the doubt
+    for n in ("Copia Lake", "Darktow Isle"):
+        assert named[n]["fields"]["category"] == "Menagerie Coast" and _entry_level(named[n])["passed"], n
+
+
+def test_garbage_heading():   # W22 (b)
+    from bookextractor.parsers.world import garbage_heading
+    for t in ("Q Yes B3", "Gp Pp", "N O P Q R S T", "3 4 5"):
+        assert garbage_heading(t), t
+    for t in ("Dementlieu", "Rank 1: Official", "Level 1", "Chapter 2: Guilds of Ravnica", "The Lost"):
+        assert not garbage_heading(t), t
+
+
+def _sec(title, parents, lines, level, size=1.0, end=""):
+    from bookextractor.parsers.sections import Section
+    return Section(title=title, level=level, parents=parents, lines=lines, page=lines[0].page, complete=True,
+                   end_reason=end, size=size)
+
+
+def _ln(text, page, y):
+    return Line(text, (0.0, float(y), 10.0, float(y) + 5), 5.0, page)
+
+
+def test_a_doubted_parent_doubts_every_section_under_it():   # W22 (a)
+    from bookextractor.parsers.world import placement_doubts
+    g, c, d = _ln("Q Yes B3", 1, 0), _ln("Starting the Adventure", 1, 10), _ln("Meeting in the Mists", 1, 20)
+    prose = [_ln("The characters meet a stranger in the mists.", 1, y) for y in (11, 21)]
+    top = _sec("Q Yes B3", ["Chapter 5: Adventure"], [g, c, prose[0], d, prose[1]], 1)
+    kid = _sec("Starting the Adventure", ["Chapter 5: Adventure", "Q Yes B3"], [c, prose[0], d, prose[1]], 2)
+    grand = _sec("Meeting in the Mists", ["Chapter 5: Adventure", "Q Yes B3", "Starting the Adventure"],
+                 [d, prose[1]], 3)
+    out = placement_doubts([top, kid, grand], {})
+    assert out[id(top)] == ""
+    assert "'Q Yes B3'" in out[id(kid)] and "no heading" in out[id(kid)]
+    assert "is doubted" in out[id(grand)] and "'Starting the Adventure'" in out[id(grand)] \
+        and "'Q Yes B3'" in out[id(grand)]
+
+
+def test_sections_after_a_repeated_sub_headings_second_print_are_doubted():   # W22 (a)
+    from bookextractor.parsers.world import placement_doubts
+    text = lambda p, y: _ln("Mist rolls over the quiet village every night.", p, y)  # noqa: E731
+    heads = [("Chateaufaux", 1), ("Noteworthy Features", 2), ("Noteworthy Features", 5), ("Klorr", 6)]
+    hl = [(_ln(t, p, 0), text(p, 1)) for t, p in heads]
+    top_h = _ln("Dementlieu", 1, -10)
+    lines = [top_h, text(1, -5)] + [x for pair in hl for x in pair]
+    top = _sec("Dementlieu", ["Chapter 3: Domains"], lines, 1, size=2.0)
+    kids = [_sec(t, ["Chapter 3: Domains", "Dementlieu"], list(pair), 2) for (t, _), pair in zip(heads, hl)]
+    out = placement_doubts([top] + kids, {})
+    assert out[id(kids[0])] == ""  # before the second print: still Dementlieu's
+    assert "printed 2 times" in out[id(kids[1])] and "printed 2 times" in out[id(kids[2])]
+    assert "after the second print of 'Noteworthy Features'" in out[id(kids[3])] and "'Dementlieu'" in out[id(kids[3])]
+
+
+def test_a_section_whose_page_opens_another_chapter_is_doubted():   # W22 (c)
+    from bookextractor.parsers.charcommon import squash
+    from bookextractor.parsers.world import placement_doubts
+    a = _sec("Dragon Lairs", ["Chapter 3: Dragons in Play"], [_ln("Dragon Lairs", 65, 0)], 1)
+    b = _sec("Lair Location", ["Chapter 4: Lairs and Hoards"], [_ln("Lair Location", 65, 0)], 1)
+    c = _sec("Dragon Hoards", ["Chapter 3: Dragons in Play"], [_ln("Dragon Hoards", 60, 0)], 1)
+    out = placement_doubts([a, b, c], {65: {squash("Chapter 4: Lairs and Hoards")}})
+    assert "another chapter's title" in out[id(a)] and "'Chapter 3: Dragons in Play'" in out[id(a)]
+    assert out[id(b)] == "" and out[id(c)] == ""
