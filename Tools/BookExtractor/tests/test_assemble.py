@@ -997,7 +997,12 @@ def test_dmg_caption_parent_never_lets_a_world_entity_through(dmg_downtime):   #
     # the "Stronghold Cost Time" caption read as a level-1 heading, over the downtime activities: nothing on p128-131
     # is Accepted as a world entity under it or its "Carousing" table title
     late = [e for e in r.entities if e["type"] in WORLD_TYPES and e["type"] != "Rule" and e["page"] >= 128]
-    assert late and not any(all(c["passed"] for c in e["checks"]) for e in late)
+    assert not any(all(c["passed"] for c in e["checks"]) for e in late)
+    # Task 7 round 2: the caption is read as a table's header, not a heading, so the activities under "More Downtime
+    # Activities" are Rules (ledger line 75)
+    rules = {e["name"] for e in r.entities if e["type"] == "Rule"}
+    assert {"Carousing", "Gaining Renown", "Running a Business", "Sowing Rumors", "Building a Stronghold"} <= rules
+    assert not [e for e in r.entities if e["name"] == "Stronghold Cost Time"]
     # a section under a real parent with prose of its own is still an entry
     assert _entry_level(by_id(r, "dmg14.lore.campaign-tracking"))["passed"]
 
@@ -1038,8 +1043,10 @@ def test_egw_coast_entries_nest_under_the_coast():   # W22 (d), W23: EGW Menager
     # W23: the end midpoint uses the widest sub-heading so far, so the city heading DARKTOW no longer ends the coast
     for n in ("Copia Lake", "Darktow Isle", "Darktow"):
         assert named[n]["fields"]["category"] == "Menagerie Coast", n
-    for n in ("Copia Lake", "Darktow Isle"):
-        assert _entry_level(named[n])["passed"], n
+    assert _entry_level(named["Copia Lake"])["passed"]
+    # Task 7 r2: the unread island heading "RUMBLECUSP" (p62) sits between the coast heading and Darktow Isle, so
+    # Darktow Isle's place is doubted naming it (it is a real heading the reader missed)
+    assert "'RUMBLECUSP'" in _entry_level(named["Darktow Isle"])["reason"]
     # W25: Darktow holds "Doralle Woods" (1.00) and "Diver's Grave" (0.88), set like the coast's cities (median
     # 0.98): it may hold a sibling, so its place is doubted (review load, never a wrong category)
     assert "set like its parent's siblings" in _entry_level(named["Darktow"])["reason"]
@@ -1326,3 +1333,35 @@ def test_run_style_tolerates_ocr_casing_noise_and_counts_only_peers_over_prose()
     sec, own, starts = _synthetic(spec)
     doubts = _doubt(sec, own, 1, starts, {id(l): 0.6 for l in own if id(l) in starts and l is not own[0]})
     assert not any("run of" in d for d in doubts), doubts
+
+
+def test_a_section_under_another_entitys_heading_is_emitted_and_doubted():   # Task 7 r2: DMG Gehenna under Larva
+    from bookextractor.parsers.sections import line_key
+    from bookextractor.parsers.world import placement_doubts
+    p = ["Chapter 2: Creating a Multiverse"]
+    ll, gl = _ln("Larva", 63, 0), _ln("Gehenna", 63, 20)
+    larva = _sec("Larva", p, [ll, _ln("Armor Class 9", 63, 10), gl, _ln("Gehenna has no room for mercy.", 63, 30)], 1, size=1.3)
+    gehenna = _sec("Gehenna", p + ["Larva"], [gl, _ln("Gehenna has no room for mercy.", 63, 30)], 2, size=1.1)
+    out = placement_doubts([larva, gehenna], {}, {line_key(ll)})
+    assert "another entity's section" in out[id(gehenna)] and "'Larva'" in out[id(gehenna)]
+
+
+def test_a_downtime_containers_own_intro_survives_its_rules(dmg_downtime):   # Task 7 r2: DMG p127
+    r = dmg_downtime
+    intro = [e for e in r.entities if e["name"] == "Downtime Activities" and e["type"] in WORLD_TYPES]
+    assert intro and "The campaign benefits when characters have time" in intro[0]["canonicalText"]
+
+
+def test_an_unread_title_between_a_parent_and_its_child_doubts_the_child():   # Task 7 r2: DMG Wilderness Hazards
+    from bookextractor.parsers.world import placement_doubts
+    p = ["Chapter 5: Adventure Environments"]
+    text = lambda y: _ln("the party travels across the open plains for days on end.", 109, y)  # noqa: E731
+    ml, hl = _ln("Mapping a Wilderness", 105, 0), _ln("Wilderness Hazards", 110, 0)
+    unread = Line("WIlDErNESS SURVIVaL", (84.0, 1167.0, 500.0, 1214.0), 47.2, 109)
+    sentence = _ln("The map of the region ends here.", 108, 50)
+    parent = _sec("Mapping a Wilderness", p, [ml, text(10), sentence, unread, text(1220), hl, text(40)], 1, size=1.47)
+    child = _sec("Wilderness Hazards", p + ["Mapping a Wilderness"], [hl, text(40)], 2, size=1.1)
+    out = placement_doubts([parent, child], {})
+    assert "unread title" in out[id(child)] and "'WIlDErNESS SURVIVaL'" in out[id(child)]
+    clean = _sec("Mapping a Wilderness", p, [ml, text(10), sentence, hl, text(40)], 1, size=1.47)
+    assert placement_doubts([clean, child], {})[id(child)] == ""

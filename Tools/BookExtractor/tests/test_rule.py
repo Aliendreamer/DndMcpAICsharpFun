@@ -299,3 +299,11 @@ def test_a_rule_holding_a_sibling_sized_section_fails_text_complete():   # W25: 
     research = rule(_parse("xge", [127, 128, 129, 130, 131, 132, 133, 134, 135], "xge", "XGE")[0], "Research")
     assert "Research Complications" in research.text.replace("\n", " ") or "Complications" in research.text
     assert "set like its parent's siblings" not in failed(research).get("text-complete", "")
+
+
+def test_a_section_that_calls_itself_a_rule_is_a_rule_in_any_chapter():   # Task 7 round 2: DMG Renown p22
+    """"Renown is an optional rule you can use ..." (chapter 1, no rules chapter, no label): a Rule by the book's
+    own words, with no ruleType (no printed label)."""
+    rules = _parse("dmg", [22], "dmg14", "DMG")[0]
+    renown = rule(rules, "Renown")
+    assert "optional rule" in renown.text and "ruleType" not in renown.fields

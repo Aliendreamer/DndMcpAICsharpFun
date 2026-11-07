@@ -230,10 +230,16 @@ _RULE_PREFIX = re.compile(r"^(variant rule|variant|optional rule|downtime activi
 
 
 def _section_nodes(node: dict, chapter: str, depth: int, out: list[dict]) -> None:
-    """Every named section/entries node under `node` (a heading); depth 1 is a chapter's own sections."""
+    """Every named section/entries node under `node` (a heading); depth 1 is a chapter's own sections. A node
+    whose first entry is a table, or an inset (sidebar) node, is marked `_table` / `_inset`: the book prints a
+    caption or a box title there, not a section heading (ruling W27 (c))."""
     for x in node.get("entries") or []:
         if isinstance(x, dict) and x.get("type") in ("section", "entries") and x.get("name"):
-            out.append({"name": x["name"], "_chapter": chapter, "_depth": depth, "entries": x.get("entries") or []})
+            ents = x.get("entries") or []
+            first = ents[0] if ents else None
+            table = isinstance(first, dict) and first.get("type") in ("table", "tableGroup") \
+                and not any(isinstance(e, str) for e in ents)
+            out.append({"name": x["name"], "_chapter": chapter, "_depth": depth, "entries": ents, "_table": table})
             _section_nodes(x, chapter, depth + 1, out)
 
 
@@ -929,6 +935,34 @@ def match_one_to_one(truth_keys: list[str], keys: list[str]) -> dict[int, tuple[
     return out
 
 
+def _section_owners(entities: list[dict]) -> dict[str, str]:
+    """match key -> id of the earlier-type entity (not a world type) printed under that name: a 5etools section
+    node named like it is that entity's text (ruling W27 (a))."""
+    out: dict[str, str] = {}
+    for e in entities:
+        if e.get("type") not in _SECTION_TYPES + ("God", "Rule") and e.get("name"):
+            out.setdefault(match_key("Section", e["name"]), e.get("id", e["name"]))
+    return out
+
+
+def _section_texts(entities: list[dict]) -> list[tuple[str, str]]:
+    """(id, text) of every world-type entity, for the printed-inside test."""
+    return [(e.get("id", e["name"]), e.get("canonicalText") or "") for e in entities
+            if e.get("type") in _SECTION_TYPES]
+
+
+def _printed_inside(name: str, texts: list[tuple[str, str]]) -> str | None:
+    """The id of the world entity whose text prints `name` (its own casing) as a lead-in ("Building Bruenor, Step
+    1." / "Name:" opening a paragraph or a sentence) or as a folded sub-heading (a line the text joins to the
+    capitalised prose under it: "Government The island is ruled ..."), else None (ruling W27 (b)). A mention
+    mid-sentence is none: the name must open the text, a line or a sentence."""
+    rx = re.compile(r"(?:^|\n|\. )" + re.escape(name) + r"(?:[.:]|\s*\n|$| (?=[A-Z]))")
+    for eid, text in texts:
+        if rx.search(text):
+            return eid
+    return None
+
+
 def _section_truth_at_chosen_depth(truth: list[dict], entities: list[dict], known: list[str]) -> list[dict]:
     """The section tree's recall truth: per chapter, the headings at one depth, each heading name once.
 
@@ -1059,8 +1093,29 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     text_ok = [0, 0]
     skipped: dict[str, int] = collections.defaultdict(int)  # comparisons skipped: the book prints no value
     fam = [0, 0]  # multi-rarity families: count, ours == "varies"
+    owners, inside = (_section_owners(entities), _section_texts(entities)) if etype == "Section" else ({}, [])
+    found_by_owner = 0
+    excluded = 0  # section nodes left out of the truth (a caption, a lead-in): never silently
     for i, t in enumerate(truth):
         if i not in matches:
+            # ruling W27: a section node our world types deliberately do not emit is no miss, and never a silent
+            # one: (a) an earlier type owns its text, (b) it is printed inside a parent entity's text (an inline
+            # lead-in, a folded recurring sub-heading), (c) the book prints a table caption or a box title there
+            if etype == "Section":
+                k = match_key(etype, t["name"])
+                if t.get("_table"):
+                    known.append(f"{t['name']}: not a section (a table's caption in 5etools): not scored")
+                    excluded += 1
+                    continue
+                if k in owners:
+                    known.append(f"{t['name']}: found by owner {owners[k]} (an earlier type's entity)")
+                    found_by_owner += 1
+                    continue
+                if (host := _printed_inside(t["name"], inside)) is not None:
+                    known.append(f"{t['name']}: printed inside {host} (a lead-in or a folded sub-heading): not "
+                                 "scored")
+                    excluded += 1
+                    continue
             missing.append(t["name"])
             if (book.upper(), etype, t["name"]) in OCR_LOST_NAME:
                 known.append(f"{t['name']}: missing, printed name lost in OCR "
@@ -1140,10 +1195,10 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
                 continue
             if not ok:
                 diffs.append(f"{t['name']}: {f} wrong (scored against the {t['source']} record)")
-    found = len(matches)
+    found = len(matches) + found_by_owner
     unmeasured = etype in _UNMEASURED_TYPES  # a new type with no truth text is unmeasured, not 0%
     return {
-        "book": book, "type": etype, "truth": len(truth), "found": found,
+        "book": book, "type": etype, "truth": len(truth) - excluded, "found": found,
         "extra": len(idx) - len(claimed) - len(printed_here), "skipped": dict(skipped),
         "fields": {f: {"pct": 100 * a / n, "n": n} for f, (a, n) in agg.items() if n},
         "rarityMultiFamilies": {"n": fam[0], "variesAgree": fam[1]} if etype == "MagicItem" else None,
@@ -1155,6 +1210,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
         "lowPrecision": sorted(((n, p) for n, p in named_precs if p < PRECISION_FLOOR), key=lambda x: (x[1], x[0])),
         "perType": by_type if etype == "Section" else None,
         "missing": missing, "fuzzyMatches": fuzzy, "diffs": diffs, "knownDifferences": known,
+        "foundByOwner": found_by_owner,
     }
 
 

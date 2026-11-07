@@ -359,9 +359,9 @@ def test_a_table_row_read_as_a_heading_is_no_entry():   # W24 (iv): PHB "Drow (+
     assert garbage_heading("Drow (+1) Human (+1)") and garbage_heading("Dwarf (+2) Half-orc (+1)")
     assert not garbage_heading("Weapon (+1)") is None  # a call, not a crash: parenthesised modifiers are rows
     assert not garbage_heading("Level 1-4") and not garbage_heading("Beyond 1st Level")
+    # Task 7 round 2: a heading over table rows is a table's caption, never a section: the row is no entity at all
     ents, _ = _parse("phb", [13], "phb14", "PHB")
-    row = one(ents, "Drow (+1) Human (+1)")
-    assert "no heading" in failed(row)["entry-level"] and "table row" in failed(row)["entry-level"]
+    assert not [e for e in ents if e.name == "Drow (+1) Human (+1)"]
 
 
 def test_a_tables_title_read_as_a_heading_is_no_entry():   # W24: ERLW "Villain You Know" d6 table p186
@@ -391,7 +391,7 @@ def test_siblings_after_a_stat_block_are_doubted_to_the_first_larger_one():   # 
     ents, _ = _parse("dmg", [61, 62, 63, 64, 65, 66], "dmg14", "DMG")
     for name in ("Gehenna", "Acheron", "Mechanus"):
         why = failed(one(ents, name))["entry-level"]
-        assert "'Larva'" in why and "stat block" in why, (name, why)
+        assert "'Larva'" in why, (name, why)  # after the stat block, or set like Larva's siblings: both name it
     assert "entry-level" in failed(one(ents, "The Nine Hells"))  # barely over Gehenna's midpoint
 
 
@@ -451,11 +451,11 @@ def test_a_sibling_group_of_long_listings_is_a_group_of_containers():   # W24 (v
     long_ = []
     for r, region in enumerate(("Menagerie Coast", "Marrow Valley", "Zemni Fields")):
         p = 1 + 12 * r
-        long_ += [(region, 1, p, 4)] + [(f"{region} Town {k}", 2, p + 4 * k + 1, 4) for k in range(3)]
+        long_ += [(region, 1, p, 4)] + [(f"{region} {t}", 2, p + 4 * k + 1, 4) for k, t in enumerate(("Harbor", "Market", "Temple"))]
     secs = _tree(long_)
     kinds = {e.section.title: e.lead for e in _entries(secs, lambda *a, **k: False)}
     assert all(kinds[r] for r in ("Menagerie Coast", "Marrow Valley", "Zemni Fields"))  # leads: containers
-    assert "Menagerie Coast Town 1" in kinds
+    assert "Menagerie Coast Market" in kinds
     short = []
     for r, dom in enumerate(("Barovia", "Borca", "Dementlieu")):
         p = 1 + 6 * r
@@ -524,3 +524,13 @@ def test_top_sections_after_an_unread_display_heading_are_doubted():   # Task 7 
          ln("CHARACTER", 60.0, 1000.0), ln("the chapter opens with the basics of character creation.", 30.0, 1070.0)]
     out = display_lines(B, {id(B[-2]): "Chapter 1: Character Creation"})
     assert [l.text for l in out] == ["RACES"]
+
+
+def test_recurring_sub_headings_fold_into_their_entry():   # W17 (Task 7 round 2): EGW Government / Crime
+    """"Government", "Crime" and "Geography" print under every city of the gazetteer: they are parts of each city's
+    text, never entities of their own, and the city's text keeps them."""
+    ents, _ = _parse("egw", list(range(59, 71)), "egw", "EGW")
+    assert not [e for e in ents if e.name in ("Government", "Crime", "Geography")]
+    darktow = one(ents, "Darktow")
+    heads = {l.text.strip().lower() for l in darktow.lines}
+    assert "government" in heads and "crime" in heads, sorted(heads)[:20]  # the folded parts' own heading lines

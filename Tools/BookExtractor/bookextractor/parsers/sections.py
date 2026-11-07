@@ -228,6 +228,10 @@ def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) 
     # a map's label over its caption ("DEMENTLIEU" / "MAP 3.4: DEMENTLIEU"): art text, no heading
     if _MAP_CAPTION.match(L[k].text.strip()):
         return 0
+    # a table's header or caption read as a heading sits straight over its rows (DMG "Stronghold Cost Time" over
+    # "Abbey 50,000 gp 400 days"): no heading (Task 7 round 2)
+    if _table_row(L[k].text) and (k + 1 >= len(L) or _table_row(L[k + 1].text) or not prose(L[k + 1].text)):
+        return 0
     # prose under it (an epigraph may open with a line in caps: "OfficeR LaVinia stood Before tHe ENorMous")
     if prose(L[k].text) or k + 1 < len(L) and prose(L[k + 1].text) and not _heading_text(L[k].text):
         return n
@@ -510,6 +514,11 @@ def _title_like(t: str) -> bool:
     if not words or len(t.split()) > _NET_WORDS or not t[:1].isupper() or t.endswith((".", ";")) or ":" in t \
             or re.search(r"\d", t) or ". " in t:
         return False
+    # a table's row: an abbreviation cell of two capitals ("Mechanus, the Clockwork Nirvana of LN", "Kiaransalee CE
+    # Necromancy"), or a footnote marker ("Death, Grave,* Knowledge")
+    if "*" in t or any(re.fullmatch(r"[A-Z]{2}", w) and w.lower() not in _OPEN_END | {"or", "as", "is", "it", "no"}
+                       for w in words):
+        return False
     if prose(t) or not any(len(w) >= 3 for w in words):
         return False
     return all(w[:1].isupper() or w.lower() in _OPEN_END or w.lower() in ("her", "his", "its", "their", "or")
@@ -592,7 +601,10 @@ def foreign_lines(own: list[Line], heads: int, names: set[str], starts: set[int]
         if id(l) in starts or k == heads and _title_like(t):
             continue  # a subtitle straight under the heading is the entity's own (a deity's epithets)
         if l.height >= _NET_DISPLAY * med and not named and len(t) >= 3 and not prose(t):
-            out.append(f"{what} is set {l.height / med:.1f}x the text's line height: display text or a caption")
+            # a display-sized title over prose is a heading set large that the reader did not read
+            over = nxt is not None and _title_like(t) and _body_prose(nxt.text)
+            out.append(f"{what} is set {l.height / med:.1f}x the text's line height: "
+                       + ("a title over prose the reader did not read as a heading" if over else "display text or a caption"))
             continue
         words = t.split()
         if (len(words) >= _NET_CAPS and not named and not re.search(r"\d", t)

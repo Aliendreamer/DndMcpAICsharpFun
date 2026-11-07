@@ -156,6 +156,7 @@ class _Entry:
     lines: list[Line]  # the section's own printed lines (before claimed lines and nested entities are taken out)
     lead: bool = False  # a container's lead text, up to its first sub-section
     container: Section | None = None  # the container whose sub-section this entry is
+    under_owned: bool = False  # its container is another entity's section (a sibling the reader nested there)
 
 
 def bare_heading(heading: str) -> str:
@@ -301,26 +302,45 @@ def _container(s: Section, siblings: list[Section], kids: list[Section], listing
 def _entries(sections: list[Section], owned) -> list[_Entry]:
     """The entry-level sections of every chapter, and the containers' leads, in reading order. A container an
     earlier type owns (`owned`: its name, or most of its lines) is not opened: its sub-sections are that entity's
-    ("Far Traveler"'s "Ideals")."""
+    ("Far Traveler"'s "Ideals"). A sub-heading printed `_RECURRING` times or more in its chapter ("Crime",
+    "Government", "Noteworthy Features") is a part of every entry, never an entry or a container's child: it folds
+    into its parent's text (ruling W17, Task 7 round 2)."""
     out: list[_Entry] = []
+    recurring = Counter((x.parents[0] if x.parents else "", squash(x.title)) for x in sections)
 
-    def visit(group: list[Section], parent: Section | None = None) -> None:
-        kids_of = {id(s): _kids(s, sections) for s in group}
+    def part(s: Section) -> bool:
+        return recurring[(s.parents[0] if s.parents else "", squash(s.title))] >= _RECURRING
+
+    def visit(group: list[Section], parent: Section | None = None, under_owned: bool = False) -> None:
+        kids_of = {id(s): [c for c in _kids(s, sections) if not part(c)] for s in group}
         listing = _listing_group(group, kids_of)
         for s in group:
             kids = kids_of[id(s)]
+            # a section an earlier entity owns, container or not: its sub-sections that entity owns too are its
+            # text ("Far Traveler"'s "Ideals"); one it does not own is a sibling the reader nested under the
+            # entity's heading (DMG "Gehenna" under the Larva stat block) and is opened all the same, never dropped
+            # in silence: its place is unverified (`_Entry.under_owned`)
+            if kids and owned(s.title, s.lines, heading=False):
+                if not owned(s.title, s.lines[:1]):
+                    # owned by its lines' share only (DMG "Downtime Activities" over its activity Rules): its own
+                    # unclaimed prose outside the sub-sections is its lead, kept
+                    inside = {id(l) for c in kids for l in c.lines}
+                    lead = [l for l in s.lines if id(l) not in inside]
+                    if len(lead) > 1:
+                        out.append(_Entry(s, lead, lead=True))
+                visit([c for c in kids if not owned(c.title, c.lines)], s, under_owned=True)
+                continue
             if _container(s, group, kids, listing):
-                # a heading line owned by an earlier type over a span it mostly does not own is a run-on read
-                # ("The Mark of" over the dragonmarks, then the group patrons): its sub-sections are opened
-                if owned(s.title, s.lines, heading=False):
-                    continue
-                first = next(k for k, l in enumerate(s.lines) if id(l) == id(kids[0].lines[0]))
-                if first > 1:
-                    out.append(_Entry(s, s.lines[:first], lead=True))
+                # the lead: every line of the container outside its entries' spans: the text before the first
+                # entry, and the folded parts (a recurring sub-heading's text printed among the entries)
+                inside = {id(l) for c in kids for l in c.lines}
+                lead = [l for l in s.lines if id(l) not in inside]
+                if len(lead) > 1:
+                    out.append(_Entry(s, lead, lead=True))
                 visit(kids, s)
             else:  # a top section with no chapter title over it has no category: emitted all the same, never
                 # dropped in silence (`type-from-context` fails naming the missing heading; ruling W24)
-                out.append(_Entry(s, s.lines, container=parent))
+                out.append(_Entry(s, s.lines, container=parent, under_owned=under_owned))
 
     tops = [s for s in sections if s.level == 1]
     chapters: dict[str, list[Section]] = {}
@@ -368,7 +388,8 @@ def _heading_line(t: str) -> bool:
                                    for x in words)
 
 
-def _doubt(s: Section, own: list[Line], heads: int, starts: dict[int, int], sizes: dict[int, float]) -> list[str]:
+def _doubt(s: Section, own: list[Line], heads: int, starts: dict[int, int], sizes: dict[int, float],
+           parts: set[int] = frozenset()) -> list[str]:
     """Every heading inside the section's text that may be a sibling (or another section's float) it runs on into.
     The text is kept whole either way; this names the doubt, so `text-complete` fails on it (rulings W13, W16).
 
@@ -394,13 +415,13 @@ def _doubt(s: Section, own: list[Line], heads: int, starts: dict[int, int], size
     style = _style(title)
     last = squash(title.split()[-1]) if title.split() else ""
     tall = _TALL_LINE * median(l.height for l in own)
-    kid_lines = [l for l in own[heads:] if starts.get(id(l)) == s.level + 1]
+    kid_lines = [l for l in own[heads:] if starts.get(id(l)) == s.level + 1 and id(l) not in parts]
     kids = [l.height for l in kid_lines]
     out: list[str] = []
     for k in range(heads, len(own) - 1):
         l, prev = own[k], own[k - 1]
-        if not _heading_line(l.text):
-            continue
+        if not _heading_line(l.text) or id(l) in parts:
+            continue  # a folded recurring sub-heading ("Government") is a part of every entry (ruling W17)
         over_prose = any(prose(x.text) for x in own[k + 1:k + 5])
         unfinished = prose(prev.text) and not prev.text.rstrip().endswith(SENTENCE_END)
         if unfinished and not prose(own[k + 1].text):
@@ -505,7 +526,7 @@ def _doubtful_tail(own: list[Line], heads: int) -> str:
 
 def _text_check(e: _Entry, own: list[Line], heads: int, sib_lines: list[int], sib_pages: list[int],
                 starts: dict[int, int], sizes: dict[int, float] | None = None,
-                sections: list[Section] = ()) -> Check:
+                sections: list[Section] = (), parts: set[int] = frozenset()) -> Check:
     sizes = sizes or {}
     s = e.section
     name = f"section {s.title!r} (p{s.page})"
@@ -513,7 +534,7 @@ def _text_check(e: _Entry, own: list[Line], heads: int, sib_lines: list[int], si
     if stat:
         return Check("text-complete", False, f"{name} holds a stat block's lines, a Monster's not its own: "
                      + "; ".join(f"{t!r} (p{p})" for t, p in stat[:4]))
-    doubts = _doubt(s, own, heads, starts, sizes)
+    doubts = _doubt(s, own, heads, starts, sizes, parts)
     if doubts:
         rest = [d.split(" (p", 1)[0] for d in doubts[_NAMED:]]
         return Check("text-complete", False, f"{name} may run on: it holds {len(doubts)} doubtful heading(s): "
@@ -581,7 +602,10 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     spans = [{id(l) for l in e.lines} for e in entries]
     for i, e in enumerate(entries):
         s = e.section
-        if owned(s.title, e.lines):
+        # a section whose heading line, or whose name, an earlier entity owns is that entity's; one most of whose
+        # lines are owned keeps its own unclaimed prose below (DMG "Downtime Activities": its intro over the
+        # activity Rules), never dropped in silence (Task 7 round 2)
+        if line_key(e.lines[0]) in claimed or _plain(s.title) in plain_names:
             continue
         # the lines of another entry that starts inside this one are that entry's
         nested = {x for j, d in enumerate(entries) if j != i and id(d.lines[0]) in spans[i]
@@ -595,11 +619,22 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         # a section with prose is never dropped in silence (ruling W24): one the reading cannot vouch for is emitted
         # with a failing `entry-level` check naming why
         why = ""
-        if n_prose < _MIN_PROSE:  # a container's one-sentence lead (DMG "Other Planes"; ruling W25)
+        # over the whole section, not the entry's own lines: an owned block's lead is built from the unclaimed
+        # lines, and it is the block that is theirs (PHB "Martial Archetypes" over its claimed subclasses)
+        claimed_share = sum(line_key(l) in claimed for l in s.lines) / max(1, len(s.lines))
+        if squash(s.title) in _STAT_HEADINGS:
+            why = f"the heading {s.title!r} (p{s.page}) is a stat block's part, a Monster's not a section of its own"
+        elif e.under_owned:
+            why = (f"the heading {s.title!r} (p{s.page}) sits under {e.container.title!r} (p{e.container.page}), "
+                   "another entity's section: a sibling the reader nested there, its place unverified")
+        elif claimed_share > _CLAIMED:
+            # most of its lines are earlier entities' (a class's subclasses, a chapter's feats): only its own
+            # unclaimed prose is kept, and its place among them is unverified (Task 7 round 2)
+            why = (f"{s.title!r} (p{s.page}) holds other entities' text for {100 * claimed_share:.0f}% of its lines: "
+                   "its own prose is the rest, its place unverified")
+        elif n_prose < _MIN_PROSE:  # a container's one-sentence lead (DMG "Other Planes"; ruling W25)
             why = (f"the lead of {s.title!r} (p{s.page}) holds one prose line only, under {_MIN_PROSE}: too short to "
                    "vouch for")
-        elif squash(s.title) in _STAT_HEADINGS:
-            why = f"the heading {s.title!r} (p{s.page}) is a stat block's part, a Monster's not a section of its own"
         elif not e.lead and not any(prose(l.text) for l in own[heads:heads + 2]) \
                 and not _sub_heading_over_prose(own, heads, starts):
             # a table's header or caption read as a heading has no prose straight under it ("Suggested Domains
@@ -618,6 +653,9 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         if counts[(tuple(x.parents), squash(x.title))] > 1:
             repeats.setdefault(tuple(x.parents), x.title)
     in_chapter = Counter((x.parents[0] if x.parents else "", squash(x.title)) for x in sections)
+    # the heading lines of the recurring sub-headings (ruling W17): parts of every entry, no doubt of their own
+    parts = {id(x.lines[0]) for x in sections if in_chapter[(x.parents[0] if x.parents else "", squash(x.title))]
+             >= _RECURRING}
     placed = placement_doubts(sections, chapter_pages(body, ctx), claimed, ctx.cache.get("god_names", set()), body)
     out: list[Parsed] = []
     lead_type: dict[int, str] = {}  # a container's emitted lead: its type
@@ -637,7 +675,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         p = Parsed(type=etype, name=s.title, fields=_fields(etype, category, entries_, setting),
                    text="\n".join([head] + flat), lines=own)
         p.checks = [_text_check(e, own, heads, [len(o) for o in sibs], [o[-1].page - o[0].page + 1 for o in sibs],
-                                starts, sizes, sections), typed,
+                                starts, sizes, sections, parts), typed,
                     _entry_check(e, lead_type, in_chapter[(s.parents[0] if s.parents else "", squash(s.title))],
                                  placed[id(s)] or why
                                  or ("" if has_sentence(own[heads:]) else
@@ -909,6 +947,7 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
                 break
             after_opener.setdefault(id(o), x)
     held_by_parent = {id(c) for p in sections for c in held_siblings(p, sections)}
+    all_starts = {id(x.lines[0]) for x in sections}
     # an unread display line (ERLW "RACES") over prose: the top sections after it set clearly smaller may be its
     # sub-sections; the run ends at the first top section as tall, or at another chapter
     under_display: dict[int, Line] = {}
@@ -997,6 +1036,9 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
                         f"{s.parents[-1]!r}: an entry heading over it was not read")
             return holds(s)
         where = f"its parent heading {par.title!r} (p{par.page})"
+        if line_key(par.lines[0]) in claimed:
+            return (f"{where} over {s.title!r} (p{s.page}) is another entity's section: a sibling the reader nested "
+                    "under that entity's heading, not its sub-section")
         if (least := sib_min.get(id(par))) is not None and s.size and s.size >= (1 - _SUB_STEP) * least.size:
             return (f"the heading {s.title!r} (p{s.page}, size {s.size:.2f}) is set like the siblings of {where} "
                     f"({least.title!r}, size {least.size:.2f}): a sibling of it, not its sub-section")
@@ -1016,7 +1058,21 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
         if not has_sentence(par.lines[_heads(par.lines, par.title):k]):
             return (f"{where} holds no sentence of its own before {s.title!r} (p{s.page}): a table caption or title "
                     "read as a heading, not the heading enclosing it")
-        return holds(s)
+        # an unread title between its parent's heading and its own (the structural net's signal: a title-like
+        # line set apart, over prose, naming neither): the section may belong to that heading, not to its parent
+        # (DMG "Wilderness Hazards" under the OCR-mangled "WIlDErNESS SURVIVaL", read under "Mapping a Wilderness");
+        # only a title over prose heads sections: a caption or a map label set large does not
+        if h := holds(s):
+            return h
+        first = next((i for i, l in enumerate(par.lines) if id(l) == id(s.lines[0])), None)
+        if first:
+            between = par.lines[_heads(par.lines, par.title):first]
+            whole = {re.sub(r"\s+", " ", re.sub(r"[^A-Za-z0-9 ]", "", par.title).lower()).strip()}
+            if between and (f := [x for x in foreign_lines([par.lines[0]] + between, 1, whole, all_starts)
+                                  if "title over prose" in x]):
+                return (f"an unread title sits between {where} and {s.title!r} (p{s.page}): {f[0]}; it may be a "
+                        f"sub-section of that title, not of {par.title!r}")
+        return ""
 
     def holds(s: Section) -> str:
         """The section holds a sub-section set like its parent's siblings (ruling W25): it sits a level too deep

@@ -173,3 +173,4 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | dmg | 067, 068 | World sections (W25): "Other Planes" (p67), a container whose lead is one sentence, over The Outlands and Sigil, Demiplanes and The Far Realm |
 | erlw | 018, 019, 020, 021 | World sections (Task 7 r1): "Chapter 1: Character Creation", the unread display heading "RACES" (p18, 63 tall) over its prose, then Changelings, Dragonborn and Dwarves |
 | vrgr | 224, 225, 226 | World sections (Task 7 r1): "HORROR MONSTERS" (p224, left column) read before the chapter 5 title "Monsters of Ravenloft" (right column), then Notorious Monsters ... Monstrous Minions as the chapter's top sections |
+| dmg | 022 | Rule (Task 7 r2): "Renown", a section of chapter 1 that calls itself "an optional rule" in its first sentence |

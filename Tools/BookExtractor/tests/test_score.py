@@ -986,3 +986,32 @@ def test_phb_moon_gods_printed_without_clerics_are_known_differences():
                    for k in r["knownDifferences"])
         bad = score_book("phb", [{"type": "God", "name": name, "fields": {"domains": ["War"]}}], FT, "God")
         assert bad["fields"]["domains"]["pct"] == 0
+
+
+def test_section_truth_leaves_out_owned_inline_and_caption_nodes_with_a_line():   # W27 (a), (b), (c)
+    """A 5etools section node an earlier type owns counts as found by that owner; one printed inside a parent
+    entity's text (a lead-in or a folded sub-heading) and one that is a table's caption leave the truth; each with
+    a known-difference line. A heading we never read is still a miss."""
+    from bookextractor.score import _printed_inside, _section_owners
+    ents = [{"id": "b.race.dwarf", "type": "Race", "name": "Dwarf", "checks": []},
+            {"id": "b.lore.darktow", "type": "Lore", "name": "Darktow", "checks": [],
+             "canonicalText": "Darktow\nA pirate haven.\nGovernment\nThe Plank King rules.\nBuilding Bruenor, Step 1. Bob picks a race."}]
+    assert _section_owners(ents) == {"dwarf": "b.race.dwarf"}
+    from bookextractor.score import _section_texts
+    texts = _section_texts(ents)
+    assert _printed_inside("Government", texts) == "b.lore.darktow"
+    assert _printed_inside("Building Bruenor, Step 1", texts) == "b.lore.darktow"
+    assert _printed_inside("Plank King", texts) is None  # a mention mid-sentence is no printed heading
+    flat = [("b.lore.x", "Darktow\nA pirate haven. Government The Plank King rules. Then the Plank King left.")]
+    assert _printed_inside("Government", flat) == "b.lore.x"  # a folded heading joined to its prose
+    assert _printed_inside("Plank King", flat) is None
+
+
+def test_section_truth_marks_table_caption_nodes():   # W27 (c)
+    from bookextractor.score import _section_nodes
+    ch = {"name": "Chapter 1", "entries": [
+        {"type": "entries", "name": "Deities", "entries": [{"type": "table", "caption": "Dawn War Deities", "rows": []}]},
+        {"type": "entries", "name": "Tiers of Play", "entries": ["Prose about tiers."]}]}
+    out = []
+    _section_nodes(ch, "Chapter 1", 1, out)
+    assert {o["name"]: o["_table"] for o in out} == {"Deities": True, "Tiers of Play": False}

@@ -252,6 +252,10 @@ def test_the_net_names_entities_by_their_own_words_and_sees_labelled_headings():
     # a labelled heading is a title: a foreign "Variant: ..." inside an entity is named
     assert _title_like("Variant: Encumbrance") and _title_like("OPtional Rule: Mad Winds")
     assert not _title_like("Rank 1: Official")
+    # a table's row is no title: an abbreviation cell of two capitals, a footnote marker
+    for row in ("Mechanus, the Clockwork Nirvana of LN", "Kiaransalee CE Necromancy", "Death, Grave,* Knowledge"):
+        assert not _title_like(row), row
+    assert _title_like("RUMBLECUSP") and _title_like("Clan Blackbanner")
 
     def ln(t, page, y, h=30.0):
         return Line(t, (100.0, y, 700.0, y + h), h, page)

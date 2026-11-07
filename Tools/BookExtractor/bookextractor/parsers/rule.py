@@ -56,6 +56,13 @@ from .sections import (Section, drop_art, drop_dangling, foreign_lines, heading_
 
 _RULES_CHAPTERS = ("Using Ability Scores", "Adventuring", "Combat", "Spellcasting", "Running the Game",
                    "Dungeon Master's Workshop", "Dungeon Master's Tools")
+# a section that calls ITSELF a rule in its opening lines ("Renown is an optional rule you can use", "With this
+# rule, you have the option", "Inspiration is a rule the Dungeon Master can use"): a Rule by the book's own words,
+# in any chapter, at any level (Task 7 round 2; the signal is the print, not the 5etools list). A mention of rules
+# in general ("In these rules, the dice are ...", "the optional rule from chapter 5", "use these rules of thumb")
+# is none: the first corpus pass read PHB "Game Dice", "Size" and "Equipment" as Rules on those
+_DECLARES = re.compile(r"(?i)\bthis (?:optional |variant )?rule\b|\bis an? (?:optional |variant )?rule\b")
+_DECLARE_LINES = 6  # ... within this many lines under its heading
 _CHAPTER_TITLE = re.compile(r"^(?:Chapter|Appendix) [^:]+: (?P<title>.+)$")
 # "Variant: Encumbrance", "Variants: Vampire Warriors and Spellcasters", "OPtional Rule: Mad Winds",
 # "Optionalrule: Bloodlust" (the OCR joined the words), "Optional Rules: Feywild Magic"
@@ -309,15 +316,19 @@ def _candidates(sections: list[Section], ctx: ParseContext) -> list[_Cand]:
             continue
         if _DOWNTIME.search(s.title):
             out += _activities(s, sections, starts)
-        if not rules_chapter(s) or not _named(s.title) or id(s) in options:
+        if not _named(s.title) or id(s) in options:
             continue
         group = None
-        if s.level == 1:
+        if rules_chapter(s) and s.level == 1:
             group = s.parents[0]
-        elif s.level == 2:
+        elif rules_chapter(s) and s.level == 2:
             parent = next((p for p in sections if id(p) in options and p.parents == s.parents[:1]
                            and p.title == s.parents[-1] and id(s.lines[0]) in {id(x) for x in p.lines}), None)
             group = f"{s.parents[0]} > {parent.title}" if parent else None
+        if group is None:
+            h = _heads(s.lines, s.title)
+            if any(_DECLARES.search(l.text) for l in s.lines[h:h + _DECLARE_LINES]):
+                group = (s.parents[0] if s.parents else "") + " (declared)"
         if group is None:
             continue
         raw, complete, reason, conflict = _cut_unread(s, levels, rule_starts - {id(s.lines[0])})
