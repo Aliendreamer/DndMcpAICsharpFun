@@ -534,3 +534,26 @@ def test_recurring_sub_headings_fold_into_their_entry():   # W17 (Task 7 round 2
     darktow = one(ents, "Darktow")
     heads = {l.text.strip().lower() for l in darktow.lines}
     assert "government" in heads and "crime" in heads, sorted(heads)[:20]  # the folded parts' own heading lines
+
+
+EGW_BLIGHTSHORE = list(range(146, 159)) + [161, 162]
+EGW_SPIRITS = [218, 236, 237] + list(range(251, 267))
+
+
+def test_folded_sub_heading_must_be_contiguous_with_its_parent_blightshore():   # W17 round 3
+    """"Government" / "Crime" / "Geography" are Blightshore's folded parts only where nothing else is printed between
+    them and the parent's text. Pages 151-156 (Blightshore's own sub-sections) stand between its p150 text and the
+    parts printed on p157-158, which are ROTTHOLD's: they never join Blightshore."""
+    ents, _ = _parse("egw", EGW_BLIGHTSHORE, "egw", "EGW")
+    b = one(ents, "Blightshore")
+    assert sorted({l.page for l in b.lines}) == [150], sorted({l.page for l in b.lines})
+    assert "Rotthold" not in b.text and "Government" not in b.text
+
+
+def test_folded_sub_heading_must_be_contiguous_with_its_parent_unwelcome_spirits():   # W17 round 3
+    """The adventure's "Story Overview" / "Setup" parts fold only while contiguous; the pieces on p264 after the area
+    text (p252-263), and the art caption on p265, never join the adventure's text."""
+    ents, _ = _parse("egw", EGW_SPIRITS, "egw", "EGW")
+    u = one(ents, "Unwelcome Spirits")
+    assert sorted({l.page for l in u.lines}) == [251], sorted({l.page for l in u.lines})
+    assert "ACHERON" not in u.text.upper()

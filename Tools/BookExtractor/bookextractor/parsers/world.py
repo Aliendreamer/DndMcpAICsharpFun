@@ -299,6 +299,28 @@ def _container(s: Section, siblings: list[Section], kids: list[Section], listing
     return bool(others) and len(s.lines) > _CONTAINER * median(others) or listing
 
 
+def _contiguous_lead(lead: list[Line], lines: list[Line], kids: list[Section]) -> list[Line]:
+    """A container's lead: the text before its first entry and the folded parts (a recurring sub-heading's text)
+    that follow in reading order. A folded part joins its parent only while it is contiguous with the lead: an
+    entry that carries on to a later page than the lead has reached stands between them, so the parts printed after
+    it belong to the run they sit in, never to the parent's text (ruling W17, Task 7 round 3: EGW Blightshore
+    never takes ROTTHOLD's Government and Crime from p157-158). An entry that ends on the page the lead has
+    reached (Darktow's "By Land or Sea" before its Government) does not break the run."""
+    if not kids:
+        return lead
+    starts = {id(c.lines[0]): c for c in kids}
+    keep = {id(l) for l in lead}
+    out: list[Line] = []
+    broken = False
+    for l in lines:
+        c = starts.get(id(l))
+        if c is not None and out and c.lines[-1].page > out[-1].page:
+            broken = True
+        if id(l) in keep and not broken:
+            out.append(l)
+    return out
+
+
 def _entries(sections: list[Section], owned) -> list[_Entry]:
     """The entry-level sections of every chapter, and the containers' leads, in reading order. A container an
     earlier type owns (`owned`: its name, or most of its lines) is not opened: its sub-sections are that entity's
@@ -334,7 +356,7 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
                 # the lead: every line of the container outside its entries' spans: the text before the first
                 # entry, and the folded parts (a recurring sub-heading's text printed among the entries)
                 inside = {id(l) for c in kids for l in c.lines}
-                lead = [l for l in s.lines if id(l) not in inside]
+                lead = _contiguous_lead([l for l in s.lines if id(l) not in inside], s.lines, kids)
                 if len(lead) > 1:
                     out.append(_Entry(s, lead, lead=True))
                 visit(kids, s)
