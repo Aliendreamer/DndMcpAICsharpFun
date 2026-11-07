@@ -319,19 +319,34 @@ _LONG_UNSEEN = 9  # a heading word of this many letters that the book prints now
 _VERY_LONG_UNSEEN = 15  # ... a word of this many letters needs no capital inside it to be suspect ("Initialinfection")
 
 
+def _run_together(words: list[str], raw: str, vocab: Vocabulary, own: Vocabulary) -> list[str]:
+    """The words of a heading that look like words the OCR ran together: a long word the book prints nowhere outside
+    the heading itself (`own` is what the heading added to the vocabulary), that is very long, or printed with a capital
+    inside it (`raw`, the heading as read), or that the book prints spaced elsewhere ("citadel adbar")."""
+    inner = {re.sub(r"[^a-z]", "", t.lower()) for t in raw.split() if re.search(r"[a-z][A-Z]", t)}
+    return [w for w in words
+            if (len(w) >= _LONG_UNSEEN and w.lower() in inner or len(w) >= _VERY_LONG_UNSEEN
+                or len(w) >= 8 and spaced_pair(w, vocab) is not None)
+            and vocab.words.get(w.lower(), 0) - own.words.get(w.lower(), 0) <= 0]
+
+
 def _unseen_long_word_check(p: Parsed, checks: list[Check], vocab: Vocabulary) -> list[Check]:
     """A Rule, Plane, Faction, Location or Lore name holding a long word that the book prints nowhere outside the
     entity's own heading, printed in the heading with a capital inside it ("KitDependency", "WithoutXP",
     "InitialInfection"), is probably two words the OCR ran together (Task 7 round 4): `name-words-known` fails and the
     entity needs review. A capital inside a word alone is OCR casing noise and a rare word alone is common, so
-    both are needed. A God's name is a coined proper name and is left alone."""
+    both are needed. A God's name is a coined proper name and is left alone. The category (the parent heading) is
+    read the same way (task 8: "Demoniccambions", "Aprecarious Peace"): `category-words-known` fails."""
     if p.type == "God" or not p.lines:
         return checks
-    own = own_heading_counts(p.name)
-    raw = {re.sub(r"[^a-z]", "", t.lower()) for t in p.lines[0].text.split() if re.search(r"[a-z][A-Z]", t)}
-    long = [w for w in re.findall(r"[A-Za-z]+", p.name)
-            if (len(w) >= _LONG_UNSEEN and w.lower() in raw or len(w) >= _VERY_LONG_UNSEEN)
-            and vocab.words.get(w.lower(), 0) - own.words.get(w.lower(), 0) <= 0]
+    raw = p.lines[0].text
+    long = _run_together(re.findall(r"[A-Za-z]+", p.name), raw, vocab, own_heading_counts(p.name))
+    cat = p.fields.get("category") if isinstance(p.fields, dict) else None
+    bad_cat = _run_together(re.findall(r"[A-Za-z]+", cat), p.category_raw, vocab, own_heading_counts(cat)) \
+        if isinstance(cat, str) and cat else []
+    if bad_cat:
+        checks = [*checks, Check("category-words-known", False, f"the category {cat!r} holds words probably run "
+                                 "together by the OCR (printed nowhere else in the book): " + ", ".join(bad_cat))]
     if not long:
         return checks
     why = "a long word printed nowhere else in the book (very long, or with a capital inside it in print): probably " \

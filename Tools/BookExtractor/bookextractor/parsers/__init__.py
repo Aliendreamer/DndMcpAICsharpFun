@@ -18,6 +18,8 @@ class Parsed:
     variant_of: str | None = None
     # the name is a printed table row's label cell: the table attests it when the row's own checks pass (P4)
     table_row: bool = False
+    # the printed text of the parent heading's first line (a world section's category), for the run-together test
+    category_raw: str = ""
 
 
 @dataclass

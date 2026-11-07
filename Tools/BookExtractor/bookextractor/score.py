@@ -957,14 +957,33 @@ def _section_texts(entities: list[dict]) -> list[tuple[str, str]]:
             if e.get("type") in _SECTION_TYPES + (() if _STRICT_SECTIONS else ("God", "Rule"))]
 
 
-def _printed_inside(name: str, texts: list[tuple[str, str]]) -> str | None:
+_OPENING = 60  # normalised characters of a node's text that its owner or host must hold
+_OPENING_FUZZ = 85
+
+
+def _opening(node: dict) -> str:
+    """The node's opening text, normalised (lower case letters and digits): its first ~60 characters."""
+    return re.sub(r"[^a-z0-9]", "", flat(node.get("entries")).lower())[:_OPENING]
+
+
+def _holds_opening(text: str, node: dict) -> bool:
+    """The entity text holds the node's opening text (fuzzy, >= 85): a node with no text is held by nobody, so an
+    entity of the same name that prints something else (or nothing) is not credited with it. The opening being inside
+    the entity's text also places the entity in the node's chapter."""
+    op = _opening(node)
+    if len(op) < 8:
+        return False
+    return fuzz.partial_ratio(op, re.sub(r"[^a-z0-9]", "", text.lower())) >= _OPENING_FUZZ
+
+
+def _printed_inside(name: str, texts: list[tuple[str, str]], node: dict | None = None) -> str | None:
     """The id of the world entity whose text prints `name` (its own casing) as a lead-in ("Building Bruenor, Step
     1." / "Name:" opening a paragraph or a sentence) or as a folded sub-heading (a line the text joins to the
     capitalised prose under it: "Government The island is ruled ..."), else None (ruling W27 (b)). A mention
     mid-sentence is none: the name must open the text, a line or a sentence."""
     rx = re.compile(r"(?:^|\n|\. )" + re.escape(name) + r"(?:[.:]|\s*\n|$| (?=[A-Z]))")
     for eid, text in texts:
-        if rx.search(text):
+        if rx.search(text) and (node is None or _holds_opening(text, node)):
             return eid
     return None
 
@@ -1100,6 +1119,7 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
     skipped: dict[str, int] = collections.defaultdict(int)  # comparisons skipped: the book prints no value
     fam = [0, 0]  # multi-rarity families: count, ours == "varies"
     owners, inside = (_section_owners(entities), _section_texts(entities)) if etype == "Section" else ({}, [])
+    owner_text = {e.get("id", e["name"]): e.get("canonicalText") or "" for e in entities} if etype == "Section" else {}
     found_by_owner = 0
     excluded = 0  # section nodes left out of the truth (a caption, a lead-in): never silently
     for i, t in enumerate(truth):
@@ -1113,11 +1133,11 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
                     known.append(f"{t['name']}: not a section (a table's caption in 5etools): not scored")
                     excluded += 1
                     continue
-                if k in owners:
+                if k in owners and _holds_opening(owner_text.get(owners[k], ""), t):
                     known.append(f"{t['name']}: found by owner {owners[k]} (an earlier type's entity)")
                     found_by_owner += 1
                     continue
-                if (host := _printed_inside(t["name"], inside)) is not None:
+                if (host := _printed_inside(t["name"], inside, t)) is not None:
                     known.append(f"{t['name']}: printed inside {host} (a lead-in or a folded sub-heading): not "
                                  "scored")
                     excluded += 1

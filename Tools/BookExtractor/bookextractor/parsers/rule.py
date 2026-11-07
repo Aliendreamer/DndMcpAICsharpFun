@@ -381,12 +381,13 @@ def _drop_floats(own: list[Line], heads: int, ctx: ParseContext) -> list[Line]:
 
 
 def _text_check(c: _Cand, own: list[Line], sizes: dict[str, list[int]], heads: int,
-                rule_starts: set[int], held: list = (), starts: set[int] = frozenset()) -> Check:
+                rule_starts: set[int], held: list = (), starts: set[int] = frozenset(),
+                claimed_names: frozenset | set = frozenset()) -> Check:
     if not c.complete:
         return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) has no sure end: {c.end_reason}")
     if c.conflict:
         return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) may end before {c.conflict}")
-    if odd := odd_opening(c.name, own, heads):
+    if odd := odd_opening(c.name, own, heads, claimed_names):
         return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}): {odd}")
     pages = own[-1].page - own[0].page + 1
     if pages > _MAX_PAGES:

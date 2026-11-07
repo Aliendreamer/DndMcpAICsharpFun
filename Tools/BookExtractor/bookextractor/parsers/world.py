@@ -561,7 +561,8 @@ def _doubtful_tail(own: list[Line], heads: int) -> str:
 
 def _text_check(e: _Entry, own: list[Line], heads: int, sib_lines: list[int], sib_pages: list[int],
                 starts: dict[int, int], sizes: dict[int, float] | None = None,
-                sections: list[Section] = (), parts: set[int] = frozenset()) -> Check:
+                sections: list[Section] = (), parts: set[int] = frozenset(),
+                claimed_names: frozenset | set = frozenset()) -> Check:
     sizes = sizes or {}
     s = e.section
     name = f"section {s.title!r} (p{s.page})"
@@ -579,7 +580,7 @@ def _text_check(e: _Entry, own: list[Line], heads: int, sib_lines: list[int], si
     tail = _doubtful_tail(own, heads)
     if tail:
         return Check("text-complete", False, f"{name} may run on: {tail}")
-    if odd := odd_opening(s.title, own, heads):
+    if odd := odd_opening(s.title, own, heads, claimed_names):
         return Check("text-complete", False, f"{name}: {odd}")
     if e.full:  # a section with sub-sections of its own: its lead ends at the first one, a heading the reader read;
         # a sub-section set like its parent's siblings is still a sibling it may have run on into (ruling W25)
@@ -647,6 +648,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
                 or sum(line_key(l) in claimed for l in lines) > _CLAIMED * len(lines))
 
     entries = _entries(sections, owned)
+    entry_titles = {x.section.title for x in entries if len(x.section.title) >= 4}  # other entries' names too
     spans = [{id(l) for l in e.lines} for e in entries]
     for i, e in enumerate(entries):
         s = e.section
@@ -724,8 +726,10 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         head = " ".join(l.text.strip() for l in own[:heads])
         p = Parsed(type=etype, name=fix_acronyms(s.title), fields=_fields(etype, category, entries_, setting),
                    text="\n".join([head] + flat), lines=own)
+        par_sec = parent_section(s, sections)
+        p.category_raw = par_sec.lines[0].text if par_sec is not None and par_sec.lines else ""
         p.checks = [_text_check(e, own, heads, [len(o) for o in sibs], [o[-1].page - o[0].page + 1 for o in sibs],
-                                starts, sizes, sections, parts), typed,
+                                starts, sizes, sections, parts, entry_titles), typed,
                     _entry_check(e, lead_type, in_chapter[(s.parents[0] if s.parents else "", squash(s.title))],
                                  placed[id(s)] or why
                                  or ("" if has_sentence(own[heads:]) else
@@ -1122,6 +1126,20 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
                                   if "title over prose" in x]):
                 return (f"an unread title sits between {where} and {s.title!r} (p{s.page}): {f[0]}; it may be a "
                         f"sub-section of that title, not of {par.title!r}")
+        if par.end_reason.startswith("holds") and s.size and par.size and s.size * (1 + 3 * _SUB_STEP) > par.size:
+            # the parent held a heading not clearly smaller than its own: its "sub-sections" may be its peers, so it
+            # is no sure category (PHB "Age" holding "Size", "Sex" holding "Alignment")
+            return (f"{where} over {s.title!r} (p{s.page}) holds a heading it is not clearly larger than "
+                    f"({par.end_reason[:90]}): a peer or a lead-in, not a sure category")
+        if s.size and par.size and s.size * (1 + 2 * _SUB_STEP) > par.size and any(
+                o is not par and o.parents == par.parents and o.level == par.level and order[id(o)] < order[id(par)]
+                and not kids.get(id(o)) and o.size and abs(o.size - par.size) <= _SUB_STEP * par.size
+                for o in sections):
+            # the parent is set like an earlier sibling that holds nothing, and its sub-section barely smaller:
+            # a lead-in among lead-ins, not a heading enclosing the next one (DMG "Town" over "City")
+            return (f"{where} over {s.title!r} (p{s.page}) is set like an earlier sibling with no sub-sections "
+                    f"(size {par.size:.2f}) and barely larger than {s.title!r} ({s.size:.2f}): a peer lead-in, not a "
+                    "sure category")
         return ""
 
     def holds(s: Section) -> str:

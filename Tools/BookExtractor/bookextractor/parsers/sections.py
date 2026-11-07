@@ -473,7 +473,45 @@ def drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
         art = i > 0 and inset and (gap or art)
         if not art:
             out.append(l)
-    return out
+    return drop_pull_quotes(out)
+
+
+_QUOTE_TALL = 1.45  # a margin pull-quote's lines are set this many times the text's median line height
+_QUOTE_JOIN = 1.3  # ... and the lines around it, set this tall, are its other lines
+_QUOTE_WORDS = 3
+
+
+def drop_pull_quotes(own: list[Line], heads: int = 1) -> list[Line]:
+    """Without the margin pull-quotes and handwritten notes printed over the column (MTF's Mordenkainen notes, XGE
+    "Mangling a lot of minions"): a block of lines set `_QUOTE_TALL` times the text's median line height or more,
+    of `_QUOTE_WORDS` words or more, that is no heading (words in lower case: a heading is title case or capitals),
+    with the neighbouring lines set `_QUOTE_JOIN` times as tall. A text's own heading lines are never one. The
+    block is spliced into the middle of the entity's sentences otherwise (task 8)."""
+    if len(own) < heads + 4:
+        return own
+    med = statistics.median(l.height for l in own)
+    if not med:
+        return own
+
+    def tall(l: Line, k: float) -> bool:
+        return l.height >= k * med and not heading_words(l.text)
+
+    seeds = {i for i in range(heads, len(own)) if tall(own[i], _QUOTE_TALL) and len(own[i].text.split()) >= _QUOTE_WORDS
+             and re.search(r"[a-z]{2}", own[i].text)}
+    if not seeds:
+        return own
+    drop = set(seeds)
+    for i in sorted(seeds):
+        for step in (-1, 1):
+            j = i + step
+            while heads <= j < len(own) and tall(own[j], _QUOTE_JOIN) and own[j].page == own[i].page \
+                    and not _table_row(own[j].text):
+                drop.add(j)
+                j += step
+    # a lone tall line is a drop cap or a display word, not a quote: a quote is a block of two lines or more
+    blocks = [i for i in drop if i - 1 in drop or i + 1 in drop]
+    keep_drop = set(blocks)
+    return [l for i, l in enumerate(own) if i not in keep_drop]
 
 
 def drop_dangling(own: list[Line], raw: list[Line], heads: int, starts: set[int]) -> list[Line]:
@@ -601,7 +639,72 @@ def fix_acronyms(name: str) -> str:
                   if m.group(0) == m.group(0).capitalize() else m.group(0), name)
 
 
-def odd_opening(name: str, lines: list[Line], heads: int) -> str:
+_RANGE_ROW = re.compile(r"^\d{1,3}\s*[-–]\s*\d{1,3}\s+\S")  # "73-78 One character ...": a table's row
+_LEADIN = re.compile(r"^([A-Z][A-Za-z'’ -]{3,40})\.\s")  # a bold lead-in: "Golgari Swarm. An elf lich ..."
+
+
+def _headerish(t: str) -> bool:
+    """Two words or more, every one capitalised, in capitals or a short lower-case joiner ("TINY SmaLl or Medium
+    LARGE"), no digit and no closing punctuation: a heading or a table's column header, no prose."""
+    t = t.strip()
+    words = re.findall(r"[A-Za-z][A-Za-z'’-]*", t)
+    return (sum(w[:1].isupper() for w in words) >= 2 and len(t.split()) <= 10 and not re.search(r"[\d,.;:!?]", t) and not prose(t)
+            and all(w[:1].isupper() or len(w) <= 3 for w in words))
+
+
+def swallowed_heading(name: str, lines: list[Line], heads: int, claimed: frozenset | set = frozenset()) -> str:
+    """Why the text holds or ends on something that is another heading's (task 8; '' when it does not):
+
+    - it ends on a label ("OPTIONAL RULE:", a line closing in a colon): the text was cut before what the label names;
+    - it ends on a heading-like line of two words or more with no sentence end, no prose and no number: the next
+      section's heading, or a table's caption and column header with no rows ("Creature Size on Squares and Hexes
+      / TINY SmaLl or Medium LARGE");
+    - it opens in the middle of a table (its first line under the heading is a numbered range row: "73-78 One
+      character ..."): the heading is a column header read as a section;
+    - it holds an all-capitals label of one word to three (FIREARMS), set apart as a heading over a table, not
+      naming the entity;
+    - it holds a heading like its own name with another qualifier ("Grassland Encounters (Levels 6-10)" inside
+      "Grassland Encounters (Levels 1-5)": the other tables' titles);
+    - it holds the bold lead-ins of two other entities (`claimed`: names the earlier types printed) or more, the
+      blurbs of another section (GGR "Random Guilds" holding "Golgari Swarm. ...")."""
+    body = lines[heads:]
+    if not body:
+        return ""
+    last = body[-1].text.strip()
+    if last.endswith(":"):
+        return f"the text ends on a label ({last[-40:]!r}, p{body[-1].page}): the text it introduces is missing"
+    if len(body) >= 2 and _headerish(last) and not last.endswith(SENTENCE_END) and not _table_row(last):
+        return (f"the text ends on the heading-like line {last!r} (p{body[-1].page}), no prose and no row: the next "
+                "section's heading or a table's caption and header with no rows")
+    if _RANGE_ROW.match(body[0].text.strip()):
+        return (f"the text opens in the middle of a table ({body[0].text.strip()[:30]!r}, p{body[0].page}): the "
+                f"heading {name!r} is a table's column header read as a section")
+    names = name_words(name)
+    own_sq = squash_text(name)
+    own_alpha = frozenset(re.findall(r"[a-z]{4,}", name.lower()))
+    stem = lambda w: w[:-1] if w.endswith("s") else w  # noqa: E731  ("NPC FEATURES" in "Creating NPCs")
+    own_stems = {stem(w) for w in re.findall(r"[a-z]{3,}", name.lower())}
+    for k, l in enumerate(body[:-1], 1):
+        t = l.text.strip()
+        letters = re.sub(r"[^A-Za-z]", "", t)
+        label = {stem(w) for w in re.findall(r"[a-z]{3,}", t.lower())}
+        if 1 <= len(t.split()) <= 3 and t.isupper() and len(letters) >= 6 \
+                and not re.search(r"\d", t) and not _names(t, names) and not prose(t) and not label & own_stems \
+                and squash_text(t) not in _OWN_PART_LABELS:
+            return f"the text holds the capitals label {t!r} (p{l.page}) over a table: another section's heading"
+        # the same words with another qualifier (a digit, a range): the title of a table of the same series
+        if own_alpha and not prose(t) and len(t.split()) <= 8 and squash_text(t) != own_sq and t[:1].isupper() \
+                and frozenset(re.findall(r"[a-z]{4,}", t.lower())) == own_alpha and re.search(r"\d", t):
+            return f"the text holds a heading like its own name, {t!r} (p{l.page}): another entry's"
+    if claimed:
+        sq_claimed = {squash_text(c) for c in claimed if len(c) >= 4} - {own_sq}
+        led = {m.group(1) for l in body if (m := _LEADIN.match(l.text.strip())) and squash_text(m.group(1)) in sq_claimed}
+        if len(led) >= 2:
+            return f"the text holds the lead-ins of other entities ({', '.join(sorted(led)[:3])}): another section's"
+    return ""
+
+
+def odd_opening(name: str, lines: list[Line], heads: int, claimed: frozenset | set = frozenset()) -> str:
     """Why the entity's opening cannot be vouched for ('' when it can), for the entries that printed sub-headings
     make (Task 7 round 4): its first body line begins in lower case (the tail of a paragraph printed before the
     heading, so the heading is a label over a float or a column break, ERLW "The Hilt" over Wards of Sharn's
@@ -643,7 +746,7 @@ def odd_opening(name: str, lines: list[Line], heads: int) -> str:
     if body is not None and body.text.strip()[:1].islower():
         return (f"the text under {name!r} (p{body.page}) opens in lower case ({body.text.strip()[:40]!r}): the tail of "
                 "a sentence printed before the heading")
-    return ""
+    return swallowed_heading(name, lines, heads, claimed)
 
 
 def squash_text(t: str) -> str:
