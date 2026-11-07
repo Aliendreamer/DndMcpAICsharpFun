@@ -1023,13 +1023,17 @@ def test_ftd_section_filed_under_the_previous_chapter_fails():   # W22 (c): FTD 
     lairs = next(e for e in r.entities if e["name"] == "Dragon Lairs")
     c = _entry_level(lairs)
     assert not c["passed"] and "another chapter's title" in c["reason"] and "Dragons in Play" in c["reason"]
-    # the right-column entry under the new chapter is not touched
-    assert _entry_level(next(e for e in r.entities if e["name"] == "Lair Location"))["passed"]
+    # the right-column entry under the new chapter is not touched by the chapter doubt (W24: it is a table's title,
+    # "d10 Unusual Feature" straight under it, and fails for that)
+    c = _entry_level(next(e for e in r.entities if e["name"] == "Lair Location"))
+    assert "another chapter" not in c["reason"] and "die-table header" in c["reason"]
 
 
 def test_egw_coast_entries_nest_under_the_coast():   # W22 (d), W23: EGW Menagerie Coast
     from bookextractor.assemble import ALL_TYPES
-    r = extract_book(pages("egw", 59, 60, 61, 62, 63, 64, 65), "egw", set(ALL_TYPES))
+    # W24: the coast is a container as a member of a group of long listings (its span over `_LISTING_PAGES`), so
+    # the fixture runs to p70
+    r = extract_book(pages("egw", *range(59, 71)), "egw", set(ALL_TYPES))
     named = {e["name"]: e for e in r.entities if e["type"] in WORLD_TYPES}
     # W23: the end midpoint uses the widest sub-heading so far, so the city heading DARKTOW no longer ends the coast
     for n in ("Copia Lake", "Darktow Isle", "Darktow"):
@@ -1067,7 +1071,7 @@ def test_a_doubted_parent_doubts_every_section_under_it():   # W22 (a)
     grand = _sec("Meeting in the Mists", ["Chapter 5: Adventure", "Q Yes B3", "Starting the Adventure"],
                  [d, prose[1]], 3)
     out = placement_doubts([top, kid, grand], {})
-    assert out[id(top)] == ""
+    assert "'Q Yes B3'" in out[id(top)] and "no heading" in out[id(top)]  # W24: its own heading is doubted too
     assert "'Q Yes B3'" in out[id(kid)] and "no heading" in out[id(kid)]
     assert "is doubted" in out[id(grand)] and "'Starting the Adventure'" in out[id(grand)] \
         and "'Q Yes B3'" in out[id(grand)]
@@ -1200,3 +1204,53 @@ def test_a_sibling_ending_its_predecessor_barely_over_the_midpoint_is_doubted():
     out = placement_doubts([tiyl, sub, origins], {})
     assert "barely over the midpoint" in out[id(origins)] and "'This Is Your Life'" in out[id(origins)]
     assert placement_doubts([tiyl, sub, big], {})[id(big)] == ""
+
+
+def test_a_close_end_run_stays_in_its_own_sibling_group():   # W24: MM's top sections never run into an appendix
+    from bookextractor.parsers.world import placement_doubts
+    line = lambda t, pg: _ln(t, pg, 0)  # noqa: E731
+    chuul_l, sub_l = line("Chuul", 41), line("Chuul Lair", 41)
+    chuul = _sec("Chuul", [], [chuul_l, sub_l], 1, size=2.0, end="close: stops at 'COUATL'")
+    sub = _sec("Chuul Lair", ["Chuul"], [sub_l], 2, size=1.0)
+    small = _sec("Crawling Claw", [], [line("Crawling Claw", 42)], 1, size=1.05)
+    appendix = _sec("Blink Dog", ["Appendix A: Miscellaneous Creatures"], [line("Blink Dog", 340)], 1, size=1.05)
+    out = placement_doubts([chuul, sub, small, appendix], {})
+    assert "'Chuul'" in out[id(small)] and out[id(appendix)] == ""
+
+
+def test_every_sibling_after_an_owned_section_is_doubted_to_the_first_larger_one():   # W24 (v): DMG Larva
+    from bookextractor.parsers.sections import line_key
+    from bookextractor.parsers.world import placement_doubts
+    p = ["Chapter 2: Creating a Multiverse"]
+    ys = iter(range(0, 1000, 20))
+    mk = lambda t, pg, size: _sec(t, p, [_ln(t, pg, next(ys)), _ln("The plane is a place of endless war.", pg, next(ys))], 1, size=size)  # noqa: E731
+    larva, gehenna, hells = mk("Larva", 63, 1.08), mk("Gehenna", 63, 1.12), mk("The Nine Hells", 64, 0.92)
+    acheron, mechanus, other = mk("Acheron", 66, 0.94), mk("Mechanus", 66, 1.1), mk("Other Planes", 67, 1.5)
+    after = mk("Material Plane", 68, 1.0)
+    out = placement_doubts([larva, gehenna, hells, acheron, mechanus, other, after], {}, {line_key(larva.lines[0])})
+    for s in (gehenna, acheron, mechanus):
+        assert "'Larva'" in out[id(s)] and "another entity's section" in out[id(s)], s.title
+    assert "'Larva'" in out[id(hells)] or "midpoint" in out[id(hells)]
+    assert out[id(other)] == "" and out[id(after)] == ""  # the run ends at the first sibling set clearly larger
+
+
+def test_a_taller_copy_of_a_heading_on_its_page_doubts_the_siblings_set_smaller():   # W24 (vi): SCC p5
+    from bookextractor.parsers.world import _taller_copies, placement_doubts
+    p = ["A Curriculum of Chaos"]
+    foot = Line("WELCOME TO STRIXHAVEN", (0.0, 2430.0, 300.0, 2466.0), 36.2, 5)
+    display = Line("Welcome to Strixhaven", (494.0, 1221.0, 1500.0, 1298.0), 77.5, 5)
+    prose = Line("Strixhaven is a university of magic on the plane of Arcavios.", (0.0, 2470.0, 300.0, 2500.0), 30.0, 5)
+    about = Line("About This Book", (199.0, 119.0, 600.0, 170.0), 51.7, 6)
+    world = Line("StrixHaven's World", (213.0, 116.0, 700.0, 176.0), 60.7, 7)
+    big = Line("Chapter Two Starts Here", (213.0, 116.0, 900.0, 200.0), 84.0, 8)
+    welcome = _sec("Welcome to Strixhaven", p, [foot, prose], 1, size=0.49)
+    a = _sec("About This Book", p, [about], 1, size=1.25)
+    w = _sec("Strixhaven's World", p, [world], 1, size=1.5)
+    b = _sec("Chapter Two Starts Here", p, [big], 1, size=2.0)
+    body = [display, foot, prose, about, world, big]
+    assert _taller_copies([welcome, a, w, b], body) == {id(welcome): 77.5}
+    out = placement_doubts([welcome, a, w, b], {}, body=body)
+    for s in (a, w):
+        assert "taller copy (77.5)" in out[id(s)] and "'Welcome to Strixhaven'" in out[id(s)], s.title
+    assert out[id(b)] == "" and out[id(welcome)] == ""
+    assert placement_doubts([welcome, a, w, b], {})[id(a)] == ""  # without the page lines, no copy is known

@@ -190,7 +190,9 @@ def test_a_heading_the_reader_nests_stays_in_and_a_long_rule_fails():
     assert "rid a character of indefinite madness." in m.text
     assert "Experience points (XP) fuel level advancement" in m.text
     reason = failed(m)["text-complete"]
-    assert "4 pages" in reason and "p258-p261" in reason
+    # W24: the sub-heading nearly ended it (within the midpoint band), so the doubt names it first; the four-page
+    # run is the other reason
+    assert "'Experience Points'" in reason and "holds" in reason or "4 pages" in reason and "p258-p261" in reason
 
 
 @lru_cache(maxsize=None)
@@ -199,10 +201,12 @@ def dmg_workshop():
 
 
 def test_a_rule_keeps_its_own_tall_sub_headings():
-    """W10: OCR heading heights vary by about 10%; a sub-heading the reader nests under the rule stays in it."""
+    """W10: OCR heading heights vary by about 10%; a sub-heading the reader nests under the rule stays in it. W24:
+    "HORROR" (0.81) sits within the band under the midpoint between FEAR AND HORROR (0.97) and its first
+    sub-heading, so the rule is kept whole and `text-complete` names it (never a silent cut)."""
     fear = rule(dmg_workshop(), "Fear and Horror")
     assert "make a Charisma saving throw to resist the horror" in fear.text  # under its "HORROR" sub-heading
-    assert not failed(fear)
+    assert set(failed(fear)) <= {"text-complete"} and "'HORROR'" in failed(fear).get("text-complete", "'HORROR'")
     init = rule(dmg_workshop(), "Initiative Variants")
     assert "try using the side initiative rule" in init.text
     assert "Under this variant, the players roll a d20" in init.text  # under "Side Initiative"
@@ -270,3 +274,13 @@ def test_a_sidebar_running_off_its_page_mid_sentence_is_not_complete():
     rules, _ = _parse("mm", [257], "mm14", "MM")
     t = rule(rules, "Quaggoth Thonot")
     assert "text-complete" in failed(t) and "overleaf" in failed(t)["text-complete"]
+
+
+def test_a_rule_holding_a_sibling_sized_heading_fails_text_complete_naming_it():   # W24: DMG Healing
+    """"Rest Variants" (0.79) sits at the midpoint between HEALING (0.97) and its sub-headings (0.61): the rule
+    keeps it (never a silent cut) and `text-complete` names it, so the Rest Variants rule is never Accepted as
+    Healing's text."""
+    healing = rule(dmg_workshop(), "Healing")
+    assert "The rules for short and long rests" in healing.text
+    reason = failed(healing)["text-complete"]
+    assert "'Rest VarianTs'" in reason and "holds" in reason

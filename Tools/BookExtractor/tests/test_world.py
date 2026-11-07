@@ -225,7 +225,9 @@ def test_stat_block_parts_are_no_world_sections():
     """W14: MM p123's Duergar "Actions" (monster action text) is the Monster's, never Lore, even with no claims; W16:
     a section that holds stat block lines is kept and flagged, never dropped."""
     ents, _ = _parse("mm", [123], "mm14", "MM")
-    assert not [e for e in ents if e.name in ("Actions", "Reactions", "Legendary Actions")]
+    # W24: never dropped in silence: emitted, and `entry-level` fails naming it a stat block's part
+    parts = [e for e in ents if e.name in ("Actions", "Reactions", "Legendary Actions")]
+    assert parts and all("stat block's part" in failed(e).get("entry-level", "") for e in parts)
     for e in ents:
         if "Weapon Attack:" in e.text:
             assert "stat block" in failed(e).get("text-complete", ""), e.name
@@ -345,3 +347,125 @@ def test_a_zero_size_section_and_an_unread_heading_raise_nothing():
     sec.size = 0.0
     doubts = _doubt(sec, own, 1, starts, {id(own[2]): 0.5})
     assert not [d for d in doubts if "'Contact' (p1" in d and "reader size" in d]
+
+
+def test_a_table_row_read_as_a_heading_is_no_entry():   # W24 (iv): PHB "Drow (+1) Human (+1)" p13
+    """An ability-score summary row ("Drow (+1) Human (+1)") read as a section is doubted by its own heading: a
+    signed number is a table's token, never a heading's word."""
+    from bookextractor.parsers.world import garbage_heading
+
+    assert garbage_heading("Drow (+1) Human (+1)") and garbage_heading("Dwarf (+2) Half-orc (+1)")
+    assert not garbage_heading("Weapon (+1)") is None  # a call, not a crash: parenthesised modifiers are rows
+    assert not garbage_heading("Level 1-4") and not garbage_heading("Beyond 1st Level")
+    ents, _ = _parse("phb", [13], "phb14", "PHB")
+    row = one(ents, "Drow (+1) Human (+1)")
+    assert "no heading" in failed(row)["entry-level"] and "table row" in failed(row)["entry-level"]
+
+
+def test_a_tables_title_read_as_a_heading_is_no_entry():   # W24: ERLW "Villain You Know" d6 table p186
+    """The d6 table "Villain You Know" is printed as a sibling of "The Villain You Know": its heading is a table's
+    title (a die column header straight under it), and `entry-level` fails naming it."""
+    from bookextractor.model import Line
+    from bookextractor.parsers.world import table_title
+
+    ents, _ = _parse("erlw", [185, 186], "erlw", "ERLW")
+    table = one(ents, "Villain You Know")
+    why = failed(table)["entry-level"]
+    assert "table's title" in why and "'d6 Villain'" in why
+    assert "entry-level" not in failed(one(ents, "The Villain You Know"))
+    rows = [Line(t, (0.0, 10.0 * k, 100.0, 10.0 * k + 5), 5.0, 1) for k, t in enumerate(
+        ["Random Encounters", "1 A patrol of guards stops the party for questions.",
+         "2-3 A merchant offers a bargain on stolen goods.", "4 Nothing happens, and the night is quiet."])]
+    assert "numbered table rows" in table_title(rows, "Random Encounters")
+    prose = [Line(t, (0.0, 10.0 * k, 100.0, 10.0 * k + 5), 5.0, 1) for k, t in enumerate(
+        ["Random Encounters", "1. Roll on the table below once per day of travel.", "The guards are wary of strangers."])]
+    assert table_title(prose, "Random Encounters") == ""  # a numbered step is no table row
+
+
+def test_siblings_after_a_stat_block_are_doubted_to_the_first_larger_one():   # W24 (v): DMG Acheron p66
+    """The Larva stat block (p63) ends "Outer Planes" and sets Gehenna, The Nine Hells, Acheron and Mechanus beside
+    it: every sibling after the stat block set no larger than it is doubted, not just the next (with no claims, the
+    stat block's own lines mark it)."""
+    ents, _ = _parse("dmg", [61, 62, 63, 64, 65, 66], "dmg14", "DMG")
+    for name in ("Gehenna", "Acheron", "Mechanus"):
+        why = failed(one(ents, name))["entry-level"]
+        assert "'Larva'" in why and "stat block" in why, (name, why)
+    assert "entry-level" in failed(one(ents, "The Nine Hells"))  # barely over Gehenna's midpoint
+
+
+def test_siblings_under_a_taller_copy_of_a_heading_are_doubted():   # W24 (vi): SCC "Welcome to Strixhaven" p5
+    """The reader read the running foot "WELCOME TO STRIXHAVEN" (36 tall) as the heading; the display title (77.5)
+    is on the same page. "About This Book" (p6) and "Strixhaven's World" (p7), set smaller than that copy, may be its
+    sub-sections: doubted, with everything under them."""
+    ents, _ = _parse("scc", [5, 6, 7], "scc", "SCC")
+    for name in ("About This Book", "Strixhaven's World"):
+        why = failed(one(ents, name))["entry-level"]
+        assert "taller copy (77.5)" in why and "'Welcome to Strixhaven'" in why, (name, why)
+
+
+def test_a_section_with_prose_never_vanishes():   # W24 (i): VRGR domains, MM "Actions", a book's opening sections
+    """A domain's display block ("Domain of ...", "Darklord: ...") is no prose straight under its title: the domain
+    is emitted all the same, with `entry-level` failing for it, never dropped in silence. A top section with no
+    chapter title over it is emitted too (`type-from-context` fails)."""
+    ents, _ = _parse("vrgr", [96, 97, 98, 101, 124, 125, 144, 145], "vrgr", "VRGR")
+    for name in ("Falkovnia", "Kalakeri", "Mordent"):
+        e = one(ents, name)
+        assert "the Greying Wildlands" not in e.text and len(e.text) > 500
+        assert "no printed parent heading" in failed(e).get("type-from-context", "")
+    ents, _ = _parse("egw", [111, 112, 113, 115], "egw", "EGW")
+    wild = one(ents, "Greying Wildlands")   # a top section before any chapter title in the fixture
+    assert "no printed parent heading" in failed(wild)["type-from-context"]
+
+
+def _tree(spec, chapter="Chapter 3: Gazetteer"):
+    """[(title, level, page, n_lines)] in reading order -> Section list sharing one line list, nested by level."""
+    from bookextractor.model import Line
+    from bookextractor.parsers.sections import Section
+
+    lines, secs, stack = [], [], []
+    for title, level, page, n in spec:
+        head = Line(title, (0.0, 0.0, 100.0, 5.0), 5.0, page)
+        body = [Line("the quiet town sits on the river and trades in furs and salt.", (0.0, 10.0 * k, 100.0, 10.0 * k + 5),
+                     5.0, page) for k in range(1, n)]
+        start = len(lines)
+        lines += [head] + body
+        stack = stack[:level - 1]
+        secs.append((Section(title=title, level=level, parents=[chapter] + [s.title for s in stack], lines=[],
+                             page=page, complete=True, end_reason="heading", size=2.0 - 0.5 * level), start))
+        stack.append(secs[-1][0])
+    for k, (s, start) in enumerate(secs):
+        end = next((st for o, st in secs[k + 1:] if o.level <= s.level), len(lines))
+        s.lines = lines[start:end]
+    return [s for s, _ in secs]
+
+
+def test_a_sibling_group_of_long_listings_is_a_group_of_containers():   # W24 (vii)
+    """Three regions, each over nine pages with three places under it, are containers alike; three six-page
+    domains with three parts each are entries alike, the longest included; a heading that lists entries by its own
+    plural type word is a container whatever its length."""
+    from bookextractor.parsers.world import _entries
+
+    long_ = []
+    for r, region in enumerate(("Menagerie Coast", "Marrow Valley", "Zemni Fields")):
+        p = 1 + 12 * r
+        long_ += [(region, 1, p, 4)] + [(f"{region} Town {k}", 2, p + 4 * k + 1, 4) for k in range(3)]
+    secs = _tree(long_)
+    kinds = {e.section.title: e.lead for e in _entries(secs, lambda *a, **k: False)}
+    assert all(kinds[r] for r in ("Menagerie Coast", "Marrow Valley", "Zemni Fields"))  # leads: containers
+    assert "Menagerie Coast Town 1" in kinds
+    short = []
+    for r, dom in enumerate(("Barovia", "Borca", "Dementlieu")):
+        p = 1 + 6 * r
+        short += [(dom, 1, p, 4)] + [(f"{dom} Part {k}", 2, p + 2 * k, 4) for k in range(3)]
+    secs = _tree(short)
+    kinds = {e.section.title: e.lead for e in _entries(secs, lambda *a, **k: False)}
+    assert not any(kinds.get(d) for d in ("Barovia", "Borca", "Dementlieu")) and "Barovia Part 1" not in kinds
+    listing = _tree([("Other Domains of Dread", 1, 1, 4), ("Klorr", 2, 1, 4), ("Ghastria", 2, 2, 4), ("G'henna", 2, 2, 4),
+                     ("Mist Wanderers", 1, 3, 4)])
+    kinds = {e.section.title: e.lead for e in _entries(listing, lambda *a, **k: False)}
+    assert kinds["Other Domains of Dread"] and "Klorr" in kinds and not kinds["Mist Wanderers"]
+    # a chapter's only top heading holds the entries (PHB Appendix B: "D&D Pantheons" over its pantheons)
+    lone = _tree([("D&D Pantheons", 1, 1, 4), ("The Forgotten Realms", 2, 1, 4), ("Greyhawk", 2, 2, 4),
+                  ("Dragonlance", 2, 2, 4)], chapter="Appendix B: Gods of the Multiverse")
+    kinds = {e.section.title: e.lead for e in _entries(lone, lambda *a, **k: False)}
+    assert kinds["D&D Pantheons"] and "Greyhawk" in kinds

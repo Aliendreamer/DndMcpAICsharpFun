@@ -439,7 +439,8 @@ def _world_ids(parsed: list[Parsed], checks: list[list[Check]], book_slug: str, 
 
     def placed() -> dict[int, str]:  # the reader-tree doubts, computed once and only when a rule needs them
         if not memo:
-            memo.append(placement_doubts(sections, chapter_pages(body, ctx), ctx.cache.get("claimed_lines", set())))
+            memo.append(placement_doubts(sections, chapter_pages(body, ctx), ctx.cache.get("claimed_lines", set()),
+                                         body=body))
         return memo[0]
     counts, nth = Counter(stems), Counter()
     out = []

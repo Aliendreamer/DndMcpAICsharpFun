@@ -159,3 +159,10 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | vrgr | 096, 097, 098, 101, 124, 125, 144, 145 | World sections (W21, W22): Dementlieu (Chateaufaux, The Grand Masquerade), then Falkovnia, Kalakeri and Mordent whose domain titles the reader misses: "Noteworthy Features" and "Settlements and Sites" printed again under "Dementlieu" |
 | ftd | 033, 064, 065 | World sections (W22): "Chapter 3: Dragons in Play" title page; p65 opens "Chapter 4: Lairs and Hoards" in its right column, read after the left column's "Dragon Lairs" (filed under chapter 3) |
 | egw | 059, 060, 061, 062, 063, 064, 065 | World sections (W22): "Menagerie Coast" ends "close" at the city heading DARKTOW (barely larger than "Brokenbank"); Darktow and the entries after it read a level up, under the chapter |
+| egw | 066, 067, 068, 069, 070 | World sections (W24): the rest of the Menagerie Coast up to p70, so the coast spans over `_LISTING_PAGES` pages and its sibling group is a group of long listings (containers) |
+| egw | 111, 112, 113, 115 | Section reader (W24): "YRROSA", then the map-heavy p112 whose "GREYING WILDLANDS" heading follows the "MAP 3.6: GREYING WILDLANDS" caption; Blooming Grove, Kravaraad and Mythburrow under it |
+| dmg | 061, 062, 063, 064, 065, 066 | World sections (W24): "OUTER PLANES" and its planes; the Larva stat block (p63) ends Outer Planes, and Gehenna, The Nine Hells, Acheron and Mechanus follow it as its siblings |
+| phb | 013 | World sections (W24): the Ability Score Summary rows ("Drow (+1) Human (+1)") read as headings |
+| phb | 015, 016 | Section reader (W24): "5. Choose Equipment", then "Beyond lst Level" (the OCR's ordinal) over Tiers of Play |
+| erlw | 185, 186 | World sections (W24): "The Villain You Know" (p185) and its d6 table "Villain You Know" (p186, "d6 Villain" header) read as a sibling heading |
+| scc | 005, 006, 007 | World sections (W24): the display title "Welcome to Strixhaven" (77.5 tall) over the running foot "WELCOME TO STRIXHAVEN" the reader measures (36.2), then About This Book and Strixhaven's World set between the two |

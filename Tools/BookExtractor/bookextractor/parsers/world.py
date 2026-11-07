@@ -10,20 +10,28 @@ setting and lore chapters, at each chapter's entry level.
   the names as printed; required): a race, a class, a monster, a magic item, a god, a rule, ... is that type's,
   never a world section (ERLW "Changelings" is the race Changeling's; MM "Barbed Devil" the monster "Barbed Devil
   (Hamatula)"'s);
-- a stat block's part: a heading "Actions", "Reactions", "Bonus Actions" or "Legendary Actions" (the Monster's). A
-  section whose text holds a stat block's lines is kept and flagged (`_stat_block`), never dropped;
-- a heading that is OCR debris or a table read as a heading ("N O P Q R S T", "Gp Pp": no word of three letters), or
-  that has no prose under it.
+- a section with no prose of its own (under `_MIN_PROSE` prose lines: a table's caption over its rows).
+
+A section with prose is never dropped in silence (ruling W24): a stat block's part (a heading "Actions",
+"Reactions", "Bonus Actions" or "Legendary Actions", the Monster's), a heading that is OCR debris or a table row
+("N O P Q R S T", "Drow (+1) Human (+1)"; `garbage_heading`), a table's title (`table_title`) or a heading with no
+prose straight under it (a table's header, a caption, a display title's "Domain of ..." block) is emitted with a
+failing `entry-level` check naming why. A section whose text holds a stat block's lines is kept and flagged
+(`_stat_block`).
 
 **Entry level**, per chapter, from the heading-size evidence the reader leaves and the sibling counts, never page
 numbers or section names: a chapter's top sections (the reader's level 1) are its entries, unless one is a
-*container* of entries: a section with three sub-sections or more whose span is over `_CONTAINER` times its sibling
-sections' median ("Nations of Khorvaire" over its nations, among the gazetteer's shorter sections) or over
-`_CONTAINER` x `_MAX_PAGES` pages (EGW's gazetteer regions, each as long as the next), or a top section with no
-chapter title over it ("Welcome to Ravnica", "Introduction": the book's unnumbered opening chapters). A
-container's sub-sections are the entries there, the same rule applying again one level down. A container's own lead
-text (before its first sub-section) is an entity of its own when it holds prose; the lead of a top section with no
-chapter title over it is not (it has no enclosing heading to type or categorise it by).
+*container* of entries (`_container`): a section with three sub-sections or more that lists entries by its own
+plural type word ("Other Domains of Dread", "Nations of Khorvaire"), whose span is over `_CONTAINER` times its
+sibling sections' median ("Nations of Khorvaire" among the gazetteer's shorter sections), or that belongs to a
+sibling group of long listings (decided once per group, ruling W24: the group's multi-part members span over
+`_LISTING_PAGES` pages by median, as EGW's gazetteer regions, each as long as the next; VRGR's six-page domains are
+entries, the long ones alike), or that is its chapter's only top heading (PHB Appendix B's "D&D Pantheons"); or a
+top section with no chapter title over it ("Welcome to Ravnica", "Introduction": the book's unnumbered opening
+chapters). A container's sub-sections are the entries there, the same
+rule applying again one level down. A container's own lead text (before its first sub-section) is an entity of its
+own when it holds prose. A top section with no chapter title over it, or such a container's lead, has no heading
+to type or categorise it by: it is emitted all the same, and `type-from-context` fails.
 
 **Type** (ruling W12), only from the section's immediate printed parent heading (the chapter title for a top
 section, without "Chapter N:"): Plane, Faction or Location when the parent's head noun is a plural type word
@@ -117,6 +125,7 @@ _STAT_SPAN = 6
 _CHAPTER_PREFIX = re.compile(r"^(?:Chapter|Appendix) [^:]+: ")
 _CONTAINER = 3  # a section over this many times its siblings' median span holds the entries
 _CONTAINER_KIDS = 3  # ... when it has this many sub-sections at least
+_LISTING_PAGES = 9  # a sibling group whose multi-part members span this many pages (median) lists entries
 _CLAIMED = 0.5  # a section with more than this share of its lines owned by earlier types is theirs
 _MAX_PAGES = 3
 _PAGE_FACTOR = 2
@@ -244,11 +253,6 @@ def _plain(name: str) -> str:
     return s[:-1] if len(s) > 3 and s.endswith("s") else s
 
 
-def _named(title: str) -> bool:
-    """Heading words, not OCR debris or a table header read as a heading ("N O P Q R S T", "Gp Pp")."""
-    return bool(re.search(r"[A-Za-z]{3}", title))
-
-
 def _kids(s: Section, sections: list[Section]) -> list[Section]:
     """The section's direct sub-sections (one level down, inside its span)."""
     span = {id(l) for l in s.lines}
@@ -256,20 +260,38 @@ def _kids(s: Section, sections: list[Section]) -> list[Section]:
             and id(c.lines[0]) in span and c is not s]
 
 
-def _container(s: Section, siblings: list[Section], kids: list[Section]) -> bool:
+def _pages(s: Section) -> int:
+    return s.lines[-1].page - s.lines[0].page + 1
+
+
+def _listing_group(group: list[Section], kids_of: dict[int, list[Section]]) -> bool:
+    """The sibling group's multi-part members (those with `_CONTAINER_KIDS` sub-sections or more) are long listings
+    of entries, decided once for the group (ruling W24): their median span is over `_LISTING_PAGES` pages (EGW's
+    gazetteer regions, each a run of alphabetical places over 10 to 25 pages; SCAG's realms). A group whose typical
+    multi-part member is shorter (VRGR's domains, six pages each) holds entries, long or short alike."""
+    spans = [_pages(x) for x in group if len(kids_of.get(id(x), ())) >= _CONTAINER_KIDS]
+    return bool(spans) and median(spans) > _LISTING_PAGES
+
+
+def _container(s: Section, siblings: list[Section], kids: list[Section], listing: bool = False) -> bool:
+    """The section holds the entries one level down: a top section with no chapter title over it; or, with
+    `_CONTAINER_KIDS` sub-sections at least, a heading that lists entries by its own plural type word ("Other
+    Domains of Dread", "Nations of Khorvaire"; `parent_type`), a span over `_CONTAINER` times its siblings' median
+    ("Nations of Khorvaire" among the gazetteer's shorter sections), a member of a group of long listings
+    (`listing`, `_listing_group`), or its chapter's only top heading (PHB Appendix B's "D&D Pantheons": the
+    chapter's body, whose parts are the entries)."""
     if not kids:
         return False
     if not s.parents:  # a top section with no chapter title over it: an unnumbered opening chapter
         return True
     if len(kids) < _CONTAINER_KIDS:
         return False
-    pages = s.lines[-1].page - s.lines[0].page + 1
+    if parent_type(s.title)[0] is not None:
+        return True
     others = [len(o.lines) for o in siblings if o is not s]
-    if not others:
-        return pages > _MAX_PAGES
-    # a long section of sub-sections holds entries even among siblings as long (EGW's gazetteer regions, each a run
-    # of alphabetical places over 10 to 25 pages)
-    return len(s.lines) > _CONTAINER * median(others) or pages > _CONTAINER * _MAX_PAGES
+    if not others and s.level == 1:  # its chapter's only top heading: the chapter's body, its parts the entries
+        return True
+    return bool(others) and len(s.lines) > _CONTAINER * median(others) or listing
 
 
 def _entries(sections: list[Section], owned) -> list[_Entry]:
@@ -279,18 +301,21 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
     out: list[_Entry] = []
 
     def visit(group: list[Section], parent: Section | None = None) -> None:
+        kids_of = {id(s): _kids(s, sections) for s in group}
+        listing = _listing_group(group, kids_of)
         for s in group:
-            kids = _kids(s, sections)
-            if _container(s, group, kids):
+            kids = kids_of[id(s)]
+            if _container(s, group, kids, listing):
                 # a heading line owned by an earlier type over a span it mostly does not own is a run-on read
                 # ("The Mark of" over the dragonmarks, then the group patrons): its sub-sections are opened
                 if owned(s.title, s.lines, heading=False):
                     continue
                 first = next(k for k, l in enumerate(s.lines) if id(l) == id(kids[0].lines[0]))
-                if s.parents and first > 1:
+                if first > 1:
                     out.append(_Entry(s, s.lines[:first], lead=True))
                 visit(kids, s)
-            elif s.parents:  # a top section with no chapter title over it and no sub-sections: no category
+            else:  # a top section with no chapter title over it has no category: emitted all the same, never
+                # dropped in silence (`type-from-context` fails naming the missing heading; ruling W24)
                 out.append(_Entry(s, s.lines, container=parent))
 
     tops = [s for s in sections if s.level == 1]
@@ -534,7 +559,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     spans = [{id(l) for l in e.lines} for e in entries]
     for i, e in enumerate(entries):
         s = e.section
-        if not _named(s.title) or owned(s.title, e.lines) or squash(s.title) in _STAT_HEADINGS:
+        if owned(s.title, e.lines):
             continue
         # the lines of another entry that starts inside this one are that entry's
         nested = {x for j, d in enumerate(entries) if j != i and id(d.lines[0]) in spans[i]
@@ -542,14 +567,23 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         own = [l for l in e.lines if id(l) not in nested and line_key(l) not in claimed]
         heads = _heads(own, s.title)
         own = drop_dangling(drop_art(own, ctx), e.lines, heads, set(starts))
-        # a table's header or caption read as a heading has no prose straight under it ("Suggested Domains Symbol")
-        if sum(prose(l.text) for l in own[heads:]) < _MIN_PROSE or not e.lead and not any(
-                prose(l.text) for l in own[heads:heads + 2]) and not _sub_heading_over_prose(own, heads, starts):
-            continue
-        picked.append((e, own))
+        if sum(prose(l.text) for l in own[heads:]) < _MIN_PROSE:
+            continue  # no prose of its own: nothing to read (a table's caption over its rows)
+        # a section with prose is never dropped in silence (ruling W24): one the reading cannot vouch for is emitted
+        # with a failing `entry-level` check naming why
+        why = ""
+        if squash(s.title) in _STAT_HEADINGS:
+            why = f"the heading {s.title!r} (p{s.page}) is a stat block's part, a Monster's not a section of its own"
+        elif not e.lead and not any(prose(l.text) for l in own[heads:heads + 2]) \
+                and not _sub_heading_over_prose(own, heads, starts):
+            # a table's header or caption read as a heading has no prose straight under it ("Suggested Domains
+            # Symbol"); a display title's block ("Domain of ..." / "Darklord: ...") is no prose either
+            why = (f"no prose straight under the heading {s.title!r} (p{s.page}): a table's header, a caption or a "
+                   "display block read as a heading")
+        picked.append((e, own, why))
     setting = SETTINGS.get(ctx.source.upper())
     groups: dict[tuple, list[float]] = {}
-    for e, _ in picked:
+    for e, _, _ in picked:
         groups.setdefault(tuple(e.section.parents), []).append(e.section.size)
     # a heading printed twice among one parent's children (read or not as an entry)
     counts = Counter((tuple(x.parents), squash(x.title)) for x in sections)
@@ -558,12 +592,12 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         if counts[(tuple(x.parents), squash(x.title))] > 1:
             repeats.setdefault(tuple(x.parents), x.title)
     in_chapter = Counter((x.parents[0] if x.parents else "", squash(x.title)) for x in sections)
-    placed = placement_doubts(sections, chapter_pages(body, ctx), claimed, ctx.cache.get("god_names", set()))
+    placed = placement_doubts(sections, chapter_pages(body, ctx), claimed, ctx.cache.get("god_names", set()), body)
     out: list[Parsed] = []
     lead_type: dict[int, str] = {}  # a container's emitted lead: its type
-    for e, own in picked:
+    for e, own, why in picked:
         s = e.section
-        sibs = [o for x, o in picked if x is not e and not x.lead and x.section.parents == s.parents]
+        sibs = [o for x, o, _ in picked if x is not e and not x.lead and x.section.parents == s.parents]
         heads = _heads(own, s.title)
         entries_ = prose_entries(own, heads, len(own))
         flat = [x if isinstance(x, str) else "\n".join(x.get("items", [])) for x in entries_]
@@ -579,7 +613,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         p.checks = [_text_check(e, own, heads, [len(o) for o in sibs], [o[-1].page - o[0].page + 1 for o in sibs],
                                 starts, sizes), typed,
                     _entry_check(e, lead_type, in_chapter[(s.parents[0] if s.parents else "", squash(s.title))],
-                                 placed[id(s)]
+                                 placed[id(s)] or why
                                  or ("" if has_sentence(own[heads:]) else
                                      f"the text of {s.title!r} (p{s.page}) holds no sentence: a table read as a "
                                      "section"))]
@@ -630,12 +664,36 @@ def parent_section(s: Section, sections: list[Section]) -> Section | None:
 
 
 def garbage_heading(title: str) -> bool:
-    """A heading that holds more noise tokens (no letter, or a lone letter) than words of three letters or more: OCR
-    debris or a table row read as a heading ("Q Yes 83"), never a heading that encloses sections."""
+    """A heading that holds more noise tokens (no letter, or a lone letter) than words of three letters or more, or
+    a signed number ("(+1)", "+2", "-1": an ability-score or modifier column): OCR debris or a table row read as a
+    heading ("Q Yes 83", "Drow (+1) Human (+1)"), never a heading that encloses sections."""
     toks = bare_heading(title).split()
     words = sum(bool(re.fullmatch(r"[^A-Za-z]*[A-Za-z][A-Za-z'’-]{2,}[^A-Za-z]*", t)) for t in toks)
     noise = sum(not re.search(r"[A-Za-z]{2}", t) for t in toks)
-    return words == 0 or noise > words
+    return words == 0 or noise > words or bool(_SIGNED.search(title))
+
+
+_SIGNED = re.compile(r"(?:^|[\s(])[+\-−–]\d")  # a signed number: a table's modifier, never a heading's word
+_DIE_HEADER = re.compile(r"^d\d{1,3}(?![0-9A-Za-z])")  # "d6 Villain", "d100 Result": a table's die column header
+_TABLE_ROW = re.compile(r"^\d{1,3}(?:[-–]\d{1,3})?\s+[A-Z(]")  # "1 The villain ...", "01-05 Aberration"
+_ROWS = 2  # this many table rows among the first lines under a heading make it a table's title
+
+
+def table_title(lines: list[Line], title: str) -> str:
+    """Why the heading over `lines` is a table's title read as a heading ('' when it is not): the line under it is a
+    die column header ("d6 Villain"), or `_ROWS` of the first four lines under it are numbered rows ("1 The villain
+    is targeting ..."). A table's rows read as prose pass the prose tests; its title is no section (ERLW "Villain
+    You Know", the d6 table under "The Villain You Know")."""
+    body = lines[_heads(lines, title):]
+    if not body:
+        return ""
+    first = body[0].text.strip()
+    if _DIE_HEADER.match(first):
+        return f"the line under it is a die-table header ({first!r})"
+    rows = [l.text.strip() for l in body[:4] if _TABLE_ROW.match(l.text.strip())]
+    if len(rows) >= _ROWS:
+        return f"its text opens with numbered table rows ({rows[0][:40]!r}, ...)"
+    return ""
 
 
 _CLOSE_MID = 0.06  # a stop within this (relative) of the midpoint it had to reach leaves the section's end in doubt
@@ -671,12 +729,14 @@ def _names_a_god(title: str, gods: dict[str, list[str]]) -> str | None:
 
 
 def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
-                     claimed: set = frozenset(), gods: set = frozenset()) -> dict[int, str]:
+                     claimed: set = frozenset(), gods: set = frozenset(), body: list[Line] = ()) -> dict[int, str]:
     """For each section (by `id`), why its place in the reader's tree, and so its parent heading, category, type and
     W11 id, is not verified ('' when it is; ruling W21, W22). Every reason names the headings involved.
 
     - its first page prints a chapter title that is not its own chapter (a chapter title read after the column it
       opens: the section is filed under the previous chapter);
+    - its own heading is OCR debris or a table row (`garbage_heading`: PHB "Drow (+1) Human (+1)"), or a table's
+      title (`table_title`: a die column header or numbered rows straight under it; ruling W24);
     - it follows a section whose end is in doubt (`close`: the stopping heading is barely larger than that section's
       widest sub-heading) and is set no larger than that section's sub-headings (within `_SUB_STEP` of the widest);
     - its parent heading ends in a function word (`clipped_heading`: its last line was not read);
@@ -684,8 +744,15 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
       "Commandments of Melora");
     - it ended the sibling before it barely over the midpoint the reader's end rule needs (`_CLOSE_MID`): it may
       be one more sub-section of that sibling (XGE "Origins" ending "This Is Your Life");
-    - it follows a sibling an earlier entity owns (`claimed`, line keys) and is set no larger than it (by `_SUB_STEP`):
-      it may be a part of that entity's section (EGW "Commandments of Avandra" after the god Avandra's section);
+    - it comes after a sibling an earlier entity owns (`claimed`, line keys) or that is a stat block (a monster's
+      heading the reader read as a section: DMG "Larva" ending "Outer Planes"), and is set no larger than it (by
+      `_SUB_STEP`), as is every sibling between: the intruder cut the section before it, and the siblings after it
+      may be that section's sub-sections (EGW "Commandments of Avandra" after the god Avandra's section; DMG
+      "Gehenna" ... "Acheron" after "Larva"; ruling W24). The run ends at the first sibling set larger;
+    - its heading line has a taller copy on its page (`body`, the printed lines; the same words set at least
+      (1 + `_SUB_STEP`) times taller): the reader measured a running foot or a small print of a display title (SCC
+      "WELCOME TO STRIXHAVEN" at the page foot under the title "Welcome to Strixhaven"). The siblings after it set
+      clearly smaller than that copy may be its sub-sections (ruling W24); the run ends at the first sibling as tall;
     - it is set like the siblings of its parent: at least (1 - `_SUB_STEP`) times the smallest earlier sibling of its
       parent (SCAG "Clerics" under "Bards", after "Barbarians"; ruling W23);
     - its parent heading is OCR debris (`garbage_heading`), repeats its own heading (a table title read under its
@@ -695,6 +762,7 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
       the class-training rows printed twice; ruling W23), which every section under it inherits;
     - its parent is doubted (inherited: a doubted parent doubts every section under it)."""
     parent_of = {id(s): parent_section(s, sections) for s in sections}
+    copies = _taller_copies(sections, body)
     counts = Counter((tuple(x.parents), squash(x.title)) for x in sections)
     kids: dict[int, list[Section]] = {}
     for s in sections:
@@ -721,7 +789,10 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
         # sibling set clearly larger than its sub-headings (MM's monsters after "Chuul" are set like Chuul)
         bound = (1 + _SUB_STEP) * max(subs)
         for o in sections[order[id(x)] + 1:]:
-            if o.level < x.level or o.parents[:len(x.parents)] != x.parents:
+            # the run stays in the closed section's own sibling group (MM's top sections hold no chapter: the
+            # appendices' sections, under a title, are another group)
+            if o.level < x.level or o.parents[:len(x.parents)] != x.parents \
+                    or o.level == x.level and o.parents != x.parents:
                 break
             if o.level != x.level:
                 continue
@@ -731,11 +802,15 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
     # a parent's earlier siblings: a sub-section set at least (1 - `_SUB_STEP`) times the smallest of them is set like
     # a sibling of its parent, not like its sub-heading (SCAG "Clerics" under "Bards", after "Barbarians")
     sib_min: dict[int, Section] = {}
-    after_claimed: dict[int, Section] = {}  # the sibling just before, which an earlier entity owns
+    after_claimed: dict[int, Section] = {}  # the intruder before it (owned by an earlier entity, or a stat block)
     near_mid: dict[int, Section] = {}  # the sibling just before, which it ended barely over the midpoint
+    under_copy: dict[int, Section] = {}  # the sibling before it whose heading has a taller copy on its page
     groups: dict[tuple, list[Section]] = {}
+    intruder: dict[tuple, Section] = {}  # per group: the owned or stat-block sibling whose run is open
+    copied: dict[tuple, Section] = {}  # per group: the sibling with a taller copy whose run is open
     for x in sections:
-        g = groups.setdefault((tuple(x.parents), x.level), [])
+        key = (tuple(x.parents), x.level)
+        g = groups.setdefault(key, [])
         sized = [o for o in g if o.size]
         if sized:
             sib_min[id(x)] = min(sized, key=lambda o: o.size)
@@ -745,10 +820,27 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
         if g and (subs := [c.size for c in kids.get(id(g[-1]), []) if c.size]) and g[-1].size and x.size \
                 and x.size < (1 + _CLOSE_MID) * (g[-1].size + max(subs)) / 2:
             near_mid[id(x)] = g[-1]
-        # set no larger than the sibling before it that an earlier entity owns (a god, a race), it may be a part of
-        # that entity's section the reader set beside it (EGW "Commandments of Avandra" after the god's section)
-        if g and line_key(g[-1].lines[0]) in claimed and g[-1].size and x.size < (1 + _SUB_STEP) * g[-1].size:
-            after_claimed[id(x)] = g[-1]
+        # set no larger than an intruder before it (a sibling an earlier entity owns, or a stat block: a god, a
+        # race, a monster's heading), it and every sibling between may be parts of the section the intruder cut
+        # (EGW "Commandments of Avandra" after the god's section; DMG "Gehenna" ... "Acheron" after "Larva"); the
+        # run ends at the first sibling set clearly larger than the intruder
+        if line_key(x.lines[0]) in claimed or squash(x.title) in _STAT_HEADINGS or _stat_block(x.lines):
+            intruder[key] = x
+        elif (c := intruder.get(key)) is not None:
+            if c.size and x.size < (1 + _SUB_STEP) * c.size:
+                after_claimed[id(x)] = c
+            else:
+                intruder.pop(key)
+        # set clearly smaller than the taller copy of a sibling's heading before it: the reader measured that
+        # sibling from a running foot or a small print, and this may be its sub-section (SCC "About This Book" after
+        # "WELCOME TO STRIXHAVEN"); the run ends at the first sibling as tall as the copy
+        if id(x) in copies:
+            copied[key] = x
+        elif (c := copied.get(key)) is not None:
+            if x.lines[0].height * (1 + _SUB_STEP) <= copies[id(c)]:
+                under_copy[id(x)] = c
+            else:
+                copied.pop(key)
         g.append(x)
     god_words = {g: re.findall(r"[a-z]+", re.split(r",| \(", g)[0].lower()) for g in gods}
     memo: dict[int, tuple[str, str]] = {}
@@ -758,6 +850,10 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
         if here and s.parents and s.parents[0] != UNKNOWN_CHAPTER and squash(s.parents[0]) not in here:
             return (f"the page of {s.title!r} (p{s.page}) prints another chapter's title than its chapter "
                     f"{s.parents[0]!r}: it is filed under the wrong chapter")
+        if garbage_heading(s.title):
+            return f"the heading {s.title!r} (p{s.page}) is no heading (OCR debris or a table row)"
+        if t := table_title(s.lines, s.title):
+            return f"the heading {s.title!r} (p{s.page}) is a table's title read as a heading: {t}"
         if (x := after_close.get(id(s))) is not None:
             return (f"the heading {s.title!r} (p{s.page}) is set like the sub-headings of {x.title!r} (p{x.page}), "
                     f"whose end is in doubt: it may be a sub-section of {x.title!r}, not of {s.parents[-1]!r}"
@@ -771,9 +867,16 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
                     f"{c.size:.2f}) barely over the midpoint to its widest sub-heading: it may be a sub-section of "
                     f"{c.title!r}")
         if (c := after_claimed.get(id(s))) is not None:
-            return (f"the heading {s.title!r} (p{s.page}) follows {c.title!r} (p{c.page}), another entity's section, "
-                    f"set no larger than it: it may be a part of that section, not of {s.parents[-1]!r}"
-                    if s.parents else f"the heading {s.title!r} (p{s.page}) may be a part of {c.title!r}")
+            what = "another entity's section" if line_key(c.lines[0]) in claimed else "a stat block"
+            return (f"the heading {s.title!r} (p{s.page}) comes after {c.title!r} (p{c.page}), {what}, set no "
+                    f"larger than it: it may be a part of the section {c.title!r} cut, not of {s.parents[-1]!r}"
+                    if s.parents else f"the heading {s.title!r} (p{s.page}) may be a part of the section "
+                    f"{c.title!r} ({what}) cut")
+        if (c := under_copy.get(id(s))) is not None:
+            return (f"the heading {s.title!r} (p{s.page}, height {s.lines[0].height:.1f}) is set clearly smaller "
+                    f"than the taller copy ({copies[id(c)]:.1f}) of the heading {c.title!r} printed on p{c.page}, "
+                    f"which the reader measured from a smaller print ({c.lines[0].height:.1f}): it may be a "
+                    f"sub-section of {c.title!r}" + (f", not of {s.parents[-1]!r}" if s.parents else ""))
         if id(s) in repeats_in:
             return (f"the section {s.title!r} (p{s.page}) prints its sub-heading {repeats_in[id(s)]!r} more than once: "
                     "entry headings inside it were not read, so its extent is unverified")
@@ -820,6 +923,28 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
         return memo[id(s)]
 
     return {id(s): doubt(s)[0] for s in sections}
+
+
+def _taller_copies(sections: list[Section], body: list[Line]) -> dict[int, float]:
+    """For each section (by `id`) whose heading line has a taller copy on its page (the same squashed words, set at
+    least (1 + `_SUB_STEP`) times taller: a display title the reader measured from a running foot or a small print),
+    the copy's height."""
+    if not body:
+        return {}
+    by_page: dict[int, list[Line]] = {}
+    for l in body:
+        by_page.setdefault(l.page, []).append(l)
+    out: dict[int, float] = {}
+    for s in sections:
+        own = s.lines[:_heads(s.lines, s.title)]
+        keys = {line_key(l) for l in own}
+        want = squash(s.title)
+        h = max(l.height for l in own)
+        tall = [l.height for l in by_page.get(s.page, []) if l.height >= (1 + _SUB_STEP) * h
+                and line_key(l) not in keys and squash(l.text) == want]
+        if want and tall:
+            out[id(s)] = max(tall)
+    return out
 
 
 def _main_size(sizes: list[float]) -> float:

@@ -81,8 +81,8 @@ def test_a_section_never_crosses_a_chapter_title():
         elif s.page < 100:
             assert s.parents[0] == CHAPTER_2, s.title
             assert all(l.page < 100 for l in s.lines), s.title
-        if s.page < 100:  # no chapter gap between chapters 1, 2 and 3
-            assert s.complete or s.end_reason.startswith("close"), (s.title, s.end_reason)
+        if s.page < 100:  # no chapter gap between chapters 1, 2 and 3 (a "close" or "holds" doubt is no gap)
+            assert s.complete or s.end_reason.startswith(("close", "holds")), (s.title, s.end_reason)
 
 
 def test_a_lost_chapter_title_is_a_chapter_gap():
@@ -144,3 +144,56 @@ def test_display_titles_are_read_and_map_labels_are_not():   # W23 (c): VRGR dom
     tops = {(s.title, s.page) for s in secs if s.level == 1}
     assert {("Falkovnia", 101), ("Kalakeri", 125), ("Mordent", 145)} <= tops
     assert not any(s.title == "Dementlieu" and s.page == 96 for s in secs)
+
+
+def test_an_ordinal_heading_is_read_and_its_ocr_digits_repaired():   # W24: PHB "Beyond lst Level"
+    """"Beyond 1st Level" (p16, 45.9 tall) encloses "Tiers of Play"; the OCR prints "lst", a numeral, not a
+    lower-case word, and the title is repaired as a chapter number is."""
+    from bookextractor.parsers.sections import _heading_text
+
+    assert _heading_text("Beyond lst Level") and _heading_text("Beyond 1st Level") and _heading_text("Tier of 20th")
+    assert not _heading_text("lst") and not _heading_text("20th Level")  # a heading never opens with a numeral
+    body, pages = _body("phb", [15, 16])
+    secs = read_sections(body, ParseContext(slug="phb14", source="PHB", pages=pages))
+    beyond = next(s for s in secs if s.page == 16 and s.level == 1 and s.title.startswith("Beyond"))
+    assert beyond.title == "Beyond 1st Level"
+    tiers = next(s for s in secs if s.title == "Tiers of Play")
+    assert tiers.parents[-1] == "Beyond 1st Level"
+
+
+def test_a_heading_after_a_map_caption_is_read():   # W24: EGW "GREYING WILDLANDS" p112
+    """The region heading under "MAP 3.6: GREYING WILDLANDS" opens after the caption, not after a sentence: it is
+    read, and Mythburrow (p115) sits under it, not under the region before the map."""
+    body, pages = _body("egw", [111, 112, 113, 115])
+    secs = read_sections(body, ParseContext(slug="egw", source="EGW", pages=pages))
+    wild = next(s for s in secs if s.title == "Greying Wildlands")
+    assert wild.level == 1 and wild.page == 112
+    myth = next(s for s in secs if s.title == "Mythburrow")
+    assert myth.parents[-1] == "Greying Wildlands"
+    assert not any(l.text.strip() == "MYTHBURROW" for s in secs if s.title == "Yrrosa" for l in s.lines)
+
+
+def test_section_ends_bound_the_widest_sub_heading_and_doubt_the_midpoint_band():   # W24 (iii): DMG Healing
+    """The widest sub-heading grows only with headings clearly smaller than the section's own, so a swallowed
+    sibling cannot raise the midpoint for the next one; a heading barely under the midpoint, or not clearly smaller
+    than the section's own, is returned as the one that nearly ended the section."""
+    from bookextractor.parsers.sections import _ends
+
+    # Healing 0.97 over Healing Surges 0.61, then Rest Variants 0.78 (just under the midpoint 0.79), then Firearms
+    stop, widest, near = _ends([0.97, 0.61, 0.78, 0.96])[0]
+    assert (stop, near) == (3, 2) and abs(widest - 0.78) < 1e-9
+    # the creep: 1.0 over 0.6 (midpoint 0.8), then 0.78 (in the band: the doubt), 0.86 and 0.90, each under the
+    # running midpoint; 0.90 is not clearly smaller than 1.0 (over 0.88 = 1 - _SUB_STEP) so it does not widen, and
+    # 0.94 then ends the section (unbounded, 0.90 would have raised the midpoint to 0.95 and swallowed 0.94 too)
+    stop, widest, near = _ends([1.0, 0.6, 0.78, 0.86, 0.90, 0.94])[0]
+    assert (stop, near) == (5, 2) and abs(widest - 0.86) < 1e-9
+    # a clean tree: no doubt
+    assert _ends([1.0, 0.6, 0.62, 1.0])[0] == (3, 0.62, None)
+
+
+def test_a_section_holding_a_near_midpoint_heading_is_not_complete():   # W24: DMG Healing / Rest Variants
+    body, pages = _body("dmg", [265, 266, 267])
+    secs = read_sections(body, ParseContext(slug="dmg14", source="DMG", pages=pages))
+    healing = next(s for s in secs if s.title == "Healing")
+    assert not healing.complete and healing.end_reason.startswith("holds 'Rest VarianTs'"), healing.end_reason
+    assert any(l.text.strip() == "Rest VarianTs" for l in healing.lines)  # kept whole, never a silent cut

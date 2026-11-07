@@ -10,17 +10,22 @@ line and every text line under it up to its end, its sub-sections included.
   line over its title) are set at least 1.4 times the median line height (`chapter_titles`). They are no section
   of their own: each is the outermost parent of the sections under it, and every section ends at the next one.
 - **Headings** are short title-case or all-caps lines set larger or wider than body text, after a finished
-  sentence or set apart, over prose (or over a smaller heading that is over prose). A heading wrapped onto a second
-  line ("Cantrips for Sorcerers," / "Warlocks, and Wizards"; "NATioNS OF" / "K HORVAIRE") is read as one.
+  sentence, a map's caption or set apart, over prose (or over a smaller heading that is over prose). A heading
+  wrapped onto a second line ("Cantrips for Sorcerers," / "Warlocks, and Wizards"; "NATioNS OF" / "K HORVAIRE") is
+  read as one. An ordinal is a numeral, its OCR letter-digits undone ("Beyond lst Level" -> "Beyond 1st Level").
 - **Levels** are told apart per chapter, relative to each other and never by an absolute size, as
   `trap._section_end` does. A heading's size is its height times its average character width (OCR casing noise
   moves the one and the other in opposite directions). A heading's sub-headings are set clearly smaller than it
-  (`_SUB_STEP`); with sub-headings, it stops at the first later heading nearer its own size than its first
-  sub-heading's, without, at the next heading. Its level is one more than the number of headings enclosing it.
+  (`_SUB_STEP`); with sub-headings, it stops at the first later heading nearer its own size than its widest
+  sub-heading's so far (only headings clearly smaller than its own count as sub-headings there), without, at the
+  next heading. Its level is one more than the number of headings enclosing it.
 - **Ends.** A section ends at the next heading of equal or greater level (`end_reason` "heading") or at a chapter
-  title ("chapter"). It is not `complete` when it runs to the end of the text read ("end of text"), or when the
-  heading it stops at is barely larger than its widest sub-heading, so that the stop may be one more sub-heading
-  ("close: ...", naming the sizes).
+  title ("chapter"). It is not `complete` when it runs to the end of the text read ("end of text"), when the
+  heading it stops at is barely larger than its widest sub-heading or barely over the midpoint it had to reach (and
+  clearly smaller than its own heading), so that the stop may be one more sub-heading ("close: ...", naming the
+  sizes), or when it holds a heading that nearly
+  ended it: not clearly smaller than its own, or barely under that midpoint ("holds ...", ruling W24: a sibling it
+  ran on into).
 - **Chapter gaps.** Printed chapter numbers run 1, 2, 3 (appendices A, B, C); a jump means a chapter title the OCR
   did not read, somewhere between the two titles read. Every section between them is not `complete` ("chapter gap:
   Chapter 5 title not found (...)") and its outermost parent is "Chapter ? (title not found)", never the chapter
@@ -28,7 +33,7 @@ line and every text line under it up to its end, its sub-sections included.
 - **Stripped text.** `Section.stripped` holds the printed lines inside the section's span that are not its text
   (sidebars, running heads and feet, page numbers, captions, art text), so a check can see what was taken out.
 
-Not used by a registered parser yet (Phase 2c ruling W1).
+Read by the God, Rule and world parsers (Phase 2c).
 """
 from __future__ import annotations
 
@@ -49,6 +54,7 @@ _CHAPTER_HEIGHT = 1.4  # a chapter title is set at least this many median line h
 _OCR_DIGITS = str.maketrans({"l": "1", "I": "1", "i": "1", "|": "1", "O": "0"})
 _MAP_CAPTION = re.compile(r"(?i)^map\s*\d+(?:\.\d+)?\s*:")  # "MAP 3.4: DEMENTLIEU", "MAP3.4: DEMeNTLiEU"
 _ABILITY_ROW = re.compile(r"(?i)^str\s+dex\s+con\b")  # a stat block's ability header, not a heading
+_ORDINAL = re.compile(r"(?<![A-Za-z])[0-9lIi|O]{1,2}(?:st|nd|rd|th)(?![A-Za-z])")  # "1st", the OCR's "lst", "20th"
 _HEAD_SIZE = 1.25  # a heading's size (height x character width) is at least this many times body text's
 _SUB_STEP = 0.12  # a sub-heading is set at least this much (relative) smaller than its section's heading
 _OPEN_END = {"of", "the", "and", "a", "an", "to", "in", "on", "for", "with", "at", "by", "&"}
@@ -134,13 +140,20 @@ def _size(l: Line, med: float) -> float:
 
 def _heading_text(t: str) -> bool:
     """A printed heading's words: short, capitalised, title-case or all caps; digits only after the first word
-    ("Rank 1: Official"), never a table row ("3 Crime")."""
+    ("Rank 1: Official"), never a table row ("3 Crime"). An ordinal ("Beyond 1st Level", the OCR's "Beyond lst
+    Level") is a numeral, not a lower-case word."""
     t = t.strip()
     if not (0 < len(t.split()) <= 8 and t[:1].isalpha() and t[:1].isupper()) or _ABILITY_ROW.match(t):
         return False
     if t.endswith((".", ",", ";", ":", "-")) or re.match(r"^\S+\d", t):
         return False
-    return title_case(t) or caps_heading(t)
+    words = _ORDINAL.sub("", t)
+    return bool(words.split()) and (title_case(words) or caps_heading(words))
+
+
+def _fix_ordinals(t: str) -> str:
+    """An ordinal's OCR letter-digits undone ("Beyond lst Level" -> "Beyond 1st Level"), as a chapter number's."""
+    return _ORDINAL.sub(lambda m: m.group(0)[:-2].translate(_OCR_DIGITS) + m.group(0)[-2:], t)
 
 
 def prose(t: str) -> bool:
@@ -178,8 +191,11 @@ def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) 
     text = re.sub(r"\s*,$", "", text)
     if not _heading_text(text) or _size(a, med) < _HEAD_SIZE * body_size:
         return 0
+    # after a finished sentence, a space, a chapter title, or a map's caption (the caption closes the map; the
+    # region heading under it is set apart from the map, not from the text: EGW "MAP 3.6: GREYING WILDLANDS" /
+    # "GREYING WILDLANDS")
     if i > 0 and not (L[i - 1].text.rstrip().endswith(SENTENCE_END) or set_apart(L[i - 1], a)
-                      or id(L[i - 1]) in titles):
+                      or id(L[i - 1]) in titles or _MAP_CAPTION.match(L[i - 1].text.strip())):
         return 0
     k = i + n
     if k >= len(L):
@@ -209,32 +225,42 @@ def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) 
     return 0
 
 
-def _ends(sizes: list[float]) -> list[tuple[int | None, float | None]]:
+def _ends(sizes: list[float]) -> list[tuple[int | None, float | None, int | None]]:
     """For each of a chapter's headings, (the heading it stops at, or None to run to the chapter's end; the size of
-    its widest sub-heading, or None without one).
+    its widest sub-heading, or None without one; the first heading it holds that nearly ended it, or None).
 
     As `trap._section_end`: a heading's sub-headings are set clearly smaller than it (by `_SUB_STEP` at least).
     With sub-headings, it stops at the first later heading nearer its own size than the widest sub-heading before
-    it; without, at the next heading."""
-    out: list[tuple[int | None, float | None]] = []
+    it; without, at the next heading.
+
+    The widest sub-heading grows only with headings set clearly smaller than the section's own (by `_SUB_STEP`): a
+    swallowed sibling must not raise the midpoint and let the next sibling in too (ruling W24). A heading the
+    section holds that is not clearly smaller than its own, or that comes within `_CLOSE` under the midpoint it had
+    to reach, nearly ended the section: the first such is returned, and the section's end is in doubt (DMG "Healing"
+    at 0.97 over sub-headings at 0.61 holds "Rest Variants" at 0.79, the midpoint)."""
+    out: list[tuple[int | None, float | None, int | None]] = []
     for k, s in enumerate(sizes):
         if k + 1 == len(sizes):
-            out.append((None, None))
+            out.append((None, None, None))
             continue
         first = sizes[k + 1]
         if (s - first) / s < _SUB_STEP:
-            out.append((k + 1, None))
+            out.append((k + 1, None, None))
             continue
         # the stop is the first later heading nearer its own size than the widest sub-heading so far (a region's
         # first sub-heading may be a small one: EGW "Menagerie Coast" over "Barren Shores", then the larger
         # city headings "Brokenbank" and "Darktow")
-        stop, widest = None, first
+        stop, widest, near = None, first, None
         for j in range(k + 1, len(sizes)):
-            if sizes[j] >= (s + widest) / 2:
+            mid = (s + widest) / 2
+            if sizes[j] >= mid:
                 stop = j
                 break
-            widest = max(widest, sizes[j])
-        out.append((stop, max(sizes[k + 1:stop if stop is not None else len(sizes)])))
+            if near is None and (sizes[j] >= (1 - _CLOSE) * mid or sizes[j] > (1 - _SUB_STEP) * s):
+                near = j
+            if sizes[j] <= (1 - _SUB_STEP) * s:  # only a clear sub-heading widens the midpoint (ruling W24)
+                widest = max(widest, sizes[j])
+        out.append((stop, widest, near))
     return out
 
 
@@ -295,24 +321,39 @@ def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
             continue
         sizes = [_size(L[i], med) for i, _ in hs]
         ends = _ends(sizes)
-        titles_here = [name_case(re.sub(r"\s*,$", "", " ".join(L[j].text.strip() for j in range(i, i + n))))
+        titles_here = [name_case(_fix_ordinals(re.sub(r"\s*,$", "", " ".join(L[j].text.strip()
+                                                                             for j in range(i, i + n)))))
                        for i, n in hs]
         open_: list[int] = []  # the enclosing headings (indices into hs), outermost first
         for k, (i, n) in enumerate(hs):
             open_ = [o for o in open_ if ends[o][0] is None or ends[o][0] > k]
-            stop, widest = ends[k]
+            stop, widest, near = ends[k]
             if stop is not None:
                 end, reason, complete = hs[stop][0], "heading", True
                 so = sizes[stop]
-                # a stopping heading barely larger than the widest sub-heading may be one more sub-heading
+                mid = (sizes[k] + widest) / 2 if widest is not None else None
+                # a stopping heading barely larger than the widest sub-heading, or barely over the midpoint it had
+                # to reach while set clearly smaller than the section's own heading, may be one more sub-heading (one
+                # set like the section's own heading, within `_SUB_STEP`, is a sibling: SCAG's gods)
                 if widest is not None and (so - widest) / so < _CLOSE:
                     complete, reason = False, (f"close: stops at {L[end].text.strip()!r} (size {so:.2f}), barely "
                                                f"larger than its widest sub-heading ({widest:.2f}); its own heading "
                                                f"is {sizes[k]:.2f}")
+                elif mid is not None and so < (1 + _CLOSE) * mid and so < (1 - _SUB_STEP) * sizes[k]:
+                    complete, reason = False, (f"close: stops at {L[end].text.strip()!r} (size {so:.2f}), barely "
+                                               f"over the midpoint ({mid:.2f}) between its own heading "
+                                               f"({sizes[k]:.2f}) and its widest sub-heading ({widest:.2f})")
             elif c1 < len(L):
                 end, reason, complete = c1, "chapter", True
             else:
                 end, reason, complete = len(L), "end of text", False
+            if near is not None:
+                # a heading it holds that nearly ended it: not clearly smaller than its own heading, or barely under
+                # the midpoint it had to reach (ruling W24: DMG "Healing" holding "Rest Variants")
+                j, nl = near, L[hs[near][0]]
+                complete, reason = False, (f"holds {nl.text.strip()!r} (p{nl.page}, size {sizes[j]:.2f}), not "
+                                           f"clearly a sub-heading of its own ({sizes[k]:.2f}) over its widest "
+                                           f"sub-heading ({widest:.2f}): a sibling it ran on into? ({reason})")
             if gap:  # a chapter title the OCR lost lies somewhere in this group: no end in it is sure
                 complete, reason = False, f"chapter gap: {gap} title not found ({reason})"
             parents = ([chapter] if chapter else []) + [titles_here[o] for o in open_]
