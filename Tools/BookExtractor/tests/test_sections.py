@@ -262,3 +262,84 @@ def test_the_net_names_entities_by_their_own_words_and_sees_labelled_headings():
     prose = "the wind howls over the moor and the travellers press on."
     own = [ln("Travel", 1, 0.0, 40.0), ln(prose, 1, 40.0), ln("Variant: Mad Winds", 1, 120.0), ln(prose, 1, 150.0)]
     assert any("'Variant: Mad Winds'" in o for o in foreign_lines(own, 1, name_words("Travel")))
+
+
+def test_odd_opening_names_a_lower_case_opening_and_a_name_that_is_no_heading():   # round 4
+    from bookextractor.model import Line
+    from bookextractor.parsers.sections import odd_opening
+
+    def ln(t, y):
+        return Line(t, (100.0, y, 700.0, y + 30.0), 30.0, 1)
+    ok = [ln("Grappling", 0.0), ln("When you want to grab a creature, you can use the Attack action.", 40.0)]
+    assert odd_opening("Grappling", ok, 1) == ""
+    tail = [ln("The Hilt", 0.0), ln("lifestyle can be found, but overall the lower wards are poor.", 40.0)]
+    assert "opens in lower case" in odd_opening("The Hilt", tail, 1)
+    for name in ("Tidal Wave Bat.fur", "If the Charisma (Deception) and Dexterity (Sleight",
+                 "If You Roll A Natural One On The Die Then"):
+        assert "no printed heading" in odd_opening(name, ok, 1), name
+    assert odd_opening("Cyre (the Mournland)", ok, 1) == ""
+
+
+def test_odd_opening_flags_a_wrapped_heading_a_repeated_word_a_rule_label_and_acronyms():   # round 4
+    from bookextractor.model import Line
+    from bookextractor.parsers.sections import fix_acronyms, odd_opening
+
+    def ln(t, y, h=30.0):
+        return Line(t, (100.0, y, 700.0, y + h), h, 1)
+    text = ln("When you want to grab a creature, you can use the Attack action.", 70.0)
+    wrapped = [ln("Moving Around Other", 0.0, 36.0), ln("CREATURES", 36.0, 34.0), text]
+    assert "may wrap onto it" in odd_opening("Moving Around Other", wrapped, 1)
+    fine = [ln("Grappling", 0.0, 36.0), ln("Grab", 36.0, 20.0), text]  # a short line set smaller is body text
+    assert odd_opening("Grappling", fine, 1) == ""
+    assert "repeats a word" in odd_opening("Standard Campaign High Magic Campaign", [ln("x", 0.0), text], 1)
+    assert "rule's label" in odd_opening("Ftional Rule: Psychic Dissonance", [ln("x", 0.0), text], 1)
+    assert fix_acronyms("The Dm Adjudicates the Rules") == "The DM Adjudicates the Rules"
+    assert fix_acronyms("Customizing Npcs") == "Customizing NPCs"
+    assert fix_acronyms("Pcs and Dms; DC") == "PCs and DMs; DC" and fix_acronyms("Dmitri") == "Dmitri"
+
+
+def test_odd_opening_flags_a_cut_bracket_and_a_trailing_heading_with_its_table():   # round 4
+    from bookextractor.model import Line
+    from bookextractor.parsers.sections import odd_opening, trailing_heading
+
+    def ln(t, y, h=30.0):
+        return Line(t, (100.0, y, 700.0, y + h), h, 1)
+    body = "Mimic colonies have learned that adventurers can be bought off with information about nearby creatures."
+    cut = [ln("Mimic Colonies", 0.0, 36.0), ln(body[:-1] + " (which the", 40.0), ln("their own young.", 80.0)]
+    assert "inside a bracket" in odd_opening("Mimic Colonies", cut, 1)
+    closed = [ln("Mimic Colonies", 0.0, 36.0), ln(body[:-1] + " (which the mimics keep).", 40.0)]
+    assert odd_opening("Mimic Colonies", closed, 1) == ""
+    ends = [ln("Flame-kin", 0.0, 36.0), ln("They are elemental soldiers created to serve the legion.", 40.0),
+            ln("Boros Creatures", 80.0, 38.0), ln("Challenge Creature Source", 120.0), ln("1/8 Mastiff MM", 160.0),
+            ln("1/4 Soldier GGR", 200.0)]
+    assert "Boros Creatures" in trailing_heading(ends, 1)
+    # a table's rows after the entity's own prose, with no heading over them, are its own
+    plain = ends[:2] + ends[3:]
+    assert trailing_heading(plain, 1) == ""
+
+
+def test_interior_heading_names_a_small_caps_heading_over_prose_inside_the_text():   # round 4
+    from bookextractor.model import Line
+    from bookextractor.parsers.sections import interior_heading
+
+    def ln(t, y, h=30.0):
+        return Line(t, (100.0, y, 700.0, y + h), h, 1)
+    s = "The characters must find a way through the door before the trap springs shut."
+    lines = [ln("Describing a Complex Trap", 0.0, 36.0), ln(s, 40.0), ln(s, 80.0), ln("RUNNING A COMPLEX TRAP", 120.0),
+             ln(s, 160.0), ln(s, 200.0)]
+    assert "RUNNING A COMPLEX TRAP" in interior_heading(lines, 1)
+    assert interior_heading(lines[:3] + lines[4:], 1) == ""
+
+
+def test_odd_opening_flags_a_sentence_left_unfinished_but_not_a_table_row_or_footnote():   # round 4
+    from bookextractor.model import Line
+    from bookextractor.parsers.sections import odd_opening
+
+    def ln(t, y):
+        return Line(t, (100.0, y, 700.0, y + 30.0), 30.0, 1)
+    head = ln("Surprise", 0.0)
+    done = ln("The DM determines who might be surprised before the fight begins.", 40.0)
+    cut = [head, done, ln("Each creature that does not notice a threat is surprised at the start of the", 80.0)]
+    assert "not finished" in odd_opening("Surprise", cut, 1)
+    for row in ("Pick a lock Varies 20", "*Might involve a rival"):
+        assert odd_opening("Surprise", [head, done, ln(row, 80.0)], 1) == "", row

@@ -1015,3 +1015,16 @@ def test_section_truth_marks_table_caption_nodes():   # W27 (c)
     out = []
     _section_nodes(ch, "Chapter 1", 1, out)
     assert {o["name"]: o["_table"] for o in out} == {"Deities": True, "Tiers of Play": False}
+
+
+def test_a_rule_owns_and_prints_section_names_unless_scored_strict(monkeypatch):   # round 4
+    """A rules-chapter sub-heading is a Rule of its own: its name owns the 5etools section node, and the lead-ins
+    its text prints leave the truth, like a world entity's. SECTION_STRICT scores the tree as before round 4."""
+    import bookextractor.score as sc
+    ents = [{"id": "b.rule.grappling", "type": "Rule", "name": "Grappling", "checks": [],
+             "canonicalText": "Grappling\nThe rules.\nEscape. You may escape."}]
+    assert sc._section_owners(ents) == {"grappling": "b.rule.grappling"}
+    assert sc._printed_inside("Escape", sc._section_texts(ents)) == "b.rule.grappling"
+    monkeypatch.setattr(sc, "_STRICT_SECTIONS", True)
+    assert sc._section_owners(ents) == {}
+    assert sc._printed_inside("Escape", sc._section_texts(ents)) is None

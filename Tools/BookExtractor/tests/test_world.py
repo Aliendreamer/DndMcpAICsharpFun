@@ -74,16 +74,20 @@ def test_ggr_guild_sections_are_factions():
         assert typed.passed and "'Chapter 2: Guilds of Ravnica'" in typed.reason and "'guilds'" in typed.reason
         assert set(g.fields) == {"entries"}  # FactionFields prints no category or setting
     az = one(ents, "Azorius Senate")
-    # the guild's own sub-sections stay in; the next guild's text does not
+    # round 4: the guild's own sub-sections ("Inside the Senate", "Azorius Characters") are entries of their own and
+    # the guild holds only its lead; the next guild's text is in neither
     low = az.text.lower()
-    assert "inside the senate" in low and "azorius characters" in low and "enemies and allies" in low
+    assert "inside the senate" not in low and "azorius characters" not in low
     assert "three capitals" not in low  # a sidebar, stripped by the section reader
     assert not any(l.page >= 39 for l in az.lines), "Azorius runs into the Boros Legion"
-    # W16: its sub-headings ("Inside the Senate", "Azorius Characters") are peers of one another, set alike: no
-    # doubt. W25: with no claims in this fixture, the guild background's caps feature lines ("FUNCTIONARY") inside
-    # its text are headings set at body size the reader did not read, and the structural net names them; the
-    # assembler's claims take those lines out in a whole-book run
-    assert set(failed(az)) <= {"text-complete"} and "'FUNCTIONARY'" in failed(az).get("text-complete", "'FUNCTIONARY'")
+    inside = one(ents, "Inside the Senate")
+    assert inside.type == "Lore" and not {id(l) for l in az.lines} & {id(l) for l in inside.lines}
+    assert inside.fields["category"] == "Azorius Senate"
+    # a sub-section of a Faction entry is its part: the entry-level check keeps it from being Accepted
+    assert "entry-level" in failed(inside) and "Faction entry" in failed(inside)["entry-level"]
+    assert "azorius characters" in one(ents, "Azorius Characters").text.lower()
+    # W16: its sub-headings are peers of one another, set alike: no doubt on the guild
+    assert not failed(az)
     boros = one(ents, "Boros Legion")
     assert not any(l.page >= 100 for l in boros.lines)  # it ends at the chapter 3 title
 
@@ -170,7 +174,11 @@ def test_a_nation_running_on_into_the_next_fails():
     assert not any("demon wastes" in l.text.lower() for l in one(ents, "Darguun").lines[1:])
     kr = failed(one(ents, "Karrnath"))["text-complete"]
     assert "'LHAZAAR PRINCIPALITIES'" in kr
-    assert any("Lhazaar" in l.text or "LHAZAAR" in l.text for l in one(ents, "Karrnath").lines)  # kept, not cut
+    # round 4: Karrnath holds only its lead; the unread heading's text is in the last sub-section it runs into,
+    # and no line is in two entries
+    assert any("Lhazaar" in l.text or "LHAZAAR" in l.text for e in ents for l in e.lines)  # kept, not cut
+    seen = [id(l) for e in ents for l in e.lines]
+    assert len(seen) == len(set(seen))
 
 
 def test_a_real_sub_heading_is_no_doubt():
@@ -180,6 +188,22 @@ def test_a_real_sub_heading_is_no_doubt():
     ic = one(ents, "Involving the Characters")
     assert "cross purposes" in ic.text.lower()
     assert not failed(ic)
+
+
+def test_printed_sub_headings_are_entries_and_no_line_is_in_two_entries():   # round 4
+    """A section with printed sub-headings holds only its lead; each sub-heading is an entry of its own, typed by its
+    nearest enclosing heading, and the entry and its sub-sections never share a line (the assembler's text-not-shared
+    gate would fail both). Sub-headings nested deeper become entries too (ERLW Aundair > Arcanix)."""
+    for ents in (ggr_guilds(), erlw_nations()):
+        seen = [id(l) for e in ents for l in e.lines]
+        assert len(seen) == len(set(seen))
+    ents = erlw_nations()
+    arcanix = one(ents, "Arcanix")
+    assert arcanix.type == "Lore" and arcanix.fields["category"] == "Aundairian Characters"
+    chars = one(ents, "Aundairian Characters")
+    assert chars.type == "Lore" and chars.fields["category"] == "Aundair"
+    # the sub-heading of a Location entry is its part (and its own place is in doubt here): never Accepted
+    assert "entry-level" in failed(chars)
 
 
 def test_vrgr_domain_of_dread_is_typed_by_its_parent():
@@ -239,8 +263,10 @@ def test_a_stat_block_inside_lore_is_flagged_not_dropped():
     """W16: EGW "Story Overview" prints an NPC's stat block inside its lore: the section stays, text-complete names
     the block's lines."""
     ents, _ = _parse("egw", [236, 237], "egw", "EGW")
-    so = one(ents, "Story Overview")
-    reason = failed(so)["text-complete"]
+    # round 4: the block's own heading ("Actions") is a sub-section, so the block is named in that entry, and the
+    # section holding it still fails text-complete (its heading "STAHLMASTER" is in doubt)
+    assert "text-complete" in failed(one(ents, "Story Overview"))
+    reason = failed(one(ents, "Actions"))["text-complete"]
     assert "stat block" in reason and "Melee Weapon Attack" in reason
 
 

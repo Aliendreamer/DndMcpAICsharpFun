@@ -51,8 +51,8 @@ from .charcommon import (PAGE_NO, RUNNING_HEAD, SENTENCE_END, caps_heading, char
                          name_case, prose_entries, set_apart, squash, title_case)
 from .item import _is_type_line
 from .monster import _is_size_line
-from .sections import (Section, drop_art, drop_dangling, foreign_lines, heading_words, line_key, name_words,
-                       page_column, prose, read_sections)
+from .sections import (Section, drop_art, drop_dangling, fix_acronyms, foreign_lines, heading_words, line_key,
+                       name_words, odd_opening, page_column, prose, read_sections)
 
 _RULES_CHAPTERS = ("Using Ability Scores", "Adventuring", "Combat", "Spellcasting", "Running the Game",
                    "Dungeon Master's Workshop", "Dungeon Master's Tools")
@@ -71,6 +71,7 @@ _DOWNTIME = re.compile(r"downtime\s*activities$", re.I)
 _OPTIONS = re.compile(r"options$", re.I)  # "Combat Options", "Abilityoptions" (OCR-joined)
 _COMPLICATIONS = re.compile(r"complications$", re.I)
 _SIBLING_FACTOR = 3
+_STAT_PARTS = {"actions", "reactions", "legendaryactions", "bonusactions"}  # a stat block's parts, never a Rule
 _UNREAD_HEIGHT = 0.97  # a heading the reader did not read ends a rule when set at least this tall, relative to
 # the rule's own heading (OCR heading heights vary by about 10%: a sub-heading may be set 0.9x as tall)
 _TALL = 1.15  # a line this many times the rule's median line height is set clearly taller than its body text
@@ -134,6 +135,7 @@ class _Cand:
     end_reason: str
     group: str = ""  # entry rules: the chapter (and options heading) they are siblings in
     conflict: str = ""  # a heading the rule may end at but the reader nests under it (`_cut_unread`)
+    sub: bool = False  # a printed sub-heading of a rules-chapter section: a rule of its own, its parent's text ends at it
 
 
 def _rule_type(label: str) -> str:
@@ -329,11 +331,18 @@ def _candidates(sections: list[Section], ctx: ParseContext) -> list[_Cand]:
             h = _heads(s.lines, s.title)
             if any(_DECLARES.search(l.text) for l in s.lines[h:h + _DECLARE_LINES]):
                 group = (s.parents[0] if s.parents else "") + " (declared)"
+        sub = False
+        if group is None and rules_chapter(s) and not _COMPLICATIONS.search(s.title) and not _caption(s) \
+                and squash(s.title) not in _STAT_PARTS:
+            sub = True
+            # a printed sub-heading in a rules chapter: a Rule of its own (Task 7 round 4); the rule above it holds
+            # only its lead. Its siblings are the sub-headings printed under the same parent heading
+            group = " > ".join(s.parents)
         if group is None:
             continue
         raw, complete, reason, conflict = _cut_unread(s, levels, rule_starts - {id(s.lines[0])})
         out.append(_Cand(name=s.title, rule_type=None, raw=raw, heads=_heads(raw, s.title), kind="entry",
-                         complete=complete, end_reason=reason, group=group, conflict=conflict))
+                         complete=complete, end_reason=reason, group=group, conflict=conflict, sub=sub))
     out += _sidebars(ctx)
     # one rule per printed heading: a labelled section beats an activity beats an entry-level section
     rank = {"label": 0, "sidebar": 0, "activity": 1, "entry": 2}
@@ -377,6 +386,8 @@ def _text_check(c: _Cand, own: list[Line], sizes: dict[str, list[int]], heads: i
         return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) has no sure end: {c.end_reason}")
     if c.conflict:
         return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}) may end before {c.conflict}")
+    if odd := odd_opening(c.name, own, heads):
+        return Check("text-complete", False, f"rule {c.name!r} (p{c.raw[0].page}): {odd}")
     pages = own[-1].page - own[0].page + 1
     if pages > _MAX_PAGES:
         return Check("text-complete", False, f"rule {c.name!r} runs over {pages} pages (p{own[0].page}-"
@@ -424,6 +435,7 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     rule_starts = {id(c.raw[0]) for c in cands}
     starts = {id(x.lines[0]) for x in sections}
     owned: list[tuple[_Cand, list[Line]]] = []
+    held_lines: dict[int, list[Line]] = {}
     for i, c in enumerate(cands):
         # the lines of every other rule that starts inside this one are that rule's
         nested = {x for j, d in enumerate(cands) if j != i and id(d.raw[0]) in spans[i] for x in spans[j]}
@@ -435,6 +447,11 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         own = drop_dangling(drop_art(_drop_floats(own, c.heads, ctx), ctx), c.raw, c.heads, starts)
         if len(own) <= c.heads:
             continue
+        # the lines of the printed sub-headings taken out of this rule: the doubts about a heading inside it
+        # (a sibling the reader nested) are still raised over them, as before they were rules of their own
+        gone = {id(l) for j, d in enumerate(cands) if j != i and d.sub and id(d.raw[0]) in spans[i] for l in d.raw}
+        mine = {id(o) for o in own}
+        held_lines[id(c)] = [l for l in c.raw if id(l) in gone or id(l) in mine]
         owned.append((c, own))
     sizes: dict[str, list[int]] = {}
     for c, own in owned:
@@ -451,10 +468,10 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
             fields["ruleType"] = c.rule_type
         head = " ".join(l.text.strip() for l in own[:heads])
         flat = [x if isinstance(x, str) else "\n".join(x.get("items", [])) for x in entries]
-        p = Parsed(type="Rule", name=c.name, fields=fields, text="\n".join([head] + flat), lines=own)
+        p = Parsed(type="Rule", name=fix_acronyms(c.name), fields=fields, text="\n".join([head] + flat), lines=own)
         sec = section_of.get(id(c.raw[0]))
         # a complications sub-heading is an activity's own part (`_activities`), however it is set
-        held = [h for h in held_siblings(sec, sections, own) if not _COMPLICATIONS.search(h.title)] if sec else []
+        held = [h for h in held_siblings(sec, sections, held_lines[id(c)]) if not _COMPLICATIONS.search(h.title)] if sec else []
         p.checks = [_text_check(c, own, sizes, heads, rule_starts, held, starts)]
         out.append(p)
     return out

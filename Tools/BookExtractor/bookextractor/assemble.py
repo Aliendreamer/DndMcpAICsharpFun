@@ -315,6 +315,31 @@ def _name_words_check(res, p: Parsed, vocab: Vocabulary) -> Check:
     return Check("name-words-known", True, why)
 
 
+_LONG_UNSEEN = 9  # a heading word of this many letters that the book prints nowhere else
+_VERY_LONG_UNSEEN = 15  # ... a word of this many letters needs no capital inside it to be suspect ("Initialinfection")
+
+
+def _unseen_long_word_check(p: Parsed, checks: list[Check], vocab: Vocabulary) -> list[Check]:
+    """A Rule, Plane, Faction, Location or Lore name holding a long word that the book prints nowhere outside the
+    entity's own heading, printed in the heading with a capital inside it ("KitDependency", "WithoutXP",
+    "InitialInfection"), is probably two words the OCR ran together (Task 7 round 4): `name-words-known` fails and the
+    entity needs review. A capital inside a word alone is OCR casing noise and a rare word alone is common, so
+    both are needed. A God's name is a coined proper name and is left alone."""
+    if p.type == "God" or not p.lines:
+        return checks
+    own = own_heading_counts(p.name)
+    raw = {re.sub(r"[^a-z]", "", t.lower()) for t in p.lines[0].text.split() if re.search(r"[a-z][A-Z]", t)}
+    long = [w for w in re.findall(r"[A-Za-z]+", p.name)
+            if (len(w) >= _LONG_UNSEEN and w.lower() in raw or len(w) >= _VERY_LONG_UNSEEN)
+            and vocab.words.get(w.lower(), 0) - own.words.get(w.lower(), 0) <= 0]
+    if not long:
+        return checks
+    why = "a long word printed nowhere else in the book (very long, or with a capital inside it in print): probably " \
+          "words run together by the OCR: " + ", ".join(long)
+    return [Check("name-words-known", False, why) if c.name == "name-words-known" and c.passed else c
+            for c in checks]
+
+
 def _text_present(p: Parsed) -> Check:
     """`text-present`: at least 30 characters. A short table row ("Bell | 1 gp | -") has no other text than its
     printed cells, so it passes when the row's own cell checks all pass; unreadable cells still fail."""
@@ -591,8 +616,8 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
             god_names.update(p.name for p in parsed if p.name.strip())
         # a world type's ids are assigned over the whole type at once (rulings W4, W11, W19)
         named = ([_id_and_checks(p, book_slug, seen, vocab) for p in parsed] if t not in WORLD_TYPES else
-                 _world_ids(parsed, [_id_and_checks(p, book_slug, Counter(), vocab)[1] for p in parsed],
-                            book_slug, ctx, body))
+                 _world_ids(parsed, [_unseen_long_word_check(p, _id_and_checks(p, book_slug, Counter(), vocab)[1], vocab)
+                                     for p in parsed], book_slug, ctx, body))
         for p, (eid, checks) in zip(parsed, named):
             claimed_lines |= _line_keys(p.lines)
             covered.update(l.page for l in p.lines)

@@ -95,7 +95,8 @@ from . import ParseContext, Parsed
 from .charcommon import SENTENCE_END, SMALL_WORDS, character_body, prose_entries, set_apart, squash
 from .rule import rules_chapter
 from .sections import (_SUB_STEP, UNKNOWN_CHAPTER, Section, chapter_titles, display_lines, drop_art, drop_dangling,
-                       foreign_lines, heading_words, line_key, name_words, prose, read_sections)
+                       fix_acronyms, foreign_lines, heading_words, line_key, name_words, odd_opening, prose,
+                       read_sections)
 
 # the book's setting, for the setting books (a dev-time constant, by 5etools source key)
 SETTINGS = {"ERLW": "Eberron", "EGW": "Exandria", "GGR": "Ravnica", "SCAG": "Forgotten Realms", "VRGR": "Ravenloft",
@@ -157,6 +158,9 @@ class _Entry:
     lead: bool = False  # a container's lead text, up to its first sub-section
     container: Section | None = None  # the container whose sub-section this entry is
     under_owned: bool = False  # its container is another entity's section (a sibling the reader nested there)
+    # a section with printed sub-headings that are entries of their own: `lines` is its lead (the text before its
+    # first sub-section), `full` its whole span, so the doubts about a heading inside it are still raised (round 4)
+    full: list[Line] | None = None
 
 
 def bare_heading(heading: str) -> str:
@@ -360,6 +364,15 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
                 if len(lead) > 1:
                     out.append(_Entry(s, lead, lead=True))
                 visit(kids, s)
+            elif kids:
+                # an entry with printed sub-headings: each sub-heading is an entry of its own (Task 7 round 4), and
+                # the entry holds only its lead, the text before its first sub-section (and the folded parts that
+                # stay contiguous with it); the entry and its sub-sections never share text
+                inside = {id(l) for c in kids for l in c.lines}
+                lead = _contiguous_lead([l for l in s.lines if id(l) not in inside], s.lines, kids)
+                if len(lead) > 1:
+                    out.append(_Entry(s, lead, lead=True, container=parent, under_owned=under_owned, full=s.lines))
+                visit(kids, s, under_owned=under_owned)
             else:  # a top section with no chapter title over it has no category: emitted all the same, never
                 # dropped in silence (`type-from-context` fails naming the missing heading; ruling W24)
                 out.append(_Entry(s, s.lines, container=parent, under_owned=under_owned))
@@ -556,7 +569,9 @@ def _text_check(e: _Entry, own: list[Line], heads: int, sib_lines: list[int], si
     if stat:
         return Check("text-complete", False, f"{name} holds a stat block's lines, a Monster's not its own: "
                      + "; ".join(f"{t!r} (p{p})" for t, p in stat[:4]))
-    doubts = _doubt(s, own, heads, starts, sizes, parts)
+    # a section with sub-sections of their own is doubted over its whole span, as before they were entries: the
+    # lead may end at a heading that is no sub-heading, and a doubted heading inside it is never silent
+    doubts = _doubt(s, e.full if e.full else own, heads, starts, sizes, parts)
     if doubts:
         rest = [d.split(" (p", 1)[0] for d in doubts[_NAMED:]]
         return Check("text-complete", False, f"{name} may run on: it holds {len(doubts)} doubtful heading(s): "
@@ -564,6 +579,17 @@ def _text_check(e: _Entry, own: list[Line], heads: int, sib_lines: list[int], si
     tail = _doubtful_tail(own, heads)
     if tail:
         return Check("text-complete", False, f"{name} may run on: {tail}")
+    if odd := odd_opening(s.title, own, heads):
+        return Check("text-complete", False, f"{name}: {odd}")
+    if e.full:  # a section with sub-sections of its own: its lead ends at the first one, a heading the reader read;
+        # a sub-section set like its parent's siblings is still a sibling it may have run on into (ruling W25)
+        if held := held_siblings(s, sections, e.full):
+            return Check("text-complete", False, f"{name} holds {held[0].title!r} (p{held[0].page}, size "
+                         f"{held[0].size:.2f}), a sub-section set like its parent's siblings: a sibling it ran on "
+                         "into")
+        if foreign := foreign_lines(own, heads, name_words(s.title), set(starts)):
+            return Check("text-complete", False, f"{name} holds {len(foreign)} line(s) that are no body text of "
+                         "its own: " + "; ".join(foreign[:_NAMED]))
     if e.lead:  # it ends at its first sub-section's heading, a heading the reader read
         return Check("text-complete", True, "the lead text up to its first sub-section")
     if not s.complete:
@@ -635,6 +661,8 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         own = [l for l in e.lines if id(l) not in nested and line_key(l) not in claimed]
         heads = _heads(own, s.title)
         own = drop_dangling(drop_art(own, ctx), e.lines, heads, set(starts))
+        if e.full:  # the whole span, without what the lead's own reading takes out (for the doubts about it)
+            e.full = drop_art([l for l in e.full if line_key(l) not in claimed], ctx)
         n_prose = sum(prose(l.text) for l in own[heads:])
         if n_prose < _MIN_PROSE and not (e.lead and n_prose):
             continue  # no prose of its own: nothing to read (a table's caption over its rows)
@@ -694,7 +722,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         if e.lead:
             lead_type[id(s)] = etype
         head = " ".join(l.text.strip() for l in own[:heads])
-        p = Parsed(type=etype, name=s.title, fields=_fields(etype, category, entries_, setting),
+        p = Parsed(type=etype, name=fix_acronyms(s.title), fields=_fields(etype, category, entries_, setting),
                    text="\n".join([head] + flat), lines=own)
         p.checks = [_text_check(e, own, heads, [len(o) for o in sibs], [o[-1].page - o[0].page + 1 for o in sibs],
                                 starts, sizes, sections, parts), typed,

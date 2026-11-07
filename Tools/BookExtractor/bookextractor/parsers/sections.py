@@ -41,6 +41,7 @@ Read by the God, Rule and world parsers (Phase 2c).
 from __future__ import annotations
 
 import re
+import statistics
 from dataclasses import dataclass, field
 
 from ..model import Line
@@ -537,6 +538,112 @@ def _names(t: str, names: set[str]) -> bool:
     s = squash_text(t)
     words = {squash_text(w) for w in re.findall(r"[A-Za-z][A-Za-z'’-]*", t)}
     return any(len(n) > 3 and n in s and " " in n for n in names) or bool(words & (names - _GENERIC))
+
+
+_ACRONYMS = {"dm": "DM", "dms": "DMs", "npc": "NPC", "npcs": "NPCs", "pc": "PC", "pcs": "PCs", "xp": "XP", "dc": "DC",
+             "dcs": "DCs"}
+_LONG_NAME = 9  # a heading of this many words is a sentence read as a heading
+
+
+_TRAILING_TALL = 1.1  # a heading-like line this many times the entity's median line height is set as a heading
+
+
+def trailing_heading(lines: list[Line], heads: int) -> str:
+    """A heading and a table at the end of the entity's text: walking back from the end over lines that are no
+    prose, a heading-like line set taller than the entity's body text (GGR Flame-kin ends on "BOROS CREATURES" and its
+    table, which are the next section's), else ''. Task 7 round 4."""
+    body = lines[heads:]
+    if len(body) < 3:
+        return ""
+    tall = _TRAILING_TALL * statistics.median(l.height for l in lines)
+    for k in range(len(body) - 1, 0, -1):
+        l = body[k]
+        if prose(l.text):
+            return ""
+        t = l.text.strip()
+        # set as a heading: taller than the body text, or in small caps (OCR mixed case, "BoRoS CreATuREs", or all
+        # capitals), which a table's header row is not
+        small_caps = len(re.findall(r"[a-z][A-Z]", t)) >= 2 or (t.isupper() and len(re.findall(r"[A-Z]", t)) >= 6)
+        if (l.height >= tall or small_caps) and heading_words(l.text) and not _table_row(l.text) \
+                and body[k - 1].text.rstrip().endswith(SENTENCE_END):
+            return (f"the text ends with the heading-like line {l.text.strip()!r} (p{l.page}) and the lines under it, "
+                    "no prose: they may be the next section's")
+    return ""
+
+
+# the recurring labels of an adventure's or an activity's own parts (EGW "STORY OVERVIEW" in each adventure, XGE
+# "COMPLICATIONS" in each downtime activity): parts of the entity, never another section's heading
+_OWN_PART_LABELS = {"storyoverview", "complications", "adventuresummary", "setupandstartingpoints"}
+
+
+def interior_heading(lines: list[Line], heads: int) -> str:
+    """A heading inside the entity's text that the section reader did not read: a heading-like line over prose, after
+    a finished sentence, set taller than the body text or in small caps (a sibling's heading, a sub-heading, a page's
+    running head: XGE "Describing a Complex Trap" holds "RUNNING A COMPLEX TRAP"), else ''. Task 7 round 4."""
+    body = lines[heads:]
+    if len(body) < 4:
+        return ""
+    med = statistics.median(l.height for l in lines)
+    for k in range(1, len(body) - 1):
+        t = body[k].text.strip()
+        small_caps = len(re.findall(r"[a-z][A-Z]", t)) >= 2 or (t.isupper() and len(re.findall(r"[A-Z]", t)) >= 5)
+        if (small_caps or body[k].height >= 1.15 * med) and len(t.split()) <= 6 and heading_words(t) \
+                and re.sub(r"[^a-z]", "", t.lower()) not in _OWN_PART_LABELS \
+                and body[k - 1].text.rstrip().endswith(SENTENCE_END) and prose(body[k + 1].text):
+            return f"the text holds the heading-like line {t!r} (p{body[k].page}) over prose: another section's heading?"
+    return ""
+
+
+def fix_acronyms(name: str) -> str:
+    """A section's name with the table-top acronyms the title-casing lowered put back ("The Dm Adjudicates the
+    Rules" -> "The DM Adjudicates the Rules", "Customizing Npcs" -> "Customizing NPCs")."""
+    return re.sub(r"[A-Za-z]+", lambda m: _ACRONYMS.get(m.group(0).lower(), m.group(0))
+                  if m.group(0) == m.group(0).capitalize() else m.group(0), name)
+
+
+def odd_opening(name: str, lines: list[Line], heads: int) -> str:
+    """Why the entity's opening cannot be vouched for ('' when it can), for the entries that printed sub-headings
+    make (Task 7 round 4): its first body line begins in lower case (the tail of a paragraph printed before the
+    heading, so the heading is a label over a float or a column break, ERLW "The Hilt" over Wards of Sharn's
+    sentence), or its name is no printed heading (a period inside a word, an unclosed bracket, a sentence's length:
+    TCE art text "TIDAL WAVE BAT.FUR", SCC "If the Charisma (Deception) and Dexterity (Sleight")."""
+    if re.search(r"[A-Za-z]\.[a-z]", name) or name.count("(") != name.count(")") or len(name.split()) >= _LONG_NAME:
+        return f"the name {name!r} is no printed heading: a period inside a word, an unclosed bracket or a sentence"
+    if re.search(r"(?i)\b(?:rules?|variants?)\s*:", name):
+        return (f"the name {name!r} holds a rule's label: a labelled heading is the Rule parser's, and the OCR lost "
+                "part of this one")
+
+    depth = 0
+    for ch in " ".join(l.text for l in lines[heads:]):
+        depth = depth + 1 if ch == "(" else max(0, depth - 1) if ch == ")" else depth
+    if depth:
+        return (f"the text of {name!r} ends inside a bracket it opened: a sentence of it is cut (lines of a stat "
+                "block or a float printed in the middle of it)")
+    tail = trailing_heading(lines, heads) or interior_heading(lines, heads)
+    if tail:
+        return tail
+    last = lines[-1] if len(lines) > heads else None
+    # (a table's row, with a number in it, or a footnote ("*Might involve a rival") has no full stop)
+    if last is not None and prose(last.text) and not re.search(r"[.!?:;)\]\"'”’]$", last.text.rstrip()) \
+            and not re.search(r"\d", last.text) and not last.text.lstrip().startswith("*"):
+        return (f"the text ends in a sentence that is not finished ({last.text.strip()[-40:]!r}, p{last.page}): "
+                "the rest of it is printed elsewhere")
+    words = [w.lower() for w in re.findall(r"[A-Za-z]{5,}", name)]
+    if len(words) != len(set(words)):
+        return f"the name {name!r} repeats a word: two column headings of a table read as one heading"
+    body = next((l for l in lines[heads:] if l.text.strip()), None)
+    # the line under the heading is a short title-like fragment set like the heading: the heading wraps onto it
+    # ("Moving Around Other" / "CREATURES"; "Weak Monsters And High-Level" / "CHARACTERS")
+    if body is not None and 0 < len(body.text.split()) <= 3 and not re.search(r"[.!?:;,]$", body.text.strip()) \
+            and body.text.strip()[:1].isupper() and lines[0].height and body.height >= 0.85 * lines[0].height \
+            and body.page == lines[0].page \
+            and re.sub(r"[^a-z0-9]", "", body.text.lower()) not in re.sub(r"[^a-z0-9]", "", name.lower()):
+        return (f"the line under {name!r} (p{body.page}), {body.text.strip()!r}, is set like the heading: the heading "
+                "may wrap onto it")
+    if body is not None and body.text.strip()[:1].islower():
+        return (f"the text under {name!r} (p{body.page}) opens in lower case ({body.text.strip()[:40]!r}): the tail of "
+                "a sentence printed before the heading")
+    return ""
 
 
 def squash_text(t: str) -> str:

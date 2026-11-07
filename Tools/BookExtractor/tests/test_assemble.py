@@ -1365,3 +1365,36 @@ def test_an_unread_title_between_a_parent_and_its_child_doubts_the_child():   # 
     assert "unread title" in out[id(child)] and "'WIlDErNESS SURVIVaL'" in out[id(child)]
     clean = _sec("Mapping a Wilderness", p, [ml, text(10), sentence, hl, text(40)], 1, size=1.47)
     assert placement_doubts([clean, child], {})[id(child)] == ""
+
+
+def test_a_long_unseen_word_with_a_capital_inside_fails_name_words_known():   # Task 7 round 4
+    from bookextractor.assemble import _unseen_long_word_check
+    from bookextractor.checks import Check
+    from bookextractor.model import Line
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import Parsed
+
+    vocab = build_vocabulary(["Healer's KitDependency", "a healer's kit heals", "Grappling is a rule", "Grappling again"])
+
+    def ent(etype, name, raw):
+        p = Parsed(type=etype, name=name, fields={}, text="", lines=[Line(raw, (0.0, 0.0, 9.0, 9.0), 9.0, 1)])
+        return p, [Check("name-words-known", True, "")]
+    p, cs = ent("Rule", "Healer's Kitdependency", "Healer's KitDependency")
+    assert not _unseen_long_word_check(p, cs, vocab)[0].passed
+    p, cs = ent("Rule", "Grappling", "GRAPPLING")  # printed elsewhere, and no capital inside it
+    assert _unseen_long_word_check(p, cs, vocab)[0].passed
+    p, cs = ent("God", "Kitdependency", "KitDependency")  # a god's coined name is left alone
+    assert _unseen_long_word_check(p, cs, vocab)[0].passed
+
+
+def test_a_very_long_unseen_word_fails_name_words_known_without_a_capital_inside_it():   # Task 7 round 4
+    from bookextractor.assemble import _unseen_long_word_check
+    from bookextractor.checks import Check
+    from bookextractor.model import Line
+    from bookextractor.names import build_vocabulary
+    from bookextractor.parsers import Parsed
+
+    vocab = build_vocabulary(["Initialinfection", "the infection spreads", "an initial wound"])
+    p = Parsed(type="Lore", name="Initialinfection", fields={}, text="",
+               lines=[Line("INITIALINFECTION", (0.0, 0.0, 9.0, 9.0), 9.0, 1)])
+    assert not _unseen_long_word_check(p, [Check("name-words-known", True, "")], vocab)[0].passed

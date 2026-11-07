@@ -92,11 +92,24 @@ def test_a_bold_lead_in_stays_in_its_parent():
     rules, not Rules of their own."""
     rules = phb_ability_scores()
     names = {r.name for r in rules}
-    assert not any(n.startswith(("Lifting and Carrying", "Push, Drag", "Carrying Capacity", "Athletics"))
-                   for n in names), names
-    parent = rule(rules, "Using Each Ability")
+    assert not any(n.startswith(("Push, Drag", "Carrying Capacity", "Athletics")) for n in names), names
+    # "Lifting and Carrying" is a printed sub-heading (a Rule of its own, round 4); its bold lead-ins stay in it
+    parent = rule(rules, "Lifting and Carrying")
     assert "Push, Drag, or Lift. You can push, drag, or lift a" in parent.text
     assert "Carrying Capacity. Your carrying capacity is your" in parent.text
+    assert "Push, Drag, or Lift" not in rule(rules, "Strength Checks").text
+
+
+def test_printed_sub_headings_are_rules_and_share_no_text_with_their_parent():   # round 4
+    """A rules-chapter sub-heading is a Rule of its own, at any depth; its parent holds only the lead before it. No
+    line is in two Rules, and a parent that doubts a sub-section as its sibling still fails text-complete."""
+    for rules in (phb_ability_scores(), dmg(), dmg_workshop(), _parse("phb", [190, 193, 194, 195], "phb14", "PHB")[0]):
+        seen = [id(l) for r in rules for l in r.lines]
+        assert len(seen) == len(set(seen))
+    rules = phb_ability_scores()
+    assert {"Strength Checks", "Lifting and Carrying", "Contests"} <= {r.name for r in rules}
+    assert "Lifting and Carrying" not in rule(rules, "Strength Checks").text.replace("\n", " ")[40:]
+    assert "text-complete" in failed(rule(dmg_workshop(), "Healing"))  # its held sibling "Rest Variants" is named
 
 
 def test_downtime_activities_are_rules():
@@ -184,11 +197,12 @@ def test_a_rule_ends_at_a_tall_heading_the_reader_did_not_read():
 
 
 def test_a_heading_the_reader_nests_stays_in_and_a_long_rule_fails():
-    """W10: "Experience Points" is read as a sub-heading of MADNESS (0.93x its height): it stays in, never a silent
-    cut. Madness then runs over four pages: text-complete fails naming them."""
+    """W10: "Experience Points" is read as a sub-heading of MADNESS (0.93x its height): never a silent cut. Round 4:
+    it is a Rule of its own and Madness no longer holds its text, but Madness still fails text-complete naming it."""
     m = rule(dmg(), "Madness")
-    assert "rid a character of indefinite madness." in m.text
-    assert "Experience points (XP) fuel level advancement" in m.text
+    assert "Experience points (XP) fuel level advancement" not in m.text
+    assert "Experience points (XP) fuel level advancement" in rule(dmg(), "Experience Points").text
+    assert not {id(l) for l in m.lines} & {id(l) for l in rule(dmg(), "Experience Points").lines}
     reason = failed(m)["text-complete"]
     # W24: the sub-heading nearly ended it (within the midpoint band), so the doubt names it first; the four-page
     # run is the other reason
@@ -205,17 +219,23 @@ def test_a_rule_keeps_its_own_tall_sub_headings():
     "HORROR" (0.81) sits within the band under the midpoint between FEAR AND HORROR (0.97) and its first
     sub-heading, so the rule is kept whole and `text-complete` names it (never a silent cut)."""
     fear = rule(dmg_workshop(), "Fear and Horror")
-    assert "make a Charisma saving throw to resist the horror" in fear.text  # under its "HORROR" sub-heading
+    # round 4: each printed sub-heading is a Rule of its own and its parent holds only the lead
+    assert "make a Charisma saving throw to resist the horror" not in fear.text
+    assert "make a Charisma saving throw to resist the horror" in rule(dmg_workshop(), "Horror").text
     assert set(failed(fear)) <= {"text-complete"} and "'HORROR'" in failed(fear).get("text-complete", "'HORROR'")
-    init = rule(dmg_workshop(), "Initiative Variants")
-    assert "try using the side initiative rule" in init.text
-    assert "Under this variant, the players roll a d20" in init.text  # under "Side Initiative"
-    actions = rule(_parse("phb", [190, 193, 194, 195], "phb14", "PHB")[0], "Actions in Combat")
+    side = rule(dmg_workshop(), "Side Initiative")
+    assert "Under this variant, the players roll a d20" in side.text  # under "Side Initiative"
+    assert "Under this variant, the players roll a d20" not in rule(dmg_workshop(), "Initiative Variants").text
+    actions_rules = _parse("phb", [190, 193, 194, 195], "phb14", "PHB")[0]
+    actions = rule(actions_rules, "Actions in Combat")
     for sub in ("Ready", "Search", "Use An Object"):
-        assert sub.lower() in actions.text.lower()
-    assert "You normally interact with an object while doing something else" in actions.text
-    checks = rule(phb_ability_scores(), "Ability Checks")
-    assert "Sometimes one character's or monster's efforts are directly opposed" in checks.text  # CONteSTS
+        assert sub.lower() not in actions.text.lower().split("\n")[0]
+        assert rule(actions_rules, sub.title().replace("An", "an")).text.strip()
+    assert "You normally interact with an object while doing something else" in rule(actions_rules,
+                                                                                  "Use an Object").text
+    checks = rule(phb_ability_scores(), "Contests")  # CONteSTS
+    assert "Sometimes one character's or monster's efforts are directly opposed" in checks.text
+    assert "directly opposed" not in rule(phb_ability_scores(), "Ability Checks").text
 
 
 def test_art_text_and_a_caption_over_another_heading_are_dropped():
@@ -223,10 +243,10 @@ def test_art_text_and_a_caption_over_another_heading_are_dropped():
     Plans" caption printed straight over the "Downtime Activities" heading are not the rule's text."""
     rules, _ = _parse("xge", [78, 124, 125, 126, 127], "xge", "XGE")
     r = rule(rules, "Downtime Revisited")
-    assert "Cheldar wants to make the temple of Pholtus" in r.text
-    assert "minions" not in r.text
-    assert "ChelDar's Plans" not in r.text and "Cheldar's Plans" not in r.text
-    assert "Downtime activities are tasks that usually take" in r.text
+    assert "Cheldar wants to make the temple of Pholtus" in rule(rules, "Example Rival: High Priest Cheldar").text
+    assert not any("minions" in x.text for x in rules)
+    assert not any("ChelDar's Plans" in x.text or "Cheldar's Plans" in x.text for x in rules)
+    assert "Downtime activities are tasks that usually take" in rule(rules, "Downtime Activities").text
 
 
 def test_a_heading_left_in_a_rule_fails_text_complete():
@@ -281,7 +301,8 @@ def test_a_rule_holding_a_sibling_sized_heading_fails_text_complete_naming_it():
     keeps it (never a silent cut) and `text-complete` names it, so the Rest Variants rule is never Accepted as
     Healing's text."""
     healing = rule(dmg_workshop(), "Healing")
-    assert "The rules for short and long rests" in healing.text
+    assert "The rules for short and long rests" not in healing.text  # round 4: Rest Variants is a Rule of its own
+    assert "The rules for short and long rests" in rule(dmg_workshop(), "Rest Variants").text
     reason = failed(healing)["text-complete"]
     assert "'Rest VarianTs'" in reason and "holds" in reason
 
@@ -291,7 +312,9 @@ def test_a_rule_holding_a_sibling_sized_section_fails_text_complete():   # W25: 
     (1.33) under it: the rule keeps the text whole, and `text-complete` names the held section."""
     rules = _parse("phb", [190, 193, 194, 195, 196, 197, 198, 199], "phb14", "PHB")[0]
     cover = rule(rules, "Cover")
-    assert "Temporary Hit Points" in cover.text  # kept, never a silent cut
+    assert "Temporary Hit Points" not in cover.text  # round 4: "Damage and Healing" is a Rule of its own
+    assert "Temporary Hit Points" in rule(rules, "Temporary Hit Points").text
+    assert not {id(l) for l in cover.lines} & {id(l) for l in rule(rules, "Damage and Healing").lines}
     why = failed(cover)["text-complete"]
     assert "'Damage and Healing'" in why and "set like its parent's siblings" in why
     assert "set like its parent's siblings" not in failed(rule(rules, "Making an Attack")).get("text-complete", "")

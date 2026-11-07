@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import collections
 import json
+import os
 import re
 import statistics
 import sys
@@ -188,6 +189,9 @@ _CHARACTER_TYPES = ("Class", "Subclass", "Race", "Subrace", "Feat", "Background"
 _EQUIPMENT_TYPES = ("Weapon", "Armor", "Item", "VehicleMount", "Object", "Trap", "DiseasePoison", "Condition")
 _SECTION_TYPES = ("Plane", "Faction", "Location", "Lore")  # scored together, as "Section": 5etools has no such types
 _WORLD_TYPES = ("God", "Rule", "Section")
+# SECTION_STRICT=1 scores the section tree as before round 4: a God or a Rule neither owns a section node's name nor
+# prints a lead-in inside it (the strict figure, reported beside the default one)
+_STRICT_SECTIONS = os.environ.get("SECTION_STRICT") == "1"
 _UNMEASURED_TYPES = _EQUIPMENT_TYPES + _WORLD_TYPES  # truth may carry no text: unmeasured, not 0%
 TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat", "Background",
          *_EQUIPMENT_TYPES, *_WORLD_TYPES)
@@ -936,19 +940,21 @@ def match_one_to_one(truth_keys: list[str], keys: list[str]) -> dict[int, tuple[
 
 
 def _section_owners(entities: list[dict]) -> dict[str, str]:
-    """match key -> id of the earlier-type entity (not a world type) printed under that name: a 5etools section
-    node named like it is that entity's text (ruling W27 (a))."""
+    """match key -> id of the other-type entity (not Plane/Faction/Location/Lore, a God or a Rule included since round
+    4: a rules-chapter sub-heading is a Rule of its own) printed under that name: a 5etools section node named like
+    it is that entity's text (ruling W27 (a))."""
     out: dict[str, str] = {}
     for e in entities:
-        if e.get("type") not in _SECTION_TYPES + ("God", "Rule") and e.get("name"):
+        if e.get("type") not in _SECTION_TYPES + (("God", "Rule") if _STRICT_SECTIONS else ()) and e.get("name"):
             out.setdefault(match_key("Section", e["name"]), e.get("id", e["name"]))
     return out
 
 
 def _section_texts(entities: list[dict]) -> list[tuple[str, str]]:
-    """(id, text) of every world-type entity, for the printed-inside test."""
+    """(id, text) of every world-type entity (a Rule and a God included since round 4: a rules-chapter sub-heading is
+    a Rule of its own and prints its bold lead-ins), for the printed-inside test."""
     return [(e.get("id", e["name"]), e.get("canonicalText") or "") for e in entities
-            if e.get("type") in _SECTION_TYPES]
+            if e.get("type") in _SECTION_TYPES + (() if _STRICT_SECTIONS else ("God", "Rule"))]
 
 
 def _printed_inside(name: str, texts: list[tuple[str, str]]) -> str | None:
