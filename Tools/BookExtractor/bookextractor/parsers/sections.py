@@ -45,8 +45,8 @@ from dataclasses import dataclass, field
 
 from ..model import Line
 from . import ParseContext
-from .charcommon import (SENTENCE_END, caps_heading, char_width, character_body, heading_like, median_height,
-                         name_case, set_apart, text_lines, title_case, vertical)
+from .charcommon import (_LARGE, SENTENCE_END, caps_heading, char_width, character_body, heading_like,
+                         median_height, name_case, set_apart, text_lines, title_case, vertical)
 
 # "Chapter 2: Guilds of Ravnica", "CHAPTER 1:", "CHAPTER1", "APPENDIX A: CONDITIONS" (never "chapter 3." in a
 # sentence: the word is capitalised and a bare number is not followed by a full stop or bracket)
@@ -134,6 +134,28 @@ def chapter_titles(B: list[Line]) -> list[tuple[list[int], str]]:
         words = " ".join(B[k].text.strip() for k in sorted(near, key=lambda k: (round(B[k].box[1] / l.height),
                                                                                  B[k].box[0])))
         out.append(([i] + near, f"{word} {n}: {name_case(words)}" if words else f"{word} {n}"))
+    return out
+
+
+def display_lines(B: list[Line], title_of: dict) -> list[Line]:
+    """The lines set taller than body text's art-text cut (`charcommon._LARGE` times the median line height) that
+    read as a section heading the reader never reads: heading words, no part of a chapter title, no headline's
+    question or exclamation mark, straight over prose on their page set clearly smaller (ERLW "RACES", p18, 2.2x
+    the median, over "Humanoids of all kinds ..."). The text stripper drops them as art text; the world rules doubt
+    the top sections after one that are set clearly smaller than it (Task 7 round 1). Reading them as headings was
+    measured and rejected: ERLW's newspaper headlines ("UNDER SIEGE", "VAMPIRE KING") read the same way."""
+    med = median_height(B)
+    out: list[Line] = []
+    for i, l in enumerate(B):
+        t = l.text.strip()
+        # a drop cap ("A", set 6x) is no heading: a word of three letters at least
+        if l.height <= _LARGE * med or id(l) in title_of or vertical(l.box) or not _heading_text(t) \
+                or t.endswith(("?", "!")) or not re.search(r"[A-Za-z]{3}", t):
+            continue
+        nxt = B[i + 1] if i + 1 < len(B) else None
+        if nxt is not None and nxt.page == l.page and id(nxt) not in title_of and prose(nxt.text) \
+                and nxt.height < l.height / _HEAD_SIZE:
+            out.append(l)
     return out
 
 
@@ -474,13 +496,14 @@ def drop_dangling(own: list[Line], raw: list[Line], heads: int, starts: set[int]
 _NET_WORDS = 12  # a title or caption holds this many words at most
 _NET_DISPLAY = 1.4  # a line this many times the text's median line height is display text, not body text
 _NET_CAPS = 3  # a line of this many words in capitals and none in lower case is a caption or a display line
+_LABELLED = re.compile(r"(?i)^(?:variants?|optional\s*rules?)\s*:\s*")  # a rule's printed label before its name
 
 
 def _title_like(t: str) -> bool:
     """Title words, commas allowed ("The Legend of Tyche and Her Twin Daughters", "SYmBol OF HOAR"): short,
     opening with a capital, no closing full stop or semicolon, no colon (a labelled field), every word capitalised
     but the small ones, fewer than three words in lower case (prose)."""
-    t = t.strip()
+    t = _LABELLED.sub("", t.strip())  # "Variant: Encumbrance", "Optional Rule: Mad Winds": the name after the label
     words = re.findall(r"[A-Za-z][A-Za-z'’-]*", t)
     # a colon labels a field ("Skill Proficiencies: Insight, Intimidation"), a digit is a table's ("Huge -5"), a
     # full stop inside is a bold lead-in's ("Conflict Shapes the World's History. Powerful"): never a title here
@@ -493,10 +516,18 @@ def _title_like(t: str) -> bool:
                for w in words)
 
 
+# name words that name nothing by themselves: a heading holding one is not the entity's for that
+_GENERIC = {"spell", "spells", "item", "items", "magic", "magical", "ability", "abilities", "rule", "rules",
+            "variant", "option", "optional", "table", "tables", "action", "actions", "other", "new", "using",
+            "creating", "running", "playing", "character", "characters", "adventure", "adventures", "the"}
+
+
 def _names(t: str, names: set[str]) -> bool:
-    """The line names the entity: one of its name words (squashed, three letters at least) is in it."""
+    """The line names the entity: the whole name is in it (squashed), or one of the name's own words is a whole
+    word of it; a generic word ("Magic Item Price" holds "Item", "Magic") names nothing by itself."""
     s = squash_text(t)
-    return any(n in s for n in names)
+    words = {squash_text(w) for w in re.findall(r"[A-Za-z][A-Za-z'’-]*", t)}
+    return any(len(n) > 3 and n in s and " " in n for n in names) or bool(words & (names - _GENERIC))
 
 
 def squash_text(t: str) -> str:
@@ -508,7 +539,8 @@ def name_words(name: str) -> set[str]:
     whole name ("Avandra, the Change Bringer" -> avandra, change, bringer, ...)."""
     words = {squash_text(w) for w in re.findall(r"[A-Za-z][A-Za-z'’-]*", name) if len(w) >= 3}
     words -= {squash_text(w) for w in _OPEN_END} | {"the"}
-    return words | {squash_text(name)} - {""}
+    whole = re.sub(r"\s+", " ", re.sub(r"[^A-Za-z0-9 ]", "", name).lower()).strip()
+    return words | ({whole} if " " in whole else set()) - {""}
 
 
 _ROW_LINE = re.compile(r"^(?:\d|d\d)")  # a table row opens with its number, range or die ("1-5 Character ...")

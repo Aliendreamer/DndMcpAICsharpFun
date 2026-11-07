@@ -402,7 +402,8 @@ def test_siblings_under_a_taller_copy_of_a_heading_are_doubted():   # W24 (vi): 
     ents, _ = _parse("scc", [5, 6, 7], "scc", "SCC")
     for name in ("About This Book", "Strixhaven's World"):
         why = failed(one(ents, name))["entry-level"]
-        assert "taller copy (77.5)" in why and "'Welcome to Strixhaven'" in why, (name, why)
+        # Task 7: the unread display line rule names the same title first; the taller-copy run stands behind it
+        assert "77.5" in why and "'Welcome to Strixhaven'" in why, (name, why)
 
 
 def test_a_section_with_prose_never_vanishes():   # W24 (i): VRGR domains, MM "Actions", a book's opening sections
@@ -490,3 +491,36 @@ def test_a_containers_one_sentence_lead_is_kept_and_flagged():   # W25: DMG Othe
     assert "A variety of realms exist" in lead.text
     assert "one prose line only" in failed(lead)["entry-level"]
     assert one(ents, "Demiplanes").fields.get("category") == "Other Planes"
+
+
+def test_the_opener_run_starts_from_any_misfiled_section():   # Task 7 r1: VRGR Horror Monsters p224
+    """HORROR MONSTERS (p224, left column) is read before the chapter title "Monsters of Ravenloft" (right column
+    top), so it is filed under the chapter before (here: a lost one). Its parts Notorious Monsters ... Monstrous
+    Minions follow as the new chapter's top sections: all doubted as the opener's sub-sections."""
+    ents, _ = _parse("vrgr", [224, 225, 226], "vrgr", "VRGR")
+    for name in ("Notorious Monsters", "Describing Monsters", "Monstrous Tactics", "Monstrous Traits",
+                 "Monstrous Minions"):
+        why = failed(one(ents, name))["entry-level"]
+        assert "chapter opener" in why and "'Horror Monsters'" in why, (name, why)
+
+
+def test_top_sections_after_an_unread_display_heading_are_doubted():   # Task 7 r1: ERLW "RACES" p18
+    """"RACES" (p18, 63 tall, 2.2x the median) is set over its own prose but the text stripper drops it as art text:
+    the top sections after it set clearly smaller (Changelings ... Dwarves, 45-48 tall) may be its sub-sections,
+    and are doubted naming it."""
+    from bookextractor.model import Line
+    from bookextractor.parsers.sections import display_lines
+
+    ents, _ = _parse("erlw", [18, 19, 20, 21], "erlw", "ERLW")
+    for name in ("Dragonborn", "Dwarves"):
+        why = failed(one(ents, name))["entry-level"]
+        assert "display line 'RACES'" in why and "63.0" in why, (name, why)
+    # a drop cap, a headline and a chapter title are no display heading; a tall heading over prose is
+    def ln(t, h, y, page=1):
+        return Line(t, (100.0, y, 700.0, y + h), h, page)
+    body = [ln("humanoids of all kinds walk the lands of this world in peace.", 30.0, 200.0 + 40 * k) for k in range(8)]
+    B = [ln("A", 180.0, 10.0)] + body + [ln("UNDER SIEGE?", 72.0, 600.0), ln("the city fell to the invaders last night.", 30.0, 680.0),
+         ln("RACES", 63.0, 800.0), ln("the races of this world are presented in alphabetical order here.", 30.0, 870.0),
+         ln("CHARACTER", 60.0, 1000.0), ln("the chapter opens with the basics of character creation.", 30.0, 1070.0)]
+    out = display_lines(B, {id(B[-2]): "Chapter 1: Character Creation"})
+    assert [l.text for l in out] == ["RACES"]

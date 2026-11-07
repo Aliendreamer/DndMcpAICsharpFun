@@ -94,8 +94,8 @@ from ..model import Line
 from . import ParseContext, Parsed
 from .charcommon import SENTENCE_END, SMALL_WORDS, character_body, prose_entries, set_apart, squash
 from .rule import rules_chapter
-from .sections import (_SUB_STEP, UNKNOWN_CHAPTER, Section, chapter_titles, drop_art, drop_dangling, foreign_lines,
-                       heading_words, line_key, name_words, prose, read_sections)
+from .sections import (_SUB_STEP, UNKNOWN_CHAPTER, Section, chapter_titles, display_lines, drop_art, drop_dangling,
+                       foreign_lines, heading_words, line_key, name_words, prose, read_sections)
 
 # the book's setting, for the setting books (a dev-time constant, by 5etools source key)
 SETTINGS = {"ERLW": "Eberron", "EGW": "Exandria", "GGR": "Ravnica", "SCAG": "Forgotten Realms", "VRGR": "Ravenloft",
@@ -341,9 +341,16 @@ def _style(t: str) -> str:
         return ""
     if all(x.isupper() for x in words):
         return "caps"
-    if all(x[1:].islower() for x in words):
+    if all(_title_word(x) for x in words):
         return "title"
     return ""
+
+
+def _title_word(x: str) -> bool:
+    """A title-case word through OCR casing noise: a capital first (or a small word in lower case), and lower case
+    for most of the rest ("CarnIval" in "The Cog CarnIval"; "RANgeR" is none: three of six capitals)."""
+    rest = x[1:]
+    return (x[:1].isupper() or x.islower()) and (not rest or sum(c.islower() for c in rest) > len(rest) / 2)
 
 
 def _heading_line(t: str) -> bool:
@@ -413,12 +420,14 @@ def _doubt(s: Section, own: list[Line], heads: int, starts: dict[int, int], size
         elif not over_prose:
             if same_style:
                 out.append(f"{what}: styled like its own heading ({style}), over lines that are no prose")
-        elif l.height >= _DOUBT * head and (not peers or l.height > _PEER * max(peers)
-                                            or s.size > 0 and id(l) in sizes and sizes[id(l)] >= _PEER_SIZE * s.size):
+        elif l.height >= _DOUBT * head and (not peers or l.height > _PEER * max(peers) or not s.size
+                                            or id(l) in sizes and sizes[id(l)] >= _PEER_SIZE * s.size):
             out.append(f"{what}: set at least {_DOUBT}x as tall as its own heading"
                        + (", with no peer sub-heading" if not peers else
                           f" and over {_PEER}x its tallest peer sub-heading ({max(peers):.1f})"
                           if l.height > _PEER * max(peers) else
+                          "; the section's own heading has no measured size, so its peers cannot be told from "
+                          "siblings" if not s.size else
                           f", its reader size {sizes[id(l)]:.2f} at least {_PEER_SIZE}x its own heading's "
                           f"{s.size:.2f} (its peers are siblings the reader nested)"))
         elif same_style:
@@ -886,27 +895,62 @@ def placement_doubts(sections: list[Section], chapters: dict[int, set[str]],
     # a chapter opener filed under the previous chapter (its page prints the new chapter's title): the new
     # chapter's top sections after it, set clearly smaller than it, may be its sub-sections
     def misfiled(s: Section) -> bool:
+        """Its page prints a chapter title that is not its own (none, when it precedes the book's first title)."""
         here = chapters.get(s.page, set())
-        return bool(here and s.parents and s.parents[0] != UNKNOWN_CHAPTER and squash(s.parents[0]) not in here)
+        return bool(here and (not s.parents or s.parents[0] == UNKNOWN_CHAPTER or squash(s.parents[0]) not in here))
     after_opener: dict[int, Section] = {}
     for x in sections:
-        if x.level != 1 or not x.size or not misfiled(x):
-            continue
+        if not x.size or not misfiled(x):
+            continue  # any misfiled section, at any level (VRGR "Horror Monsters" under a garbage parent)
         for o in sections[order[id(x)] + 1:]:
-            if o.level != 1:
-                continue
-            if o.parents == x.parents or not o.size or o.size >= (1 - _SUB_STEP) * x.size:
+            if o.level != 1 or o.parents[:1] == x.parents[:1]:
+                continue  # the opener's own chapter group, still before the new title in reading order
+            if not o.size or o.size >= (1 - _SUB_STEP) * x.size:
                 break
             after_opener.setdefault(id(o), x)
     held_by_parent = {id(c) for p in sections for c in held_siblings(p, sections)}
+    # an unread display line (ERLW "RACES") over prose: the top sections after it set clearly smaller may be its
+    # sub-sections; the run ends at the first top section as tall, or at another chapter
+    under_display: dict[int, Line] = {}
+    if body:
+        tops = [s for s in sections if s.level == 1]
+        at = {line_key(l): k for k, l in enumerate(body)}
+        pos = {id(s): at.get(line_key(s.lines[0]), -1) for s in tops}
+        for d in display_lines(list(body), {}):
+            k0 = at.get(line_key(d))
+            # a chapter title's line is no display heading (VRGR "MonsterS Of RavenLoft")
+            if k0 is None or any(squash(d.text) in c for c in chapters.get(d.page, ())):
+                continue
+            after = sorted((o for o in tops if pos[id(o)] > k0), key=lambda o: pos[id(o)])
+            # the display line heads the top sections right after it: the first must start on its page or the
+            # next (a map label or art text pages before a section governs nothing: SCAG "Shaar" p11, "A Brief
+            # History" p16); and the run ends at a top section set like the chapter's top sections printed before
+            # the display line (DMG "Outer Planes" after "THE ELEMENTAL PLANES", among Astral Plane and the rest)
+            if not after or after[0].page > d.page + 1:
+                continue
+            chapter = after[0].parents[:1]
+            before = [o.size for o in tops if pos[id(o)] < k0 and o.parents[:1] == chapter and o.size]
+            floor = (1 - _SUB_STEP) * median(before) if len(before) >= 2 else None
+            for o in after:
+                if o.parents[:1] != chapter or o.lines[0].height * (1 + _SUB_STEP) > d.height \
+                        or floor is not None and o.size >= floor:
+                    break
+                under_display.setdefault(id(o), d)
     god_words = {g: re.findall(r"[a-z]+", re.split(r",| \(", g)[0].lower()) for g in gods}
     memo: dict[int, tuple[str, str]] = {}
 
     def own(s: Section) -> str:
-        here = chapters.get(s.page, set())
-        if here and s.parents and s.parents[0] != UNKNOWN_CHAPTER and squash(s.parents[0]) not in here:
+        if misfiled(s):
             return (f"the page of {s.title!r} (p{s.page}) prints another chapter's title than its chapter "
-                    f"{s.parents[0]!r}: it is filed under the wrong chapter")
+                    f"{s.parents[0]!r}: it is filed under the wrong chapter"
+                    if s.parents and s.parents[0] != UNKNOWN_CHAPTER else
+                    f"the page of {s.title!r} (p{s.page}) prints a chapter title, yet it is filed under none "
+                    "read: read before the title it belongs to")
+        if (d := under_display.get(id(s))) is not None:
+            return (f"the heading {s.title!r} (p{s.page}, height {s.lines[0].height:.1f}) is set clearly smaller "
+                    f"than the display line {d.text.strip()!r} (p{d.page}, height {d.height:.1f}) printed before "
+                    "it, which the reader did not read as a heading: it may be a sub-section of it"
+                    + (f", not of {s.parents[-1]!r}" if s.parents else ""))
         if (x := after_opener.get(id(s))) is not None:
             return (f"the heading {s.title!r} (p{s.page}, size {s.size:.2f}) is set clearly smaller than {x.title!r} "
                     f"(p{x.page}, size {x.size:.2f}), the chapter opener filed under {x.parents[0]!r}: it may be a "

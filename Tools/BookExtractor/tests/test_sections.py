@@ -239,3 +239,22 @@ def test_the_structural_net_names_titles_captions_and_display_lines():   # W25
                "'Creature Size Initiative Modifier'", "'Huge -5'"):
         assert ok not in flagged, out
     assert len(out) == 4, out
+
+
+def test_the_net_names_entities_by_their_own_words_and_sees_labelled_headings():   # Task 7 r1 minors
+    from bookextractor.model import Line
+    from bookextractor.parsers.sections import _names, _title_like, foreign_lines, name_words
+
+    # a generic name word ("Item", "Magic") names nothing by itself; the entity's own word or whole name does
+    assert not _names("Magic Item Price", name_words("Buying a Magic Item"))
+    assert _names("Buying a Magic Item", name_words("Buying a Magic Item"))
+    assert _names("SYmBol OF BANE", name_words("Bane")) and not _names("Baneful Winds", name_words("Bane"))
+    # a labelled heading is a title: a foreign "Variant: ..." inside an entity is named
+    assert _title_like("Variant: Encumbrance") and _title_like("OPtional Rule: Mad Winds")
+    assert not _title_like("Rank 1: Official")
+
+    def ln(t, page, y, h=30.0):
+        return Line(t, (100.0, y, 700.0, y + h), h, page)
+    prose = "the wind howls over the moor and the travellers press on."
+    own = [ln("Travel", 1, 0.0, 40.0), ln(prose, 1, 40.0), ln("Variant: Mad Winds", 1, 120.0), ln(prose, 1, 150.0)]
+    assert any("'Variant: Mad Winds'" in o for o in foreign_lines(own, 1, name_words("Travel")))

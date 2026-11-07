@@ -1293,3 +1293,36 @@ def test_a_section_holding_a_sibling_sized_part_is_doubted_but_its_other_parts_a
     assert "holds 'Clerics'" in out[id(bards)] and "set like its parent's siblings" in out[id(bards)]
     assert out[id(college)] == ""  # the held-sibling doubt is the section's own, never inherited
     assert "set like the siblings" in out[id(clerics)]
+
+
+def test_a_zero_size_section_counts_its_tall_peers_as_doubtful():   # Task 7 r1: ledger 67 (a)
+    from bookextractor.parsers.world import _doubt
+    from tests.test_world import PROSE, _synthetic
+    spec = [("Religious Order Contact", 30.0, 1), (PROSE, 30.0, None), ("Contact Peer", 26.0, 2),
+            (PROSE, 30.0, None), ("Contact Other", 26.0, 2), (PROSE, 30.0, None), (PROSE, 30.0, None)]
+    sec, own, starts = _synthetic(spec)
+    sec.size = 0.0
+    doubts = _doubt(sec, own, 1, starts, {id(own[2]): 0.5, id(own[4]): 0.5})
+    assert any("no measured size" in d for d in doubts), doubts
+
+
+def test_run_style_tolerates_ocr_casing_noise_and_counts_only_peers_over_prose():   # Task 7 r1: ledger 67 (b), (c)
+    from bookextractor.parsers.world import _doubt, _run_style, _style
+    from tests.test_world import PROSE, _synthetic
+    assert _run_style("The Cog CarnIval") == "title" and _run_style("RANgeR") == "caps"
+    assert _style("The Sword Coast and the North") == "title"  # small words in lower case keep the style
+    assert _run_style("Gnome Ideals") == "title" and _run_style("The Hidden Rune") == "title"
+    # exactly three same-styled peers over prose fire the run
+    spec = [("MONK", 40.0, 1), (PROSE, 30.0, None)]  # a caps heading: its title-case peers are not "styled like it"
+    for name in ("The Cog CarnIval", "The Iron Market", "The Old Mill"):
+        spec += [(name, 31.0, 2), (PROSE, 30.0, None), (PROSE, 30.0, None)]
+    sec, own, starts = _synthetic(spec)
+    doubts = _doubt(sec, own, 1, starts, {id(l): 0.6 for l in own if id(l) in starts and l is not own[0]})
+    assert any("run of 3 peer sub-headings" in d for d in doubts), doubts
+    # a peer over a table, not prose, does not count: two over prose are no run
+    spec = [("MONK", 40.0, 1), (PROSE, 30.0, None), ("The Cog CarnIval", 31.0, 2), (PROSE, 30.0, None),
+            ("The Iron Market", 31.0, 2), ("d6 Result", 30.0, None), ("1 A ring", 30.0, None), ("2 A coin", 30.0, None),
+            ("3 A key", 30.0, None), ("The Old Mill", 31.0, 2), (PROSE, 30.0, None), (PROSE, 30.0, None)]
+    sec, own, starts = _synthetic(spec)
+    doubts = _doubt(sec, own, 1, starts, {id(l): 0.6 for l in own if id(l) in starts and l is not own[0]})
+    assert not any("run of" in d for d in doubts), doubts
