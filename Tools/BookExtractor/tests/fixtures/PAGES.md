@@ -155,3 +155,5 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | mm | 123 | World sections (W14): the Duergar stat block's "Actions" (weapon attacks): never a world section |
 | erlw | 141, 143, 144, 145, 148 | World sections (W16): "Khorvaire" (Faiths of Khorvaire) with the Sovereign Host, Dark Six, the mis-picked "Symbol" (p144, holding RITES / TEMPLES) and the faiths that print Symbol / Rites / Temples again (with erlw 104, 142, 146, 147) |
 | egw | 236, 237 | World sections (W16): "Story Overview" holding an NPC stat block (Slam / Shoulder-Mounted Crossbow): kept and flagged |
+| dmg | 125, 126, 127, 128, 129, 130, 131 | World sections (W21): "Chapter 6: Between Adventures"; the "Stronghold Cost Time" table caption read as a level-1 heading over Carousing and the other downtime activities, the "CAROUSING" table title under "Carousing" |
+| vrgr | 096, 124, 125, 144, 145 | World sections (W21): Dementlieu, then Kalakeri and Mordent whose domain titles the reader misses: "Noteworthy Features" printed twice under "Dementlieu" |

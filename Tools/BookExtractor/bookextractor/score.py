@@ -34,7 +34,18 @@ KNOWN_DIFFERENCES: dict[tuple[str, str, str], tuple[object, str]] = {
     ("phb", "Human", "ability"): (
         [{"str": 1, "dex": 1, "con": 1, "int": 1, "wis": 1, "cha": 1}],
         "the race prints +1 to every score (5etools puts it on a nameless Human subrace)"),
+    ("dmg", "Automatic Success", "ruleType"): ("V", "the heading prints 'Variant: Automatic Success' (5etools: VO)"),
+    **{("phb", g, "domains"): ([], "the page prints 'Suggested Domains: no clerics' (5etools: Arcana, a later "
+                                   "book's domain)") for g in ("Solinari", "Lunitari", "Nuitari")},
 }
+# a pantheon the book prints under another word than 5etools: (book, 5etools pantheon) -> (ours, what is printed).
+# Excused only while our value is exactly the one listed.
+PRINTED_PANTHEONS: dict[tuple[str, str], tuple[str, str]] = {
+    ("mtf", "Elven"): ("Elf", "the table title prints 'Elf Deities (The Seldarine)' (5etools: Elven)"),
+    ("mtf", "Dwarven"): ("Dwarf", "the table title prints 'Dwarf Deities (The Mordinsamman)' (5etools: Dwarven)"),
+}
+# a rule heading's printed label ("Variant: Encumbrance", "Optional Rule: Mad Winds"); the OCR may join the words
+_RULE_LABEL = re.compile(r"^(?:variants?|optional\s*rules?)\s*:", re.I)
 _TCE_BLESSED = "TCE prints it as a Cleric class option, not inside the domain section"
 # 5etools feature refs the book does not print in that entry: (book, entry name) -> [(feature, level, why)].
 # They are left out of the features comparison only.
@@ -1081,6 +1092,16 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
         if etype == "MagicItem" and len(rarity_family(t)) > 1:
             fam[0] += 1
             fam[1] += fields.get("rarity") == "varies"
+        if etype == "God" and res.get("pantheon") is False and \
+                (pp := PRINTED_PANTHEONS.get((book, t.get("pantheon") or ""))) and fields.get("pantheon") == pp[0]:
+            known.append(f"{t['name']}: pantheon ({pp[1]})")
+            res["pantheon"] = True  # agrees with the printed book
+        if etype == "Rule" and res.get("ruleType") is False and not fields.get("ruleType") and \
+                not _RULE_LABEL.match((idx[k].get("canonicalText") or "").split("\n", 1)[0].strip()):
+            # 5etools classifies the rule; the book prints no label on its heading, so there is no value to compare
+            known.append(f"{t['name']}: ruleType not printed (no Variant/Optional Rule label on the heading; "
+                         f"5etools: {t.get('ruleType')})")
+            res["ruleType"] = None
         for f, ok in res.items():
             if ok is None:
                 skipped[f] += 1

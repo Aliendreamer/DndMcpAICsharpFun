@@ -940,3 +940,49 @@ def test_rule_key_strips_downtime_activity_prefix():
     """5etools names PHB's printed "Crafting" downtime activity "Downtime Activity: Crafting"."""
     e = {"type": "Rule", "name": "Crafting", "fields": {}}
     assert score_book("phb", [e], FT, "Rule")["found"] == 1
+
+
+@needs_5etools
+def test_mtf_printed_elf_and_dwarf_pantheons_are_known_differences():
+    for name, ours, other in (("Corellon Larethian", "Elf", "Elves"), ("Moradin", "Dwarf", "Dwarves")):
+        r = score_book("mtf", [{"type": "God", "name": name, "fields": {"pantheon": ours}}], FT, "God")
+        assert r["fields"]["pantheon"]["pct"] == 100, name
+        assert any(k.startswith(f"{name}: pantheon (the table title prints") for k in r["knownDifferences"])
+        bad = score_book("mtf", [{"type": "God", "name": name, "fields": {"pantheon": other}}], FT, "God")
+        assert bad["fields"]["pantheon"]["pct"] == 0 and not any("pantheon (" in k for k in bad["knownDifferences"])
+
+
+def _rule(name, text, **fields):
+    return {"type": "Rule", "name": name, "canonicalText": text + "\nThis optional rule replaces the usual rule.",
+            "fields": fields}
+
+
+@needs_5etools
+def test_an_unlabelled_rule_heading_skips_rule_type_with_a_known_line():
+    r = score_book("dmg", [_rule("Healing", "Healing")], FT, "Rule")
+    assert "ruleType" not in r["fields"] and r["skipped"].get("ruleType") == 1
+    assert "Healing: ruleType not printed (no Variant/Optional Rule label on the heading; 5etools: O)" \
+        in r["knownDifferences"]
+    # a labelled heading with no ruleType is a parser miss and still scores wrong
+    bad = score_book("dmg", [_rule("Healing", "Optional Rule: Healing")], FT, "Rule")
+    assert bad["fields"]["ruleType"]["pct"] == 0 and not any("not printed" in k for k in bad["knownDifferences"])
+
+
+@needs_5etools
+def test_dmg_automatic_success_variant_is_a_known_difference():
+    r = score_book("dmg", [_rule("Automatic Success", "Variant: Automatic Success", ruleType="V")], FT, "Rule")
+    assert r["fields"]["ruleType"]["pct"] == 100
+    assert any(k.startswith("Automatic Success: ruleType (the heading prints") for k in r["knownDifferences"])
+    bad = score_book("dmg", [_rule("Automatic Success", "Variant: Automatic Success", ruleType="O")], FT, "Rule")
+    assert bad["fields"]["ruleType"]["pct"] == 0
+
+
+@needs_5etools
+def test_phb_moon_gods_printed_without_clerics_are_known_differences():
+    for name in ("Solinari", "Lunitari", "Nuitari"):
+        r = score_book("phb", [{"type": "God", "name": name, "fields": {"domains": []}}], FT, "God")
+        assert r["fields"]["domains"]["pct"] == 100, name
+        assert any(k.startswith(f"{name}: domains (the page prints 'Suggested Domains: no clerics'")
+                   for k in r["knownDifferences"])
+        bad = score_book("phb", [{"type": "God", "name": name, "fields": {"domains": ["War"]}}], FT, "God")
+        assert bad["fields"]["domains"]["pct"] == 0

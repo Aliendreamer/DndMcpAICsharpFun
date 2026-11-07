@@ -51,8 +51,6 @@ Checks (each names the values involved):
   than it is runs on over its siblings), and its text runs through no heading that does not name the deity (its
   own sub-section, or a sidebar the reader cannot bound: the check names them);
 - `display-lines-dropped` (passing note): the pull-quote lines left out of the text.
-
-Not registered in the assembler yet (Phase 2c ruling W1): Task 6 does that.
 """
 from __future__ import annotations
 

@@ -62,7 +62,12 @@ container is an entry typed Plane, Faction or Location, or its heading recurs in
 A container's lead text ends at its first sub-section's heading, a heading the reader read: only the first two
 checks apply to it (DMG "Fun Combat Encounters" holds the unread, taller "Random Encounters").
 
-Not registered in the assembler yet (Phase 2c ruling W1): Task 6 does that.
+`entry-level` also fails (ruling W21) when the parent heading that types the section, names its category and tells
+its id apart (ruling W11) is not verified as the heading enclosing it (`parent_doubt`): the parent repeats the
+section's own heading (a table title read under its section), the parent prints the section's heading more than once
+(entry headings between them were not read: VRGR's unread domain titles), the parent holds no sentence of its own (a
+table caption or title read as a heading: DMG "Stronghold Cost Time"), or the parent itself sits under one. It fails
+too for a section whose own text holds no sentence (a table read as a section).
 """
 from __future__ import annotations
 
@@ -139,7 +144,8 @@ class _Entry:
     container: Section | None = None  # the container whose sub-section this entry is
 
 
-def _bare(heading: str) -> str:
+def bare_heading(heading: str) -> str:
+    """The printed heading without its "Chapter N:" / "Appendix X:" prefix."""
     return _CHAPTER_PREFIX.sub("", heading)
 
 
@@ -147,7 +153,7 @@ def _head_noun(title: str) -> tuple[str, bool]:
     """(the heading's head noun, lower case; whether a gerund comes before it: "Creating Domains of Dread" names an
     activity, not a group). The head noun is the last word before "of" ("Nations of Khorvaire"), or the last word
     ("The Outer Planes")."""
-    pre = re.split(r"(?i)\s+of\s+", _bare(title), maxsplit=1)[0]
+    pre = re.split(r"(?i)\s+of\s+", bare_heading(title), maxsplit=1)[0]
     words = re.findall(r"[A-Za-z][A-Za-z'’-]*", pre)
     if not words:
         return "", False
@@ -166,7 +172,7 @@ def parent_type(parent: str | None) -> tuple[str | None, str, Check | None]:
     if etype is None or gerund:
         return None, (f"the head noun {noun!r} of its parent heading {parent!r} is no plural plane, faction or location "
                       "word" + (" (an activity heading)" if etype and gerund else "")), None
-    hits = sorted((m.start(), t, m.group(0)) for t, rx in _TYPE_WORDS for m in rx.finditer(_bare(parent)))
+    hits = sorted((m.start(), t, m.group(0)) for t, rx in _TYPE_WORDS for m in rx.finditer(bare_heading(parent)))
     if len({t for _, t, _ in hits}) > 1:
         named = ", ".join(f"{x!r} ({t})" for _, t, x in hits)
         return etype, "", Check("type-from-context", False, f"parent heading {parent!r} holds words of different "
@@ -213,7 +219,7 @@ def section_type(parents: list[str], proper: bool = True, main: bool = True,
                                    "its chapter title was not read")
     parent = printed[-1]
     etype, why, conflict = parent_type(parent)
-    category = _bare(parent)
+    category = bare_heading(parent)
     if etype and conflict:
         return etype, category, conflict
     if etype and repeated:
@@ -567,12 +573,16 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
                    text="\n".join([head] + flat), lines=own)
         p.checks = [_text_check(e, own, heads, [len(o) for o in sibs], [o[-1].page - o[0].page + 1 for o in sibs],
                                 starts, sizes), typed,
-                    _entry_check(e, lead_type, in_chapter[(s.parents[0] if s.parents else "", squash(s.title))])]
+                    _entry_check(e, lead_type, in_chapter[(s.parents[0] if s.parents else "", squash(s.title))],
+                                 parent_doubt(s, sections, counts)
+                                 or ("" if has_sentence(own[heads:]) else
+                                     f"the text of {s.title!r} (p{s.page}) holds no sentence: a table read as a "
+                                     "section"))]
         out.append(p)
     return out
 
 
-def _entry_check(e: _Entry, lead_type: dict[int, str], recurs: int) -> Check:
+def _entry_check(e: _Entry, lead_type: dict[int, str], recurs: int, doubt: str = "") -> Check:
     """`entry-level`: the section is an entry of its chapter, not a sub-heading of one that the entry-level reading
     picked (ruling W16). It fails when its container is itself an entry typed Plane, Faction or Location (VRGR
     Darkon's "Noteworthy Features" is a part of the domain), or when its heading recurs in its chapter
@@ -585,7 +595,62 @@ def _entry_check(e: _Entry, lead_type: dict[int, str], recurs: int) -> Check:
     if not e.lead and recurs >= _RECURRING:
         return Check("entry-level", False, f"the heading {s.title!r} (p{s.page}) recurs {recurs} times in its "
                      "chapter: a sub-heading label of its entries, not an entry of its own")
+    if doubt:
+        return Check("entry-level", False, doubt)
     return Check("entry-level", True, "")
+
+
+# a finished sentence: a lower-case word ending in a full stop, question or exclamation mark ("... the coast.");
+# a table row ("Abbey 50,000 gp 400 days") prints none
+_SENTENCE = re.compile(r"[a-z][.!?](?:[\"')\]]|\s|$)")
+
+
+def has_sentence(lines: list[Line]) -> bool:
+    return any(_SENTENCE.search(l.text) for l in lines)
+
+
+def parent_section(s: Section, sections: list[Section]) -> Section | None:
+    """The section of the printed heading enclosing `s` (`s.parents[-1]`); None when that is a chapter title."""
+    if len(s.parents) < 2 and s.level <= 1:
+        return None
+    first = id(s.lines[0])
+    for c in sections:
+        if (c.level == s.level - 1 and c.parents == s.parents[:-1] and c.title == s.parents[-1]
+                and any(id(l) == first for l in c.lines)):
+            return c
+    return None
+
+
+def parent_doubt(s: Section, sections: list[Section], counts: Counter) -> str:
+    """Why the parent heading of `s` is not verified as the heading enclosing it ('' when it is). `counts` holds how
+    many times each (parents, squashed heading) is printed. Every reason names both headings."""
+    return _parent_doubt(s, sections, counts)[0]
+
+
+def _parent_doubt(s: Section, sections: list[Section], counts: Counter) -> tuple[str, bool]:
+    """(the reason, whether it reaches the sub-sections). A parent set under a caption was shifted a level down with
+    its siblings, so it is no parent of its own sub-sections either (DMG "Gaining Renown" under "Carousing" under the
+    "Stronghold Cost Time" caption); a parent printed twice under its own parent (an entry heading above it unread)
+    still encloses its sub-sections."""
+    par = parent_section(s, sections)
+    if par is None:
+        return "", False
+    where = f"its parent heading {par.title!r} (p{par.page})"
+    if squash(par.title) == squash(s.title):
+        return f"the heading {s.title!r} (p{s.page}) repeats {where}: a table title read as a sub-section", True
+    if (n := counts[(tuple(s.parents), squash(s.title))]) > 1:
+        return (f"the heading {s.title!r} (p{s.page}) is printed {n} times under {where}: the parent is not its "
+                "nearest enclosing heading (an entry heading between them was not read)", False)
+    span = {id(l) for l in s.lines}
+    starts = {id(c.lines[0]) for c in sections if c.level == s.level and c.parents == s.parents}
+    k = next((i for i, l in enumerate(par.lines) if id(l) in starts or id(l) in span), len(par.lines))
+    if not has_sentence(par.lines[_heads(par.lines, par.title):k]):
+        return (f"{where} holds no sentence of its own before {s.title!r} (p{s.page}): a table caption or title "
+                "read as a heading, not the heading enclosing it", True)
+    up, reaches = _parent_doubt(par, sections, counts)
+    if up and reaches:
+        return f"{where}, over {s.title!r} (p{s.page}), is itself unverified: {up}", True
+    return "", False
 
 
 def _main_size(sizes: list[float]) -> float:

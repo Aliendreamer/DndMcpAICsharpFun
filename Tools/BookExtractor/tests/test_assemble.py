@@ -804,35 +804,54 @@ def test_text_not_shared_runs_over_world_types(phb_world):
             assert any(c["name"] == "text-not-shared" for c in e["checks"]), e["id"]
 
 
-def test_no_printed_line_is_both_an_earlier_and_a_world_entity(phb_world):
-    # the world parsers take the claimed lines and names of every earlier type: the Dwarf race (p19-22) is not
-    # also a Lore section, and no god or rule holds a race's lines
-    old, new = set(), set()
-    for e in phb_world.entities:
-        (new if e["type"] in WORLD_TYPES else old).add(e["name"].lower())
-    assert "dwarf" in old and not {"dwarf", "dwarves"} & new
-    assert not {e["id"] for e in phb_world.entities if e["type"] in WORLD_TYPES
-                for c in e["checks"] if c["name"] == "text-not-shared" and not c["passed"]}
+def test_no_printed_line_is_both_an_earlier_and_a_world_entity(monkeypatch):
+    # the world parsers take the claimed lines and names of every earlier type: no world entity holds a printed
+    # line an earlier entity (the Dwarf race, p19-22) holds, and no two world entities share one
+    from bookextractor import assemble
+    from bookextractor.assemble import ALL_TYPES, _line_keys
+    got: list[tuple[str, set]] = []
+    for t, f in list(assemble._PARSERS.items()):
+        def wrap(body, ctx, f=f, t=t):
+            out = f(body, ctx)
+            got.extend((t, _line_keys(p.lines)) for p in out)
+            return out
+        monkeypatch.setitem(assemble._PARSERS, t, wrap)
+    extract_book(pages("phb", 14, 19, 20, 21, 22, 300), "phb14", set(ALL_TYPES))
+    old = set().union(*(k for t, k in got if t not in WORLD_TYPES))
+    new = [k for t, k in got if t in WORLD_TYPES]
+    assert old and new and any(t == "Race" for t, _ in got)
+    assert all(not (k & old) for k in new)
+    assert all(not (a & b) for i, a in enumerate(new) for b in new[i + 1:])
 
 
 def test_claims_reach_the_world_parsers(monkeypatch):
-    # every earlier entity's printed lines and names, as printed, are claimed before each world type parses
+    # every earlier entity's printed lines and names, as printed, are claimed before each world type parses: God
+    # sees the earlier types', Rule sees God's too, and the world sections see Rule's too
     from bookextractor import assemble
     from bookextractor.parsers import Parsed
-    line = Line("Dwarf", (0.0, 0.0, 10.0, 5.0), 5.0, 19)
     seen = {}
 
-    def race(body, ctx):
-        return [Parsed(type="Race", name="Dwarf", fields={}, text="Dwarf " + "x " * 20, lines=[line])]
+    def emit(t, name, page):
+        line = Line(name, (0.0, 0.0, 10.0, 5.0), 5.0, page)
 
-    def god(body, ctx):
-        seen["god"] = (set(ctx.cache["claimed_lines"]), set(ctx.cache["claimed_names"]))
+        def parse(body, ctx):
+            seen[t] = (set(ctx.cache["claimed_lines"]), set(ctx.cache["claimed_names"]))
+            return [Parsed(type=t, name=name, fields={}, text=name + " x" * 20, lines=[line])]
+        return parse
+
+    def world(body, ctx):
+        seen["world"] = (set(ctx.cache["claimed_lines"]), set(ctx.cache["claimed_names"]))
         return []
 
-    monkeypatch.setitem(assemble._PARSERS, "Race", race)
-    monkeypatch.setitem(assemble._PARSERS, "God", god)
-    assemble.extract_book(pages("phb", 19), "phb14", {"Race", "God"})
-    assert seen["god"] == ({(19, (0.0, 0.0, 10.0, 5.0))}, {"Dwarf"})
+    monkeypatch.setitem(assemble._PARSERS, "Race", emit("Race", "Dwarf", 19))
+    monkeypatch.setitem(assemble._PARSERS, "God", emit("God", "Anubis", 20))
+    monkeypatch.setitem(assemble._PARSERS, "Rule", emit("Rule", "Variant: Encumbrance", 21))
+    monkeypatch.setattr(assemble, "parse_world", world)
+    assemble.extract_book(pages("phb", 19), "phb14", {"Race", "God", "Rule", "Lore"})
+    key = lambda n: (n, (0.0, 0.0, 10.0, 5.0))  # noqa: E731
+    assert seen["God"] == ({key(19)}, {"Dwarf"})
+    assert seen["Rule"] == ({key(19), key(20)}, {"Dwarf", "Anubis"})
+    assert seen["world"] == ({key(19), key(20), key(21)}, {"Dwarf", "Anubis", "Variant: Encumbrance"})
 
 
 def test_world_entity_sharing_lines_with_an_earlier_type_fails_alone():
@@ -928,3 +947,75 @@ def test_a_heading_repeated_under_one_parent_takes_its_page_then_an_ordinal():  
                    "b.lore.religious-order-religious-order-contact-p100-2"]
     assert len(set(ids)) == 2 and not any(x.passed for x in checks)
     assert _ids([c, d], secs)[0] == ids  # deterministic
+
+
+def test_a_repeated_heading_with_no_parent_section_takes_its_page():   # W11 parent None -> W19 page
+    a, b = _world("Currency", "Lore", 3, 10), _world("Currency", "Lore", 7, 10)
+    ids, checks = _ids([a, b])  # no section holds their lines: no parent heading to name
+    assert ids == ["b.lore.currency-p3", "b.lore.currency-p7"]
+    assert all(c.passed for c in checks) and "parent" not in checks[0].reason
+
+
+def test_a_chapter_parent_is_named_without_its_chapter_prefix():
+    a, b = _world("Introduction", "Lore", 1, 0), _world("Introduction", "Lore", 9, 0)
+    secs = [_section("Introduction", ["Chapter 2: Guilds of Ravnica"], a.lines, level=1),
+            _section("Introduction", ["Appendix A: Conditions"], b.lines, level=1)]
+    ids, checks = _ids([a, b], secs)
+    assert ids == ["b.lore.guilds-of-ravnica-introduction", "b.lore.conditions-introduction"]
+    assert "'Guilds of Ravnica'" in checks[0].reason
+
+
+def test_a_rule_id_naming_a_caption_parent_fails_entry_level():   # W21
+    from bookextractor.assemble import _world_ids
+    from bookextractor.parsers import ParseContext
+    cap = Line("Stronghold Cost Time", (0, 0, 10, 5), 5.0, 128)
+    row = Line("Abbey 50,000 gp 400 days", (0, 10, 10, 15), 5.0, 128)
+    good = Line("Spellcasters live here. They study.", (0, 10, 10, 15), 5.0, 130)
+    a, b = _world("Carousing", "Rule", 128, 20), _world("Carousing", "Rule", 130, 20)
+    secs = [_section("Stronghold Cost Time", ["Between Adventures"], [cap, row] + a.lines, level=1),
+            _section("Towers", ["Between Adventures"], [Line("Towers", (0, 0, 10, 5), 5.0, 130), good] + b.lines, 1)]
+    ctx = ParseContext(slug="b", source="B", pages={}, cache={"sections": secs})
+    out = _world_ids([a, b], [[], []], "b", ctx, [])
+    assert [i for i, _ in out] == ["b.rule.stronghold-cost-time-carousing", "b.rule.towers-carousing"]
+    bad = [c for c in out[0][1] if c.name == "entry-level"]
+    assert bad and not bad[0].passed and "'Stronghold Cost Time'" in bad[0].reason and "'Carousing'" in bad[0].reason
+    assert not [c for c in out[1][1] if c.name == "entry-level"]
+
+
+@pytest.fixture(scope="module")
+def dmg_downtime():
+    from bookextractor.assemble import ALL_TYPES
+    return extract_book(pages("dmg", 125, 126, 127, 128, 129, 130, 131), "dmg14", set(ALL_TYPES))
+
+
+def _entry_level(e):
+    return next(c for c in e["checks"] if c["name"] == "entry-level")
+
+
+def test_dmg_caption_parent_never_lets_a_world_entity_through(dmg_downtime):   # W21: DMG p128
+    r = dmg_downtime
+    table = _entry_level(by_id(r, "dmg14.lore.stronghold-cost-time"))
+    assert not table["passed"] and "no sentence" in table["reason"]
+    carousing = _entry_level(by_id(r, "dmg14.lore.stronghold-cost-time-carousing"))
+    assert not carousing["passed"] and "'Stronghold Cost Time'" in carousing["reason"] \
+        and "'Carousing'" in carousing["reason"]
+    title = _entry_level(by_id(r, "dmg14.lore.carousing-carousing"))
+    assert not title["passed"] and "repeats its parent heading 'Carousing'" in title["reason"]
+    for eid in ("dmg14.lore.gaining-renown", "dmg14.lore.performing-sacred-rites"):
+        c = _entry_level(by_id(r, eid))
+        assert not c["passed"] and "'Carousing'" in c["reason"] and "'Stronghold Cost Time'" in c["reason"], eid
+    # the activity under the caption is NeedsReview, never Accepted as Lore under a table caption
+    assert not any(all(c["passed"] for c in e["checks"]) for e in r.entities
+                   if e["type"] in WORLD_TYPES and e["fields"].get("category") in ("Stronghold Cost Time", "Carousing"))
+    # a section under a real parent with prose of its own is still an entry
+    assert _entry_level(by_id(r, "dmg14.lore.campaign-tracking"))["passed"]
+
+
+def test_vrgr_parent_printing_a_heading_twice_is_not_its_enclosing_heading():   # W21: VRGR Mordent
+    from bookextractor.assemble import ALL_TYPES
+    r = extract_book(pages("vrgr", 96, 124, 125, 144, 145), "vrgr", set(ALL_TYPES))
+    mordent = by_id(r, "vrgr.lore.dementlieu-noteworthy-features-p145")
+    c = _entry_level(mordent)
+    assert not c["passed"] and "'Noteworthy Features'" in c["reason"] and "'Dementlieu'" in c["reason"]
+    assert "Mordent" in mordent["canonicalText"]
+    assert not _entry_level(by_id(r, "vrgr.lore.dementlieu-noteworthy-features-p125"))["passed"]

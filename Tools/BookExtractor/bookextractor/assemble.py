@@ -24,12 +24,12 @@ from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
 from .parsers.race import parse_races
 from .parsers.rule import parse_rules
-from .parsers.sections import read_sections
+from .parsers.sections import Section, read_sections
 from .parsers.spell import parse_spells
 from .parsers.subclass import _short_name, parse_subclasses
 from .parsers.trap import parse_traps
 from .parsers.vehicle_object import parse_objects, parse_vehicles
-from .parsers.world import _bare, parse_world
+from .parsers.world import bare_heading, has_sentence, parent_section, parse_world
 from .report import build_report
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
@@ -376,16 +376,18 @@ def _id_and_checks(p: Parsed, book_slug: str, seen: Counter, vocab: Vocabulary) 
     return eid, checks
 
 
-def _parent_heading(p: Parsed, owners: dict[LineKey, tuple[int, str, str | None]]) -> str | None:
-    """The printed heading enclosing the entity: the parent of the section its first line opens, else the
-    innermost section holding that line (a sidebar rule inside its section)."""
+def _parent_of(p: Parsed, owners: dict, sections: list) -> tuple[str | None, object]:
+    """The printed heading enclosing the entity and its section (None for a chapter title): the parent of the
+    section its first line opens, else the innermost section holding that line (a sidebar rule inside it)."""
     if not p.lines:
-        return None
+        return None, None
     hit = owners.get(next(iter(_line_keys(p.lines[:1]))))
     if hit is None:
-        return None
-    level, title, parent = hit
-    return parent if level < 0 else title
+        return None, None
+    level, sec = hit
+    if level >= 0:
+        return bare_heading(sec.title), sec
+    return (bare_heading(sec.parents[-1]), parent_section(sec, sections)) if sec.parents else (None, None)
 
 
 def _world_ids(parsed: list[Parsed], checks: list[list[Check]], book_slug: str, ctx: ParseContext,
@@ -398,20 +400,21 @@ def _world_ids(parsed: list[Parsed], checks: list[list[Check]], book_slug: str, 
     under one parent is probably read twice)."""
     if not parsed:
         return []
-    owners: dict[LineKey, tuple[int, str, str | None]] = {}
-    if parsed[0].type != "God":
-        for sec in read_sections(body, ctx):
-            parent = _bare(sec.parents[-1]) if sec.parents else None
+    owners: dict[LineKey, tuple[int, Section]] = {}
+    sections = read_sections(body, ctx) if parsed[0].type != "God" else []
+    if sections:
+        for sec in sections:
             for k, l in enumerate(sec.lines):
                 key = next(iter(_line_keys([l])))
                 # the section's own heading line: (-1, ..) names its parent; a deeper section's line wins
                 level = -1 if k == 0 else sec.level
                 old = owners.get(key)
                 if old is None or old[0] != -1 and (level == -1 or level >= old[0]):
-                    owners[key] = (level, _bare(sec.title), parent)
+                    owners[key] = (level, sec)
     pages = [p.lines[0].page if p.lines else 0 for p in parsed]
     stems = [slugify(p.name) or f"unnamed-{pg}" for p, pg in zip(parsed, pages)]
     why = ["" for _ in parsed]
+    parent_used: dict[int, object] = {}  # entity index -> the parent section its id names (W11)
 
     def spread(qualify) -> None:
         counts = Counter(stems)
@@ -424,11 +427,13 @@ def _world_ids(parsed: list[Parsed], checks: list[list[Check]], book_slug: str, 
             pan = p.fields.get("pantheon")
             return (f"{stems[i]}-{slugify(pan)}", f"name repeats in the book: pantheon {pan!r} added") \
                 if isinstance(pan, str) and slugify(pan) else None
-        par = _parent_heading(p, owners)
+        par, sec = _parent_of(p, owners, sections)
+        parent_used[i] = sec
         return (f"{slugify(par)}-{stems[i]}", f"name repeats in the book: parent heading {par!r} added") \
             if par and slugify(par) else None
 
     spread(by_parent)
+    before = list(stems)
     spread(lambda i, p: (f"{stems[i]}-p{pages[i]}", "; ".join(x for x in (why[i], f"page {pages[i]} added") if x)))
     counts, nth = Counter(stems), Counter()
     out = []
@@ -442,8 +447,28 @@ def _world_ids(parsed: list[Parsed], checks: list[list[Check]], book_slug: str, 
                                                 f"{counts[stems[i]]} times; ordinal -{nth[stems[i]]} appended"))
         else:
             cs.append(Check("unique-id", True, why[i]))
+        # a rule's W11 parent is verified here (a world section's by its own `entry-level`, ruling W21)
+        if p.type == "Rule" and i in parent_used and (doubt := _rule_parent_doubt(p, parent_used[i], before[i] !=
+                                                                                    stems[i])):
+            cs.append(Check("entry-level", False, doubt))
         out.append((f"{book_slug}.{p.type.lower()}.{stem}", cs))
     return out
+
+
+def _rule_parent_doubt(p: Parsed, sec, repeated: bool) -> str:
+    """Why the parent heading a rule's id names is not verified (ruling W21; '' when it is): the parent prints the
+    rule's heading more than once (entry headings between them were not read), or holds no sentence outside the
+    rule (a table caption or title read as a heading)."""
+    if sec is None:
+        return ""
+    if repeated:
+        return (f"the heading {p.name!r} is printed more than once under its parent heading {sec.title!r} "
+                f"(p{sec.page}): the parent is not its nearest enclosing heading")
+    mine = _line_keys(p.lines)
+    if not has_sentence([l for l in sec.lines if not _line_keys([l]) & mine]):
+        return (f"its parent heading {sec.title!r} (p{sec.page}) holds no sentence of its own outside {p.name!r}: "
+                "a table caption or title read as a heading")
+    return ""
 
 
 LineKey = tuple[int, tuple[float, ...]]

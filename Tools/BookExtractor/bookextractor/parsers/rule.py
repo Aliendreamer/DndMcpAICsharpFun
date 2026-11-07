@@ -35,8 +35,6 @@ Check (naming the values involved): `text-complete`: the section ends at a headi
 sure of (`Section.complete`; a chapter gap counts as unsure), an activity's end is its container's when it is the
 last one, and an entry-level rule is not far longer than its sibling rules (a heading the OCR read as larger than it
 is runs on over its siblings). A sidebar ends with its box.
-
-Not registered in the assembler yet (Phase 2c ruling W1): Task 6 does that.
 """
 from __future__ import annotations
 
