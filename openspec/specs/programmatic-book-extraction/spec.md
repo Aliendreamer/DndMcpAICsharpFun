@@ -7,8 +7,8 @@ TBD - created by archiving change programmatic-extraction-phase1. Update Purpose
 
 The system SHALL provide a book extractor service, separate from the app container, that reads a book PDF and produces
 Monster, Spell, MagicItem, Class, Subclass, Race, Subrace, Feat, Background, Weapon, Armor, Item, VehicleMount, Object,
-Trap, DiseasePoison and Condition entities using rules only. It MUST NOT call any LLM and MUST NOT use a GPU. It SHALL
-read PDFs from a read-only mount of `books/`.
+Trap, DiseasePoison, Condition, God, Rule, Plane, Faction, Location and Lore entities using rules only. It MUST NOT
+call any LLM and MUST NOT use a GPU. It SHALL read PDFs from a read-only mount of `books/`.
 
 #### Scenario: Extraction without a model
 
@@ -29,6 +29,11 @@ read PDFs from a read-only mount of `books/`.
 
 - **WHEN** the PHB is extracted
 - **THEN** `phb14.json` also holds its weapons, armor, adventuring gear and conditions
+
+#### Scenario: World types in one file
+
+- **WHEN** the PHB is extracted
+- **THEN** `phb14.json` also holds its gods and named rules
 
 ### Requirement: Page reader
 
