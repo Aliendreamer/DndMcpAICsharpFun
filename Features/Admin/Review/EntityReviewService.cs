@@ -294,6 +294,17 @@ public sealed class EntityReviewService(
 
     private async Task<Located?> LocateAsync(string entityId, CancellationToken ct)
     {
+        // Ids are "<book-slug>.<type>.<name>" and the book file is "<book-slug>.json", so load just
+        // that one file. Parsing all 16 books on every open/save/approve made each action take ~10 s.
+        var dot = entityId.IndexOf('.');
+        if (dot > 0)
+        {
+            foreach (var (slug, path, file) in await LoadProgrammaticAsync(entityId[..dot], ct))
+            {
+                var hit = file.Entities.FirstOrDefault(x => string.Equals(x.Id, entityId, StringComparison.Ordinal));
+                if (hit is not null) return new Located(slug, path, file, hit);
+            }
+        }
         foreach (var (slug, path, file) in await LoadProgrammaticAsync(null, ct))
         {
             var e = file.Entities.FirstOrDefault(x => string.Equals(x.Id, entityId, StringComparison.Ordinal));

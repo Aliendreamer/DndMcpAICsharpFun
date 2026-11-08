@@ -110,18 +110,18 @@
                                     }
                                 </label>
                                 <textarea id="f-@k" class="data" rows="@RowsFor(k, _edits[k])"
-                                          @bind="_edits[k]" @bind:event="oninput"></textarea>
+                                          @bind="_edits[k]"></textarea>
                             </div>
                         }
                     </div>
 
                     <div class="review-actions">
                         <input type="text" placeholder="Reason (required)" aria-label="Reason"
-                               @bind="_reason" @bind:event="oninput" />
-                        <button type="button" class="btn btn--primary" disabled="@_busy" @onclick="SaveAsync">Save override</button>
+                               @bind="_reason" />
+                        <button type="button" class="btn btn--primary" disabled="@_busy" @onclick="SaveAsync">@(_busy ? "Working…" : "Save override")</button>
                         @if (_entity.Disposition != EntityDisposition.Accepted || _entity.NeedsReview)
                         {
-                            <button type="button" class="btn btn--ghost" disabled="@_busy" @onclick="ApproveAsync">Approve</button>
+                            <button type="button" class="btn btn--ghost" disabled="@_busy" @onclick="ApproveAsync">@(_busy ? "Working…" : "Approve")</button>
                         }
                     </div>
                 </div>
@@ -330,6 +330,19 @@
         return at < items.Count ? items[at].Id : null;
     }
 
+    // Update the one changed row in place instead of re-reading every book file for the list.
+    private void UpdateListItem()
+    {
+        if (_items is null || _entity is null) return;
+        var list = _items.ToList();
+        var at = list.FindIndex(i => i.Id == _entity.Id);
+        if (at < 0) return;
+        var flagged = _entity.Disposition != EntityDisposition.Accepted || _entity.NeedsReview;
+        if (_flaggedOnly && !flagged) list.RemoveAt(at);
+        else list[at] = list[at] with { Name = _entity.Name, Flagged = flagged };
+        _items = list;
+    }
+
     private string? _toast;
     private CancellationTokenSource? _toastCts;
 
@@ -367,7 +380,7 @@
             await action();
             _reason = "";
             await LoadEntityAsync();
-            await ReloadListAsync();
+            UpdateListItem();
         }
         catch (ArgumentException ex)
         {
