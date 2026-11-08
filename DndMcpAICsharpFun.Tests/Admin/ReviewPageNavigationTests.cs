@@ -45,4 +45,14 @@ public sealed class ReviewPageNavigationTests
         ReviewPage.FilterByType(items, "Monster").Select(i => i.Id).Should().Equal("a", "b");
         ReviewPage.FilterByType(items, "").Should().HaveCount(3);
     }
+
+
+    [Fact]
+    public void WhenAFilteredTypeIsDone_TheTypeWithMostLeftIsNext_OrAllWhenNoneLeft()
+    {
+        var counts = new Dictionary<string, int> { ["Monster"] = 0, ["Rule"] = 4, ["Lore"] = 9 };
+
+        ReviewPage.NextType(counts, "Monster").Should().Be("Lore");
+        ReviewPage.NextType(new Dictionary<string, int> { ["Monster"] = 0 }, "Monster").Should().Be("");
+    }
 }

@@ -372,8 +372,26 @@
         // Move on to the next entry: the approved one has left a flagged-only list, so the same index
         // is the next item; otherwise step past it.
         var next = NextAfterApprove(_items, approvedId, index);
-        if (next is not null) await SelectAsync(next);
+        if (next is not null)
+        {
+            await SelectAsync(next);
+            return;
+        }
+        // The filtered type is done: move on to the type with the most entries left.
+        if (_type != "" && _items is { Count: 0 })
+        {
+            var done = _type;
+            _type = NextType(_typeCounts, done);
+            await ReloadListAsync();
+            await SelectFirstAsync();
+            ShowToast(_type == "" ? $"All {done} reviewed" : $"All {done} reviewed - showing {_type}");
+        }
     }
+
+    internal static string NextType(IReadOnlyDictionary<string, int> counts, string done) =>
+        counts.Where(kv => kv.Key != done && kv.Value > 0)
+            .OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key)
+            .Select(kv => kv.Key).FirstOrDefault() ?? "";
 
     internal static string? NextAfterApprove(IReadOnlyList<ReviewListItem>? items, string approvedId, int index)
     {
@@ -395,7 +413,11 @@
         {
             var type = list[at].Type.ToString();
             list.RemoveAt(at);
-            if (_typeCounts.TryGetValue(type, out var n)) _typeCounts[type] = Math.Max(0, n - 1);
+            if (_typeCounts.TryGetValue(type, out var n))
+            {
+                if (n <= 1) _typeCounts.Remove(type);
+                else _typeCounts[type] = n - 1;
+            }
         }
         else list[at] = list[at] with { Name = _entity.Name, Flagged = flagged };
         _items = list;
