@@ -30,6 +30,13 @@
                         <option value="@b">@b</option>
                     }
                 </select>
+                <select aria-label="Type" value="@_type" @onchange="OnTypeChanged">
+                    <option value="">All types (@_typeCounts.Values.Sum())</option>
+                    @foreach (var (t, n) in _typeCounts.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key))
+                    {
+                        <option value="@t">@t (@n)</option>
+                    }
+                </select>
                 <label class="review-toggle">
                     <input type="checkbox" checked="@_flaggedOnly" @onchange="OnFlaggedChanged" />
                     Flagged only
@@ -177,6 +184,8 @@
     private List<string> _books = [];
     private string _book = "";
     private bool _flaggedOnly = true;
+    private string _type = "";
+    private Dictionary<string, int> _typeCounts = new();
     private IReadOnlyList<ReviewListItem>? _items;
 
     private string? _selectedId;
@@ -213,8 +222,23 @@
             await SelectAsync(_items[0].Id);
     }
 
-    private async Task ReloadListAsync() =>
-        _items = await ReviewSvc.ListAsync(_book == "" ? null : _book, _flaggedOnly, default);
+    private async Task ReloadListAsync()
+    {
+        var all = await ReviewSvc.ListAsync(_book == "" ? null : _book, _flaggedOnly, default);
+        _typeCounts = all.GroupBy(i => i.Type.ToString()).ToDictionary(g => g.Key, g => g.Count());
+        if (_type != "" && !_typeCounts.ContainsKey(_type)) _type = "";
+        _items = FilterByType(all, _type);
+    }
+
+    internal static IReadOnlyList<ReviewListItem> FilterByType(IReadOnlyList<ReviewListItem> items, string type) =>
+        type == "" ? items : items.Where(i => i.Type.ToString() == type).ToList();
+
+    private async Task OnTypeChanged(ChangeEventArgs e)
+    {
+        _type = e.Value?.ToString() ?? "";
+        await ReloadListAsync();
+        await SelectFirstAsync();
+    }
 
     private async Task OnBookChanged(ChangeEventArgs e)
     {
@@ -367,7 +391,12 @@
         var at = list.FindIndex(i => i.Id == _entity.Id);
         if (at < 0) return;
         var flagged = _entity.Disposition != EntityDisposition.Accepted || _entity.NeedsReview;
-        if (_flaggedOnly && !flagged) list.RemoveAt(at);
+        if (_flaggedOnly && !flagged)
+        {
+            var type = list[at].Type.ToString();
+            list.RemoveAt(at);
+            if (_typeCounts.TryGetValue(type, out var n)) _typeCounts[type] = Math.Max(0, n - 1);
+        }
         else list[at] = list[at] with { Name = _entity.Name, Flagged = flagged };
         _items = list;
     }

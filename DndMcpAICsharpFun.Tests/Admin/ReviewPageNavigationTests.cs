@@ -33,4 +33,16 @@ public sealed class ReviewPageNavigationTests
         ReviewPage.NextAfterApprove([Item("a"), Item("b")], "b", 1).Should().BeNull();
         ReviewPage.NextAfterApprove([], "a", 0).Should().BeNull();
     }
+
+
+    [Fact]
+    public void TypeFilter_KeepsOnlyThatType_AndEmptyKeepsAll()
+    {
+        var lore = new ReviewListItem("l", "l", EntityType.Lore, "erlw", 1, true, []);
+        var items = new[] { Item("a"), lore, Item("b") };
+
+        ReviewPage.FilterByType(items, "Lore").Should().ContainSingle().Which.Id.Should().Be("l");
+        ReviewPage.FilterByType(items, "Monster").Select(i => i.Id).Should().Equal("a", "b");
+        ReviewPage.FilterByType(items, "").Should().HaveCount(3);
+    }
 }
