@@ -62,14 +62,46 @@ CREATURE_TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "el
                   "giant", "humanoid", "monstrosity", "ooze", "plant", "undead"]
 # VRGR/TCE print no alignment: "Medium Monstrosity (Shapechanger)", "Large or Huge Undead"
 _SIZE_WORD = r"(?:tiny|small|medium|large|huge|gargantuan)"
-_BARE_SIZE_LINE = re.compile(rf"^{_SIZE_WORD}(?: or {_SIZE_WORD})? (?:swarm of {_SIZE_WORD} )?([a-z]+)(?: \([^)]*\))?\.?$",
-                             re.I)
+_BARE_SIZE_LINE = re.compile(
+    rf"^{_SIZE_WORD}(?: or (?:{_SIZE_WORD}|smaller))? (?:swarm of {_SIZE_WORD} )?([a-z]+)(?: \([^)]*\))?\.?$", re.I)
 _GLUED_SIZE = re.compile(r"^(Tiny|Small|Medium|Large|Huge|Gargantuan)(?=[A-Z])")
+_GLUED_TYPE = re.compile(rf"^({_SIZE_WORD})(?=(?:{'|'.join(CREATURE_TYPES)})\b)", re.I)
+_ALIGN_WORDS = ("lawful", "neutral", "chaotic", "good", "evil")
+_ALIGN_SEP = re.compile(r"(?<=[A-Za-z)])\s*[.;]\s*(?=(?:typically|lawful|chaotic|neutral|unaligned|any alignment)\b)",
+                        re.I)
 
 
 def _spaced(t: str) -> str:
-    """Restore the space OCR lost after the size word ('TinyMonstrosity')."""
-    return _GLUED_SIZE.sub(r"\1 ", t.strip())
+    """Restore the space OCR lost after the size word ('TinyMonstrosity', 'Tinyconstruct')."""
+    return _GLUED_TYPE.sub(r"\1 ", _GLUED_SIZE.sub(r"\1 ", t.strip()))
+
+
+def _split_alignment_word(w: str) -> str:
+    """'neutralevil' -> 'neutral evil'; 'lawfulevi' -> 'lawful evil' (a last word clipped to three letters or more
+    that starts exactly one alignment word). Any other token is returned unchanged."""
+    low = w.lower()
+    if low in _ALIGN_WORDS:
+        return w
+    for a in _ALIGN_WORDS:
+        rest = low[len(a):]
+        if low.startswith(a) and rest:
+            full = [x for x in _ALIGN_WORDS if x.startswith(rest)]
+            if rest in _ALIGN_WORDS or (len(rest) >= 3 and len(full) == 1):
+                return f"{w[:len(a)]} {rest if rest in _ALIGN_WORDS else full[0]}"
+    return w
+
+
+def _norm_size_line(t: str) -> str:
+    """The size/type/alignment line with OCR slips undone: a lost space after the size word or inside the
+    alignment, a ';' or '.' where the comma belongs ('Small plant; unaligned')."""
+    t = _spaced(t)
+    if len(_split_top(t)) == 1:
+        t = _ALIGN_SEP.sub(", ", t, count=1)
+    parts = _split_top(t)
+    if len(parts) > 1:
+        tail = ", ".join(" ".join(_split_alignment_word(w) for w in p.split()) for p in parts[1:])
+        t = f"{parts[0]}, {tail}"
+    return t
 
 
 def _singular(w: str) -> str:
@@ -83,6 +115,7 @@ def _singular(w: str) -> str:
 def _is_size_line(t: str) -> bool:
     """"<Size> <type>, <alignment>" — not merely any line with "evil" in it ("Fire Giant of Evil Fire") —
     or the whole line "<Size> <creature type> (tags)" with no alignment at all."""
+    t = _norm_size_line(t)
     if "," in t and ALIGN.search(t) and _size_of(t):
         return True
     m = _BARE_SIZE_LINE.match(_spaced(t))
@@ -252,6 +285,7 @@ def _alignment(s: str) -> list[str]:
 
 def _type_field(head: str) -> str | dict:
     h = " ".join(head.split()[1:])
+    h = re.sub(rf"^or (?:{_SIZE_WORD}|smaller)\s+", "", h, flags=re.I)  # "Large or smaller construct"
     sw = re.match(r"swarm of (\w+) (\w+)(?: \(.*\))?$", h, re.I)
     if sw:
         return _singular(sw.group(2))  # schema allows no swarm-size key; the swarm wording stays in Parsed.text
@@ -481,7 +515,7 @@ _ATTACK = re.compile(r"\b(?:Melee|Ranged)(?: or Ranged)? (?:Weapon|Spell) Attack
 
 
 def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: int) -> Parsed:
-    st_line = _spaced(L[i].text)
+    st_line = _norm_size_line(L[i].text)
     # first comma outside parentheses separates "size type (tags)" from alignment
     parts = _split_top(st_line)
     head = parts[0] if parts else st_line

@@ -78,6 +78,32 @@ NOT_PRINTED: dict[tuple[str, str], str] = {
     ("scag", "Tiefling Variant; Infernal Legacy"): (
         "not printed as an option: it stands for the Feral and Appearance options with the Player's Handbook "
         "Infernal Legacy trait"),
+    **{("mm", n): f"the book prints one '{base}' stat block; 5etools splits it by variant"
+       for n, base in (("Bone Naga (Guardian)", "Bone Naga"), ("Bone Naga (Spirit)", "Bone Naga"),
+                       ("Yuan-ti Malison (Type 1)", "Yuan-Ti Malison"), ("Yuan-ti Malison (Type 2)", "Yuan-Ti Malison"),
+                       ("Yuan-ti Malison (Type 3)", "Yuan-Ti Malison"))},
+    ("mm", "Lizard Queen"): "printed jointly with the Lizard King as the one entry 'Lizard King/Queen'",
+    ("mm", "Incubus"): "printed jointly with the succubus as the one entry 'Succubus/Incubus'",
+    # a "Variant: ..." paragraph (or a sub-heading) changing another stat block; 5etools gives it a record, the book no block
+    **{("mm", n): "a variant paragraph or sub-heading inside another entry, with no stat block of its own"
+       for n in ("Cave Bear", "Half-Ogre (Ogrillon)", "Kuo-toa Monitor", "Mind Flayer Arcanist", "Poltergeist",
+                 "Quaggoth Thonot", "Vampire Spellcaster", "Vampire Warrior", "Swarm of Beetles",
+                 "Swarm of Centipedes", "Swarm of Spiders", "Swarm of Wasps")},
+    **{("phb", f"Animated Object ({s})"): "the Animate Objects spell prints one table of sizes, not stat blocks"
+       for s in ("Tiny", "Small", "Medium", "Large", "Huge")},
+    **{("ggr", f"Rakdos Performer, {v}"): f"the book prints one 'Rakdos Performer' stat block with the {v} as a variant"
+       for v in ("Blade Juggler", "Fire Eater", "High-Wire Acrobat")},
+    ("bgg", "Giant Child"): "the 'Giant Children' section gives guidance for treating a giant child as a monster, no stat block",
+    # a magic item the book describes in a run-in paragraph or in prose, without a type/rarity line or an entry heading
+    **{("mm", n): "a run-in paragraph in a monster's sidebar, with no type or rarity line"
+       for n in ("Hag Eye", "Heartstone", "Soul Bag", "Master's Amulet")},
+    **{("scc", n): "a run-in paragraph in an adventure area description, with no type or rarity line"
+       for n in ("Alchemist's Doom", "Catapult Munition", "Murgaxor's Elixir of Life")},
+    ("bgg", "Elven Thrower"): "named once in running prose, no entry",
+    ("bgg", "Horizon Puzzle Cube"): "described in running prose of an area description, no entry",
+    ("mtf", "Silver Sword"): "described in the 'Silver Swords' lore prose; only the Greater Silver Sword has an entry",
+    ("vrgr", "Nepenthe"): "a holy avenger named in the Isolde and Nepenthe lore prose, no entry",
+    ("vrgr", "Ivana's Whisper"): "a poison described in a run-in paragraph of the Ivana Boritsi lore, no entry",
 }
 # entries the book prints that 5etools does not keep as their own record: (book, etype, printed name) -> why
 PRINTED_NOT_IN_5ETOOLS: dict[tuple[str, str, str], str] = {
@@ -169,6 +195,8 @@ def base_item_name(n: str) -> str:
                lambda m: "Guild Signet" if m.group(1) == "Guild Signet" else "Guild Keyrune", n)
     # FTD prints one entry per item with four tiers; 5etools splits them by tier
     n = re.sub(r"^(Slumbering|Stirring|Wakened|Ascendant) ", "", n)
+    # ERLW prints one Glamerweave entry; 5etools splits it by rarity
+    n = re.sub(r"^(?:Common|Uncommon) Glamerweave$", "Glamerweave", n)
     return n
 
 
@@ -336,6 +364,9 @@ EQUIPMENT_NOT_AN_ENTRY: dict[tuple[str, str, str], str] = {
 OCR_LOST_NAME: dict[tuple[str, str, str], str] = {
     ("DMG", "VehicleMount", "Sailing Ship"): "the ships table row has no label cell in the OCR text",
     ("GGR", "Item", "Electrum 50-Zib Coin"): "the coin row's name is not legible in the OCR text",
+    ("BGG", "Monster", "Stone Giant of Evil Earth"): "its size/type/alignment line is garbled beyond reading in the OCR text",
+    ("BGG", "MagicItem", "Prehistoric Figurine of Wondrous Power"): (
+        "printed 'Prehistoric Figurines of Wondrous Power'; the rarity word of its type line is garbled ('Varics')"),
 }
 _TRINKET_NOTE = "a trinket roll table that only 5etools names as an item"
 
@@ -911,6 +942,8 @@ def match_key(etype: str, name: str | None) -> str:
         # a plural heading names its race too: "Ghostwise Halflings" (+ raceName Halfling) is "Halfling Ghostwise"
         ws = {w for w in ws if not (w.endswith("s") and w[:-1] in ws)}
         return "".join(sorted(ws))
+    if etype == "Monster":  # SCC prints "Prof." where 5etools spells the word out
+        name = re.sub(r"\bprof\.?(?=\s)", "professor", name or "", flags=re.I)
     return key(name)
 
 
@@ -1064,6 +1097,8 @@ def score_book(book: str, entities: list[dict], fivetools_dir: Path | str, etype
             idx.setdefault(god_key(name, (e.get("fields") or {}).get("pantheon")) if etype == "God"
                            else match_key(etype, name), e)
             par = re.search(r"\(([^)]+)\)", e["name"])
+            if etype == "Monster" and "/" in e["name"]:  # "Lizard King/Queen" answers to its first name
+                alias.setdefault(match_key(etype, e["name"].split("/")[0]), match_key(etype, name))
             if etype == "Subrace" and par:
                 alias.setdefault(match_key(etype, f"{par.group(1)} {(e.get('fields') or {}).get('raceName') or ''}"),
                                  match_key(etype, name))

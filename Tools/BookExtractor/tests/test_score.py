@@ -1028,3 +1028,38 @@ def test_a_rule_owns_and_prints_section_names_unless_scored_strict(monkeypatch):
     monkeypatch.setattr(sc, "_STRICT_SECTIONS", True)
     assert sc._section_owners(ents) == {}
     assert sc._printed_inside("Escape", sc._section_texts(ents)) is None
+
+
+def _bestiary(tmp_path, names, book="mm"):
+    (tmp_path / "bestiary").mkdir(exist_ok=True)
+    mons = [{"name": n, "source": book.upper(), "size": ["M"], "type": "humanoid", "cr": "1"} for n in names]
+    (tmp_path / "bestiary" / f"bestiary-{book}.json").write_text(json.dumps({"monster": mons}))
+
+
+def _mon(name):
+    return {"type": "Monster", "name": name, "fields": {"cr": "1"}}
+
+
+def test_jointly_printed_monster_answers_to_its_first_name_and_the_other_is_a_printed_difference(tmp_path):
+    # MM prints 'Lizard King/Queen' as one entry; 5etools has a record for each
+    _bestiary(tmp_path, ["Lizard King", "Lizard Queen", "Goblin"])
+    res = score_book("mm", [_mon("Lizard King/Queen"), _mon("Goblin")], tmp_path)
+    assert (res["found"], res["truth"], res["missing"]) == (2, 2, [])
+    assert any(l.startswith("Lizard Queen: not printed") and "Lizard King/Queen" in l for l in res["knownDifferences"])
+
+
+def test_printed_professor_abbreviation_matches_the_spelled_out_5etools_name(tmp_path):
+    _bestiary(tmp_path, ["Quandrix Professor of Theory"], book="scc")
+    res = score_book("scc", [_mon("Quandrix Prof. of Theory")], tmp_path, "Monster")
+    assert (res["found"], res["missing"]) == (1, [])
+
+
+def test_a_variant_without_its_own_stat_block_is_a_printed_difference_not_a_find(tmp_path):
+    _bestiary(tmp_path, ["Poltergeist", "Goblin"])
+    res = score_book("mm", [_mon("Goblin")], tmp_path)
+    assert (res["found"], res["truth"], res["missing"]) == (1, 1, [])
+    assert any(l.startswith("Poltergeist: not printed") for l in res["knownDifferences"])
+
+
+def test_rarity_split_glamerweave_collapses_to_the_printed_entry():
+    assert base_item_name("Common Glamerweave") == base_item_name("Uncommon Glamerweave") == "Glamerweave"

@@ -50,7 +50,7 @@ def _is_edge_noise(line: Line, page: Page) -> bool:
         return False
     t = line.text
     return bool(re.fullmatch(r"\d{1,3}", t) or "|" in t or re.match(r"(?i)^chapter \d", t)
-                or re.fullmatch(r"[A-Z][A-Z '&-]{2,40}", t))
+                or re.fullmatch(r"(?:\d{1,3} )?[A-Z][A-Z '&-]{2,40}(?: \d{1,3})?", t))  # "SLAADI 277", "166 GOBLINS"
 
 
 def reading_order(page: Page) -> list[Line]:

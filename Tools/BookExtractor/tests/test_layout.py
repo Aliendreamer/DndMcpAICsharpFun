@@ -46,6 +46,15 @@ def test_headers_footers_removed():
     assert "166" not in texts
 
 
+def test_running_foot_with_its_page_number_is_dropped_whole():
+    # the foot is one merged row "166 GOBLINS" / "SLAADI 277"; it used to survive and end a stat block's text
+    import re
+    page = goblin()
+    feet = [l.text for l in reading_order(page) if l.box[1] > 0.95 * page.height]
+    assert not any(re.fullmatch(r"(?:\d{1,3} )?[A-Z][A-Z '&-]{2,40}(?: \d{1,3})?", t) or t.isdigit() for t in feet)
+    assert any(l.box[1] > 0.95 * page.height and "GOBLINS" in l.text for l in page.lines)  # the foot is on the page
+
+
 def test_join_hyphens():
     f = Fragment("x", 1.0, (0, 0, 1, 1))
     a = Line("a long wo-", (0, 0, 10, 10), 10, 1, [f])
@@ -74,7 +83,7 @@ def test_edge_rule_keeps_entry_headings():
     for f in sorted(FIX.glob("*/*.json")):
         page = load_ocr_page(f, int(f.stem))
         for l in page.lines:
-            if any(n in l.text.lower() for n in names):
+            if any(n in l.text.lower() for n in names) and l.box[1] <= 0.95 * page.height:  # not a running foot
                 # headings must not be dropped by the edge-noise rule (merged rows excluded)
                 merged = any(l.text in k.text for k in reading_order(page))
                 assert merged, (f, l.text)

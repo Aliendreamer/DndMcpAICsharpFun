@@ -313,6 +313,42 @@ def test_alignment_less_swarm_and_glued_size_lines(size_line, typ):
     assert ps[0].fields["type"] == typ
 
 
+@pytest.mark.parametrize("name, size_line, size, typ, align", [
+    ("Duergar", "Medium humanoid (dwarf), lawfulevi", ["M"], {"type": "humanoid", "tags": ["dwarf"]}, ["L", "E"]),  # MM p123
+    ("Rak Tulkhesh", "Huge fiend, neutralevil", ["H"], "fiend", ["N", "E"]),  # ERLW p304: OCR lost the space
+    ("Gray Slaad", "Medium aberration (shapechanger); chaotic neutral", ["M"],
+     {"type": "aberration", "tags": ["shapechanger"]}, ["C", "N"]),  # MM p278: ';' for ','
+    ("Awakened Shrub", "Small plant; unaligned", ["S"], "plant", ["U"]),  # MM p318
+])
+def test_size_line_with_an_ocr_slip_still_starts_a_stat_block(name, size_line, size, typ, align):
+    ps = parse_monsters(_block([name], size_line))
+    assert [p.name for p in ps] == [name]
+    assert ps[0].fields["size"] == size and ps[0].fields["type"] == typ and ps[0].fields["alignment"] == align
+
+
+def test_size_line_with_a_period_before_the_typical_alignment():
+    # BGG Scion of Thrym: "Gargantuan Giant (Titan). Typically Neutral Evil"
+    ps = parse_monsters(_block(["Scion of Thrym"], "Gargantuan Giant (Titan). Typically Neutral Evil"))
+    assert [p.name for p in ps] == ["Scion of Thrym"]
+    assert ps[0].fields["type"] == {"type": "giant", "tags": ["Titan"]}
+
+
+@pytest.mark.parametrize("name, size_line, typ", [
+    ("Homunculus Servant", "Tinyconstruct", "construct"),  # TCE p23: the space is lost and the type is lower case
+    ("Dancing Item", "Large or smaller construct", "construct"),  # TCE p30
+])
+def test_alignment_less_lines_with_a_lost_space_or_a_smaller_size(name, size_line, typ):
+    ps = parse_monsters(_block([name], size_line))
+    assert [p.name for p in ps] == [name]
+    assert ps[0].fields["type"] == typ and "alignment" not in ps[0].fields
+
+
+@pytest.mark.parametrize("text", ["Smallchildren, lawfully", "Medium; prose that ends here"])
+def test_the_slip_repairs_do_not_make_prose_a_size_line(text):
+    from bookextractor.parsers.monster import _is_size_line
+    assert not _is_size_line(text)
+
+
 @pytest.mark.parametrize("text", ["Medium armor and shields", "Large areas of the town", "Small Beast companion."])
 def test_prose_starting_with_a_size_word_is_not_a_size_line(text):
     from bookextractor.parsers.monster import _is_size_line
