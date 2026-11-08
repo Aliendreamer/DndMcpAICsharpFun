@@ -163,7 +163,7 @@ public sealed class FullContainerScopeValidationTests
         services.AddDatabase(config);
         services.AddCombat();
         services.AddDndChat(config);
-        services.AddDndAuthentication();
+        services.AddDndAuthentication(config);
         services.AddDndRateLimiting(config);
 
         return services;

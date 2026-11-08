@@ -29,13 +29,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /books /data
+RUN mkdir -p /books /data /dp-keys
 
 COPY --from=build /app/publish .
 
 # Run unprivileged (COR-12): the aspnet image ships a non-root 'app' user. Give it ownership of the
 # writable paths so ingestion and model caches can be written.
-RUN chown -R app:app /app /books /data
+RUN chown -R app:app /app /books /data /dp-keys
 USER app
 
 EXPOSE 5101

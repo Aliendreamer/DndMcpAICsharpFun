@@ -51,7 +51,7 @@ builder.Services.AddAntiforgery();
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddCombat();
 builder.Services.AddDndChat(builder.Configuration);
-builder.Services.AddDndAuthentication();
+builder.Services.AddDndAuthentication(builder.Configuration);
 builder.Services.AddDndRateLimiting(builder.Configuration);
 // Behind a TLS-terminating reverse proxy: honour forwarded headers so the real client IP and the
 // HTTPS scheme are used by rate limiting, auth cookies, and logging. Trusted proxies come from
