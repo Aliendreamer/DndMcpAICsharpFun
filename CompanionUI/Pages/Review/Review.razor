@@ -13,6 +13,10 @@
 
 <div class="review-page">
     <h1>Entity review</h1>
+    @if (_toast is not null)
+    {
+        <div class="toast @(_toastIsError ? "toast--error" : "")" role="@(_toastIsError ? "alert" : "status")">@_toast</div>
+    }
 
     <div class="review-layout">
         <aside class="review-list card">
@@ -63,15 +67,6 @@
         </aside>
 
         <section class="review-detail">
-            @if (_message is not null)
-            {
-                <p class="review-message">@_message</p>
-            }
-            @if (_error is not null)
-            {
-                <p class="error" role="alert">@_error</p>
-            }
-
             @if (_entity is null)
             {
                 <p class="muted">Select an entity on the left.</p>
@@ -276,7 +271,7 @@
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _error = $"Could not load page {page}: {ex.Message}";
+            ShowToast($"Could not load page {page}: {ex.Message}", error: true);
         }
     }
 
@@ -303,13 +298,58 @@
         });
     }
 
-    private Task ApproveAsync() => RunAsync(async () =>
+    private async Task ApproveAsync()
     {
-        var e = await ReviewSvc.ApproveAsync(_entity!.Id, _reason, default);
-        _message = e.Disposition == EntityDisposition.Accepted
-            ? "Approved."
-            : "Approval saved, but unresolved override problems still block acceptance - remove or fix those overrides.";
-    });
+        if (_entity is null || _busy) return;
+        var approvedId = _entity.Id;
+        var approvedName = _entity.Name;
+        var index = _items?.ToList().FindIndex(i => i.Id == approvedId) ?? -1;
+        var accepted = false;
+        await RunAsync(async () =>
+        {
+            var e = await ReviewSvc.ApproveAsync(approvedId, _reason, default);
+            accepted = e.Disposition == EntityDisposition.Accepted;
+            _message = accepted
+                ? null
+                : "Approval saved, but unresolved override problems still block acceptance - remove or fix those overrides.";
+        });
+        if (!accepted || _error is not null) return;
+
+        ShowToast($"Approved {approvedName}");
+        // Move on to the next entry: the approved one has left a flagged-only list, so the same index
+        // is the next item; otherwise step past it.
+        var next = NextAfterApprove(_items, approvedId, index);
+        if (next is not null) await SelectAsync(next);
+    }
+
+    internal static string? NextAfterApprove(IReadOnlyList<ReviewListItem>? items, string approvedId, int index)
+    {
+        if (items is null || items.Count == 0) return null;
+        var stillListed = items.ToList().FindIndex(i => i.Id == approvedId);
+        var at = stillListed >= 0 ? stillListed + 1 : Math.Max(index, 0);
+        return at < items.Count ? items[at].Id : null;
+    }
+
+    private string? _toast;
+    private CancellationTokenSource? _toastCts;
+
+    private bool _toastIsError;
+
+    // Every outcome (saved, approved, error) is a toast, so nothing is inserted above the columns
+    // and the list, fields and page always start at the same height. Errors stay longer.
+    private void ShowToast(string text, bool error = false)
+    {
+        _toast = text;
+        _toastIsError = error;
+        _toastCts?.Cancel();
+        var cts = _toastCts = new CancellationTokenSource();
+        _ = Task.Delay(error ? 8000 : 3000, cts.Token).ContinueWith(t =>
+        {
+            if (t.IsCanceled) return;
+            _toast = null;
+            _ = InvokeAsync(StateHasChanged);
+        }, TaskScheduler.Default);
+    }
 
     private Task RemoveAsync(string field) => RunAsync(async () =>
     {
@@ -341,6 +381,8 @@
         {
             _busy = false;
         }
+        if (_error is not null) ShowToast(_error, error: true);
+        else if (_message is not null) ShowToast(_message);
     }
 
     private static readonly HashSet<string> PlainTextKeys = ["name", "canonicalText"];
