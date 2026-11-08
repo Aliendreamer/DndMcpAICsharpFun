@@ -334,6 +334,8 @@ internal static class ServiceCollectionExtensions
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.CanonicalNameNormalizerService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.NeedsReviewService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.Review.EntityReviewService>();
+        services.AddSingleton<DndMcpAICsharpFun.Features.Admin.Review.ReviewReindexQueue>();
+        services.AddHostedService<DndMcpAICsharpFun.Features.Admin.Review.ReviewReindexWorker>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.RegroundService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Admin.BookRegistrationService>();
         return services;

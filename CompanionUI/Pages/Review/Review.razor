@@ -191,6 +191,14 @@
     {
         _books = (await ReviewSvc.ListBooksAsync(default)).ToList();
         await ReloadListAsync();
+        await SelectFirstAsync();
+    }
+
+    // Open the first entry so reviewing starts without a click.
+    private async Task SelectFirstAsync()
+    {
+        if (_items is { Count: > 0 } && _items.All(i => i.Id != _selectedId))
+            await SelectAsync(_items[0].Id);
     }
 
     private async Task ReloadListAsync() =>
@@ -200,12 +208,14 @@
     {
         _book = e.Value?.ToString() ?? "";
         await ReloadListAsync();
+        await SelectFirstAsync();
     }
 
     private async Task OnFlaggedChanged(ChangeEventArgs e)
     {
         _flaggedOnly = e.Value is true;
         await ReloadListAsync();
+        await SelectFirstAsync();
     }
 
     private async Task SelectAsync(string id)

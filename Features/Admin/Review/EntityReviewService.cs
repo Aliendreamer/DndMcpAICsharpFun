@@ -29,7 +29,7 @@ public sealed class EntityReviewService(
     CanonicalJsonLoader loader,
     CanonicalJsonWriter writer,
     OverridesStore overridesStore,
-    IEntityIngestionOrchestrator ingestion,
+    ReviewReindexQueue reindexQueue,
     IBookExtractorClient extractor,
     IIngestionTracker tracker,
     IOptions<EntityIngestionOptions> entityOptions,
@@ -287,7 +287,8 @@ public sealed class EntityReviewService(
             await overridesStore.SaveAsync(loc.Slug, nextOverrides, ct);
             var entities = loc.File.Entities.Select(x => x.Id == entityId ? entity : x).ToList();
             await writer.WriteAsync(loc.Path, loc.File with { Entities = entities }, ct);
-            await ingestion.ReindexEntityAsync(record.Id, entityId, ct);
+            // Re-index in the background: the review click returns as soon as the file is written.
+            reindexQueue.Enqueue(new ReviewReindexJob(loc.Slug, record.Id, entityId));
             return entity;
         }
     }

@@ -75,8 +75,18 @@ public sealed class EntityReviewServiceTests : IDisposable
     private EntityReviewService Svc()
     {
         var eo = Options.Create(new EntityIngestionOptions { CanonicalDirectory = _dir });
-        return new EntityReviewService(_loader, _writer, new OverridesStore(eo), _ingestion, _client, _tracker,
+        return new EntityReviewService(_loader, _writer, new OverridesStore(eo), _reindexQueue, _client, _tracker,
             eo, Options.Create(new IngestionOptions { BooksPath = "/books" }), _locks);
+    }
+
+    private readonly ReviewReindexQueue _reindexQueue = new();
+
+    // Stands in for ReviewReindexWorker: runs every queued background re-index now, so the
+    // assertions below see the same ReindexEntityAsync calls the worker would make.
+    private async Task DrainReindexAsync()
+    {
+        while (_reindexQueue.Reader.TryRead(out var job))
+            await _ingestion.ReindexEntityAsync(job.BookId, job.EntityId, CancellationToken.None);
     }
 
     private readonly CanonicalBookLocks _locks = new();
@@ -126,7 +136,7 @@ public sealed class EntityReviewServiceTests : IDisposable
         var approval = (await Store().LoadAsync(Slug, CancellationToken.None)).Approvals
             .Should().ContainSingle(a => a.EntityId == Orc && a.Reason == "reviewed against page").Subject;
         approval.WaivedChecks.Should().Equal("hp-sane");
-        await _ingestion.Received(1).ReindexEntityAsync(1, Orc, Arg.Any<CancellationToken>());
+        await DrainReindexAsync(); await _ingestion.Received(1).ReindexEntityAsync(1, Orc, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -186,8 +196,8 @@ public sealed class EntityReviewServiceTests : IDisposable
 
         await Svc().ApproveAsync(Orc, "ok", CancellationToken.None);
 
-        await _ingestion.Received(1).ReindexEntityAsync(1, Orc, Arg.Any<CancellationToken>());
-        await _ingestion.DidNotReceive().ReindexEntityAsync(9, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await DrainReindexAsync(); await _ingestion.Received(1).ReindexEntityAsync(1, Orc, Arg.Any<CancellationToken>());
+        await DrainReindexAsync(); await _ingestion.DidNotReceive().ReindexEntityAsync(9, Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -218,7 +228,7 @@ public sealed class EntityReviewServiceTests : IDisposable
 
         save.IsCompleted.Should().BeFalse();
         (await Store().LoadAsync(Slug, CancellationToken.None)).Approvals.Should().BeEmpty();
-        await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
+        await DrainReindexAsync(); await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
 
         held.Dispose();
         await save;
@@ -236,7 +246,7 @@ public sealed class EntityReviewServiceTests : IDisposable
         var ov = (await Store().LoadAsync(Slug, CancellationToken.None)).Overrides.Should().ContainSingle().Subject;
         ov.Field.Should().Be("fields.cr");
         ov.Extracted!.Value.GetString().Should().Be("1", "the extractor's value is the baseline");
-        await _ingestion.Received(1).ReindexEntityAsync(1, Goblin, Arg.Any<CancellationToken>());
+        await DrainReindexAsync(); await _ingestion.Received(1).ReindexEntityAsync(1, Goblin, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -247,7 +257,7 @@ public sealed class EntityReviewServiceTests : IDisposable
         var act = () => Svc().OverrideAsync(Goblin, "fields.nope.x", J("1"), "r", CancellationToken.None);
 
         await act.Should().ThrowAsync<ArgumentException>();
-        await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
+        await DrainReindexAsync(); await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
     }
 
     [Fact]
@@ -344,7 +354,7 @@ public sealed class EntityReviewServiceTests : IDisposable
         var e = await FromFile(Orc);
         e.Checks.Should().BeEmpty();
         e.Disposition.Should().Be(EntityDisposition.Accepted);
-        await _ingestion.Received(1).ReindexEntityAsync(1, Orc, Arg.Any<CancellationToken>());
+        await DrainReindexAsync(); await _ingestion.Received(1).ReindexEntityAsync(1, Orc, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -401,7 +411,7 @@ public sealed class EntityReviewServiceTests : IDisposable
         await act.Should().ThrowAsync<ArgumentException>();
         File.Exists(Path.Combine(_dir, Slug + ".overrides.json")).Should().BeFalse();
         (await FromFile(Goblin)).Fields.GetProperty("cr").GetString().Should().Be("1");
-        await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
+        await DrainReindexAsync(); await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
     }
 
     [Fact]
@@ -416,7 +426,7 @@ public sealed class EntityReviewServiceTests : IDisposable
         e.Fields.GetProperty("cr").GetString().Should().Be("2");
         e.Name.Should().Be("Goblin Boss");
         (await Store().LoadAsync(Slug, CancellationToken.None)).Overrides.Should().HaveCount(2);
-        await _ingestion.Received(1).ReindexEntityAsync(1, Goblin, Arg.Any<CancellationToken>());
+        await DrainReindexAsync(); await _ingestion.Received(1).ReindexEntityAsync(1, Goblin, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -514,7 +524,7 @@ public sealed class EntityReviewServiceTests : IDisposable
 
         await act.Should().ThrowAsync<ProgrammaticEntityReviewException>();
         (await FromFile(Orc)).Disposition.Should().Be(EntityDisposition.NeedsReview);
-        await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
+        await DrainReindexAsync(); await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
     }
 
     [Fact]
@@ -527,7 +537,7 @@ public sealed class EntityReviewServiceTests : IDisposable
         result.Cleared.Should().Be(0);
         result.Skipped.Should().Be(1);
         (await FromFile(Orc)).Disposition.Should().Be(EntityDisposition.NeedsReview);
-        await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
+        await DrainReindexAsync(); await _ingestion.DidNotReceiveWithAnyArgs().ReindexEntityAsync(default, default!, default);
     }
 
     [Fact]
