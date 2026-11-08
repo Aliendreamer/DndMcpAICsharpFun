@@ -45,7 +45,11 @@ internal static class ChatExtensions
             // OllamaSharp's OllamaApiClient (NOT MEAI.Ollama's OllamaChatClient) — only it can send
             // the top-level `think` field that DndChatService uses to run qwen3 think-off. It
             // implements MEAI IChatClient, so the FunctionInvocation stack wraps it identically.
-            IChatClient inner = new OllamaApiClient(new Uri(baseUrl), chatModel);
+            // Explicit HttpClient: the Uri constructor gets the .NET default 100 s timeout, which cut
+            // long tool-calling turns (the level-up coach) off mid-answer.
+            var chatHttp = Infrastructure.Http.LongRunningHttpClient.Create(
+                new Uri(baseUrl), config.GetValue("Ollama:ChatTimeoutSeconds", 600));
+            IChatClient inner = new OllamaApiClient(chatHttp, chatModel);
             return inner.AsBuilder().UseFunctionInvocation().Build();
         });
         // chat-query-router: pre-LLM tool-set narrowing. Options bind from "ChatQueryRouter"

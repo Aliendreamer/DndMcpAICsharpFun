@@ -77,7 +77,7 @@ public sealed class McpToolsProvider(
             Endpoint = new Uri(opts.Url),
             TransportMode = HttpTransportMode.StreamableHttp,
             AdditionalHeaders = new Dictionary<string, string> { ["X-Mcp-Api-Key"] = opts.ApiKey },
-        });
+        }, Infrastructure.Http.LongRunningHttpClient.Create(null, opts.TimeoutSeconds), loggerFactory: null, ownsHttpClient: true);
         var client = await McpClient.CreateAsync(transport, cancellationToken: ct);
         var tools = (await client.ListToolsAsync(cancellationToken: ct)).Cast<AITool>().ToList();
         return (client, tools);
