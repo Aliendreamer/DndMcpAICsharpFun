@@ -120,7 +120,7 @@ def test_check_names():
     g = parse_monsters(lines(167))[0]
     assert [c.name for c in monster_checks(g)] == [
         "abilities-present", "ac-present", "hp-present", "cr-present", "speed-present", "hp-matches-dice", "hp-bonus-matches-con",
-        "cr-legal", "xp-matches-cr", "ability-modifiers"]
+        "cr-legal", "xp-matches-cr", "ability-modifiers", "stat-block-tail"]
 
 
 def test_ability_modifier_sign_is_checked():
@@ -435,3 +435,20 @@ def test_stat_block_ends_where_the_adventure_prose_resumes():
     assert yinra.lines[-1].text.endswith("piercing damage.")
     assert "gnome guard" not in yinra.text and "Sleese" not in yinra.text
     assert [a["name"] for a in yinra.fields["action"]] == ["Shortsword", "Longbow"]
+
+
+def _tail_check(name, page):
+    m = by_name(parse_monsters(lines(page)), name)
+    return next(c for c in m.checks if c.name == "stat-block-tail")
+
+
+def test_duergar_with_the_lore_after_its_actions_fails_the_tail_check():
+    # the next column's lore ("increase its size and strength ...", "Infernal Master. ...") is in the block's text
+    c = _tail_check("Duergar", 123)
+    assert not c.passed
+    assert "17 lines" in c.reason and "or carries is invisible with it" in c.reason
+
+
+@pytest.mark.parametrize("name,page", [("Giant Scorpion", 328), ("Myconid Adult", 233), ("Goblin", 167)])
+def test_real_actions_that_resume_after_a_gap_pass_the_tail_check(name, page):
+    assert _tail_check(name, page).passed

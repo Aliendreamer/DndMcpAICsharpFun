@@ -17,6 +17,9 @@ Copies of the spike OCR cache (`ocr/<book>/NNN.json`, 1-based PDF page index).
 | dmg | 226 | Eye of Vecna |
 | dmg | 200 | Spell Scroll |
 | dmg | 169 | Figurine of Wondrous Power |
+| mm | 123 | Duergar, then the duergar lore |
+| mm | 233 | Myconid Adult (an action continues after a column break) |
+| mm | 328 | Giant Scorpion (Sting's text continues after an OCR-dropped line) |
 | mm | 002 | Title art page (single line "MONSTER MANUAL") |
 | mm | 003 | Credits |
 | mm | 004 | Table of contents |

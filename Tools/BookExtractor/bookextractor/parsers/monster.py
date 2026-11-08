@@ -698,6 +698,47 @@ def parse_monsters(lines: list[Line]) -> list[Parsed]:
 
 
 # ---------- checks ----------
+# game-mechanics vocabulary: the dice, DCs, attack rolls, durations and plain rules words that every trait, action and
+# spell list of a stat block carries somewhere; neighbouring lore prose almost never does
+_MECHANICS = re.compile(
+    r"\d+d\d+|\bDC \d+|\bAttack\b|\bsaving throw|\bto hit\b|\bHit:|\(\d[\d,]* XP\)|\bRecharge|\bat will\b|\d/day"
+    r"|\bslots?\b|\bbonus actions?\b|\bCosts? \d+ Actions?\b|\b\d+[ -]?(?:feet|foot|ft\.?|minutes?|hours?|rounds?|days?)\b"
+    r"|\badvantage\b|\bdamage\b|\bhit points?\b|\btarget\b|\bspell\b|\bturn\b|\bactions?\b|\bprone\b|\bparalyzed\b"
+    r"|\bcharmed\b|\bpolymorph|\bcondition\b", re.I)
+_SENTENCE_END = re.compile(r"[.!?)\"]\s*$")
+TAIL_LINES = 12  # prose lines past the stat block that fail the check; a real entry is never this long without rules words
+
+
+def stat_block_tail(lines: list[Line]) -> tuple[int, str]:
+    """(count, first line) of the prose that follows the stat block's last rules text, or (0, "").
+
+    Two signs of the neighbouring column's lore (or the next section) inside the block's lines, both counted
+    from the Challenge line on: TAIL_LINES or more lines after the last line with rules vocabulary (and the rest
+    of its sentence), or a run of TAIL_LINES lines with no rules vocabulary at all (the lore is followed by rules
+    text of its own: a dracolich template below the Doppelganger). The text is never cut: a real entry resumes
+    after a column break or an OCR-dropped line, so only the check fails.
+    """
+    t = [l.text for l in lines]
+    start = next((i for i, x in enumerate(t) if _lab(x, "Challenge")), None)
+    if start is None:
+        return 0, ""
+    mech = [bool(_MECHANICS.search(x)) for x in t]
+    found: list[tuple[int, str]] = []
+    last = max((i for i in range(start + 1, len(t)) if mech[i]), default=None)
+    if last is not None:
+        k = last
+        while k + 1 < len(t) and (not _SENTENCE_END.search(t[k].strip()) or (
+                len(t[k + 1]) <= 35 and t[k + 1][:1].islower() and t[k + 1].rstrip().endswith("."))):
+            k += 1
+        if len(t) - k - 1 >= TAIL_LINES:
+            found.append((len(t) - k - 1, t[k + 1].strip()))
+    for i in range(start + 1, len(t) - TAIL_LINES + 1):
+        if not any(mech[i: i + TAIL_LINES]):
+            found.append((len(t) - i, t[i].strip()))
+            break
+    return max(found) if found else (0, "")
+
+
 def monster_checks(p: Parsed) -> list[Check]:
     f = p.fields
     hp = f.get("hp") or {}
@@ -734,4 +775,7 @@ def monster_checks(p: Parsed) -> list[Check]:
         checks.append(Check("ability-modifiers", not bad,
                             "" if not bad else "score/modifier mismatch: " + ", ".join(bad)))
     checks += [Check("ability-repaired", True, n) for *_x, n in pairs if n]
+    n_tail, first = stat_block_tail(p.lines)
+    checks.append(Check("stat-block-tail", not n_tail, "" if not n_tail else
+                        f"{n_tail} lines of prose follow the stat block, from {first!r}"))
     return checks
