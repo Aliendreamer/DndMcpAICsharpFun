@@ -1215,3 +1215,13 @@ input::placeholder, textarea::placeholder { color:var(--muted); }
     background: var(--surface-2); color: var(--heal); border: 1px solid var(--heal); border-radius: var(--r-md);
     box-shadow: var(--shadow); font-size: var(--fs-sm); font-weight: 600; }
 .toast--error { color: var(--hp); border-color: var(--hp); }
+/* review: busy state — an overlay on the fields while saving/approving, inline while a page image loads */
+.review-entity { position: relative; }
+.review-entity.is-busy > :not(.review-busy) { opacity: .45; pointer-events: none; }
+.review-busy { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: var(--s3);
+    padding: var(--s3) var(--s4); background: var(--surface-2); border: 1px solid var(--ember);
+    border-radius: var(--r-md); color: var(--ember); font-weight: 600; font-size: var(--fs-sm); }
+.review-busy--inline { position: static; border-color: var(--border); color: var(--muted); }
+.spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor;
+    border-right-color: transparent; animation: spin .7s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }

@@ -75,7 +75,11 @@
             }
             else
             {
-                <div class="card review-entity">
+                <div class="card review-entity @(_busy ? "is-busy" : "")">
+                    @if (_busy)
+                    {
+                        <div class="review-busy" role="status"><span class="spinner"></span>@_busyLabel</div>
+                    }
                     <header class="review-entity-head">
                         <h2>@_entity.Name</h2>
                         <span class="chip">@_entity.Type</span>
@@ -145,6 +149,10 @@
                         </div>
                     }
 
+                    @if (_imageLoading)
+                    {
+                        <div class="review-busy review-busy--inline" role="status"><span class="spinner"></span>Loading page @_imagePage…</div>
+                    }
                     @if (_imageNote is not null)
                     {
                         <p class="muted">@_imageNote</p>
@@ -188,6 +196,8 @@
     private string? _message;
     private string? _error;
     private bool _busy;
+    private string _busyLabel = "Working…";
+    private bool _imageLoading;
 
     protected override async Task OnInitializedAsync()
     {
@@ -265,6 +275,7 @@
         if (_entity is null) return;
         _imagePage = page;
         _imageUri = null;
+        _imageLoading = true;
         _imageNote = null;
         _boxes = [];
         try
@@ -285,10 +296,15 @@
         {
             ShowToast($"Could not load page {page}: {ex.Message}", error: true);
         }
+        finally
+        {
+            _imageLoading = false;
+        }
     }
 
     private async Task SaveAsync()
     {
+        _busyLabel = "Saving…";
         await RunAsync(async () =>
         {
             var changed = _editOrder.Where(k => _edits[k] != _originals[k]).ToList();
@@ -317,6 +333,7 @@
         var approvedName = _entity.Name;
         var index = _items?.ToList().FindIndex(i => i.Id == approvedId) ?? -1;
         var accepted = false;
+        _busyLabel = "Approving…";
         await RunAsync(async () =>
         {
             var e = await ReviewSvc.ApproveAsync(approvedId, _reason, default);
@@ -376,7 +393,13 @@
         }, TaskScheduler.Default);
     }
 
-    private Task RemoveAsync(string field) => RunAsync(async () =>
+    private Task RemoveAsync(string field)
+    {
+        _busyLabel = "Removing override…";
+        return RemoveCoreAsync(field);
+    }
+
+    private Task RemoveCoreAsync(string field) => RunAsync(async () =>
     {
         await ReviewSvc.RemoveOverrideAsync(_entity!.Id, field, default);
         _message = $"Removed override at {field}.";
