@@ -28,7 +28,9 @@ body {
   background:
     radial-gradient(120% 80% at 50% -10%, rgba(232,182,90,.05), transparent 55%),
     var(--ink);
-  min-height: 100vh; display: flex; flex-direction: column; line-height: 1.5;
+  /* fixed to the viewport: the window itself never scrolls — only .main-content (when a page is
+     longer than the screen) and the chat .messages list do, and only when they overflow */
+  height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 h1, h2, h3 { text-wrap: balance; }
@@ -89,6 +91,7 @@ input::placeholder, textarea::placeholder { color:var(--muted); }
 
 .messages {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: var(--s4) 0;
     display: flex;
