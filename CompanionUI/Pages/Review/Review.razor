@@ -114,7 +114,7 @@
                                                 @onclick="() => RemoveAsync(k)">Remove override</button>
                                     }
                                 </label>
-                                <textarea id="f-@k" class="data" rows="@RowsFor(_edits[k])"
+                                <textarea id="f-@k" class="data" rows="@RowsFor(k, _edits[k])"
                                           @bind="_edits[k]" @bind:event="oninput"></textarea>
                             </div>
                         }
@@ -233,15 +233,17 @@
         _edits.Clear();
         _originals.Clear();
         _editOrder = ["name", "canonicalText"];
-        _originals["name"] = JsonSerializer.Serialize(_entity.Name);
-        _originals["canonicalText"] = JsonSerializer.Serialize(_entity.CanonicalText);
+        // name and canonicalText are edited as plain text (real line breaks, no JSON escapes);
+        // every fields.* value stays JSON, written without \uXXXX escapes so it reads as printed.
+        _originals["name"] = _entity.Name;
+        _originals["canonicalText"] = _entity.CanonicalText ?? "";
         if (_entity.Fields.ValueKind == JsonValueKind.Object)
         {
             foreach (var p in _entity.Fields.EnumerateObject())
             {
                 var key = "fields." + p.Name;
                 _editOrder.Add(key);
-                _originals[key] = JsonSerializer.Serialize(p.Value, new JsonSerializerOptions { WriteIndented = true });
+                _originals[key] = JsonSerializer.Serialize(p.Value, ReadableJson);
             }
         }
         foreach (var (k, v) in _originals) _edits[k] = v;
@@ -288,6 +290,11 @@
             var parsed = new List<(string Field, JsonElement Value)>();
             foreach (var k in changed)
             {
+                if (PlainTextKeys.Contains(k))
+                {
+                    parsed.Add((k, JsonSerializer.SerializeToElement(_edits[k])));
+                    continue;
+                }
                 try { parsed.Add((k, JsonDocument.Parse(_edits[k]).RootElement.Clone())); }
                 catch (JsonException) { throw new ArgumentException($"{k} is not valid JSON."); }
             }
@@ -336,5 +343,19 @@
         }
     }
 
-    private static int RowsFor(string text) => Math.Clamp(text.Count(c => c == '\n') + 1, 1, 12);
+    private static readonly HashSet<string> PlainTextKeys = ["name", "canonicalText"];
+
+    private static readonly JsonSerializerOptions ReadableJson = new()
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
+    // Rows follow the text, counting long lines that wrap; the entry text gets far more room
+    // than a field so a whole stat block or section reads without scrolling the box.
+    internal static int RowsFor(string key, string text)
+    {
+        var rows = text.Split('\n').Sum(line => 1 + line.Length / 110);
+        return Math.Clamp(rows, 1, key == "canonicalText" ? 40 : 12);
+    }
 }
