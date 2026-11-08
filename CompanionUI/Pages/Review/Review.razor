@@ -1,5 +1,7 @@
 @page "/review"
-@rendermode InteractiveServer
+@* No prerender: it ran OnInitializedAsync twice (prerender + interactive), loading the list,
+   the first entry and its page image twice. *@
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
 @using DndMcpAICsharpFun.Domain.Entities
