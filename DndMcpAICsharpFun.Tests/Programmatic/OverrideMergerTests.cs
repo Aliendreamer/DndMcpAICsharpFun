@@ -21,6 +21,40 @@ public class OverrideMergerTests
         new("mm14.monster.grell", field, J(value), extracted is null ? null : J(extracted), "fix", At);
 
     [Fact]
+    public void Reapply_onto_a_file_already_holding_the_override_is_idempotent_with_no_drift()
+    {
+        var o = new EntityOverrides([Ov("fields.cr", "\"3\"", "\"2\"")], []);
+        var once = OverrideMerger.Apply([Grell()], o).Entities[0];
+        var again = OverrideMerger.Reapply([once], o).Entities[0];
+        again.Fields.GetProperty("cr").GetString().Should().Be("3");
+        again.Checks.Should().NotContain(c => c.Name == OverrideMerger.DriftCheck);
+        again.Disposition.Should().Be(EntityDisposition.Accepted);
+    }
+
+    [Fact]
+    public void Reapply_sets_a_new_override_and_waives_failed_checks_with_an_approval()
+    {
+        var failing = Grell(checks: [new EntityCheck("stat-block-tail", false, "tail")]);
+        var o = new EntityOverrides(
+            [Ov("fields.cr", "\"3\"", "\"2\"")],
+            [new Approval("mm14.monster.grell", "verified", At, ["stat-block-tail"])]);
+        var e = OverrideMerger.Reapply([failing], o).Entities[0];
+        e.Fields.GetProperty("cr").GetString().Should().Be("3");
+        e.Disposition.Should().Be(EntityDisposition.Accepted);
+        e.NeedsReview.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Reapply_drops_a_stale_drift_check_once_the_value_matches()
+    {
+        var o = new EntityOverrides([Ov("fields.cr", "\"3\"", "\"2\"")], []);
+        var stale = Grell("\"3\"", [new EntityCheck(OverrideMerger.DriftCheck, false, "extraction changed under your override at fields.cr: was \"2\", now \"4\"")]);
+        var e = OverrideMerger.Reapply([stale], o).Entities[0];
+        e.Checks.Should().BeEmpty();
+        e.Disposition.Should().Be(EntityDisposition.Accepted);
+    }
+
+    [Fact]
     public void Override_applied()
     {
         var o = new EntityOverrides([Ov("fields.cr", "\"3\"")], []);

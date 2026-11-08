@@ -291,6 +291,26 @@
       "authentication": {}
     },
     {
+      "_id": "req_books_apply_overrides",
+      "_type": "request",
+      "parentId": "fld_admin_books",
+      "name": "Apply overrides (no re-extraction)",
+      "description": "Re-applies <slug>.overrides.json (field overrides and approvals) to the CURRENT programmatic canonical file under the book's canonical lock, writes the file, then re-ingests into dnd_entities (non-Accepted entities are removed). 200 {bookId, applied, accepted, needsReview}; 404 unknown book; 409 no programmatic (schema \"2\") canonical file.",
+      "method": "POST",
+      "url": "{{ _.baseUrl }}/admin/books/1/apply-overrides",
+      "headers": [
+        {
+          "name": "X-Admin-Api-Key",
+          "value": "{{ _.adminKey }}"
+        }
+      ],
+      "body": {
+        "mimeType": ""
+      },
+      "parameters": [],
+      "authentication": {}
+    },
+    {
       "_id": "req_books_extract_entities_force",
       "_type": "request",
       "parentId": "fld_admin_books",

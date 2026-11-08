@@ -135,6 +135,7 @@ internal static class ServiceCollectionExtensions
             });
         services.AddSingleton<DndMcpAICsharpFun.Features.Ingestion.Programmatic.OverridesStore>();
         services.AddSingleton<DndMcpAICsharpFun.Features.Ingestion.Programmatic.CanonicalBookLocks>();
+        services.AddScoped<DndMcpAICsharpFun.Features.Ingestion.Programmatic.IOverridesApplier, DndMcpAICsharpFun.Features.Ingestion.Programmatic.OverridesApplier>();
         services.AddScoped<DndMcpAICsharpFun.Features.Ingestion.Programmatic.IProgrammaticExtractionRunner,
             DndMcpAICsharpFun.Features.Ingestion.Programmatic.ProgrammaticExtractionRunner>();
         services.AddSingleton<DndMcpAICsharpFun.Features.Ingestion.Programmatic.ProgrammaticExtractionQueue>();

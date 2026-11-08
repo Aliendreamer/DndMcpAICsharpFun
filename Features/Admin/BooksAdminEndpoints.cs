@@ -29,6 +29,7 @@ public static partial class BooksAdminEndpoints
         group.MapPost("/books/{id:int}/ingest-entities", IngestEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/extract-entities", ExtractEntities).DisableAntiforgery();
         group.MapPost("/books/{id:int}/extract-programmatic", ExtractProgrammatic).DisableAntiforgery();
+        group.MapPost("/books/{id:int}/apply-overrides", ApplyOverrides).DisableAntiforgery();
         group.MapGet("/books/{id:int}/entity-recall", EntityRecall);
         group.MapGet("/books/{id:int}/coverage", GetCoverage);
         group.MapPost("/books/{id:int}/backfill-entities", BackfillEntities).DisableAntiforgery();
@@ -133,6 +134,25 @@ public static partial class BooksAdminEndpoints
             return Results.Conflict("Book is already queued for programmatic extraction.");
 
         return Results.Accepted($"/admin/books/{id}", new { bookId = id });
+    }
+
+    /// <summary>Re-applies the book's overrides/approvals to its current programmatic canonical file and re-ingests it (no extraction).</summary>
+    private static async Task<IResult> ApplyOverrides(
+        int id,
+        Ingestion.Programmatic.IOverridesApplier applier,
+        CancellationToken ct)
+    {
+        try
+        {
+            var r = await applier.ApplyAsync(id, ct);
+            return r is null
+                ? Results.NotFound($"Book with id {id} not found")
+                : Results.Ok(new { bookId = id, applied = r.Applied, accepted = r.Accepted, needsReview = r.NeedsReview });
+        }
+        catch (Ingestion.Programmatic.NoProgrammaticFileException ex)
+        {
+            return Results.Conflict(ex.Message);
+        }
     }
 
     private static async Task<IResult> ExtractEntities(

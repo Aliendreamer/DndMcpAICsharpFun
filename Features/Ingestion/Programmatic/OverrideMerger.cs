@@ -13,7 +13,16 @@ public static class OverrideMerger
     public const string UnappliedCheck = "override-unapplied";
     private const string FieldsPrefix = "fields.";
 
-    public static MergeResult Apply(IReadOnlyList<EntityEnvelope> extracted, EntityOverrides o)
+    /// <summary>
+    /// Re-applies the overrides and approvals to entities that already hold an earlier application (the current canonical
+    /// file, no re-extraction): an override whose value is already in place is left alone, and stale
+    /// drift / unapplied checks are dropped and re-derived.
+    /// </summary>
+    public static MergeResult Reapply(IReadOnlyList<EntityEnvelope> current, EntityOverrides o) => Apply(current, o, reapply: true);
+
+    public static MergeResult Apply(IReadOnlyList<EntityEnvelope> extracted, EntityOverrides o) => Apply(extracted, o, reapply: false);
+
+    private static MergeResult Apply(IReadOnlyList<EntityEnvelope> extracted, EntityOverrides o, bool reapply)
     {
         var ids = extracted.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
         var orphans = o.Overrides.Select(x => x.EntityId)
@@ -23,14 +32,20 @@ public static class OverrideMerger
             .ToList();
 
         var result = new List<EntityEnvelope>(extracted.Count);
-        foreach (var original in extracted)
+        foreach (var input in extracted)
         {
+            var original = input;
             var mine = o.Overrides.Where(x => x.EntityId == original.Id).ToList();
             var approval = ApprovalFor(o, original.Id);
+            if (reapply && mine.Count > 0)
+                original = original with
+                {
+                    Checks = original.Checks.Where(c => c.Name is not (DriftCheck or UnappliedCheck)).ToList(),
+                };
             var e = original;
             // In file order: for the same field the last override wins.
             foreach (var ov in mine)
-                e = ApplyOne(original, e, ov);
+                e = ApplyOne(original, e, ov, reapply);
 
             // Programmatic entities always get a derived disposition (never trust whatever the input carried).
             if (e.DataSource == DataSources.Programmatic || mine.Count > 0 || approval is not null || e.Checks.Count > 0)
@@ -84,10 +99,14 @@ public static class OverrideMerger
     /// Drift compares with <see cref="JsonNode.DeepEquals"/>: object key order is ignored, array order matters,
     /// and numbers compare by value, so 2 and 2.0 are equal; genuinely different values drift.
     /// </summary>
-    private static EntityEnvelope ApplyOne(EntityEnvelope original, EntityEnvelope e, FieldOverride ov)
+    private static EntityEnvelope ApplyOne(EntityEnvelope original, EntityEnvelope e, FieldOverride ov, bool reapply)
     {
         // Drift is judged against the original extraction, not an earlier override on the same field.
         var current = GetCurrent(original, ov.Field);
+        // Re-applying onto a file that already holds the override: nothing to set, and no drift to report.
+        if (reapply && TryGetValue(e, ov.Field, out var held)
+            && JsonNode.DeepEquals(JsonNode.Parse(held.GetRawText()), JsonNode.Parse(ov.Value.GetRawText())))
+            return e;
         var updated = Set(e, ov.Field, ov.Value, out var why);
         if (updated is null)
         {

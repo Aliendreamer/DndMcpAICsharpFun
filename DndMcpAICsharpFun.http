@@ -74,6 +74,10 @@ X-Admin-Api-Key: {{adminKey}}
 POST {{baseUrl}}/admin/books/1/extract-programmatic
 X-Admin-Api-Key: {{adminKey}}
 
+### Admin Books — Apply overrides WITHOUT re-extracting (re-applies <slug>.overrides.json — every field override and approval — to the CURRENT programmatic canonical file under the book's canonical lock, writes the file, then re-ingests into dnd_entities so non-Accepted entities are removed). 200 {bookId, applied, accepted, needsReview}; 404 unknown book; 409 no programmatic (schema "2") canonical file for the book.
+POST {{baseUrl}}/admin/books/1/apply-overrides
+X-Admin-Api-Key: {{adminKey}}
+
 ### Admin Books — Re-extract entities (force overwrite of existing canonical JSON)
 POST {{baseUrl}}/admin/books/1/extract-entities?force=true
 X-Admin-Api-Key: {{adminKey}}
