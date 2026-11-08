@@ -10,6 +10,7 @@
 @using DndMcpAICsharpFun.Features.Ingestion.Programmatic
 @attribute [Authorize(Policy = AuthPolicies.Admin)]
 @inject EntityReviewService ReviewSvc
+@inject DndMcpAICsharpFun.Features.Ingestion.EntityExtraction.EntitySchemaProvider SchemaProvider
 
 <PageTitle>Review</PageTitle>
 
@@ -230,6 +231,20 @@
         _items = FilterByType(all, _type);
     }
 
+    private Dictionary<EntityType, JsonElement>? _schemas;
+
+    // "confidence" is injected into the schemas for the LLM extractor only; it is not a book field.
+    internal static IEnumerable<string> MissingSchemaFields(JsonElement fields, JsonElement schema)
+    {
+        if (!schema.TryGetProperty("properties", out var props) || props.ValueKind != JsonValueKind.Object) yield break;
+        foreach (var p in props.EnumerateObject())
+        {
+            if (p.Name == "confidence") continue;
+            if (fields.ValueKind == JsonValueKind.Object && fields.TryGetProperty(p.Name, out _)) continue;
+            yield return p.Name;
+        }
+    }
+
     internal static IReadOnlyList<ReviewListItem> FilterByType(IReadOnlyList<ReviewListItem> items, string type) =>
         type == "" ? items : items.Where(i => i.Type.ToString() == type).ToList();
 
@@ -285,6 +300,18 @@
                 var key = "fields." + p.Name;
                 _editOrder.Add(key);
                 _originals[key] = JsonSerializer.Serialize(p.Value, ReadableJson);
+            }
+        }
+        // Fields the type's schema allows but the extraction left out are shown empty (null), so a missing
+        // value (an item's cost, a weight) can be filled in; an untouched empty field is never saved.
+        _schemas ??= SchemaProvider.LoadSchemas();
+        if (_schemas.TryGetValue(_entity.Type, out var schema))
+        {
+            foreach (var name in MissingSchemaFields(_entity.Fields, schema))
+            {
+                var key = "fields." + name;
+                _editOrder.Add(key);
+                _originals[key] = "null";
             }
         }
         foreach (var (k, v) in _originals) _edits[k] = v;

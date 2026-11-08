@@ -55,4 +55,17 @@ public sealed class ReviewPageNavigationTests
         ReviewPage.NextType(counts, "Monster").Should().Be("Lore");
         ReviewPage.NextType(new Dictionary<string, int> { ["Monster"] = 0 }, "Monster").Should().Be("");
     }
+
+
+    [Fact]
+    public void MissingSchemaFields_ListsAllowedFieldsTheEntityLacks_ButNotConfidence()
+    {
+        var schema = System.Text.Json.JsonDocument.Parse(
+            """{"properties":{"type":{},"value":{},"weight":{},"entries":{},"confidence":{}}}""").RootElement;
+        var fields = System.Text.Json.JsonDocument.Parse("""{"type":"TAH","entries":[]}""").RootElement;
+        var empty = System.Text.Json.JsonDocument.Parse("{}").RootElement;
+
+        ReviewPage.MissingSchemaFields(fields, schema).Should().Equal("value", "weight");
+        ReviewPage.MissingSchemaFields(empty, schema).Should().Equal("type", "value", "weight", "entries");
+    }
 }
