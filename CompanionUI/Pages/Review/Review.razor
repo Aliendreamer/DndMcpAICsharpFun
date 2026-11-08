@@ -123,6 +123,14 @@
                                                 @onclick="() => RemoveAsync(k)">Remove override</button>
                                     }
                                 </label>
+                                @if (_hints.TryGetValue(k, out var hint))
+                                {
+                                    <div class="review-hint muted">@hint</div>
+                                }
+                                @if (_examples.TryGetValue(k, out var example))
+                                {
+                                    <div class="review-hint muted">e.g. <code>@example</code></div>
+                                }
                                 <textarea id="f-@k" class="data" rows="@RowsFor(k, _edits[k])"
                                           @bind="_edits[k]"></textarea>
                             </div>
@@ -232,6 +240,25 @@
     }
 
     private Dictionary<EntityType, JsonElement>? _schemas;
+    private readonly Dictionary<string, string> _hints = new();
+    private IReadOnlyDictionary<string, string> _examples = new Dictionary<string, string>();
+
+    // Examples come from accepted entities in every book: the first load parses all files, so it runs after the
+    // entry is on screen and fills the hints in when ready (unless another entry was opened meanwhile).
+    private async Task LoadExamplesAsync(EntityType type, string forId)
+    {
+        try
+        {
+            var byField = await ReviewSvc.GetFieldExamplesAsync(type, default);
+            if (_entity?.Id != forId) return;
+            _examples = byField.ToDictionary(kv => "fields." + kv.Key, kv => kv.Value);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception)
+        {
+            // hints are a convenience; the entry stays editable without them
+        }
+    }
 
     // "confidence" is injected into the schemas for the LLM extractor only; it is not a book field.
     internal static IEnumerable<string> MissingSchemaFields(JsonElement fields, JsonElement schema)
@@ -305,7 +332,15 @@
         // Fields the type's schema allows but the extraction left out are shown empty (null), so a missing
         // value (an item's cost, a weight) can be filled in; an untouched empty field is never saved.
         _schemas ??= SchemaProvider.LoadSchemas();
-        if (_schemas.TryGetValue(_entity.Type, out var schema))
+        _hints.Clear();
+        _examples = new Dictionary<string, string>();
+        if (_schemas.TryGetValue(_entity.Type, out var schema)
+            && schema.TryGetProperty("properties", out var props) && props.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var p in props.EnumerateObject())
+                if (p.Name != "confidence") _hints["fields." + p.Name] = FieldHints.Describe(p.Value);
+        }
+        if (schema.ValueKind == JsonValueKind.Object)
         {
             foreach (var name in MissingSchemaFields(_entity.Fields, schema))
             {
@@ -315,6 +350,8 @@
             }
         }
         foreach (var (k, v) in _originals) _edits[k] = v;
+        // Started only once every edit box has its value: the first load yields, and a render may run then.
+        _ = LoadExamplesAsync(_entity.Type, _entity.Id);
 
         _pages = (_entity.Provenance?.Pages.Select(p => p.Page) ?? [])
             .Concat(_entity.Page is { } onPage ? new[] { onPage } : Array.Empty<int>())

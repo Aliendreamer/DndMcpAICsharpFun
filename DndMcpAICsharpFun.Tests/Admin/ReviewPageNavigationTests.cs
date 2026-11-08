@@ -68,4 +68,17 @@ public sealed class ReviewPageNavigationTests
         ReviewPage.MissingSchemaFields(fields, schema).Should().Equal("value", "weight");
         ReviewPage.MissingSchemaFields(empty, schema).Should().Equal("type", "value", "weight", "entries");
     }
+
+
+    [Fact]
+    public void FieldHint_DescribesTheShape_FromTheSchemaProperty()
+    {
+        static System.Text.Json.JsonElement P(string json) => System.Text.Json.JsonDocument.Parse(json).RootElement;
+
+        FieldHints.Describe(P("""{"type":["integer","null"],"format":"int32"}""")).Should().Be("integer");
+        FieldHints.Describe(P("""{"type":["array","null"],"items":{"type":["string","object"]}}"""))
+            .Should().Be("array of string | object");
+        FieldHints.Describe(P("""{"type":"string","enum":["low","high"]}""")).Should().Be("string, one of: low, high");
+        FieldHints.Describe(P("{}")).Should().Be("any JSON");
+    }
 }

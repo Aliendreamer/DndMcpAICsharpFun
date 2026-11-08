@@ -69,6 +69,49 @@ public sealed class EntityReviewService(
     public async Task<EntityEnvelope?> GetAsync(string entityId, CancellationToken ct) =>
         (await LocateAsync(entityId, ct))?.Entity;
 
+
+    private Dictionary<EntityType, Dictionary<string, string>>? _examples;
+
+    /// <summary>
+    /// For each type, one example value per field, taken from accepted entities of that type in any programmatic
+    /// book. Read once per page session (every book file is parsed), so the caller loads it off the critical path.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, string>> GetFieldExamplesAsync(EntityType type, CancellationToken ct)
+    {
+        _examples ??= ExamplesByType(await LoadProgrammaticAsync(null, ct));
+        return _examples.TryGetValue(type, out var byField) ? byField : new Dictionary<string, string>();
+    }
+
+    internal static Dictionary<EntityType, Dictionary<string, string>> ExamplesByType(
+        IEnumerable<(string Slug, string Path, CanonicalJsonFile File)> books)
+    {
+        var result = new Dictionary<EntityType, Dictionary<string, string>>();
+        foreach (var (_, _, file) in books)
+        {
+            foreach (var e in file.Entities)
+            {
+                if (e.Disposition != EntityDisposition.Accepted || e.NeedsReview) continue;
+                if (e.Fields.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+                if (!result.TryGetValue(e.Type, out var byField)) result[e.Type] = byField = new();
+                foreach (var p in e.Fields.EnumerateObject())
+                {
+                    if (byField.ContainsKey(p.Name) || IsEmpty(p.Value)) continue;
+                    byField[p.Name] = FieldHints.Example(p.Value);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static bool IsEmpty(System.Text.Json.JsonElement v) => v.ValueKind switch
+    {
+        System.Text.Json.JsonValueKind.Null or System.Text.Json.JsonValueKind.Undefined => true,
+        System.Text.Json.JsonValueKind.Array => v.GetArrayLength() == 0,
+        System.Text.Json.JsonValueKind.Object => !v.EnumerateObject().Any(),
+        System.Text.Json.JsonValueKind.String => v.GetString()!.Length == 0,
+        _ => false,
+    };
+
     public Task<EntityEnvelope> OverrideAsync(
         string entityId, string field, JsonElement value, string reason, CancellationToken ct) =>
         OverrideManyAsync(entityId, [(field, value)], reason, ct);
