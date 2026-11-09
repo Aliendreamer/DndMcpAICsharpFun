@@ -20,7 +20,7 @@
 - Shade: ~15 on 0–255 vs per-page paper colour; read-aloud cue = previous line ends in `read:` / `reads:`.
 - Map labels: `^MAP\s*\d`, `1 square = <n> feet` (any spacing/case), `^Side View$`.
 - Overrides: write both `fields.entries` and `canonicalText` (same entry shape as existing: `entityId`, `field`, `value`, `extracted`). `canonicalText` = its existing first line (the heading) + `\n` + `\n`.join(new entries).
-- Approve only when: tokens kept ≥ 50%; cut starts at a rule-identified line; kept text non-empty and starts with the entity's own heading/name; no failing check other than `text-complete` / `neighbour-absorbed` / `entry-level`. Approval: `reason: "boundary trim"`, `waivedChecks` = the failing ones of those two, `at` = UTC ISO timestamp (same shape as `fivetools_fix`).
+- Approve only when: tokens kept ≥ 50%; cut starts at a rule-identified line; kept text non-empty and starts with the entity's own heading/name; no failing check other than `text-complete` / `neighbour-absorbed` / `entry-level`. Approval: `reason: "boundary trim"`, `waivedChecks` = the failing ones of those three, `at` = UTC ISO timestamp (same shape as `fivetools_fix`).
 - Types in scope: Lore, Rule, God, Plane, Faction, Location.
 - Extraction-time rules never approve.
 - Regression gate: no MATCH fixture entry below token-F1 0.95 vs its own text; no auto-approvable FIXED entry worse vs corrected text. If unmet, stop and report numbers — do not loosen thresholds.

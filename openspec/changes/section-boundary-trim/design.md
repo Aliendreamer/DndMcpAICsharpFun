@@ -64,3 +64,25 @@ Rollback: revert the commit(s), or delete the `boundary trim` overrides/approval
 - **Shade.** Start from the spike's measure, the mean background darkness around the line box compared with the page paper, with a threshold of about 15 on 0–255. Render on the CPU at about 100 DPI and measure paper per page, so tinted books calibrate themselves. "Opens with its own heading" uses the same heading-height test as the heading cut. Read-aloud cues are a line ending in `read:` or `reads:`. The builder may tune these against the fixture.
 - **Extraction time.** During extraction the rules only change the text. They never approve, and existing checks run on the trimmed text as they do today.
 - **Files ignored.** `.bak` files and anything that is not `<book>.json` / `<book>.overrides.json` are ignored. The skip set is `system-reference-document` and `dragonborn-slice`; BGG is in scope (owner).
+
+## Outcome (2026-11-09)
+
+- Built: boundary rules (`boundary.py`, `shade.py`), alignment and removal (`boundary_align.py`), regression fixture and gates, the `boundary_fix` dev tool, and guarded extraction-time wiring (`parsers/boundary_trim.py`, called from `world.py` and `rule.py`).
+- Rulings made during the build, which supersede earlier text in this document:
+  - Heading cuts need sibling evidence: the trim pass requires the cut heading to name another entity of the same book (otherwise `unverified-cut`), and extraction requires another section or candidate title of the same parse.
+  - A cut that keeps under 50% of the tokens is not written or applied (`large-cut`).
+  - Map labels must be label-like.
+  - Approval also waives `entry-level` (owner decision).
+  - The opening check compares the first 8 tokens.
+  - During extraction shade is 0, so the shaded rule never fires there.
+- Regression set (252 page-checked rows): 26 of 193 FIXED rows improved and 5 got worse. None of the 5 was approvable, and no MATCH row was damaged.
+- Dry run over 16 books, after the guards: 33 trims, 12 of them would-be approvals.
+- **The one-off run was cancelled.** The final review found that `boundary_align.remove()` deletes single words from inside sentences. `section_lines` admits a short sibling-heading line (such as "GITHZERAI") because its words occur in the body. That line is then matched to its first body occurrence, so "their close kin, the githzerai, are" becomes "their close kin, the are". 9 of the 12 would-be approvals were damaged. Token-F1 cannot detect a one-word loss, and a hand-read of whole blocks missed it. The owner chose to stop (option 3). `boundary_fix` now refuses real runs.
+- **What a future attempt needs:**
+  - A heading or shaded cut may remove only a contiguous suffix of the stored text.
+  - A map drop may remove only a whole entry or item.
+  - A mechanical invariant must hold over every write.
+  - Every trim must be checked against a word-level diff.
+  - The trim pass's sibling guard must key on `Cut.heading`, not `Cut.rule`.
+  - The write must be atomic (tmp file plus `os.replace`).
+- Extraction-time trimming works on whole OCR lines, so it does not have the removal defect. It is only weakly exercised (no realistic-parse test). Measure it on one book before relying on it.

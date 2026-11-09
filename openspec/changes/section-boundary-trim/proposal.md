@@ -9,7 +9,7 @@ About 1,110 programmatic entities are still flagged NeedsReview, too many for th
   - **Shaded sidebar drop**: a shaded block that opens with its own heading is not part of the section (read-aloud boxes are excluded).
   - **Map-label drop**: lines like `MAP 3`, `1 square = 5 feet`, `Side View` are dropped.
 - Add a one-off **trim pass** dev tool (sibling of `fivetools_fix`) that runs the rules over still-flagged entities of already-extracted books and writes the result as overrides in `books/canonical/<book>.overrides.json`. Nothing is re-extracted; approved entities are never touched.
-- **Auto-approve** a trim that keeps most of the section; a larger cut is applied but left NeedsReview.
+- **Auto-approve** a trim that keeps most of the section; a cut keeping under half the tokens is not written. (Outcome: the one-off run was cancelled — see design.md "Outcome".)
 - The same rules run inside extraction for books extracted from now on.
 
 ## Capabilities
