@@ -1,0 +1,10 @@
+Owner-requested LATER items (added 2026-11-08). Not started; pick up after the current extraction review work.
+
+1b. Standalone desktop app — a separate desktop client (owner, 2026-11-08); brainstorm together with the mobile app (shared client? MAUI covers both).
+1. Standalone mobile app — a separate mobile client for the companion (not just the responsive Blazor UI). Needs brainstorming: platform (.NET MAUI vs PWA vs native), offline needs, which features (chat, heroes, campaigns, review?), auth against this host.
+2. MCP enhancement — improve the MCP server/tools surface (/mcp). Needs brainstorming: which tools to add/change, external-client use (Claude Desktop etc.), auth, tool quality (= null optional params rule, routing).
+
+3. "Finalize a book" step (owner, 2026-11-08): once a book is extracted AND its review (overrides + approvals) is finished, merge the overrides into the canonical file and treat that one file as final — no more re-extraction of that book, no second overrides file. Exact shape (separate step/file, how to lock a book against re-extract) to be discussed with the owner AFTER the review is done. Until then overrides live in books/canonical/<book>.overrides.json and must be committed.
+   Owner rule: extraction is a ONE-TIME job per book — `extract-programmatic` runs only when the book has no canonical file yet; an existing (reviewed) book is never re-extracted. (Decide with owner whether any explicit escape hatch is allowed.)
+
+Other open follow-ups at that time: monster lore paragraph not attached to Monster entities (description field); passive Perception on its own line not read (4 monsters); proficiency-bonus-vs-CR check; stat-block end cutting (256 monsters in review for prose tail); level-up coach not offered without a hero (routing); C# typed God/Faction/Location/Plane/Feat/Background records vs programmatic keys; stale ManualCasesTests OpportunityAttack; TCE monster field accuracy low; local chat-model upgrade (strongest lever for chat quality).
