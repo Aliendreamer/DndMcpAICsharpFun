@@ -303,4 +303,19 @@ public class OverrideMergerTests
         r.Checks.Should().BeEmpty();
         r.Disposition.Should().Be(EntityDisposition.Accepted);
     }
+
+    [Theory]
+    [InlineData(new[] { "entry-level" }, EntityDisposition.Accepted)]
+    [InlineData(new[] { "entry-level", "name-words-known" }, EntityDisposition.Accepted)]
+    [InlineData(new[] { "name-words-known" }, EntityDisposition.NeedsReview)]
+    [InlineData(new[] { "entry-level", "text-complete" }, EntityDisposition.NeedsReview)]
+    [InlineData(new[] { "entry-level", OverrideMerger.DriftCheck }, EntityDisposition.NeedsReview)]
+    public void Entry_level_is_advisory_alone_or_with_name_words_known(string[] failed, EntityDisposition expected)
+    {
+        var e = Grell(checks: failed.Select(n => new EntityCheck(n, false, "why")).ToList());
+        var r = OverrideMerger.SetDisposition(e, null);
+        r.Disposition.Should().Be(expected);
+        r.NeedsReview.Should().Be(expected == EntityDisposition.NeedsReview);
+        r.Checks.Should().HaveCount(failed.Length);
+    }
 }

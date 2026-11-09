@@ -66,13 +66,27 @@ public static class OverrideMerger
     public static IReadOnlyList<string> WaivableFailedChecks(EntityEnvelope e) =>
         e.Checks.Where(c => !c.Passed && IsWaivable(c.Name)).Select(c => c.Name).Distinct(StringComparer.Ordinal).ToList();
 
+    public const string EntryLevelCheck = "entry-level";
+    public const string NameWordsKnownCheck = "name-words-known";
+
+    /// <summary>
+    /// A failed <c>entry-level</c> check is advisory: alone, or with only a failed <c>name-words-known</c>, it does not block.
+    /// Page checks of 74 such entities found about 1 in 5 with a real boundary error (openspec entry-level-advisory).
+    /// </summary>
+    private static bool IsAdvisoryOnly(IReadOnlyList<string> open) =>
+        open.Contains(EntryLevelCheck, StringComparer.Ordinal)
+        && open.All(n => n is EntryLevelCheck or NameWordsKnownCheck);
+
     public static EntityEnvelope SetDisposition(EntityEnvelope e, Approval? approval)
     {
         // An approval waives only the failed checks it recorded at approval time (sticky, per check name),
         // and never an unresolved override drift or an override that could not be applied.
         var waived = approval?.WaivedChecks ?? [];
-        var blocked = e.Checks.Any(c => !c.Passed
-            && (!IsWaivable(c.Name) || !waived.Contains(c.Name, StringComparer.Ordinal)));
+        var open = e.Checks
+            .Where(c => !c.Passed && (!IsWaivable(c.Name) || !waived.Contains(c.Name, StringComparer.Ordinal)))
+            .Select(c => c.Name)
+            .ToList();
+        var blocked = open.Count > 0 && !IsAdvisoryOnly(open);
         return blocked
             ? e with { Disposition = EntityDisposition.NeedsReview, NeedsReview = true }
             : e with { Disposition = EntityDisposition.Accepted, NeedsReview = false };
