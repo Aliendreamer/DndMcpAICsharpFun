@@ -5,6 +5,8 @@ For each candidate the section's OCR lines are re-read, `boundary.cut` finds whe
 re-rendered. Both land in `<book>.overrides.json` as overrides; a trim that passes `boundary.approvable` also gets an
 approval. Anything that cannot be reproduced with certainty is left untouched.
 
+Real runs are disabled (`remove()` can delete words mid-sentence), so only `--dry-run` is accepted.
+
     python -m bookextractor.boundary_fix --canonical books/canonical --books-dir books --ocr-cache <dir> \
         [--books ggr,erlw] [--report out.json] [--dry-run]
 """
@@ -12,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -190,6 +193,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--report", type=Path, default=None)
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(argv)
+    if not a.dry_run:
+        print("boundary_fix: real runs are disabled — remove() can delete words mid-sentence "
+              "(see openspec section-boundary-trim design, Outcome). Use --dry-run.", file=sys.stderr)
+        return 2
     want = [b.strip() for b in a.books.split(",") if b.strip()]
     summary = run(a.canonical, a.books_dir, a.ocr_cache, want or None, a.dry_run)
     for slug, r in summary.items():

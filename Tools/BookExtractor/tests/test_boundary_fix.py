@@ -144,3 +144,12 @@ def test_heading_cut_at_non_entity_is_unverified(env):
 def test_heading_cut_at_sibling_entity_written(env):
     canon, books, ocr = env([_entity("bk.location.zorgkeep", TAIL_SHORT)])
     assert boundary_fix.run(canon, books, ocr, None, False)["bk"]["trimmed"] == 1
+
+
+def test_main_without_dry_run_refuses_and_writes_nothing(env, capsys):
+    canon, books, ocr = env([_entity("bk.location.zorgkeep", TAIL_SHORT)])
+    before = sorted((p.name, p.read_bytes()) for p in canon.iterdir())
+    rc = boundary_fix.main(["--canonical", str(canon), "--books-dir", str(books), "--ocr-cache", str(ocr)])
+    assert rc == 2
+    assert "real runs are disabled" in capsys.readouterr().err
+    assert sorted((p.name, p.read_bytes()) for p in canon.iterdir()) == before
