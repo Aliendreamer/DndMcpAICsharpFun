@@ -49,7 +49,7 @@ A dev tool SHALL apply the boundary rules to NeedsReview entities of already-ext
 - **THEN** no overrides file changes and a per-book report of trimmed, approved and still-flagged counts is produced
 
 ### Requirement: Auto-approve only safe trims
-The trim pass SHALL approve an entity (approval reason `boundary trim`, waiving only `text-complete` and `neighbour-absorbed`) only when no other check still fails, the kept text holds at least 50% of the original tokens, the cut starts at a line identified by a boundary rule, and the kept text is non-empty and begins with the entity's own heading or name. Otherwise the override SHALL be written and the entity SHALL remain NeedsReview.
+The trim pass SHALL approve an entity (approval reason `boundary trim`, waiving only `text-complete`, `neighbour-absorbed` and `entry-level`) only when no other check still fails, the kept text holds at least 50% of the original tokens, the cut starts at a line identified by a boundary rule, and the kept text is non-empty and begins with the entity's own heading or name. Otherwise the override SHALL be written and the entity SHALL remain NeedsReview.
 
 #### Scenario: Small trim approved
 - **WHEN** a trim keeps 80% of the tokens and starts at a sibling heading
