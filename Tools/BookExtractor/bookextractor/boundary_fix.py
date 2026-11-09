@@ -16,7 +16,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .boundary import BLine, approvable, cut, name_matches, waivable_failures
+from .boundary import BLine, approvable, cut, kept_enough, name_matches, waivable_failures
 from .boundary_align import drop_runs, remove, section_lines
 from .boundary_score import entries_text, tokens
 from .layout import reading_order
@@ -127,6 +127,9 @@ def process_book(data: dict, ocr_cache: Path, pdfs, existing: dict, rep: dict) -
             continue
         if new == old:
             skipped["no-change"] += 1
+            continue
+        if not kept_enough(old, new):
+            skipped["large-cut"] += 1
             continue
         at = _now()
         overrides.append({"entityId": eid, "field": "fields.entries", "value": new, "extracted": old,

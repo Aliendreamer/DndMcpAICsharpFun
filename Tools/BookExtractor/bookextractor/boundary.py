@@ -131,15 +131,23 @@ def waivable_failures(checks: list[dict]) -> list[str]:
     return [c["name"] for c in checks if not c.get("passed", True) and c.get("name") in _WAIVABLE_CHECKS]
 
 
+def kept_enough(before: list, after: list) -> bool:
+    """True when the trim keeps at least half of the entries' tokens."""
+    from .boundary_score import entries_text, tokens
+
+    a, b = tokens(entries_text(after)), tokens(entries_text(before))
+    return bool(a) and bool(b) and len(a) >= 0.5 * len(b)
+
+
 def approvable(before: list, after: list, cut: Cut, name: str, checks: list[dict]) -> bool:
     """Approval gate for an automatic boundary trim (entries exclude the heading itself)."""
     from .boundary_score import entries_text, tokens
 
     if cut.rule not in ("heading", "shaded", "map") or not cut.drop or after == before:
         return False
-    a, b = tokens(entries_text(after)), tokens(entries_text(before))
-    if not a or not b or len(a) < 0.5 * len(b):
+    if not kept_enough(before, after):
         return False
+    a, b = tokens(entries_text(after)), tokens(entries_text(before))
     n = min(_OPENING_TOKENS, len(b))
     if a[:n] != b[:n]:
         return False

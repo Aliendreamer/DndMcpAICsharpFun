@@ -81,11 +81,11 @@ def test_approves_small_trim(env):
     assert a[0]["entityId"] == "bk.location.zorgkeep" and a[0]["waivedChecks"] == ["text-complete"]
 
 
-def test_large_cut_not_approved(env):
+def test_large_cut_not_written(env):
     canon, books, ocr = env([_entity("bk.location.zorgkeep", TAIL_LONG)], tail=TAIL_LONG)
     r = boundary_fix.run(canon, books, ocr, None, False)["bk"]
-    assert (r["trimmed"], r["approved"], r["flagged"]) == (1, 0, 1)
-    assert _ov(canon)["approvals"] == [] and len(_ov(canon)["overrides"]) == 2
+    assert r["skipped"] == {"large-cut": 1} and r["trimmed"] == 0
+    assert _ov(canon) is None
 
 
 def test_other_failing_check_blocks_approval(env):
