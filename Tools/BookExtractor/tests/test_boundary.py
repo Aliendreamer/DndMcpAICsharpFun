@@ -122,6 +122,26 @@ def test_approvable_rejects_empty_after():
     assert not approvable(_B, [], _C, "X", [])
 
 
+def test_approvable_waives_entry_level():
+    assert approvable(_B, _B[:1] + ["tail"], _C, "X", [{"name": "entry-level", "passed": False}])
+
+
+def test_approvable_rejects_table_cut_failure():
+    assert not approvable(_B, _B[:1] + ["tail"], _C, "X", [{"name": "table-cut", "passed": False}])
+
+
+def test_approvable_trim_inside_first_entry_keeps_opening():
+    first = "Opening paragraph " + "word " * 20
+    assert approvable([first, "x " * 5], [first[:-10]], _C, "X", [])
+
+
+def test_waivable_failures():
+    from bookextractor.boundary import waivable_failures
+    cs = [{"name": "entry-level", "passed": False}, {"name": "text-complete", "passed": True},
+          {"name": "table-cut", "passed": False}]
+    assert waivable_failures(cs) == ["entry-level"]
+
+
 def test_approvable_rejects_opening_cut():
     assert not approvable(_B, [_B[1]], _C, "X", [])
 

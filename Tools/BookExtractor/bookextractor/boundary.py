@@ -110,7 +110,13 @@ def cut(lines: list[BLine], name: str, first_page: int,
     return Cut(drop, start, rule)
 
 
-_TOLERATED_CHECKS = {"text-complete", "neighbour-absorbed"}
+_WAIVABLE_CHECKS = ("text-complete", "neighbour-absorbed", "entry-level")
+_OPENING_TOKENS = 8
+
+
+def waivable_failures(checks: list[dict]) -> list[str]:
+    """Names of failing checks that the approval gate may waive."""
+    return [c["name"] for c in checks if not c.get("passed", True) and c.get("name") in _WAIVABLE_CHECKS]
 
 
 def approvable(before: list, after: list, cut: Cut, name: str, checks: list[dict]) -> bool:
@@ -119,9 +125,10 @@ def approvable(before: list, after: list, cut: Cut, name: str, checks: list[dict
 
     if cut.rule not in ("heading", "shaded", "map") or not cut.drop or after == before:
         return False
-    if not after or not before or after[0] != before[0]:
-        return False
     a, b = tokens(entries_text(after)), tokens(entries_text(before))
-    if not a or len(a) < 0.5 * len(b):
+    if not a or not b or len(a) < 0.5 * len(b):
         return False
-    return all(c.get("passed", True) or c.get("name") in _TOLERATED_CHECKS for c in checks)
+    n = min(_OPENING_TOKENS, len(b))
+    if a[:n] != b[:n]:
+        return False
+    return all(c.get("passed", True) or c.get("name") in _WAIVABLE_CHECKS for c in checks)
