@@ -148,3 +148,9 @@ def test_approvable_rejects_opening_cut():
 
 def test_approvable_rejects_other_failing_check():
     assert not approvable(_B, _B[:1] + ["tail"], _C, "X", [{"name": "stat-block", "passed": False}])
+
+
+def test_map_rule_keeps_prose_line():
+    lines = base() + [L("Map 4.1 depicts a region of Annam's Cradle with"), L(BODY)]
+    c = cut(lines, "Sorcerer", 1)
+    assert not c.drop

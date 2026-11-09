@@ -49,6 +49,18 @@ def _norm(s: str) -> str:
     return "".join(c for c in s.casefold() if c.isalnum())
 
 
+def name_matches(text: str, name: str) -> bool:
+    """True when a printed line is (nearly) the entity name, by the same measure as the anchor search."""
+    target = _norm(_ID_SUFFIX.sub("", name.strip()))
+    return bool(target) and SequenceMatcher(None, _norm(text), target).ratio() >= ANCHOR_SIMILARITY
+
+
+def label_like(text: str) -> bool:
+    """A map label is short and carries no running prose."""
+    words = text.split()
+    return len(words) <= 6 and sum(1 for w in words if len(w) >= 3 and w.islower()) < 3
+
+
 def find_anchor(lines: list[BLine], name: str, first_page: int) -> int | None:
     """Index of the single first-page line matching the entity name, else None."""
     target = _norm(_ID_SUFFIX.sub("", name.strip()))
@@ -98,7 +110,7 @@ def cut(lines: list[BLine], name: str, first_page: int,
             i = j
 
     for i, l in enumerate(lines):
-        if i != anchor and any(r.search(l.text.strip()) for r in _MAP_RES):
+        if i != anchor and label_like(l.text) and any(r.search(l.text.strip()) for r in _MAP_RES):
             drop.add(i)
     drop -= set(sub_heading_idx)
     if anchor is not None:

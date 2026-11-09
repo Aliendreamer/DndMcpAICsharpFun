@@ -16,7 +16,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .boundary import BLine, approvable, cut, waivable_failures
+from .boundary import BLine, approvable, cut, name_matches, waivable_failures
 from .boundary_align import drop_runs, remove, section_lines
 from .boundary_score import entries_text, tokens
 from .layout import reading_order
@@ -116,6 +116,10 @@ def process_book(data: dict, ocr_cache: Path, pdfs, existing: dict, rep: dict) -
         c = cut(S, e["name"], first_page=pages[0])
         if not c.drop:
             skipped["no-change"] += 1
+            continue
+        if c.rule == "heading" and not any(name_matches(S[c.start].text, o["name"])
+                                           for o in data["entities"] if o["id"] != eid):
+            skipped["unverified-cut"] += 1
             continue
         new = remove(old, drop_runs([l.text for l in S], c.drop))
         if new is None:

@@ -41,7 +41,10 @@ def env(tmp_path, monkeypatch):
     canon.mkdir()
     books.mkdir()
 
-    def make(ents, slug="bk", tail=TAIL_SHORT, overrides=None, page=True):
+    def make(ents, slug="bk", tail=TAIL_SHORT, overrides=None, page=True, sibling="Other Town"):
+        if sibling:
+            ents = [*ents, {"id": "bk.location.sib", "type": "Location", "name": sibling, "needsReview": False,
+                            "fields": {}, "checks": [], "canonicalText": sibling}]
         if page:
             _page(ocr, 5, tail)
         (canon / f"{slug}.json").write_text(json.dumps({"schemaVersion": "2", "book": {"fileHash": HASH},
@@ -129,3 +132,15 @@ def test_dry_run_writes_nothing(env):
     canon, books, ocr = env([_entity("bk.location.zorgkeep", TAIL_SHORT)])
     r = boundary_fix.run(canon, books, ocr, None, True)["bk"]
     assert r["trimmed"] == 1 and _ov(canon) is None
+
+
+def test_heading_cut_at_non_entity_is_unverified(env):
+    canon, books, ocr = env([_entity("bk.location.zorgkeep", TAIL_SHORT)], sibling="Unrelated Place")
+    r = boundary_fix.run(canon, books, ocr, None, False)["bk"]
+    assert r["skipped"] == {"unverified-cut": 1} and r["trimmed"] == 0
+    assert _ov(canon) is None
+
+
+def test_heading_cut_at_sibling_entity_written(env):
+    canon, books, ocr = env([_entity("bk.location.zorgkeep", TAIL_SHORT)])
+    assert boundary_fix.run(canon, books, ocr, None, False)["bk"]["trimmed"] == 1
