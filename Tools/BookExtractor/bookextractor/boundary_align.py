@@ -110,17 +110,23 @@ def remove(entries: list, dropped: list[list[str]]) -> list | None:
     alive = list(range(len(toks)))
     deleted: set[int] = set()
 
+    cursor = 0  # original-stream index just past the previous match (reading-order monotonic)
+
     def take(seq: list[str]) -> bool | None:
-        """True removed, False absent, None ambiguous."""
+        """True removed (first match at/after cursor), False absent, None only before cursor."""
+        nonlocal cursor
         if not seq:
             return False
         stream = [toks[k][3] for k in alive]
         hits = _find(stream, seq)
-        if len(hits) > 1:
-            return None
         if not hits:
             return False
-        deleted.update(alive[hits[0]:hits[0] + len(seq)])
+        later = [h for h in hits if alive[h] >= cursor]
+        if not later:
+            return None
+        h = later[0]
+        cursor = alive[h + len(seq) - 1] + 1
+        deleted.update(alive[h:h + len(seq)])
         alive[:] = [k for k in alive if k not in deleted]
         return True
 

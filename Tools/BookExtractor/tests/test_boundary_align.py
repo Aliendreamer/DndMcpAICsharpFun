@@ -19,8 +19,14 @@ def test_remove_mid_paragraph_line():
     assert remove(["alpha beta gamma delta epsilon"], [["gamma delta"]]) == ["alpha beta epsilon"]
 
 
-def test_remove_ambiguous_returns_none():
-    assert remove(["foo bar", "x foo bar y"], [["foo bar"]]) is None
+def test_repeated_line_takes_first_at_or_after_cursor():
+    entries = ["head text", "Entrance", "body", "Entrance"]
+    assert remove(entries, [["body"], ["Entrance"]]) == ["head text", "Entrance"]
+    assert remove(entries, [["Entrance"]]) == ["head text", "body", "Entrance"]
+
+
+def test_out_of_order_returns_none():
+    assert remove(["head text", "body"], [["body"], ["head text"]]) is None
 
 
 def test_remove_missing_line_ignored():
@@ -51,10 +57,6 @@ def test_remove_run_spanning_two_paragraphs():
 def test_remove_run_ambiguous_falls_back_to_lines():
     out = remove(["a b c", "x y z", "a b c q"], [["x y z", "a b c q"]])
     assert out == ["a b c"]
-
-
-def test_remove_ambiguous_short_line_none():
-    assert remove(["of the city.", "in the city. of the city."], [["of the city."]]) is None
 
 
 def test_remove_list_items_and_empty_list():
