@@ -92,3 +92,39 @@ def test_line_shades_smoke():
         pytest.skip("no pdf in books/")
     out = line_shades(pdfs[0], 1, [(100.0, 100.0, 600.0, 150.0), (100.0, 200.0, 600.0, 250.0)])
     assert len(out) == 2 and all(0 <= v <= 255 for v in out)
+
+
+# ---- approvable gate ----
+from bookextractor.boundary import approvable  # noqa: E402
+
+_B = ["Opening paragraph " + "word " * 20, "Second para " + "word " * 20]
+_C = Cut({5}, 5, "heading")
+
+
+def test_approvable_ok():
+    assert approvable(_B, _B[:1] + ["tail"], _C, "X", [{"name": "text-complete", "passed": False}])
+
+
+def test_approvable_rejects_low_tokens_kept():
+    assert not approvable(_B, ["Opening"], _C, "X", [])
+
+
+def test_approvable_rejects_no_rule():
+    assert not approvable(_B, _B[:1], Cut({5}, 5, None), "X", [])
+
+
+def test_approvable_rejects_empty_drop_or_unchanged():
+    assert not approvable(_B, _B[:1], Cut(set(), None, "heading"), "X", [])
+    assert not approvable(_B, list(_B), _C, "X", [])
+
+
+def test_approvable_rejects_empty_after():
+    assert not approvable(_B, [], _C, "X", [])
+
+
+def test_approvable_rejects_opening_cut():
+    assert not approvable(_B, [_B[1]], _C, "X", [])
+
+
+def test_approvable_rejects_other_failing_check():
+    assert not approvable(_B, _B[:1] + ["tail"], _C, "X", [{"name": "stat-block", "passed": False}])

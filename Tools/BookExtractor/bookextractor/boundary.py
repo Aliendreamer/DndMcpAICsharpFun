@@ -108,3 +108,20 @@ def cut(lines: list[BLine], name: str, first_page: int,
     live = [(i, r) for i, r in starts if i in drop]
     start, rule = min(live) if live else (min(drop), "map")
     return Cut(drop, start, rule)
+
+
+_TOLERATED_CHECKS = {"text-complete", "neighbour-absorbed"}
+
+
+def approvable(before: list, after: list, cut: Cut, name: str, checks: list[dict]) -> bool:
+    """Approval gate for an automatic boundary trim (entries exclude the heading itself)."""
+    from .boundary_score import entries_text, tokens
+
+    if cut.rule not in ("heading", "shaded", "map") or not cut.drop or after == before:
+        return False
+    if not after or not before or after[0] != before[0]:
+        return False
+    a, b = tokens(entries_text(after)), tokens(entries_text(before))
+    if not a or len(a) < 0.5 * len(b):
+        return False
+    return all(c.get("passed", True) or c.get("name") in _TOLERATED_CHECKS for c in checks)

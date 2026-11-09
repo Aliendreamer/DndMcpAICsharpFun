@@ -18,3 +18,14 @@ def f1(a: str, b: str) -> float:
         return 0.0
     p, r = common / sum(cb.values()), common / sum(ca.values())
     return 2 * p * r / (p + r)
+
+
+def entries_text(entries: list) -> str:
+    """Join entries (strings or {"items": [...]} dicts) into one space-separated text."""
+    parts: list[str] = []
+    for e in entries:
+        if isinstance(e, str):
+            parts.append(e)
+        elif isinstance(e, dict):
+            parts.extend(i for i in e.get("items", []) if isinstance(i, str))
+    return " ".join(parts)
