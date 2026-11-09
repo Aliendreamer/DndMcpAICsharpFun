@@ -47,6 +47,7 @@ from statistics import median
 from ..checks import Check
 from ..model import Line
 from . import ParseContext, Parsed
+from .boundary_trim import trim_own
 from .charcommon import (PAGE_NO, RUNNING_HEAD, SENTENCE_END, caps_heading, character_body, heading_like, like,
                          name_case, prose_entries, set_apart, squash, title_case)
 from .item import _is_type_line
@@ -448,6 +449,8 @@ def parse_rules(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         own = drop_dangling(drop_art(_drop_floats(own, c.heads, ctx), ctx), c.raw, c.heads, starts)
         if len(own) <= c.heads:
             continue
+        own = trim_own(own, c.name, c.heads, starts,
+                       {x.title for x in sections} | {d.name for d in cands if d is not c}, ctx)
         # the lines of the printed sub-headings taken out of this rule: the doubts about a heading inside it
         # (a sibling the reader nested) are still raised over them, as before they were rules of their own
         gone = {id(l) for j, d in enumerate(cands) if j != i and d.sub and id(d.raw[0]) in spans[i] for l in d.raw}

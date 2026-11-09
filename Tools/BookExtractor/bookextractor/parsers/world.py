@@ -93,6 +93,7 @@ from ..checks import Check
 from ..model import Line
 from . import ParseContext, Parsed
 from .charcommon import SENTENCE_END, SMALL_WORDS, character_body, prose_entries, set_apart, squash
+from .boundary_trim import trim_own
 from .rule import rules_chapter
 from .sections import (_SUB_STEP, UNKNOWN_CHAPTER, Section, chapter_titles, display_lines, drop_art, drop_dangling,
                        fix_acronyms, foreign_lines, heading_words, line_key, name_words, odd_opening, prose,
@@ -663,6 +664,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         own = [l for l in e.lines if id(l) not in nested and line_key(l) not in claimed]
         heads = _heads(own, s.title)
         own = drop_dangling(drop_art(own, ctx), e.lines, heads, set(starts))
+        own = trim_own(own, s.title, heads, set(starts), {x.title for x in sections if x is not s}, ctx)
         if e.full:  # the whole span, without what the lead's own reading takes out (for the doubts about it)
             e.full = drop_art([l for l in e.full if line_key(l) not in claimed], ctx)
         n_prose = sum(prose(l.text) for l in own[heads:])
