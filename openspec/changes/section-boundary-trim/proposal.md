@@ -8,7 +8,7 @@ About 1,110 programmatic entities are still flagged NeedsReview, too many for th
   - **Heading cut**: a section ends at the next heading at least as big as its own heading (anchored on the entity's own heading line, guarded against matching a heading on a continuation page).
   - **Shaded sidebar drop**: a shaded block that opens with its own heading is not part of the section (read-aloud boxes are excluded).
   - **Map-label drop**: lines like `MAP 3`, `1 square = 5 feet`, `Side View` are dropped.
-- Add a one-off **trim pass** dev tool (sibling of `fivetools_fix`) that runs the rules over still-flagged entities of already-extracted books and writes the result as overrides in `books/canonical/<book>.overrides.json`. Nothing is re-extracted; approved entities are never touched; BGG is skipped.
+- Add a one-off **trim pass** dev tool (sibling of `fivetools_fix`) that runs the rules over still-flagged entities of already-extracted books and writes the result as overrides in `books/canonical/<book>.overrides.json`. Nothing is re-extracted; approved entities are never touched.
 - **Auto-approve** a trim that keeps most of the section; a larger cut is applied but left NeedsReview.
 - The same rules run inside extraction for books extracted from now on.
 
@@ -25,5 +25,5 @@ About 1,110 programmatic entities are still flagged NeedsReview, too many for th
 ## Impact
 
 - Code: `Tools/BookExtractor/bookextractor/parsers/sections.py`, `parsers/world.py`, `parsers/rule.py`, a new `bookextractor/boundary_fix.py` dev tool, tests under `Tools/BookExtractor/tests/`.
-- Data: `books/canonical/<book>.overrides.json` and the re-applied `<book>.json` for 15 books (not BGG, not the SRD); applied through the existing `POST /admin/books/{id}/apply-overrides` route. No API contract change.
+- Data: `books/canonical/<book>.overrides.json` and the re-applied `<book>.json` for the 16 extracted books (not the SRD); applied through the existing `POST /admin/books/{id}/apply-overrides` route. No API contract change.
 - Dependencies: none new (pymupdf already renders pages; shade is measured from rendered pixels).

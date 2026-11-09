@@ -34,7 +34,7 @@ The extractor SHALL exclude lines that are map labels (`MAP <n>`, `1 square = 5 
 - **THEN** that line is not in the section text
 
 ### Requirement: One-off trim pass over flagged entities
-A dev tool SHALL apply the boundary rules to NeedsReview entities of already-extracted books using the cached OCR, without re-extracting the book. It MUST skip BGG, the System Reference Document and dragonborn-slice, approved entities, and entities that already carry an override on the trimmed field. For each changed entity it SHALL write an override (`entityId`, `field`, `value`, `extracted`) to `books/canonical/<book>.overrides.json`. It SHALL support a dry run that writes nothing and reports per-book counts.
+A dev tool SHALL apply the boundary rules to NeedsReview entities of already-extracted books using the cached OCR, without re-extracting the book. It MUST skip the System Reference Document and dragonborn-slice, approved entities, and entities that already carry an override on the trimmed field. For each changed entity it SHALL write an override (`entityId`, `field`, `value`, `extracted`) to `books/canonical/<book>.overrides.json`. It SHALL support a dry run that writes nothing and reports per-book counts.
 
 #### Scenario: Flagged entity gets a trim override
 - **WHEN** the pass runs on a NeedsReview Lore entity whose text swallowed a sibling section
@@ -42,7 +42,7 @@ A dev tool SHALL apply the boundary rules to NeedsReview entities of already-ext
 
 #### Scenario: Approved and skipped books untouched
 - **WHEN** the pass runs over all books
-- **THEN** no override is written for an approved entity or for any BGG, SRD or dragonborn-slice entity
+- **THEN** no override is written for an approved entity or for any SRD or dragonborn-slice entity
 
 #### Scenario: Dry run writes nothing
 - **WHEN** the pass runs with `--dry-run`

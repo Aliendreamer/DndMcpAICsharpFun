@@ -9,14 +9,14 @@ Evidence (spike, 2026-11-09, scripts in the session scratchpad `boundary_spike/`
 - Prototype on 60 trim + 40 MATCH entries: heading cut + shaded-sidebar + map-label improved 30/60 (F1 ≥ 0.95 went 0 → 19), 2 worse (one catastrophic: `erlw.lore.the-dreaming-dark-dreaming-dark-p198-2`, anchor matched a continuation-page heading, 0.77 → 0.02), 2/40 MATCH lost a legitimate sub-heading (F1 0.97/0.98).
 - Thresholds were tuned on the same sample, so these numbers are optimistic. The spike re-ran RapidOCR because the Docker OCR cache was unreachable; production must use the real cache.
 
-Owner decisions (2026-11-09): trims are applied **and approved automatically**; the goal is a smaller review pile; BGG stays out (owner reviewing by hand); extract-once rule holds — existing books are not re-extracted.
+Owner decisions (2026-11-09): trims are applied **and approved automatically**; the goal is a smaller review pile; BGG is included (owner, 2026-11-09); extract-once rule holds — existing books are not re-extracted.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
 - End sections at their true boundary for the heading, shaded-sidebar and map-label cases.
-- Shrink the NeedsReview pile of the 15 non-BGG books without touching approved entities.
+- Shrink the NeedsReview pile of the 16 extracted books without touching approved entities.
 - Same rules for future extractions.
 - Never silently approve a destructive cut.
 
@@ -24,7 +24,7 @@ Owner decisions (2026-11-09): trims are applied **and approved automatically**; 
 
 - Captions and pull-quotes (not separable without font/block-type data).
 - OCR typo fixes and table re-flow.
-- Re-extracting any existing book, or changing BGG / the SRD.
+- Re-extracting any existing book, or changing the SRD.
 - A layout model or new dependency.
 
 **Anti-goal:** an auto-approved entity whose text lost real content. One bad approval is worse than leaving ten entries flagged.
@@ -34,7 +34,7 @@ Owner decisions (2026-11-09): trims are applied **and approved automatically**; 
 1. **Rules live once, in the extractor.** The heading cut, shaded-sidebar and map-label rules are functions in `parsers/sections.py` (shared by world and rule parsers), reusing the sizes `_ends` already computes rather than the spike's duplicate machinery. *Alternative:* a separate post-processor over text — rejected, it loses line geometry.
 2. **Heading cut, guarded.** Anchor on the entity's own heading line (matched to its name/slug); a later line is a cut point when its height ≥ 0.9 × the anchor heading and ≥ 1.15 × median body height, in the same column or on a later page. The anchor must be on the section's first page; if no anchor is found there, no cut is made. The cut point must not be a heading that the existing logic already treats as a child/sub-heading of the section. *Why:* the naive "first big heading" version broke 8 FIXED and 2 MATCH; the catastrophic spike failure was a continuation-page anchor.
 3. **Shade from rendered pixels.** Render the page with pymupdf on CPU and compare the background around a line's box with the page's paper colour. A block is dropped only when it is shaded **and** opens with its own heading line, and does not follow a `read:`-style cue (read-aloud boxes).
-4. **Trim pass = dev tool mirroring `fivetools_fix`.** `python -m bookextractor.boundary_fix --canonical books/canonical --books … [--dry-run] [--report out.json]`. For each NeedsReview Lore/Rule (and other world-section) entity outside `SKIP_BOOKS = {bgg, system-reference-document, dragonborn-slice}`, it loads the book's cached OCR pages for the entity's provenance pages, rebuilds the section's lines, applies the rules, and if the text changes writes an override (`entityId`, `field`, `value`, `extracted`) for the text field(s) the entity uses, in the same shape the existing overrides use. Entities already carrying an override on that field or already approved are skipped. Applied through the existing `POST /admin/books/{id}/apply-overrides`.
+4. **Trim pass = dev tool mirroring `fivetools_fix`.** `python -m bookextractor.boundary_fix --canonical books/canonical --books … [--dry-run] [--report out.json]`. For each NeedsReview Lore/Rule (and other world-section) entity outside `SKIP_BOOKS = {system-reference-document, dragonborn-slice}`, it loads the book's cached OCR pages for the entity's provenance pages, rebuilds the section's lines, applies the rules, and if the text changes writes an override (`entityId`, `field`, `value`, `extracted`) for the text field(s) the entity uses, in the same shape the existing overrides use. Entities already carrying an override on that field or already approved are skipped. Applied through the existing `POST /admin/books/{id}/apply-overrides`.
 5. **Auto-approve gate.** Approve (approval `reason: "boundary trim"`, waiving only `text-complete` and `neighbour-absorbed`) only when **all** hold: no other check still fails; kept tokens ≥ 50% of the original; the cut starts at a line the rules identified (heading/shaded block/map label), never mid-paragraph; the kept text is non-empty and still begins with the entity's own heading/name. Otherwise the override is written but the entity stays NeedsReview. The 50% cutoff is Claude's call and is re-checked against the regression set before the real run.
 6. **Regression set gates the run.** The 258 ChatGPT answers (copied into `Tools/BookExtractor/tests/data/` as a compact fixture: id, our text, corrected text, verdict) are the acceptance test: no MATCH entity may drop below token-F1 0.95 vs its original, and no auto-approved FIXED entity may score worse than before.
 
@@ -48,8 +48,8 @@ Owner decisions (2026-11-09): trims are applied **and approved automatically**; 
 ## Migration Plan
 
 1. Land rules + tests; run the regression set; report numbers.
-2. `boundary_fix --dry-run` across the 15 books; report counts (trimmed / approved / left flagged) per book.
-3. Real run, apply-overrides per book, commit overrides + book files per book (never BGG).
+2. `boundary_fix --dry-run` across the 16 books; report counts (trimmed / approved / left flagged) per book.
+3. Real run, apply-overrides per book, commit overrides + book files per book (BGG included; its pre-existing uncommitted changes are inspected and settled with the owner first).
 Rollback: revert the commit(s), or delete the `boundary trim` overrides/approvals and re-apply.
 
 ## Settled details (builder check, 2026-11-09 — all Claude's calls unless marked)
@@ -63,4 +63,4 @@ Rollback: revert the commit(s), or delete the `boundary trim` overrides/approval
 - **Regression fixture.** Copy the 258 answers into `Tools/BookExtractor/tests/data/` together with the OCR line data for their pages, taken from the copied cache. The tests then need no Docker or cache. If the thresholds cannot meet both gates on the full set, the builder stops and reports the numbers to the owner rather than retuning past the spike values.
 - **Shade.** Start from the spike's measure, the mean background darkness around the line box compared with the page paper, with a threshold of about 15 on 0–255. Render on the CPU at about 100 DPI and measure paper per page, so tinted books calibrate themselves. "Opens with its own heading" uses the same heading-height test as the heading cut. Read-aloud cues are a line ending in `read:` or `reads:`. The builder may tune these against the fixture.
 - **Extraction time.** During extraction the rules only change the text. They never approve, and existing checks run on the trimmed text as they do today.
-- **Files ignored.** `.bak` files and anything that is not `<book>.json` / `<book>.overrides.json` are ignored. The skip set is `bgg`, `system-reference-document` and `dragonborn-slice`. Leaving out BGG is the owner's decision.
+- **Files ignored.** `.bak` files and anything that is not `<book>.json` / `<book>.overrides.json` are ignored. The skip set is `system-reference-document` and `dragonborn-slice`; BGG is in scope (owner).

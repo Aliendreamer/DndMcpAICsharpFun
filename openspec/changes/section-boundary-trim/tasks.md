@@ -13,12 +13,12 @@
 
 ## 3. Trim pass dev tool
 
-- [ ] 3.1 `bookextractor/boundary_fix.py` (mirrors `fivetools_fix`): load canonical + cached OCR, rebuild flagged sections, apply rules, write overrides in existing shape; skip BGG/SRD/dragonborn-slice, approved, already-overridden
+- [ ] 3.1 `bookextractor/boundary_fix.py` (mirrors `fivetools_fix`): load canonical + cached OCR, rebuild flagged sections, apply rules, write overrides in existing shape; skip SRD/dragonborn-slice, approved, already-overridden
 - [ ] 3.2 Auto-approve gate (≥50% tokens kept, rule-identified cut, starts with own heading) with approval reason `boundary trim`
 - [ ] 3.3 `--dry-run` and `--report` with per-book trimmed/approved/still-flagged counts (tests)
 
 ## 4. Run
 
-- [ ] 4.1 Dry run over the 15 books; report counts to the owner before writing anything
+- [ ] 4.1 Dry run over the 16 books; report counts to the owner before writing anything
 - [ ] 4.2 Real run; apply-overrides per book; spot-check a sample of approvals against page images
-- [ ] 4.3 Commit overrides + book files per book (never BGG); update Serena `programmatic_extraction_status`
+- [ ] 4.3 Commit overrides + book files per book (BGG included); update Serena `programmatic_extraction_status`
