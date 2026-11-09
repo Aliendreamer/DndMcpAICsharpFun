@@ -92,8 +92,8 @@ from statistics import median
 from ..checks import Check
 from ..model import Line
 from . import ParseContext, Parsed
-from .charcommon import SENTENCE_END, SMALL_WORDS, character_body, prose_entries, set_apart, squash
 from .boundary_trim import trim_own
+from .charcommon import SENTENCE_END, SMALL_WORDS, character_body, prose_entries, set_apart, squash
 from .rule import rules_chapter
 from .sections import (_SUB_STEP, UNKNOWN_CHAPTER, Section, chapter_titles, display_lines, drop_art, drop_dangling,
                        fix_acronyms, foreign_lines, heading_words, line_key, name_words, odd_opening, prose,

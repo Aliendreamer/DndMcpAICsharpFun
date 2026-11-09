@@ -45,3 +45,18 @@ def test_a_trim_keeping_under_half_is_not_applied():
 
 def test_world_and_rule_parses_call_the_trim():
     assert world_mod.trim_own is trim_own and rule_mod.trim_own is trim_own
+
+
+def test_cut_reports_the_heading_start_even_when_a_shaded_start_comes_first():
+    from bookextractor.boundary import BLine, cut
+
+    own = section("Final Battle")
+    bl = [BLine(l.text, l.page, 0, l.height, l.box, 30.0 if i == 3 else 0.0) for i, l in enumerate(own)]
+    bl[3].text, bl[3].h = "Hidden Cellar", 25
+    c = cut(bl, "Alpha Hold", 1)
+    assert c.rule == "shaded" and c.start == 3 and c.heading == 11
+
+
+def test_a_repeated_own_heading_is_not_a_sibling_and_is_not_cut():
+    own = section("Alpha Hold")  # the rule's own name printed again, big, later in its text
+    assert trim_own(own, "Alpha Hold", 1, set(), {"Beta Keep"}, ctx()) == own

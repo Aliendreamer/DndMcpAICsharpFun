@@ -33,6 +33,7 @@ class Cut:
     drop: set[int]
     start: int | None
     rule: str | None  # "heading" | "shaded" | "map"
+    heading: int | None = None  # where the heading cut starts, whichever rule reports first
 
 
 def headlike(text: str) -> bool:
@@ -119,7 +120,7 @@ def cut(lines: list[BLine], name: str, first_page: int,
         return Cut(set(), None, None)
     live = [(i, r) for i, r in starts if i in drop]
     start, rule = min(live) if live else (min(drop), "map")
-    return Cut(drop, start, rule)
+    return Cut(drop, start, rule, next((i for i, r in live if r == "heading"), None))
 
 
 _WAIVABLE_CHECKS = ("text-complete", "neighbour-absorbed", "entry-level")

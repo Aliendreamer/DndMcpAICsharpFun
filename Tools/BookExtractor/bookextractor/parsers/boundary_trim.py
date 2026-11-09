@@ -20,8 +20,8 @@ def trim_own(own: list[Line], name: str, heads: int, starts: set[int], siblings:
     if not c.drop:
         return own
     drop = set(c.drop)
-    if c.rule == "heading" and not any(name_matches(own[c.start].text, n) for n in siblings):
-        drop -= set(range(c.start, len(own)))
+    if c.heading is not None and not any(name_matches(own[c.heading].text, n) for n in siblings):
+        drop -= set(range(c.heading, len(own)))
         if not drop:
             return own
     new = [l for i, l in enumerate(own) if i not in drop]
