@@ -1,6 +1,17 @@
 """Dev script (not a test): build tests/data/boundary_regression.json from ChatGPT-reviewed answers.
 
-Usage: python tests/boundary_fixture_build.py [--gpt-dir D] [--ocr-cache D] [--out F]
+Usage: python tests/boundary_fixture_build.py [--gpt-dir D] [--ocr-cache D] [--out F] [--books-dir D]
+
+Inputs:
+- --gpt-dir: review workspace holding todo.json / todo.before5e.json (id, pdf, pages, text),
+  ans/<id>.json (`answer` = "VERDICT: MATCH|FIXED|UNSURE ... CORRECTED: <text>") and books.json
+  (the book registry dump, `filePath` -> `fileHash`). Produced by the manual ChatGPT review session.
+- --ocr-cache: copy of the production OCR cache, <fileHash>/ocr/NNN.json per page
+  (the app's OCR cache directory for the book).
+- --books-dir: repo `books/` (source PDFs for shade measurement, canonical/<slug>.json and
+  canonical/<slug>.overrides.json for entity data).
+UNSURE rows, FIXED rows lacking CORRECTED text, and rows with missing pages are skipped.
+Not run in CI.
 """
 from __future__ import annotations
 
@@ -57,13 +68,16 @@ def main() -> None:
                     overrides[(o["entityId"], o["field"])] = o
         return canon[slug]
 
-    rows, skipped = [], {"unsure": 0, "no_pages": 0, "no_entity": 0, "no_todo": 0}
+    rows, skipped = [], {"unsure": 0, "no_pages": 0, "no_entity": 0, "no_todo": 0, "fixed_no_corrected": 0}
     for f in sorted((a.gpt_dir / "ans").glob("*.json")):
         ans = json.loads(f.read_text())
         eid = ans["id"]
         verdict, corrected = verdict_and_corrected(ans["answer"])
         if verdict not in ("FIXED", "MATCH"):
             skipped["unsure"] += 1
+            continue
+        if verdict == "FIXED" and not corrected:
+            skipped["fixed_no_corrected"] += 1
             continue
         t = todo.get(eid)
         if t is None:
@@ -97,7 +111,7 @@ def main() -> None:
         rows.append({
             "id": eid, "book": slug, "verdict": verdict, "name": ent["name"],
             "heading_line": ctext.split("\n", 1)[0],
-            "entries": [e for e in entries if isinstance(e, str)],
+            "entries": entries,
             "corrected": corrected if verdict == "FIXED" else None,
             "checks": [{"name": c["name"], "passed": c["passed"]} for c in ent.get("checks", [])],
             "lines": [{"text": l.text, "page": l.page, "col": l.col, "h": r1(l.h),
