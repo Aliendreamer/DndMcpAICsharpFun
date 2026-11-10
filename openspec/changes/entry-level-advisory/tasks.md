@@ -6,5 +6,5 @@
 
 ## 2. Rollout
 
-- [ ] 2.1 Rebuild the app container; apply-overrides for every programmatic book; pile count before/after
-- [ ] 2.2 Commit the canonical files per book
+- [x] 2.1 Rebuild the app container; apply-overrides for every programmatic book; pile count before/after
+- [x] 2.2 Commit the canonical files per book
