@@ -46,6 +46,17 @@ public sealed class ReviewPageNavigationTests
         ReviewPage.FilterByType(items, "").Should().HaveCount(3);
     }
 
+    [Fact]
+    public void AllButLore_HidesLore_AndIsTheDefaultFilter()
+    {
+        var lore = new ReviewListItem("l", "l", EntityType.Lore, "erlw", 1, true, []);
+        var items = new[] { Item("a"), lore, Item("b") };
+
+        ReviewPage.FilterByType(items, ReviewPage.AllButLore).Select(i => i.Id).Should().Equal("a", "b");
+        ReviewPage.TypeLabel(ReviewPage.AllButLore).Should().Be("all but Lore");
+        ReviewPage.TypeLabel("Monster").Should().Be("Monster");
+    }
+
 
     [Fact]
     public void WhenAFilteredTypeIsDone_TheTypeWithMostLeftIsNext_OrAllWhenNoneLeft()

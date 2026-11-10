@@ -32,6 +32,7 @@
                     }
                 </select>
                 <select aria-label="Type" value="@_type" @onchange="OnTypeChanged">
+                    <option value="@AllButLore">All but Lore (@_typeCounts.Where(kv => kv.Key != nameof(EntityType.Lore)).Sum(kv => kv.Value))</option>
                     <option value="">All types (@_typeCounts.Values.Sum())</option>
                     @foreach (var (t, n) in _typeCounts.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key))
                     {
@@ -193,7 +194,10 @@
     private List<string> _books = [];
     private string _book = "";
     private bool _flaggedOnly = true;
-    private string _type = "";
+    // Lore is reviewed last: its text also reaches the chat as book passages (search_lore), so a flagged Lore entry costs
+    // little; structured types feed the tools directly.
+    internal const string AllButLore = "!Lore";
+    private string _type = AllButLore;
     private Dictionary<string, int> _typeCounts = new();
     private IReadOnlyList<ReviewListItem>? _items;
 
@@ -235,7 +239,7 @@
     {
         var all = await ReviewSvc.ListAsync(_book == "" ? null : _book, _flaggedOnly, default);
         _typeCounts = all.GroupBy(i => i.Type.ToString()).ToDictionary(g => g.Key, g => g.Count());
-        if (_type != "" && !_typeCounts.ContainsKey(_type)) _type = "";
+        if (_type is not ("" or AllButLore) && !_typeCounts.ContainsKey(_type)) _type = "";
         _items = FilterByType(all, _type);
     }
 
@@ -273,7 +277,14 @@
     }
 
     internal static IReadOnlyList<ReviewListItem> FilterByType(IReadOnlyList<ReviewListItem> items, string type) =>
-        type == "" ? items : items.Where(i => i.Type.ToString() == type).ToList();
+        type switch
+        {
+            "" => items,
+            AllButLore => items.Where(i => i.Type != EntityType.Lore).ToList(),
+            _ => items.Where(i => i.Type.ToString() == type).ToList(),
+        };
+
+    internal static string TypeLabel(string type) => type == AllButLore ? "all but Lore" : type;
 
     private async Task OnTypeChanged(ChangeEventArgs e)
     {
@@ -448,7 +459,7 @@
             _type = NextType(_typeCounts, done);
             await ReloadListAsync();
             await SelectFirstAsync();
-            ShowToast(_type == "" ? $"All {done} reviewed" : $"All {done} reviewed - showing {_type}");
+            ShowToast(_type == "" ? $"All {TypeLabel(done)} reviewed" : $"All {TypeLabel(done)} reviewed - showing {_type}");
         }
     }
 
