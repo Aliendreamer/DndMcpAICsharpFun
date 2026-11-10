@@ -57,7 +57,9 @@ public sealed class EntityReviewService(
         {
             foreach (var e in file.Entities)
             {
-                var flagged = e.Disposition != EntityDisposition.Accepted || e.NeedsReview;
+                // Declined (lead-in-only Lore) has nothing to review.
+                var flagged = e.Disposition != EntityDisposition.Declined
+                    && (e.Disposition != EntityDisposition.Accepted || e.NeedsReview);
                 if (flaggedOnly && !flagged) continue;
                 items.Add(new ReviewListItem(e.Id, e.Name, e.Type, slug, e.Page, flagged,
                     e.Checks.Where(c => !c.Passed).Select(c => c.Reason).ToList()));

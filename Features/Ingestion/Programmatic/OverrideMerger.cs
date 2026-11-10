@@ -81,6 +81,8 @@ public static class OverrideMerger
     {
         // An approval waives only the failed checks it recorded at approval time (sticky, per check name),
         // and never an unresolved override drift or an override that could not be applied.
+        if (LeadInLore.Is(e))
+            return e with { Disposition = EntityDisposition.Declined, NeedsReview = false };
         var waived = approval?.WaivedChecks ?? [];
         var open = e.Checks
             .Where(c => !c.Passed && (!IsWaivable(c.Name) || !waived.Contains(c.Name, StringComparer.Ordinal)))
