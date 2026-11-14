@@ -8,37 +8,12 @@ A D&D-themed ASP.NET Core app on .NET 10.0. A **single host** (port 5101) serves
 
 ## Commands
 
-```bash
-# Build
-dotnet build
-
-# Run (serves API + MCP + Blazor UI on http://localhost:5101)
-dotnet run
-
-# Run with hot reload
-dotnet watch run
-
-# Restore packages
-dotnet restore
-
-# Tests
-dotnet test
-
-# Chat-quality eval: stub mode (model only, no stack needed)
-dotnet run --project Tools/ModelEval
-
-# Chat-quality eval: full chain (run from repo root; needs the live stack + admin key)
-dotnet run --project Tools/ModelEval -- --mode full --admin-key <Admin:ApiKey>
-```
-
-Full-chain mode sends generated class/spell/monster/crafting questions (from `books/canonical/phb14.json` and `books/canonical/mm14.json`; default `--books phb14,mm14`) plus `Tools/ModelEval/cases/manual.json` through `POST /admin/eval/turn`. Spell cases trust 5etools-filled fields, or every field of a programmatic entity that is `Accepted` and not `needsReview`. The programmatic PHB extractor (Phase 1) emits no Class entities, so once `phb14.json` is programmatic the class category generates no cases (a note is printed instead). It runs each case 3×, writes `Tools/ModelEval/reports/<yyyyMMdd-HHmmss>-<model>-full.json`, and compares against the previous report (or `--baseline <path>`). Exit 2 means a category dropped by more than one passing case; exit 1 means infra or setup trouble. The admin key is `Admin:ApiKey` from the git-crypt `Config/appsettings.Development.json`, or the `ADMIN_API_KEY` env var. Other flags: `--seed`, `--count`, `--categories`, `--books`, `--runs`, `--host`.
+Standard `dotnet build` / `run` / `watch run` / `test` apply (the host serves API + MCP + Blazor UI on <http://localhost:5101>). For the chat-quality eval (`Tools/ModelEval`), use the `model-eval` skill.
 
 ## Architecture
 
 - **Program.cs** — composition root; wires the API, MCP server, and the Blazor UI (auth, rate limiting, chat) in one host
-- **Domain/** — all domain model types (`User`, `Campaign`, `Hero`, `HeroSnapshot`, `CharacterSheet`, `ChatTurn`, `IngestionRecord`, entity/book types)
 - **CompanionUI/Components/** — Blazor Server UI components; **wwwroot/** (repo root) — its static assets (`app.css`, `app.js`), served as static web assets so `dotnet publish` includes them
-- **Features/** — `Auth`, `Campaigns`, `Chat`, plus ingestion/retrieval/admin/MCP
 - **Infrastructure/Persistence/** — `AppDbContext` (EF Core, **PostgreSQL** via Npgsql), the single context for all tables
 - **Config/** — `appsettings.json` and `appsettings.Development.json` (loaded automatically by the host)
 
@@ -58,42 +33,12 @@ Build configuration is centralized at the repo root — edit there, not in cspro
 - `Directory.Packages.props` — ALL NuGet package versions (Central Package Management); csproj `PackageReference`s are version-less
 - `Directory.Build.targets` — shared test stack (xunit, FluentAssertions, Test.Sdk, coverlet) for projects with `<IsTestProject>true</IsTestProject>`
 - `Build/GenerateCanonicalSchemas.targets` — regenerates `Schemas/canonical/*.schema.json` from domain types via `Tools/SchemaGenerator`; incremental (stamp file `obj/canonical-schemas.stamp`; delete it to force regen, `SkipCanonicalSchemaGen=true` to bypass)
-- `Microsoft.AspNetCore.OpenApi` is included for OpenAPI/Swagger support
 
-### Configuration
-
-The host listens on `http://localhost:5101` (set in `DndMcpAICsharpFun.http`). Override via `launchSettings.json` or environment variables if needed.
-
-### Structured Entity Extraction (vertical slice)
+### Structured Entity Extraction
 
 The retrieval pipeline uses a dual-collection setup in Qdrant: `dnd_blocks` holds prose chunks for narrative retrieval, while `dnd_entities` holds typed entity records (Class, Monster, Spell, etc.) for structured lookups. Each entity's `canonicalText` is embedded into `dnd_entities` so structured queries return rule-accurate snippets alongside the parsed fields.
 
-Canonical JSON files at `books/canonical/<book-slug>.json` are the hand-correctable source of truth for structured entities. Ingestion reads these files via `CanonicalJsonLoader`, validates schema/IDs, and projects each entity into `dnd_entities`. Plan 2 of the structured-entity-extraction effort has shipped: an Ollama-driven extraction pipeline (local qwen3:8b) produces `books/canonical/<book>.json` from Marker conversion output (plus optional sibling `<book>.errors.json` and `<book>.warnings.json`). Hand-authoring is still allowed and remains the source of truth — extraction outputs are reviewed in PRs before they land.
-
-For official books (those with a `fivetoolsSourceKey`), a sibling `<book-slug>.declined.json` is also produced — candidates whose PRIMARY prior type is one of the gated types (Spell/Monster/Class/Race/Background/Feat/Condition/God) but that have no match in the 5etools authoritative index are declined without an LLM call and recorded here as `{id,name,type,reason}`. This file is auditable, separate from `errors.json`, and is ignored by ingestion and the `errorsOnly` retry.
-
-New endpoints:
-
-- `POST /admin/books/{id}/ingest-entities` — ingest a book's canonical JSON into `dnd_entities`.
-- `POST /admin/books/{id}/extract-programmatic` — **PHB/MM/DMG use this route.** No LLM: drives the Python `book-extractor` service (`BookExtractor:ServiceUrl`), then replaces `books/canonical/<book-slug>.json` (schema "2", entities carry `checks` and `provenance`) and deletes the old LLM sidecars (`.errors`, `.warnings`, `.declined`, `.progress*`). It writes `<book-slug>.report.json`, re-applies `<book-slug>.overrides.json` (hand corrections and approvals), and ingests into `dnd_entities`. A failure before the replace leaves existing files and points untouched. Returns 202 `{bookId}`; 404 unknown book; 409 already queued or running. The old `extract-entities` route and the 5etools field-fill/backfill tools do nothing to a programmatic book's data.
-- `POST /admin/books/{id}/extract-entities` — run Ollama-driven extraction (requires qwen3:8b pulled via ollama-pull); produces `books/canonical/<book-slug>.json` plus optional sibling `<book-slug>.errors.json` and `<book-slug>.warnings.json`. Pass `?force=true` to overwrite an existing canonical JSON. During the run, checkpoint files `<book-slug>.progress.json` and `<book-slug>.progress.errors.json` are written every 100 candidates and deleted on success; a crashed run resumes from the checkpoint on retry.
-- `POST /admin/canonical/validate` — corpus-wide validation; 200 (clean) / 422 (FAIL-class issues like duplicate IDs across files or schema-version mismatches).
-- `GET /retrieval/entities/{id}` — fetch a single entity by ID.
-- `GET /retrieval/entities/search` — public typed entity search.
-- `GET /admin/retrieval/entities/search` — admin-side entity search with extra fields.
-
-**Adding a new book (Plan 2 onward):**
-
-1. Check `GET /admin/5etools/sources` — if the book appears in the list, note its source key (e.g. `MPMM`).
-2. `POST /admin/books/register` — upload PDF. If the book is in 5etools, pass `fivetoolsSourceKey=<KEY>` (e.g. `fivetoolsSourceKey=MPMM`). If not, omit it — the system generates its own IDs from `displayName`. The response always includes `suggestedSources` with fuzzy-matched candidates if you're unsure of the key.
-3. `POST /admin/books/{id}/ingest-blocks` — populate `dnd_blocks`.
-4. `POST /admin/books/{id}/extract-programmatic` for PHB/MM/DMG (and other books the extractor supports), or `POST /admin/books/{id}/extract-entities` for the legacy LLM route — produce canonical JSON. Programmatic books already ingest at the end of the run; step 8 is for the LLM route.
-5. Review the canonical JSON diff in a PR; hand-correct any LLM mistakes.
-6. `POST /admin/canonical/validate` — pre-merge sanity check.
-7. Merge.
-8. `POST /admin/books/{id}/ingest-entities` — populate `dnd_entities`.
-
-**5etools source key rule:** Always supply `fivetoolsSourceKey` for any official WotC book. This aligns entity IDs with the 5etools slug (e.g. `mpmm.monster.yuan-ti-anathema`), derives the correct edition from the registry's `publishedYear`, and ensures `POST /admin/5etools/import` can later supplement the same entities with 5etools-sourced data (traitTags → keywords, SRD flags, etc.). **The canonical file slug derives from `fivetoolsSourceKey` too** — `PHB` → `books/canonical/phb14.json` (and entity ids `phb14.spell.fireball`), via the `EntityIdSlug` override table. So **always pass the key for official books**, or the run writes a mis-named file: displayName `"PlayerHandbook 2014"` (no apostrophe, not in the override table) produced `playerhandbook-2014.json` instead of `phb14.json`. For non-5etools books, the displayName slugifies directly (and must match an override-table entry to get a short slug). For homebrew or third-party books not covered by 5etools, omit the key — the system creates opaque IDs from the display name and that's fine.
+`books/canonical/<book-slug>.json` is the hand-correctable source of truth for structured entities (reviewed in PRs before landing). For adding a book, extraction routes (programmatic vs LLM), sidecar files, and the **always-pass-`fivetoolsSourceKey`** rule, use the `book-ingestion` skill.
 
 ## Observability
 
