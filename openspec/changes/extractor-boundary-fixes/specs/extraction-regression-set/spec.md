@@ -9,9 +9,9 @@ its OCR'd pages, so extractor changes are measured against what the book actuall
 
 ### Requirement: Regression set from reviewed entities
 
-The extractor tests SHALL include a regression set holding every programmatic entity that has an approval or a field
-override in `books/canonical/<slug>.overrides.json`. Each entry SHALL hold the entity id, type, page numbers, the OCR'd
-lines of those pages, and the expected text and fields: the override value where one exists, else the approved extraction.
+The extractor tests SHALL include a regression set holding every programmatic entity with an approval or field override
+in `books/canonical/<slug>.overrides.json` that was made against the printed page, not sourced from 5etools. Each entry
+holds id, type, pages, their OCR'd lines, and the expected text and fields (override value, else the approved extraction).
 
 #### Scenario: Corrected entity in the set
 
@@ -22,6 +22,11 @@ lines of those pages, and the expected text and fields: the override value where
 
 - **WHEN** an entity has an approval and no override
 - **THEN** its regression entry expects its extracted text and fields unchanged
+
+#### Scenario: 5etools-sourced correction left out
+
+- **WHEN** an entity's only override has the reason "verified against 5etools book text"
+- **THEN** it is not in the regression set
 
 #### Scenario: Missing pages skipped
 

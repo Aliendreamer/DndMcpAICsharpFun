@@ -63,12 +63,12 @@
 
 **Files:**
 - Create: `Tools/BookExtractor/tests/extraction_regression_build.py` (dev script, not collected by pytest — no `test_` prefix)
-- Create: `Tools/BookExtractor/tests/data/extraction_regression.json`
+- Create: `Tools/BookExtractor/tests/data/extraction_regression.json.gz` (gzip; pages stored once per book)
 - Test: `Tools/BookExtractor/tests/test_extraction_regression_build.py`
 
 **Interfaces:**
 - Consumes: `page_to_dict` (Task 1); `load_ocr_page`; `reader._layer_page`; `reader.pdf_sha256`.
-- Produces: `build(books_dir: Path, ocr_cache: Path, existing: list[dict]) -> tuple[list[dict], list[str]]` (entries, skipped ids). Entry: `{id, slug, type, name, pages: [int], ctx_pages: [page dict], expected: {"canonicalText": str, "fields": dict}, overridden: [field paths]}`. Pages = entity pages ∪ provenance pages, `ctx_pages` = those ±1. CLI: `python tests/extraction_regression_build.py --books-dir ../../books --ocr-cache <dir> [--out F]`.
+- Produces: `build(books_dir: Path, ocr_cache: Path, existing: list[dict]) -> tuple[list[dict], list[str]]` (entries, skipped ids). File: `{"pages": {"<slug>:<n>": page dict}, "entries": [entry]}`, gzip. Entry: `{id, slug, type, name, pages: [int], ctx_pages: [int], expected: {"canonicalText": str, "fields": dict}, overridden: [field paths]}` — `ctx_pages` are page numbers resolved through the top-level `pages` map. Only entities with at least one override/approval whose reason does NOT start with `verified against 5etools` (page-verified / hand reviews; ~436). Pages = entity pages ∪ provenance pages, `ctx_pages` = those ±1. CLI: `python tests/extraction_regression_build.py --books-dir ../../books --ocr-cache <dir> [--out F]`.
 
 - [ ] **Step 1: Write failing tests** with a tmp `books_dir` holding a 1-entity canonical file + overrides file (override on `canonicalText`, one approval-only entity) and a tmp OCR cache page: `test_override_value_is_expected`, `test_approved_entity_expects_extraction`, `test_existing_entry_is_never_rewritten` (pass `existing` with a different expected text → kept), `test_missing_page_is_skipped_and_named`, `test_layer_page_read_from_pdf` (no OCR file, page from a 1-page PDF made with `pymupdf` in tmp).
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement** `build` + CLI (entities = every id in `overrides[*].entityId ∪ approvals[*].entityId`; expected = canonical entity with each override's value set at its path).
@@ -84,7 +84,7 @@
 - Create: `Tools/BookExtractor/tests/data/extraction_regression.baseline.json`
 
 **Interfaces:**
-- Consumes: `page_from_dict`, `extract_pages` (Task 1), `values_match` (Task 2), `boundary_score.f1`.
+- Consumes: `page_from_dict`, `extract_pages` (Task 1), `values_match` (Task 2), `boundary_score.f1`; the gzip fixture format of Task 3 (`load_fixture() -> tuple[dict, list[dict]]` in `regression_run.py` resolves `ctx_pages` numbers to Page objects).
 - Produces: `score_entry(entry: dict) -> dict` → `{id, found: bool, f1: float, match: bool}` (entity found by id; `match` = every `overridden` path `values_match`es expected, and `canonicalText` matches when overridden); `score_all() -> list[dict]`; `python tests/regression_run.py --update-baseline` rewrites the baseline; plain run prints `matches / improved / worse` vs baseline.
 
 - [ ] **Step 1: Write the gate tests** — `test_no_lost_match` (baseline `match` true → now true), `test_no_f1_drop` (now ≥ baseline − 0.005).
