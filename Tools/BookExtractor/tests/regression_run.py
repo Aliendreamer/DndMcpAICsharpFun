@@ -79,7 +79,8 @@ def score_entry(entry: dict, entities: list[dict]) -> dict:
     if entity is None:
         return {"id": entry["id"], "found": False, "f1": 0.0, "match": False}
     expected = entry["expected"]
-    paths = list(entry["overridden"])
+    paths = list(entry["overridden"]) or (
+        ["canonicalText"] + [f"fields.{k}" for k in expected["fields"]])  # approved as-is: compare everything
     match = True
     for path in paths:
         want = entry["name"] if path == "name" else (
@@ -127,7 +128,7 @@ def main(argv: list[str]) -> None:
             worse += 1
     n = len(results)
     print(f"matches {sum(r['match'] for r in results)} / found {sum(r['found'] for r in results)} / total {n} "
-          f"/ mean f1 {sum(r['f1'] for r in results) / n:.4f} / improved {improved} / worse {worse} "
+          f"/ mean f1 {sum(r['f1'] for r in results) / max(n, 1):.4f} / improved {improved} / worse {worse} "
           f"({time.time() - start:.0f}s)")
 
 

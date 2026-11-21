@@ -722,7 +722,7 @@
  "egw.lore.urzin": {
   "f1": 1.0,
   "found": true,
-  "match": true
+  "match": false
  },
  "egw.lore.ustaloch": {
   "f1": 0.4516,
