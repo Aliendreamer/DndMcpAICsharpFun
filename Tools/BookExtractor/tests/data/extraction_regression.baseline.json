@@ -1,0 +1,2182 @@
+{
+ "bgg.faction.hidden-rune-adventures": {
+  "f1": 0.9479,
+  "found": true,
+  "match": false
+ },
+ "bgg.faction.worldroot-circle": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "bgg.god.grolantor": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "bgg.god.hiatea": {
+  "f1": 0.8259,
+  "found": true,
+  "match": false
+ },
+ "bgg.god.lallanis": {
+  "f1": 0.1528,
+  "found": true,
+  "match": false
+ },
+ "bgg.god.memnor": {
+  "f1": 0.963,
+  "found": true,
+  "match": false
+ },
+ "bgg.magicitem.armor-of-safeguarding": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "bgg.magicitem.delver-s-claws": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "bgg.magicitem.glowrune-pigment": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "bgg.magicitem.longbow-of-the-healing-hearth": {
+  "f1": 0.9981,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.cairnwight": {
+  "f1": 0.695,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.cinder-hulk": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.cloud-giant-destiny-gambler": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.cloud-giant-of-evil-air": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.cradle-of-the-frost-scion": {
+  "f1": 0.8192,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.death-giant-shrouded-one": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.echo-of-demogorgon": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.fire-giant-forgecaller": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.flesh-colossus": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.fomorian-deep-crawler": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.fomorian-warlock-of-the-dark": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.frost-giant-ice-shaper": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.gargantua": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.giant-goose": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.gigant": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.goliath-giant-kin": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.hill-giant-avalancher": {
+  "f1": 0.7259,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.lightning-hulk": {
+  "f1": 0.6897,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.maw-of-yeenoghu": {
+  "f1": 0.7358,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.mist-hulk": {
+  "f1": 0.8251,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.mud-hulk": {
+  "f1": 0.7357,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.regisaur": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.runic-colossus": {
+  "f1": 0.5331,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.scion-of-grolantor": {
+  "f1": 0.7906,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.scion-of-stronmaus": {
+  "f1": 0.8006,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.scion-of-surtur": {
+  "f1": 0.8492,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.spectral-cloud": {
+  "f1": 0.8552,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.stalker-of-baphomet": {
+  "f1": 0.6609,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.stone-giant-rockspeaker": {
+  "f1": 0.8918,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.storm-crab": {
+  "f1": 0.7859,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.storm-giant-tempest-caller": {
+  "f1": 0.8518,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.titanothere": {
+  "f1": 0.5128,
+  "found": true,
+  "match": false
+ },
+ "bgg.monster.troll-mutate": {
+  "f1": 0.5937,
+  "found": true,
+  "match": false
+ },
+ "bgg.rule.a-note-about-size": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.god.loun": {
+  "f1": 0.9375,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.artifacts": {
+  "f1": 0.7131,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.boon-of-combat-prowess": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-dimensional-travel": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-fate": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-high-magic": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-immortality": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-invincibility": {
+  "f1": 0.9706,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.boon-of-luck": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-magic-resistance": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-peerless-aim": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-perfect-health": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-planar-travel": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-quick-casting": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-recovery": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-resilience": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-speed": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-spell-mastery": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-spell-recall": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-the-fire-soul": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-the-night-spirit": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-the-stormborn": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-the-unfettered": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.boon-of-undetectability": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.chamber-contents": {
+  "f1": 0.621,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.command-word": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.lore.crossing-the-streams": {
+  "f1": 0.7979,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.dungeon-dressing": {
+  "f1": 0.575,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.forms-of-government": {
+  "f1": 0.8017,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.gp-pp": {
+  "f1": 0.8051,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.ideal": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.major-detrimental-properties": {
+  "f1": 0.0119,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.mapping-a-dungeon-doors": {
+  "f1": 0.1508,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.monsters-by-environment": {
+  "f1": 0.0641,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.oolp-property": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.potions": {
+  "f1": 0.2932,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.psychic-wind": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.random-encounter-challenge": {
+  "f1": 0.7102,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.special-features": {
+  "f1": 0.0022,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.standard-campaign-high-magic-campaign": {
+  "f1": 0.6426,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.suggested-domains-symbol": {
+  "f1": 0.9153,
+  "found": true,
+  "match": false
+ },
+ "dmg14.lore.weather-at-sea": {
+  "f1": 0.621,
+  "found": true,
+  "match": false
+ },
+ "dmg14.magicitem.boots-of-evenkind": {
+  "f1": 0.973,
+  "found": true,
+  "match": false
+ },
+ "dmg14.magicitem.manual-of-quickness-f-action": {
+  "f1": 0.9857,
+  "found": true,
+  "match": false
+ },
+ "dmg14.magicitem.stone-of-good-luck-luckstone": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "dmg14.magicitem.wand-of-mgic-detection": {
+  "f1": 0.9744,
+  "found": true,
+  "match": false
+ },
+ "dmg14.monster.avatar-of-death": {
+  "f1": 0.9932,
+  "found": true,
+  "match": false
+ },
+ "dmg14.race.unnamed-282": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "dmg14.rule.ability-checks-ability-checks": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "dmg14.rule.creating-npcs-from-scratch": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "dmg14.rule.culturalalterations": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "dmg14.rule.feywild-magic": {
+  "f1": 0.997,
+  "found": true,
+  "match": false
+ },
+ "dmg14.rule.figuring-out-alien-technology": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "dmg14.rule.map-travel-pace": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "dmg14.rule.mark": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "dmg14.rule.npc-stat-blocks": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "dmg14.subclass.oathbreaker": {
+  "f1": 0.8006,
+  "found": true,
+  "match": false
+ },
+ "egw.god.loun": {
+  "f1": 0.9565,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.aasimar-guides": {
+  "f1": 0.9915,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.aasimarnames": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.acolyte-luxonborn": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.betrayer-gods": {
+  "f1": 0.3421,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.claret-orders": {
+  "f1": 0.58,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-asmodeus": {
+  "f1": 0.3734,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-avandra": {
+  "f1": 0.5622,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-bane": {
+  "f1": 0.2122,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-corellon": {
+  "f1": 0.0984,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-gruumsh": {
+  "f1": 0.2372,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-kord": {
+  "f1": 0.1822,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-melora": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.commandments-of-moradin": {
+  "f1": 0.2683,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-pelor": {
+  "f1": 0.1186,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-sehanine": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.commandments-of-the-raven-queen": {
+  "f1": 0.2872,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-torog": {
+  "f1": 0.2588,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-vecna": {
+  "f1": 0.3221,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.commandments-of-zehir": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.criminal-myriad-operative": {
+  "f1": 0.9876,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.descent-into-sharkfeather-abyss": {
+  "f1": 0.5622,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.dungeonscdragons": {
+  "f1": 0.2222,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.earthquake-and-sahuagin-attack": {
+  "f1": 0.9079,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.elf-subraces": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.environment-changes": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.firbolg-names": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.fleeting-fancies": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.heroic-chronicle": {
+  "f1": 0.8472,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.islands-of-eiselcross": {
+  "f1": 0.8348,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.jolly-dwarf": {
+  "f1": 0.9699,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.languages": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.life-of-a-tortle": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.odessloe": {
+  "f1": 0.6846,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.random-encounters": {
+  "f1": 0.4917,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.sage-cobalt-scholar": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.sahuagin-warlock": {
+  "f1": 0.9812,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.sailor-revelry-pirate": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.spy-augen-trust": {
+  "f1": 0.9698,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.suggested-characteristics": {
+  "f1": 0.9922,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.supernatural-gift-hollow-one": {
+  "f1": 0.9532,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.the-buyer": {
+  "f1": 0.8181,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.the-revelry": {
+  "f1": 0.5015,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.urzin": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.lore.ustaloch": {
+  "f1": 0.4516,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.wildemount-bestiary-aeorian-hunters": {
+  "f1": 0.9969,
+  "found": true,
+  "match": false
+ },
+ "egw.lore.yrrosa": {
+  "f1": 0.9762,
+  "found": true,
+  "match": false
+ },
+ "egw.magicitem.corpse-slayer": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.magicitem.needle-of-mending": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "egw.monster.bol-bara": {
+  "f1": 0.6761,
+  "found": true,
+  "match": false
+ },
+ "egw.subclass.chronurgy-magic": {
+  "f1": 0.9829,
+  "found": true,
+  "match": false
+ },
+ "elemental-evil-player-s-companion.spell.bones-of-the-earth": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "elemental-evil-player-s-companion.spell.frostbite": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "elemental-evil-player-s-companion.spell.primordialward": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "elemental-evil-player-s-companion.spell.whirlwind": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.class.unnamed-55": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.location.aerenal": {
+  "f1": 0.9899,
+  "found": true,
+  "match": false
+ },
+ "erlw.location.thrane": {
+  "f1": 0.9973,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.a-hidden-people": {
+  "f1": 0.9904,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.aerenal-s-influence-in-khorvaire": {
+  "f1": 0.6452,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.ashbound": {
+  "f1": 0.449,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.aundairian-characters": {
+  "f1": 0.4991,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.barra": {
+  "f1": 0.7226,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.belashyrra-s-lair": {
+  "f1": 0.9975,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.blood-of-vol": {
+  "f1": 0.6495,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.bound-to-spirits": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.conclusion": {
+  "f1": 0.8909,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.creating-a-dragonmarked-character": {
+  "f1": 0.8882,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.creating-common-magic-items-creating-common-magic-items": {
+  "f1": 0.2857,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.criminal-organizations-in-sharn": {
+  "f1": 0.392,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.daask-excavation-site": {
+  "f1": 0.9329,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.daelkyr": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.daggerwatch": {
+  "f1": 0.1978,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.darguul-characters": {
+  "f1": 0.5442,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.daughters-of-sora-kell": {
+  "f1": 0.929,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.dinosaurs": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.district-description": {
+  "f1": 0.2902,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.dragonmarked-house-contacts": {
+  "f1": 0.2575,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.droaamite-characters": {
+  "f1": 0.403,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.dyrrn-s-lair": {
+  "f1": 0.9932,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.eldeen-characters": {
+  "f1": 0.7689,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.gatekeeper-npcs-gatekeeper-npcs": {
+  "f1": 0.9442,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.generic-npcs": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.getting-around": {
+  "f1": 0.485,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.ghaash-kala-characters": {
+  "f1": 0.5977,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.grand-stage": {
+  "f1": 0.0106,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.guide-to-the-city": {
+  "f1": 0.903,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.homunculi": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.house-tarkanan-adventure-hooks": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "erlw.lore.hunted-by-nightmares": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.immortal-being": {
+  "f1": 0.7423,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.kalashtar-names": {
+  "f1": 0.9804,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.kalashtar-quirks": {
+  "f1": 0.9717,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.karrnathi-characters": {
+  "f1": 0.5,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.khraal-btia-bay-of": {
+  "f1": 0.9422,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.khyber-s-influence-in-khorvaire": {
+  "f1": 0.4871,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.krona-peak": {
+  "f1": 0.3909,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.lhazaar-principalities": {
+  "f1": 0.7077,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.living-steel-and-stone": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.lower-central": {
+  "f1": 0.2908,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.lower-sharn-street-events": {
+  "f1": 0.9944,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.lower-sharn-street-events-oolp-event": {
+  "f1": 0.9976,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.madness-of-belashyrra": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.mark-of-detection-spells": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.mark-of-finding-spells": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.mark-of-handling-spells": {
+  "f1": 0.9688,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.mark-of-healing-spells": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.mark-of-making-spells": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.mark-of-passage-spells": {
+  "f1": 0.8889,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.mark-of-scribing-spells": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.mark-of-sentinel-spells": {
+  "f1": 0.1409,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.mark-of-shadow-spells": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.mark-of-warding-spells": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "erlw.lore.masks-and-personas": {
+  "f1": 0.9919,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.menthis-plateau-important-districts": {
+  "f1": 0.6115,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.middle-tavick-s-landing": {
+  "f1": 0.3351,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.mournland-trinkets": {
+  "f1": 0.9407,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.newspaper": {
+  "f1": 0.8861,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.oak-towers": {
+  "f1": 0.0157,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.oolp-passenger": {
+  "f1": 0.8782,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.operating-a-colossus": {
+  "f1": 0.9646,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.overlords": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.quirks": {
+  "f1": 0.9887,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.quori": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.rakshasa": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.religious-order-contacts": {
+  "f1": 0.6739,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.rising-from-the-last-war": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.roleplaying-sergeant-vilroy": {
+  "f1": 0.8568,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.sarlona-s-influence-in-khorvaire": {
+  "f1": 0.7257,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.sharn-heights-sharn-heights-adventures-p245-2": {
+  "f1": 0.8062,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.similar-and-diverse": {
+  "f1": 0.9825,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.skyway": {
+  "f1": 0.7312,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.sovereign-host": {
+  "f1": 0.6329,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.stat-blocks-by-creature-type": {
+  "f1": 0.9059,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.symbol": {
+  "f1": 0.3876,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.tavick-s-landing-important-districts": {
+  "f1": 0.6269,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.the-bazaar": {
+  "f1": 0.0223,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.the-beast-within": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "erlw.lore.the-city-of-the-dead": {
+  "f1": 0.2288,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.the-cogs": {
+  "f1": 0.9011,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.the-dreaming-dark-dreaming-dark-p198-2": {
+  "f1": 0.763,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.the-journey-yetto-come": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.the-streets-of-sharn-oolp-event": {
+  "f1": 0.9787,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.things-to-do-in-northedge": {
+  "f1": 0.4923,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.trinkets-from-sarlona": {
+  "f1": 0.4365,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.undying": {
+  "f1": 0.998,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.unusual-locations": {
+  "f1": 0.75,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.upper-central": {
+  "f1": 0.6043,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.upper-northedge": {
+  "f1": 0.5704,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.upper-sharn-street-events": {
+  "f1": 0.9879,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.valenar-animals": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.warforged-names": {
+  "f1": 0.3949,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.warforged-personality": {
+  "f1": 0.9917,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.wroat": {
+  "f1": 0.6182,
+  "found": true,
+  "match": false
+ },
+ "erlw.lore.zil-characters": {
+  "f1": 0.609,
+  "found": true,
+  "match": false
+ },
+ "erlw.monster.homunculus-servant": {
+  "f1": 0.2088,
+  "found": true,
+  "match": false
+ },
+ "erlw.monster.steel-defender": {
+  "f1": 0.9823,
+  "found": true,
+  "match": false
+ },
+ "erlw.rule.quori-vessel": {
+  "f1": 0.9956,
+  "found": true,
+  "match": false
+ },
+ "erlw.subclass.battle-smith": {
+  "f1": 0.9526,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.amethyst-dragon-adventures": {
+  "f1": 0.3993,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.ancient-amethyst-dragon-connections": {
+  "f1": 0.6736,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.ancient-brass-dragon-connections": {
+  "f1": 0.9864,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.ancient-copper-dragon-connections": {
+  "f1": 0.5685,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.ancient-crystal-dragon-connecions": {
+  "f1": 0.9143,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.black-dragon-ideals": {
+  "f1": 0.8304,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.black-dragon-lairs": {
+  "f1": 0.4577,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.blue-dragon-treasures": {
+  "f1": 0.7783,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.brass-dragon-lairs": {
+  "f1": 0.5431,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.breaking-a-hoard-curse": {
+  "f1": 0.9381,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.bronze-dragon-adventures": {
+  "f1": 0.1958,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.bronze-dragon-ideals": {
+  "f1": 0.8671,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.copper-dragon-lairs": {
+  "f1": 0.5703,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.cosmological-study": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ftd.lore.creating-a-hoard": {
+  "f1": 0.9698,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.creating-a-white-dragon": {
+  "f1": 0.1749,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.cross-purposes": {
+  "f1": 0.5972,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.crystal-dragon-adventures": {
+  "f1": 0.1612,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.deep-dragons": {
+  "f1": 0.9191,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.draconians": {
+  "f1": 0.9082,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.draconomicon-amethyst-dragons-p161": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ftd.lore.draconomicon-dragon-turtles-p193": {
+  "f1": 0.659,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.draconomicon-emerald-dragons-p197": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ftd.lore.dragon-followers": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ftd.lore.dragon-hoards": {
+  "f1": 0.944,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.dragon-turtle-ideals": {
+  "f1": 0.8638,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.dragon-turtle-lairs": {
+  "f1": 0.9912,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.dragonborn-champions": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ftd.lore.dungeons-dragons": {
+  "f1": 0.9032,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.egg-hunters": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ftd.lore.faerie-dragon-adventures": {
+  "f1": 0.9932,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.faerie-dragon-lairs": {
+  "f1": 0.9967,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.gold-dragon-art-objects": {
+  "f1": 0.9666,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.gold-dragon-ideals": {
+  "f1": 0.8742,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.green-dragon-adventures": {
+  "f1": 0.5294,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.moonstone-dragon-adventures": {
+  "f1": 0.1506,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.moonstone-dragons": {
+  "f1": 0.7858,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.passing-the-mantle": {
+  "f1": 0.9797,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.royal-purple": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ftd.lore.sea-serpents": {
+  "f1": 0.954,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.shimmering-green": {
+  "f1": 0.2932,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.topaz-dragon-adventures": {
+  "f1": 0.1364,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.topaz-dragon-lairs": {
+  "f1": 0.8947,
+  "found": true,
+  "match": false
+ },
+ "ftd.lore.wyrmlings-ancient-dragons-p39": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "ftd.magicitem.crystalblade": {
+  "f1": 0.9892,
+  "found": true,
+  "match": false
+ },
+ "ftd.magicitem.dragonhide-belt": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ftd.monster.chromatic-greatwyrm": {
+  "f1": 0.8752,
+  "found": true,
+  "match": false
+ },
+ "ftd.monster.draconic-spirit": {
+  "f1": 0.3657,
+  "found": true,
+  "match": false
+ },
+ "ftd.monster.drake-companion": {
+  "f1": 0.6359,
+  "found": true,
+  "match": false
+ },
+ "ftd.monster.swarm-of-hoard-scarabs": {
+  "f1": 0.8086,
+  "found": true,
+  "match": false
+ },
+ "ggr.item.pendulum-clock": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "ggr.item.spyglass": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.azorius-guild-spells": {
+  "f1": 0.967,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.azorius-villains": {
+  "f1": 0.6682,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.background-boros-legionnaire-boros-guild-spells-p41-1": {
+  "f1": 0.6115,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.background-dimir-operative-dimir-guild-spells-p47-1": {
+  "f1": 0.9412,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.background-golgari-agent-golgari-guild-spells-p54-1": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ggr.lore.background-gruulanarch-gruul-guild-spells-p61-1": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ggr.lore.background-rakdos-cultist-rakdos-guild-spells-p81-1": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ggr.lore.city-works": {
+  "f1": 0.6222,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.dungeons-dragons": {
+  "f1": 0.5217,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.feature-researcher-simic-guild-spells-p94-1": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "ggr.lore.golgari-villains": {
+  "f1": 0.7363,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.human-names": {
+  "f1": 0.4717,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.random-guilds": {
+  "f1": 0.2278,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.ravnica-s-calendar": {
+  "f1": 0.4788,
+  "found": true,
+  "match": false
+ },
+ "ggr.lore.sorcerer": {
+  "f1": 0.4865,
+  "found": true,
+  "match": false
+ },
+ "ggr.monster.loading-rig": {
+  "f1": 0.3372,
+  "found": true,
+  "match": false
+ },
+ "mm14.lore.jackalwere": {
+  "f1": 0.8959,
+  "found": true,
+  "match": false
+ },
+ "mm14.monster.ackalwere": {
+  "f1": 0.5835,
+  "found": true,
+  "match": false
+ },
+ "mm14.monster.adult-gold-draon": {
+  "f1": 0.589,
+  "found": true,
+  "match": false
+ },
+ "mm14.monster.cyyclops": {
+  "f1": 0.982,
+  "found": true,
+  "match": false
+ },
+ "mm14.monster.empyrean": {
+  "f1": 0.9975,
+  "found": true,
+  "match": false
+ },
+ "mm14.monster.giant-crogodile": {
+  "f1": 0.9939,
+  "found": true,
+  "match": false
+ },
+ "mm14.monster.smoke-mehit": {
+  "f1": 0.9892,
+  "found": true,
+  "match": false
+ },
+ "mm14.monster.swarm-of-poisonous-snakes": {
+  "f1": 0.6812,
+  "found": true,
+  "match": false
+ },
+ "mm14.rule.quaggoth-thonot": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "mm14.rule.warhorse-armor": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "mpmm.monster.drow-favored-consort": {
+  "f1": 0.7818,
+  "found": true,
+  "match": false
+ },
+ "mpmm.monster.drow-inquisitor": {
+  "f1": 0.5682,
+  "found": true,
+  "match": false
+ },
+ "mpmm.monster.sacred-statue": {
+  "f1": 0.6327,
+  "found": true,
+  "match": false
+ },
+ "mpmm.monster.swarm-of-cranium-rats": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "mpmm.rule.devil-summoning": {
+  "f1": 0.3865,
+  "found": true,
+  "match": false
+ },
+ "mpmm.rule.drow-inquisitor-demon-summoning": {
+  "f1": 0.9949,
+  "found": true,
+  "match": false
+ },
+ "mpmm.rule.molydeus-demon-summoning": {
+  "f1": 0.4329,
+  "found": true,
+  "match": false
+ },
+ "mtf.monster.drow-arachnomancer": {
+  "f1": 0.8926,
+  "found": true,
+  "match": false
+ },
+ "mtf.monster.drow-inquisitor": {
+  "f1": 0.8235,
+  "found": true,
+  "match": false
+ },
+ "mtf.monster.drow-matron-mother": {
+  "f1": 0.8611,
+  "found": true,
+  "match": false
+ },
+ "mtf.monster.sacred-statue": {
+  "f1": 0.4694,
+  "found": true,
+  "match": false
+ },
+ "mtf.subrace.duergar": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "phb14.class.wizard": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "phb14.god.luz": {
+  "f1": 0.9333,
+  "found": true,
+  "match": false
+ },
+ "phb14.item.barding": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "phb14.monster.hawk-falcon": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "phb14.monster.lion": {
+  "f1": 0.9832,
+  "found": true,
+  "match": false
+ },
+ "phb14.monster.zombie": {
+  "f1": 0.6241,
+  "found": true,
+  "match": false
+ },
+ "phb14.rule.caasting-time": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "phb14.rule.concentration": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "phb14.rule.melee-attacks": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "phb14.rule.the-order-of-combat": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "phb14.subclass.arcane-trickster": {
+  "f1": 0.9919,
+  "found": true,
+  "match": false
+ },
+ "phb14.subclass.battle-master": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "phb14.subclass.circle-of-the-land": {
+  "f1": 0.9965,
+  "found": true,
+  "match": false
+ },
+ "phb14.subclass.circle-of-the-moon": {
+  "f1": 0.9912,
+  "found": true,
+  "match": false
+ },
+ "phb14.subclass.college-of-lore": {
+  "f1": 0.9978,
+  "found": true,
+  "match": false
+ },
+ "phb14.subclass.draconic-bloodline": {
+  "f1": 0.997,
+  "found": true,
+  "match": false
+ },
+ "phb14.subclass.the-great-old-one": {
+  "f1": 0.9948,
+  "found": true,
+  "match": false
+ },
+ "phb14.subclass.war-domain": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "phb14.subclass.way-of-the-four-elements": {
+  "f1": 0.9987,
+  "found": true,
+  "match": false
+ },
+ "phb14.subclass.wild-magic": {
+  "f1": 0.9953,
+  "found": true,
+  "match": false
+ },
+ "phb14.weapon.unarmed-strike": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "scag.spell.lightning-lure": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "scag.subclass.arcana-domain": {
+  "f1": 0.9975,
+  "found": true,
+  "match": false
+ },
+ "scag.subclass.purple-dragon-knight": {
+  "f1": 0.996,
+  "found": true,
+  "match": false
+ },
+ "scc.location.the-show": {
+  "f1": 0.9756,
+  "found": true,
+  "match": false
+ },
+ "tce.magicitem.barrier-tattqo": {
+  "f1": 0.9828,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.aberrant-spirit": {
+  "f1": 0.7147,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.beast-of-the-land": {
+  "f1": 0.8235,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.beast-of-the-sea": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.beast-of-the-sky": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "tce.monster.bestial-spirit": {
+  "f1": 0.9163,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.celestial-spirit": {
+  "f1": 0.738,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.construct-spirit": {
+  "f1": 0.7095,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.dancing-item": {
+  "f1": 0.9905,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.elemental-spirit": {
+  "f1": 0.6728,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.fey-spirit": {
+  "f1": 0.8121,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.fiendish-spirit": {
+  "f1": 0.801,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.homunculus-servant": {
+  "f1": 0.9902,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.shadow-spirit": {
+  "f1": 0.7825,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.steel-defender": {
+  "f1": 0.4325,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.undead-spirit": {
+  "f1": 0.4897,
+  "found": true,
+  "match": false
+ },
+ "tce.monster.wildfire-spirit": {
+  "f1": 0.6253,
+  "found": true,
+  "match": false
+ },
+ "tce.rule.aberrations": {
+  "f1": 0.9661,
+  "found": true,
+  "match": false
+ },
+ "tce.rule.all-that-glitters": {
+  "f1": 0.9911,
+  "found": true,
+  "match": false
+ },
+ "tce.rule.customizing-the-puzzle-lowering-the-difficulty-p189": {
+  "f1": 0.6631,
+  "found": true,
+  "match": false
+ },
+ "tce.rule.material-components-puzzle-features": {
+  "f1": 0.4952,
+  "found": true,
+  "match": false
+ },
+ "tce.rule.mirror-zone-effects": {
+  "f1": 0.4247,
+  "found": true,
+  "match": false
+ },
+ "tce.rule.party-origin": {
+  "f1": 0.8784,
+  "found": true,
+  "match": false
+ },
+ "tce.rule.trap-variants": {
+  "f1": 0.4474,
+  "found": true,
+  "match": false
+ },
+ "tce.rule.unraveling-magic-effects": {
+  "f1": 0.2497,
+  "found": true,
+  "match": false
+ },
+ "tce.subclass.beast-master-companions": {
+  "f1": 0.7909,
+  "found": true,
+  "match": false
+ },
+ "tce.subclass.clockwork-soul": {
+  "f1": 0.9963,
+  "found": true,
+  "match": false
+ },
+ "tce.subclass.college-of-creation": {
+  "f1": 0.9266,
+  "found": true,
+  "match": false
+ },
+ "tce.subclass.college-of-eloquence": {
+  "f1": 0.9932,
+  "found": true,
+  "match": false
+ },
+ "tce.subclass.fey-wanderer": {
+  "f1": 0.9913,
+  "found": true,
+  "match": false
+ },
+ "tce.subclass.path-of-wild-magic": {
+  "f1": 0.9938,
+  "found": true,
+  "match": false
+ },
+ "tce.subclass.rune-knight": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "tce.subclass.swarmkeeper": {
+  "f1": 0.9951,
+  "found": true,
+  "match": false
+ },
+ "tce.subclass.the-fathomless": {
+  "f1": 0.9728,
+  "found": true,
+  "match": false
+ },
+ "vrgr.monster.apprentice": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "vrgr.monster.disciple": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "vrgr.monster.sneak": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "vrgr.monster.squire": {
+  "f1": 0.7715,
+  "found": true,
+  "match": false
+ },
+ "vrgr.monster.swarm-of-scarabs": {
+  "f1": 0.5938,
+  "found": true,
+  "match": false
+ },
+ "vrgr.plane.barovia": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "vrgr.plane.falkovnia": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "vrgr.plane.lamordia": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "vrgr.plane.tepest": {
+  "f1": 0.0,
+  "found": false,
+  "match": false
+ },
+ "vrgr.rule.ability-score-increases": {
+  "f1": 0.6393,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.awarding-magic-items": {
+  "f1": 0.9363,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.coastal-encounters-levels-5-10": {
+  "f1": 0.9877,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.desert-encounters-levels-17-20": {
+  "f1": 0.9931,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.flight-or-fight-or": {
+  "f1": 0.9802,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.forest-encounters-levels-17-20": {
+  "f1": 0.9169,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.gaming-set": {
+  "f1": 0.9604,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.grassland-encounters-levels-1-5": {
+  "f1": 0.988,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.hill-encounters-levels-11-16": {
+  "f1": 0.978,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.hill-encounters-levels-5-10": {
+  "f1": 0.9966,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.marina-s-plans": {
+  "f1": 1.0,
+  "found": true,
+  "match": true
+ },
+ "xge.rule.step-4-select-monsters": {
+  "f1": 0.5813,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.tool-descriptions": {
+  "f1": 1.0,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.underdark-encounters-levels-1-4": {
+  "f1": 0.9758,
+  "found": true,
+  "match": false
+ },
+ "xge.rule.underwater-encounters-levels-11-20": {
+  "f1": 0.9633,
+  "found": true,
+  "match": false
+ },
+ "xge.subclass.arcane-archer": {
+  "f1": 0.9963,
+  "found": true,
+  "match": false
+ },
+ "xge.subclass.college-of-glamour": {
+  "f1": 0.9837,
+  "found": true,
+  "match": false
+ },
+ "xge.subclass.way-of-the-kensei": {
+  "f1": 0.9668,
+  "found": true,
+  "match": false
+ }
+}
