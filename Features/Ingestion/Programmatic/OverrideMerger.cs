@@ -4,7 +4,7 @@ using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Ingestion.Programmatic;
 
-public sealed record MergeResult(IReadOnlyList<EntityEnvelope> Entities, IReadOnlyList<string> OrphanedEntityIds);
+public sealed record MergeResult(IReadOnlyList<EntityEnvelope> Entities, IReadOnlyList<string> OrphanedEntityIds, IReadOnlyList<FieldOverride> Retired);
 
 /// <summary>Re-applies admin overrides over freshly extracted entities and derives each entity's disposition.</summary>
 public static class OverrideMerger
@@ -32,6 +32,7 @@ public static class OverrideMerger
             .ToList();
 
         var result = new List<EntityEnvelope>(extracted.Count);
+        var retired = new List<FieldOverride>();
         foreach (var input in extracted)
         {
             var original = input;
@@ -45,14 +46,14 @@ public static class OverrideMerger
             var e = original;
             // In file order: for the same field the last override wins.
             foreach (var ov in mine)
-                e = ApplyOne(original, e, ov, reapply);
+                e = ApplyOne(original, e, ov, reapply, retired);
 
             // Programmatic entities always get a derived disposition (never trust whatever the input carried).
             if (e.DataSource == DataSources.Programmatic || mine.Count > 0 || approval is not null || e.Checks.Count > 0)
                 e = SetDisposition(e, approval);
             result.Add(e);
         }
-        return new MergeResult(result, orphans);
+        return new MergeResult(result, orphans, retired);
     }
 
     /// <summary>The entity's approval, if any (the last one wins).</summary>
@@ -115,7 +116,7 @@ public static class OverrideMerger
     /// Drift compares with <see cref="JsonNode.DeepEquals"/>: object key order is ignored, array order matters,
     /// and numbers compare by value, so 2 and 2.0 are equal; genuinely different values drift.
     /// </summary>
-    private static EntityEnvelope ApplyOne(EntityEnvelope original, EntityEnvelope e, FieldOverride ov, bool reapply)
+    private static EntityEnvelope ApplyOne(EntityEnvelope original, EntityEnvelope e, FieldOverride ov, bool reapply, List<FieldOverride> retired)
     {
         // Drift is judged against the original extraction, not an earlier override on the same field.
         var current = GetCurrent(original, ov.Field);
@@ -123,6 +124,12 @@ public static class OverrideMerger
         if (reapply && TryGetValue(e, ov.Field, out var held)
             && JsonNode.DeepEquals(JsonNode.Parse(held.GetRawText()), JsonNode.Parse(ov.Value.GetRawText())))
             return e;
+        // Fresh extraction: an override the extractor now reproduces is retired (the entity keeps the extracted value).
+        if (!reapply && current is not null && JsonNode.Parse(ov.Value.GetRawText()) is { } wanted && TextMatch.Matches(current, wanted))
+        {
+            retired.Add(ov);
+            return e;
+        }
         var updated = Set(e, ov.Field, ov.Value, out var why);
         if (updated is null)
         {
@@ -134,7 +141,8 @@ public static class OverrideMerger
         }
 
         if (ov.Extracted is { } baseline
-            && !JsonNode.DeepEquals(JsonNode.Parse(baseline.GetRawText()), current))
+            && !JsonNode.DeepEquals(JsonNode.Parse(baseline.GetRawText()), current)
+            && (reapply || !ExtractionGotCloser(current, baseline, ov.Value)))
         {
             var marker = $" at {ov.Field}:";
             if (!updated.Checks.Any(c => c.Name == DriftCheck && c.Reason.Contains(marker)))
@@ -147,6 +155,15 @@ public static class OverrideMerger
             }
         }
         return updated;
+    }
+
+    /// <summary>True when the re-extracted value is closer (token F1) to the override's value than the recorded baseline was.</summary>
+    private static bool ExtractionGotCloser(JsonNode? now, JsonElement baseline, JsonElement want)
+    {
+        if (now is null) return false;
+        var wantText = TextMatch.FlattenText(JsonNode.Parse(want.GetRawText()));
+        var before = TextMatch.TokenF1(TextMatch.FlattenText(JsonNode.Parse(baseline.GetRawText())), wantText);
+        return TextMatch.TokenF1(TextMatch.FlattenText(now), wantText) > before;
     }
 
     private static JsonNode? GetCurrent(EntityEnvelope e, string field)

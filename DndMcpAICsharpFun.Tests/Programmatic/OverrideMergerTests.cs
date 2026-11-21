@@ -318,4 +318,67 @@ public class OverrideMergerTests
         r.NeedsReview.Should().Be(expected == EntityDisposition.NeedsReview);
         r.Checks.Should().HaveCount(failed.Length);
     }
+
+    private static FieldOverride OvText(string value, string extracted) =>
+        new("mm14.monster.grell", "canonicalText", J(JsonSerializer.Serialize(value)), J(JsonSerializer.Serialize(extracted)), "fix", At);
+
+    [Fact]
+    public void Apply_retires_an_override_the_extraction_now_matches()
+    {
+        var ov = Ov("fields.cr", "\"3\"", "\"2\"");
+        var r = OverrideMerger.Apply([Grell("\"3\"")], new EntityOverrides([ov], []));
+        r.Retired.Should().ContainSingle().Which.Should().Be(ov);
+        r.Entities[0].Checks.Should().NotContain(c => c.Name == OverrideMerger.DriftCheck);
+        r.Entities[0].Fields.GetProperty("cr").GetString().Should().Be("3");
+    }
+
+    [Fact]
+    public void Apply_keeps_an_override_quietly_when_extraction_got_closer()
+    {
+        var o = new EntityOverrides([OvText("Grell text", "Grell text SIDEBAR junk")], []);
+        var r = OverrideMerger.Apply([Grell() with { CanonicalText = "Grell text junk" }], o);
+        r.Retired.Should().BeEmpty();
+        r.Entities[0].CanonicalText.Should().Be("Grell text");
+        r.Entities[0].Checks.Should().NotContain(c => c.Name == OverrideMerger.DriftCheck);
+    }
+
+    [Fact]
+    public void Apply_flags_drift_when_extraction_got_worse()
+    {
+        var o = new EntityOverrides([OvText("Grell text", "Grell text SIDEBAR junk")], []);
+        var r = OverrideMerger.Apply([Grell() with { CanonicalText = "totally different" }], o);
+        r.Retired.Should().BeEmpty();
+        r.Entities[0].CanonicalText.Should().Be("Grell text");
+        r.Entities[0].Checks.Should().Contain(c => c.Name == OverrideMerger.DriftCheck);
+    }
+
+    [Fact]
+    public void Apply_unchanged_extraction_applies_without_drift()
+    {
+        var r = OverrideMerger.Apply([Grell()], new EntityOverrides([Ov("fields.cr", "\"3\"", "\"2\"")], []));
+        r.Retired.Should().BeEmpty();
+        r.Entities[0].Fields.GetProperty("cr").GetString().Should().Be("3");
+        r.Entities[0].Checks.Should().NotContain(c => c.Name == OverrideMerger.DriftCheck);
+    }
+
+    [Fact]
+    public void Apply_absent_field_is_never_retired()
+    {
+        var e = Grell() with { Fields = J("""{"ac":[{"ac":12}]}""") };
+        var r = OverrideMerger.Apply([e], new EntityOverrides([Ov("fields.cr", "\"3\"", "\"2\"")], []));
+        r.Retired.Should().BeEmpty();
+        r.Entities[0].Checks.Should().Contain(c => c.Name == OverrideMerger.DriftCheck);
+    }
+
+    [Fact]
+    public void Apply_retires_one_override_and_drifts_another()
+    {
+        var o = new EntityOverrides(
+            [Ov("fields.cr", "\"3\"", "\"2\""), Ov("fields.ac.0.ac", "15", "10")], []);
+        var r = OverrideMerger.Apply([Grell("\"3\"")], o);
+        r.Retired.Should().ContainSingle().Which.Field.Should().Be("fields.cr");
+        r.Entities[0].Fields.GetProperty("ac")[0].GetProperty("ac").GetInt32().Should().Be(15);
+        r.Entities[0].Checks.Should().ContainSingle(c => c.Name == OverrideMerger.DriftCheck)
+            .Which.Reason.Should().Contain("fields.ac.0.ac");
+    }
 }
