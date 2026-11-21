@@ -113,8 +113,11 @@ public static class OverrideMerger
     }
 
     /// <summary>
-    /// Drift compares with <see cref="JsonNode.DeepEquals"/>: object key order is ignored, array order matters,
-    /// and numbers compare by value, so 2 and 2.0 are equal; genuinely different values drift.
+    /// Outcome order on a fresh extraction (new = extracted value, old = recorded baseline, want = override value):
+    /// (1) <c>TextMatch.Matches(new, want)</c> retires the override; (2) new matches old (normalised) applies it with no drift;
+    /// (3) new is closer to want than old (token F1) applies it with no drift; (4) otherwise it applies with override-drift.
+    /// An absent new value is never retired and never closer. <c>Reapply</c> keeps the strict <see cref="JsonNode.DeepEquals"/>
+    /// comparison (key order ignored, array order matters, numbers by value).
     /// </summary>
     private static EntityEnvelope ApplyOne(EntityEnvelope original, EntityEnvelope e, FieldOverride ov, bool reapply, List<FieldOverride> retired)
     {
@@ -142,7 +145,9 @@ public static class OverrideMerger
 
         if (ov.Extracted is { } baseline
             && !JsonNode.DeepEquals(JsonNode.Parse(baseline.GetRawText()), current)
-            && (reapply || !ExtractionGotCloser(current, baseline, ov.Value)))
+            && (reapply
+                || !(current is not null && TextMatch.Matches(current, JsonNode.Parse(baseline.GetRawText())))
+                    && !ExtractionGotCloser(current, baseline, ov.Value)))
         {
             var marker = $" at {ov.Field}:";
             if (!updated.Checks.Any(c => c.Name == DriftCheck && c.Reason.Contains(marker)))

@@ -362,6 +362,16 @@ public class OverrideMergerTests
     }
 
     [Fact]
+    public void Apply_cosmetic_reextraction_difference_applies_without_drift()
+    {
+        var o = new EntityOverrides([OvText("Grell fixed text", "Grell foo-\nbar  text")], []);
+        var r = OverrideMerger.Apply([Grell() with { CanonicalText = "Grell foobar text" }], o);
+        r.Retired.Should().BeEmpty();
+        r.Entities[0].CanonicalText.Should().Be("Grell fixed text");
+        r.Entities[0].Checks.Should().NotContain(c => c.Name == OverrideMerger.DriftCheck);
+    }
+
+    [Fact]
     public void Apply_absent_field_is_never_retired()
     {
         var e = Grell() with { Fields = J("""{"ac":[{"ac":12}]}""") };
