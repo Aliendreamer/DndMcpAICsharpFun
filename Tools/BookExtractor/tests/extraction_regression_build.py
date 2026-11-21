@@ -2,7 +2,9 @@
 
 Usage: python tests/extraction_regression_build.py --books-dir ../../books --ocr-cache <dir> [--out F]
 
-An entity enters the fixture when a human touched it (an override or an approval). Its expected
+An entity enters the fixture when a human touched it: an override or approval whose reason is not
+the automatic "verified against 5etools" one. Output is gzip JSON {"pages": {"<slug>:<n>": page},
+"entries": [...]}; entries reference pages by number, each page stored once per book. Its expected
 canonicalText/fields are the canonical entity with every override value set at its path. Entries
 already in the output are kept verbatim, never rewritten. Pages come from the OCR cache
 (<fileHash>/ocr/NNN.json) or, when absent there, the text layer of the book's source PDF.
@@ -12,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import gzip
 import json
 from pathlib import Path
 
@@ -21,7 +24,8 @@ from bookextractor.model import load_ocr_page
 from bookextractor.pages_io import page_to_dict
 from bookextractor.reader import _layer_page, pdf_sha256
 
-DEFAULT_OUT = Path(__file__).parent / "data" / "extraction_regression.json"
+DEFAULT_OUT = Path(__file__).parent / "data" / "extraction_regression.json.gz"
+_AUTO_REASON = "verified against 5etools"
 _SIDE_SUFFIXES = (".report.json", ".errors.json", ".warnings.json", ".declined.json")
 
 
@@ -76,21 +80,27 @@ def _set_path(entity: dict, field: str, value) -> None:
 
 def _entity_pages(entity: dict) -> list[int]:
     pages = {entity["page"]} if entity.get("page") else set()
-    pages |= {p["page"] for p in entity.get("provenance", {}).get("pages", [])}
+    pages |= {p["page"] for p in (entity.get("provenance") or {}).get("pages", [])}
     return sorted(pages)
 
 
-def build(books_dir: Path, ocr_cache: Path, existing: list[dict]) -> tuple[list[dict], list[str]]:
-    entries = list(existing)
-    seen = {e["id"] for e in existing}
+def _is_human(item: dict) -> bool:
+    return not str(item.get("reason", "")).lower().startswith(_AUTO_REASON)
+
+
+def build(books_dir: Path, ocr_cache: Path, existing: dict) -> tuple[dict, list[str]]:
+    """Append new entries to `existing` ({"pages", "entries"}); existing content is kept verbatim."""
+    pages_out = dict(existing.get("pages", {}))
+    entries = list(existing.get("entries", []))
+    seen = {e["id"] for e in entries}
     skipped: list[str] = []
     pages = _Pages(books_dir, ocr_cache)
     for slug, (canon, doc) in _load_books(books_dir).items():
         overrides = doc.get("overrides", [])
-        ids = list(dict.fromkeys([o["entityId"] for o in overrides] + [a["entityId"] for a in doc.get("approvals", [])]))
+        human = [x["entityId"] for x in overrides + doc.get("approvals", []) if _is_human(x)]
         by_id = {e["id"]: e for e in canon["entities"]}
         file_hash = canon["book"]["fileHash"]
-        for eid in ids:
+        for eid in dict.fromkeys(human):
             if eid in seen:
                 continue
             if eid not in by_id:
@@ -104,20 +114,29 @@ def build(books_dir: Path, ocr_cache: Path, existing: list[dict]) -> tuple[list[
                     if o["field"] not in overridden:
                         overridden.append(o["field"])
             core = _entity_pages(entity)
+            if not core:
+                skipped.append(f"{eid} (no page or provenance pages)")
+                continue
             ctx_numbers = sorted({n for p in core for n in (p - 1, p, p + 1) if n >= 1})
-            got = {n: pages.get(file_hash, n) for n in ctx_numbers}
+            got: dict[int, dict | None] = {}
+            for n in ctx_numbers:
+                key = f"{slug}:{n}"
+                got[n] = pages_out[key] if key in pages_out else pages.get(file_hash, n)
             missing = [n for n in core if got[n] is None]
             if missing:
                 skipped.append(f"{eid} (page {missing} not in OCR cache or PDF)")
                 continue
+            ctx = [n for n in ctx_numbers if got[n] is not None]
+            for n in ctx:
+                pages_out.setdefault(f"{slug}:{n}", got[n])
             entries.append({
                 "id": eid, "slug": slug, "type": entity["type"], "name": entity["name"],
-                "pages": core, "ctx_pages": [got[n] for n in ctx_numbers if got[n] is not None],
+                "pages": core, "ctx_pages": ctx,
                 "expected": {"canonicalText": entity["canonicalText"], "fields": entity["fields"]},
                 "overridden": overridden,
             })
             seen.add(eid)
-    return entries, skipped
+    return {"pages": pages_out, "entries": entries}, skipped
 
 
 def main() -> None:
@@ -126,11 +145,12 @@ def main() -> None:
     ap.add_argument("--ocr-cache", type=Path, required=True)
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     a = ap.parse_args()
-    existing = json.loads(a.out.read_text(encoding="utf-8")) if a.out.exists() else []
-    entries, skipped = build(a.books_dir, a.ocr_cache, existing)
+    existing = json.loads(gzip.decompress(a.out.read_bytes())) if a.out.exists() else {"pages": {}, "entries": []}
+    result, skipped = build(a.books_dir, a.ocr_cache, existing)
     a.out.parent.mkdir(parents=True, exist_ok=True)
-    a.out.write_text(json.dumps(entries, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"{len(entries)} entries ({len(entries) - len(existing)} new), {len(skipped)} skipped")
+    a.out.write_bytes(gzip.compress(json.dumps(result, ensure_ascii=False).encode("utf-8")))
+    n_new = len(result["entries"]) - len(existing["entries"])
+    print(f"{len(result['entries'])} entries ({n_new} new), {len(result['pages'])} pages, {len(skipped)} skipped")
     for s in skipped:
         print("  skipped:", s)
 
