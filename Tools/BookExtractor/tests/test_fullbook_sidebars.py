@@ -28,3 +28,8 @@ def test_a_detached_sidebar_is_a_flagged_lore_entity_not_part_of_the_block(case,
     assert any(not c["passed"] and c["name"] == "sidebar-detached" for e in holders for c in e["checks"])
     if monster_id:
         assert line not in next(e for e in ents if e["id"] == monster_id)["canonicalText"]
+
+
+def test_a_one_sentence_remnant_under_an_owned_section_is_kept():
+    # tce p76: the Wizard's "The wizard class receives new features ..." sits under the owned "Limited Wish"
+    assert any("The wizard class receives new features" in e["canonicalText"] for e in _entities("tce-wizard"))
