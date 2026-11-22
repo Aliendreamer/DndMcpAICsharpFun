@@ -609,8 +609,10 @@ def _squash(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", text.lower())
 
 
-def _strip_line(entities: list[dict], line: str) -> None:
-    """Remove a printed line that stands alone in an entity's canonicalText or fields (a margin note's signature)."""
+def _strip_line(entities: list[dict], line: str, entity_lines: list[list[Line]] | None = None, page: int | None = None) -> None:
+    """Remove a printed line that stands alone in an entity's canonicalText or fields (a margin note's signature), only
+    from the entities printed on the note's page: the same signature ("-Mordenkainen") is printed on many pages, and one
+    note's must not take the signature out of an aside glued into another page's entity."""
     def clean(v):
         if isinstance(v, str):
             return "\n".join(x for x in v.split("\n") if x.strip() != line)
@@ -620,7 +622,9 @@ def _strip_line(entities: list[dict], line: str) -> None:
             return {k: clean(x) for k, x in v.items()}
         return v
 
-    for e in entities:
+    for i, e in enumerate(entities):
+        if page is not None and entity_lines is not None and not (i < len(entity_lines) and any(l.page == page for l in entity_lines[i])):
+            continue
         if line in e["canonicalText"]:
             e["canonicalText"] = clean(e["canonicalText"])
         if line in json.dumps(e["fields"], ensure_ascii=False):
@@ -861,7 +865,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
         claimed_lines |= _line_keys(epigraph_lines)
         for note in found_notes:
             if note.signature is not None:
-                _strip_line(entities, note.signature.text.strip())  # a signature glued into an entity's text is the note's
+                _strip_line(entities, note.signature.text.strip(), entity_lines, note.page)  # a signature glued into an entity's text is the note's
         dropped.extend((l.page, l.text.strip()) for l in epigraph_lines)
     left_out: list[tuple[int, str]] = list(dropped)
     if "Lore" in types and "Monster" in types:

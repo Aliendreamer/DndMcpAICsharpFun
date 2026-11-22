@@ -218,3 +218,13 @@ def test_a_box_of_tall_text_is_whole_in_its_note():
     text = " ".join(t for _, t in _note_texts("r4-bgg6", 6))
     for w in ("A key moment in Diancastra's Saga", "challenge to his daughter", "his craft and skill"):
         assert w in text or w in " ".join(e["canonicalText"] for e in _entities("r4-bgg6")), w
+
+
+def test_a_signature_is_stripped_only_from_entities_on_the_notes_page():
+    from types import SimpleNamespace as NS
+    from bookextractor.assemble import _strip_line
+    ents = [{"canonicalText": "aside\n-Mordenkainen\ntail", "fields": {}}, {"canonicalText": "other\n-Mordenkainen", "fields": {}}]
+    lines = [[NS(page=137)], [NS(page=9)]]
+    _strip_line(ents, "-Mordenkainen", lines, 9)
+    assert "-Mordenkainen" in ents[0]["canonicalText"]
+    assert "-Mordenkainen" not in ents[1]["canonicalText"]
