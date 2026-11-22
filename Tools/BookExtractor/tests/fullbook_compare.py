@@ -56,7 +56,10 @@ def worker(root: str, cache: str, file_hash: str, slug: str, out: str) -> None:
         left.setdefault(pg, []).append(t)  # (reading order may merge two OCR rows into one line: match by containment)
     ocr = [[p.number, l.text.strip(), any(l.text.strip() in t for t in left.get(p.number, ()))]
            for p in pages for l in p.lines if len(l.text.strip()) >= MIN_LINE]
-    Path(out).write_text(json.dumps({"entities": slim, "ocr": ocr}))
+    sig = re.compile(r"^[-\u2014\u2013]\s*\S")
+    sigs = [[p.number, l.text.strip(), False] for p in pages for l in p.lines
+            if sig.match(l.text.strip()) and len(l.text.strip()) < MIN_LINE]
+    Path(out).write_text(json.dumps({"entities": slim, "ocr": ocr, "sigs": sigs}))
 
 
 def _repo_root() -> Path:
@@ -113,25 +116,74 @@ def coverage(old: list[dict], new: list[dict], ocr: list) -> dict:
     return {"new": newly, "pre": pre, "quotes": quotes}
 
 
+_SIGNATURE = re.compile(r"^[-\u2014\u2013]\s*\S")
+_FIX_DIGITS = None
+
+
+def _digits(text: str) -> str:
+    """The extractor's own OCR digit repair (ld6 -> 1d6), loaded lazily from the working tree."""
+    global _FIX_DIGITS
+    if _FIX_DIGITS is None:
+        sys.path.insert(0, str(PKG_ROOT))
+        from bookextractor.layout import fix_digits
+        _FIX_DIGITS = fix_digits
+    return _FIX_DIGITS(text)
+
+
+def _match_form(text: str) -> str:
+    """Matching form, applied to both sides: digit repairs, case, whitespace, end-of-line hyphenation, dash variants."""
+    t = _digits(re.sub(r"-[ \t]*\n\s*(?=[a-z])", "", text)).lower()
+    t = re.sub(r"[\u2014\u2013]", "-", t)
+    return re.sub(r"[\s\u2022]+", " ", t)
+
+
+def _held_forms(entities: list[dict]) -> tuple[str, str, str]:
+    """(everything held, the entities' text only, the notes only) in matching form. A note's signature counts as the
+    dash line it was printed as."""
+    def notes(e: dict) -> str:
+        parts = [e.get("notes", "")]
+        parts += [f"-{n['by']}" for n in e.get("note_list", []) if n.get("by")]
+        return " \n".join(p for p in parts if p)
+    body = _match_form("\n".join(e["text"] for e in entities))
+    nts = _match_form("\n".join(notes(e) for e in entities))
+    return body + " \n" + nts, body, nts
+
+
+def _line_key(line: str) -> str:
+    return _match_form(line[:-1] if line.endswith("-") else line).lstrip(".,;:'\"\u2022 ").strip()
+
+
+def _sig_count(key: str, held: str) -> int:
+    return len(re.findall(r"(?<!\S)" + re.escape(key) + r"(?!\w)", held))
+
+
 def kept_since(prev: list[dict], new: list[dict], ocr: list) -> dict:
     """Against an earlier extraction (`--prev`): every OCR line the earlier one held, by an entity's text or a note, must
     still be held by an entity's text or a note ("lost": held by nothing now), and a line a note held must not now sit in
-    an entity's text ("glued": an aside newly merged into body text). Notes count as held."""
-    prev_text = _flat("\n".join(e["text"] + " " + e.get("notes", "") for e in prev))
-    prev_notes = _flat(" ".join(e.get("notes", "") for e in prev))
-    new_text = _flat("\n".join(e["text"] + " " + e.get("notes", "") for e in new))
-    new_body = _flat("\n".join(e["text"] for e in new))
-    new_notes = _flat(" ".join(e.get("notes", "") for e in new))
+    an entity's text ("glued": an aside newly merged into body text). Notes count as held; left_out does NOT: a line
+    that moved from held into left_out is lost (left_out holds only what no earlier run held). Signature lines (a dash
+    and a name) are checked at any length, by how many times the signature is held (one name signs many asides), the
+    other lines from 20 characters. Both sides are matched after case, whitespace, hyphenation and OCR digit repair.
+    The `exempt` flag of an OCR row is not read: it cannot excuse a loss."""
+    prev_all, _, prev_notes = _held_forms(prev)
+    new_all, new_body, new_notes = _held_forms(new)
     lost, glued, seen = [], [], set()
-    for page, line, exempt in ocr:
-        key = _flat(line[:-1] if line.endswith("-") else line).lstrip(".,;:'\"\u2022 ")
+    sigs: dict[str, list] = {}
+    for page, line, _exempt in ocr:
+        key = _line_key(line)
+        if _SIGNATURE.match(key):
+            sigs.setdefault(key, []).append((page, line))
+            continue
         if key in seen or len(key) < 20:
             continue
         seen.add(key)
-        if key in prev_text and key not in new_text and not exempt:  # (epigraph and caption lines are listed as left out)
+        if key in prev_all and key not in new_all:
             lost.append((page, line))
         elif key in prev_notes and key in new_body and key not in new_notes:
             glued.append((page, line))
+    for key, where in sigs.items():
+        if _sig_count(key, prev_all) > _sig_count(key, new_all):
+            lost.extend(where)  # every page the signature is printed on (the shortfall is how many copies are gone)
     return {"lost": lost, "glued": glued}
 
 
@@ -227,7 +279,7 @@ def main() -> None:
             res = compare(slug, old["entities"], new["entities"], new["ocr"], args.detail)
             if prev_root:
                 prev = json.loads(Path(outs["prev"]).read_text())
-                ks = kept_since(prev["entities"], new["entities"], new["ocr"])
+                ks = kept_since(prev["entities"], new["entities"], new["ocr"] + new["sigs"])
                 res["lines"].append(f"  vs {args.prev}: held lines now held by nothing {len(ks['lost'])}, "
                                     f"note lines now glued into an entity's text {len(ks['glued'])}")
                 for page, line in ks["lost"][:args.detail]:

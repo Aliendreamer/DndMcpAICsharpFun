@@ -123,6 +123,34 @@ def test_fullbook_compare_prev_reports_lost_and_glued_lines():
     assert [l for _, l in ks["glued"]] == ["A margin aside that the earlier run held as a note."]
 
 
+def test_gate_counts_a_line_moved_into_left_out_as_lost():
+    import fullbook_compare as F
+    prev = [{"text": "body", "notes": "The fomorian nobles I have met are cruel to a fault."}]
+    new = [{"text": "body", "notes": ""}]
+    ocr = [[1, "The fomorian nobles I have met are cruel to a fault.", True]]  # now listed as left out (exempt)
+    assert [l for _, l in F.kept_since(prev, new, ocr)["lost"]] == ["The fomorian nobles I have met are cruel to a fault."]
+
+
+def test_gate_checks_short_signature_lines():
+    import fullbook_compare as F
+    prev = [{"text": "...impressively accurate.\n-Fizban", "notes": ""}]
+    new = [{"text": "...impressively accurate.", "notes": ""}]
+    ocr = [[3, "-Fizban", False]]
+    assert F.kept_since(prev, new, ocr)["lost"] == [(3, "-Fizban")]
+    both = [{"text": "...accurate. \u2014Fizban", "notes": ""}]
+    assert F.kept_since(prev, both, ocr)["lost"] == []  # an em dash is the same signature
+    noted = [{"text": "x", "notes": "an aside", "note_list": [{"by": "Fizban", "text": "an aside", "page": 3}]}]
+    assert F.kept_since(prev, noted, ocr)["lost"] == []  # held as a note's signature
+
+
+def test_gate_matching_ignores_case_hyphenation_and_digit_repair():
+    import fullbook_compare as F
+    prev = [{"text": "While wearing this ring you regain ld6 hit points.", "notes": ""}]
+    new = [{"text": "While wearing this ring you regain 1d6 hit\npoints.", "notes": ""}]
+    ocr = [[1, "WHILE WEARING THIS RING YOU REGAIN ld6 hit points.", False]]
+    assert F.kept_since(prev, new, ocr)["lost"] == []
+
+
 def _held(case: str, *needles: str) -> dict[str, list[str]]:
     ents = _entities(case)
     return {n: [e["id"] for e in ents if n in e["canonicalText"] or any(n in x["text"] for x in e.get("notes", []))]
