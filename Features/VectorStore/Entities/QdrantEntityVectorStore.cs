@@ -231,7 +231,7 @@ public sealed class QdrantEntityVectorStore(
             payload[EntityPayloadFields.Keywords] = StringList(p.Envelope.Keywords);
         if (p.Envelope.Notes is { Count: > 0 } notes)
         {
-            payload[EntityPayloadFields.Notes] = string.Join("\n", notes.Select(n => n.Text));
+            payload[EntityPayloadFields.Notes] = string.Join("\n", notes.Select(n => string.IsNullOrWhiteSpace(n.By) ? n.Text : $"{n.Text} —{n.By}"));
             payload[EntityPayloadFields.NotesJson] = JsonSerializer.Serialize(notes);
         }
 
