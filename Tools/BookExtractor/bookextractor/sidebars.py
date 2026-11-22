@@ -7,6 +7,7 @@ design's D3 #5: left out) and the art text `drop_art` recognises stay out."""
 from __future__ import annotations
 
 import re
+import statistics
 from dataclasses import dataclass
 
 from .checks import Check
@@ -79,6 +80,7 @@ def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
 
 _PERSON = re.compile(r"[A-Z][a-z']+(?: [A-Z][a-z']+)?")  # a commentator's name; an epigraph's attribution is not
 _SIGNATURE = re.compile(r"^[-\u2014\u2013]+\s*(\S.*)$")
+_LARGE_PAGE = 1.25  # a page whose median line is this many times the book's is set in large type
 _NOTE_SHARE = 0.4  # a page whose "notes" are more than this share of its text is a letter or a foreword, not a margin
 
 
@@ -109,8 +111,30 @@ def _epigraph(run: list[Line]) -> bool:
     casing noise ("ThE teMple IVAS strewn WiTH BODy pARTS"), where an aside's own letters are almost all lower case."""
     if quote_box(run):
         return True
-    letters = [c for c in " ".join(l.text for l in run) if c.isalpha()]
-    return len(letters) > 8 and sum(c.isupper() for c in letters) >= 0.3 * len(letters)
+    ratios = []
+    for l in run:
+        letters = [c for c in l.text if c.isalpha()]
+        if len(letters) > 3:
+            ratios.append(sum(c.isupper() for c in letters) / len(letters))
+    return bool(ratios) and min(ratios) >= 0.2  # every line, not just the first: a drop-cap opening is no epigraph
+
+
+def _large_type_page(lines: list[Line], ctx: ParseContext) -> bool:
+    """The page's median line is much taller than the book's: a foreword or letter, not a column with a margin."""
+    book = ctx.cache.get("line_height_median")
+    if book is None:
+        book = ctx.cache["line_height_median"] = statistics.median(
+            l.height for pg in ctx.pages.values() for l in getattr(pg, "lines", ()) if l.height) if ctx.pages else 0
+    return bool(book) and statistics.median(l.height for l in lines) > _LARGE_PAGE * book
+
+
+def _drop_cap_opening(run: list[Line]) -> bool:
+    """A chapter's or section's opening: its first line is set in capitals (the drop cap took the first letter) and the
+    lines after it are plain lower-case prose. It is no aside and no epigraph; whichever entity owns it holds it."""
+    first = [c for c in run[0].text if c.isalpha()]
+    rest = [c for x in run[1:] for c in x.text if c.isalpha()]
+    return (len(run) > 1 and len(first) > 8 and sum(c.isupper() for c in first) >= 0.8 * len(first)
+            and bool(rest) and sum(c.isupper() for c in rest) <= 0.1 * len(rest))
 
 
 def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
@@ -131,9 +155,8 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
     page_chars = sum(len(l.text) for l in lines)
     if not art or sum(len(l.text) for l in art) > _NOTE_SHARE * max(page_chars, 1):
         return []
-    big = sorted(l.height for l in art)[len(art) // 2]
-    if sum(l.height >= 0.75 * big for l in lines) > _NOTE_SHARE * len(lines):
-        return []  # a page set in large type throughout (a foreword's letter) has no margin
+    if _large_type_page(lines, ctx):
+        return []  # a page set in larger type than the book throughout (a foreword's letter) has no margin
     at = {id(l): i for i, l in enumerate(lines)}
     notes: list[Note] = []
     run: list[Line] = []
@@ -144,7 +167,9 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
         full = run
         run = [x for x in run if id(x) not in gone]
         if run:
-            if any(prose(x.text) for x in run) and not _epigraph(run):
+            if _drop_cap_opening(run):
+                pass  # an opening: it stays unheld, as before (no note, no exemption)
+            elif any(prose(x.text) for x in run) and not _epigraph(run):
                 k = at[id(full[-1])] + 1  # a signature line set below the box, too small to be read as part of it
                 tail: list[Line] = []  # the box's last word, a short fragment the OCR set apart ("kettte")
                 while k < len(lines) and len(tail) < 2 and id(lines[k]) not in ids and lines[k].page == run[-1].page \
