@@ -73,7 +73,9 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
         for run in _runs(lines, eligible):
             L = run.lines
             if not any(len(l.text.strip()) >= MIN_LINE and re.search(r"[a-z]{2}", l.text) for l in L):
-                continue  # a label, a figure caption, a table's cell
+                if left_out is not None:
+                    left_out += [(l.page, l.text.strip()) for l in L]
+                continue  # a label, a figure caption, display text in capitals, a table's cell
             heads = 1 if len(L) > 1 and heading_words(L[0].text) and not prose(L[0].text) else 0
             if not heads and quote_box(L):
                 if left_out is not None:
