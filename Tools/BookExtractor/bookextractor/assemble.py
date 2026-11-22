@@ -24,7 +24,7 @@ from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
 from .parsers.race import parse_races
 from .parsers.rule import parse_rules
-from .parsers.sections import Section, read_sections
+from .parsers.sections import Section, drop_art, read_sections
 from .parsers.spell import parse_spells
 from .parsers.subclass import _short_name, parse_subclasses
 from .parsers.trap import parse_traps
@@ -627,6 +627,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     god_names: set[str] = set()  # the gods' printed names: a world section naming one is a part of its text
     monster_names: set[str] = set()  # the creatures' names: a section named like one is the lore around its block
     monster_pages: set[int] = set()
+    dropped: list[tuple[int, str]] = []
     first_at: list[tuple[int, str]] = []  # (the body index of an entity's first line, its name), for sidebars' names
     index = {_line_keys([l]).pop(): i for i, l in enumerate(body)}
     for t in ALL_TYPES:
@@ -648,6 +649,9 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
         for p, (eid, checks) in zip(parsed, named):
             if t in WORLD_TYPES:
                 checks = [*checks, *residual_checks(p, heights, recurring)]
+            if p.lines:  # art text and margin notes inside the entity's lines that `drop_art` takes out of its text
+                kept_ = {id(l) for l in drop_art(p.lines, ctx)}
+                dropped.extend((l.page, l.text.strip()) for l in p.lines if id(l) not in kept_)
             claimed_lines |= _line_keys(p.lines)
             if t == "Monster":
                 monster_pages.update(l.page for l in p.lines)
@@ -665,7 +669,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 "provenance": _provenance(p.lines, by_number),
             })
 
-    left_out: list[tuple[int, str]] = []
+    left_out: list[tuple[int, str]] = list(dropped)
     if "Lore" in types and "Monster" in types:
         # text no entity holds after a stat block (a boxed sidebar, lore a stop rule cut off): a flagged Lore of its own
         def previous_name(line: Line) -> str:

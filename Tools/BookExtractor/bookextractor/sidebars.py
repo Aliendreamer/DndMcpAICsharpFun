@@ -11,7 +11,6 @@ from dataclasses import dataclass
 
 from .checks import Check
 from .model import Line
-from .pages import is_table_page
 from .parsers import ParseContext, Parsed
 from .parsers.charcommon import PAGE_NO, RUNNING_HEAD, prose_entries
 from .parsers.sections import drop_art, heading_words, prose
@@ -59,11 +58,7 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
     before a line, for a sidebar with no heading of its own ("<name> sidebar")."""
     out: list[Parsed] = []
     for number, lines in ordered.items():
-        if not any(number - k in pages_with_blocks for k in range(PAGES_AFTER + 1)):
-            continue
-        page = pages_by_number[number]
-        if is_table_page(page):
-            continue
+        near = any(number - k in pages_with_blocks for k in range(PAGES_AFTER + 1))
         recognised = {id(l) for l in drop_art(lines, ctx)}  # art text and margin pull-quotes: left out on purpose
         if left_out is not None:
             left_out += [(number, l.text.strip()) for l in lines if id(l) not in recognised]
@@ -72,7 +67,7 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
                     and not PAGE_NO.fullmatch(l.text.strip()) and not RUNNING_HEAD.match(l.text.strip())}
         for run in _runs(lines, eligible):
             L = run.lines
-            if not any(len(l.text.strip()) >= MIN_LINE and re.search(r"[a-z]{2}", l.text) for l in L):
+            if not any(len(l.text.strip()) >= MIN_LINE and prose(l.text) for l in L):
                 if left_out is not None:
                     left_out += [(l.page, l.text.strip()) for l in L]
                 continue  # a label, a figure caption, display text in capitals, a table's cell
@@ -81,6 +76,8 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
                 if left_out is not None:
                     left_out += [(l.page, l.text.strip()) for l in L]
                 continue
+            if not near:
+                continue  # (only runs after a stat block are emitted)
             name = L[0].text.strip() if heads else f"{previous_name(L[0])} sidebar"
             entries = prose_entries(L, heads, len(L))
             flat = [x if isinstance(x, str) else "\n".join(x.get("items", [])) for x in entries]
