@@ -105,6 +105,20 @@ def _continues_block(rows: list[Line], c: int) -> bool:
     return mid_sentence and any(_STAT_MARKER.search(r.text.strip()) for r in rows[:c])
 
 
+PROSE_TAIL_MAX_GAP = 0.5  # in line heights: the cut sits at normal line spacing (no box edge above it)
+
+
+def _is_prose_tail(left_last: Line, right: list[Line], c: int) -> bool:
+    """The block ends a finished sentence in the left column while right[:c] ends mid-sentence and right[c]
+    carries on in lower case at normal spacing: the right column is prose lore running past the block's name,
+    not the block's continuation, so cutting it at c would glue the lore's tail into the block."""
+    if c == 0 or right[c].box[1] - right[c - 1].box[3] >= PROSE_TAIL_MAX_GAP * right[c].height:
+        return False
+    ends = (".", "!", "?", '"', "\u201d")
+    return left_last.text.rstrip().endswith(ends) and not right[c - 1].text.rstrip().endswith(ends + (":",)) \
+        and right[c].text.lstrip()[:1].islower()
+
+
 def _interleave_stat_blocks(left: list[Line], right: list[Line], page_height: float) -> list[Line]:
     """A stat block set in a two-column box starts in the left column, runs to its foot, and carries on in
     the right column at the same height as its name line (lore may sit above it there). Read that
@@ -122,7 +136,7 @@ def _interleave_stat_blocks(left: list[Line], right: list[Line], page_height: fl
     first_right_block = min(_stat_block_starts(right), default=len(right))  # that block is the right's own
     tol = 0.6 * left[s].height
     c = next((j for j in range(first_right_block) if abs(right[j].box[1] - left[s].box[1]) <= tol), None)
-    if c is None or _continues_block(right, c):
+    if c is None or _continues_block(right, c) or _is_prose_tail(left[split - 1], right, c):
         return left + right  # the right text flows on from the block itself: it is no boxed lore
     return left[:s] + right[:c] + left[s:split] + right[c:] + left[split:]
 

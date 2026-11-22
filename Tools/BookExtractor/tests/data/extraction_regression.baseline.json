@@ -1495,7 +1495,7 @@
   "match": true
  },
  "ftd.lore.sea-serpents": {
-  "f1": 0.9403,
+  "f1": 0.954,
   "found": true,
   "match": false
  },
@@ -1910,7 +1910,7 @@
   "match": false
  },
  "tce.monster.construct-spirit": {
-  "f1": 0.912,
+  "f1": 0.7095,
   "found": true,
   "match": false
  },
@@ -1955,7 +1955,7 @@
   "match": false
  },
  "tce.monster.wildfire-spirit": {
-  "f1": 0.671,
+  "f1": 0.6253,
   "found": true,
   "match": false
  },

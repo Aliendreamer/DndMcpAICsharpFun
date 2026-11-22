@@ -61,3 +61,16 @@ def test_sprite_keeps_its_own_continuation():
     ents = _pages_extract("phb14", [311, 312, 313, 314])
     assert "Heart Sight" in _entity(ents, "phb14.monster.sprite")["canonicalText"]
     assert "Heart Sight" not in _entity(ents, "phb14.monster.skeleton")["canonicalText"]
+
+
+def test_prose_lore_tail_stays_out_of_the_quaggoth():
+    """mm14 p257: Thonot lore runs down the right column past the block name, mid-sentence."""
+    ents = _pages_extract("mm14", [256, 257, 258])
+    assert "Thonot" not in _entity(ents, "mm14.monster.quaggoth")["canonicalText"]
+    assert any("Thonot" in e["canonicalText"] for e in ents if e["type"] != "Monster")
+
+
+def test_prose_lore_tail_stays_out_of_the_kenku():
+    """mm14 p195: the kenku lore runs on in the right column."""
+    ents = _pages_extract("mm14", [193, 194, 195])
+    assert "hawking vendors" not in _entity(ents, "mm14.monster.kenku")["canonicalText"]
