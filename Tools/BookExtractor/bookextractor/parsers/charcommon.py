@@ -119,6 +119,9 @@ def _prose_line(t: str, min_len: int) -> bool:
     return len(t) >= min_len and sum(w[:1].islower() for w in t.split()) >= _PROSE_WORDS
 
 
+DICE_HEADER = re.compile(r"(?i)^(?:d ?\d{1,3}|[0o]{2,3}[l1i]?p|pp)\b")  # a table's die column: "d4", "OOLP", "00LP"
+
+
 def _page_sidebars(rows: list[tuple[int, Line]], mid: float) -> set[int]:
     """Indices (into the book's lines) of one page's sidebar lines."""
     h = statistics.median(l.height for _, l in rows) or 1.0
@@ -139,8 +142,9 @@ def _page_sidebars(rows: list[tuple[int, Line]], mid: float) -> set[int]:
         l = rows[i][1]
         c, t = col(l), l.text.strip()
         # a sidebar title may list things ("CAVALIERS, SAMURAI, AND HISTORY")
+        # (a table's header row over its rows is no title: TCE "OOLP Effect" over the Haunted Effects rows)
         if c not in edge or vertical(l.box) or not (heading_like(t) and title_case(t.replace(",", ""))) \
-                or "level" in t.lower() \
+                or "level" in t.lower() or DICE_HEADER.match(t) \
                 or not _SIDEBAR_INSET * h <= l.box[0] - edge[c] <= _SIDEBAR_MAX_INSET * h:
             i += 1
             continue

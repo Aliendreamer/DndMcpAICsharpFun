@@ -46,7 +46,7 @@ from dataclasses import dataclass, field
 
 from ..model import Line
 from . import ParseContext
-from .charcommon import (_LARGE, SENTENCE_END, caps_heading, char_width, character_body, heading_like,
+from .charcommon import (_LARGE, DICE_HEADER, SENTENCE_END, caps_heading, char_width, character_body, heading_like,
                          median_height, name_case, set_apart, text_lines, title_case, vertical)
 
 # "Chapter 2: Guilds of Ravnica", "CHAPTER 1:", "CHAPTER1", "APPENDIX A: CONDITIONS" (never "chapter 3." in a
@@ -219,7 +219,6 @@ def _under_table(L: list[Line], i: int) -> bool:
     return sum(bool(_NUMBERED_ROW.match(l.text.strip())) for l in L[max(0, i - 8):i]) >= 2
 
 
-_DICE_HEADER = re.compile(r"(?i)^(?:d ?\d{1,3}|[0o]{2,3}[l1i]?p|pp)\b")  # a table's die column: "d4", "OOLP", "00LP"
 
 
 def table_header(L: list[Line], k: int) -> str:
@@ -227,8 +226,8 @@ def table_header(L: list[Line], k: int) -> str:
     when L[k] opens none: a header row led by a die, or, the die's own header lost to the OCR, a short column header
     ("Desired Offering") straight over the first numbered row."""
     t = L[k].text.strip()
-    if _DICE_HEADER.match(t):
-        return squash_text(_DICE_HEADER.sub("", t))
+    if DICE_HEADER.match(t):
+        return squash_text(DICE_HEADER.sub("", t))
     if 0 < len(t.split()) <= 3 and not prose(t) and not _table_row(t) and k + 1 < len(L) \
             and _NUMBERED_ROW.match(L[k + 1].text.strip()):
         return squash_text(t)
@@ -260,6 +259,23 @@ def _sibling_tables(L: list[Line], heads: list[tuple[int, int]],
             kept.extend(h for h in heads[k:end] if h[0] not in pending)
         k = end
     return kept, runs
+
+
+def _continuations(L: list[Line], heads: list[tuple[int, int]], pending: set[int]) -> list[tuple[int, int]]:
+    """The headings without a table's repeated header: a die-led header line read as a heading (its page's top, or a
+    table whose title the OCR lost) that repeats the column header of the nearest header before it, with no real
+    heading between, continues that table (TCE "OOLP Effect" over the Haunted Effects rows on the next page). Its
+    lines stay in the section the table is in, so no row is lost."""
+    header_at = [i for i, l in enumerate(L) if DICE_HEADER.match(l.text.strip()) and table_header(L, i)]
+    real = sorted(i for i, _ in heads if i not in pending)
+    out: list[tuple[int, int]] = []
+    for i, n in heads:
+        before = [j for j in header_at if j < i]
+        if i in header_at and before and table_header(L, before[-1]) == table_header(L, i) \
+                and not any(before[-1] < r < i for r in real):
+            continue
+        out.append((i, n))
+    return out
 
 
 def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict, tables: bool = True) -> int:
@@ -398,6 +414,7 @@ def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
             i += n
         else:
             i += 1
+    heads = _continuations(L, heads, pending)
     heads, runs = _sibling_tables(L, heads, pending)
     full: list[Line] = ctx.cache["character_lines"]
     at = {id(l): k for k, l in enumerate(full)}
