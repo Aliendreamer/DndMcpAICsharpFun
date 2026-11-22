@@ -370,8 +370,9 @@ def _entries(sections: list[Section], owned, claimed: set | frozenset = frozense
             # Dragon" lore under "Black Dragon Wyrmling"): never dropped in silence
             if not owned(c.title, c.lines, by_share=False):
                 return [c]
-            if not live_kids(c) and _leftover(c.lines, claimed):
-                return [c]  # an owned leaf that holds prose its owner does not (lore the reader nested under "Actions")
+            held = {id(l) for k in live_kids(c) for l in k.lines}
+            if _leftover([l for l in c.lines if id(l) not in held], claimed):
+                return [c]  # an owned section holding prose its owner does not (lore the reader nested under "Actions")
             return [k for g in live_kids(c) for k in opened(g)]
 
         kids_of = {id(s): live_kids(s) for s in group}
@@ -383,11 +384,12 @@ def _entries(sections: list[Section], owned, claimed: set | frozenset = frozense
             # entity's heading (DMG "Gehenna" under the Larva stat block) and is opened all the same, never dropped
             # in silence: its place is unverified (`_Entry.under_owned`)
             if kids and owned(s.title, s.lines, heading=False):
-                if not owned(s.title, s.lines[:1]):
+                inside = {id(l) for c in kids for l in c.lines}
+                lead = [l for l in s.lines if id(l) not in inside]
+                if not owned(s.title, s.lines[:1]) or _leftover(lead, claimed):
                     # owned by its lines' share only (DMG "Downtime Activities" over its activity Rules): its own
-                    # unclaimed prose outside the sub-sections is its lead, kept
-                    inside = {id(l) for c in kids for l in c.lines}
-                    lead = [l for l in s.lines if id(l) not in inside]
+                    # unclaimed prose outside the sub-sections is its lead, kept; so is the lore printed under a
+                    # stat block's own heading that the block does not hold (MM "Bandit")
                     if len(lead) > 1:
                         out.append(_Entry(s, lead, lead=True))
                 # a kid owned by its lines' share alone (a stat block's section, whose lead is lore the monster no

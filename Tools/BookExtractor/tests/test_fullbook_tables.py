@@ -95,3 +95,9 @@ def test_lore_the_reader_nested_under_a_stat_blocks_actions_is_not_dropped():
     # mm14 p165: "Deep gnomes, or svirfneblin ..." is printed after the Gnoll Fang's last action; the reader nests it
     # in the owned "Actions" section. The prose the stat block does not hold is kept (flagged), never dropped
     assert any("Deep gnomes, or svirfneblin" in e["canonicalText"] for e in _entities("gnoll-lore").values())
+
+
+def test_lore_printed_under_a_stat_blocks_own_heading_is_kept():
+    # mm14 p345 "Bandit": "Bandits rove in gangs ..." follows the block under its heading; p230 the Mummy Lord's lair
+    assert any("Bandits rove in gangs" in e["canonicalText"] for e in _entities("bandit-lore").values())
+    assert any("Each undead in the lair has advantage" in e["canonicalText"] for e in _entities("mummy-lore").values())
