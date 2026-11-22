@@ -542,6 +542,16 @@ def page_column(l: Line, ctx: ParseContext) -> int:
     return int((l.box[0] + l.box[2]) / 2 > (pg.width / 2 if pg else 800))
 
 
+def _column_head(own: list[Line], l: Line) -> bool:
+    """A table's column title (XGE p148 "CLERIC SPELLS" over a list of spells): no prose, with at least two lines of
+    cells straight under it at its left edge. A picture's words have no such column beneath them."""
+    if prose(l.text):
+        return False
+    below = [x for x in own if x is not l and x.page == l.page and abs(x.box[0] - l.box[0]) <= 0.5 * l.height
+             and 0 <= x.box[1] - l.box[3] <= 4 * l.height]
+    return len(below) >= 2 and not any(prose(x.text) for x in below)
+
+
 def drop_art(own: list[Line], ctx: ParseContext, rescue: bool = True) -> list[Line]:
     """Without the art text printed in the column (a handwritten note, a picture's words: XGE "when minions come
     back from"): short lines set well in from the column's text edge, after a wide gap or another such line."""
@@ -557,7 +567,7 @@ def drop_art(own: list[Line], ctx: ParseContext, rescue: bool = True) -> list[Li
         prev = own[i - 1] if i else None
         gap = prev is not None and prev.page == l.page and l.box[1] - prev.box[1] >= 3 * l.height
         inset = edge is not None and l.box[0] - edge > _ART_INSET * l.height and len(l.text.strip()) < 45
-        art = i > 0 and inset and (gap or art)
+        art = i > 0 and inset and (gap or art) and not _column_head(own, l)
         flagged.append(art)
     # a run set in from the edge that stops mid-sentence, with the text carrying on in lower case directly beneath it at
     # the margin, is a paragraph's drop-cap opening or a wrapped rule, not art: it stays in the text

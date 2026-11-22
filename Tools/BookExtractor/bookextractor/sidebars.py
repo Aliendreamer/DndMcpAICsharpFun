@@ -165,6 +165,15 @@ def _signed_box(run: list[Line], full: list[Line], lines: list[Line], at: dict, 
     return by is not None and bool(_PERSON.fullmatch(by))
 
 
+def _between(l: Line, tall_lines: list[Line], page_lines: list[Line]) -> bool:
+    """A smaller line (a letter's "yours in reason,") right under a tall line of the box and right above a line set
+    larger than itself (the signer's name), a line's gap each way."""
+    above = [t for t in tall_lines if 0 <= l.box[1] - t.box[3] <= 1.5 * l.height and t.box[0] <= l.box[2] and t.box[2] >= l.box[0]]
+    below = [t for t in page_lines if t is not l and 0 <= t.box[1] - l.box[3] <= 1.5 * l.height and t.height > 1.2 * l.height
+             and t.box[0] <= l.box[2] and t.box[2] >= l.box[0]]
+    return bool(above and below)
+
+
 def _box_fragments(lines: list[Line], tall: set[int]) -> set[int]:
     """Lines of a hand-set box that the pull-quote rule left out because the OCR read them smaller (xge p126: "when minions
     come back from", "minions", "where"): by the box's geometry, a line inside the column of a chain of tall lines, between
@@ -178,6 +187,7 @@ def _box_fragments(lines: list[Line], tall: set[int]) -> set[int]:
         t = sorted((l for l in pl if id(l) in tall), key=lambda l: l.box[1])
         if not t:
             continue
+        t_sorted = t
         rest = [l.height for l in pl if id(l) not in tall]
         body = statistics.median(rest) if rest else 0
         chains: list[list[Line]] = []
@@ -192,14 +202,15 @@ def _box_fragments(lines: list[Line], tall: set[int]) -> set[int]:
             top, bottom = min(x.box[1] for x in ch), max(x.box[3] for x in ch)
             slack = 0.1 * (x1 - x0)
             cand = [l for l in pl if id(l) not in tall and l.box[0] >= x0 - slack and l.box[2] <= x1 + slack
-                    and not PAGE_NO.fullmatch(l.text.strip()) and not RUNNING_HEAD.match(l.text.strip())]
+                    and not PAGE_NO.fullmatch(l.text.strip()) and not RUNNING_HEAD.match(l.text.strip())
+                    and not _SIGNATURE.match(l.text.strip())]  # (a signature ends its box: it is not a fragment of it)
             grew = True
             while grew:
                 grew = False
                 for l in cand:
                     if id(l) in out:
                         continue
-                    inside = top <= l.box[1] and l.box[3] <= bottom
+                    inside = top <= l.box[1] and l.box[3] <= bottom or _between(l, t_sorted, pl)
                     near = (l.box[1] - bottom <= 1.5 * l.height and l.box[1] >= bottom - l.height) or \
                            (top - l.box[3] <= 1.5 * l.height and l.box[3] <= top + l.height)
                     if inside or (near and body and l.height > 1.1 * body):
@@ -234,10 +245,18 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
     at = {id(l): i for i, l in enumerate(lines)}
     notes: list[Note] = []
     run: list[Line] = []
+    skipped = False
     for l in [*lines, None]:
-        if l is not None and id(l) in ids and (not run or l.page == run[-1].page):
-            run.append(l)
+        if l is not None and run and id(l) not in ids and l.page == run[-1].page \
+                and (l.box[2] < min(x.box[0] for x in run) or l.box[0] > max(x.box[2] for x in run)):
+            skipped = True  # a line of the other column, read between the box's lines (vrgr p9): the box goes on
             continue
+        if l is not None and id(l) in ids and (not run or l.page == run[-1].page) \
+                and not (skipped and run and l.box[1] - run[-1].box[3] > 2.5 * l.height):
+            run.append(l)
+            skipped = False
+            continue
+        skipped = False
         full = run
         run = [x for x in run if id(x) not in gone]
         if full and not run:

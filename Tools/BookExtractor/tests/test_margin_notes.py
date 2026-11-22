@@ -262,3 +262,19 @@ def test_gate_checks_short_lines_down_to_ten_characters():
     prev = [{"text": "body", "notes": "CLERIC SPELLS"}]
     new = [{"text": "body", "notes": ""}]
     assert F.kept_since(prev, new, [[148, "CLERIC SPELLS", False]])["lost"] == [(148, "CLERIC SPELLS")]
+
+
+def _held_anywhere(case: str, needle: str) -> bool:
+    return any(needle in e["canonicalText"] or any(needle in n["text"] for n in e.get("notes", [])) for e in _entities(case))
+
+
+def test_a_table_column_title_over_its_cells_is_held_not_art():
+    # xge p148: "CLERIC SPELLS" over a list of spells was a note, then left out; it is a column title
+    assert _held_anywhere("r5-xge148", "CLERIC SPELLS")
+    assert not [t for p, t in _left_out("r5-xge148") if p == 148 and "SPELLS" in t]
+
+
+def test_a_letters_sign_off_read_in_the_other_columns_order_stays_with_the_letter():
+    # vrgr p9: "yours in reason," sits between the letter's last tall line and the signer's name
+    assert _held_anywhere("r5-vrgr9", "yours in reason")
+    assert not [t for p, t in _left_out("r5-vrgr9") if p == 9]
