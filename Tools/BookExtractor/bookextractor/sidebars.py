@@ -79,9 +79,9 @@ def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
     return out
 
 
-_PERSON = re.compile(r"[A-Z][a-z']+(?: [A-Z][a-z']+)?")  # a commentator's name; an epigraph's attribution is not
+_PERSON = re.compile(r"[A-Z][A-Za-z']+(?: [A-Z][a-z']+)?")  # a commentator's name; an epigraph's attribution is not
 _SIGNATURE = re.compile(r"^[-\u2014\u2013]+\s*(\S.*)$")
-_LARGE_PAGE = 1.25  # a page whose median line is this many times the book's is set in large type
+_LARGE_PAGE = 1.6  # a page whose own text (asides aside) is this many times the book's median line is set in large type (ggr p6: 1.8; bgg pages with a scaled side box: up to 1.5)
 _NOTE_SHARE = 0.4  # a page whose "notes" are more than this share of its text is a letter or a foreword, not a margin
 
 
@@ -139,6 +139,76 @@ def _drop_cap_opening(run: list[Line]) -> bool:
             and bool(rest) and sum(c.isupper() for c in rest) <= 0.1 * len(rest))
 
 
+def _signature_below(run: list[Line], full: list[Line], lines: list[Line], at: dict, ids: set) -> tuple[list[Line], Line | None]:
+    """A signature line set below the box, too small to be read as part of it: (the box's last-word fragments, the
+    signature). The fragments ("kettte") are kept only when a signature follows right after: it is the box's end."""
+    k = at[id(full[-1])] + 1
+    tail: list[Line] = []
+    while k < len(lines) and len(tail) < 3 and id(lines[k]) not in ids and lines[k].page == run[-1].page \
+            and len(lines[k].text.strip()) <= 70 and not _SIGNATURE.match(lines[k].text.strip()):
+        tail.append(lines[k])
+        k += 1
+    if k < len(lines) and id(lines[k]) not in ids and _SIGNATURE.match(lines[k].text.strip()) \
+            and lines[k].page == run[-1].page and len(lines[k].text.strip()) <= 40:
+        return tail, lines[k]
+    return [], None
+
+
+def _signed_box(run: list[Line], full: list[Line], lines: list[Line], at: dict, ids: set) -> bool:
+    """A box a commentator signed is a note whatever its capitals (OCR sets a hand-set letter in noisy capitals: mtf p5,
+    "-QORT"): a quote box (quotation marks, no prose) is not, and neither is an attribution that is no one's name."""
+    if quote_box(run) or len(run) < 3:
+        return False
+    tail, sig = _signature_below(run, full, lines, at, ids)
+    last = _SIGNATURE.match(run[-1].text.strip())
+    by = _SIGNATURE.match(sig.text.strip()).group(1).strip() if sig is not None else (last.group(1).strip() if last else None)
+    return by is not None and bool(_PERSON.fullmatch(by))
+
+
+def _box_fragments(lines: list[Line], tall: set[int]) -> set[int]:
+    """Lines of a hand-set box that the pull-quote rule left out because the OCR read them smaller (xge p126: "when minions
+    come back from", "minions", "where"): by the box's geometry, a line inside the column of a chain of tall lines, between
+    two of them, or right above or below the chain and set taller than the page's text, belongs to the box. Body text
+    wider than the column never joins."""
+    out: set[int] = set()
+    by_page: dict[int, list[Line]] = {}
+    for l in lines:
+        by_page.setdefault(l.page, []).append(l)
+    for pl in by_page.values():
+        t = sorted((l for l in pl if id(l) in tall), key=lambda l: l.box[1])
+        if not t:
+            continue
+        rest = [l.height for l in pl if id(l) not in tall]
+        body = statistics.median(rest) if rest else 0
+        chains: list[list[Line]] = []
+        for l in t:
+            if chains and l.box[1] - max(x.box[3] for x in chains[-1]) <= 1.5 * l.height \
+                    and l.box[0] < max(x.box[2] for x in chains[-1]) and l.box[2] > min(x.box[0] for x in chains[-1]):
+                chains[-1].append(l)
+            else:
+                chains.append([l])
+        for ch in chains:
+            x0, x1 = min(x.box[0] for x in ch), max(x.box[2] for x in ch)
+            top, bottom = min(x.box[1] for x in ch), max(x.box[3] for x in ch)
+            slack = 0.1 * (x1 - x0)
+            cand = [l for l in pl if id(l) not in tall and l.box[0] >= x0 - slack and l.box[2] <= x1 + slack
+                    and not PAGE_NO.fullmatch(l.text.strip()) and not RUNNING_HEAD.match(l.text.strip())]
+            grew = True
+            while grew:
+                grew = False
+                for l in cand:
+                    if id(l) in out:
+                        continue
+                    inside = top <= l.box[1] and l.box[3] <= bottom
+                    near = (l.box[1] - bottom <= 1.5 * l.height and l.box[1] >= bottom - l.height) or \
+                           (top - l.box[3] <= 1.5 * l.height and l.box[3] <= top + l.height)
+                    if inside or (near and body and l.height > 1.1 * body):
+                        out.add(id(l))
+                        top, bottom = min(top, l.box[1]), max(bottom, l.box[3])
+                        grew = True
+    return out
+
+
 def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
                  left_lines: list[Line] | None = None, openings: list[list[Line]] | None = None) -> list[Note]:
     """The writers' margin notes of a page (Bigby's and Diancastra's asides, Mordenkainen's notes): the blocks of tall,
@@ -151,13 +221,15 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
     # the first line of a page is read as a heading by the pull-quote rule: re-read the page with none, so a note
     # that opens the page (bgg p127) is the whole box
     tall = {id(l) for l in lines} - {id(l) for l in drop_pull_quotes(lines, 0)} - {id(l) for l in lines if l.page in openers}
+    tall |= _box_fragments(lines, tall)
     art = [l for l in lines if id(l) in tall]
     ids = {id(l) for l in art}
     gone = {id(l) for l in art if held(l)}  # glued into an entity's text: it keeps them, the box's rest is the note
     page_chars = sum(len(l.text) for l in lines)
     if not art or sum(len(l.text) for l in art) > _NOTE_SHARE * max(page_chars, 1):
         return []
-    if _large_type_page(lines, ctx):
+    rest = [l for l in lines if id(l) not in ids]  # (the page's own text: the asides are the tall lines, not the page)
+    if rest and _large_type_page(rest, ctx):
         return []  # a page set in larger type than the book throughout (a foreword's letter) has no margin
     at = {id(l): i for i, l in enumerate(lines)}
     notes: list[Note] = []
@@ -168,23 +240,28 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
             continue
         full = run
         run = [x for x in run if id(x) not in gone]
+        if full and not run:
+            # the whole tall box is glued into an entity, but its last words and its signature are not (bgg p187:
+            # "Excellent. But these trolls are loathsome." -Diancastra): those lines are the note
+            k = at[id(full[-1])] + 1
+            tail = []
+            while k < len(lines) and len(tail) < 3 and id(lines[k]) not in ids and lines[k].page == full[-1].page \
+                    and len(lines[k].text.strip()) <= 70 and not _SIGNATURE.match(lines[k].text.strip()) \
+                    and not held(lines[k]):
+                tail.append(lines[k])
+                k += 1
+            if tail and k < len(lines) and _SIGNATURE.match(lines[k].text.strip()) and lines[k].page == full[-1].page \
+                    and len(lines[k].text.strip()) <= 40 and any(prose(x.text) or len(x.text.split()) > 2 for x in tail):
+                by = _SIGNATURE.match(lines[k].text.strip()).group(1).strip()
+                if _PERSON.fullmatch(by):
+                    notes.append(Note(lines=[*tail, lines[k]], by=by, text=_join([x.text.strip() for x in tail]),
+                                      signature=lines[k]))
         if run:
             if _drop_cap_opening(run):
                 if openings is not None:  # an opening: no note, no exemption; kept by an entity (assemble)
                     openings.append(run)
-            elif any(prose(x.text) for x in run) and not _epigraph(run):
-                k = at[id(full[-1])] + 1  # a signature line set below the box, too small to be read as part of it
-                tail: list[Line] = []  # the box's last word, a short fragment the OCR set apart ("kettte")
-                while k < len(lines) and len(tail) < 3 and id(lines[k]) not in ids and lines[k].page == run[-1].page \
-                        and len(lines[k].text.strip()) <= 70 and not _SIGNATURE.match(lines[k].text.strip()):
-                    tail.append(lines[k])  # (kept only when a signature follows right after: it is the box's end)
-                    k += 1
-                sig = None
-                if k < len(lines) and id(lines[k]) not in ids and _SIGNATURE.match(lines[k].text.strip()) \
-                        and lines[k].page == run[-1].page and len(lines[k].text.strip()) <= 40:
-                    sig = lines[k]
-                else:
-                    tail = []
+            elif any(prose(x.text) for x in run) and (not _epigraph(run) or _signed_box(run, full, lines, at, ids)):
+                tail, sig = _signature_below(run, full, lines, at, ids)
                 run = [*run, *tail]
                 body = run
                 m = _SIGNATURE.match(run[-1].text.strip())

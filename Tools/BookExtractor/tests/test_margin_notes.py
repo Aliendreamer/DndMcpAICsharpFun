@@ -177,3 +177,44 @@ def test_a_speech_box_without_quote_marks_is_held_by_an_entity():
     held = _held("keep-egw206", "have a deck that needs a mighty good cleanin")
     assert all(held.values()) or True  # (the box is held by an entity; see below)
     assert any("deck that needs a mighty good cleanin" in e["canonicalText"] for e in _entities("keep-egw206"))
+
+
+def _note_texts(case: str, page: int) -> list[tuple]:
+    return [(n["by"], n["text"]) for n in _notes(case, page)]
+
+
+def _left_out(case: str) -> list[tuple[int, str]]:
+    from bookextractor.assemble import ALL_TYPES, extract_book
+    c = _RAW["cases"][case]
+    return extract_book([page_from_dict(_RAW["pages"][f"{c['slug']}:{n}"]) for n in c["pages"]], c["slug"], set(ALL_TYPES)).left_out
+
+
+def test_bgg_asides_set_in_large_type_are_notes_not_left_out():
+    # R2: a page whose own text is a little larger than the book's is no foreword (the asides were taken for the page)
+    for case, page, start in (("r4-bgg151", 151, "When yon see a giant lynx"),
+                              ("r4-bgg177", 177, "When it comes to infiltrating"), ("r4-bgg187", 187, "Excellent. But these trolls")):
+        got = _note_texts(case, page)
+        assert any(t.startswith(start) or start in t for _, t in got), (case, got)
+        assert not [t for p, t in _left_out(case) if p == page], case
+
+
+def test_a_commentator_signs_the_note_whose_box_is_glued_but_for_its_last_words():
+    assert ("Diancastra", "Excellent. But these trolls are loathsome.") in _note_texts("r4-bgg187", 187)
+
+
+def test_a_signed_hand_set_letter_is_a_note_whatever_its_capitals():
+    got = _note_texts("keep-mtf6", 5)
+    assert any(by == "QORT" for by, _ in got), got
+    assert not [t for p, t in _left_out("keep-mtf6") if p == 5]
+
+
+def test_an_aside_in_pieces_of_unequal_line_height_is_one_note():
+    got = _note_texts("r4-xge126", 126)
+    assert len(got) == 1 and got[0][1].startswith("when minions come back from a mission"), got
+    assert not [t for p, t in _left_out("r4-xge126") if p == 126]
+
+
+def test_a_box_of_tall_text_is_whole_in_its_note():
+    text = " ".join(t for _, t in _note_texts("r4-bgg6", 6))
+    for w in ("A key moment in Diancastra's Saga", "challenge to his daughter", "his craft and skill"):
+        assert w in text or w in " ".join(e["canonicalText"] for e in _entities("r4-bgg6")), w
