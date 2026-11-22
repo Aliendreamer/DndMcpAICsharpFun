@@ -84,7 +84,7 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
         for run in _runs(lines, eligible):
             L = run.lines
             if not any(len(l.text.strip()) >= MIN_LINE and prose(l.text) for l in L):
-                if left_out is not None and not table_page and not any(_table_row(l.text) for l in L):
+                if left_out is not None and (quote_box(L) or not table_page and not any(_table_row(l.text) for l in L)):
                     left_out += [(l.page, l.text.strip()) for l in L]  # a label, a caption: not a table's cells
                 continue
             before, after = at[id(L[0])] - 1, at[id(L[-1])] + 1
