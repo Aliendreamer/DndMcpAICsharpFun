@@ -75,7 +75,7 @@
   "match": false
  },
  "bgg.monster.death-giant-shrouded-one": {
-  "f1": 1.0,
+  "f1": 0.8874,
   "found": true,
   "match": false
  },
@@ -150,7 +150,7 @@
   "match": false
  },
  "bgg.monster.mud-hulk": {
-  "f1": 0.7357,
+  "f1": 0.9094,
   "found": true,
   "match": false
  },
