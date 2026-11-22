@@ -117,7 +117,8 @@ def _epigraph(run: list[Line]) -> bool:
         letters = [c for c in l.text if c.isalpha()]
         if len(letters) > 3:
             ratios.append(sum(c.isupper() for c in letters) / len(letters))
-    return bool(ratios) and min(ratios) >= 0.2  # every line, not just the first: a drop-cap opening is no epigraph
+    # every line must lean to capitals, not just the first, and on average: a drop-cap opening is no epigraph
+    return bool(ratios) and min(ratios) >= 0.1 and sum(ratios) / len(ratios) >= 0.25
 
 
 def _large_type_page(lines: list[Line], ctx: ParseContext) -> bool:
