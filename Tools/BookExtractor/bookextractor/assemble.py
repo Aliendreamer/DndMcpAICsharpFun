@@ -8,6 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from .checks import Check
+from .parsers.charcommon import PAGE_NO, RUNNING_HEAD
 from .layout import fix_digits, reading_order
 from .model import Line, Page
 from .names import (_PLAIN, Vocabulary, build_vocabulary, glued_words, own_heading_counts, repair_name,
@@ -25,14 +26,14 @@ from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
 from .parsers.race import parse_races
 from .parsers.rule import parse_rules
-from .parsers.sections import Section, read_sections
+from .parsers.sections import Section, drop_art, drop_pull_quotes, read_sections
 from .parsers.spell import parse_spells
 from .parsers.subclass import _short_name, parse_subclasses
 from .parsers.trap import parse_traps
 from .parsers.vehicle_object import parse_objects, parse_vehicles
 from .parsers.world import bare_heading, chapter_pages, has_sentence, parent_section, parse_world, placement_doubts
 from .report import build_report
-from .sidebars import Note, detached_sidebars, left_out_art, margin_notes
+from .sidebars import Note, detached_sidebars, left_out_art, margin_notes, quote_box, run_title, _ENTRIES_TYPES, _epigraph, _drop_cap_opening, CHAPTER_TITLE
 from .residual import recurring_labels, residual_checks
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
@@ -626,6 +627,118 @@ def _strip_line(entities: list[dict], line: str) -> None:
             e["fields"] = clean(e["fields"])
 
 
+_APPEND_TO_OWNER = False  # a flagged Lore of its own instead: appending changes reviewed entities (answer keys)
+
+
+def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: dict, opening_runs: list[list[Line]],
+                 left_out: list, note_texts: set, make_lore: bool, keys: list, firsts: list, texts: list,
+                 book_slug: str, seen: Counter, vocab: Vocabulary, by_number: dict, claimed: set, covered: set) -> None:
+    """Keep-all-content: a run of printed prose that no entity's text, no note and no left-out rule holds is never dropped.
+    Lines an entity claimed but its own pruning took out of its text go back into that entity (its `entries`
+    and canonicalText) when it has entries, else into a flagged Lore; an opening no entity claimed (a chapter's or
+    section's drop-cap text) is a flagged Lore named after its chapter or section title, else its first line."""
+    page_text: dict[int, str] = {}
+    for e, lines_ in zip(entities, entity_lines):
+        for pg in {l.page for l in lines_}:
+            page_text[pg] = page_text.get(pg, "") + "\n" + e["canonicalText"] + "\n" + " ".join(
+                n["text"] for n in e.get("notes", []))
+    page_text = {pg: _squash(t) for pg, t in page_text.items()}
+    left_texts = {t for _, t in left_out}
+
+    def unheld(l: Line) -> bool:
+        t = l.text.strip()
+        return (len(_squash(t)) >= 8 and _squash(t) not in page_text.get(l.page, "") and t not in left_texts
+                and t not in note_texts and not PAGE_NO.fullmatch(t) and not RUNNING_HEAD.match(t))
+
+    def qualifies(run: list[Line]) -> bool:
+        return any(len(x.text.strip()) >= 30 and _is_prose(x.text) for x in run) and not quote_box(run) \
+            and not _epigraph(run)
+
+    jobs: list[tuple[int | None, list[Line]]] = []
+    for i, lines_ in enumerate(entity_lines):
+        run: list[Line] = []
+        for l in [*lines_, None]:
+            if l is not None and unheld(l) and (not run or l.page == run[-1].page):
+                run.append(l)
+                continue
+            if run and qualifies(run):
+                jobs.append((i, run))
+            run = [l] if l is not None and unheld(l) else []
+    for run in opening_runs:
+        run = [l for l in run if unheld(l)]
+        if run:
+            jobs.append((None, run))
+    # an opening nobody claimed: unclaimed runs on a chapter's first page, or set like a drop-cap opening anywhere
+    claimed_here = {k for lines_ in entity_lines for k in _line_keys(lines_)}
+    for n, page_lines in ordered.items():
+        opener_page = any(CHAPTER_TITLE.match(l.text.strip()) for l in page_lines)
+        run = []
+        for l in [*page_lines, None]:
+            if l is not None and unheld(l) and next(iter(_line_keys([l]))) not in claimed_here:
+                run.append(l)
+                continue
+            if run and ((opener_page and qualifies(run)) or _drop_cap_opening(run)):
+                jobs.append((None, run))
+            run = []
+    # text the art and pull-quote rules would take out of a column that is neither a note, an epigraph nor a caption: body
+    # text they misread (an inset speech box, scaled body text). Kept by the page's main entity, else a flagged Lore.
+    ctx_ = ParseContext(slug=book_slug, source=book_slug.upper(), pages=by_number)
+    on_page: dict[int, tuple[int, int]] = {}
+    for i, lines_ in enumerate(entity_lines):
+        for pg in {l.page for l in lines_}:
+            chars = sum(len(l.text) for l in lines_ if l.page == pg)
+            if pg not in on_page or chars > on_page[pg][0]:
+                on_page[pg] = (chars, i)
+    for n, page_lines in ordered.items():
+        cand = ({id(l) for l in page_lines} - {id(l) for l in drop_art(page_lines, ctx_, rescue=False)}) \
+            | ({id(l) for l in page_lines} - {id(l) for l in drop_pull_quotes(page_lines, 0, rescue=False)})
+        run = []
+        for l in [*page_lines, None]:
+            if l is not None and id(l) in cand and unheld(l):
+                run.append(l)
+                continue
+            if run and qualifies(run):
+                jobs.append((on_page[n][1] if n in on_page else None, run))
+            run = []
+    done: set[str] = set()
+    for owner, run in jobs:
+        text = _join_run(run)
+        if _squash(text) in done:
+            continue
+        done.add(_squash(text))
+        host = entities[owner] if owner is not None else None
+        if host is not None and host["type"] in _ENTRIES_TYPES and isinstance(host["fields"].get("entries"), list) \
+                and _APPEND_TO_OWNER:
+            host["fields"]["entries"].append(text)
+            host["canonicalText"] = host["canonicalText"].rstrip("\n") + "\n" + text
+            continue
+        if not make_lore:
+            continue
+        name = run_title(run, ordered.get(run[0].page, run))
+        p = Parsed(type="Lore", name=name, fields={"entries": [text]}, text=f"{name}\n{text}", lines=run,
+                   checks=[Check("sidebar-detached", False, f"text printed on p{run[0].page} that no entity held "
+                                 "(an opening or a run the owner's own pruning took out): kept for review")])
+        eid, checks = _id_and_checks(p, book_slug, seen, vocab)
+        claimed |= _line_keys(p.lines)
+        covered.update(l.page for l in p.lines)
+        keys.append(_line_keys(p.lines))
+        firsts.append(next(iter(_line_keys(p.lines[:1])), None))
+        texts.append([(next(iter(_line_keys([l]))), l.text) for l in p.lines])
+        entity_lines.append(p.lines)
+        entities.append({"id": eid, "type": "Lore", "name": name, "page": run[0].page, "canonicalText": p.text,
+                         "fields": p.fields,
+                         "checks": [{"name": c.name, "passed": c.passed, "reason": c.reason} for c in checks],
+                         "provenance": _provenance(p.lines, by_number)})
+
+
+def _join_run(run: list[Line]) -> str:
+    out = ""
+    for l in run:
+        t = l.text.strip()
+        out = out[:-1] + t if out.endswith("-") and t[:1].islower() else (f"{out} {t}" if out else t)
+    return out
+
+
 def _attach_note(note: Note, entities: list[dict], entity_lines: list[list[Line]], keys: list, firsts: list,
                  texts: list, book_slug: str, seen: Counter, vocab: Vocabulary, by_number: dict, claimed: set,
                  covered: set, make_lore: bool = True) -> None:
@@ -739,11 +852,11 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 page_text[pg] = page_text.get(pg, "") + "\n" + e["canonicalText"]
         page_text = {pg: _squash(t) for pg, t in page_text.items()}  # (a line is held by the text of its own page)
         epigraph_lines: list[Line] = []
-        opening_lines: list[Line] = []
+        opening_runs: list[list[Line]] = []
         for n in sorted(ordered):
             found_notes += margin_notes(ordered[n], ctx, lambda l: len(_squash(l.text)) >= 8
                                         and _squash(l.text) in page_text.get(l.page, ""), epigraph_lines,
-                                        opening_lines)
+                                        opening_runs)
         claimed_lines |= {k for note in found_notes for k in _line_keys(note.lines)}
         claimed_lines |= _line_keys(epigraph_lines)
         for note in found_notes:
@@ -777,8 +890,10 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     for note in found_notes:
         _attach_note(note, entities, entity_lines, keys, firsts, texts, book_slug, seen, vocab, by_number,
                      claimed_lines, covered, "Lore" in types)
-    opening_texts = {l.text.strip() for l in opening_lines} if entities else set()
-    left_out = [(pg, t) for pg, t in left_out if t not in note_texts and t not in opening_texts]
+    left_out = [(pg, t) for pg, t in left_out if t not in note_texts]
+    if entities:
+        _keep_unheld(entities, entity_lines, ordered, opening_runs, left_out, note_texts, "Lore" in types, keys, firsts,
+                     texts, book_slug, seen, vocab, by_number, claimed_lines, covered)
     # a line an entity holds is not "left out": only what no entity's text holds is listed
     held = _squash("\n".join(e["canonicalText"] for e in entities))
     left_out = [(pg, t) for pg, t in left_out if _squash(t) not in held]

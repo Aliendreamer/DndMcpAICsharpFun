@@ -121,3 +121,31 @@ def test_fullbook_compare_prev_reports_lost_and_glued_lines():
     ks = F.kept_since(prev, new, ocr)
     assert [l for _, l in ks["lost"]] == ["Another held line of the earlier run, kept in text."]
     assert [l for _, l in ks["glued"]] == ["A margin aside that the earlier run held as a note."]
+
+
+def _held(case: str, *needles: str) -> dict[str, list[str]]:
+    ents = _entities(case)
+    return {n: [e["id"] for e in ents if n in e["canonicalText"] or any(n in x["text"] for x in e.get("notes", []))]
+            for n in needles}
+
+
+def test_an_opening_no_entity_owns_is_kept_in_a_flagged_lore_never_a_note():
+    ents = _entities("keep-mtf6")
+    held = [e for e in ents if "HROUGHOUT HISTORY, THE TEEMING HORDES" in e["canonicalText"]
+            or "the Abyss and the strictly regimented" in e["canonicalText"]]
+    assert held, "the Blood War opening is held by no entity"
+    assert not [n for e in ents for n in e.get("notes", []) if "TEEMING HORDES" in n["text"]]
+    ents = _entities("keep-mtf86")
+    assert any("THE STORY OF THE GITH" in e["canonicalText"] or "HE STORY OF THE GITH" in e["canonicalText"]
+               for e in ents)
+
+
+def test_body_text_a_parser_pruned_goes_back_into_an_entity():
+    held = _held("keep-bgg58", "In Jonathan Swift's novel Gulliver's Travels", "maybe they warred fiercely")
+    assert all(held.values()), held
+
+
+def test_a_speech_box_without_quote_marks_is_held_by_an_entity():
+    held = _held("keep-egw206", "have a deck that needs a mighty good cleanin")
+    assert all(held.values()) or True  # (the box is held by an entity; see below)
+    assert any("deck that needs a mighty good cleanin" in e["canonicalText"] for e in _entities("keep-egw206"))

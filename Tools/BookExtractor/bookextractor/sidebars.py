@@ -140,7 +140,7 @@ def _drop_cap_opening(run: list[Line]) -> bool:
 
 
 def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
-                 left_lines: list[Line] | None = None, openings: list[Line] | None = None) -> list[Note]:
+                 left_lines: list[Line] | None = None, openings: list[list[Line]] | None = None) -> list[Note]:
     """The writers' margin notes of a page (Bigby's and Diancastra's asides, Mordenkainen's notes): the blocks of tall,
     hand-set prose that the pull-quote rule takes out of the column, each a box of its own. A dash line right under a
     box is its signature (`by`) and is not part of the text, whether or not an entity claimed or glued it in. Epigraphs
@@ -170,8 +170,8 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
         run = [x for x in run if id(x) not in gone]
         if run:
             if _drop_cap_opening(run):
-                if openings is not None:  # an opening: no note, no exemption (it is body text no entity holds)
-                    openings += run
+                if openings is not None:  # an opening: no note, no exemption; kept by an entity (assemble)
+                    openings.append(run)
             elif any(prose(x.text) for x in run) and not _epigraph(run):
                 k = at[id(full[-1])] + 1  # a signature line set below the box, too small to be read as part of it
                 tail: list[Line] = []  # the box's last word, a short fragment the OCR set apart ("kettte")
@@ -268,3 +268,17 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
             out.append(Parsed(type="Lore", name=name, fields={"entries": entries}, text=text, lines=L,
                               checks=[Check("sidebar-detached", False, why)]))
     return out
+
+
+_ENTRIES_TYPES = ("Lore", "Faction", "Location", "Rule", "Plane")
+CHAPTER_TITLE = _CHAPTER_TITLE
+
+
+def run_title(run: list[Line], page_lines: list[Line]) -> str:
+    """The name of an unowned run: the chapter or section title printed on its page ("Chapter 1: The Blood War"), else
+    its own first line."""
+    for i, l in enumerate(page_lines):
+        if _CHAPTER_TITLE.match(l.text.strip()):
+            nxt = page_lines[i + 1].text.strip() if i + 1 < len(page_lines) else ""
+            return f"{l.text.strip()} {nxt}".strip() if nxt and len(nxt) < 60 else l.text.strip()
+    return " ".join(run[0].text.split()[:8]).rstrip(".,;:")

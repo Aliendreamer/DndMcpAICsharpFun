@@ -542,7 +542,7 @@ def page_column(l: Line, ctx: ParseContext) -> int:
     return int((l.box[0] + l.box[2]) / 2 > (pg.width / 2 if pg else 800))
 
 
-def drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
+def drop_art(own: list[Line], ctx: ParseContext, rescue: bool = True) -> list[Line]:
     """Without the art text printed in the column (a handwritten note, a picture's words: XGE "when minions come
     back from"): short lines set well in from the column's text edge, after a wide gap or another such line."""
     edges: dict[tuple[int, int], float] = {}
@@ -562,7 +562,7 @@ def drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
     # a run set in from the edge that stops mid-sentence, with the text carrying on in lower case directly beneath it at
     # the margin, is a paragraph's drop-cap opening or a wrapped rule, not art: it stays in the text
     i = 0
-    while i < len(own):
+    while rescue and i < len(own):
         if not flagged[i]:
             i += 1
             continue
@@ -578,7 +578,7 @@ def drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
             for k in range(i, j + 1):
                 flagged[k] = False
         i = j + 1
-    return drop_pull_quotes([l for l, f in zip(own, flagged) if not f])
+    return drop_pull_quotes([l for l, f in zip(own, flagged) if not f], rescue=rescue)
 
 
 _QUOTE_TALL = 1.45  # a margin pull-quote's lines are set this many times the text's median line height
@@ -588,7 +588,7 @@ _QUOTE_PITCH = 0.7  # a quote's line pitch is at least this share of its line he
 _QUOTE_CLEAR = 1.6  # ... unless it is set this many times the text's height: a clear quote, overlapping or not
 
 
-def drop_pull_quotes(own: list[Line], heads: int = 1) -> list[Line]:
+def drop_pull_quotes(own: list[Line], heads: int = 1, rescue: bool = True) -> list[Line]:
     """Without the margin pull-quotes and handwritten notes printed over the column (MTF's Mordenkainen notes, XGE
     "Mangling a lot of minions"): a block of lines set `_QUOTE_TALL` times the text's median line height or more,
     of `_QUOTE_WORDS` words or more, that is no heading (words in lower case: a heading is title case or capitals),
@@ -630,7 +630,7 @@ def drop_pull_quotes(own: list[Line], heads: int = 1) -> list[Line]:
         pitch = statistics.median(own[g[k + 1]].box[1] - own[g[k]].box[1] for k in range(len(g) - 1))
         return h < _QUOTE_CLEAR * med and pitch < _QUOTE_PITCH * h
 
-    blocks = [i for g in groups if not body_like(g) for i in g]
+    blocks = [i for g in groups if not (rescue and body_like(g)) for i in g]
     keep_drop = set(blocks)
     return [l for i, l in enumerate(own) if i not in keep_drop]
 
