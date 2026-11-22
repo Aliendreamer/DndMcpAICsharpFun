@@ -92,14 +92,14 @@ public sealed partial class ProgrammaticExtractionRunner(
                     .ToList(),
             };
             retired = migration.Overrides.Overrides.Count - reduced.Overrides.Count;
-            if (retired > 0 || migration.Moved.Count > 0)
-                await overridesStore.SaveAsync(slug, reduced, ct);
+            // Written only after the canonical file is replaced, so a failed swap leaves the overrides file as it was.
+            var reducedToSave = retired > 0 || migration.Moved.Count > 0 ? reduced : null;
 
             var file = new CanonicalJsonFile(
                 SchemaVersion: CanonicalJsonSchema.CurrentVersion,
                 Book: new CanonicalBookMetadata(sourceBook, edition, record.FileHash, record.DisplayName),
                 Entities: merged.Entities);
-            await SwapAndIngestAsync(record, bookId, slug, dir, file, result, sourceBook, ct);
+            await SwapAndIngestAsync(record, bookId, slug, dir, file, result, sourceBook, reducedToSave, ct);
         }
 
         var moved = migration.Moved.Select(m => $"{m.From} -> {m.To}").ToList();
@@ -127,7 +127,7 @@ public sealed partial class ProgrammaticExtractionRunner(
 
     private async Task SwapAndIngestAsync(
         DndMcpAICsharpFun.Domain.IngestionRecord record, int bookId, string slug, string dir, CanonicalJsonFile file,
-        ExtractorResult result, string sourceBook, CancellationToken ct)
+        ExtractorResult result, string sourceBook, EntityOverrides? reducedOverrides, CancellationToken ct)
     {
         // Point of no return: everything above can fail without touching existing files or points.
         // Report first (tmp + move), then the canonical file (atomic overwrite), then stale sidecars,
@@ -149,6 +149,8 @@ public sealed partial class ProgrammaticExtractionRunner(
         try
         {
             await writer.WriteAsync(Path.Combine(dir, slug + ".json"), file, ct);
+            if (reducedOverrides is not null)
+                await overridesStore.SaveAsync(slug, reducedOverrides, ct);
             foreach (var sidecar in CanonicalSidecarFiles.ReplaceableSidecarPaths(dir, slug))
                 (deleteFile ?? File.Delete)(sidecar);
         }

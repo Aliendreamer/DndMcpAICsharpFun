@@ -394,4 +394,37 @@ public class ProgrammaticExtractionRunnerTests : IDisposable
         var ents = JsonDocument.Parse(File.ReadAllText(P("mm14.json"))).RootElement.GetProperty("entities").EnumerateArray().ToList();
         ents[1].GetProperty("fields").GetProperty("cr").GetString().Should().Be("7");
     }
+
+    [Fact]
+    public async Task Run_failing_swap_leaves_overrides_file_unchanged()
+    {
+        await Store().SaveAsync("mm14", new EntityOverrides([CrOverride("mm14.monster.goblin", "1", "0")], []), CancellationToken.None);
+        var before = await File.ReadAllBytesAsync(P("mm14.overrides.json"));
+        SeedOld();
+        Directory.CreateDirectory(P("mm14.report.json")); // moving the report onto a directory fails
+
+        var act = () => Runner().RunAsync(1, CancellationToken.None);
+
+        await act.Should().ThrowAsync<Exception>();
+        (await File.ReadAllBytesAsync(P("mm14.overrides.json"))).Should().Equal(before);
+        File.ReadAllText(P("mm14.json")).Should().Be("OLD");
+    }
+
+    [Fact]
+    public async Task Run_keeps_an_override_saved_during_the_run_alongside_a_retirement()
+    {
+        var retirable = CrOverride("mm14.monster.goblin", "1", "0");
+        await Store().SaveAsync("mm14", new EntityOverrides([retirable], []), CancellationToken.None);
+        var held = await _locks.AcquireAsync("mm14", CancellationToken.None);
+        var run = Runner().RunAsync(1, CancellationToken.None);
+        await Task.Delay(200);
+        await Store().SaveAsync("mm14", new EntityOverrides([retirable, CrOverride("mm14.monster.orc", "7", "1")], []), CancellationToken.None);
+        held.Dispose();
+
+        var r = await run;
+
+        r.Retired.Should().Be(1);
+        var saved = await Store().LoadAsync("mm14", CancellationToken.None);
+        saved.Overrides.Should().ContainSingle().Which.EntityId.Should().Be("mm14.monster.orc");
+    }
 }
