@@ -354,6 +354,13 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
             # a folded part's own sub-sections are opened in its place, never dropped with it
             return [k for c in _kids(s, sections) for k in (live_kids(c) if part(c) else [c])]
 
+        def opened(c: Section) -> list[Section]:
+            # a kid a creature's name owns is not opened, but the sub-sections printed under it still are (MM "Black
+            # Dragon" lore under "Black Dragon Wyrmling"): never dropped in silence
+            if not owned(c.title, c.lines, by_share=False):
+                return [c]
+            return [k for g in live_kids(c) for k in opened(g)]
+
         kids_of = {id(s): live_kids(s) for s in group}
         listing = _listing_group(group, kids_of)
         for s in group:
@@ -372,7 +379,7 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
                         out.append(_Entry(s, lead, lead=True))
                 # a kid owned by its lines' share alone (a stat block's section, whose lead is lore the monster no
                 # longer holds) is still opened: its own unclaimed prose is kept, never dropped in silence
-                visit([c for c in kids if not owned(c.title, c.lines, by_share=False)], s, under_owned=True)
+                visit([k for c in kids for k in opened(c)], s, under_owned=True)
                 continue
             if _container(s, group, kids, listing):
                 # the lead: every line of the container outside its entries' spans: the text before the first

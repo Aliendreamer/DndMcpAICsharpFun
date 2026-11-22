@@ -75,3 +75,9 @@ def test_a_die_header_is_not_a_doubtful_heading():
     assert _doubt(s, own, 1, {}, {}) == []
     own[1] = _line("Treasure Hoard", 160, 40)  # the same shape with a real heading's words stays in doubt
     assert _doubt(s, own, 1, {}, {})
+
+
+def test_lore_under_a_creatures_own_section_is_not_dropped():
+    # mm14 pp85-100: "Black Dragon" (the lore) is printed under "Black Dragon Wyrmling", whose name a monster owns;
+    # the sub-sections of an owned sub-section are still opened
+    assert any("Black dragons dwell in swamps" in e["canonicalText"] for e in _entities("dragon-lore").values())
