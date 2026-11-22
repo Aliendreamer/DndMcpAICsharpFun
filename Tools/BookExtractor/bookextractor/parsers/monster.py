@@ -528,7 +528,10 @@ def _running_foot(text: str) -> bool:
 
 def _page_furniture(text: str) -> bool:
     """A page's running head or foot set in several words around a bar ("CHAPTER 2 | BESTIARY 255")."""
-    return bool(re.fullmatch(r"[A-Z0-9 ]*[A-Z][A-Z0-9 ]*\|[A-Z0-9 ]+|[A-Z0-9 ]+\|[A-Z0-9 ]*[A-Z][A-Z0-9 ]*", text.strip()))
+    t = text.strip()
+    if re.fullmatch(r"(?:\d{1,3} )?CHAPTER \d{1,2}[ :]+[A-Z][A-Z ]+(?: \d{1,3})?", t):
+        return True  # the same head or foot with its bar lost to the OCR ("170 CHAPTER 6 BESTIARY")
+    return bool(re.fullmatch(r"[A-Z0-9 ]*[A-Z][A-Z0-9 ]*\|[A-Z0-9 ]+|[A-Z0-9 ]+\|[A-Z0-9 ]*[A-Z][A-Z0-9 ]*", t))
 
 
 def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> bool:
@@ -552,6 +555,9 @@ def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> b
     finished = bool(re.search(r"[.!?)]\s*$", re.sub(r"\s+[A-Z]$", "", L[k].text.strip())))
     if finished and t[:1] in "\"\u201c":
         return True  # an epigraph quote opens what follows; it is no part of the finished block
+    if finished and t[:1].islower() and L[k].page != L[j].page:
+        return True  # a finished sentence, then a line in lower case at the top of the next page: the tail of other text
+        # (lore set in the other column, its words carried over the page), not the block's own
     if finished and t[:1].isupper() and not _LEAD_IN.match(t) and j + 1 < len(L) and L[j + 1].page == L[j].page \
             and not any(_ATTACK.search(L[k].text) or _section_key(L[k].text) not in (None, "lair")
                          for k in range(j + 1, min(end, len(L)))):
@@ -561,6 +567,10 @@ def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> b
     if any(_is_size_line(L[k].text) for k in range(j + 1, min(j + 4, len(L)))):
         return False  # the next stat block's own name: its start already bounds this block
     return finished
+
+
+def _squash(t: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", t.lower())
 
 
 def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: int) -> Parsed:
@@ -616,6 +626,8 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
             sec = key
         elif _is_heading_caps(t) and rel[j] > 1.0 and len(t.split()) <= 8:
             break
+        elif name and any(body.values()) and rel[j] > 1.0 and _squash(t) == _squash(name):
+            break  # the creature's own name again, set as a heading: the lore under it (bgg Runic Colossus) is no block text
         elif _leaves_block(L, rel, j, end) or _starts_next_entity(L, j, any(body.values()), end):
             break
         elif any(body.values()) and _lab(t, "Armor Class") and re.match(r"\D{0,15}\d", t):  # (a wrapped lore phrase "Armor Class, hit points" is no header)

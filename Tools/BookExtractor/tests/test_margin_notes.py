@@ -297,3 +297,25 @@ def test_a_sidebar_repeating_a_section_title_is_named_after_its_own_heading():
     assert any(e["name"] == "Geetra" for e in ents)
     ids = _ids("r6-shadar")
     assert ids.count("mpmm.lore.shadar-kai") == 1
+
+
+def _monster_failures(case: str, monster: str) -> list[str]:
+    e = next(e for e in _entities(case) if e["id"].endswith("monster." + monster))
+    return [c["name"] for c in e["checks"] if not c["passed"]]
+
+
+def test_a_stat_block_ends_at_its_running_foot_and_at_its_own_name_set_as_a_heading():
+    # mtf Astral Dreadnought: lore carried over the page in lower case after "CHAPTER 6 |BESTIARY"
+    assert "stat-block-tail" not in _monster_failures("r7-astral", "astral-dreadnought")
+    # ftd Ancient Crystal Dragon: the foot "170 CHAPTER 6 BESTIARY" has lost its bar to the OCR
+    assert "stat-block-tail" not in _monster_failures("r7-crystal", "ancient-crystal-dragon")
+    # bgg Runic Colossus: "Runic Colossus" set as the heading of the lore beside the block's last reaction
+    assert "stat-block-tail" not in _monster_failures("r7-runic", "runic-colossus")
+
+
+def test_field_drops_lists_a_monster_whose_fields_fall_in_token_f1():
+    import fullbook_compare as F
+    old = [{"id": "m", "type": "Monster", "name": "M", "page": 1, "mfields": {"action": "bite claw tail slam"}}]
+    new = [{"id": "m", "type": "Monster", "name": "M", "page": 1, "mfields": {"action": "bite"}}]
+    assert F.field_drops(old, new) == [("M", 1, "action", 0.4)]
+    assert F.field_drops(old, old) == []

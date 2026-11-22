@@ -31,6 +31,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PKG_ROOT = HERE.parent  # Tools/BookExtractor
+MONSTER_FIELDS = ("trait", "action", "reaction", "legendary", "lair")
+F1_DROP = 0.05  # a Monster whose fields' token-F1 against the ref falls by more than this is listed
 SHIFT = 0.20
 SHORT_LINE = 10  # `--prev` also compares lines this short (a heading, a sign-off), down from MIN_LINE
 MIN_LINE = 30  # an OCR line this long is content, not a label or a page number
@@ -51,6 +53,7 @@ def worker(root: str, cache: str, file_hash: str, slug: str, out: str) -> None:
              "notes": " ".join(n["text"] for n in e.get("notes", [])), "note_count": len(e.get("notes", [])), "note_list": e.get("notes", []),
              "action": len(json.dumps(e["fields"].get("action") or "")),
              "trait": len(json.dumps(e["fields"].get("trait") or "")),
+             "mfields": {k: json.dumps(e["fields"].get(k) or "") for k in MONSTER_FIELDS} if e["type"] == "Monster" else {},
              "fails": sorted(c["name"] for c in e["checks"] if not c["passed"])} for e in entities]
     left: dict[int, list[str]] = {}
     for pg, t in getattr(result, "left_out", []):
@@ -190,6 +193,33 @@ def kept_since(prev: list[dict], new: list[dict], ocr: list) -> dict:
     return {"lost": lost, "glued": glued}
 
 
+def _f1(a: str, b: str) -> float:
+    ta, tb = Counter(re.findall(r"\w+", a.lower())), Counter(re.findall(r"\w+", b.lower()))
+    if not ta and not tb:
+        return 1.0
+    common = sum((ta & tb).values())
+    if not common:
+        return 0.0
+    p, r = common / sum(tb.values()), common / sum(ta.values())
+    return 2 * p * r / (p + r)
+
+
+def field_drops(old: list[dict], new: list[dict]) -> list[tuple]:
+    """Monsters in both runs whose trait/action/reaction/legendary/lair token-F1 against the ref fell more than F1_DROP
+    (the ref's value is the reference; a Monster that gained a failing check is not the only way to get worse)."""
+    by_new = {e["id"]: e for e in new}
+    out = []
+    for o in old:
+        n = by_new.get(o["id"])
+        if not n or o["type"] != "Monster":
+            continue
+        for k in MONSTER_FIELDS:
+            f = _f1(o["mfields"].get(k, ""), n["mfields"].get(k, ""))
+            if f < 1 - F1_DROP:
+                out.append((o["name"], o["page"], k, round(f, 2)))
+    return out
+
+
 def _moved(a: int, b: int) -> bool:
     return abs(a - b) > SHIFT * max(a, 1) if a else b > 0
 
@@ -237,10 +267,14 @@ def compare(slug: str, old: list[dict], new: list[dict], ocr: list, detail: int)
                  f"orphaned in the ref too {len(cov['pre'])}, lines the extractor leaves out on purpose (drop_art, quote box) skipped {cov['quotes']}")
     for page, line in cov["new"][:detail]:
         lines.append(f"    NEW p{page}: {line[:100]}")
-    return {"slug": slug, "lines": lines, "moved": len(shifts), "gained": len(gained), "lost": len(lost),
+    drops = field_drops(old, new)
+    lines.append(f"  Monsters whose field token-F1 fell more than {F1_DROP} vs the ref: {len(drops)}")
+    for name, page, k, f in drops[:detail]:
+        lines.append(f"    F1 {name} p{page} {k}: {f}")
+    return {"slug": slug, "lines": lines, "f1drops": len(drops), "moved": len(shifts), "gained": len(gained), "lost": len(lost),
             "summary": f"{slug}: entities {len(old)}->{len(new)}, monsters moved {len(shifts)}, "
                        f"monsters gained a check {len(gained)}, disappeared {len(gone)} ({len(lost)} with content lost), "
-                       f"newly orphaned lines {len(cov['new'])}, pre-existing orphaned lines {len(cov['pre'])}"}
+                       f"field-F1 drops {len(drops)}, newly orphaned lines {len(cov['new'])}, pre-existing orphaned lines {len(cov['pre'])}"}
 
 
 def main() -> None:
