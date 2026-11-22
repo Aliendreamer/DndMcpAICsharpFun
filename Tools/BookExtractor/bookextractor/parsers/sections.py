@@ -584,6 +584,7 @@ _QUOTE_TALL = 1.45  # a margin pull-quote's lines are set this many times the te
 _QUOTE_JOIN = 1.3  # ... and the lines around it, set this tall, are its other lines
 _QUOTE_WORDS = 3
 _QUOTE_PITCH = 0.7  # a quote's line pitch is at least this share of its line height (an overlapping box is body text)
+_QUOTE_CLEAR = 1.6  # ... unless it is set this many times the text's height: a clear quote, overlapping or not
 
 
 def drop_pull_quotes(own: list[Line], heads: int = 1) -> list[Line]:
@@ -615,17 +616,20 @@ def drop_pull_quotes(own: list[Line], heads: int = 1) -> list[Line]:
                 j += step
     # a lone tall line is a drop cap or a display word, not a quote: a quote is a block of two lines or more
     blocks = [i for i in drop if i - 1 in drop or i + 1 in drop]
-    # body text whose OCR boxes are taller than their line pitch (a scaled page: bgg p76, p14, p172) is no quote: a
-    # hand-set note keeps its pitch within a quarter of its height
+    # a barely-tall block whose OCR boxes are also taller than their line pitch is scaled body text (bgg p76, p14,
+    # p172), no quote; a note is either clearly taller or keeps its pitch
     groups: list[list[int]] = []
     for i in sorted(blocks):
         if groups and i == groups[-1][-1] + 1:
             groups[-1].append(i)
         else:
             groups.append([i])
-    blocks = [i for g in groups for i in g
-              if statistics.median(own[g[k + 1]].box[1] - own[g[k]].box[1] for k in range(len(g) - 1))
-              >= _QUOTE_PITCH * statistics.median(own[j].height for j in g)]
+    def body_like(g: list[int]) -> bool:
+        h = statistics.median(own[j].height for j in g)
+        pitch = statistics.median(own[g[k + 1]].box[1] - own[g[k]].box[1] for k in range(len(g) - 1))
+        return h < _QUOTE_CLEAR * med and pitch < _QUOTE_PITCH * h
+
+    blocks = [i for g in groups if not body_like(g) for i in g]
     keep_drop = set(blocks)
     return [l for i, l in enumerate(own) if i not in keep_drop]
 

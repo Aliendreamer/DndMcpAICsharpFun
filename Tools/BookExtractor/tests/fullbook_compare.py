@@ -123,12 +123,12 @@ def kept_since(prev: list[dict], new: list[dict], ocr: list) -> dict:
     new_body = _flat("\n".join(e["text"] for e in new))
     new_notes = _flat(" ".join(e.get("notes", "") for e in new))
     lost, glued, seen = [], [], set()
-    for page, line, _ in ocr:
+    for page, line, exempt in ocr:
         key = _flat(line[:-1] if line.endswith("-") else line).lstrip(".,;:'\"\u2022 ")
         if key in seen or len(key) < 20:
             continue
         seen.add(key)
-        if key in prev_text and key not in new_text:
+        if key in prev_text and key not in new_text and not exempt:  # (epigraph and caption lines are listed as left out)
             lost.append((page, line))
         elif key in prev_notes and key in new_body and key not in new_notes:
             glued.append((page, line))
