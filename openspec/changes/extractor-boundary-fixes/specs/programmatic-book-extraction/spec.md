@@ -104,3 +104,18 @@ no entity; headingless quote boxes are not body text.
 
 - **WHEN** the Homunculus Servant stops at Channel Magic
 - **THEN** Replicate Magic Item and Group Patrons are each in an ERLW entity
+
+### Requirement: Margin notes kept as notes
+
+A writer's margin note printed beside an entity's text (a handwritten aside signed by Bigby or Diancastra, a Mordenkainen
+note) SHALL be kept as a `notes` entry `{by, text, page}` of the entity that holds the most text on the note's page,
+never in its `canonicalText`. A final line opening with a dash is the signature (`by`) and not part of the text. A note
+on a page no entity holds MUST become a Lore entity that fails a check so it is reviewed. Notes MUST be carried into the
+stored entity, its vector payload and the text it is embedded as (after the canonical text, under a "Notes:" line), and
+MUST NOT be a reviewed field for overrides. Epigraphs, quote boxes, art captions, map labels and running heads are not
+notes.
+
+#### Scenario: Death Giant Shrouded One's margin note
+
+- **WHEN** BGG p127 prints "Most giants know better than to make regular use of the death rune." signed "-Diancastra" beside the Death Giant Shrouded One
+- **THEN** that entity's `notes` holds `{by: "Diancastra", text: "Most giants know better than to make regular use of the death rune.", page: 127}`, its `canonicalText` does not contain the sentence, and a search for the sentence's words returns the entity
