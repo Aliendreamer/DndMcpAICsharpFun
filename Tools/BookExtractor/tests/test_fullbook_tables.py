@@ -89,3 +89,9 @@ def test_a_folded_parts_own_text_stays_in_an_entity():
     assert any("As a member of the Boros Legion, you are subject to the" in e["canonicalText"]
                for e in _entities("ggr-guilds").values())
     assert any("orders of your superior officers" in e["canonicalText"] for e in _entities("ggr-guilds").values())
+
+
+def test_lore_the_reader_nested_under_a_stat_blocks_actions_is_not_dropped():
+    # mm14 p165: "Deep gnomes, or svirfneblin ..." is printed after the Gnoll Fang's last action; the reader nests it
+    # in the owned "Actions" section. The prose the stat block does not hold is kept (flagged), never dropped
+    assert any("Deep gnomes, or svirfneblin" in e["canonicalText"] for e in _entities("gnoll-lore").values())

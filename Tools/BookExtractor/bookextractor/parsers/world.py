@@ -315,7 +315,7 @@ def _container(s: Section, siblings: list[Section], kids: list[Section], listing
     return bool(others) and len(s.lines) > _CONTAINER * median(others) or listing
 
 
-def _contiguous_lead(lead: list[Line], lines: list[Line], kids: list[Section], own: set | frozenset = frozenset()) -> list[Line]:
+def _contiguous_lead(lead: list[Line], lines: list[Line], kids: list[Section]) -> list[Line]:
     """A container's lead: the text before its first entry and the folded parts (a recurring sub-heading's text)
     that follow in reading order. A folded part joins its parent only while it is contiguous with the lead: an
     entry that carries on to a later page than the lead has reached stands between them, so the parts printed after
@@ -332,12 +332,21 @@ def _contiguous_lead(lead: list[Line], lines: list[Line], kids: list[Section], o
         c = starts.get(id(l))
         if c is not None and out and c.lines[-1].page > out[-1].page:
             broken = True
-        if id(l) in keep and (not broken or id(l) in own):
-            out.append(l)  # (a hoisted part's own heading and prose are kept whatever stands between)
+        if id(l) in keep and not broken:
+            out.append(l)
     return out
 
 
-def _entries(sections: list[Section], owned) -> list[_Entry]:
+_LEFTOVER_PROSE = 3  # prose lines an owned section may hold beyond its owner's before they are kept as an entry
+
+
+def _leftover(lines: list[Line], claimed: set | frozenset) -> bool:
+    """The section holds prose lines its owner (a stat block) did not claim: lore printed after the block's last entry."""
+    held = sum(line_key(l) in claimed for l in lines)
+    return held >= max(2, 0.1 * len(lines)) and sum(prose(l.text) for l in lines if line_key(l) not in claimed) >= _LEFTOVER_PROSE
+
+
+def _entries(sections: list[Section], owned, claimed: set | frozenset = frozenset()) -> list[_Entry]:
     """The entry-level sections of every chapter, and the containers' leads, in reading order. A container an
     earlier type owns (`owned`: its name, or most of its lines) is not opened: its sub-sections are that entity's
     ("Far Traveler"'s "Ideals"). A sub-heading printed `_RECURRING` times or more in its chapter ("Crime",
@@ -349,26 +358,21 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
     def part(s: Section) -> bool:
         return recurring[(s.parents[0] if s.parents else "", _label(s.title))] >= _RECURRING
 
+    def live_kids_of(s: Section) -> list[Section]:
+        # a folded part's own sub-sections are opened in its place, never dropped with it
+        return [k for c in _kids(s, sections) for k in (live_kids_of(c) if part(c) else [c])]
+
     def visit(group: list[Section], parent: Section | None = None, under_owned: bool = False) -> None:
-        def live_kids(s: Section) -> list[Section]:
-            # a folded part's own sub-sections are opened in its place, never dropped with it
-            return [k for c in _kids(s, sections) for k in (live_kids(c) if part(c) else [c])]
+        live_kids = live_kids_of
 
         def opened(c: Section) -> list[Section]:
             # a kid a creature's name owns is not opened, but the sub-sections printed under it still are (MM "Black
             # Dragon" lore under "Black Dragon Wyrmling"): never dropped in silence
             if not owned(c.title, c.lines, by_share=False):
                 return [c]
+            if not live_kids(c) and _leftover(c.lines, claimed):
+                return [c]  # an owned leaf that holds prose its owner does not (lore the reader nested under "Actions")
             return [k for g in live_kids(c) for k in opened(g)]
-
-        def folded_own(s: Section) -> set:
-            # the printed lines of the folded parts under `s` that are not in a hoisted kid: their heading and prose
-            out_: set = set()
-            for c in _kids(s, sections):
-                if part(c):
-                    inside_ = {id(l) for k in live_kids(c) for l in k.lines}
-                    out_ |= {id(l) for l in c.lines if id(l) not in inside_}
-            return out_
 
         kids_of = {id(s): live_kids(s) for s in group}
         listing = _listing_group(group, kids_of)
@@ -394,7 +398,7 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
                 # the lead: every line of the container outside its entries' spans: the text before the first
                 # entry, and the folded parts (a recurring sub-heading's text printed among the entries)
                 inside = {id(l) for c in kids for l in c.lines}
-                lead = _contiguous_lead([l for l in s.lines if id(l) not in inside], s.lines, kids, folded_own(s))
+                lead = _contiguous_lead([l for l in s.lines if id(l) not in inside], s.lines, kids)
                 if len(lead) > 1:
                     out.append(_Entry(s, lead, lead=True))
                 visit(kids, s)
@@ -403,7 +407,7 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
                 # the entry holds only its lead, the text before its first sub-section (and the folded parts that
                 # stay contiguous with it); the entry and its sub-sections never share text
                 inside = {id(l) for c in kids for l in c.lines}
-                lead = _contiguous_lead([l for l in s.lines if id(l) not in inside], s.lines, kids, folded_own(s))
+                lead = _contiguous_lead([l for l in s.lines if id(l) not in inside], s.lines, kids)
                 if len(lead) > 1:
                     out.append(_Entry(s, lead, lead=True, container=parent, under_owned=under_owned, full=s.lines))
                 visit(kids, s, under_owned=under_owned)
@@ -417,7 +421,19 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
         chapters.setdefault(s.parents[0] if s.parents else "", []).append(s)
     for group in chapters.values():
         visit(group)
+    # the printed lines of a folded part that no entry holds (the run it sat in ended at a heading the reader took
+    # inside it: ggr "How Do I Fit In?" after its Contacts table, ruling W17's contiguity) are an entry of their own,
+    # flagged (`entry-level`: a recurring label): kept, never dropped in silence
     order = {id(s.lines[0]): k for k, s in enumerate(sections)}
+    covered = {id(l) for e in out for l in e.lines}
+    for c in sections:
+        if not part(c):
+            continue
+        inside = {id(l) for k in live_kids_of(c) for l in k.lines}
+        missing = [l for l in c.lines if id(l) not in inside and id(l) not in covered]
+        if len(missing) > 1:
+            out.append(_Entry(c, missing))
+            covered |= {id(l) for l in missing}
     out.sort(key=lambda e: (order[id(e.section.lines[0])], not e.lead))
     return out
 
@@ -687,7 +703,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
                 or (_plain(title) in plain_names and (share <= _CLAIMED or line_key(lines[0]) in claimed))
                 or (by_share and share > _CLAIMED))
 
-    entries = _entries(sections, owned)
+    entries = _entries(sections, owned, claimed)
     entry_titles = {x.section.title for x in entries if len(x.section.title) >= 4}  # other entries' names too
     spans = [{id(l) for l in e.lines} for e in entries]
     for i, e in enumerate(entries):
@@ -696,8 +712,9 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         # lines are owned keeps its own unclaimed prose below (DMG "Downtime Activities": its intro over the
         # activity Rules), never dropped in silence (Task 7 round 2)
         # (a name owned alone is no claim on a section the entity already holds most of: see `owned`)
-        if line_key(e.lines[0]) in claimed or (
-                _plain(s.title) in plain_names and sum(line_key(l) in claimed for l in e.lines) <= _CLAIMED * len(e.lines)):
+        if (line_key(e.lines[0]) in claimed or (
+                _plain(s.title) in plain_names and sum(line_key(l) in claimed for l in e.lines) <= _CLAIMED * len(e.lines))) \
+                and not _leftover(e.lines, claimed):
             continue
         # the lines of another entry that starts inside this one are that entry's
         nested = {x for j, d in enumerate(entries) if j != i and id(d.lines[0]) in spans[i]
