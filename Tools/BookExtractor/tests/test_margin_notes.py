@@ -255,3 +255,10 @@ def test_a_section_opening_in_small_caps_is_kept_not_left_out():
     assert not [t for p, t in _left_out("r4-mtf100") if p == 100 and "embroiled in struggles" in t]
     held = [e for e in _entities("r4-mtf100") if "are embroiled in struggles" in e["canonicalText"]]
     assert held, "the opening is held by no entity"
+
+
+def test_gate_checks_short_lines_down_to_ten_characters():
+    import fullbook_compare as F
+    prev = [{"text": "body", "notes": "CLERIC SPELLS"}]
+    new = [{"text": "body", "notes": ""}]
+    assert F.kept_since(prev, new, [[148, "CLERIC SPELLS", False]])["lost"] == [(148, "CLERIC SPELLS")]

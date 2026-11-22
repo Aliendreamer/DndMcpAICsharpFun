@@ -32,6 +32,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PKG_ROOT = HERE.parent  # Tools/BookExtractor
 SHIFT = 0.20
+SHORT_LINE = 10  # `--prev` also compares lines this short (a heading, a sign-off), down from MIN_LINE
 MIN_LINE = 30  # an OCR line this long is content, not a label or a page number
 LANDED = 0.9  # a vanished entity's text "landed" when this share of its lines is in the new entities' text
 
@@ -59,7 +60,9 @@ def worker(root: str, cache: str, file_hash: str, slug: str, out: str) -> None:
     sig = re.compile(r"^[-\u2014\u2013]\s*\S")
     sigs = [[p.number, l.text.strip(), False] for p in pages for l in p.lines
             if sig.match(l.text.strip()) and len(l.text.strip()) < MIN_LINE]
-    Path(out).write_text(json.dumps({"entities": slim, "ocr": ocr, "sigs": sigs}))
+    shorts = [[p.number, l.text.strip(), False] for p in pages for l in p.lines
+              if SHORT_LINE <= len(l.text.strip()) < MIN_LINE and not sig.match(l.text.strip())]
+    Path(out).write_text(json.dumps({"entities": slim, "ocr": ocr, "sigs": sigs, "shorts": shorts}))
 
 
 def _repo_root() -> Path:
@@ -163,7 +166,7 @@ def kept_since(prev: list[dict], new: list[dict], ocr: list) -> dict:
     an entity's text ("glued": an aside newly merged into body text). Notes count as held; left_out does NOT: a line
     that moved from held into left_out is lost (left_out holds only what no earlier run held). Signature lines (a dash
     and a name) are checked at any length, by how many times the signature is held (one name signs many asides), the
-    other lines from 20 characters. Both sides are matched after case, whitespace, hyphenation and OCR digit repair.
+    other lines from 10 characters (the worker lists them). Both sides are matched after case, whitespace, hyphenation and OCR digit repair.
     The `exempt` flag of an OCR row is not read: it cannot excuse a loss."""
     prev_all, _, prev_notes = _held_forms(prev)
     new_all, new_body, new_notes = _held_forms(new)
@@ -174,7 +177,7 @@ def kept_since(prev: list[dict], new: list[dict], ocr: list) -> dict:
         if _SIGNATURE.match(key):
             sigs.setdefault(key, []).append((page, line))
             continue
-        if key in seen or len(key) < 20:
+        if key in seen or len(key) < SHORT_LINE:
             continue
         seen.add(key)
         if key in prev_all and key not in new_all:
@@ -279,7 +282,7 @@ def main() -> None:
             res = compare(slug, old["entities"], new["entities"], new["ocr"], args.detail)
             if prev_root:
                 prev = json.loads(Path(outs["prev"]).read_text())
-                ks = kept_since(prev["entities"], new["entities"], new["ocr"] + new["sigs"])
+                ks = kept_since(prev["entities"], new["entities"], new["ocr"] + new["sigs"] + new.get("shorts", []))
                 res["lines"].append(f"  vs {args.prev}: held lines now held by nothing {len(ks['lost'])}, "
                                     f"note lines now glued into an entity's text {len(ks['glued'])}")
                 for page, line in ks["lost"][:args.detail]:
