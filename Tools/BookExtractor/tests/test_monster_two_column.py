@@ -42,3 +42,22 @@ def test_continuation_text_is_not_duplicated_in_lore():
     ents = _fixture_extract("mm14.monster.adult-gold-draon")
     lore = [e["id"] for e in ents if e["type"] == "Lore" and "Weakening Breath" in e["canonicalText"]]
     assert lore == []
+
+
+def _pages_extract(slug: str, numbers: list[int]) -> list[dict]:
+    return extract_pages([PAGES[f"{slug}:{n}"] for n in numbers], slug)
+
+
+def test_flowing_continuation_is_not_moved_ahead_of_the_block_name():
+    """erlw p305: Sul Khatesh's traits and actions run on in the right column, mid-sentence."""
+    ents = _pages_extract("erlw", [302, 303, 304, 305, 306, 307])
+    sul = _entity(ents, "erlw.monster.sul-khatesh")["canonicalText"]
+    assert "Legendary Resistance" in sul and "Arcane Blast" in sul
+    assert "Arcane Blast" not in _entity(ents, "erlw.monster.rak-tulkhesh")["canonicalText"]
+
+
+def test_sprite_keeps_its_own_continuation():
+    """phb14 p311: Sprite's Shortbow and Heart Sight continue in the right column, mid-sentence."""
+    ents = _pages_extract("phb14", [311, 312, 313, 314])
+    assert "Heart Sight" in _entity(ents, "phb14.monster.sprite")["canonicalText"]
+    assert "Heart Sight" not in _entity(ents, "phb14.monster.skeleton")["canonicalText"]

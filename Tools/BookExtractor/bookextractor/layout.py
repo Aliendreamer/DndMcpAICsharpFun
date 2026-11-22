@@ -90,6 +90,21 @@ def _stat_block_starts(rows: list[Line]) -> list[int]:
             and any(_ARMOR_CLASS.match(r.text) for r in rows[i + 2:i + 5])]
 
 
+_STAT_MARKER = re.compile(r"\b(?:Melee|Ranged) (?:Weapon|Spell) Attack\b|^(?:Bonus Actions|Reactions|Actions|Legendary Actions)$"
+                          r"|^Multiattack\b|\bHit:|^[A-Z][\w' ]+ \((?:Recharge|\d+/Day|Costs)", re.I)
+
+
+def _continues_block(rows: list[Line], c: int) -> bool:
+    """rows[:c] is the stat block's own right-column text, not lore above a box: the cut at c falls inside a
+    sentence (no gap, no sentence end before it, a lower-case start after it) and rows[:c] holds stat-block
+    features. Reading the block's name ahead of that text would hand its traits to the neighbouring block."""
+    if c == 0 or rows[c].box[1] - rows[c - 1].box[3] > 2 * rows[c].height:
+        return False
+    mid_sentence = not rows[c - 1].text.rstrip().endswith((".", "!", "?", ":", '"', "\u201d")) \
+        and rows[c].text.lstrip()[:1].islower()
+    return mid_sentence and any(_STAT_MARKER.search(r.text.strip()) for r in rows[:c])
+
+
 def _interleave_stat_blocks(left: list[Line], right: list[Line], page_height: float) -> list[Line]:
     """A stat block set in a two-column box starts in the left column, runs to its foot, and carries on in
     the right column at the same height as its name line (lore may sit above it there). Read that
@@ -107,8 +122,8 @@ def _interleave_stat_blocks(left: list[Line], right: list[Line], page_height: fl
     first_right_block = min(_stat_block_starts(right), default=len(right))  # that block is the right's own
     tol = 0.6 * left[s].height
     c = next((j for j in range(first_right_block) if abs(right[j].box[1] - left[s].box[1]) <= tol), None)
-    if c is None:
-        return left + right
+    if c is None or _continues_block(right, c):
+        return left + right  # the right text flows on from the block itself: it is no boxed lore
     return left[:s] + right[:c] + left[s:split] + right[c:] + left[split:]
 
 

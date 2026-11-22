@@ -219,8 +219,6 @@ def _under_table(L: list[Line], i: int) -> bool:
     return sum(bool(_NUMBERED_ROW.match(l.text.strip())) for l in L[max(0, i - 8):i]) >= 2
 
 
-
-
 def table_header(L: list[Line], k: int) -> str:
     """The column header of the table L[k] opens, its die left out and squashed ("OOLP Encounter" -> "encounter"); ""
     when L[k] opens none: a header row led by a die, or, the die's own header lost to the OCR, a short column header
