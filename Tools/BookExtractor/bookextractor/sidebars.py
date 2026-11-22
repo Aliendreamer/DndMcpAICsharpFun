@@ -319,7 +319,7 @@ def _runs(lines: list[Line], eligible: set[int]) -> list[_Run]:
 
 def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int], pages_by_number: dict,
                       ctx: ParseContext, claimed: set, key, previous_name,
-                      left_out: list | None = None) -> list[Parsed]:
+                      left_out: list | None = None, known_names: set | None = None) -> list[Parsed]:
     """One Lore per run of unclaimed content lines on a page at or after a stat block (same page or the next).
 
     `key(line)` is the printed-line identity the entities claim by; `previous_name(line)` names the entity printed
@@ -355,6 +355,11 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
             if not near:
                 continue  # (only runs after a stat block are emitted)
             name = _name(L, heads, previous_name)
+            if heads and known_names and re.sub(r"[^a-z0-9]+", "", L[0].text.lower()) in known_names:
+                # the box opens with a title an entity already carries (the section's running head): its own heading is
+                # the line after it, else "<title> sidebar"; never the title itself (the id would repeat the section's)
+                name = L[1].text.strip().title() if len(L) > 1 and heading_words(L[1].text) and not prose(L[1].text) \
+                    else f"{L[0].text.strip()} sidebar"
             entries = prose_entries(L, heads, len(L))
             flat = [x if isinstance(x, str) else "\n".join(x.get("items", [])) for x in entries]
             text = "\n".join(([L[0].text.strip()] if heads else []) + flat)

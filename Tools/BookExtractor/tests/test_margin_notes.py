@@ -278,3 +278,22 @@ def test_a_letters_sign_off_read_in_the_other_columns_order_stays_with_the_lette
     # vrgr p9: "yours in reason," sits between the letter's last tall line and the signer's name
     assert _held_anywhere("r5-vrgr9", "yours in reason")
     assert not [t for p, t in _left_out("r5-vrgr9") if p == 9]
+
+
+def _ids(case: str) -> list[str]:
+    return [e["id"] for e in _entities(case)]
+
+
+def test_ids_are_unique_on_every_whole_book_case():
+    for case, c in _RAW["cases"].items():
+        ids = _ids(case)
+        assert len(ids) == len(set(ids)), (case, [i for i in set(ids) if ids.count(i) > 1])
+
+
+def test_a_sidebar_repeating_a_section_title_is_named_after_its_own_heading():
+    names = {e["name"] for e in _entities("r6-yuan") if e["page"] == 311}
+    assert "Serpent Gods" in names or any("Serpent" in n for n in names), names
+    ents = _entities("r6-geetra")
+    assert any(e["name"] == "Geetra" for e in ents)
+    ids = _ids("r6-shadar")
+    assert ids.count("mpmm.lore.shadar-kai") == 1

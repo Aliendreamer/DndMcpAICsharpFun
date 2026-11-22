@@ -765,6 +765,26 @@ def _drop_duplicate_sidebars(entities: list[dict], entity_lines: list, keys: lis
             lst[:] = [x for x, a in zip(lst, alive) if a]
 
 
+def _unique_ids(entities: list[dict]) -> None:
+    """Ids are unique over the book. A world type's ids are made over its own type, the later passes (the sidebars, the
+    net) count their own, so a flagged Lore can repeat an earlier id: the earlier entity keeps it (reviewed overrides are
+    keyed by id), the newcomer gets the next free ordinal and a failing `unique-id` check."""
+    used = {e["id"] for e in entities}
+    seen: set[str] = set()
+    for e in entities:
+        if e["id"] not in seen:
+            seen.add(e["id"])
+            continue
+        n = 2
+        while f"{e['id']}-{n}" in used:
+            n += 1
+        old, e["id"] = e["id"], f"{e['id']}-{n}"
+        used.add(e["id"])
+        seen.add(e["id"])
+        e["checks"] = [c for c in e["checks"] if c["name"] != "unique-id"] + [
+            {"name": "unique-id", "passed": False, "reason": f"id {old} already used by an earlier entity; suffixed -{n}"}]
+
+
 def _join_run(run: list[Line]) -> str:
     out = ""
     for l in run:
@@ -905,7 +925,8 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
             return max(((i, n) for i, n in first_at if i < at), default=(0, "Unnamed"))[1]
 
         extra = detached_sidebars({n: ordered[n] for n in sorted(ordered)}, monster_pages, by_number, ctx,
-                                  claimed_lines, lambda l: next(iter(_line_keys([l]))), previous_name, left_out)
+                                  claimed_lines, lambda l: next(iter(_line_keys([l]))), previous_name, left_out,
+                                  {_squash(n) for n in claimed_names})
         for p, (eid, checks) in zip(extra, [_id_and_checks(p, book_slug, seen, vocab) for p in extra]):
             entity_lines.append(p.lines)
             claimed_lines |= _line_keys(p.lines)
@@ -930,6 +951,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                      texts, book_slug, seen, vocab, by_number, claimed_lines, covered)
     if entities and len({len(entities), len(entity_lines), len(keys), len(firsts), len(texts)}) == 1:
         _drop_duplicate_sidebars(entities, entity_lines, keys, firsts, texts)
+    _unique_ids(entities)
     # a line an entity holds is not "left out": only what no entity's text holds is listed
     held = _squash("\n".join(e["canonicalText"] for e in entities))
     left_out = [(pg, t) for pg, t in left_out if _squash(t) not in held]
