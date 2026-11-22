@@ -110,13 +110,15 @@ PROSE_TAIL_MAX_GAP = 0.5  # in line heights: the cut sits at normal line spacing
 
 def _is_prose_tail(left_last: Line, right: list[Line], c: int) -> bool:
     """The block ends a finished sentence in the left column while right[:c] ends mid-sentence and right[c]
-    carries on in lower case at normal spacing: the right column is prose lore running past the block's name,
-    not the block's continuation, so cutting it at c would glue the lore's tail into the block."""
+    carries on (not an ALL-CAPS epigraph, no stat-block text before it) at normal spacing: the right column is
+    prose lore running past the block's name, not the block's continuation, so cutting it at c would glue the
+    lore's tail into the block."""
     if c == 0 or right[c].box[1] - right[c - 1].box[3] >= PROSE_TAIL_MAX_GAP * right[c].height:
         return False
     ends = (".", "!", "?", '"', "\u201d")
     return left_last.text.rstrip().endswith(ends) and not right[c - 1].text.rstrip().endswith(ends + (":",)) \
-        and right[c].text.lstrip()[:1].islower()
+        and not right[c].text.strip().isupper() \
+        and not any(_STAT_MARKER.search(r.text.strip()) for r in right[:c])
 
 
 def _interleave_stat_blocks(left: list[Line], right: list[Line], page_height: float) -> list[Line]:
@@ -136,8 +138,15 @@ def _interleave_stat_blocks(left: list[Line], right: list[Line], page_height: fl
     first_right_block = min(_stat_block_starts(right), default=len(right))  # that block is the right's own
     tol = 0.6 * left[s].height
     c = next((j for j in range(first_right_block) if abs(right[j].box[1] - left[s].box[1]) <= tol), None)
-    if c is None or _continues_block(right, c) or _is_prose_tail(left[split - 1], right, c):
+    if c is None or _continues_block(right, c):
         return left + right  # the right text flows on from the block itself: it is no boxed lore
+    if c > 0 and len(starts) == 1 and _STAT_MARKER.search(right[0].text.strip()):
+        return left + right  # the right column opens with the block's own text: it flows on from the top
+    if _is_prose_tail(left[split - 1], right, c):
+        if first_right_block < len(right):
+            c = first_right_block  # the lore runs on to the right column's own block: all of it goes ahead of ours
+        else:
+            return left + right
     return left[:s] + right[:c] + left[s:split] + right[c:] + left[split:]
 
 

@@ -543,11 +543,13 @@ def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> b
     k = j - 1
     while k > 0 and L[k - 1].page == L[k].page and _running_foot(L[k].text):
         k -= 1  # a running foot ("LYCANTHROPES", "210:") sits between the block's last line and the next page
-    finished = bool(re.search(r"[.!?)]\s*$", L[k].text.strip()))
+    # a stray margin glyph fused to the last line ("... with her. H") must not make a finished sentence look unfinished
+    finished = bool(re.search(r"[.!?)]\s*$", re.sub(r"\s+[A-Z]$", "", L[k].text.strip())))
     if finished and t[:1] in "\"\u201c":
         return True  # an epigraph quote opens what follows; it is no part of the finished block
     if finished and t[:1].isupper() and not _LEAD_IN.match(t) and j + 1 < len(L) and L[j + 1].page == L[j].page \
-            and not any(_ATTACK.search(L[k].text) or _section_key(L[k].text) for k in range(j + 1, min(end, len(L)))):
+            and not any(_ATTACK.search(L[k].text) or _section_key(L[k].text) not in (None, "lair")
+                         for k in range(j + 1, min(end, len(L)))):
         return True
     if not _heading_like(t) or t[-1] in ".,;:!?)" or not _title_cased(t) or len(t.split()) < 2:
         return False

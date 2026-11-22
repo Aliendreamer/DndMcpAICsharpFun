@@ -1910,7 +1910,7 @@
   "match": false
  },
  "tce.monster.construct-spirit": {
-  "f1": 0.7095,
+  "f1": 1.0,
   "found": true,
   "match": false
  },
