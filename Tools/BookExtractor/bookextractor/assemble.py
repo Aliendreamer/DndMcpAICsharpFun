@@ -603,6 +603,10 @@ def shared_text_checks(entities: list[dict], keys: list[set[LineKey]],
             e["checks"].append({"name": "text-not-shared", "passed": True, "reason": ""})
 
 
+def _squash(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", text.lower())
+
+
 def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> ExtractionResult:
     by_number = {p.number: p for p in pages}
     ctx = ParseContext(slug=book_slug, source=SOURCE_BY_SLUG.get(book_slug, book_slug.upper()), pages=by_number)
@@ -690,6 +694,10 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 "checks": [{"name": c.name, "passed": c.passed, "reason": c.reason} for c in checks],
                 "provenance": _provenance(p.lines, by_number),
             })
+
+    # a line an entity holds is not "left out": only what no entity's text holds is listed
+    held = _squash("\n".join(e["canonicalText"] for e in entities))
+    left_out = [(pg, t) for pg, t in left_out if _squash(t) not in held]
 
     shared_text_checks(entities, keys, firsts, texts)
     for p in rules:

@@ -33,3 +33,29 @@ def test_a_detached_sidebar_is_a_flagged_lore_entity_not_part_of_the_block(case,
 def test_a_one_sentence_remnant_under_an_owned_section_is_kept():
     # tce p76: the Wizard's "The wizard class receives new features ..." sits under the owned "Limited Wish"
     assert any("The wizard class receives new features" in e["canonicalText"] for e in _entities("tce-wizard"))
+
+
+def _result(slug: str, pages: list):
+    from bookextractor.assemble import ALL_TYPES, _squash, extract_book
+    r = extract_book(pages, slug, set(ALL_TYPES))
+    held = _squash("\n".join(e["canonicalText"] for e in r.entities))
+    return r, [(pg, t) for pg, t in r.left_out if _squash(t) in held]
+
+
+def test_left_out_never_lists_a_line_an_entity_holds_on_the_regression_fixture():
+    from regression_run import load_fixture
+    pages, entries = load_fixture()
+    for slug in ("mm14", "xge", "ggr"):
+        numbers = sorted({n for e in entries if e["slug"] == slug for n in e["ctx_pages"]})
+        r, both = _result(slug, [pages[f"{slug}:{n}"] for n in numbers])
+        assert r.left_out, slug  # the fixture pages do leave text out (running heads, art, notes)
+        assert both == [], (slug, both[:3])
+
+
+def test_left_out_never_lists_a_line_an_entity_holds_on_the_whole_book_cases():
+    for case, c in _RAW["cases"].items():
+        if len(c["pages"]) > 30:
+            continue
+        pages = [page_from_dict(_RAW["pages"][f"{c['slug']}:{n}"]) for n in c["pages"]]
+        _, both = _result(c["slug"], pages)
+        assert both == [], (case, both[:3])
