@@ -18,7 +18,7 @@ from .parsers.sections import _table_row, drop_art, heading_words, prose
 
 PAGES_AFTER = 3  # a sidebar is looked for on the pages of a stat block and the ones after it (the block ran on)
 MIN_LINE = 30  # a printed line this long is content, not a label or a page number
-_CHAPTER_TITLE = re.compile(r"(?i)^(?:chapter|appendix|part)\s+\w+\s*:")  # a title, not the running head "CHAPTER 6 | ..."
+_CHAPTER_TITLE = re.compile(r"(?i)^(?:ch[a-z]{4,7}|appendix|part)\s+\w+\s*:")  # a title, not the running head "CHAPTER 6 | ..."
 _FRAGMENT = 120  # a run this short beside a margin note is a stray line of the note
 _QUOTE_START = ("\"", "“", "‘", "—", "–")
 
