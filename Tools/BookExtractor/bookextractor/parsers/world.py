@@ -346,6 +346,12 @@ def _leftover(lines: list[Line], claimed: set | frozenset) -> bool:
     return held >= max(2, 0.1 * len(lines)) and sum(prose(l.text) for l in lines if line_key(l) not in claimed) >= _LEFTOVER_PROSE
 
 
+def _plain_lore(lines: list[Line], claimed: set | frozenset) -> bool:
+    """No line is an earlier entity's and the section holds prose: lore printed under an owner's section that the
+    owner (matched only by name) does not hold."""
+    return not any(line_key(l) in claimed for l in lines) and sum(prose(l.text) for l in lines) >= _LEFTOVER_PROSE
+
+
 def _entries(sections: list[Section], owned, claimed: set | frozenset = frozenset()) -> list[_Entry]:
     """The entry-level sections of every chapter, and the containers' leads, in reading order. A container an
     earlier type owns (`owned`: its name, or most of its lines) is not opened: its sub-sections are that entity's
@@ -368,7 +374,7 @@ def _entries(sections: list[Section], owned, claimed: set | frozenset = frozense
         def opened(c: Section) -> list[Section]:
             # a kid a creature's name owns is not opened, but the sub-sections printed under it still are (MM "Black
             # Dragon" lore under "Black Dragon Wyrmling"): never dropped in silence
-            if not owned(c.title, c.lines, by_share=False):
+            if not owned(c.title, c.lines, by_share=False) or _plain_lore(c.lines, claimed):
                 return [c]
             held = {id(l) for k in live_kids(c) for l in k.lines}
             if _leftover([l for l in c.lines if id(l) not in held], claimed):
@@ -718,7 +724,8 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         # (a name owned alone is no claim on a section the entity already holds most of: see `owned`)
         if (line_key(e.lines[0]) in claimed or (
                 _plain(s.title) in plain_names and sum(line_key(l) in claimed for l in e.lines) <= _CLAIMED * len(e.lines))) \
-                and not _leftover(e.lines, claimed) and not (e.lead and line_key(s.lines[0]) not in claimed
+                and not _leftover(e.lines, claimed) and not (e.under_owned and _plain_lore(e.lines, claimed)) \
+                and not (e.lead and line_key(s.lines[0]) not in claimed
                                                               and _leftover(s.lines, claimed)):
             continue
         # the lines of another entry that starts inside this one are that entry's

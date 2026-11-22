@@ -107,3 +107,9 @@ def test_lore_of_a_bestiary_section_named_like_an_earlier_entity_is_kept():
     # mpmm p115 "Eladrin" (Bestiary) shares its name with the Eladrin race of chapter 1, which claimed the section
     assert any("Eladrin dwell in the verdant splendor" in e["canonicalText"]
                for e in _entities("eladrin-lore").values())
+
+
+def test_lore_under_a_section_whose_name_an_earlier_entity_owns_is_kept_when_it_holds_no_claimed_line():
+    # scc p197 "Lorehold Students" (under the owned "Lorehold Scholars"): 13 lines no stat block holds
+    assert any("Deep in crumbling ruins and piles of dusty scrolls" in e["canonicalText"]
+               for e in _entities("scc-lore").values())
