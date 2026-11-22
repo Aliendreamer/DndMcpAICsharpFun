@@ -36,6 +36,9 @@ def _row_like(l: Line) -> bool:
         any(b.box[0] - a.box[2] > 1.5 * l.height for a, b in zip(l.frags, l.frags[1:]))
 
 
+_ROW_NUMBER = re.compile(r"^\d{1,3}(?:\s*[-–]\s*\d{1,3})?\s+[A-Za-z]")
+
+
 def _heading_like(t: str) -> bool:
     words = t.split()
     return 0 < len(words) <= 7 and not re.search(r"[.!?:;]\s*$", t) and t[:1].isalpha()
@@ -92,6 +95,10 @@ def _starts(L: list[Line]) -> list[tuple[int, int, int]]:
         if i == 0 or not _is_type_line(l.text):
             continue
         if len(L[i - 1].text.split()) > 12 or _is_type_line(L[i - 1].text):
+            continue
+        # a table row ("5 I helped a minor Gruul chieftain acquire an Izzet" / "weapon.") is no item name: a table
+        # row's number or range opens the line, an item's name never does
+        if _ROW_NUMBER.match(L[i - 1].text):
             continue
         ns = _names_start(L, i, max(prev_body, 0))
         out.append((ns, i, _type_end(L, i)))

@@ -164,7 +164,7 @@ def _size(l: Line, med: float) -> float:
     return l.height / med * char_width(l, med)
 
 
-def _heading_text(t: str) -> bool:
+def _heading_text(t: str, question: bool = False) -> bool:
     """A printed heading's words: short, capitalised, title-case or all caps; digits only after the first word
     ("Rank 1: Official"), never a table row ("3 Crime"). An ordinal ("Beyond 1st Level", the OCR's "Beyond lst
     Level") is a numeral, not a lower-case word."""
@@ -173,7 +173,11 @@ def _heading_text(t: str) -> bool:
         return False
     if t.endswith((".", ",", ";", ":", "-")) or re.match(r"^\S+\d", t):
         return False
+    # a question heading ("How Do I Fit In?") only straight under a table's rows: elsewhere a "?" ends a sentence or a
+    # sidebar's own title that belongs inside the text
     words = _ORDINAL.sub("", t)
+    if question:
+        words = words.removesuffix("?")
     return bool(words.split()) and (title_case(words) or caps_heading(words))
 
 
@@ -207,6 +211,14 @@ def _joined(L: list[Line], i: int) -> int:
     return 1
 
 
+_NUMBERED_ROW = re.compile(r"^\d{1,3}(?:\s*[-–]\s*\d{1,3})?\s+\S")
+
+
+def _under_table(L: list[Line], i: int) -> bool:
+    """The line at L[i] sits straight under a table's numbered rows (two of the eight lines above), so it is no row."""
+    return sum(bool(_NUMBERED_ROW.match(l.text.strip())) for l in L[max(0, i - 8):i]) >= 2
+
+
 def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) -> int:
     """How many lines the heading starting at L[i] takes; 0 when L[i] opens no heading."""
     a = L[i]
@@ -215,7 +227,7 @@ def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) 
     n = _joined(L, i)
     text = " ".join(L[k].text.strip() for k in range(i, i + n))
     text = re.sub(r"\s*,$", "", text)
-    if not _heading_text(text) or _size(a, med) < _HEAD_SIZE * body_size:
+    if not _heading_text(text, _under_table(L, i)) or _size(a, med) < _HEAD_SIZE * body_size:
         return 0
     # after a finished sentence, a space, a chapter title, or a map's caption (the caption closes the map; the
     # region heading under it is set apart from the map, not from the text: EGW "MAP 3.6: GREYING WILDLANDS" /
