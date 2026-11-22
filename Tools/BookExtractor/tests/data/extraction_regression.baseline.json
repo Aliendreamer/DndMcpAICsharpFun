@@ -80,7 +80,7 @@
   "match": false
  },
  "bgg.monster.echo-of-demogorgon": {
-  "f1": 1.0,
+  "f1": 0.5335,
   "found": true,
   "match": false
  },
@@ -90,12 +90,12 @@
   "match": false
  },
  "bgg.monster.flesh-colossus": {
-  "f1": 1.0,
+  "f1": 0.8695,
   "found": true,
   "match": true
  },
  "bgg.monster.fomorian-deep-crawler": {
-  "f1": 1.0,
+  "f1": 0.7331,
   "found": true,
   "match": false
  },
@@ -110,12 +110,12 @@
   "match": true
  },
  "bgg.monster.gargantua": {
-  "f1": 1.0,
+  "f1": 0.6948,
   "found": true,
   "match": false
  },
  "bgg.monster.giant-goose": {
-  "f1": 1.0,
+  "f1": 0.7413,
   "found": true,
   "match": true
  },
@@ -185,7 +185,7 @@
   "match": false
  },
  "bgg.monster.stalker-of-baphomet": {
-  "f1": 0.8214,
+  "f1": 0.7908,
   "found": true,
   "match": false
  },
@@ -1015,9 +1015,9 @@
   "match": false
  },
  "erlw.lore.madness-of-belashyrra": {
-  "f1": 1.0,
+  "f1": 0.6019,
   "found": true,
-  "match": true
+  "match": false
  },
  "erlw.lore.mark-of-detection-spells": {
   "f1": 1.0,
@@ -1495,7 +1495,7 @@
   "match": true
  },
  "ftd.lore.sea-serpents": {
-  "f1": 0.9553,
+  "f1": 0.9403,
   "found": true,
   "match": false
  },
