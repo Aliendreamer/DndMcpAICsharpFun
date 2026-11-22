@@ -100,7 +100,7 @@ def coverage(old: list[dict], new: list[dict], ocr: list) -> dict:
         if line in seen:
             continue
         seen.add(line)
-        line = _flat(line[:-1] if line.endswith("-") else line)  # the text joins a hyphenated word across lines
+        line = _flat(line[:-1] if line.endswith("-") else line).lstrip(".,;:'\"\u2022 ")  # the text joins a hyphenated word across lines
         if line in new_text:
             continue
         if exempt:
