@@ -68,9 +68,10 @@ def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
         run = [lines[k] for k in dropped[i:j + 1]]
         nxt = lines[dropped[j] + 1] if dropped[j] + 1 < len(lines) else None
         # a run set in from the edge whose last line stops mid-sentence and which the kept text carries on in lower
-        # case is a paragraph's drop-cap opening (it flows on), not a note or a label
+        # case, directly beneath and out at the margin, is a paragraph's drop-cap opening (it flows on), not a note
         flows = (nxt is not None and id(nxt) in kept and nxt.page == run[-1].page and nxt.text.strip()[:1].islower()
-                 and not run[-1].text.rstrip().endswith((".", "!", "?", "\"", "\u201d")) and any(prose(l.text) for l in run))
+                 and not run[-1].text.rstrip().endswith((".", "!", "?", "\"", "\u201d")) and any(prose(l.text) for l in run)
+                 and 0 <= nxt.box[1] - run[-1].box[3] <= 1.2 * nxt.height and nxt.box[0] < run[-1].box[0] - 1)
         if not flows:
             out += run
         i = j + 1
