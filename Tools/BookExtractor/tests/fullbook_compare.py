@@ -47,7 +47,7 @@ def worker(root: str, cache: str, file_hash: str, slug: str, out: str) -> None:
     result = extract_book(pages, slug, set(ALL_TYPES))
     entities = result.entities
     slim = [{"id": e["id"], "type": e["type"], "name": e["name"], "page": e["page"], "text": e["canonicalText"], "size": len(e["canonicalText"]),
-             "notes": " ".join(n["text"] for n in e.get("notes", [])), "note_count": len(e.get("notes", [])),
+             "notes": " ".join(n["text"] for n in e.get("notes", [])), "note_count": len(e.get("notes", [])), "note_list": e.get("notes", []),
              "action": len(json.dumps(e["fields"].get("action") or "")),
              "trait": len(json.dumps(e["fields"].get("trait") or "")),
              "fails": sorted(c["name"] for c in e["checks"] if not c["passed"])} for e in entities]

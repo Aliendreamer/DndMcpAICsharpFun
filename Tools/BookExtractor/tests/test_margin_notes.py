@@ -72,3 +72,25 @@ def test_only_tall_hand_set_asides_are_notes_not_chapter_openers_or_table_cells(
         for e in _entities(case):
             for n in e.get("notes", []):
                 assert "presents giant enclaves" not in n["text"], (case, n)
+
+
+def test_signatures_are_taken_on_a_chapter_length_window():
+    by = {(n["page"], n["text"][:12]): n["by"] for e in _entities("notes-bgg156") for n in e.get("notes", [])}
+    assert by[(158, "At least the")] == "Bigby"
+    assert by[(160, "I mourn bor ")] == "Diancastra"
+    mp = [n for e in _entities("notes-mpmm79") for n in e.get("notes", []) if n["page"] == 79]
+    assert mp and mp[0]["by"] == "Mordenkainen"
+
+
+def test_a_signature_glued_into_an_entity_is_removed_from_it():
+    for case in ("notes-bgg156", "notes-mpmm79", "notes-bgg127"):
+        for e in _entities(case):
+            assert not any(line.strip() in ("-Bigby", "-Diancastra", "-Mordenkainen")
+                           for line in e["canonicalText"].split("\n")), (case, e["id"])
+
+
+def test_epigraph_attributions_and_captions_are_no_notes():
+    # an attribution that is no commentator's name ("Rakshasa maxim") marks an epigraph
+    from bookextractor import sidebars
+    assert not sidebars._PERSON.fullmatch("Rakshasa maxim")
+    assert sidebars._PERSON.fullmatch("Diancastra") and sidebars._PERSON.fullmatch("Mordenkainen")

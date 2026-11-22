@@ -78,6 +78,7 @@ def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
     return out
 
 
+_PERSON = re.compile(r"[A-Z][a-z']+(?: [A-Z][a-z']+)?")  # a commentator's name; an epigraph's attribution is not
 _SIGNATURE = re.compile(r"^[-\u2014\u2013]+\s*(\S.*)$")
 _NOTE_SHARE = 0.4  # a page whose "notes" are more than this share of its text is a letter or a foreword, not a margin
 
@@ -143,10 +144,18 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
         if run:
             if any(prose(x.text) for x in run) and not _epigraph(run):
                 k = at[id(run[-1])] + 1  # a signature line set below the box, too small to be read as part of it
+                tail: list[Line] = []  # the box's last word, a short fragment the OCR set apart ("kettte")
+                while k < len(lines) and len(tail) < 2 and id(lines[k]) not in ids and lines[k].page == run[-1].page \
+                        and len(lines[k].text.strip()) <= 12 and not _SIGNATURE.match(lines[k].text.strip()):
+                    tail.append(lines[k])
+                    k += 1
                 sig = None
                 if k < len(lines) and id(lines[k]) not in ids and _SIGNATURE.match(lines[k].text.strip()) \
                         and lines[k].page == run[-1].page and len(lines[k].text.strip()) <= 40:
                     sig = lines[k]
+                else:
+                    tail = []
+                run = [*run, *tail]
                 body = run
                 m = _SIGNATURE.match(run[-1].text.strip())
                 by = None
@@ -154,6 +163,11 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
                     by = _SIGNATURE.match(sig.text.strip()).group(1).strip()
                 elif m and len(run) > 1:
                     by, body = m.group(1).strip(), run[:-1]
+                if by is not None and not _PERSON.fullmatch(by):
+                    if left_lines is not None:  # an epigraph's attribution ("Rakshasa maxim", "... of the Emerald Enclave")
+                        left_lines += [*run, *([sig] if sig is not None else [])]
+                    run = [l] if l is not None and id(l) in ids else []
+                    continue
                 all_lines = [*run, sig] if sig is not None else run
                 notes.append(Note(lines=all_lines, by=by, text=_join([x.text.strip() for x in body]),
                                   signature=(sig or (run[-1] if m and len(run) > 1 else None))))

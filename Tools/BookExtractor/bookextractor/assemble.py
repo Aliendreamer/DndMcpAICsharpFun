@@ -733,10 +733,15 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
 
     found_notes: list[Note] = []
     if entities:  # the writers' margin notes: kept in `notes` of an entity, never swept up as a sidebar
-        all_text = _squash("\n".join(e["canonicalText"] for e in entities))
+        page_text: dict[int, str] = {}
+        for e, lines_ in zip(entities, entity_lines):
+            for pg in {l.page for l in lines_}:
+                page_text[pg] = page_text.get(pg, "") + "\n" + e["canonicalText"]
+        page_text = {pg: _squash(t) for pg, t in page_text.items()}  # (a line is held by the text of its own page)
         epigraph_lines: list[Line] = []
         for n in sorted(ordered):
-            found_notes += margin_notes(ordered[n], ctx, lambda l: _squash(l.text) in all_text, epigraph_lines)
+            found_notes += margin_notes(ordered[n], ctx, lambda l: len(_squash(l.text)) >= 8
+                                        and _squash(l.text) in page_text.get(l.page, ""), epigraph_lines)
         claimed_lines |= {k for note in found_notes for k in _line_keys(note.lines)}
         claimed_lines |= _line_keys(epigraph_lines)
         for note in found_notes:
