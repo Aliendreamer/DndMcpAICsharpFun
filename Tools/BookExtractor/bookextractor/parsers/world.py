@@ -93,7 +93,7 @@ from ..checks import Check
 from ..model import Line
 from . import ParseContext, Parsed
 from .boundary_trim import trim_own
-from .charcommon import SENTENCE_END, SMALL_WORDS, character_body, prose_entries, set_apart, squash
+from .charcommon import DICE_HEADER, SENTENCE_END, SMALL_WORDS, character_body, prose_entries, set_apart, squash
 from .rule import rules_chapter
 from .sections import (_SUB_STEP, UNKNOWN_CHAPTER, Section, chapter_titles, display_lines, drop_art, drop_dangling,
                        fix_acronyms, foreign_lines, heading_words, line_key, name_words, odd_opening, prose,
@@ -469,8 +469,8 @@ def _doubt(s: Section, own: list[Line], heads: int, starts: dict[int, int], size
     out: list[str] = []
     for k in range(heads, len(own) - 1):
         l, prev = own[k], own[k - 1]
-        if not _heading_line(l.text) or id(l) in parts:
-            continue  # a folded recurring sub-heading ("Government") is a part of every entry (ruling W17)
+        if not _heading_line(l.text) or id(l) in parts or DICE_HEADER.match(l.text.strip()):
+            continue  # a folded recurring sub-heading ("Government") is a part of every entry (ruling W17); a die header is none
         over_prose = any(prose(x.text) for x in own[k + 1:k + 5])
         unfinished = prose(prev.text) and not prev.text.rstrip().endswith(SENTENCE_END)
         if unfinished and not prose(own[k + 1].text):

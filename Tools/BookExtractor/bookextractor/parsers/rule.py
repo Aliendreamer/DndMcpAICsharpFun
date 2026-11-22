@@ -48,7 +48,7 @@ from ..checks import Check
 from ..model import Line
 from . import ParseContext, Parsed
 from .boundary_trim import trim_own
-from .charcommon import (PAGE_NO, RUNNING_HEAD, SENTENCE_END, caps_heading, character_body, heading_like, like,
+from .charcommon import (DICE_HEADER, PAGE_NO, RUNNING_HEAD, SENTENCE_END, caps_heading, character_body, heading_like, like,
                          name_case, prose_entries, set_apart, squash, title_case)
 from .item import _is_type_line
 from .monster import _is_size_line
@@ -99,8 +99,8 @@ def _unread_heading(L: list[Line], k: int, min_h: float, starts: set[int], tall:
     in a full stop and runs on into its paragraph: never one."""
     if k == 0 or k + 1 >= len(L) or id(L[k]) in starts:
         return False
-    if L[k].height < min_h or not heading_words(L[k].text):
-        return False
+    if L[k].height < min_h or not heading_words(L[k].text) or DICE_HEADER.match(L[k].text.strip()):
+        return False  # (a table's repeated die header is no heading)
     prev = L[k - 1]
     if not (L[k].height >= tall or prev.text.rstrip().endswith(SENTENCE_END) or set_apart(prev, L[k])
             or prev.text.lstrip().startswith("*")):
@@ -190,6 +190,8 @@ def _cut_unread(s: Section, starts: dict[int, int], rule_starts: set[int]) -> tu
 def _caption(s: Section) -> bool:
     """The section is a table's caption read as a heading ("Loot Value" over "DC Value" / "10 50 gp, ..."): no
     prose in the two lines under it."""
+    if s.table_run:
+        return False  # one of a run of sibling tables, each an entity of its own
     h = _heads(s.lines, s.title)
     return not any(prose(l.text) for l in s.lines[h:h + 2])
 

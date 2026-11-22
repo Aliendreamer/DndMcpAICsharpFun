@@ -1980,7 +1980,7 @@
   "match": false
  },
  "tce.rule.mirror-zone-effects": {
-  "f1": 0.4247,
+  "f1": 0.9899,
   "found": true,
   "match": false
  },
@@ -1995,7 +1995,7 @@
   "match": false
  },
  "tce.rule.unraveling-magic-effects": {
-  "f1": 0.2497,
+  "f1": 0.701,
   "found": true,
   "match": false
  },
@@ -2110,7 +2110,7 @@
   "match": false
  },
  "xge.rule.flight-or-fight-or": {
-  "f1": 0.2682,
+  "f1": 0.2797,
   "found": true,
   "match": false
  },

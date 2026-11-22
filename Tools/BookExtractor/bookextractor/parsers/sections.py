@@ -81,6 +81,7 @@ class Section:
     # the printed lines inside the section's span that are not its text: sidebars, running heads and feet, page
     # numbers, captions, art text (art credits are not kept); a check can see what the stripping took out
     stripped: list[Line] = field(default_factory=list, repr=False)
+    table_run: bool = False  # the heading is a table's title in a run of sibling tables, not a caption over one
 
 
 def chapter_titles(B: list[Line]) -> list[tuple[list[int], str]]:
@@ -476,7 +477,7 @@ def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
             span = full[at[id(L[i])]:at[id(L[end])] if end < len(L) else len(full)]
             out.append(Section(title=titles_here[k], level=len(open_) + 1, parents=parents, lines=L[i:end],
                                page=L[i].page, complete=complete, end_reason=reason, size=sizes[k],
-                               stripped=[l for l in span if id(l) not in kept]))
+                               stripped=[l for l in span if id(l) not in kept], table_run=i in runs))
             open_.append(k)
     return out
 
@@ -820,7 +821,10 @@ def odd_opening(name: str, lines: list[Line], heads: int, claimed: frozenset | s
     words = [w.lower() for w in re.findall(r"[A-Za-z]{5,}", name)]
     if len(words) != len(set(words)):
         return f"the name {name!r} repeats a word: two column headings of a table read as one heading"
-    body = next((l for l in lines[heads:] if l.text.strip()), None)
+    body_at = next((k for k in range(heads, len(lines)) if lines[k].text.strip()), None)
+    body = lines[body_at] if body_at is not None else None
+    if body is not None and table_header(lines, body_at):
+        body = None  # a table's column header (a die, "Desired Offering") is the table's own, not a wrapped heading
     # the line under the heading is a short title-like fragment set like the heading: the heading wraps onto it
     # ("Moving Around Other" / "CREATURES"; "Weak Monsters And High-Level" / "CHARACTERS")
     if body is not None and 0 < len(body.text.split()) <= 3 and not re.search(r"[.!?:;,]$", body.text.strip()) \
