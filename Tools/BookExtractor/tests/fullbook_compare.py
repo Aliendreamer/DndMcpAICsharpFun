@@ -49,8 +49,33 @@ def worker(root: str, cache: str, file_hash: str, slug: str, out: str) -> None:
              "action": len(json.dumps(e["fields"].get("action") or "")),
              "trait": len(json.dumps(e["fields"].get("trait") or "")),
              "fails": sorted(c["name"] for c in e["checks"] if not c["passed"])} for e in entities]
-    ocr = [[p.number, l.text.strip()] for p in pages for l in p.lines if len(l.text.strip()) >= MIN_LINE]
+    exempt = _exempt_lines(pages)
+    ocr = [[p.number, l.text.strip(), (p.number, l.text.strip()) in exempt]
+           for p in pages for l in p.lines if len(l.text.strip()) >= MIN_LINE]
     Path(out).write_text(json.dumps({"entities": slim, "ocr": ocr}))
+
+
+def _exempt_lines(pages: list) -> set:
+    """(page, text) of the lines the working-tree extractor leaves out on purpose: art text and margin notes that
+    `drop_art` recognises, and a headingless quote box or epigraph (`sidebars.quote_box`). Empty for a ref that has
+    no such rule."""
+    try:
+        from bookextractor.layout import reading_order
+        from bookextractor.pages import classify_page
+        from bookextractor.parsers import ParseContext
+        from bookextractor.parsers.sections import drop_art
+        from bookextractor.sidebars import quote_box
+    except ImportError:
+        return set()
+    ctx = ParseContext(slug="x", source="X", pages={p.number: p for p in pages})
+    out: set = set()
+    for p in pages:
+        if classify_page(p) not in ("rules", "art"):
+            continue
+        lines = reading_order(p)
+        kept = {id(l) for l in drop_art(lines, ctx)}
+        out |= {(p.number, l.text.strip()) for l in lines if id(l) not in kept or quote_box([l])}
+    return out
 
 
 def _repo_root() -> Path:
@@ -80,16 +105,6 @@ def _landed(text: str, haystack: str) -> float:
     return sum(l in haystack for l in lines) / len(lines) if lines else 1.0
 
 
-_QUOTE_START = ("\"", "\u201c", "\u2018", "'", "\u2014", "\u2013", "-")
-
-
-def _quote_like(line: str) -> bool:
-    """Headless quote boxes and epigraphs are not entity text on purpose (an epigraph, its attribution)."""
-    letters = [c for c in line if c.isalpha()]
-    shouting = len(letters) > 8 and sum(c.isupper() for c in letters) >= 0.35 * len(letters)  # caps / small-caps OCR
-    return shouting or line.startswith(_QUOTE_START) or line.endswith(("\u201d", "\""))
-
-
 def _flat(text: str) -> str:
     """Whitespace and bullet glyphs aside: the text may set a bullet or a line break differently than the OCR line."""
     return re.sub(r"[\s\u2022]+", " ", text)
@@ -101,14 +116,14 @@ def coverage(old: list[dict], new: list[dict], ocr: list) -> dict:
     new_text = _flat("\n".join(e["text"] for e in new))
     seen: set[str] = set()
     newly, pre, quotes = [], [], 0
-    for page, line in ocr:
+    for page, line, exempt in ocr:
         if line in seen:
             continue
         seen.add(line)
         line = _flat(line[:-1] if line.endswith("-") else line)  # the text joins a hyphenated word across lines
         if line in new_text:
             continue
-        if _quote_like(line):
+        if exempt:
             quotes += 1
         elif line in old_text:
             newly.append((page, line))
@@ -161,7 +176,7 @@ def compare(slug: str, old: list[dict], new: list[dict], ocr: list, detail: int)
         lines.append(f"    {t} {i} p{page} ({size} chars, {share:.0%} of its lines elsewhere)")
     cov = coverage(old, new, ocr)
     lines.append(f"  OCR lines >= {MIN_LINE} chars in no working-tree entity: newly orphaned {len(cov['new'])}, "
-                 f"orphaned in the ref too {len(cov['pre'])}, quote/epigraph lines skipped {cov['quotes']}")
+                 f"orphaned in the ref too {len(cov['pre'])}, lines the extractor leaves out on purpose (drop_art, quote box) skipped {cov['quotes']}")
     for page, line in cov["new"][:detail]:
         lines.append(f"    NEW p{page}: {line[:100]}")
     return {"slug": slug, "lines": lines, "moved": len(shifts), "gained": len(gained), "lost": len(lost),
