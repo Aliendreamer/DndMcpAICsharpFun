@@ -623,15 +623,19 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     claimed_lines: set[LineKey] = set()
     claimed_names: set[str] = set()
     god_names: set[str] = set()  # the gods' printed names: a world section naming one is a part of its text
+    monster_names: set[str] = set()  # the creatures' names: a section named like one is the lore around its block
     for t in ALL_TYPES:
         if t not in types:
             continue
         ctx.cache["claimed_lines"], ctx.cache["claimed_names"] = set(claimed_lines), set(claimed_names)
         ctx.cache["god_names"] = set(god_names)
+        ctx.cache["monster_names"] = set(monster_names)
         parsed = _PARSERS[t](body, ctx)
         claimed_names.update(p.name for p in parsed if p.name.strip())  # as printed, before the name repair
         if t == "God":
             god_names.update(p.name for p in parsed if p.name.strip())
+        if t == "Monster":
+            monster_names.update(p.name for p in parsed if p.name.strip())
         # a world type's ids are assigned over the whole type at once (rulings W4, W11, W19)
         named = ([_id_and_checks(p, book_slug, seen, vocab) for p in parsed] if t not in WORLD_TYPES else
                  _world_ids(parsed, [_unseen_long_word_check(p, _id_and_checks(p, book_slug, Counter(), vocab)[1], vocab)

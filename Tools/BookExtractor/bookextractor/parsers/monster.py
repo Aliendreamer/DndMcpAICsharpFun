@@ -520,22 +520,31 @@ def _title_cased(t: str) -> bool:
     return bool(words) and all(w[:1].isupper() or w.lower() in _SMALL_WORDS for w in words) and words[0][:1].isupper()
 
 
-def _starts_next_entity(L: list[Line], j: int, has_entries: bool) -> bool:
-    """A title-cased heading line right after a finished sentence, at the top of the next page, ends the block.
+def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> bool:
+    """At the top of the next page, text that cannot belong to the finished block ends it.
 
-    Within a page the same shape is a block's own sub-heading ("Regional Effects", "Mythic Actions"), so only a
-    page break counts.
+    Three shapes: an epigraph quote; a title-cased heading right after a finished sentence (within a page the
+    same shape is a block's own sub-heading, "Regional Effects" or "Mythic Actions", so only a page break counts);
+    and a new paragraph with no "Name." lead-in, no attack or Actions heading following before the next block
+    (lore set between a block's two halves is followed by one; lore that precedes the next block is not).
 
     The detached text goes to the section reader (ERLW: "Replicate Magic Item" follows the Homunculus Servant's
     last reaction in the next column).
     """
     t = L[j].text.strip()
-    if not has_entries or j == 0 or L[j - 1].page == L[j].page or not _heading_like(t) or t[-1] in ".,;:!?)" or not _title_cased(t) \
-            or len(t.split()) < 2:
+    if not has_entries or j == 0 or L[j - 1].page == L[j].page:
+        return False
+    finished = bool(re.search(r"[.!?)]\s*$", L[j - 1].text.strip()))
+    if finished and t[:1] in "\"\u201c":
+        return True  # an epigraph quote opens what follows; it is no part of the finished block
+    if finished and t[:1].isupper() and not _LEAD_IN.match(t) and j + 1 < len(L) and L[j + 1].page == L[j].page \
+            and not any(_ATTACK.search(L[k].text) or _section_key(L[k].text) for k in range(j + 1, min(end, len(L)))):
+        return True
+    if not _heading_like(t) or t[-1] in ".,;:!?)" or not _title_cased(t) or len(t.split()) < 2:
         return False
     if any(_is_size_line(L[k].text) for k in range(j + 1, min(j + 4, len(L)))):
         return False  # the next stat block's own name: its start already bounds this block
-    return bool(re.search(r"[.!?)]\s*$", L[j - 1].text.strip()))
+    return finished
 
 
 def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: int) -> Parsed:
@@ -591,7 +600,15 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
             sec = key
         elif _is_heading_caps(t) and rel[j] > 1.0 and len(t.split()) <= 8:
             break
-        elif _leaves_block(L, rel, j, end) or _starts_next_entity(L, j, any(body.values())):
+        elif _leaves_block(L, rel, j, end) or _starts_next_entity(L, j, any(body.values()), end):
+            break
+        elif any(body.values()) and _lab(t, "Armor Class"):
+            # a second header inside the body is the next block's: its garbled name and size lines stay out too
+            for _ in range(2):
+                if body[sec] and j - 1 > stat_end and len(L[j - 1].text.split()) <= 6 \
+                        and not L[j - 1].text.rstrip().endswith("."):
+                    body[sec].pop()
+                    j -= 1
             break
         else:
             body[sec].append(t)

@@ -70,7 +70,7 @@
   "match": false
  },
  "bgg.monster.cradle-of-the-frost-scion": {
-  "f1": 0.8192,
+  "f1": 0.8978,
   "found": true,
   "match": false
  },
@@ -80,7 +80,7 @@
   "match": false
  },
  "bgg.monster.echo-of-demogorgon": {
-  "f1": 0.809,
+  "f1": 1.0,
   "found": true,
   "match": false
  },
@@ -92,7 +92,7 @@
  "bgg.monster.flesh-colossus": {
   "f1": 1.0,
   "found": true,
-  "match": false
+  "match": true
  },
  "bgg.monster.fomorian-deep-crawler": {
   "f1": 1.0,
@@ -117,7 +117,7 @@
  "bgg.monster.giant-goose": {
   "f1": 1.0,
   "found": true,
-  "match": false
+  "match": true
  },
  "bgg.monster.gigant": {
   "f1": 0.8246,
@@ -155,7 +155,7 @@
   "match": false
  },
  "bgg.monster.regisaur": {
-  "f1": 0.7586,
+  "f1": 0.7567,
   "found": true,
   "match": false
  },
@@ -170,7 +170,7 @@
   "match": false
  },
  "bgg.monster.scion-of-stronmaus": {
-  "f1": 0.8006,
+  "f1": 0.9115,
   "found": true,
   "match": false
  },
@@ -185,7 +185,7 @@
   "match": false
  },
  "bgg.monster.stalker-of-baphomet": {
-  "f1": 0.7175,
+  "f1": 0.8214,
   "found": true,
   "match": false
  },
@@ -205,7 +205,7 @@
   "match": false
  },
  "bgg.monster.titanothere": {
-  "f1": 0.5128,
+  "f1": 0.9658,
   "found": true,
   "match": false
  },
@@ -410,7 +410,7 @@
   "match": false
  },
  "dmg14.lore.special-features": {
-  "f1": 0.0022,
+  "f1": 0.0032,
   "found": true,
   "match": false
  },
@@ -750,7 +750,7 @@
   "match": true
  },
  "egw.monster.bol-bara": {
-  "f1": 0.6761,
+  "f1": 0.9822,
   "found": true,
   "match": false
  },
@@ -1390,9 +1390,9 @@
   "match": false
  },
  "ftd.lore.deep-dragons": {
-  "f1": 0.9191,
+  "f1": 1.0,
   "found": true,
-  "match": false
+  "match": true
  },
  "ftd.lore.draconians": {
   "f1": 0.9082,
@@ -1405,7 +1405,7 @@
   "match": true
  },
  "ftd.lore.draconomicon-dragon-turtles-p193": {
-  "f1": 0.659,
+  "f1": 0.9483,
   "found": true,
   "match": false
  },
@@ -1480,7 +1480,7 @@
   "match": false
  },
  "ftd.lore.moonstone-dragons": {
-  "f1": 0.7858,
+  "f1": 0.9462,
   "found": true,
   "match": false
  },
@@ -1495,7 +1495,7 @@
   "match": true
  },
  "ftd.lore.sea-serpents": {
-  "f1": 0.954,
+  "f1": 0.9553,
   "found": true,
   "match": false
  },
@@ -1530,7 +1530,7 @@
   "match": true
  },
  "ftd.monster.chromatic-greatwyrm": {
-  "f1": 0.9085,
+  "f1": 0.957,
   "found": true,
   "match": false
  },
@@ -1540,9 +1540,9 @@
   "match": false
  },
  "ftd.monster.drake-companion": {
-  "f1": 0.6359,
+  "f1": 1.0,
   "found": true,
-  "match": false
+  "match": true
  },
  "ftd.monster.swarm-of-hoard-scarabs": {
   "f1": 1.0,
@@ -1640,17 +1640,17 @@
   "match": false
  },
  "mm14.lore.jackalwere": {
-  "f1": 0.8959,
+  "f1": 1.0,
   "found": true,
-  "match": false
+  "match": true
  },
  "mm14.monster.ackalwere": {
-  "f1": 0.5835,
+  "f1": 0.9968,
   "found": true,
   "match": false
  },
  "mm14.monster.adult-gold-draon": {
-  "f1": 0.589,
+  "f1": 0.9984,
   "found": true,
   "match": false
  },
@@ -1690,7 +1690,7 @@
   "match": true
  },
  "mpmm.monster.drow-favored-consort": {
-  "f1": 0.7818,
+  "f1": 1.0,
   "found": true,
   "match": false
  },
@@ -1700,7 +1700,7 @@
   "match": false
  },
  "mpmm.monster.sacred-statue": {
-  "f1": 0.9286,
+  "f1": 0.9964,
   "found": true,
   "match": false
  },
@@ -1710,9 +1710,9 @@
   "match": false
  },
  "mpmm.rule.devil-summoning": {
-  "f1": 0.3865,
+  "f1": 1.0,
   "found": true,
-  "match": false
+  "match": true
  },
  "mpmm.rule.drow-inquisitor-demon-summoning": {
   "f1": 0.9949,
@@ -1720,9 +1720,9 @@
   "match": false
  },
  "mpmm.rule.molydeus-demon-summoning": {
-  "f1": 0.4329,
+  "f1": 1.0,
   "found": true,
-  "match": false
+  "match": true
  },
  "mtf.monster.drow-arachnomancer": {
   "f1": 0.8926,
@@ -1880,7 +1880,7 @@
   "match": false
  },
  "tce.monster.aberrant-spirit": {
-  "f1": 0.7147,
+  "f1": 0.934,
   "found": true,
   "match": false
  },
@@ -1910,7 +1910,7 @@
   "match": false
  },
  "tce.monster.construct-spirit": {
-  "f1": 0.7095,
+  "f1": 0.912,
   "found": true,
   "match": false
  },
@@ -1945,9 +1945,9 @@
   "match": false
  },
  "tce.monster.steel-defender": {
-  "f1": 0.4325,
+  "f1": 1.0,
   "found": true,
-  "match": false
+  "match": true
  },
  "tce.monster.undead-spirit": {
   "f1": 0.8373,
@@ -1955,7 +1955,7 @@
   "match": false
  },
  "tce.monster.wildfire-spirit": {
-  "f1": 0.6253,
+  "f1": 0.671,
   "found": true,
   "match": false
  },

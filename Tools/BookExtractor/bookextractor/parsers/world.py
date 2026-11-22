@@ -644,7 +644,9 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     sizes = {id(s.lines[0]): s.size for s in sections}
     picked: list[tuple[_Entry, list[Line]]] = []
 
-    plain_names = {_plain(n) for n in names}
+    # a creature's name claims no section: the lore printed under it, which its stat block no longer holds (it ends
+    # at its last entry), is a section of its own, kept; the creature's own lines are claimed line by line
+    plain_names = {_plain(n) for n in names - ctx.cache.get("monster_names", set())}
 
     def owned(title: str, lines: list[Line], heading: bool = True, by_share: bool = True) -> bool:
         share = sum(line_key(l) in claimed for l in lines) / len(lines)

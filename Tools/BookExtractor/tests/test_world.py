@@ -263,9 +263,12 @@ def test_a_stat_block_inside_lore_is_flagged_not_dropped():
     """W16: EGW "Story Overview" prints an NPC's stat block inside its lore: the section stays, text-complete names
     the block's lines."""
     ents, _ = _parse("egw", [236, 237], "egw", "EGW")
-    # round 4: the block's own heading ("Actions") is a sub-section, so the block is named in that entry, and the
-    # section holding it still fails text-complete (its heading "STAHLMASTER" is in doubt)
-    assert "text-complete" in failed(one(ents, "Story Overview"))
+    # round 4: the block's own heading ("Actions") is a sub-section, so the block is named in that entry. The
+    # block sits in a box across both columns, so its left half is read with its right (two-column stat blocks):
+    # "Story Overview" keeps the lore the right column carries on with, and the block's doubtful lines fall to
+    # the section the box opens under
+    assert "deadly blue spores" in " ".join(one(ents, "Story Overview").fields["entries"])
+    assert "text-complete" in failed(one(ents, "Adventure Summary"))
     reason = failed(one(ents, "Actions"))["text-complete"]
     assert "stat block" in reason and "Melee Weapon Attack" in reason
 

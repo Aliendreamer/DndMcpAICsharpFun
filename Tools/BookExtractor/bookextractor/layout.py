@@ -57,7 +57,7 @@ def reading_order(page: Page) -> list[Line]:
     """Left column then right column, same-row fragments merged (sorted by x0), headers/footers dropped."""
     mid = page.width / 2
     lines = [l for l in page.lines if l.text]
-    rows: list[Line] = []
+    columns: list[list[Line]] = []
     for col in (0, 1):
         cl = sorted((l for l in lines if (1 if (l.box[0] + l.box[2]) / 2 > mid else 0) == col),
                     key=lambda l: l.box[1])
@@ -73,9 +73,43 @@ def reading_order(page: Page) -> list[Line]:
                                     max(last.height, l.height), page.number, frags)
             else:
                 col_rows.append(replace(l, frags=list(l.frags)))
-        rows.extend(col_rows)
+        columns.append(col_rows)
+    rows = _interleave_stat_blocks(*columns, page.height)
     return [r for i, r in enumerate(rows)
             if not _is_edge_noise(r, page) or _heads_text(r, rows[i + 1] if i + 1 < len(rows) else None, page)]
+
+
+_SIZE_LINE = re.compile(r"^(?:tiny|small|medium|large|huge|gargantuan)\b", re.I)
+_ARMOR_CLASS = re.compile(r"^armor class\b", re.I)
+
+
+def _stat_block_starts(rows: list[Line]) -> list[int]:
+    """Indices of name lines that head a stat block (name, size line, then Armor Class within 3 rows)."""
+    return [i for i in range(len(rows) - 2)
+            if _SIZE_LINE.match(rows[i + 1].text)
+            and any(_ARMOR_CLASS.match(r.text) for r in rows[i + 2:i + 5])]
+
+
+def _interleave_stat_blocks(left: list[Line], right: list[Line], page_height: float) -> list[Line]:
+    """A stat block set in a two-column box starts in the left column, runs to its foot, and carries on in
+    the right column at the same height as its name line (lore may sit above it there). Read that
+    continuation straight after the block's left half instead of after the whole left column."""
+    starts = _stat_block_starts(left)
+    if not starts:
+        return left + right
+    s = starts[-1]
+    # the block's rows run on until a footer or a gap too wide to sit inside one stat block
+    split = next((i for i in range(s + 1, len(left))
+                  if left[i].box[1] > 0.94 * page_height
+                  or left[i].box[1] - left[i - 1].box[3] > 3 * left[s].height), len(left))
+    if left[split - 1].box[3] < 0.85 * page_height:
+        return left + right  # the block ends inside the left column: nothing is cut
+    first_right_block = min(_stat_block_starts(right), default=len(right))  # that block is the right's own
+    tol = 0.6 * left[s].height
+    c = next((j for j in range(first_right_block) if abs(right[j].box[1] - left[s].box[1]) <= tol), None)
+    if c is None:
+        return left + right
+    return left[:s] + right[:c] + left[s:split] + right[c:] + left[split:]
 
 
 def _heads_text(line: Line, nxt: Line | None, page: Page) -> bool:
