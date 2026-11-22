@@ -18,6 +18,8 @@ from .parsers.sections import _table_row, drop_art, heading_words, prose
 
 PAGES_AFTER = 3  # a sidebar is looked for on the pages of a stat block and the ones after it (the block ran on)
 MIN_LINE = 30  # a printed line this long is content, not a label or a page number
+_CHAPTER_TITLE = re.compile(r"(?i)^(?:chapter|appendix|part)\s+\w+\s*[:.|]")
+_FRAGMENT = 120  # a run this short beside a margin note is a stray line of the note
 _NOTE_TALL = 1.3  # a margin note's lines are set this many times the text's median line height
 _QUOTE_START = ("\"", "“", "‘", "—", "–")
 
@@ -57,7 +59,10 @@ def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
     kept = {id(l) for l in drop_art(lines, ctx)}
     heights = sorted(l.height for l in lines)
     med = heights[len(heights) // 2] if heights else 0
-    return [l for l in lines if id(l) not in kept and (l.height >= _NOTE_TALL * med or not prose(l.text))]
+    openers = {n for n in {l.page for l in lines}  # a chapter's first page: its tall prose is the chapter's text
+               if any(_CHAPTER_TITLE.match(x.text.strip()) for x in getattr(ctx.pages.get(n), "lines", ()))}
+    return [l for l in lines if id(l) not in kept
+            and l.page not in openers and (not prose(l.text) or l.height >= _NOTE_TALL * med)]
 
 
 def _runs(lines: list[Line], eligible: set[int]) -> list[_Run]:
@@ -101,7 +106,7 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
                 continue
             before, after = at[id(L[0])] - 1, at[id(L[-1])] + 1
             beside_note = any(0 <= j < len(lines) and id(lines[j]) not in recognised for j in (before, after))
-            if beside_note and not (len(L) > 1 and heading_words(L[0].text) and not prose(L[0].text)):
+            if beside_note and sum(len(l.text.strip()) for l in L) < _FRAGMENT and not (len(L) > 1 and heading_words(L[0].text) and not prose(L[0].text)):
                 if left_out is not None:
                     left_out += [(l.page, l.text.strip()) for l in L]  # a stray line of the margin note beside it
                 continue
