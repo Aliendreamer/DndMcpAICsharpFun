@@ -14,7 +14,7 @@ from .model import Line
 from .pages import is_table_page
 from .parsers import ParseContext, Parsed
 from .parsers.charcommon import PAGE_NO, RUNNING_HEAD, prose_entries
-from .parsers.sections import _table_row, drop_art, drop_pull_quotes, heading_words, prose
+from .parsers.sections import _table_row, drop_art, heading_words, prose
 
 PAGES_AFTER = 3  # a sidebar is looked for on the pages of a stat block and the ones after it (the block ran on)
 MIN_LINE = 30  # a printed line this long is content, not a label or a page number
@@ -56,10 +56,25 @@ def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
     no prose (a map label, a picture's words). A prose line set in from the edge after a gap is a chapter's drop-cap
     opening, not art: it is no exemption."""
     kept = {id(l) for l in drop_art(lines, ctx)}
-    notes = {id(l) for l in lines} - {id(l) for l in drop_pull_quotes(lines)}  # tall hand-set notes, as the reader sees them
-    openers = {n for n in {l.page for l in lines}  # a chapter's first page: its tall prose is the chapter's text
+    openers = {n for n in {l.page for l in lines}  # a chapter's first page: its text is the chapter's, not art
                if any(_CHAPTER_TITLE.match(x.text.strip()) for x in getattr(ctx.pages.get(n), "lines", ()))}
-    return [l for l in lines if id(l) not in kept and l.page not in openers and (not prose(l.text) or id(l) in notes)]
+    dropped = [i for i, l in enumerate(lines) if id(l) not in kept and l.page not in openers]
+    out: list[Line] = []
+    i = 0
+    while i < len(dropped):
+        j = i
+        while j + 1 < len(dropped) and dropped[j + 1] == dropped[j] + 1:
+            j += 1
+        run = [lines[k] for k in dropped[i:j + 1]]
+        nxt = lines[dropped[j] + 1] if dropped[j] + 1 < len(lines) else None
+        # a run set in from the edge whose last line stops mid-sentence and which the kept text carries on in lower
+        # case is a paragraph's drop-cap opening (it flows on), not a note or a label
+        flows = (nxt is not None and id(nxt) in kept and nxt.page == run[-1].page and nxt.text.strip()[:1].islower()
+                 and not run[-1].text.rstrip().endswith((".", "!", "?", "\"", "\u201d")) and any(prose(l.text) for l in run))
+        if not flows:
+            out += run
+        i = j + 1
+    return out
 
 
 def _runs(lines: list[Line], eligible: set[int]) -> list[_Run]:
