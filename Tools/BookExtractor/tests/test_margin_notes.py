@@ -228,3 +228,24 @@ def test_a_signature_is_stripped_only_from_entities_on_the_notes_page():
     _strip_line(ents, "-Mordenkainen", lines, 9)
     assert "-Mordenkainen" in ents[0]["canonicalText"]
     assert "-Mordenkainen" not in ents[1]["canonicalText"]
+
+
+def _duplicates(case: str) -> list[str]:
+    import re
+    ents = _entities(case)
+    sq = lambda t: re.sub(r"[^a-z0-9]+", "", t.lower())
+    out = []
+    for i, e in enumerate(ents):
+        if any(c["name"] == "sidebar-detached" and not c["passed"] for c in e["checks"]):
+            body = e["canonicalText"].split("\n", 1)[-1]
+            others = sq("\n".join(x["canonicalText"] for j, x in enumerate(ents) if j != i))
+            if sq(body) in others:
+                out.append(e["id"])
+    return out
+
+
+def test_the_net_does_not_repeat_text_another_entity_holds_after_ocr_digit_repair():
+    # R: "While wearing this ring, you regain ld6 hit points" is held by the ring as "1d6"; no one-line Lore repeats it
+    assert _duplicates("r4-dmg14-191") == []
+    assert _duplicates("r4-dmg14-216") == []
+

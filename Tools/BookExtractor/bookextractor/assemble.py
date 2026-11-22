@@ -651,7 +651,9 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
 
     def unheld(l: Line) -> bool:
         t = l.text.strip()
-        return (len(_squash(t)) >= 8 and _squash(t) not in page_text.get(l.page, "") and t not in left_texts
+        # (the entity text is digit-repaired, the OCR line is not: "ld6" is held by "1d6")
+        return (len(_squash(t)) >= 8 and _squash(t) not in page_text.get(l.page, "")
+                and _squash(fix_digits(t)) not in page_text.get(l.page, "") and t not in left_texts
                 and t not in note_texts and not PAGE_NO.fullmatch(t) and not RUNNING_HEAD.match(t))
 
     def qualifies(run: list[Line]) -> bool:
@@ -705,10 +707,14 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
                 jobs.append((on_page[n][1] if n in on_page else None, run))
             run = []
     done: set[str] = set()
+    book_text = _squash("\n".join(e["canonicalText"] + " " + " ".join(n["text"] for n in e.get("notes", []))
+                                 for e in entities))
     for owner, run in jobs:
         text = _join_run(run)
         if _squash(text) in done:
             continue
+        if _squash(text) in book_text or _squash(fix_digits(text)) in book_text:
+            continue  # another entity holds the whole run (a pruned duplicate of a repaired line): nothing to keep
         done.add(_squash(text))
         host = entities[owner] if owner is not None else None
         if host is not None and host["type"] in _ENTRIES_TYPES and isinstance(host["fields"].get("entries"), list) \
@@ -733,6 +739,30 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
                          "fields": p.fields,
                          "checks": [{"name": c.name, "passed": c.passed, "reason": c.reason} for c in checks],
                          "provenance": _provenance(p.lines, by_number)})
+
+
+def _drop_duplicate_sidebars(entities: list[dict], entity_lines: list, keys: list, firsts: list, texts: list) -> None:
+    """A flagged `sidebar-detached` Lore whose whole text another entity holds (compared as the net compares: letters and
+    digits only, the OCR digit repair on both sides) keeps nothing: it is dropped. One at a time, so two that repeat each
+    other leave one."""
+    def body(e: dict) -> str:
+        return e["canonicalText"].split("\n", 1)[-1]
+
+    def flagged(e: dict) -> bool:
+        return any(c["name"] == "sidebar-detached" and not c["passed"] for c in e["checks"])
+
+    alive = [True] * len(entities)
+    for i in range(len(entities) - 1, -1, -1):
+        if not flagged(entities[i]):
+            continue
+        mine = {_squash(body(entities[i])), _squash(fix_digits(body(entities[i])))} - {""}
+        others = _squash("\n".join(e["canonicalText"] + " " + " ".join(n["text"] for n in e.get("notes", []))
+                                   for j, e in enumerate(entities) if j != i and alive[j]))
+        if mine and any(m in others for m in mine):
+            alive[i] = False
+    for lst in (entities, entity_lines, keys, firsts, texts):
+        if len(lst) == len(alive):
+            lst[:] = [x for x, a in zip(lst, alive) if a]
 
 
 def _join_run(run: list[Line]) -> str:
@@ -898,6 +928,8 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     if entities:
         _keep_unheld(entities, entity_lines, ordered, opening_runs, left_out, note_texts, "Lore" in types, keys, firsts,
                      texts, book_slug, seen, vocab, by_number, claimed_lines, covered)
+    if entities and len({len(entities), len(entity_lines), len(keys), len(firsts), len(texts)}) == 1:
+        _drop_duplicate_sidebars(entities, entity_lines, keys, firsts, texts)
     # a line an entity holds is not "left out": only what no entity's text holds is listed
     held = _squash("\n".join(e["canonicalText"] for e in entities))
     left_out = [(pg, t) for pg, t in left_out if _squash(t) not in held]
