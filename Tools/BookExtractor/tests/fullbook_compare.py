@@ -12,7 +12,8 @@ The ref is unpacked with `git archive` into a temp dir; each extractor runs in i
 
 Per book it prints: entity counts by type; Monsters whose text, action or trait length moved more than 20%;
 check-failure deltas by check name, and Monsters that gained a failing check; entities that disappeared, and whether
-their text landed in another entity. Use `--detail N` to list more than the default rows of each list.
+their text landed in another entity; OCR lines of 30+ chars held by a ref entity but by no working-tree entity
+(newly orphaned: text that left an entity that still exists), and those orphaned in both. Use `--detail N` to list more than the default rows of each list.
 """
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ import glob
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -30,6 +32,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PKG_ROOT = HERE.parent  # Tools/BookExtractor
 SHIFT = 0.20
+MIN_LINE = 30  # an OCR line this long is content, not a label or a page number
 LANDED = 0.9  # a vanished entity's text "landed" when this share of its lines is in the new entities' text
 
 
@@ -46,7 +49,8 @@ def worker(root: str, cache: str, file_hash: str, slug: str, out: str) -> None:
              "action": len(json.dumps(e["fields"].get("action") or "")),
              "trait": len(json.dumps(e["fields"].get("trait") or "")),
              "fails": sorted(c["name"] for c in e["checks"] if not c["passed"])} for e in entities]
-    Path(out).write_text(json.dumps(slim))
+    ocr = [[p.number, l.text.strip()] for p in pages for l in p.lines if len(l.text.strip()) >= MIN_LINE]
+    Path(out).write_text(json.dumps({"entities": slim, "ocr": ocr}))
 
 
 def _repo_root() -> Path:
@@ -76,11 +80,43 @@ def _landed(text: str, haystack: str) -> float:
     return sum(l in haystack for l in lines) / len(lines) if lines else 1.0
 
 
+_QUOTE_START = ("\"", "\u201c", "\u2018", "'", "\u2014", "\u2013", "-")
+
+
+def _quote_like(line: str) -> bool:
+    """Headless quote boxes and epigraphs are not entity text on purpose (an epigraph, its attribution)."""
+    letters = [c for c in line if c.isalpha()]
+    shouting = len(letters) > 8 and sum(c.isupper() for c in letters) >= 0.35 * len(letters)  # caps / small-caps OCR
+    return shouting or line.startswith(_QUOTE_START) or line.endswith(("\u201d", "\""))
+
+
+def coverage(old: list[dict], new: list[dict], ocr: list) -> dict:
+    """OCR lines held by a ref entity but by no working-tree entity (newly orphaned), and by neither (pre-existing)."""
+    old_text = "\n".join(e["text"] for e in old)
+    new_text = "\n".join(e["text"] for e in new)
+    seen: set[str] = set()
+    newly, pre, quotes = [], [], 0
+    for page, line in ocr:
+        if line in seen:
+            continue
+        seen.add(line)
+        line = line[:-1] if line.endswith("-") else line  # the text joins a hyphenated word across lines
+        if line in new_text:
+            continue
+        if _quote_like(line):
+            quotes += 1
+        elif line in old_text:
+            newly.append((page, line))
+        else:
+            pre.append((page, line))
+    return {"new": newly, "pre": pre, "quotes": quotes}
+
+
 def _moved(a: int, b: int) -> bool:
     return abs(a - b) > SHIFT * max(a, 1) if a else b > 0
 
 
-def compare(slug: str, old: list[dict], new: list[dict], detail: int) -> dict:
+def compare(slug: str, old: list[dict], new: list[dict], ocr: list, detail: int) -> dict:
     by_old = {e["id"]: e for e in old}
     by_new = {e["id"]: e for e in new}
     lines: list[str] = []
@@ -118,9 +154,15 @@ def compare(slug: str, old: list[dict], new: list[dict], detail: int) -> dict:
     lines.append(f"  entities that disappeared: {len(gone)}; content not found elsewhere: {len(lost)}")
     for t, i, page, size, share in lost[:detail]:
         lines.append(f"    {t} {i} p{page} ({size} chars, {share:.0%} of its lines elsewhere)")
+    cov = coverage(old, new, ocr)
+    lines.append(f"  OCR lines >= {MIN_LINE} chars in no working-tree entity: newly orphaned {len(cov['new'])}, "
+                 f"orphaned in the ref too {len(cov['pre'])}, quote/epigraph lines skipped {cov['quotes']}")
+    for page, line in cov["new"][:detail]:
+        lines.append(f"    NEW p{page}: {line[:100]}")
     return {"slug": slug, "lines": lines, "moved": len(shifts), "gained": len(gained), "lost": len(lost),
             "summary": f"{slug}: entities {len(old)}->{len(new)}, monsters moved {len(shifts)}, "
-                       f"monsters gained a check {len(gained)}, disappeared {len(gone)} ({len(lost)} with content lost)"}
+                       f"monsters gained a check {len(gained)}, disappeared {len(gone)} ({len(lost)} with content lost), "
+                       f"newly orphaned lines {len(cov['new'])}, pre-existing orphaned lines {len(cov['pre'])}"}
 
 
 def main() -> None:
@@ -129,6 +171,7 @@ def main() -> None:
     ap.add_argument("--cache", required=True, help="OCR cache dir: <cache>/<fileHash>/ocr/NNN.json")
     ap.add_argument("--ref", default="HEAD", help="git ref of the extractor to compare against (default HEAD)")
     ap.add_argument("--detail", type=int, default=12, help="rows per list (default 12)")
+    ap.add_argument("--keep", help="directory to keep the two extractions' JSON in (<slug>.old.json, <slug>.new.json)")
     args = ap.parse_args()
 
     repo = _repo_root()
@@ -146,8 +189,13 @@ def main() -> None:
             if any(p.wait() for p in procs):
                 print(f"{slug}: extraction failed", file=sys.stderr)
                 continue
-            res = compare(slug, json.loads(Path(outs["old"]).read_text()), json.loads(Path(outs["new"]).read_text()),
-                          args.detail)
+            old = json.loads(Path(outs["old"]).read_text())
+            new = json.loads(Path(outs["new"]).read_text())
+            if args.keep:
+                Path(args.keep).mkdir(parents=True, exist_ok=True)
+                shutil.copy(outs["old"], Path(args.keep) / f"{slug}.old.json")
+                shutil.copy(outs["new"], Path(args.keep) / f"{slug}.new.json")
+            res = compare(slug, old["entities"], new["entities"], new["ocr"], args.detail)
             print(f"== {slug} ({args.ref} -> working tree)")
             print("\n".join(res["lines"]), flush=True)
             summaries.append(res["summary"])
