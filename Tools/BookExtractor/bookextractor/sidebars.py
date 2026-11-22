@@ -11,9 +11,10 @@ from dataclasses import dataclass
 
 from .checks import Check
 from .model import Line
+from .pages import is_table_page
 from .parsers import ParseContext, Parsed
 from .parsers.charcommon import PAGE_NO, RUNNING_HEAD, prose_entries
-from .parsers.sections import drop_art, heading_words, prose
+from .parsers.sections import _table_row, drop_art, heading_words, prose
 
 PAGES_AFTER = 3  # a sidebar is looked for on the pages of a stat block and the ones after it (the block ran on)
 MIN_LINE = 30  # a printed line this long is content, not a label or a page number
@@ -27,12 +28,25 @@ class _Run:
 
 def quote_box(lines: list[Line]) -> bool:
     """A headingless quote box or epigraph: opens with a quotation mark or a dash, ends in a closing quote, or is set
-    in capitals (small-caps OCR: "ADVENTURERS LOYAL ..."), with no heading over it."""
+    in capitals (small-caps OCR: "ADVENTURERS LOYAL ..."), with no heading over it. The capitals test never fires on
+    a run that goes on into lower-case prose: a chapter's drop-cap opening is set in small caps too."""
     text = " ".join(l.text.strip() for l in lines)
-    if text.startswith(_QUOTE_START) or text.endswith(("”", "\"")):
+    if text.startswith(_QUOTE_START) or text.endswith(("\u201d", "\"")):
         return True
+    if any(prose(l.text) for l in lines):
+        return False
     letters = [c for c in text if c.isalpha()]
     return len(letters) > 8 and sum(c.isupper() for c in letters) >= 0.35 * len(letters)
+
+
+def _name(L: list[Line], heads: int, previous_name) -> str:
+    """The box's own heading, else its first line when that opens a sentence, else "<previous entity> sidebar"."""
+    first = L[0].text.strip()
+    if heads:
+        return first
+    if first[:1].isupper():
+        return " ".join(re.sub(r"[.,;:!?\"]+$", "", first).split()[:8])
+    return f"{previous_name(L[0])} sidebar"
 
 
 def _runs(lines: list[Line], eligible: set[int]) -> list[_Run]:
@@ -65,12 +79,20 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
         eligible = {id(l) for l in lines
                     if id(l) in recognised and key(l) not in claimed and len(l.text.strip()) >= 3
                     and not PAGE_NO.fullmatch(l.text.strip()) and not RUNNING_HEAD.match(l.text.strip())}
+        at = {id(l): i for i, l in enumerate(lines)}
+        table_page = is_table_page(pages_by_number[number])
         for run in _runs(lines, eligible):
             L = run.lines
             if not any(len(l.text.strip()) >= MIN_LINE and prose(l.text) for l in L):
+                if left_out is not None and not table_page and not any(_table_row(l.text) for l in L):
+                    left_out += [(l.page, l.text.strip()) for l in L]  # a label, a caption: not a table's cells
+                continue
+            before, after = at[id(L[0])] - 1, at[id(L[-1])] + 1
+            beside_note = any(0 <= j < len(lines) and id(lines[j]) not in recognised for j in (before, after))
+            if beside_note and not (len(L) > 1 and heading_words(L[0].text) and not prose(L[0].text)):
                 if left_out is not None:
-                    left_out += [(l.page, l.text.strip()) for l in L]
-                continue  # a label, a figure caption, display text in capitals, a table's cell
+                    left_out += [(l.page, l.text.strip()) for l in L]  # a stray line of the margin note beside it
+                continue
             heads = 1 if len(L) > 1 and heading_words(L[0].text) and not prose(L[0].text) else 0
             if not heads and quote_box(L):
                 if left_out is not None:
@@ -78,7 +100,7 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
                 continue
             if not near:
                 continue  # (only runs after a stat block are emitted)
-            name = L[0].text.strip() if heads else f"{previous_name(L[0])} sidebar"
+            name = _name(L, heads, previous_name)
             entries = prose_entries(L, heads, len(L))
             flat = [x if isinstance(x, str) else "\n".join(x.get("items", [])) for x in entries]
             text = "\n".join(([L[0].text.strip()] if heads else []) + flat)

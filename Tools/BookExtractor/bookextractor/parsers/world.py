@@ -738,7 +738,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         if e.full:  # the whole span, without what the lead's own reading takes out (for the doubts about it)
             e.full = drop_art([l for l in e.full if line_key(l) not in claimed], ctx)
         n_prose = sum(prose(l.text) for l in own[heads:])
-        if n_prose < _MIN_PROSE and not ((e.lead or e.under_owned) and n_prose):
+        if n_prose < _MIN_PROSE and not ((e.lead or e.under_owned) and n_prose) and not (s.table_run and len(own) > 1):
             continue  # no prose of its own: nothing to read (a table's caption over its rows)
         # a section with prose is never dropped in silence (ruling W24): one the reading cannot vouch for is emitted
         # with a failing `entry-level` check naming why
