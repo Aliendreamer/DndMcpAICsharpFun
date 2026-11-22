@@ -47,6 +47,7 @@ def worker(root: str, cache: str, file_hash: str, slug: str, out: str) -> None:
     result = extract_book(pages, slug, set(ALL_TYPES))
     entities = result.entities
     slim = [{"id": e["id"], "type": e["type"], "name": e["name"], "page": e["page"], "text": e["canonicalText"], "size": len(e["canonicalText"]),
+             "notes": " ".join(n["text"] for n in e.get("notes", [])), "note_count": len(e.get("notes", [])),
              "action": len(json.dumps(e["fields"].get("action") or "")),
              "trait": len(json.dumps(e["fields"].get("trait") or "")),
              "fails": sorted(c["name"] for c in e["checks"] if not c["passed"])} for e in entities]
@@ -93,7 +94,7 @@ def _flat(text: str) -> str:
 def coverage(old: list[dict], new: list[dict], ocr: list) -> dict:
     """OCR lines held by a ref entity but by no working-tree entity (newly orphaned), and by neither (pre-existing)."""
     old_text = _flat("\n".join(e["text"] for e in old))
-    new_text = _flat("\n".join(e["text"] for e in new))
+    new_text = _flat("\n".join(e["text"] + " " + e.get("notes", "") for e in new))  # a margin note is held by its entity
     seen: set[str] = set()
     newly, pre, quotes = [], [], 0
     for page, line, exempt in ocr:

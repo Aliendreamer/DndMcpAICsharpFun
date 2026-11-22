@@ -31,7 +31,7 @@ from .parsers.trap import parse_traps
 from .parsers.vehicle_object import parse_objects, parse_vehicles
 from .parsers.world import bare_heading, chapter_pages, has_sentence, parent_section, parse_world, placement_doubts
 from .report import build_report
-from .sidebars import detached_sidebars, left_out_art
+from .sidebars import Note, detached_sidebars, left_out_art, margin_notes
 from .residual import recurring_labels, residual_checks
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
@@ -607,6 +607,42 @@ def _squash(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", text.lower())
 
 
+def _attach_note(note: Note, entities: list[dict], entity_lines: list[list[Line]], keys: list, firsts: list,
+                 texts: list, book_slug: str, seen: Counter, vocab: Vocabulary, by_number: dict, claimed: set,
+                 covered: set) -> None:
+    """A margin note is kept in `notes` of the entity that holds the most text on its page (ties: the nearest to the
+    note's box); it is not part of that entity's canonicalText. A page no entity holds gets a Lore of its own, failing
+    `margin-note` so it is reviewed."""
+    page = note.page
+    top = (note.lines[0].box[1] + note.lines[-1].box[3]) / 2
+    best, best_key = None, None
+    for i, lines in enumerate(entity_lines):
+        here = [l for l in lines if l.page == page]
+        if not here:
+            continue
+        chars = sum(len(l.text) for l in here)
+        gap = min(abs((l.box[1] + l.box[3]) / 2 - top) for l in here)
+        if best_key is None or (chars, -gap) > best_key:
+            best, best_key = i, (chars, -gap)
+    if best is not None:
+        entities[best].setdefault("notes", []).append(note.as_dict())
+        return
+    name = f"{note.by} note, p{page}" if note.by else f"Margin note, p{page}"
+    p = Parsed(type="Lore", name=name, fields={"entries": [note.text]}, text=f"{name}\n{note.text}", lines=note.lines,
+               checks=[Check("margin-note", False, f"a margin note on p{page} with no entity on its page: kept for review")])
+    eid, checks = _id_and_checks(p, book_slug, seen, vocab)
+    claimed |= _line_keys(p.lines)
+    covered.update(l.page for l in p.lines)
+    keys.append(_line_keys(p.lines))
+    firsts.append(next(iter(_line_keys(p.lines[:1])), None))
+    texts.append([(next(iter(_line_keys([l]))), l.text) for l in p.lines])
+    entity_lines.append(p.lines)
+    entities.append({"id": eid, "type": "Lore", "name": name, "page": page, "canonicalText": p.text,
+                     "fields": p.fields,
+                     "checks": [{"name": c.name, "passed": c.passed, "reason": c.reason} for c in checks],
+                     "provenance": _provenance(p.lines, by_number)})
+
+
 def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> ExtractionResult:
     by_number = {p.number: p for p in pages}
     ctx = ParseContext(slug=book_slug, source=SOURCE_BY_SLUG.get(book_slug, book_slug.upper()), pages=by_number)
@@ -631,6 +667,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     god_names: set[str] = set()  # the gods' printed names: a world section naming one is a part of its text
     monster_names: set[str] = set()  # the creatures' names: a section named like one is the lore around its block
     monster_pages: set[int] = set()
+    entity_lines: list[list[Line]] = []  # the printed lines of each entity, parallel to `entities`
     dropped: list[tuple[int, str]] = []
     first_at: list[tuple[int, str]] = []  # (the body index of an entity's first line, its name), for sidebars' names
     index = {_line_keys([l]).pop(): i for i, l in enumerate(body)}
@@ -664,6 +701,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
             keys.append(_line_keys(p.lines))
             firsts.append(next(iter(_line_keys(p.lines[:1])), None))
             texts.append([(next(iter(_line_keys([l]))), l.text) for l in p.lines])
+            entity_lines.append(p.lines)
             entities.append({
                 "id": eid, "type": p.type, "name": p.name,
                 "page": p.lines[0].page if p.lines else 0,
@@ -672,6 +710,12 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 "provenance": _provenance(p.lines, by_number),
             })
 
+    found_notes: list[Note] = []
+    if entities:  # the writers' margin notes: kept in `notes` of an entity, never swept up as a sidebar
+        all_text = _squash("\n".join(e["canonicalText"] for e in entities))
+        for n in sorted(ordered):
+            found_notes += margin_notes(ordered[n], ctx, lambda l: _squash(l.text) in all_text)
+        claimed_lines |= {k for note in found_notes for k in _line_keys(note.lines)}
     left_out: list[tuple[int, str]] = list(dropped)
     if "Lore" in types and "Monster" in types:
         # text no entity holds after a stat block (a boxed sidebar, lore a stop rule cut off): a flagged Lore of its own
@@ -682,6 +726,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
         extra = detached_sidebars({n: ordered[n] for n in sorted(ordered)}, monster_pages, by_number, ctx,
                                   claimed_lines, lambda l: next(iter(_line_keys([l]))), previous_name, left_out)
         for p, (eid, checks) in zip(extra, [_id_and_checks(p, book_slug, seen, vocab) for p in extra]):
+            entity_lines.append(p.lines)
             claimed_lines |= _line_keys(p.lines)
             covered.update(l.page for l in p.lines)
             keys.append(_line_keys(p.lines))
@@ -694,6 +739,11 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 "provenance": _provenance(p.lines, by_number),
             })
 
+    note_texts: set[str] = {l.text.strip() for note in found_notes for l in note.lines}
+    for note in found_notes:
+        _attach_note(note, entities, entity_lines, keys, firsts, texts, book_slug, seen, vocab, by_number,
+                     claimed_lines, covered)
+    left_out = [(pg, t) for pg, t in left_out if t not in note_texts]
     # a line an entity holds is not "left out": only what no entity's text holds is listed
     held = _squash("\n".join(e["canonicalText"] for e in entities))
     left_out = [(pg, t) for pg, t in left_out if _squash(t) not in held]

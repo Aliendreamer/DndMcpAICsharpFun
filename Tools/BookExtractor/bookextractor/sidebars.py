@@ -14,7 +14,7 @@ from .model import Line
 from .pages import is_table_page
 from .parsers import ParseContext, Parsed
 from .parsers.charcommon import PAGE_NO, RUNNING_HEAD, prose_entries
-from .parsers.sections import _table_row, drop_art, heading_words, prose
+from .parsers.sections import _table_row, drop_art, drop_pull_quotes, heading_words, prose
 
 PAGES_AFTER = 3  # a sidebar is looked for on the pages of a stat block and the ones after it (the block ran on)
 MIN_LINE = 30  # a printed line this long is content, not a label or a page number
@@ -76,6 +76,68 @@ def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
             out += run
         i = j + 1
     return out
+
+
+_SIGNATURE = re.compile(r"^[-\u2014\u2013]+\s*(\S.*)$")
+_NOTE_SHARE = 0.4  # a page whose "notes" are more than this share of its text is a letter or a foreword, not a margin
+
+
+@dataclass
+class Note:
+    lines: list[Line]
+    by: str | None
+    text: str
+
+    @property
+    def page(self) -> int:
+        return self.lines[0].page
+
+    def as_dict(self) -> dict:
+        return {"by": self.by, "text": self.text, "page": self.page}
+
+
+def _join(texts: list[str]) -> str:
+    out = ""
+    for t in texts:
+        out = out[:-1] + t if out.endswith("-") and t[:1].islower() else (f"{out} {t}" if out else t)
+    return out
+
+
+def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False) -> list[Note]:
+    """The writers' margin notes of a page (Bigby's and Diancastra's asides, Mordenkainen's notes): the runs of prose
+    lines `drop_art` takes out of the column (`left_out_art`), each a box of its own. A final line opening with a dash
+    is the signature (`by`) and is not part of the text. Epigraphs and quote boxes, map labels and art captions
+    (no prose), and a page that is mostly such text (a foreword's italics) are no notes."""
+    art = left_out_art(lines, ctx)
+    openers = {n for n in {l.page for l in lines}
+               if any(_CHAPTER_TITLE.match(x.text.strip()) for x in getattr(ctx.pages.get(n), "lines", ()))}
+    # the first line of a page is read as a heading by the pull-quote rule: re-read the page with none, so a note
+    # that opens the page (bgg p127) is the whole box
+    tall = {id(l) for l in lines} - {id(l) for l in drop_pull_quotes(lines, 0)} - {id(l) for l in lines if l.page in openers}
+    art = [l for l in lines if (id(l) in {id(a) for a in art} or id(l) in tall) and not held(l)]
+    ids = {id(l) for l in art}
+    page_chars = sum(len(l.text) for l in lines)
+    if not art or sum(len(l.text) for l in art) > _NOTE_SHARE * max(page_chars, 1):
+        return []
+    at = {id(l): i for i, l in enumerate(lines)}
+    notes: list[Note] = []
+    run: list[Line] = []
+    for l in [*lines, None]:
+        if l is not None and id(l) in ids and (not run or l.page == run[-1].page):
+            run.append(l)
+            continue
+        if run and any(prose(x.text) for x in run) and not quote_box(run):
+            k = at[id(run[-1])] + 1  # a signature line set below the box, too small to be read as part of it
+            if k < len(lines) and id(lines[k]) not in ids and _SIGNATURE.match(lines[k].text.strip()) \
+                    and lines[k].page == run[-1].page and not held(lines[k]):
+                run = [*run, lines[k]]
+            by, body = None, run
+            m = _SIGNATURE.match(run[-1].text.strip())
+            if m and len(run) > 1:
+                by, body = m.group(1).strip(), run[:-1]
+            notes.append(Note(lines=run, by=by, text=_join([x.text.strip() for x in body])))
+        run = [l] if l is not None and id(l) in ids else []
+    return notes
 
 
 def _runs(lines: list[Line], eligible: set[int]) -> list[_Run]:
