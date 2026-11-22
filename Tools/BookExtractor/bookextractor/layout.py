@@ -142,6 +142,8 @@ def _interleave_stat_blocks(left: list[Line], right: list[Line], page_height: fl
         return left + right  # the right text flows on from the block itself: it is no boxed lore
     if c > 0 and len(starts) == 1 and _STAT_MARKER.search(right[0].text.strip()):
         return left + right  # the right column opens with the block's own text: it flows on from the top
+    if not any(_STAT_MARKER.search(r.text.strip()) for r in right[c:first_right_block]):
+        return left + right  # nothing of the block runs on in the right column: what is there is plain lore
     # (a lone capital at the column's foot is a stray drop-cap glyph of the lore beside it, not the block's last line)
     last = next((l for l in reversed(left[s:split]) if not re.fullmatch(r"[A-Z]", l.text.strip())), left[split - 1])
     if _is_prose_tail(last, right, c):

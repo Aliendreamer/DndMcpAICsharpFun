@@ -54,3 +54,11 @@ def test_lore_on_the_next_page_stays_out_of_a_block_ended_by_a_foot_or_a_stray_g
     monster = _monsters(case)[name]
     assert "stat-block-tail" not in _failed(monster)
     assert len(monster["canonicalText"]) < 3200
+
+
+def test_plain_lore_in_the_right_column_is_not_glued_after_a_block_that_ends_at_the_left_foot():
+    # ggr p168: the block ends at the left column's foot; the right column holds only lore ("Day 3 Chaos")
+    pages = [page_from_dict(_RAW["pages"][f"ggr:{n}"]) for n in _RAW["cases"]["ggr-goblin"]["pages"]]
+    found = {e["id"]: e for e in extract_pages(pages, "ggr")}
+    assert len(found["ggr.monster.goblin-gang-member"]["canonicalText"]) < 1100
+    assert "ggr.lore.day-3-chaos" in found
