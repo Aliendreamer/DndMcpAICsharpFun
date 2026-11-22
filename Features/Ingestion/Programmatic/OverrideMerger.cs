@@ -133,6 +133,12 @@ public static class OverrideMerger
             retired.Add(ov);
             return e;
         }
+        // A correction that removes a field is moot once the extractor no longer produces it.
+        if (!reapply && current is null && ov.Value.ValueKind == JsonValueKind.Null)
+        {
+            retired.Add(ov);
+            return e;
+        }
         var updated = Set(e, ov.Field, ov.Value, out var why);
         if (updated is null)
         {

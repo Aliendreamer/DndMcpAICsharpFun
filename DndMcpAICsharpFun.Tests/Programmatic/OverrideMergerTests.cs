@@ -391,4 +391,28 @@ public class OverrideMergerTests
         r.Entities[0].Checks.Should().ContainSingle(c => c.Name == OverrideMerger.DriftCheck)
             .Which.Reason.Should().Contain("fields.ac.0.ac");
     }
+
+    [Fact]
+    public void Apply_retires_a_null_override_when_the_extraction_lacks_the_field()
+    {
+        var e = Grell() with { Fields = J("""{"ac":[{"ac":12}]}""") };
+        var r = OverrideMerger.Apply([e], new EntityOverrides([Ov("fields.cr", "null", "\"2\"")], []));
+        r.Retired.Should().ContainSingle().Which.Field.Should().Be("fields.cr");
+        r.Entities[0].Checks.Should().NotContain(c => c.Name == OverrideMerger.DriftCheck);
+    }
+
+    [Fact]
+    public void Apply_retires_a_null_override_when_the_extracted_field_is_null()
+    {
+        var r = OverrideMerger.Apply([Grell("null")], new EntityOverrides([Ov("fields.cr", "null", "\"2\"")], []));
+        r.Retired.Should().ContainSingle().Which.Field.Should().Be("fields.cr");
+        r.Entities[0].Checks.Should().NotContain(c => c.Name == OverrideMerger.DriftCheck);
+    }
+
+    [Fact]
+    public void Apply_keeps_a_null_override_when_the_extraction_still_holds_a_value()
+    {
+        var r = OverrideMerger.Apply([Grell("\"2\"")], new EntityOverrides([Ov("fields.cr", "null", "\"2\"")], []));
+        r.Retired.Should().BeEmpty();
+    }
 }
