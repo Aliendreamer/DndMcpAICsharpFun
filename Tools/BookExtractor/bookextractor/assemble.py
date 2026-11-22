@@ -1,6 +1,7 @@
 """Assembler: pages -> parsed entities -> ids, common checks, provenance, report."""
 from __future__ import annotations
 
+import json
 import re
 from collections import Counter
 from collections.abc import Callable
@@ -607,6 +608,24 @@ def _squash(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", text.lower())
 
 
+def _strip_line(entities: list[dict], line: str) -> None:
+    """Remove a printed line that stands alone in an entity's canonicalText or fields (a margin note's signature)."""
+    def clean(v):
+        if isinstance(v, str):
+            return "\n".join(x for x in v.split("\n") if x.strip() != line)
+        if isinstance(v, list):
+            return [clean(x) for x in v if not (isinstance(x, str) and x.strip() == line)]
+        if isinstance(v, dict):
+            return {k: clean(x) for k, x in v.items()}
+        return v
+
+    for e in entities:
+        if line in e["canonicalText"]:
+            e["canonicalText"] = clean(e["canonicalText"])
+        if line in json.dumps(e["fields"], ensure_ascii=False):
+            e["fields"] = clean(e["fields"])
+
+
 def _attach_note(note: Note, entities: list[dict], entity_lines: list[list[Line]], keys: list, firsts: list,
                  texts: list, book_slug: str, seen: Counter, vocab: Vocabulary, by_number: dict, claimed: set,
                  covered: set, make_lore: bool = True) -> None:
@@ -715,9 +734,15 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     found_notes: list[Note] = []
     if entities:  # the writers' margin notes: kept in `notes` of an entity, never swept up as a sidebar
         all_text = _squash("\n".join(e["canonicalText"] for e in entities))
+        epigraph_lines: list[Line] = []
         for n in sorted(ordered):
-            found_notes += margin_notes(ordered[n], ctx, lambda l: _squash(l.text) in all_text)
+            found_notes += margin_notes(ordered[n], ctx, lambda l: _squash(l.text) in all_text, epigraph_lines)
         claimed_lines |= {k for note in found_notes for k in _line_keys(note.lines)}
+        claimed_lines |= _line_keys(epigraph_lines)
+        for note in found_notes:
+            if note.signature is not None:
+                _strip_line(entities, note.signature.text.strip())  # a signature glued into an entity's text is the note's
+        dropped.extend((l.page, l.text.strip()) for l in epigraph_lines)
     left_out: list[tuple[int, str]] = list(dropped)
     if "Lore" in types and "Monster" in types:
         # text no entity holds after a stat block (a boxed sidebar, lore a stop rule cut off): a flagged Lore of its own

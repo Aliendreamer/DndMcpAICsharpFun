@@ -87,6 +87,7 @@ class Note:
     lines: list[Line]
     by: str | None
     text: str
+    signature: Line | None = None  # the dash line (kept out of `text`)
 
     @property
     def page(self) -> int:
@@ -103,22 +104,35 @@ def _join(texts: list[str]) -> str:
     return out
 
 
-def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False) -> list[Note]:
-    """The writers' margin notes of a page (Bigby's and Diancastra's asides, Mordenkainen's notes): the runs of prose
-    lines `drop_art` takes out of the column (`left_out_art`), each a box of its own. A final line opening with a dash
-    is the signature (`by`) and is not part of the text. Epigraphs and quote boxes, map labels and art captions
-    (no prose), and a page that is mostly such text (a foreword's italics) are no notes."""
-    art = left_out_art(lines, ctx)
+def _epigraph(run: list[Line]) -> bool:
+    """An epigraph or quote box, which is no aside: a quote box, or text set mostly in capitals even through OCR
+    casing noise ("ThE teMple IVAS strewn WiTH BODy pARTS"), where an aside's own letters are almost all lower case."""
+    if quote_box(run):
+        return True
+    letters = [c for c in " ".join(l.text for l in run) if c.isalpha()]
+    return len(letters) > 8 and sum(c.isupper() for c in letters) >= 0.3 * len(letters)
+
+
+def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
+                 left_lines: list[Line] | None = None) -> list[Note]:
+    """The writers' margin notes of a page (Bigby's and Diancastra's asides, Mordenkainen's notes): the blocks of tall,
+    hand-set prose that the pull-quote rule takes out of the column, each a box of its own. A dash line right under a
+    box is its signature (`by`) and is not part of the text, whether or not an entity claimed or glued it in. Epigraphs
+    and quote boxes, captions (no prose), and a page that is mostly such text are no notes: the lines of an epigraph or a
+    caption are appended to `left_lines`. Inset prose (a chapter's opening, rules text, table cells) is no note."""
     openers = {n for n in {l.page for l in lines}
                if any(_CHAPTER_TITLE.match(x.text.strip()) for x in getattr(ctx.pages.get(n), "lines", ()))}
     # the first line of a page is read as a heading by the pull-quote rule: re-read the page with none, so a note
     # that opens the page (bgg p127) is the whole box
     tall = {id(l) for l in lines} - {id(l) for l in drop_pull_quotes(lines, 0)} - {id(l) for l in lines if l.page in openers}
-    art = [l for l in lines if (id(l) in {id(a) for a in art} or id(l) in tall) and not held(l)]
+    art = [l for l in lines if id(l) in tall and not held(l)]
     ids = {id(l) for l in art}
     page_chars = sum(len(l.text) for l in lines)
     if not art or sum(len(l.text) for l in art) > _NOTE_SHARE * max(page_chars, 1):
         return []
+    big = sorted(l.height for l in art)[len(art) // 2]
+    if sum(l.height >= 0.75 * big for l in lines) > _NOTE_SHARE * len(lines):
+        return []  # a page set in large type throughout (a foreword's letter) has no margin
     at = {id(l): i for i, l in enumerate(lines)}
     notes: list[Note] = []
     run: list[Line] = []
@@ -126,16 +140,25 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False) 
         if l is not None and id(l) in ids and (not run or l.page == run[-1].page):
             run.append(l)
             continue
-        if run and any(prose(x.text) for x in run) and not quote_box(run):
-            k = at[id(run[-1])] + 1  # a signature line set below the box, too small to be read as part of it
-            if k < len(lines) and id(lines[k]) not in ids and _SIGNATURE.match(lines[k].text.strip()) \
-                    and lines[k].page == run[-1].page and not held(lines[k]):
-                run = [*run, lines[k]]
-            by, body = None, run
-            m = _SIGNATURE.match(run[-1].text.strip())
-            if m and len(run) > 1:
-                by, body = m.group(1).strip(), run[:-1]
-            notes.append(Note(lines=run, by=by, text=_join([x.text.strip() for x in body])))
+        if run:
+            if any(prose(x.text) for x in run) and not _epigraph(run):
+                k = at[id(run[-1])] + 1  # a signature line set below the box, too small to be read as part of it
+                sig = None
+                if k < len(lines) and id(lines[k]) not in ids and _SIGNATURE.match(lines[k].text.strip()) \
+                        and lines[k].page == run[-1].page and len(lines[k].text.strip()) <= 40:
+                    sig = lines[k]
+                body = run
+                m = _SIGNATURE.match(run[-1].text.strip())
+                by = None
+                if sig is not None:
+                    by = _SIGNATURE.match(sig.text.strip()).group(1).strip()
+                elif m and len(run) > 1:
+                    by, body = m.group(1).strip(), run[:-1]
+                all_lines = [*run, sig] if sig is not None else run
+                notes.append(Note(lines=all_lines, by=by, text=_join([x.text.strip() for x in body]),
+                                  signature=(sig or (run[-1] if m and len(run) > 1 else None))))
+            elif left_lines is not None:
+                left_lines += run
         run = [l] if l is not None and id(l) in ids else []
     return notes
 
