@@ -618,7 +618,7 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
             break
         elif _leaves_block(L, rel, j, end) or _starts_next_entity(L, j, any(body.values()), end):
             break
-        elif any(body.values()) and _lab(t, "Armor Class"):
+        elif any(body.values()) and _lab(t, "Armor Class") and re.match(r"\D{0,15}\d", t):  # (a wrapped lore phrase "Armor Class, hit points" is no header)
             # a second header inside the body is the next block's: its garbled name and size lines stay out too
             for _ in range(2):
                 if body[sec] and j - 1 > stat_end and len(L[j - 1].text.split()) <= 6 \

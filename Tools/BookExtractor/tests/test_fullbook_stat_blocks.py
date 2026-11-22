@@ -62,3 +62,12 @@ def test_plain_lore_in_the_right_column_is_not_glued_after_a_block_that_ends_at_
     found = {e["id"]: e for e in extract_pages(pages, "ggr")}
     assert len(found["ggr.monster.goblin-gang-member"]["canonicalText"]) < 1100
     assert "ggr.lore.day-3-chaos" in found
+
+
+def test_a_wrapped_armor_class_phrase_in_lore_does_not_cut_the_block_and_orphan_the_rest():
+    # mm14 p231: "Retained Characteristics. ... retains its / Armor Class, hit points, ..." is template lore, not a
+    # second stat-block header; the lines after it must land in some entity
+    pages = [page_from_dict(_RAW["pages"][f"mm14:{n}"]) for n in _RAW["cases"]["myconid"]["pages"]]
+    texts = [e["canonicalText"] for e in extract_pages(pages, "mm14")]
+    assert any("Lost Characteristics" in t for t in texts)
+    assert any("Retained Characteristics" in t for t in texts)
