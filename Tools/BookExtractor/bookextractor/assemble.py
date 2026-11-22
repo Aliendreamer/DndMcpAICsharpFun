@@ -31,6 +31,7 @@ from .parsers.trap import parse_traps
 from .parsers.vehicle_object import parse_objects, parse_vehicles
 from .parsers.world import bare_heading, chapter_pages, has_sentence, parent_section, parse_world, placement_doubts
 from .report import build_report
+from .sidebars import detached_sidebars
 from .residual import recurring_labels, residual_checks
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
@@ -624,6 +625,9 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     claimed_names: set[str] = set()
     god_names: set[str] = set()  # the gods' printed names: a world section naming one is a part of its text
     monster_names: set[str] = set()  # the creatures' names: a section named like one is the lore around its block
+    monster_pages: set[int] = set()
+    first_at: list[tuple[int, str]] = []  # (the body index of an entity's first line, its name), for sidebars' names
+    index = {_line_keys([l]).pop(): i for i, l in enumerate(body)}
     for t in ALL_TYPES:
         if t not in types:
             continue
@@ -644,6 +648,10 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
             if t in WORLD_TYPES:
                 checks = [*checks, *residual_checks(p, heights, recurring)]
             claimed_lines |= _line_keys(p.lines)
+            if t == "Monster":
+                monster_pages.update(l.page for l in p.lines)
+            if p.lines and p.name.strip():
+                first_at.append((index.get(next(iter(_line_keys(p.lines[:1]))), 0), p.name))
             covered.update(l.page for l in p.lines)
             keys.append(_line_keys(p.lines))
             firsts.append(next(iter(_line_keys(p.lines[:1])), None))
@@ -652,6 +660,27 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 "id": eid, "type": p.type, "name": p.name,
                 "page": p.lines[0].page if p.lines else 0,
                 "canonicalText": p.text, "fields": p.fields,
+                "checks": [{"name": c.name, "passed": c.passed, "reason": c.reason} for c in checks],
+                "provenance": _provenance(p.lines, by_number),
+            })
+
+    if "Lore" in types and "Monster" in types:
+        # text no entity holds after a stat block (a boxed sidebar, lore a stop rule cut off): a flagged Lore of its own
+        def previous_name(line: Line) -> str:
+            at = index.get(next(iter(_line_keys([line]))), 0)
+            return max(((i, n) for i, n in first_at if i < at), default=(0, "Unnamed"))[1]
+
+        extra = detached_sidebars({n: ordered[n] for n in sorted(ordered)}, monster_pages, by_number, ctx,
+                                  claimed_lines, lambda l: next(iter(_line_keys([l]))), previous_name)
+        for p, (eid, checks) in zip(extra, [_id_and_checks(p, book_slug, seen, vocab) for p in extra]):
+            claimed_lines |= _line_keys(p.lines)
+            covered.update(l.page for l in p.lines)
+            keys.append(_line_keys(p.lines))
+            firsts.append(next(iter(_line_keys(p.lines[:1])), None))
+            texts.append([(next(iter(_line_keys([l]))), l.text) for l in p.lines])
+            entities.append({
+                "id": eid, "type": p.type, "name": p.name, "page": p.lines[0].page, "canonicalText": p.text,
+                "fields": p.fields,
                 "checks": [{"name": c.name, "passed": c.passed, "reason": c.reason} for c in checks],
                 "provenance": _provenance(p.lines, by_number),
             })
