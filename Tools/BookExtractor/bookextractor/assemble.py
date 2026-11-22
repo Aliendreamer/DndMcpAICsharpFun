@@ -739,9 +739,11 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 page_text[pg] = page_text.get(pg, "") + "\n" + e["canonicalText"]
         page_text = {pg: _squash(t) for pg, t in page_text.items()}  # (a line is held by the text of its own page)
         epigraph_lines: list[Line] = []
+        opening_lines: list[Line] = []
         for n in sorted(ordered):
             found_notes += margin_notes(ordered[n], ctx, lambda l: len(_squash(l.text)) >= 8
-                                        and _squash(l.text) in page_text.get(l.page, ""), epigraph_lines)
+                                        and _squash(l.text) in page_text.get(l.page, ""), epigraph_lines,
+                                        opening_lines)
         claimed_lines |= {k for note in found_notes for k in _line_keys(note.lines)}
         claimed_lines |= _line_keys(epigraph_lines)
         for note in found_notes:
@@ -775,7 +777,8 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     for note in found_notes:
         _attach_note(note, entities, entity_lines, keys, firsts, texts, book_slug, seen, vocab, by_number,
                      claimed_lines, covered, "Lore" in types)
-    left_out = [(pg, t) for pg, t in left_out if t not in note_texts]
+    opening_texts = {l.text.strip() for l in opening_lines} if entities else set()
+    left_out = [(pg, t) for pg, t in left_out if t not in note_texts and t not in opening_texts]
     # a line an entity holds is not "left out": only what no entity's text holds is listed
     held = _squash("\n".join(e["canonicalText"] for e in entities))
     left_out = [(pg, t) for pg, t in left_out if _squash(t) not in held]

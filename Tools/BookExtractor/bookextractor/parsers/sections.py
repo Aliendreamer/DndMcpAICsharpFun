@@ -573,7 +573,8 @@ def drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
         if nxt is not None and nxt.page == own[j].page and nxt.text.strip()[:1].islower() \
                 and not own[j].text.rstrip().endswith((".", "!", "?", "\"", "\u201d")) \
                 and any(prose(x.text) for x in own[i:j + 1]) \
-                and 0 <= nxt.box[1] - own[j].box[3] <= 1.2 * nxt.height and nxt.box[0] < own[j].box[0] - 1:
+                and -0.3 * nxt.height <= nxt.box[1] - own[j].box[3] <= 1.2 * nxt.height \
+                and nxt.box[0] <= own[j].box[0] + 0.3 * nxt.height:
             for k in range(i, j + 1):
                 flagged[k] = False
         i = j + 1

@@ -94,3 +94,30 @@ def test_epigraph_attributions_and_captions_are_no_notes():
     from bookextractor import sidebars
     assert not sidebars._PERSON.fullmatch("Rakshasa maxim")
     assert sidebars._PERSON.fullmatch("Diancastra") and sidebars._PERSON.fullmatch("Mordenkainen")
+
+
+def test_a_clearly_taller_aside_stays_a_note_even_with_overlapping_boxes():
+    # bgg p152: 9 lines at 2.2x the text, box taller than the line pitch; only barely-tall overlapping text is body
+    ents = _entities("notes-bgg152")
+    assert any(n["text"].startswith("I's easy to get caught up") for e in ents for n in e.get("notes", []))
+    assert not any("easy to get caught up" in e["canonicalText"] for e in ents)
+
+
+def test_a_drop_cap_opening_is_no_note_and_not_left_out():
+    from bookextractor.assemble import ALL_TYPES, extract_book
+    c = _RAW["cases"]["notes-xge8"]
+    r = extract_book([page_from_dict(_RAW["pages"][f"xge:{n}"]) for n in c["pages"]], "xge", set(ALL_TYPES))
+    assert not [n for e in r.entities for n in e.get("notes", []) if n["page"] == 8]
+    assert not [t for pg, t in r.left_out if pg == 8 and "characters created by the players" in t]
+
+
+def test_fullbook_compare_prev_reports_lost_and_glued_lines():
+    import fullbook_compare as F
+    prev = [{"text": "body", "notes": "A margin aside that the earlier run held as a note."},
+            {"text": "Another held line of the earlier run, kept in text.", "notes": ""}]
+    new = [{"text": "body A margin aside that the earlier run held as a note.", "notes": ""}]
+    ocr = [[1, "A margin aside that the earlier run held as a note.", False],
+           [1, "Another held line of the earlier run, kept in text.", False]]
+    ks = F.kept_since(prev, new, ocr)
+    assert [l for _, l in ks["lost"]] == ["Another held line of the earlier run, kept in text."]
+    assert [l for _, l in ks["glued"]] == ["A margin aside that the earlier run held as a note."]

@@ -71,7 +71,8 @@ def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
         # case, directly beneath and out at the margin, is a paragraph's drop-cap opening (it flows on), not a note
         flows = (nxt is not None and id(nxt) in kept and nxt.page == run[-1].page and nxt.text.strip()[:1].islower()
                  and not run[-1].text.rstrip().endswith((".", "!", "?", "\"", "\u201d")) and any(prose(l.text) for l in run)
-                 and 0 <= nxt.box[1] - run[-1].box[3] <= 1.2 * nxt.height and nxt.box[0] < run[-1].box[0] - 1)
+                 and -0.3 * nxt.height <= nxt.box[1] - run[-1].box[3] <= 1.2 * nxt.height
+                 and nxt.box[0] <= run[-1].box[0] + 0.3 * nxt.height)
         if not flows:
             out += run
         i = j + 1
@@ -138,7 +139,7 @@ def _drop_cap_opening(run: list[Line]) -> bool:
 
 
 def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
-                 left_lines: list[Line] | None = None) -> list[Note]:
+                 left_lines: list[Line] | None = None, openings: list[Line] | None = None) -> list[Note]:
     """The writers' margin notes of a page (Bigby's and Diancastra's asides, Mordenkainen's notes): the blocks of tall,
     hand-set prose that the pull-quote rule takes out of the column, each a box of its own. A dash line right under a
     box is its signature (`by`) and is not part of the text, whether or not an entity claimed or glued it in. Epigraphs
@@ -168,13 +169,14 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
         run = [x for x in run if id(x) not in gone]
         if run:
             if _drop_cap_opening(run):
-                pass  # an opening: it stays unheld, as before (no note, no exemption)
+                if openings is not None:  # an opening: no note, no exemption (it is body text no entity holds)
+                    openings += run
             elif any(prose(x.text) for x in run) and not _epigraph(run):
                 k = at[id(full[-1])] + 1  # a signature line set below the box, too small to be read as part of it
                 tail: list[Line] = []  # the box's last word, a short fragment the OCR set apart ("kettte")
-                while k < len(lines) and len(tail) < 2 and id(lines[k]) not in ids and lines[k].page == run[-1].page \
-                        and len(lines[k].text.strip()) <= 12 and not _SIGNATURE.match(lines[k].text.strip()):
-                    tail.append(lines[k])
+                while k < len(lines) and len(tail) < 3 and id(lines[k]) not in ids and lines[k].page == run[-1].page \
+                        and len(lines[k].text.strip()) <= 70 and not _SIGNATURE.match(lines[k].text.strip()):
+                    tail.append(lines[k])  # (kept only when a signature follows right after: it is the box's end)
                     k += 1
                 sig = None
                 if k < len(lines) and id(lines[k]) not in ids and _SIGNATURE.match(lines[k].text.strip()) \
