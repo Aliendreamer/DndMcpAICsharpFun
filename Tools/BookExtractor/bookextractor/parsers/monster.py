@@ -526,6 +526,11 @@ def _running_foot(text: str) -> bool:
     return len(t.split()) <= 3 and not re.search(r"[.!?)]\s*$", t)
 
 
+def _page_furniture(text: str) -> bool:
+    """A page's running head or foot set in several words around a bar ("CHAPTER 2 | BESTIARY 255")."""
+    return bool(re.fullmatch(r"[A-Z0-9 ]*[A-Z][A-Z0-9 ]*\|[A-Z0-9 ]+|[A-Z0-9 ]+\|[A-Z0-9 ]*[A-Z][A-Z0-9 ]*", text.strip()))
+
+
 def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> bool:
     """At the top of the next page, text that cannot belong to the finished block ends it.
 
@@ -541,7 +546,7 @@ def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> b
     if not has_entries or j == 0 or L[j - 1].page == L[j].page:
         return False
     k = j - 1
-    while k > 0 and L[k - 1].page == L[k].page and _running_foot(L[k].text):
+    while k > 0 and L[k - 1].page == L[k].page and (_running_foot(L[k].text) or _page_furniture(L[k].text)):
         k -= 1  # a running foot ("LYCANTHROPES", "210:") sits between the block's last line and the next page
     # a stray margin glyph fused to the last line ("... with her. H") must not make a finished sentence look unfinished
     finished = bool(re.search(r"[.!?)]\s*$", re.sub(r"\s+[A-Z]$", "", L[k].text.strip())))

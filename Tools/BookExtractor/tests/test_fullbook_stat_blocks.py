@@ -11,8 +11,9 @@ _RAW = json.loads(gzip.decompress((DATA / "fullbook_cases.json.gz").read_bytes()
 
 
 def _monsters(case: str) -> dict[str, dict]:
-    pages = [page_from_dict(_RAW["pages"][f"mm14:{n}"]) for n in _RAW["cases"][case]["pages"]]
-    return {e["name"]: e for e in extract_pages(pages, "mm14") if e["type"] == "Monster"}
+    slug = _RAW["cases"][case]["slug"]
+    pages = [page_from_dict(_RAW["pages"][f"{slug}:{n}"]) for n in _RAW["cases"][case]["pages"]]
+    return {e["name"]: e for e in extract_pages(pages, slug) if e["type"] == "Monster"}
 
 
 def _failed(e: dict) -> list[str]:
@@ -44,3 +45,12 @@ def test_death_tyrant_ends_before_the_spectator_lore():
 def test_demilich_lair_heading_in_lore_does_not_veto_the_block_end():
     demilich = _monsters("demilich")["Demilich"]
     assert "stat-block-tail" not in _failed(demilich)
+
+
+@pytest.mark.parametrize("case,name", [("mpmm-drow", "Drow Arachnomancer"), ("mpmm-giff", "Giff"),
+                                       ("mpmm-troll", "Spirit Troll"), ("mpmm-warlock", "Warlock of the Fiend")])
+def test_lore_on_the_next_page_stays_out_of_a_block_ended_by_a_foot_or_a_stray_glyph(case, name):
+    # a lone drop-cap glyph ("G") or a "CHAPTER 2 | BESTIARY" foot ends the block's page; the lore after it is not its
+    monster = _monsters(case)[name]
+    assert "stat-block-tail" not in _failed(monster)
+    assert len(monster["canonicalText"]) < 3200
