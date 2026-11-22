@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Admin;
+using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
@@ -13,7 +14,8 @@ using Microsoft.Extensions.Options;
 namespace DndMcpAICsharpFun.Features.Ingestion.Programmatic;
 
 public sealed record ProgrammaticRunResult(
-    int Entities, int Accepted, int NeedsReview, IReadOnlyList<string> Orphans, JsonElement Report);
+    int Entities, int Accepted, int NeedsReview, IReadOnlyList<string> Orphans, JsonElement Report,
+    int Retired, IReadOnlyList<string> Moved);
 
 /// <summary>A failure after the point of no return: existing files or points were already (partly) replaced.</summary>
 public abstract class PostSwapException(string message, Exception inner) : Exception(message, inner);
@@ -47,6 +49,7 @@ public sealed partial class ProgrammaticExtractionRunner(
     IOptions<IngestionOptions> ingestionOptions,
     IOptions<BookExtractorOptions> extractorOptions,
     CanonicalJsonWriter writer,
+    CanonicalJsonLoader loader,
     IEntityVectorStore entityStore,
     CanonicalBookLocks locks,
     ILogger<ProgrammaticExtractionRunner> logger,
@@ -69,22 +72,57 @@ public sealed partial class ProgrammaticExtractionRunner(
 
         var (sourceBook, edition) = BookMetadataDeriver.Derive(record, registry);
         var extracted = result.Entities.Select(e => ToEnvelope(e, sourceBook, edition)).ToList();
-        var overrides = await overridesStore.LoadAsync(slug, ct);
-        var merged = OverrideMerger.Apply(extracted, overrides);
 
-        var file = new CanonicalJsonFile(
-            SchemaVersion: CanonicalJsonSchema.CurrentVersion,
-            Book: new CanonicalBookMetadata(sourceBook, edition, record.FileHash, record.DisplayName),
-            Entities: merged.Entities);
-
-        // The swap + ingest is one write on the book: the review page's saves wait for it (and vice versa).
+        MergeResult merged;
+        MigrationResult migration;
+        int retired;
+        // Overrides are read, migrated, merged, reduced and saved inside the lock, so an admin save made on the
+        // review page while the extractor ran is neither lost nor overwritten. The swap + ingest is one write on
+        // the book: the review page's saves wait for it (and vice versa).
         using (await locks.AcquireAsync(slug, ct))
-            await SwapAndIngestAsync(record, bookId, slug, dir, file, result, sourceBook, ct);
+        {
+            var previous = await LoadPreviousEntitiesAsync(Path.Combine(dir, slug + ".json"), ct);
+            var loaded = await overridesStore.LoadAsync(slug, ct);
+            migration = OverrideMigration.Migrate(loaded, previous, extracted);
+            merged = OverrideMerger.Apply(extracted, migration.Overrides);
+            var reduced = migration.Overrides with
+            {
+                Overrides = migration.Overrides.Overrides
+                    .Where(o => !merged.Retired.Any(r => r.EntityId == o.EntityId && r.Field == o.Field))
+                    .ToList(),
+            };
+            retired = migration.Overrides.Overrides.Count - reduced.Overrides.Count;
+            if (retired > 0 || migration.Moved.Count > 0)
+                await overridesStore.SaveAsync(slug, reduced, ct);
 
+            var file = new CanonicalJsonFile(
+                SchemaVersion: CanonicalJsonSchema.CurrentVersion,
+                Book: new CanonicalBookMetadata(sourceBook, edition, record.FileHash, record.DisplayName),
+                Entities: merged.Entities);
+            await SwapAndIngestAsync(record, bookId, slug, dir, file, result, sourceBook, ct);
+        }
+
+        var moved = migration.Moved.Select(m => $"{m.From} -> {m.To}").ToList();
         var accepted = merged.Entities.Count(e => e.Disposition == EntityDisposition.Accepted);
         var needsReview = merged.Entities.Count(e => e.Disposition == EntityDisposition.NeedsReview);
-        LogDone(logger, bookId, merged.Entities.Count, accepted, needsReview, merged.OrphanedEntityIds.Count);
-        return new ProgrammaticRunResult(merged.Entities.Count, accepted, needsReview, merged.OrphanedEntityIds, result.Report);
+        LogDone(logger, bookId, merged.Entities.Count, accepted, needsReview, migration.Orphaned.Count, retired, moved.Count);
+        return new ProgrammaticRunResult(
+            merged.Entities.Count, accepted, needsReview, migration.Orphaned, result.Report, retired, moved);
+    }
+
+    /// <summary>The canonical file about to be replaced; none when absent or unreadable (no rename candidates then).</summary>
+    private async Task<IReadOnlyList<EntityEnvelope>> LoadPreviousEntitiesAsync(string path, CancellationToken ct)
+    {
+        if (!File.Exists(path))
+            return [];
+        try
+        {
+            return (await loader.LoadAsync(path, ct)).Entities;
+        }
+        catch (Exception ex) when (ex is JsonException or CanonicalJsonSchemaException)
+        {
+            return [];
+        }
     }
 
     private async Task SwapAndIngestAsync(
@@ -198,6 +236,7 @@ public sealed partial class ProgrammaticExtractionRunner(
     private static partial void LogIngestAfterSwapFailed(ILogger logger, Exception ex, int bookId);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "Book {BookId}: programmatic extraction done — {Entities} entities ({Accepted} accepted, {NeedsReview} needs review, {Orphans} orphaned overrides)")]
-    private static partial void LogDone(ILogger logger, int bookId, int entities, int accepted, int needsReview, int orphans);
+        Message = "Book {BookId}: programmatic extraction done — {Entities} entities ({Accepted} accepted, {NeedsReview} needs review, {Orphans} orphaned overrides, {Retired} retired, {Moved} moved)")]
+    private static partial void LogDone(
+        ILogger logger, int bookId, int entities, int accepted, int needsReview, int orphans, int retired, int moved);
 }

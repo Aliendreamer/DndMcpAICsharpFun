@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
+using DndMcpAICsharpFun.Features.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.Entities;
 using DndMcpAICsharpFun.Features.Ingestion.EntityExtraction;
 using DndMcpAICsharpFun.Features.Ingestion.FivetoolsIngestion;
@@ -69,7 +70,7 @@ public class ProgrammaticExtractionRunnerTests : IDisposable
             PollInterval = TimeSpan.FromMilliseconds(5),
             Timeout = timeout ?? TimeSpan.FromSeconds(30),
         }),
-        new CanonicalJsonWriter(), _store, _locks, NullLogger<ProgrammaticExtractionRunner>.Instance, deleteFile);
+        new CanonicalJsonWriter(), new CanonicalJsonLoader(), _store, _locks, NullLogger<ProgrammaticExtractionRunner>.Instance, deleteFile);
 
     private string P(string name) => Path.Combine(_dir, name);
 
@@ -330,5 +331,67 @@ public class ProgrammaticExtractionRunnerTests : IDisposable
         held.Dispose();
         await run;
         File.ReadAllText(P("mm14.json")).Should().NotBe("OLD");
+    }
+
+    private OverridesStore Store() => new(Options.Create(new EntityIngestionOptions { CanonicalDirectory = _dir }));
+
+    private static FieldOverride CrOverride(string id, string value, string extracted) =>
+        new(id, "fields.cr", J($"\"{value}\""), J($"\"{extracted}\""), "fix", DateTimeOffset.UnixEpoch);
+
+    [Fact]
+    public async Task Run_retires_matching_override_in_the_file()
+    {
+        // The extractor now produces cr "1" itself, so the override of "1" is redundant and must leave the file.
+        await Store().SaveAsync("mm14", new EntityOverrides(
+            [CrOverride("mm14.monster.goblin", "1", "0")],
+            [new Approval("mm14.monster.orc", "ok", DateTimeOffset.UnixEpoch, ["c"])]), CancellationToken.None);
+
+        var r = await Runner().RunAsync(1, CancellationToken.None);
+
+        r.Retired.Should().Be(1);
+        var saved = await Store().LoadAsync("mm14", CancellationToken.None);
+        saved.Overrides.Should().BeEmpty();
+        saved.Approvals.Should().ContainSingle().Which.EntityId.Should().Be("mm14.monster.orc");
+    }
+
+    [Fact]
+    public async Task Run_moves_renamed_override_in_the_file()
+    {
+        static EntityEnvelope Prev(string id) => new(id, EntityType.Monster, id, "MM", "Edition2014", 10,
+            new FirstAppearance("MM", "Edition2014", 10), [], [], "t", J("{}"));
+        await new CanonicalJsonWriter().WriteAsync(P("mm14.json"), new CanonicalJsonFile(
+            CanonicalJsonSchema.CurrentVersion, new CanonicalBookMetadata("MM", "Edition2014", "old", "Monster Manual"),
+            [Prev("mm14.monster.gobblin")]), CancellationToken.None);
+        await Store().SaveAsync("mm14", new EntityOverrides(
+            [CrOverride("mm14.monster.gobblin", "9", "1")],
+            [new Approval("mm14.monster.gobblin", "ok", DateTimeOffset.UnixEpoch, ["c"])]), CancellationToken.None);
+
+        var r = await Runner().RunAsync(1, CancellationToken.None);
+
+        r.Moved.Should().Equal("mm14.monster.gobblin -> mm14.monster.goblin");
+        r.Orphans.Should().BeEmpty();
+        var saved = await Store().LoadAsync("mm14", CancellationToken.None);
+        saved.Overrides.Should().ContainSingle().Which.EntityId.Should().Be("mm14.monster.goblin");
+        saved.Approvals.Should().ContainSingle().Which.EntityId.Should().Be("mm14.monster.goblin");
+        var ents = JsonDocument.Parse(File.ReadAllText(P("mm14.json"))).RootElement.GetProperty("entities").EnumerateArray().ToList();
+        ents[0].GetProperty("fields").GetProperty("cr").GetString().Should().Be("9");
+    }
+
+    [Fact]
+    public async Task Run_keeps_an_override_saved_during_the_run()
+    {
+        // An admin save lands after extraction but before the run holds the book lock.
+        var held = await _locks.AcquireAsync("mm14", CancellationToken.None);
+        var run = Runner().RunAsync(1, CancellationToken.None);
+        await Task.Delay(200);
+        await Store().SaveAsync("mm14", new EntityOverrides([CrOverride("mm14.monster.orc", "7", "1")], []), CancellationToken.None);
+        held.Dispose();
+
+        await run;
+
+        var saved = await Store().LoadAsync("mm14", CancellationToken.None);
+        saved.Overrides.Should().ContainSingle().Which.EntityId.Should().Be("mm14.monster.orc");
+        var ents = JsonDocument.Parse(File.ReadAllText(P("mm14.json"))).RootElement.GetProperty("entities").EnumerateArray().ToList();
+        ents[1].GetProperty("fields").GetProperty("cr").GetString().Should().Be("7");
     }
 }
