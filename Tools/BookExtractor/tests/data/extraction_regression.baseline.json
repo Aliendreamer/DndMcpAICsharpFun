@@ -530,7 +530,7 @@
   "match": false
  },
  "egw.lore.claret-orders": {
-  "f1": 0.58,
+  "f1": 0.7402,
   "found": true,
   "match": false
  },
@@ -670,7 +670,7 @@
   "match": true
  },
  "egw.lore.odessloe": {
-  "f1": 0.6846,
+  "f1": 0.7186,
   "found": true,
   "match": false
  },
@@ -715,7 +715,7 @@
   "match": false
  },
  "egw.lore.the-revelry": {
-  "f1": 0.5015,
+  "f1": 0.566,
   "found": true,
   "match": false
  },
@@ -725,7 +725,7 @@
   "match": false
  },
  "egw.lore.ustaloch": {
-  "f1": 0.4516,
+  "f1": 0.4937,
   "found": true,
   "match": false
  },
@@ -735,7 +735,7 @@
   "match": false
  },
  "egw.lore.yrrosa": {
-  "f1": 0.9762,
+  "f1": 0.8274,
   "found": true,
   "match": false
  },
@@ -785,7 +785,7 @@
   "match": false
  },
  "erlw.location.aerenal": {
-  "f1": 0.9899,
+  "f1": 0.5905,
   "found": true,
   "match": false
  },
@@ -870,7 +870,7 @@
   "match": false
  },
  "erlw.lore.darguul-characters": {
-  "f1": 0.5442,
+  "f1": 0.8692,
   "found": true,
   "match": false
  },
@@ -925,7 +925,7 @@
   "match": false
  },
  "erlw.lore.ghaash-kala-characters": {
-  "f1": 0.5977,
+  "f1": 0.8814,
   "found": true,
   "match": false
  },
@@ -945,8 +945,8 @@
   "match": true
  },
  "erlw.lore.house-tarkanan-adventure-hooks": {
-  "f1": 0.0,
-  "found": false,
+  "f1": 0.5951,
+  "found": true,
   "match": false
  },
  "erlw.lore.hunted-by-nightmares": {
@@ -1375,7 +1375,7 @@
   "match": false
  },
  "ftd.lore.creating-a-white-dragon": {
-  "f1": 0.1749,
+  "f1": 0.5652,
   "found": true,
   "match": false
  },
@@ -1395,7 +1395,7 @@
   "match": true
  },
  "ftd.lore.draconians": {
-  "f1": 0.9082,
+  "f1": 1.0,
   "found": true,
   "match": false
  },
@@ -1530,7 +1530,7 @@
   "match": true
  },
  "ftd.monster.chromatic-greatwyrm": {
-  "f1": 0.957,
+  "f1": 0.9969,
   "found": true,
   "match": false
  },
@@ -1725,7 +1725,7 @@
   "match": true
  },
  "mtf.monster.drow-arachnomancer": {
-  "f1": 0.8926,
+  "f1": 0.9975,
   "found": true,
   "match": false
  },
