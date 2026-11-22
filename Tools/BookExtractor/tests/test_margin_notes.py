@@ -57,3 +57,18 @@ def test_a_note_on_a_page_no_entity_holds_becomes_a_flagged_lore():
     lone = [e for e in ents if e["name"].startswith("Margin note") or " note, p" in e["name"]]
     for e in lone:
         assert e["type"] == "Lore" and any(c["name"] == "margin-note" and not c["passed"] for c in e["checks"])
+
+
+def test_body_text_set_a_little_large_is_no_pull_quote_and_no_note():
+    # bgg p76: the lines of "Shifting the Shroud" grow taller down a scaled page; they stay in the entity's text
+    ents = _entities("notes-bgg76")
+    magic = next(e for e in ents if e["id"] == "bgg.lore.forest-crystal-magic")
+    assert "Intelligence (Arcana) check. A creature who takes control" in magic["canonicalText"]
+    assert not [n for e in ents for n in e.get("notes", []) if n["page"] == 76]
+
+
+def test_only_tall_hand_set_asides_are_notes_not_chapter_openers_or_table_cells():
+    for case in ("notes-bgg127", "notes-bgg134", "notes-bgg76"):
+        for e in _entities(case):
+            for n in e.get("notes", []):
+                assert "presents giant enclaves" not in n["text"], (case, n)

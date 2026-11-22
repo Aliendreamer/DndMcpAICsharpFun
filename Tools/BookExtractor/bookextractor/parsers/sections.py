@@ -550,7 +550,7 @@ def drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
         if len(l.text) >= 30 and prose(l.text):
             k = (l.page, page_column(l, ctx))
             edges[k] = min(edges.get(k, l.box[0]), l.box[0])
-    out: list[Line] = []
+    flagged: list[bool] = []
     art = False
     for i, l in enumerate(own):
         edge = edges.get((l.page, page_column(l, ctx)))
@@ -558,14 +558,32 @@ def drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
         gap = prev is not None and prev.page == l.page and l.box[1] - prev.box[1] >= 3 * l.height
         inset = edge is not None and l.box[0] - edge > _ART_INSET * l.height and len(l.text.strip()) < 45
         art = i > 0 and inset and (gap or art)
-        if not art:
-            out.append(l)
-    return drop_pull_quotes(out)
+        flagged.append(art)
+    # a run set in from the edge that stops mid-sentence, with the text carrying on in lower case directly beneath it at
+    # the margin, is a paragraph's drop-cap opening or a wrapped rule, not art: it stays in the text
+    i = 0
+    while i < len(own):
+        if not flagged[i]:
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(own) and flagged[j + 1]:
+            j += 1
+        nxt = own[j + 1] if j + 1 < len(own) else None
+        if nxt is not None and nxt.page == own[j].page and nxt.text.strip()[:1].islower() \
+                and not own[j].text.rstrip().endswith((".", "!", "?", "\"", "\u201d")) \
+                and any(prose(x.text) for x in own[i:j + 1]) \
+                and 0 <= nxt.box[1] - own[j].box[3] <= 1.2 * nxt.height and nxt.box[0] < own[j].box[0] - 1:
+            for k in range(i, j + 1):
+                flagged[k] = False
+        i = j + 1
+    return drop_pull_quotes([l for l, f in zip(own, flagged) if not f])
 
 
 _QUOTE_TALL = 1.45  # a margin pull-quote's lines are set this many times the text's median line height
 _QUOTE_JOIN = 1.3  # ... and the lines around it, set this tall, are its other lines
 _QUOTE_WORDS = 3
+_QUOTE_STANDOUT = 1.3  # a quote's lines are this many times as tall as the lines around it
 
 
 def drop_pull_quotes(own: list[Line], heads: int = 1) -> list[Line]:
@@ -597,6 +615,20 @@ def drop_pull_quotes(own: list[Line], heads: int = 1) -> list[Line]:
                 j += step
     # a lone tall line is a drop cap or a display word, not a quote: a quote is a block of two lines or more
     blocks = [i for i in drop if i - 1 in drop or i + 1 in drop]
+    # a block is a quote only if it stands out from the lines right around it: body text set a little large (a scaled
+    # page, bgg p76) is no quote
+    groups: list[list[int]] = []
+    for i in sorted(blocks):
+        if groups and i == groups[-1][-1] + 1:
+            groups[-1].append(i)
+        else:
+            groups.append([i])
+    blocks = []
+    for g in groups:
+        around = [own[j].height for j in (*range(g[0] - 3, g[0]), *range(g[-1] + 1, g[-1] + 4))
+                  if 0 <= j < len(own) and j not in drop and own[j].page == own[g[0]].page]
+        if not around or statistics.median(own[j].height for j in g) >= _QUOTE_STANDOUT * statistics.median(around):
+            blocks += g
     keep_drop = set(blocks)
     return [l for i, l in enumerate(own) if i not in keep_drop]
 
