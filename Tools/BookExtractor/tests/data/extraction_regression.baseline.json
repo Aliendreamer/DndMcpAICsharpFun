@@ -355,7 +355,7 @@
   "match": false
  },
  "dmg14.lore.dungeon-dressing": {
-  "f1": 0.575,
+  "f1": 0.6769,
   "found": true,
   "match": false
  },
@@ -1300,7 +1300,7 @@
   "match": false
  },
  "ftd.lore.amethyst-dragon-adventures": {
-  "f1": 0.3993,
+  "f1": 0.4265,
   "found": true,
   "match": false
  },
@@ -1475,7 +1475,7 @@
   "match": false
  },
  "ftd.lore.moonstone-dragon-adventures": {
-  "f1": 0.1506,
+  "f1": 0.1525,
   "found": true,
   "match": false
  },
@@ -1960,7 +1960,7 @@
   "match": false
  },
  "tce.rule.aberrations": {
-  "f1": 0.9661,
+  "f1": 0.2215,
   "found": true,
   "match": false
  },
@@ -2100,17 +2100,17 @@
   "match": false
  },
  "xge.rule.coastal-encounters-levels-5-10": {
-  "f1": 0.9877,
+  "f1": 0.2939,
   "found": true,
   "match": false
  },
  "xge.rule.desert-encounters-levels-17-20": {
-  "f1": 0.9931,
+  "f1": 0.2106,
   "found": true,
   "match": false
  },
  "xge.rule.flight-or-fight-or": {
-  "f1": 0.9802,
+  "f1": 0.2682,
   "found": true,
   "match": false
  },
@@ -2125,12 +2125,12 @@
   "match": false
  },
  "xge.rule.grassland-encounters-levels-1-5": {
-  "f1": 0.988,
+  "f1": 0.3889,
   "found": true,
   "match": false
  },
  "xge.rule.hill-encounters-levels-11-16": {
-  "f1": 0.978,
+  "f1": 0.1805,
   "found": true,
   "match": false
  },
@@ -2155,12 +2155,12 @@
   "match": false
  },
  "xge.rule.underdark-encounters-levels-1-4": {
-  "f1": 0.9758,
+  "f1": 0.4206,
   "found": true,
   "match": false
  },
  "xge.rule.underwater-encounters-levels-11-20": {
-  "f1": 0.9633,
+  "f1": 0.1197,
   "found": true,
   "match": false
  },
