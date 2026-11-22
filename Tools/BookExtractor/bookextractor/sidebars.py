@@ -14,13 +14,12 @@ from .model import Line
 from .pages import is_table_page
 from .parsers import ParseContext, Parsed
 from .parsers.charcommon import PAGE_NO, RUNNING_HEAD, prose_entries
-from .parsers.sections import _table_row, drop_art, heading_words, prose
+from .parsers.sections import _table_row, drop_art, drop_pull_quotes, heading_words, prose
 
 PAGES_AFTER = 3  # a sidebar is looked for on the pages of a stat block and the ones after it (the block ran on)
 MIN_LINE = 30  # a printed line this long is content, not a label or a page number
 _CHAPTER_TITLE = re.compile(r"(?i)^(?:chapter|appendix|part)\s+\w+\s*[:.|]")
 _FRAGMENT = 120  # a run this short beside a margin note is a stray line of the note
-_NOTE_TALL = 1.3  # a margin note's lines are set this many times the text's median line height
 _QUOTE_START = ("\"", "“", "‘", "—", "–")
 
 
@@ -57,12 +56,10 @@ def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
     no prose (a map label, a picture's words). A prose line set in from the edge after a gap is a chapter's drop-cap
     opening, not art: it is no exemption."""
     kept = {id(l) for l in drop_art(lines, ctx)}
-    heights = sorted(l.height for l in lines)
-    med = heights[len(heights) // 2] if heights else 0
+    notes = {id(l) for l in lines} - {id(l) for l in drop_pull_quotes(lines)}  # tall hand-set notes, as the reader sees them
     openers = {n for n in {l.page for l in lines}  # a chapter's first page: its tall prose is the chapter's text
                if any(_CHAPTER_TITLE.match(x.text.strip()) for x in getattr(ctx.pages.get(n), "lines", ()))}
-    return [l for l in lines if id(l) not in kept
-            and l.page not in openers and (not prose(l.text) or l.height >= _NOTE_TALL * med)]
+    return [l for l in lines if id(l) not in kept and l.page not in openers and (not prose(l.text) or id(l) in notes)]
 
 
 def _runs(lines: list[Line], eligible: set[int]) -> list[_Run]:
