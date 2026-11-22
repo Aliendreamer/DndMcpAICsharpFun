@@ -105,6 +105,11 @@ def _continues_block(rows: list[Line], c: int) -> bool:
     return mid_sentence and any(_STAT_MARKER.search(r.text.strip()) for r in rows[:c])
 
 
+_SECTION_HEAD = re.compile(r"(?i)bonus actions|reactions|actions|legendary actions")
+_TRAIT_LEAD = re.compile(r"[A-Z][A-Za-z'\-]*(?: (?:[A-Z0-9][A-Za-z'\-/]*|of|the|and|to|with|a|an|in|on|or|for|from|by|at)){0,5}"
+                         r"(?: \([^)]{1,40}\))?\. ")  # a trait's "Name. " lead-in: title-case words, no lower-case ones
+
+
 PROSE_TAIL_MAX_GAP = 0.5  # in line heights: the cut sits at normal line spacing (no box edge above it)
 
 
@@ -140,6 +145,9 @@ def _interleave_stat_blocks(left: list[Line], right: list[Line], page_height: fl
     c = next((j for j in range(first_right_block) if abs(right[j].box[1] - left[s].box[1]) <= tol), None)
     if c is None or _continues_block(right, c):
         return left + right  # the right text flows on from the block itself: it is no boxed lore
+    if c > 0 and _SECTION_HEAD.fullmatch(right[c].text.strip()) and _TRAIT_LEAD.match(right[0].text.strip()) \
+            and not any(_STAT_MARKER.search(r.text.strip()) for r in right[:c]):
+        return left + right  # the right column opens with the block's own traits ("Spellcasting. ..."), then its Actions
     if c > 0 and len(starts) == 1 and _STAT_MARKER.search(right[0].text.strip()):
         return left + right  # the right column opens with the block's own text: it flows on from the top
     cut = right[c].text.strip()

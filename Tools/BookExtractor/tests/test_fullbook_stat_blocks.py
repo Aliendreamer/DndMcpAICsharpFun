@@ -71,3 +71,10 @@ def test_a_wrapped_armor_class_phrase_in_lore_does_not_cut_the_block_and_orphan_
     texts = [e["canonicalText"] for e in extract_pages(pages, "mm14")]
     assert any("Lost Characteristics" in t for t in texts)
     assert any("Retained Characteristics" in t for t in texts)
+
+
+def test_a_right_column_that_opens_with_the_blocks_own_traits_is_not_lore_above_its_name():
+    # mm14 p203: the right column holds the lich's Spellcasting and Turn Resistance, then "Actions" at the name's height
+    found = _monsters("lich")
+    assert "Spellcasting" in str(found["Lich"]["fields"].get("trait"))
+    assert "18th-level spellcaster" not in found["Lamia"]["canonicalText"]
