@@ -50,6 +50,11 @@ def test_haunted_continuation_rows_do_not_land_in_mirror_zone_effects():
     assert len(_text("tce-tables", "tce.rule.mirror-zone-effects")) > 4000
 
 
+def test_folded_recurring_heading_hoists_its_kids():
+    # F3: "How Do I Fit In?" recurs per guild, so it folds as a part; its kid "A Boros Party" is still an entity
+    assert "ggr.lore.a-boros-party" in _entities("ggr-guilds")
+
+
 def test_a_die_header_under_a_table_title_is_not_an_odd_opening():
     # F4
     assert not [r for r in _reasons("tce-tables", "tce.rule.blessed-radiance-effects", "text-complete")

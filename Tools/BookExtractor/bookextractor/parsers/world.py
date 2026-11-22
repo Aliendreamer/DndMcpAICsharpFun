@@ -350,7 +350,11 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
         return recurring[(s.parents[0] if s.parents else "", _label(s.title))] >= _RECURRING
 
     def visit(group: list[Section], parent: Section | None = None, under_owned: bool = False) -> None:
-        kids_of = {id(s): [c for c in _kids(s, sections) if not part(c)] for s in group}
+        def live_kids(s: Section) -> list[Section]:
+            # a folded part's own sub-sections are opened in its place, never dropped with it
+            return [k for c in _kids(s, sections) for k in (live_kids(c) if part(c) else [c])]
+
+        kids_of = {id(s): live_kids(s) for s in group}
         listing = _listing_group(group, kids_of)
         for s in group:
             kids = kids_of[id(s)]
