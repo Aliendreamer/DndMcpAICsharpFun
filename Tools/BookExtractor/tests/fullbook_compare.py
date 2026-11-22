@@ -113,6 +113,28 @@ def coverage(old: list[dict], new: list[dict], ocr: list) -> dict:
     return {"new": newly, "pre": pre, "quotes": quotes}
 
 
+def kept_since(prev: list[dict], new: list[dict], ocr: list) -> dict:
+    """Against an earlier extraction (`--prev`): every OCR line the earlier one held, by an entity's text or a note, must
+    still be held by an entity's text or a note ("lost": held by nothing now), and a line a note held must not now sit in
+    an entity's text ("glued": an aside newly merged into body text). Notes count as held."""
+    prev_text = _flat("\n".join(e["text"] + " " + e.get("notes", "") for e in prev))
+    prev_notes = _flat(" ".join(e.get("notes", "") for e in prev))
+    new_text = _flat("\n".join(e["text"] + " " + e.get("notes", "") for e in new))
+    new_body = _flat("\n".join(e["text"] for e in new))
+    new_notes = _flat(" ".join(e.get("notes", "") for e in new))
+    lost, glued, seen = [], [], set()
+    for page, line, _ in ocr:
+        key = _flat(line[:-1] if line.endswith("-") else line).lstrip(".,;:'\"\u2022 ")
+        if key in seen or len(key) < 20:
+            continue
+        seen.add(key)
+        if key in prev_text and key not in new_text:
+            lost.append((page, line))
+        elif key in prev_notes and key in new_body and key not in new_notes:
+            glued.append((page, line))
+    return {"lost": lost, "glued": glued}
+
+
 def _moved(a: int, b: int) -> bool:
     return abs(a - b) > SHIFT * max(a, 1) if a else b > 0
 
@@ -172,18 +194,22 @@ def main() -> None:
     ap.add_argument("--cache", required=True, help="OCR cache dir: <cache>/<fileHash>/ocr/NNN.json")
     ap.add_argument("--ref", default="HEAD", help="git ref of the extractor to compare against (default HEAD)")
     ap.add_argument("--detail", type=int, default=12, help="rows per list (default 12)")
+    ap.add_argument("--prev", help="an earlier extractor ref whose held lines (text or notes) must all stay held")
     ap.add_argument("--keep", help="directory to keep the two extractions' JSON in (<slug>.old.json, <slug>.new.json)")
     args = ap.parse_args()
 
     repo = _repo_root()
     with tempfile.TemporaryDirectory() as tmp:
         old_root = unpack_ref(args.ref, repo, Path(tmp))
+        prev_dir = Path(tmp) / "prev"
+        prev_dir.mkdir()
+        prev_root = unpack_ref(args.prev, repo, prev_dir) if args.prev else None
         summaries = []
         for book in args.books:
             slug, _, fh = book.partition(":")
             fh = fh or file_hash_of(slug, repo)
             procs, outs = [], {}
-            for label, root in (("old", old_root), ("new", str(PKG_ROOT))):
+            for label, root in (("old", old_root), ("new", str(PKG_ROOT)), *([("prev", prev_root)] if prev_root else [])):
                 outs[label] = str(Path(tmp) / f"{slug}.{label}.json")
                 procs.append(subprocess.Popen([sys.executable, "-I", str(Path(__file__).resolve()), "--worker", root,
                                                args.cache, fh, slug, outs[label]]))
@@ -196,7 +222,19 @@ def main() -> None:
                 Path(args.keep).mkdir(parents=True, exist_ok=True)
                 shutil.copy(outs["old"], Path(args.keep) / f"{slug}.old.json")
                 shutil.copy(outs["new"], Path(args.keep) / f"{slug}.new.json")
+                if prev_root:
+                    shutil.copy(outs["prev"], Path(args.keep) / f"{slug}.prev.json")
             res = compare(slug, old["entities"], new["entities"], new["ocr"], args.detail)
+            if prev_root:
+                prev = json.loads(Path(outs["prev"]).read_text())
+                ks = kept_since(prev["entities"], new["entities"], new["ocr"])
+                res["lines"].append(f"  vs {args.prev}: held lines now held by nothing {len(ks['lost'])}, "
+                                    f"note lines now glued into an entity's text {len(ks['glued'])}")
+                for page, line in ks["lost"][:args.detail]:
+                    res["lines"].append(f"    LOST p{page}: {line[:90]}")
+                for page, line in ks["glued"][:args.detail]:
+                    res["lines"].append(f"    GLUED p{page}: {line[:90]}")
+                res["summary"] += f", vs prev: lost {len(ks['lost'])}, glued {len(ks['glued'])}"
             print(f"== {slug} ({args.ref} -> working tree)")
             print("\n".join(res["lines"]), flush=True)
             summaries.append(res["summary"])
