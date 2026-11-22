@@ -24,14 +24,14 @@ from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
 from .parsers.race import parse_races
 from .parsers.rule import parse_rules
-from .parsers.sections import Section, drop_art, read_sections
+from .parsers.sections import Section, read_sections
 from .parsers.spell import parse_spells
 from .parsers.subclass import _short_name, parse_subclasses
 from .parsers.trap import parse_traps
 from .parsers.vehicle_object import parse_objects, parse_vehicles
 from .parsers.world import bare_heading, chapter_pages, has_sentence, parent_section, parse_world, placement_doubts
 from .report import build_report
-from .sidebars import detached_sidebars
+from .sidebars import detached_sidebars, left_out_art
 from .residual import recurring_labels, residual_checks
 
 ALL_TYPES = ("Monster", "Spell", "MagicItem", "Class", "Subclass", "Race", "Subrace", "Feat",
@@ -654,8 +654,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
             if t in WORLD_TYPES:
                 checks = [*checks, *residual_checks(p, heights, recurring)]
             if p.lines:  # art text and margin notes inside the entity's lines that `drop_art` takes out of its text
-                kept_ = {id(l) for l in drop_art(p.lines, ctx)}
-                dropped.extend((l.page, l.text.strip()) for l in p.lines if id(l) not in kept_)
+                dropped.extend((l.page, l.text.strip()) for l in left_out_art(p.lines, ctx))
             claimed_lines |= _line_keys(p.lines)
             if t == "Monster":
                 monster_pages.update(l.page for l in p.lines)

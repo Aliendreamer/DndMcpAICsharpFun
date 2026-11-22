@@ -18,6 +18,7 @@ from .parsers.sections import _table_row, drop_art, heading_words, prose
 
 PAGES_AFTER = 3  # a sidebar is looked for on the pages of a stat block and the ones after it (the block ran on)
 MIN_LINE = 30  # a printed line this long is content, not a label or a page number
+_NOTE_TALL = 1.3  # a margin note's lines are set this many times the text's median line height
 _QUOTE_START = ("\"", "“", "‘", "—", "–")
 
 
@@ -49,6 +50,16 @@ def _name(L: list[Line], heads: int, previous_name) -> str:
     return f"{previous_name(L[0])} sidebar"
 
 
+def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
+    """The lines `drop_art` takes out that are art or a margin note: set taller than the text (a handwritten note), or
+    no prose (a map label, a picture's words). A prose line set in from the edge after a gap is a chapter's drop-cap
+    opening, not art: it is no exemption."""
+    kept = {id(l) for l in drop_art(lines, ctx)}
+    heights = sorted(l.height for l in lines)
+    med = heights[len(heights) // 2] if heights else 0
+    return [l for l in lines if id(l) not in kept and (l.height >= _NOTE_TALL * med or not prose(l.text))]
+
+
 def _runs(lines: list[Line], eligible: set[int]) -> list[_Run]:
     runs: list[_Run] = []
     cur: list[Line] = []
@@ -73,9 +84,10 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
     out: list[Parsed] = []
     for number, lines in ordered.items():
         near = any(number - k in pages_with_blocks for k in range(PAGES_AFTER + 1))
-        recognised = {id(l) for l in drop_art(lines, ctx)}  # art text and margin pull-quotes: left out on purpose
+        art = left_out_art(lines, ctx)  # art text and margin notes: left out on purpose
+        recognised = {id(l) for l in lines} - {id(l) for l in art}
         if left_out is not None:
-            left_out += [(number, l.text.strip()) for l in lines if id(l) not in recognised]
+            left_out += [(number, l.text.strip()) for l in art]
         eligible = {id(l) for l in lines
                     if id(l) in recognised and key(l) not in claimed and len(l.text.strip()) >= 3
                     and not PAGE_NO.fullmatch(l.text.strip()) and not RUNNING_HEAD.match(l.text.strip())}
