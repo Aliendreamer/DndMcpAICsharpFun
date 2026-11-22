@@ -44,38 +44,16 @@ def worker(root: str, cache: str, file_hash: str, slug: str, out: str) -> None:
 
     files = sorted(glob.glob(f"{cache}/{file_hash}/ocr/*.json"))
     pages = [load_ocr_page(f, int(os.path.basename(f)[:3])) for f in files]
-    entities = extract_book(pages, slug, set(ALL_TYPES)).entities
+    result = extract_book(pages, slug, set(ALL_TYPES))
+    entities = result.entities
     slim = [{"id": e["id"], "type": e["type"], "name": e["name"], "page": e["page"], "text": e["canonicalText"], "size": len(e["canonicalText"]),
              "action": len(json.dumps(e["fields"].get("action") or "")),
              "trait": len(json.dumps(e["fields"].get("trait") or "")),
              "fails": sorted(c["name"] for c in e["checks"] if not c["passed"])} for e in entities]
-    exempt = _exempt_lines(pages)
+    exempt = {(pg, t) for pg, t in getattr(result, "left_out", [])}
     ocr = [[p.number, l.text.strip(), (p.number, l.text.strip()) in exempt]
            for p in pages for l in p.lines if len(l.text.strip()) >= MIN_LINE]
     Path(out).write_text(json.dumps({"entities": slim, "ocr": ocr}))
-
-
-def _exempt_lines(pages: list) -> set:
-    """(page, text) of the lines the working-tree extractor leaves out on purpose: art text and margin notes that
-    `drop_art` recognises, and a headingless quote box or epigraph (`sidebars.quote_box`). Empty for a ref that has
-    no such rule."""
-    try:
-        from bookextractor.layout import reading_order
-        from bookextractor.pages import classify_page
-        from bookextractor.parsers import ParseContext
-        from bookextractor.parsers.sections import drop_art
-        from bookextractor.sidebars import quote_box
-    except ImportError:
-        return set()
-    ctx = ParseContext(slug="x", source="X", pages={p.number: p for p in pages})
-    out: set = set()
-    for p in pages:
-        if classify_page(p) not in ("rules", "art"):
-            continue
-        lines = reading_order(p)
-        kept = {id(l) for l in drop_art(lines, ctx)}
-        out |= {(p.number, l.text.strip()) for l in lines if id(l) not in kept or quote_box([l])}
-    return out
 
 
 def _repo_root() -> Path:

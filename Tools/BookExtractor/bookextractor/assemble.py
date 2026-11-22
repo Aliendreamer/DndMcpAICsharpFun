@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .checks import Check
 from .layout import fix_digits, reading_order
@@ -115,6 +115,7 @@ def _world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
 class ExtractionResult:
     entities: list[dict]
     report: dict
+    left_out: list[tuple[int, str]] = field(default_factory=list)  # (page, text) of lines left out on purpose
 
 
 def slugify(name: str) -> str:
@@ -664,6 +665,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 "provenance": _provenance(p.lines, by_number),
             })
 
+    left_out: list[tuple[int, str]] = []
     if "Lore" in types and "Monster" in types:
         # text no entity holds after a stat block (a boxed sidebar, lore a stop rule cut off): a flagged Lore of its own
         def previous_name(line: Line) -> str:
@@ -671,7 +673,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
             return max(((i, n) for i, n in first_at if i < at), default=(0, "Unnamed"))[1]
 
         extra = detached_sidebars({n: ordered[n] for n in sorted(ordered)}, monster_pages, by_number, ctx,
-                                  claimed_lines, lambda l: next(iter(_line_keys([l]))), previous_name)
+                                  claimed_lines, lambda l: next(iter(_line_keys([l]))), previous_name, left_out)
         for p, (eid, checks) in zip(extra, [_id_and_checks(p, book_slug, seen, vocab) for p in extra]):
             claimed_lines |= _line_keys(p.lines)
             covered.update(l.page for l in p.lines)
@@ -691,4 +693,4 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
             covered.add(p.number)
     rules_numbers = {p.number for p in rules}
     report = build_report(book_slug, len(pages), len(rules_numbers), len(covered & rules_numbers), entities)
-    return ExtractionResult(entities=entities, report=report)
+    return ExtractionResult(entities=entities, report=report, left_out=left_out)

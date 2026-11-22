@@ -51,7 +51,8 @@ def _runs(lines: list[Line], eligible: set[int]) -> list[_Run]:
 
 
 def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int], pages_by_number: dict,
-                      ctx: ParseContext, claimed: set, key, previous_name) -> list[Parsed]:
+                      ctx: ParseContext, claimed: set, key, previous_name,
+                      left_out: list | None = None) -> list[Parsed]:
     """One Lore per run of unclaimed content lines on a page at or after a stat block (same page or the next).
 
     `key(line)` is the printed-line identity the entities claim by; `previous_name(line)` names the entity printed
@@ -64,6 +65,8 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
         if is_table_page(page):
             continue
         recognised = {id(l) for l in drop_art(lines, ctx)}  # art text and margin pull-quotes: left out on purpose
+        if left_out is not None:
+            left_out += [(number, l.text.strip()) for l in lines if id(l) not in recognised]
         eligible = {id(l) for l in lines
                     if id(l) in recognised and key(l) not in claimed and len(l.text.strip()) >= 3
                     and not PAGE_NO.fullmatch(l.text.strip()) and not RUNNING_HEAD.match(l.text.strip())}
@@ -73,6 +76,8 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
                 continue  # a label, a figure caption, a table's cell
             heads = 1 if len(L) > 1 and heading_words(L[0].text) and not prose(L[0].text) else 0
             if not heads and quote_box(L):
+                if left_out is not None:
+                    left_out += [(l.page, l.text.strip()) for l in L]
                 continue
             name = L[0].text.strip() if heads else f"{previous_name(L[0])} sidebar"
             entries = prose_entries(L, heads, len(L))
