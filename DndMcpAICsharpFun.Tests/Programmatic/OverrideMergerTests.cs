@@ -410,6 +410,16 @@ public class OverrideMergerTests
     }
 
     [Fact]
+    public void Notes_are_no_reviewed_field_overrides_keep_them_and_raise_no_drift()
+    {
+        var withNotes = Grell() with { Notes = [new EntityNote("Bigby", "A margin aside.", 1)] };
+        var r = OverrideMerger.Apply([withNotes], new EntityOverrides([Ov("fields.cr", "\"3\"", "\"2\"")], []));
+        r.Entities[0].Notes.Should().ContainSingle().Which.Text.Should().Be("A margin aside.");
+        r.Entities[0].Checks.Should().NotContain(c => c.Name == OverrideMerger.DriftCheck);
+        r.Entities[0].Fields.GetProperty("cr").GetString().Should().Be("3");
+    }
+
+    [Fact]
     public void Apply_keeps_a_null_override_when_the_extraction_still_holds_a_value()
     {
         var r = OverrideMerger.Apply([Grell("\"2\"")], new EntityOverrides([Ov("fields.cr", "null", "\"2\"")], []));

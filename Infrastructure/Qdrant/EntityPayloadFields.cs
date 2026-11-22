@@ -10,6 +10,8 @@ public static class EntityPayloadFields
     public const string BookType = "book_type";
     public const string Page = "page";
     public const string CanonicalText = "canonical_text";
+    public const string Notes = "notes";
+    public const string NotesJson = "notes_json";
     public const string SettingTags = "setting_tags";
     public const string Keywords = "keywords";
     public const string CrNumeric = "cr_numeric";

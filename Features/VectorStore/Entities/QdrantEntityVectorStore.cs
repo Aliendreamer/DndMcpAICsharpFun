@@ -229,6 +229,11 @@ public sealed class QdrantEntityVectorStore(
         if (p.Envelope.Page is { } page) payload[EntityPayloadFields.Page] = page;
         if (p.Envelope.Keywords.Count > 0)
             payload[EntityPayloadFields.Keywords] = StringList(p.Envelope.Keywords);
+        if (p.Envelope.Notes is { Count: > 0 } notes)
+        {
+            payload[EntityPayloadFields.Notes] = string.Join("\n", notes.Select(n => n.Text));
+            payload[EntityPayloadFields.NotesJson] = JsonSerializer.Serialize(notes);
+        }
 
         FlattenIndexedFields(p.Envelope, payload);
 
@@ -325,7 +330,15 @@ public sealed class QdrantEntityVectorStore(
             NeedsReview: p.TryGetValue(EntityPayloadFields.NeedsReview, out var nrV) && nrV.StringValue == "true",
             Keywords: p.TryGetValue(EntityPayloadFields.Keywords, out var kw) && kw.ListValue is { } kwList
                 ? kwList.Values.Select(v => v.StringValue).ToList()
-                : (IReadOnlyList<string>)Array.Empty<string>());
+                : (IReadOnlyList<string>)Array.Empty<string>(),
+            Notes: ReadNotes(p));
+    }
+
+    private static IReadOnlyList<EntityNote>? ReadNotes(Google.Protobuf.Collections.MapField<string, Value> p)
+    {
+        if (!p.TryGetValue(EntityPayloadFields.NotesJson, out var nj)) return null;
+        try { return JsonSerializer.Deserialize<List<EntityNote>>(nj.StringValue); }
+        catch (JsonException) { return null; }
     }
 
     private static Filter MatchKeyword(string field, string value)

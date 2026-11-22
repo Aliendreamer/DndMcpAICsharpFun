@@ -114,7 +114,7 @@ public sealed class EntityIngestionOrchestrator(
             }
 
             renderedEnvelopes.Add(WithRenderedText(merged, text, record));
-            texts.Add(text);
+            texts.Add(EntityEmbeddingText.For(text, merged.Notes));
         }
 
         // ── Embed + upsert ────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ public sealed class EntityIngestionOrchestrator(
 
         var finalEnvelope = WithRenderedText(merged, text, record);
 
-        var vectors = await embeddings.EmbedAsync([text], ct);
+        var vectors = await embeddings.EmbedAsync([EntityEmbeddingText.For(text, merged.Notes)], ct);
         var point = new EntityPoint(finalEnvelope, vectors[0], record.FileHash);
 
         // Upsert only this one point — DO NOT call DeleteByFileHashExceptAsync.

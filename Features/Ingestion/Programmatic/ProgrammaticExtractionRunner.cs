@@ -227,7 +227,8 @@ public sealed partial class ProgrammaticExtractionRunner(
         Authority: "book",
         // Fail closed: an entity the extractor did not verify at all must never be auto-accepted.
         Checks: e.Checks is { Count: > 0 } ? e.Checks : [new EntityCheck(ChecksMissing, false, "extractor returned no checks")],
-        Provenance: e.Provenance);
+        Provenance: e.Provenance,
+        Notes: e.Notes is { Count: > 0 } ? e.Notes : null);
 
     /// <summary>Failed check added when the extractor returned an entity with no checks.</summary>
     public const string ChecksMissing = "checks-missing";

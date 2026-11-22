@@ -52,4 +52,32 @@ public class EntityEnvelopeTests
         var copy = original with { Name = "Other" };
         copy.NeedsReview.Should().BeTrue();
     }
+
+    [Fact]
+    public void Notes_are_optional_and_omitted_from_json_when_absent()
+    {
+        var json = JsonSerializer.Serialize(MakeEnvelope());
+        json.Should().NotContain("Notes");
+        var back = JsonSerializer.Deserialize<EntityEnvelope>(json)!;
+        back.Notes.Should().BeNull();
+    }
+
+    [Fact]
+    public void Notes_round_trip_through_json()
+    {
+        var e = MakeEnvelope() with { Notes = [new EntityNote("Diancastra", "Most giants know better.", 127)] };
+        var back = JsonSerializer.Deserialize<EntityEnvelope>(JsonSerializer.Serialize(e))!;
+        back.Notes.Should().ContainSingle().Which.Should().Be(new EntityNote("Diancastra", "Most giants know better.", 127));
+    }
+
+    [Fact]
+    public void Embedding_text_appends_the_notes_under_a_Notes_line_and_leaves_canonical_text_alone()
+    {
+        var notes = new[] { new EntityNote("Diancastra", "Most giants know better.", 127), new EntityNote(null, "Unsigned.", 127) };
+        var text = DndMcpAICsharpFun.Features.Entities.CanonicalText.EntityEmbeddingText.For("Death Giant\nbody", notes);
+        text.Should().StartWith("Death Giant\nbody\nNotes: ");
+        text.Should().Contain("Most giants know better.").And.Contain("Diancastra").And.Contain("Unsigned.");
+        DndMcpAICsharpFun.Features.Entities.CanonicalText.EntityEmbeddingText.For("x", null).Should().Be("x");
+        DndMcpAICsharpFun.Features.Entities.CanonicalText.EntityEmbeddingText.For("x", []).Should().Be("x");
+    }
 }

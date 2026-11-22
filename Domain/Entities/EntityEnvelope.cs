@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DndMcpAICsharpFun.Domain.Entities;
 
@@ -23,7 +24,8 @@ public sealed record EntityEnvelope(
     IReadOnlyList<string> Keywords = null!,
     EntityDisposition Disposition = EntityDisposition.Accepted,
     IReadOnlyList<EntityCheck> Checks = null!,
-    EntityProvenance? Provenance = null)
+    EntityProvenance? Provenance = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<EntityNote>? Notes = null)
 {
     public IReadOnlyList<string> Keywords { get; init; } = Keywords ?? [];
     public IReadOnlyList<EntityCheck> Checks { get; init; } = Checks ?? [];
