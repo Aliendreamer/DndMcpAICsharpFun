@@ -50,8 +50,10 @@ def worker(root: str, cache: str, file_hash: str, slug: str, out: str) -> None:
              "action": len(json.dumps(e["fields"].get("action") or "")),
              "trait": len(json.dumps(e["fields"].get("trait") or "")),
              "fails": sorted(c["name"] for c in e["checks"] if not c["passed"])} for e in entities]
-    exempt = {(pg, t) for pg, t in getattr(result, "left_out", [])}
-    ocr = [[p.number, l.text.strip(), (p.number, l.text.strip()) in exempt]
+    left: dict[int, list[str]] = {}
+    for pg, t in getattr(result, "left_out", []):
+        left.setdefault(pg, []).append(t)  # (reading order may merge two OCR rows into one line: match by containment)
+    ocr = [[p.number, l.text.strip(), any(l.text.strip() in t for t in left.get(p.number, ()))]
            for p in pages for l in p.lines if len(l.text.strip()) >= MIN_LINE]
     Path(out).write_text(json.dumps({"entities": slim, "ocr": ocr}))
 
