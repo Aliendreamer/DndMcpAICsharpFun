@@ -11,10 +11,9 @@ from dataclasses import dataclass
 
 from .checks import Check
 from .model import Line
-from .pages import is_table_page
 from .parsers import ParseContext, Parsed
 from .parsers.charcommon import PAGE_NO, RUNNING_HEAD, prose_entries
-from .parsers.sections import _table_row, drop_art, drop_pull_quotes, heading_words, prose
+from .parsers.sections import drop_art, drop_pull_quotes, heading_words, prose
 
 PAGES_AFTER = 3  # a sidebar is looked for on the pages of a stat block and the ones after it (the block ran on)
 MIN_LINE = 30  # a printed line this long is content, not a label or a page number
@@ -209,11 +208,10 @@ def detached_sidebars(ordered: dict[int, list[Line]], pages_with_blocks: set[int
                     if id(l) in recognised and key(l) not in claimed and len(l.text.strip()) >= 3
                     and not PAGE_NO.fullmatch(l.text.strip()) and not RUNNING_HEAD.match(l.text.strip())}
         at = {id(l): i for i, l in enumerate(lines)}
-        table_page = is_table_page(pages_by_number[number])
         for run in _runs(lines, eligible):
             L = run.lines
             if not any(len(l.text.strip()) >= MIN_LINE and prose(l.text) for l in L):
-                if left_out is not None and (quote_box(L) or not table_page and not any(_table_row(l.text) for l in L)):
+                if left_out is not None and (quote_box(L) or all(heading_words(l.text) for l in L)):
                     left_out += [(l.page, l.text.strip()) for l in L]  # a label, a caption: not a table's cells
                 continue
             before, after = at[id(L[0])] - 1, at[id(L[-1])] + 1
