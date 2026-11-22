@@ -583,7 +583,7 @@ def drop_art(own: list[Line], ctx: ParseContext) -> list[Line]:
 _QUOTE_TALL = 1.45  # a margin pull-quote's lines are set this many times the text's median line height
 _QUOTE_JOIN = 1.3  # ... and the lines around it, set this tall, are its other lines
 _QUOTE_WORDS = 3
-_QUOTE_STANDOUT = 1.3  # a quote's lines are this many times as tall as the lines around it
+_QUOTE_PITCH = 0.7  # a quote's line pitch is at least this share of its line height (an overlapping box is body text)
 
 
 def drop_pull_quotes(own: list[Line], heads: int = 1) -> list[Line]:
@@ -615,20 +615,17 @@ def drop_pull_quotes(own: list[Line], heads: int = 1) -> list[Line]:
                 j += step
     # a lone tall line is a drop cap or a display word, not a quote: a quote is a block of two lines or more
     blocks = [i for i in drop if i - 1 in drop or i + 1 in drop]
-    # a block is a quote only if it stands out from the lines right around it: body text set a little large (a scaled
-    # page, bgg p76) is no quote
+    # body text whose OCR boxes are taller than their line pitch (a scaled page: bgg p76, p14, p172) is no quote: a
+    # hand-set note keeps its pitch within a quarter of its height
     groups: list[list[int]] = []
     for i in sorted(blocks):
         if groups and i == groups[-1][-1] + 1:
             groups[-1].append(i)
         else:
             groups.append([i])
-    blocks = []
-    for g in groups:
-        around = [own[j].height for j in (*range(g[0] - 3, g[0]), *range(g[-1] + 1, g[-1] + 4))
-                  if 0 <= j < len(own) and j not in drop and own[j].page == own[g[0]].page]
-        if not around or statistics.median(own[j].height for j in g) >= _QUOTE_STANDOUT * statistics.median(around):
-            blocks += g
+    blocks = [i for g in groups for i in g
+              if statistics.median(own[g[k + 1]].box[1] - own[g[k]].box[1] for k in range(len(g) - 1))
+              >= _QUOTE_PITCH * statistics.median(own[j].height for j in g)]
     keep_drop = set(blocks)
     return [l for i, l in enumerate(own) if i not in keep_drop]
 
