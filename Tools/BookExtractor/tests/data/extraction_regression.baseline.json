@@ -375,7 +375,7 @@
   "match": false
  },
  "dmg14.lore.major-detrimental-properties": {
-  "f1": 0.0119,
+  "f1": 0.0088,
   "found": true,
   "match": false
  },
@@ -390,8 +390,8 @@
   "match": false
  },
  "dmg14.lore.oolp-property": {
-  "f1": 1.0,
-  "found": true,
+  "f1": 0.0,
+  "found": false,
   "match": false
  },
  "dmg14.lore.potions": {
@@ -1005,13 +1005,13 @@
   "match": false
  },
  "erlw.lore.lower-sharn-street-events": {
-  "f1": 0.9944,
+  "f1": 0.6748,
   "found": true,
   "match": false
  },
  "erlw.lore.lower-sharn-street-events-oolp-event": {
-  "f1": 0.9976,
-  "found": true,
+  "f1": 0.0,
+  "found": false,
   "match": false
  },
  "erlw.lore.madness-of-belashyrra": {
@@ -1100,8 +1100,8 @@
   "match": false
  },
  "erlw.lore.oolp-passenger": {
-  "f1": 0.8782,
-  "found": true,
+  "f1": 0.0,
+  "found": false,
   "match": false
  },
  "erlw.lore.operating-a-colossus": {
@@ -1215,8 +1215,8 @@
   "match": false
  },
  "erlw.lore.the-streets-of-sharn-oolp-event": {
-  "f1": 0.9787,
-  "found": true,
+  "f1": 0.0,
+  "found": false,
   "match": false
  },
  "erlw.lore.things-to-do-in-northedge": {
@@ -1250,7 +1250,7 @@
   "match": false
  },
  "erlw.lore.upper-sharn-street-events": {
-  "f1": 0.9879,
+  "f1": 0.6603,
   "found": true,
   "match": false
  },
