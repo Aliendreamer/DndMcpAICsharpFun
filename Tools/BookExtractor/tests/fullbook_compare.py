@@ -90,17 +90,22 @@ def _quote_like(line: str) -> bool:
     return shouting or line.startswith(_QUOTE_START) or line.endswith(("\u201d", "\""))
 
 
+def _flat(text: str) -> str:
+    """Whitespace and bullet glyphs aside: the text may set a bullet or a line break differently than the OCR line."""
+    return re.sub(r"[\s\u2022]+", " ", text)
+
+
 def coverage(old: list[dict], new: list[dict], ocr: list) -> dict:
     """OCR lines held by a ref entity but by no working-tree entity (newly orphaned), and by neither (pre-existing)."""
-    old_text = "\n".join(e["text"] for e in old)
-    new_text = "\n".join(e["text"] for e in new)
+    old_text = _flat("\n".join(e["text"] for e in old))
+    new_text = _flat("\n".join(e["text"] for e in new))
     seen: set[str] = set()
     newly, pre, quotes = [], [], 0
     for page, line in ocr:
         if line in seen:
             continue
         seen.add(line)
-        line = line[:-1] if line.endswith("-") else line  # the text joins a hyphenated word across lines
+        line = _flat(line[:-1] if line.endswith("-") else line)  # the text joins a hyphenated word across lines
         if line in new_text:
             continue
         if _quote_like(line):

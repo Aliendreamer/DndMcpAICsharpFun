@@ -101,3 +101,9 @@ def test_lore_printed_under_a_stat_blocks_own_heading_is_kept():
     # mm14 p345 "Bandit": "Bandits rove in gangs ..." follows the block under its heading; p230 the Mummy Lord's lair
     assert any("Bandits rove in gangs" in e["canonicalText"] for e in _entities("bandit-lore").values())
     assert any("Each undead in the lair has advantage" in e["canonicalText"] for e in _entities("mummy-lore").values())
+
+
+def test_lore_of_a_bestiary_section_named_like_an_earlier_entity_is_kept():
+    # mpmm p115 "Eladrin" (Bestiary) shares its name with the Eladrin race of chapter 1, which claimed the section
+    assert any("Eladrin dwell in the verdant splendor" in e["canonicalText"]
+               for e in _entities("eladrin-lore").values())

@@ -386,10 +386,12 @@ def _entries(sections: list[Section], owned, claimed: set | frozenset = frozense
             if kids and owned(s.title, s.lines, heading=False):
                 inside = {id(l) for c in kids for l in c.lines}
                 lead = [l for l in s.lines if id(l) not in inside]
-                if not owned(s.title, s.lines[:1]) or _leftover(lead, claimed):
+                if not owned(s.title, s.lines[:1]) or _leftover(lead, claimed) or (
+                        line_key(s.lines[0]) not in claimed and _leftover(s.lines, claimed)):
                     # owned by its lines' share only (DMG "Downtime Activities" over its activity Rules): its own
                     # unclaimed prose outside the sub-sections is its lead, kept; so is the lore printed under a
-                    # stat block's own heading that the block does not hold (MM "Bandit")
+                    # stat block's own heading that the block does not hold (MM "Bandit"); a section only named like an
+                    # earlier entity (a race "Eladrin" over the Bestiary's) whose sub-sections hold the claimed blocks
                     if len(lead) > 1:
                         out.append(_Entry(s, lead, lead=True))
                 # a kid owned by its lines' share alone (a stat block's section, whose lead is lore the monster no
@@ -716,7 +718,8 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         # (a name owned alone is no claim on a section the entity already holds most of: see `owned`)
         if (line_key(e.lines[0]) in claimed or (
                 _plain(s.title) in plain_names and sum(line_key(l) in claimed for l in e.lines) <= _CLAIMED * len(e.lines))) \
-                and not _leftover(e.lines, claimed):
+                and not _leftover(e.lines, claimed) and not (e.lead and line_key(s.lines[0]) not in claimed
+                                                              and _leftover(s.lines, claimed)):
             continue
         # the lines of another entry that starts inside this one are that entry's
         nested = {x for j, d in enumerate(entries) if j != i and id(d.lines[0]) in spans[i]
