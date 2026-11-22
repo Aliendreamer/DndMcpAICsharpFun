@@ -315,7 +315,7 @@ def _container(s: Section, siblings: list[Section], kids: list[Section], listing
     return bool(others) and len(s.lines) > _CONTAINER * median(others) or listing
 
 
-def _contiguous_lead(lead: list[Line], lines: list[Line], kids: list[Section]) -> list[Line]:
+def _contiguous_lead(lead: list[Line], lines: list[Line], kids: list[Section], own: set | frozenset = frozenset()) -> list[Line]:
     """A container's lead: the text before its first entry and the folded parts (a recurring sub-heading's text)
     that follow in reading order. A folded part joins its parent only while it is contiguous with the lead: an
     entry that carries on to a later page than the lead has reached stands between them, so the parts printed after
@@ -332,8 +332,8 @@ def _contiguous_lead(lead: list[Line], lines: list[Line], kids: list[Section]) -
         c = starts.get(id(l))
         if c is not None and out and c.lines[-1].page > out[-1].page:
             broken = True
-        if id(l) in keep and not broken:
-            out.append(l)
+        if id(l) in keep and (not broken or id(l) in own):
+            out.append(l)  # (a hoisted part's own heading and prose are kept whatever stands between)
     return out
 
 
@@ -361,6 +361,15 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
                 return [c]
             return [k for g in live_kids(c) for k in opened(g)]
 
+        def folded_own(s: Section) -> set:
+            # the printed lines of the folded parts under `s` that are not in a hoisted kid: their heading and prose
+            out_: set = set()
+            for c in _kids(s, sections):
+                if part(c):
+                    inside_ = {id(l) for k in live_kids(c) for l in k.lines}
+                    out_ |= {id(l) for l in c.lines if id(l) not in inside_}
+            return out_
+
         kids_of = {id(s): live_kids(s) for s in group}
         listing = _listing_group(group, kids_of)
         for s in group:
@@ -385,7 +394,7 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
                 # the lead: every line of the container outside its entries' spans: the text before the first
                 # entry, and the folded parts (a recurring sub-heading's text printed among the entries)
                 inside = {id(l) for c in kids for l in c.lines}
-                lead = _contiguous_lead([l for l in s.lines if id(l) not in inside], s.lines, kids)
+                lead = _contiguous_lead([l for l in s.lines if id(l) not in inside], s.lines, kids, folded_own(s))
                 if len(lead) > 1:
                     out.append(_Entry(s, lead, lead=True))
                 visit(kids, s)
@@ -394,7 +403,7 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
                 # the entry holds only its lead, the text before its first sub-section (and the folded parts that
                 # stay contiguous with it); the entry and its sub-sections never share text
                 inside = {id(l) for c in kids for l in c.lines}
-                lead = _contiguous_lead([l for l in s.lines if id(l) not in inside], s.lines, kids)
+                lead = _contiguous_lead([l for l in s.lines if id(l) not in inside], s.lines, kids, folded_own(s))
                 if len(lead) > 1:
                     out.append(_Entry(s, lead, lead=True, container=parent, under_owned=under_owned, full=s.lines))
                 visit(kids, s, under_owned=under_owned)

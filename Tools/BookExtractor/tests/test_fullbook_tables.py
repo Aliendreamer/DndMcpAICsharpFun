@@ -81,3 +81,11 @@ def test_lore_under_a_creatures_own_section_is_not_dropped():
     # mm14 pp85-100: "Black Dragon" (the lore) is printed under "Black Dragon Wyrmling", whose name a monster owns;
     # the sub-sections of an owned sub-section are still opened
     assert any("Black dragons dwell in swamps" in e["canonicalText"] for e in _entities("dragon-lore").values())
+
+
+def test_a_folded_parts_own_text_stays_in_an_entity():
+    # F3 follow-up: "How Do I Fit In?" (a recurring part) is folded; its own prose and its lead-in line must not be
+    # dropped when its kid "A Boros Party" is hoisted
+    assert any("As a member of the Boros Legion, you are subject to the" in e["canonicalText"]
+               for e in _entities("ggr-guilds").values())
+    assert any("orders of your superior officers" in e["canonicalText"] for e in _entities("ggr-guilds").values())
