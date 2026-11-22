@@ -106,6 +106,12 @@ public sealed partial class ProgrammaticExtractionRunner(
         var accepted = merged.Entities.Count(e => e.Disposition == EntityDisposition.Accepted);
         var needsReview = merged.Entities.Count(e => e.Disposition == EntityDisposition.NeedsReview);
         LogDone(logger, bookId, merged.Entities.Count, accepted, needsReview, migration.Orphaned.Count, retired, moved.Count);
+        if (moved.Count > 0)
+            LogMoved(logger, bookId, string.Join("; ", moved));
+        if (migration.Orphaned.Count > 0)
+            LogOrphaned(logger, bookId, string.Join(", ", migration.Orphaned));
+        if (merged.Retired.Count > 0)
+            LogRetired(logger, bookId, string.Join("; ", merged.Retired.Select(r => $"{r.EntityId}.{r.Field}")));
         return new ProgrammaticRunResult(
             merged.Entities.Count, accepted, needsReview, migration.Orphaned, result.Report, retired, moved);
     }
@@ -241,4 +247,13 @@ public sealed partial class ProgrammaticExtractionRunner(
         Message = "Book {BookId}: programmatic extraction done — {Entities} entities ({Accepted} accepted, {NeedsReview} needs review, {Orphans} orphaned overrides, {Retired} retired, {Moved} moved)")]
     private static partial void LogDone(
         ILogger logger, int bookId, int entities, int accepted, int needsReview, int orphans, int retired, int moved);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Book {BookId}: overrides moved to renamed entities (from -> to): {Moved}")]
+    private static partial void LogMoved(ILogger logger, int bookId, string moved);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Book {BookId}: orphaned override entity ids: {Orphans}")]
+    private static partial void LogOrphaned(ILogger logger, int bookId, string orphans);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Book {BookId}: retired overrides (entity.field): {Retired}")]
+    private static partial void LogRetired(ILogger logger, int bookId, string retired);
 }
