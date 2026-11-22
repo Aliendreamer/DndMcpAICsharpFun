@@ -219,7 +219,50 @@ def _under_table(L: list[Line], i: int) -> bool:
     return sum(bool(_NUMBERED_ROW.match(l.text.strip())) for l in L[max(0, i - 8):i]) >= 2
 
 
-def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) -> int:
+_DICE_HEADER = re.compile(r"(?i)^(?:d ?\d{1,3}|[0o]{2,3}[l1i]?p|pp)\b")  # a table's die column: "d4", "OOLP", "00LP"
+
+
+def table_header(L: list[Line], k: int) -> str:
+    """The column header of the table L[k] opens, its die left out and squashed ("OOLP Encounter" -> "encounter"); ""
+    when L[k] opens none: a header row led by a die, or, the die's own header lost to the OCR, a short column header
+    ("Desired Offering") straight over the first numbered row."""
+    t = L[k].text.strip()
+    if _DICE_HEADER.match(t):
+        return squash_text(_DICE_HEADER.sub("", t))
+    if 0 < len(t.split()) <= 3 and not prose(t) and not _table_row(t) and k + 1 < len(L) \
+            and _NUMBERED_ROW.match(L[k + 1].text.strip()):
+        return squash_text(t)
+    return ""
+
+
+_SIBLINGS = 3  # a run of this many headings over tables with one column header is a run of sibling tables
+
+
+def _sibling_tables(L: list[Line], heads: list[tuple[int, int]],
+                    pending: set[int]) -> tuple[list[tuple[int, int]], set[int]]:
+    """A table's title is a heading of its own only among sibling tables: `_SIBLINGS` headings in a row (no other
+    heading between) over tables with the same column header ("Encounter" under each of XGE's encounter tables; TCE's
+    "Desired Offering"). A table inside a section's prose ("Grinner Ideals" in a background's text) is that
+    section's: its title is dropped from the headings. Returns the headings kept and the first lines of those in a
+    run."""
+    keys = [table_header(L, i + n) if i + n < len(L) else "" for i, n in heads]
+    kept: list[tuple[int, int]] = []
+    runs: set[int] = set()
+    k = 0
+    while k < len(heads):
+        end = k + 1
+        while keys[k] and end < len(heads) and keys[end] == keys[k]:
+            end += 1
+        if end - k >= _SIBLINGS:
+            runs.update(i for i, _ in heads[k:end])
+            kept.extend(heads[k:end])
+        else:
+            kept.extend(h for h in heads[k:end] if h[0] not in pending)
+        k = end
+    return kept, runs
+
+
+def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict, tables: bool = True) -> int:
     """How many lines the heading starting at L[i] takes; 0 when L[i] opens no heading."""
     a = L[i]
     if vertical(a.box):
@@ -229,6 +272,10 @@ def _head_at(L: list[Line], i: int, med: float, body_size: float, titles: dict) 
     text = re.sub(r"\s*,$", "", text)
     if not _heading_text(text, _under_table(L, i)) or _size(a, med) < _HEAD_SIZE * body_size:
         return 0
+    # a table's title straight over its header: a candidate section of its own, kept only in a run of sibling tables
+    # (`_SIBLINGS`: XGE "Coastal Encounters (Levels 5-10)" / "OOLP Encounter"; TCE "BEASTS" / "Desired Offering")
+    if tables and i + n < len(L) and L[i + n].page == a.page and table_header(L, i + n):
+        return n
     # after a finished sentence, a space, a chapter title, or a map's caption (the caption closes the map; the
     # region heading under it is set apart from the map, not from the text: EGW "MAP 3.6: GREYING WILDLANDS" /
     # "GREYING WILDLANDS")
@@ -335,17 +382,23 @@ def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
     chapters = sorted(starts.values())
     chapter_name = {i: k.rsplit("@", 1)[0] for k, i in starts.items()}
     heads: list[tuple[int, int]] = []  # (first line, line count)
+    pending: set[int] = set()  # the heads read only as a table's title
     i = 0
     while i < len(L):
         if id(L[i]) in title_of:
             i += 1
             continue
-        n = _head_at(L, i, med, body_size, title_of)
+        n = _head_at(L, i, med, body_size, title_of, tables=False)
+        via = 0 if n else _head_at(L, i, med, body_size, title_of)
+        if via:
+            pending.add(i)
+            n = via
         if n:
             heads.append((i, n))
             i += n
         else:
             i += 1
+    heads, runs = _sibling_tables(L, heads, pending)
     full: list[Line] = ctx.cache["character_lines"]
     at = {id(l): k for k, l in enumerate(full)}
     kept = {id(l) for l in L}
@@ -362,6 +415,12 @@ def _read(B: list[Line], ctx: ParseContext) -> list[Section]:
         if not hs:
             continue
         sizes = [_size(L[i], med) for i, _ in hs]
+        # the titles of sibling tables are set alike: OCR size noise must not nest one under another
+        tables = [k for k, (i, _) in enumerate(hs) if i in runs]
+        if len(tables) > 1:
+            common = statistics.median(sizes[k] for k in tables)
+            for k in tables:
+                sizes[k] = common
         ends = _ends(sizes)
         titles_here = [name_case(_fix_ordinals(re.sub(r"\s*,$", "", " ".join(L[j].text.strip()
                                                                              for j in range(i, i + n)))))

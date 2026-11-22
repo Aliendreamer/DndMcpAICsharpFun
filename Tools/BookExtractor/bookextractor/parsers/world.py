@@ -256,6 +256,17 @@ def section_type(parents: list[str], proper: bool = True, main: bool = True,
     return etype or "Lore", category, Check("type-from-context", True, why)
 
 
+_LEVELLED = re.compile(r"\([^)]*\d[^)]*\)\s*$")
+
+
+def _label(title: str) -> str:
+    """A heading's squashed form for counting recurrences; a parenthetical with a number ("(Levels 1-4)") stays, so
+    sibling tables told apart by it ("Arctic Encounters (Levels 1-4)", "... (Levels 5-10)") are not one recurring
+    sub-heading folded into their parent."""
+    tail = _LEVELLED.search(title)
+    return squash(title) + (re.sub(r"\W", "", tail.group(0)) if tail else "")
+
+
 def _plain(name: str) -> str:
     """A name squashed, a trailing parenthetical and a plural "s" off: the section "Changelings" is the race
     "Changeling"'s, the section "Barbed Devil" the monster "Barbed Devil (Hamatula)"'s."""
@@ -333,10 +344,10 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
     "Government", "Noteworthy Features") is a part of every entry, never an entry or a container's child: it folds
     into its parent's text (ruling W17, Task 7 round 2)."""
     out: list[_Entry] = []
-    recurring = Counter((x.parents[0] if x.parents else "", squash(x.title)) for x in sections)
+    recurring = Counter((x.parents[0] if x.parents else "", _label(x.title)) for x in sections)
 
     def part(s: Section) -> bool:
-        return recurring[(s.parents[0] if s.parents else "", squash(s.title))] >= _RECURRING
+        return recurring[(s.parents[0] if s.parents else "", _label(s.title))] >= _RECURRING
 
     def visit(group: list[Section], parent: Section | None = None, under_owned: bool = False) -> None:
         kids_of = {id(s): [c for c in _kids(s, sections) if not part(c)] for s in group}
@@ -716,9 +727,9 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
     for x in sections:
         if counts[(tuple(x.parents), squash(x.title))] > 1:
             repeats.setdefault(tuple(x.parents), x.title)
-    in_chapter = Counter((x.parents[0] if x.parents else "", squash(x.title)) for x in sections)
+    in_chapter = Counter((x.parents[0] if x.parents else "", _label(x.title)) for x in sections)
     # the heading lines of the recurring sub-headings (ruling W17): parts of every entry, no doubt of their own
-    parts = {id(x.lines[0]) for x in sections if in_chapter[(x.parents[0] if x.parents else "", squash(x.title))]
+    parts = {id(x.lines[0]) for x in sections if in_chapter[(x.parents[0] if x.parents else "", _label(x.title))]
              >= _RECURRING}
     placed = placement_doubts(sections, chapter_pages(body, ctx), claimed, ctx.cache.get("god_names", set()), body)
     out: list[Parsed] = []
@@ -742,7 +753,7 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         p.category_raw = par_sec.lines[0].text if par_sec is not None and par_sec.lines else ""
         p.checks = [_text_check(e, own, heads, [len(o) for o in sibs], [o[-1].page - o[0].page + 1 for o in sibs],
                                 starts, sizes, sections, parts, entry_titles), typed,
-                    _entry_check(e, lead_type, in_chapter[(s.parents[0] if s.parents else "", squash(s.title))],
+                    _entry_check(e, lead_type, in_chapter[(s.parents[0] if s.parents else "", _label(s.title))],
                                  placed[id(s)] or why
                                  or ("" if has_sentence(own[heads:]) else
                                      f"the text of {s.title!r} (p{s.page}) holds no sentence: a table read as a "
