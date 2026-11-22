@@ -73,7 +73,7 @@ def left_out_art(lines: list[Line], ctx: ParseContext) -> list[Line]:
                  and not run[-1].text.rstrip().endswith((".", "!", "?", "\"", "\u201d")) and any(prose(l.text) for l in run)
                  and -0.3 * nxt.height <= nxt.box[1] - run[-1].box[3] <= 1.2 * nxt.height
                  and nxt.box[0] <= run[-1].box[0] + 0.3 * nxt.height)
-        if not flows:
+        if not flows and not _drop_cap_opening(run):  # (a section's drop-cap opening is no art: the keep-all net holds it)
             out += run
         i = j + 1
     return out

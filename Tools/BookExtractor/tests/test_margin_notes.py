@@ -249,3 +249,9 @@ def test_the_net_does_not_repeat_text_another_entity_holds_after_ocr_digit_repai
     assert _duplicates("r4-dmg14-191") == []
     assert _duplicates("r4-dmg14-216") == []
 
+
+def test_a_section_opening_in_small_caps_is_kept_not_left_out():
+    # mtf p100: "REATURES OF MANY RACES AND CULTURES / are embroiled in struggles ..." is an opening, never art
+    assert not [t for p, t in _left_out("r4-mtf100") if p == 100 and "embroiled in struggles" in t]
+    held = [e for e in _entities("r4-mtf100") if "are embroiled in struggles" in e["canonicalText"]]
+    assert held, "the opening is held by no entity"
