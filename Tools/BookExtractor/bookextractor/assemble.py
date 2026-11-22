@@ -609,7 +609,7 @@ def _squash(text: str) -> str:
 
 def _attach_note(note: Note, entities: list[dict], entity_lines: list[list[Line]], keys: list, firsts: list,
                  texts: list, book_slug: str, seen: Counter, vocab: Vocabulary, by_number: dict, claimed: set,
-                 covered: set) -> None:
+                 covered: set, make_lore: bool = True) -> None:
     """A margin note is kept in `notes` of the entity that holds the most text on its page (ties: the nearest to the
     note's box); it is not part of that entity's canonicalText. A page no entity holds gets a Lore of its own, failing
     `margin-note` so it is reviewed."""
@@ -627,6 +627,8 @@ def _attach_note(note: Note, entities: list[dict], entity_lines: list[list[Line]
     if best is not None:
         entities[best].setdefault("notes", []).append(note.as_dict())
         return
+    if not make_lore:
+        return  # (Lore entities were not asked for)
     name = f"{note.by} note, p{page}" if note.by else f"Margin note, p{page}"
     p = Parsed(type="Lore", name=name, fields={"entries": [note.text]}, text=f"{name}\n{note.text}", lines=note.lines,
                checks=[Check("margin-note", False, f"a margin note on p{page} with no entity on its page: kept for review")])
@@ -742,7 +744,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
     note_texts: set[str] = {l.text.strip() for note in found_notes for l in note.lines}
     for note in found_notes:
         _attach_note(note, entities, entity_lines, keys, firsts, texts, book_slug, seen, vocab, by_number,
-                     claimed_lines, covered)
+                     claimed_lines, covered, "Lore" in types)
     left_out = [(pg, t) for pg, t in left_out if t not in note_texts]
     # a line an entity holds is not "left out": only what no entity's text holds is listed
     held = _squash("\n".join(e["canonicalText"] for e in entities))
