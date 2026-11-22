@@ -520,6 +520,12 @@ def _title_cased(t: str) -> bool:
     return bool(words) and all(w[:1].isupper() or w.lower() in _SMALL_WORDS for w in words) and words[0][:1].isupper()
 
 
+def _running_foot(text: str) -> bool:
+    """A page's running foot: a short line with no sentence end (a book title, a page number)."""
+    t = text.strip()
+    return len(t.split()) <= 3 and not re.search(r"[.!?)]\s*$", t)
+
+
 def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> bool:
     """At the top of the next page, text that cannot belong to the finished block ends it.
 
@@ -534,7 +540,10 @@ def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> b
     t = L[j].text.strip()
     if not has_entries or j == 0 or L[j - 1].page == L[j].page:
         return False
-    finished = bool(re.search(r"[.!?)]\s*$", L[j - 1].text.strip()))
+    k = j - 1
+    while k > 0 and L[k - 1].page == L[k].page and _running_foot(L[k].text):
+        k -= 1  # a running foot ("LYCANTHROPES", "210:") sits between the block's last line and the next page
+    finished = bool(re.search(r"[.!?)]\s*$", L[k].text.strip()))
     if finished and t[:1] in "\"\u201c":
         return True  # an epigraph quote opens what follows; it is no part of the finished block
     if finished and t[:1].isupper() and not _LEAD_IN.match(t) and j + 1 < len(L) and L[j + 1].page == L[j].page \
