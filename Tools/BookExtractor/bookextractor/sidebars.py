@@ -125,8 +125,9 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
     # the first line of a page is read as a heading by the pull-quote rule: re-read the page with none, so a note
     # that opens the page (bgg p127) is the whole box
     tall = {id(l) for l in lines} - {id(l) for l in drop_pull_quotes(lines, 0)} - {id(l) for l in lines if l.page in openers}
-    art = [l for l in lines if id(l) in tall and not held(l)]
+    art = [l for l in lines if id(l) in tall]
     ids = {id(l) for l in art}
+    gone = {id(l) for l in art if held(l)}  # glued into an entity's text: it keeps them, the box's rest is the note
     page_chars = sum(len(l.text) for l in lines)
     if not art or sum(len(l.text) for l in art) > _NOTE_SHARE * max(page_chars, 1):
         return []
@@ -140,9 +141,11 @@ def margin_notes(lines: list[Line], ctx: ParseContext, held=lambda line: False,
         if l is not None and id(l) in ids and (not run or l.page == run[-1].page):
             run.append(l)
             continue
+        full = run
+        run = [x for x in run if id(x) not in gone]
         if run:
             if any(prose(x.text) for x in run) and not _epigraph(run):
-                k = at[id(run[-1])] + 1  # a signature line set below the box, too small to be read as part of it
+                k = at[id(full[-1])] + 1  # a signature line set below the box, too small to be read as part of it
                 tail: list[Line] = []  # the box's last word, a short fragment the OCR set apart ("kettte")
                 while k < len(lines) and len(tail) < 2 and id(lines[k]) not in ids and lines[k].page == run[-1].page \
                         and len(lines[k].text.strip()) <= 12 and not _SIGNATURE.match(lines[k].text.strip()):
