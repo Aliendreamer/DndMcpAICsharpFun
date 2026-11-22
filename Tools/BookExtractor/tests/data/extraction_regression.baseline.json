@@ -55,12 +55,12 @@
   "match": false
  },
  "bgg.monster.cinder-hulk": {
-  "f1": 1.0,
+  "f1": 0.7701,
   "found": true,
   "match": false
  },
  "bgg.monster.cloud-giant-destiny-gambler": {
-  "f1": 1.0,
+  "f1": 0.7824,
   "found": true,
   "match": false
  },
@@ -80,12 +80,12 @@
   "match": false
  },
  "bgg.monster.echo-of-demogorgon": {
-  "f1": 1.0,
+  "f1": 0.809,
   "found": true,
   "match": false
  },
  "bgg.monster.fire-giant-forgecaller": {
-  "f1": 1.0,
+  "f1": 0.8958,
   "found": true,
   "match": false
  },
@@ -105,9 +105,9 @@
   "match": false
  },
  "bgg.monster.frost-giant-ice-shaper": {
-  "f1": 1.0,
+  "f1": 0.8202,
   "found": true,
-  "match": false
+  "match": true
  },
  "bgg.monster.gargantua": {
   "f1": 1.0,
@@ -120,32 +120,32 @@
   "match": false
  },
  "bgg.monster.gigant": {
-  "f1": 1.0,
+  "f1": 0.8246,
   "found": true,
   "match": false
  },
  "bgg.monster.goliath-giant-kin": {
-  "f1": 1.0,
+  "f1": 0.6395,
   "found": true,
   "match": false
  },
  "bgg.monster.hill-giant-avalancher": {
-  "f1": 0.7259,
+  "f1": 0.8018,
   "found": true,
   "match": false
  },
  "bgg.monster.lightning-hulk": {
-  "f1": 0.6897,
+  "f1": 0.9051,
   "found": true,
   "match": false
  },
  "bgg.monster.maw-of-yeenoghu": {
-  "f1": 0.7358,
+  "f1": 0.9593,
   "found": true,
   "match": false
  },
  "bgg.monster.mist-hulk": {
-  "f1": 0.8251,
+  "f1": 0.9892,
   "found": true,
   "match": false
  },
@@ -155,17 +155,17 @@
   "match": false
  },
  "bgg.monster.regisaur": {
-  "f1": 1.0,
+  "f1": 0.7586,
   "found": true,
   "match": false
  },
  "bgg.monster.runic-colossus": {
-  "f1": 0.5331,
+  "f1": 0.7746,
   "found": true,
   "match": false
  },
  "bgg.monster.scion-of-grolantor": {
-  "f1": 0.7906,
+  "f1": 0.8948,
   "found": true,
   "match": false
  },
@@ -175,22 +175,22 @@
   "match": false
  },
  "bgg.monster.scion-of-surtur": {
-  "f1": 0.8492,
+  "f1": 0.9823,
   "found": true,
   "match": false
  },
  "bgg.monster.spectral-cloud": {
-  "f1": 0.8552,
+  "f1": 0.9495,
   "found": true,
   "match": false
  },
  "bgg.monster.stalker-of-baphomet": {
-  "f1": 0.6609,
+  "f1": 0.7175,
   "found": true,
   "match": false
  },
  "bgg.monster.stone-giant-rockspeaker": {
-  "f1": 0.8918,
+  "f1": 0.9872,
   "found": true,
   "match": false
  },
@@ -200,7 +200,7 @@
   "match": false
  },
  "bgg.monster.storm-giant-tempest-caller": {
-  "f1": 0.8518,
+  "f1": 0.9829,
   "found": true,
   "match": false
  },
@@ -210,7 +210,7 @@
   "match": false
  },
  "bgg.monster.troll-mutate": {
-  "f1": 0.5937,
+  "f1": 0.9105,
   "found": true,
   "match": false
  },
@@ -1280,7 +1280,7 @@
   "match": false
  },
  "erlw.monster.homunculus-servant": {
-  "f1": 0.2088,
+  "f1": 0.9863,
   "found": true,
   "match": false
  },
@@ -1530,12 +1530,12 @@
   "match": true
  },
  "ftd.monster.chromatic-greatwyrm": {
-  "f1": 0.8752,
+  "f1": 0.9085,
   "found": true,
   "match": false
  },
  "ftd.monster.draconic-spirit": {
-  "f1": 0.3657,
+  "f1": 0.4935,
   "found": true,
   "match": false
  },
@@ -1545,7 +1545,7 @@
   "match": false
  },
  "ftd.monster.swarm-of-hoard-scarabs": {
-  "f1": 0.8086,
+  "f1": 1.0,
   "found": true,
   "match": false
  },
@@ -1635,7 +1635,7 @@
   "match": false
  },
  "ggr.monster.loading-rig": {
-  "f1": 0.3372,
+  "f1": 0.5705,
   "found": true,
   "match": false
  },
@@ -1695,12 +1695,12 @@
   "match": false
  },
  "mpmm.monster.drow-inquisitor": {
-  "f1": 0.5682,
+  "f1": 1.0,
   "found": true,
   "match": false
  },
  "mpmm.monster.sacred-statue": {
-  "f1": 0.6327,
+  "f1": 0.9286,
   "found": true,
   "match": false
  },
@@ -1730,17 +1730,17 @@
   "match": false
  },
  "mtf.monster.drow-inquisitor": {
-  "f1": 0.8235,
+  "f1": 1.0,
   "found": true,
   "match": false
  },
  "mtf.monster.drow-matron-mother": {
-  "f1": 0.8611,
+  "f1": 0.9927,
   "found": true,
   "match": false
  },
  "mtf.monster.sacred-statue": {
-  "f1": 0.4694,
+  "f1": 0.9956,
   "found": true,
   "match": false
  },
@@ -1775,7 +1775,7 @@
   "match": false
  },
  "phb14.monster.zombie": {
-  "f1": 0.6241,
+  "f1": 0.9851,
   "found": true,
   "match": false
  },
@@ -1900,12 +1900,12 @@
   "match": true
  },
  "tce.monster.bestial-spirit": {
-  "f1": 0.9163,
+  "f1": 0.9924,
   "found": true,
   "match": false
  },
  "tce.monster.celestial-spirit": {
-  "f1": 0.738,
+  "f1": 0.995,
   "found": true,
   "match": false
  },
@@ -1950,7 +1950,7 @@
   "match": false
  },
  "tce.monster.undead-spirit": {
-  "f1": 0.4897,
+  "f1": 0.8373,
   "found": true,
   "match": false
  },
@@ -2060,12 +2060,12 @@
   "match": true
  },
  "vrgr.monster.squire": {
-  "f1": 0.7715,
+  "f1": 1.0,
   "found": true,
   "match": false
  },
  "vrgr.monster.swarm-of-scarabs": {
-  "f1": 0.5938,
+  "f1": 0.9911,
   "found": true,
   "match": false
  },

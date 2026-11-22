@@ -355,7 +355,9 @@ def _entries(sections: list[Section], owned) -> list[_Entry]:
                     lead = [l for l in s.lines if id(l) not in inside]
                     if len(lead) > 1:
                         out.append(_Entry(s, lead, lead=True))
-                visit([c for c in kids if not owned(c.title, c.lines)], s, under_owned=True)
+                # a kid owned by its lines' share alone (a stat block's section, whose lead is lore the monster no
+                # longer holds) is still opened: its own unclaimed prose is kept, never dropped in silence
+                visit([c for c in kids if not owned(c.title, c.lines, by_share=False)], s, under_owned=True)
                 continue
             if _container(s, group, kids, listing):
                 # the lead: every line of the container outside its entries' spans: the text before the first
@@ -644,9 +646,13 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
 
     plain_names = {_plain(n) for n in names}
 
-    def owned(title: str, lines: list[Line], heading: bool = True) -> bool:
-        return (heading and line_key(lines[0]) in claimed or _plain(title) in plain_names
-                or sum(line_key(l) in claimed for l in lines) > _CLAIMED * len(lines))
+    def owned(title: str, lines: list[Line], heading: bool = True, by_share: bool = True) -> bool:
+        share = sum(line_key(l) in claimed for l in lines) / len(lines)
+        # a name an earlier entity owns claims the section, unless the entity already holds most of its lines and the
+        # heading is not among them: what is left is lore printed beside a stat block under the creature's own name
+        return (heading and line_key(lines[0]) in claimed
+                or (_plain(title) in plain_names and (share <= _CLAIMED or line_key(lines[0]) in claimed))
+                or (by_share and share > _CLAIMED))
 
     entries = _entries(sections, owned)
     entry_titles = {x.section.title for x in entries if len(x.section.title) >= 4}  # other entries' names too
@@ -656,7 +662,9 @@ def parse_world(body: list[Line], ctx: ParseContext) -> list[Parsed]:
         # a section whose heading line, or whose name, an earlier entity owns is that entity's; one most of whose
         # lines are owned keeps its own unclaimed prose below (DMG "Downtime Activities": its intro over the
         # activity Rules), never dropped in silence (Task 7 round 2)
-        if line_key(e.lines[0]) in claimed or _plain(s.title) in plain_names:
+        # (a name owned alone is no claim on a section the entity already holds most of: see `owned`)
+        if line_key(e.lines[0]) in claimed or (
+                _plain(s.title) in plain_names and sum(line_key(l) in claimed for l in e.lines) <= _CLAIMED * len(e.lines)):
             continue
         # the lines of another entry that starts inside this one are that entry's
         nested = {x for j, d in enumerate(entries) if j != i and id(d.lines[0]) in spans[i]

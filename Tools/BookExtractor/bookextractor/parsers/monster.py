@@ -469,6 +469,7 @@ def _challenge_pairs(lines: list[Line]) -> list[tuple[str, int]]:
 # ---------- the parser ----------
 def _section_key(t: str) -> str | None:
     """'Actions', 'Legendary Actions', ... (fuzzy) -> the body section key."""
+    t = re.sub(r"\s*\([^)]*\)?$", "", t)  # "Actions (Requires Your Bonus Action)"
     if len(t.split()) <= 3 and not t.endswith("."):
         hit = process.extractOne(t.lower(), list(SECTIONS), scorer=fuzz.ratio, score_cutoff=85)
         return SECTIONS[hit[0]] if hit else None
@@ -514,6 +515,29 @@ _LEAD_IN = re.compile(r"^[A-Z][^.]{0,50}\. ")  # "Curse ofthe Husk. A humanoid .
 _ATTACK = re.compile(r"\b(?:Melee|Ranged)(?: or Ranged)? (?:Weapon|Spell) Attack\b", re.I)
 
 
+def _title_cased(t: str) -> bool:
+    words = t.split()
+    return bool(words) and all(w[:1].isupper() or w.lower() in _SMALL_WORDS for w in words) and words[0][:1].isupper()
+
+
+def _starts_next_entity(L: list[Line], j: int, has_entries: bool) -> bool:
+    """A title-cased heading line right after a finished sentence, at the top of the next page, ends the block.
+
+    Within a page the same shape is a block's own sub-heading ("Regional Effects", "Mythic Actions"), so only a
+    page break counts.
+
+    The detached text goes to the section reader (ERLW: "Replicate Magic Item" follows the Homunculus Servant's
+    last reaction in the next column).
+    """
+    t = L[j].text.strip()
+    if not has_entries or j == 0 or L[j - 1].page == L[j].page or not _heading_like(t) or t[-1] in ".,;:!?)" or not _title_cased(t) \
+            or len(t.split()) < 2:
+        return False
+    if any(_is_size_line(L[k].text) for k in range(j + 1, min(j + 4, len(L)))):
+        return False  # the next stat block's own name: its start already bounds this block
+    return bool(re.search(r"[.!?)]\s*$", L[j - 1].text.strip()))
+
+
 def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: int) -> Parsed:
     st_line = _norm_size_line(L[i].text)
     # first comma outside parentheses separates "size type (tags)" from alignment
@@ -535,6 +559,8 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
         if not f and _leaves_block(L, rel, j, end):
             ended = True
             break
+        if not f and cur and cur != "Challenge" and _ENTRY.match(t):
+            break  # header fields stop at the first entry lead-in: a trait never lands in "Languages"
         if f and not (f == "Speed" and "Speed" in vals) and f not in vals:
             cur = f
             vals[f] = _after_label(t, f)
@@ -565,7 +591,7 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
             sec = key
         elif _is_heading_caps(t) and rel[j] > 1.0 and len(t.split()) <= 8:
             break
-        elif _leaves_block(L, rel, j, end):
+        elif _leaves_block(L, rel, j, end) or _starts_next_entity(L, j, any(body.values())):
             break
         else:
             body[sec].append(t)
