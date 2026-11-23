@@ -18,6 +18,10 @@ _INDEX_REF = re.compile(r"[A-Za-z)'.], ?\d{1,3}[.,]?$")
 _INDEX_RANGE = re.compile(r"[A-Za-z)'.], ?\d{1,3}[\d,\-\u2013]*[.,]?$|^\d[\d\-\u2013]*(?:, ?\d[\d\-\u2013]*)+,?$"
                           r"|\(cont\.\)$|\bSee\b")
 _LOOSE_INDEX_RATIO = 0.6
+_SEE_INDEX_RATIO = 0.5  # of the page's lines of 2+ words: "Archery. See under fighting styles" index pages
+# Credit-role lines ("Lead Designers: ...") mark a credits page that has no "Credits" heading.
+_CREDIT_ROLE = re.compile(r"^(Lead |Additional |Art |Managing |Senior )?(Designers?|Developers?|Producers?|Writers?|Editors?|"
+                          r"Directors?|Illustrators?|Cartographers?|Contributors?|Proofreaders?|Playtesters?|Managers?)\b.*:")
 _MAP = re.compile(r"\bMAPS?\b")
 _ART_MAX_WORDS = 30
 _ART_MAX_LINES = 15
@@ -46,7 +50,7 @@ def classify_page(page: Page) -> PageKind:
     if len(page.lines) <= 20 and words < 120 and any(_MAP.search(ln.text) for ln in page.lines):
         return "art"  # "Appendix C: Maps" page with a short intro and a map
     heading = _heading(page)
-    if heading.startswith("credits"):
+    if heading.startswith("credits") or sum(1 for ln in page.lines if _CREDIT_ROLE.match(ln.text)) >= 3:
         return "credits"
     listing = sum(1 for ln in page.lines if _ENTRY.search(ln.text)) / len(page.lines)
     many = len(page.lines) >= _MIN_LISTING_LINES
@@ -54,7 +58,9 @@ def classify_page(page: Page) -> PageKind:
         return "toc"
     refs = sum(1 for ln in page.lines if _INDEX_REF.search(ln.text)) / len(page.lines)
     loose = sum(1 for ln in page.lines if _INDEX_RANGE.search(ln.text)) / len(page.lines)
-    if heading.startswith("index") or (many and (refs >= 0.7 or loose >= _LOOSE_INDEX_RATIO)):
+    multi = [ln.text for ln in page.lines if len(ln.text.split()) >= 2]
+    see = sum(1 for t in multi if _INDEX_RANGE.search(t)) / len(multi) if multi else 0.0
+    if heading.startswith("index") or (many and (refs >= 0.7 or loose >= _LOOSE_INDEX_RATIO or see >= _SEE_INDEX_RATIO)):
         return "index"
     return "rules"
 

@@ -920,6 +920,8 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
                 _strip_line(entities, note.signature.text.strip(), entity_lines, note.page)  # a signature glued into an entity's text is the note's
         dropped.extend((l.page, l.text.strip()) for l in epigraph_lines)
     left_out: list[tuple[int, str]] = list(dropped)
+    # front and back matter (contents, index, credits) is left out on purpose
+    left_out.extend((p.number, l.text.strip()) for p in pages if kinds[p.number] in ("toc", "index", "credits") for l in p.lines)
     if "Lore" in types and "Monster" in types:
         # text no entity holds after a stat block (a boxed sidebar, lore a stop rule cut off): a flagged Lore of its own
         def previous_name(line: Line) -> str:
