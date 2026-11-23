@@ -7,4 +7,4 @@
 
 ## 2. Data
 
-- [ ] 2.1 Write the AI-review junk verdicts as declines, apply overrides, commit
+- [x] 2.1 Write the AI-review junk verdicts as declines, apply overrides, commit
