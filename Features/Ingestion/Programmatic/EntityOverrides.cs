@@ -23,7 +23,19 @@ public sealed record Approval(
     DateTimeOffset At,
     IReadOnlyList<string>? WaivedChecks = null);
 
-public sealed record EntityOverrides(IReadOnlyList<FieldOverride> Overrides, IReadOnlyList<Approval> Approvals)
+/// <summary>
+/// A recorded verdict that an entity is junk (e.g. an art credit parsed as lore). A declined entity stays in the canonical
+/// file with disposition <c>Declined</c> and is never ingested.
+/// </summary>
+public sealed record Decline(string EntityId, string Reason, DateTimeOffset At);
+
+public sealed record EntityOverrides(
+    IReadOnlyList<FieldOverride> Overrides,
+    IReadOnlyList<Approval> Approvals,
+    IReadOnlyList<Decline> Declines = null!)
 {
     public static EntityOverrides Empty { get; } = new([], []);
+
+    /// <summary>Entities declared junk by record; never null (an old file without the key loads as empty).</summary>
+    public IReadOnlyList<Decline> Declines { get; init; } = Declines ?? [];
 }

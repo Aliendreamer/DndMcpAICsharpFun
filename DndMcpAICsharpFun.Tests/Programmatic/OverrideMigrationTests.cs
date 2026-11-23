@@ -133,4 +133,17 @@ public class OverrideMigrationTests
         OverrideMigration.NameSimilarity("caasting-time", "casting-time").Should().BeApproximately(1 - 1.0 / 13, 1e-9);
         OverrideMigration.NameSimilarity("abc", "xyz").Should().Be(0.0);
     }
+
+    [Fact]
+    public void Declines_move_with_a_renamed_entity_and_orphans_are_listed()
+    {
+        var o = new EntityOverrides([], [],
+            [new Decline("phb14.rule.caasting-time", "junk", At), new Decline("phb14.rule.vanished", "junk", At)]);
+        var r = OverrideMigration.Migrate(o,
+            [Ent("phb14.rule.caasting-time"), Ent("phb14.rule.vanished", page: 50)], [Ent("phb14.rule.casting-time")]);
+
+        r.Overrides.Declines.Select(d => d.EntityId).Should().Equal("phb14.rule.casting-time", "phb14.rule.vanished");
+        r.Overrides.Declines[0].Reason.Should().Be("junk");
+        r.Orphaned.Should().Equal("phb14.rule.vanished");
+    }
 }

@@ -25,7 +25,7 @@ public sealed class OverridesStore(IOptions<EntityIngestionOptions> options)
         var loaded = await JsonSerializer.DeserializeAsync<EntityOverrides>(stream, Json, ct);
         return loaded is null
             ? EntityOverrides.Empty
-            : new EntityOverrides(loaded.Overrides ?? [], loaded.Approvals ?? []);
+            : new EntityOverrides(loaded.Overrides ?? [], loaded.Approvals ?? [], loaded.Declines);
     }
 
     public async Task SaveAsync(string bookSlug, EntityOverrides overrides, CancellationToken ct)

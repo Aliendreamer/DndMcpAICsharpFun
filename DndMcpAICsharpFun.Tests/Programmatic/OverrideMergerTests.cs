@@ -425,4 +425,33 @@ public class OverrideMergerTests
         var r = OverrideMerger.Apply([Grell("\"2\"")], new EntityOverrides([Ov("fields.cr", "null", "\"2\"")], []));
         r.Retired.Should().BeEmpty();
     }
+
+    private static readonly Decline GrellDecline = new("mm14.monster.grell", "junk", At);
+
+    [Fact]
+    public void Declined_entity_with_failing_checks_is_declined_not_needs_review()
+    {
+        var failing = Grell(checks: [new EntityCheck("stat-block-tail", false, "tail")]);
+        var e = OverrideMerger.Apply([failing], new EntityOverrides([], [], [GrellDecline])).Entities[0];
+        e.Disposition.Should().Be(EntityDisposition.Declined);
+        e.NeedsReview.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Declined_entity_with_an_approval_is_still_declined()
+    {
+        var failing = Grell(checks: [new EntityCheck("stat-block-tail", false, "tail")]);
+        var o = new EntityOverrides([], [new Approval("mm14.monster.grell", "ok", At, ["stat-block-tail"])], [GrellDecline]);
+        OverrideMerger.Apply([failing], o).Entities[0].Disposition.Should().Be(EntityDisposition.Declined);
+        OverrideMerger.Reapply([failing], o).Entities[0].Disposition.Should().Be(EntityDisposition.Declined);
+    }
+
+    [Fact]
+    public void Not_declined_entity_is_unchanged_and_orphan_declines_are_listed()
+    {
+        var o = new EntityOverrides([], [], [new Decline("mm14.lore.gone", "junk", At)]);
+        var r = OverrideMerger.Apply([Grell()], o);
+        r.Entities[0].Disposition.Should().Be(EntityDisposition.Accepted);
+        r.OrphanedEntityIds.Should().Equal("mm14.lore.gone");
+    }
 }

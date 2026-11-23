@@ -169,8 +169,8 @@ public sealed class EntityReviewService(
                 overrides.RemoveAll(x => x.EntityId == entityId && x.Field == field);
                 overrides.Add(new FieldOverride(entityId, field, value, baseline, reason.Trim(), DateTimeOffset.UtcNow, absent));
             }
-            var next = new EntityOverrides(overrides, o.Approvals);
-            return (OverrideMerger.SetDisposition(updated, OverrideMerger.ApprovalFor(next, entityId)), next);
+            var next = o with { Overrides = overrides };
+            return (OverrideMerger.SetDisposition(updated, OverrideMerger.ApprovalFor(next, entityId), OverrideMerger.IsDeclined(next, entityId)), next);
         }, ct);
     }
 
@@ -209,7 +209,8 @@ public sealed class EntityReviewService(
             var approval = new Approval(entityId, reason.Trim(), DateTimeOffset.UtcNow,
                 OverrideMerger.WaivableFailedChecks(updated));
             var approvals = o.Approvals.Where(a => a.EntityId != entityId).Append(approval).ToList();
-            return (OverrideMerger.SetDisposition(updated, approval), new EntityOverrides(rebased, approvals));
+            return (OverrideMerger.SetDisposition(updated, approval, OverrideMerger.IsDeclined(o, entityId)),
+                o with { Overrides = rebased, Approvals = approvals });
         }, ct);
     }
 
@@ -244,9 +245,8 @@ public sealed class EntityReviewService(
             }
             updated = StripOverrideChecks(updated, field);
 
-            var next = new EntityOverrides(
-                o.Overrides.Where(x => !(x.EntityId == entityId && x.Field == field)).ToList(), o.Approvals);
-            return (OverrideMerger.SetDisposition(updated, OverrideMerger.ApprovalFor(next, entityId)), next);
+            var next = o with { Overrides = o.Overrides.Where(x => !(x.EntityId == entityId && x.Field == field)).ToList() };
+            return (OverrideMerger.SetDisposition(updated, OverrideMerger.ApprovalFor(next, entityId), OverrideMerger.IsDeclined(next, entityId)), next);
         }, ct);
     }
 

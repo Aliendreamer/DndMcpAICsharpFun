@@ -27,6 +27,7 @@ public static class OverrideMerger
         var ids = extracted.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
         var orphans = o.Overrides.Select(x => x.EntityId)
             .Concat(o.Approvals.Select(a => a.EntityId))
+            .Concat(o.Declines.Select(d => d.EntityId))
             .Where(id => !ids.Contains(id))
             .Distinct(StringComparer.Ordinal)
             .ToList();
@@ -49,8 +50,8 @@ public static class OverrideMerger
                 e = ApplyOne(original, e, ov, reapply, retired);
 
             // Programmatic entities always get a derived disposition (never trust whatever the input carried).
-            if (e.DataSource == DataSources.Programmatic || mine.Count > 0 || approval is not null || e.Checks.Count > 0)
-                e = SetDisposition(e, approval);
+            if (e.DataSource == DataSources.Programmatic || mine.Count > 0 || approval is not null || e.Checks.Count > 0 || IsDeclined(o, original.Id))
+                e = SetDisposition(e, approval, IsDeclined(o, original.Id));
             result.Add(e);
         }
         return new MergeResult(result, orphans, retired);
@@ -78,8 +79,15 @@ public static class OverrideMerger
         open.Contains(EntryLevelCheck, StringComparer.Ordinal)
         && open.All(n => n is EntryLevelCheck or NameWordsKnownCheck);
 
-    public static EntityEnvelope SetDisposition(EntityEnvelope e, Approval? approval)
+    /// <summary>True when the overrides file records a decline for the entity.</summary>
+    public static bool IsDeclined(EntityOverrides o, string entityId) =>
+        o.Declines.Any(d => d.EntityId == entityId);
+
+    public static EntityEnvelope SetDisposition(EntityEnvelope e, Approval? approval, bool declined = false)
     {
+        // A recorded decline outranks every check and any approval.
+        if (declined)
+            return e with { Disposition = EntityDisposition.Declined, NeedsReview = false };
         // An approval waives only the failed checks it recorded at approval time (sticky, per check name),
         // and never an unresolved override drift or an override that could not be applied.
         if (LeadInLore.Is(e))

@@ -25,6 +25,7 @@ public static class OverrideMigration
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 
         var orphanIds = o.Overrides.Select(x => x.EntityId).Concat(o.Approvals.Select(x => x.EntityId))
+            .Concat(o.Declines.Select(x => x.EntityId))
             .Where(id => !extractedIds.Contains(id))
             .Distinct(StringComparer.Ordinal)
             .ToList();
@@ -44,7 +45,8 @@ public static class OverrideMigration
         string Map(string id) => moves.TryGetValue(id, out var to) ? to : id;
         var migrated = new EntityOverrides(
             o.Overrides.Select(x => x with { EntityId = Map(x.EntityId) }).ToList(),
-            o.Approvals.Select(x => x with { EntityId = Map(x.EntityId) }).ToList());
+            o.Approvals.Select(x => x with { EntityId = Map(x.EntityId) }).ToList(),
+            o.Declines.Select(x => x with { EntityId = Map(x.EntityId) }).ToList());
 
         var moved = orphanIds.Where(moves.ContainsKey).Select(id => (id, moves[id])).ToList();
         var orphaned = orphanIds.Where(id => !moves.ContainsKey(id)).ToList();

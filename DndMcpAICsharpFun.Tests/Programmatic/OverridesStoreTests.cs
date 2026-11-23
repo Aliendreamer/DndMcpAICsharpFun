@@ -49,4 +49,25 @@ public class OverridesStoreTests : IDisposable
         loaded.Overrides[0].At.Should().Be(at);
         loaded.Approvals.Should().ContainSingle().Which.Reason.Should().Be("fine");
     }
+
+    [Fact]
+    public async Task Store_roundtrips_declines()
+    {
+        var at = new DateTimeOffset(2026, 2, 3, 4, 5, 6, TimeSpan.Zero);
+        var store = Store();
+        await store.SaveAsync("book", new EntityOverrides([], [], [new Decline("a.lore.credit", "art credit", at)]), CancellationToken.None);
+
+        (await File.ReadAllTextAsync(Path.Combine(_dir, "book.overrides.json"))).Should().Contain("\"declines\"");
+        var loaded = await store.LoadAsync("book", CancellationToken.None);
+        loaded.Declines.Should().ContainSingle().Which.Should().Be(new Decline("a.lore.credit", "art credit", at));
+    }
+
+    [Fact]
+    public async Task Store_file_without_declines_key_loads_empty()
+    {
+        Directory.CreateDirectory(_dir);
+        await File.WriteAllTextAsync(Path.Combine(_dir, "old.overrides.json"), """{"overrides":[],"approvals":[]}""");
+        var loaded = await Store().LoadAsync("old", CancellationToken.None);
+        loaded.Declines.Should().NotBeNull().And.BeEmpty();
+    }
 }

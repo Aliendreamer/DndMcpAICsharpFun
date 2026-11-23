@@ -140,6 +140,21 @@ public sealed class EntityReviewServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Approve_keeps_declines_and_a_declined_entity_stays_declined()
+    {
+        await SeedDefault();
+        var decline = new Decline(Goblin, "junk", At);
+        await Store().SaveAsync(Slug, new EntityOverrides([], [], [decline]), CancellationToken.None);
+
+        await Svc().ApproveAsync(Orc, "fine", CancellationToken.None);
+        (await Store().LoadAsync(Slug, CancellationToken.None)).Declines.Should().Equal(decline);
+
+        var e = await Svc().ApproveAsync(Goblin, "fine", CancellationToken.None);
+        e.Disposition.Should().Be(EntityDisposition.Declined);
+        (await Store().LoadAsync(Slug, CancellationToken.None)).Declines.Should().Equal(decline);
+    }
+
+    [Fact]
     public async Task Approval_waives_only_the_checks_failing_at_approval_time()
     {
         await Seed("2", Ent(Orc, "Orc",
