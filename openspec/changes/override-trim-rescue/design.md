@@ -17,8 +17,8 @@ rescuing text removed by `fields.*` overrides (`canonicalText` carries the print
   the override's recorded `Extracted` (when it is a string). The kept text is the entity's final `canonicalText`.
 - **Removed line.** A line of the base text whose reduced form (lower-case `[a-z0-9]`) has 30+ characters and is not
   contained in the reduced final text of ANY entity of the merged book (the host included, Declined excluded,
-  other rescue entities excluded), and that is not merely corrected: when 20% or more of its words of 3+ letters are
-  still in the host's final text, the override only fixed it (OCR typos) and it is not rescued. Short lines (headings, labels) are never rescued on their own; a heading line
+  other rescue entities excluded), and that is not merely corrected: when one line of the host's final text holds at least 70% of its words
+  of 3+ characters, the override only fixed it (OCR typos) and it is not rescued. Short lines (headings, labels) are never rescued on their own; a heading line
   directly above a rescued line is carried along as its first line.
 - **Rescue entity.** One per host with removed lines. Id: the host id with its type segment replaced by `lore` and
   `-trimmed` appended (`mm14.monster.adult-blue-dracolich` → `mm14.lore.adult-blue-dracolich-trimmed`). Type Lore,
