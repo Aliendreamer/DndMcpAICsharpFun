@@ -22,7 +22,7 @@ declines applied, Declined excluded). "Raw extractor" = `ExtractionResult.covera
 | tce | 10662 | 447 | 256 |
 | vrgr | 17754 | 616 | 733 |
 | xge | 10058 | 207 | 261 |
-| **Total** | **253593** | **14421** | **8055** |
+| **Total** | **233593** | **14421** | **8055** |
 
 Committed is higher than raw for most books: the committed files come from older extractor runs (PHB was never
 re-extracted after the boundary fixes) and some review overrides replaced extracted text with OCR-corrected text,
