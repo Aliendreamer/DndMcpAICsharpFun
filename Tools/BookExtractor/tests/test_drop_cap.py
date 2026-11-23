@@ -70,3 +70,15 @@ def test_restore_unit_positive_case():
     lines = [_line("M", (100, 300, 250, 440)), _line("AGiC is everywhere", (260, 305, 800, 335)), *_body()]
     out = [l.text for l in _restore_drop_caps(lines, _vocab())]
     assert "MAGiC is everywhere" in out and "M" not in out
+
+
+def test_restore_unit_low_score_letter_without_vocabulary_support_is_skipped():
+    from bookextractor.assemble import _restore_drop_caps
+    from bookextractor.model import Fragment
+    cap = _line("S", (100, 300, 250, 440))
+    cap.frags = [Fragment("S", 0.64, cap.box)]
+    lines = [cap, _line("he Dungeon Master", (260, 305, 800, 335)), *_body()]
+    out = [l.text for l in _restore_drop_caps(lines, _vocab())]
+    assert "he Dungeon Master" in out and "S" in out
+    cap.frags = [Fragment("S", 0.99, cap.box)]
+    assert "She Dungeon Master" in [l.text for l in _restore_drop_caps(lines, _vocab())]

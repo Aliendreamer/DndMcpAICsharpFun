@@ -931,7 +931,9 @@ def _restore_drop_caps(lines: list[Line], vocab: Vocabulary) -> list[Line]:
         first = next(iter(re.findall(r"[A-Za-z']+", target.text)), "")
         if not first or not target.text.lstrip().startswith(first):
             continue
-        if not (first[0].islower() or (t + first).lower() in vocab.words):
+        known = (t + first).lower() in vocab.words
+        sure = min((f.score for f in cap.frags), default=1.0) >= 0.8  # a misread letter ("S" for "T") is no guess to act on
+        if not (known or (first[0].islower() and sure)):
             continue
         at = out.index(target)
         out[at] = dataclasses.replace(target, text=t + target.text.lstrip())
