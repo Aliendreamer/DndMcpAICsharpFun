@@ -59,3 +59,17 @@ extraction holds but a reviewed override replaces**: ~3,500 in prose entities (t
 text, so text the extractor now appends is masked) and ~1,500 in Monsters (reviewed overrides that stripped lore glued
 into a stat block; that lore then has no other holder). Follow-up: carry newly extracted text through text overrides,
 and stop stat blocks claiming the lore that follows them.
+
+## After the final-review fixes (extractor at 9a6e9284, all 16 books re-extracted again)
+
+Committed-file scan (now counting front/back-matter lines as left out): bgg 225, dmg14 361, egw 885, eepc 3, erlw 1313,
+ftd 665, ggr 419, mm14 579, mpmm 317, mtf 325, phb14 208, scag 260, scc 280, tce 220, vrgr 251, xge 38 — **total 6349**
+(from 14421). Raw extractor unchanged at 675; 0 newly orphaned lines. 571 entities flagged for review; 17 orphaned
+overrides.
+
+Open follow-ups (not in this change):
+- **Overrides mask newly extracted text** (~5,000 lines): a reviewed text override keeps its shorter value although the
+  new extraction holds more of the section; Monster overrides that stripped glued lore leave that lore unheld. Needs
+  the override merge to carry extra extracted text through, and a Monster stop rule so lore after a stat block becomes
+  its own Lore (also fixes MM p107 Brass Dragon / Wyrmling).
+- Review the ~570 flagged entities (mostly "unclaimed prose" Lore; table-cell fragments on ERLW/XGE pages remain noisy).
