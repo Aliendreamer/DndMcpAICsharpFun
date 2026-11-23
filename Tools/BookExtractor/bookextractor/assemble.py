@@ -965,7 +965,7 @@ def _restore_drop_caps(lines: list[Line], vocab: Vocabulary) -> list[Line]:
         else:  # an unsure letter stands only when it is the book's likeliest letter for this word ("When", not "Then"/"She")
             counts = {c: vocab.words.get((c + first).lower(), 0) for c in string.ascii_uppercase}
             best = max(counts.values())
-            likeliest = best > 0 and counts[t] == best and sum(v == best for v in counts.values()) == 1
+            likeliest = best > 0 and counts.get(t, 0) == best and sum(v == best for v in counts.values()) == 1
             # (an opening set in capitals - "AVING DELVED INTO ..." - has no lower-case twin to rank against: the
             # book's own word is enough there; PHB p318 "H" at 0.51 would lose to "saving" otherwise)
             accept = known and (likeliest or (first.isupper() and len(first) >= 3))
