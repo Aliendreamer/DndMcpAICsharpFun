@@ -569,6 +569,24 @@ The hard cap is the **8GB VRAM ceiling** (RTX 5070 Laptop), NOT latency.
   local-extract + cloud GLM-5.2 reason (~few $/mo, near-Opus, cloud dep)** — validate on real D&D-rules
   tasks first (coding/agentic benchmarks ≠ rules reasoning). STATUS: research only, user's call.
 
+## IDEAS FROM ARCANE FORGE — ⬜ TO DISCUSS (user-requested 2026-11-23, not yet brainstormed)
+Source: https://arcane-forge.net (a "D&D 5e Character Builder & Active Play Grimoire"). It is closed source: there is no GitHub repo (searched `gh search repos`; only unrelated "ArcaneForge" projects came up), and the site links to no docs, author or Discord. It has no AI; it is a deterministic builder and in-play sheet for 2014 and 2024 rules. Its "At the table" pitch:
+- **Live combat math:** toggle party buffs (Bless +1d4, Hex, Smite riders) and to-hit and damage recompute live. Crit doubling includes smite dice. Weapon Masteries (2024), Wild Shape overlay, concentration tracking, and an optional Discord roll webhook.
+- **Inventory:** named containers and packs, a one-click "Drop Pack", carried weight, item nicknames, attunement caps (Artificer-aware).
+- **Spells and rest:** saved spell loadouts swapped in one tap on a Long Rest; ritual casting and costly-component alerts.
+- **Homebrew workshop:** guided forms for 7 types (class, subclass, species, background, feat, spell, gear).
+- **Portability:** one-click JSON backup and restore, plus print-ready PDF sheets.
+- **Table rules:** DM-approved variants, boons and ability overrides kept in the calculated stats.
+
+Candidate ideas for us, ranked by fit (to discuss later; nothing agreed yet):
+1. **Buff and rider toggles on the hero sheet.** Deterministic to-hit and damage recompute. It fits the existing CharacterResolutionService and the armor-class resolver pattern, and the chat could explain the numbers ("why +8+1d4?").
+2. **Concentration and condition tracking.** The companion warns that casting X drops concentration on Y.
+3. **Spell loadouts.** Prepared-spell sets per hero; the coach suggests a loadout for the adventuring day.
+4. **Hero JSON export and import.** A cheap backup.
+5. **Discord roll webhook.** Fun, but off the core goal, so low priority.
+Skip the homebrew workshop: canonical entities are the source of truth, and homebrew would need a separate authoring path.
+My lead pick: (1)+(2) together as one brainstorm.
+
 ## LOOSE ENDS / follow-ups
 - **markitdown parser candidate** (user-requested 2026-07-12) — evaluate Microsoft `markitdown`
   (https://github.com/microsoft/markitdown) as a PDF→Markdown parser vs Marker/MinerU for the ingestion/extraction
