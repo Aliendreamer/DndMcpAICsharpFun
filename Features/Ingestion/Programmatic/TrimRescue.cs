@@ -17,25 +17,29 @@ public static partial class TrimRescue
     private const int MinReducedLength = 30;
     private const double TypoKeepRatio = 0.7;
 
-    public static bool IsRescueId(string id) =>
-        id.EndsWith(Suffix, StringComparison.Ordinal) || id.EndsWith(Suffix + "-2", StringComparison.Ordinal);
+    public static bool IsRescueId(string id) => RescueIdRegex().IsMatch(id);
 
     public static string RescueId(string hostId, IReadOnlySet<string> existingIds)
     {
         var parts = hostId.Split('.');
         if (parts.Length > 1) parts[1] = "lore";
         var id = string.Join('.', parts) + Suffix;
-        return existingIds.Contains(id) ? id + "-2" : id;
+        if (!existingIds.Contains(id)) return id;
+        for (var n = 2; ; n++)
+        {
+            var candidate = $"{id}-{n}";
+            if (!existingIds.Contains(candidate)) return candidate;
+        }
     }
 
     public static IReadOnlyList<EntityEnvelope> Compute(
         IReadOnlyList<(EntityEnvelope Host, string BaseText)> trimmedHosts,
         IReadOnlyList<EntityEnvelope> finalEntities)
     {
-        var held = finalEntities
+        // Reduced texts joined by a non-alphanumeric separator, so a reduced line never matches across two texts.
+        var held = string.Join('|', finalEntities
             .Where(e => e.Disposition != EntityDisposition.Declined && !IsRescueId(e.Id))
-            .Select(e => Reduce(e.CanonicalText))
-            .ToList();
+            .Select(e => Reduce(e.CanonicalText)));
         var ids = finalEntities.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
         var byId = finalEntities.GroupBy(e => e.Id).ToDictionary(g => g.Key, g => g.First());
         var rescues = new List<EntityEnvelope>();
@@ -53,14 +57,14 @@ public static partial class TrimRescue
             {
                 var reduced = Reduce(baseLines[i]);
                 if (reduced.Length < MinReducedLength) continue;
-                if (held.Any(h => h.Contains(reduced, StringComparison.Ordinal))) continue;
+                if (held.Contains(reduced, StringComparison.Ordinal)) continue;
                 if (IsTypoFixed(baseLines[i], hostLines)) continue;
                 removed.Add(i);
             }
             if (removed.Count == 0) continue;
 
             var entries = BuildEntries(baseLines, removed);
-            var name = HeadingAbove(baseLines, removed[0]) ?? $"{host.Name} (trimmed text)";
+            var name = HeadingAbove(baseLines, removed[0], held) ?? $"{host.Name} (trimmed text)";
             var id = RescueId(host.Id, ids);
             ids.Add(id);
 
@@ -106,13 +110,33 @@ public static partial class TrimRescue
         return entries;
     }
 
-    private static string? HeadingAbove(string[] lines, int firstRescued)
+    private static string? HeadingAbove(string[] lines, int firstRescued, string held)
     {
         if (firstRescued == 0) return null;
         var line = lines[firstRescued - 1];
-        var reduced = Reduce(line);
-        return reduced.Length is > 0 and < MinReducedLength && !line.EndsWith('.') ? line : null;
+        return IsHeading(line) && !held.Contains(Reduce(line), StringComparison.Ordinal) ? line : null;
     }
+
+    private static bool IsHeading(string line)
+    {
+        if (line.Length == 0 || line.IndexOfAny(HeadingForbidden) >= 0 || line.Any(char.IsDigit)) return false;
+        if (line[^1] is '.' or ',' or ':' or ';' or '-') return false;
+        var words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length is 0 or > 6 || !char.IsUpper(words[0][0])) return false;
+        if (StatLabelRegex().IsMatch(line)) return false;
+        var allCaps = !line.Any(char.IsLower);
+        return allCaps || words.Skip(1).All(w => SmallWords.Contains(w) || !char.IsLetter(w[0]) || char.IsUpper(w[0]));
+    }
+
+    private static readonly char[] HeadingForbidden = ['(', ')', '+', '\u2014', '\u2013'];
+    private static readonly HashSet<string> SmallWords =
+        ["a", "an", "and", "as", "at", "but", "by", "for", "in", "of", "on", "or", "the", "to", "with"];
+
+    [GeneratedRegex(@"^(Armor Class|Hit Points|Speed|STR|DEX|CON|INT|WIS|CHA|Saving Throws|Skills|Damage|Condition|Senses|Languages|Challenge|Proficiency)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex StatLabelRegex();
+
+    [GeneratedRegex(@"-trimmed(-\d+)?$")]
+    private static partial Regex RescueIdRegex();
 
     private static bool IsTypoFixed(string line, List<Dictionary<string, int>> hostLines)
     {

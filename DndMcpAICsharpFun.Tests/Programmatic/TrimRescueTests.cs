@@ -26,6 +26,7 @@ public class TrimRescueTests
     {
         var r = Run($"X\nStat line\n{Lore1}\n{Lore2}", Host("X\nStat line")).Should().ContainSingle().Subject;
         r.Id.Should().Be("mm14.lore.x-trimmed");
+        r.Name.Should().Be("X (trimmed text)");
         r.Type.Should().Be(EntityType.Lore);
         r.DataSource.Should().Be(DataSources.Programmatic);
         var c = r.Checks.Should().ContainSingle().Subject;
@@ -60,9 +61,9 @@ public class TrimRescueTests
     [Fact]
     public void Heading_above_rescued_text_becomes_the_name()
     {
-        var r = Run($"X\nStat line\nLair Actions\n{Lore1}", Host("X\nStat line")).Should().ContainSingle().Subject;
-        r.Name.Should().Be("Lair Actions");
-        r.CanonicalText.Should().Be($"Lair Actions\n{Lore1}");
+        var r = Run($"X\nStat line\nGiant Gods\n{Lore1}", Host("X\nStat line")).Should().ContainSingle().Subject;
+        r.Name.Should().Be("Giant Gods");
+        r.CanonicalText.Should().Be($"Giant Gods\n{Lore1}");
     }
 
     [Fact]
@@ -87,5 +88,50 @@ public class TrimRescueTests
         var r = Run($"X\n{Lore1}", Host("X"), clash).Should().ContainSingle().Subject;
         r.Id.Should().Be("mm14.lore.x-trimmed-2");
         TrimRescue.IsRescueId(r.Id).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("Challenge 3 (700 XP)")]
+    [InlineData("Languages \u2014")]
+    public void Stat_block_lines_above_do_not_become_the_name(string above)
+    {
+        var r = Run($"X\n{above}\n{Lore1}", Host("X")).Should().ContainSingle().Subject;
+        r.Name.Should().Be("X (trimmed text)");
+    }
+
+    [Fact]
+    public void Kept_heading_like_line_above_belongs_to_the_host()
+    {
+        var r = Run($"X\nStat Line\n{Lore1}", Host("X\nStat Line")).Should().ContainSingle().Subject;
+        r.Name.Should().Be("X (trimmed text)");
+    }
+
+    [Fact]
+    public void Clash_suffix_loops()
+    {
+        TrimRescue.RescueId("mm14.monster.x", new HashSet<string> { "mm14.lore.x-trimmed", "mm14.lore.x-trimmed-2" })
+            .Should().Be("mm14.lore.x-trimmed-3");
+        TrimRescue.IsRescueId("mm14.lore.x-trimmed-3").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Two_non_consecutive_runs_become_two_entries()
+    {
+        var r = Run($"X\n{Lore1}\nKept short\n{Lore2}", Host("X\nKept short")).Should().ContainSingle().Subject;
+        r.Fields.GetProperty("entries").GetArrayLength().Should().Be(2);
+    }
+
+    [Fact]
+    public void Declined_entity_text_does_not_count_as_held()
+    {
+        var other = Ent("mm14.lore.y", EntityType.Lore, "Y", $"{Lore1}", EntityDisposition.Declined);
+        Run($"X\n{Lore1}", Host("X"), other).Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Rescue_id_entity_text_does_not_count_as_held()
+    {
+        var other = Ent("mm14.lore.y-trimmed", EntityType.Lore, "Y", $"{Lore1}");
+        Run($"X\n{Lore1}", Host("X"), other).Should().ContainSingle();
     }
 }
