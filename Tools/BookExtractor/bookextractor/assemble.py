@@ -27,12 +27,13 @@ from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
 from .parsers.race import parse_races
 from .parsers.rule import parse_rules
-from .parsers.sections import Section, drop_art, drop_pull_quotes, read_sections
+from .parsers.charcommon import DICE_HEADER
+from .parsers.sections import Section, drop_art, drop_pull_quotes, heading_words, prose, read_sections
 from .parsers.spell import parse_spells
 from .parsers.subclass import _short_name, parse_subclasses
 from .parsers.trap import parse_traps
 from .parsers.vehicle_object import parse_objects, parse_vehicles
-from .parsers.world import bare_heading, chapter_pages, has_sentence, parent_section, parse_world, placement_doubts
+from .parsers.world import bare_heading, chapter_pages, garbage_heading, has_sentence, parent_section, parse_world, placement_doubts, table_title
 from .report import build_report
 from .sidebars import Note, detached_sidebars, left_out_art, margin_notes, quote_box, run_title, _ENTRIES_TYPES, _epigraph, _drop_cap_opening, CHAPTER_TITLE
 from .residual import recurring_labels, residual_checks
@@ -708,17 +709,87 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
             if run and qualifies(run):
                 jobs.append((on_page[n][1] if n in on_page else None, run))
             run = []
+    # prose no entity claimed at all (a paragraph after a stat block, a column's continuation, a run the section reader
+    # dropped): kept by the entity it continues, else a flagged Lore named after the nearest heading
+    fresh: list[tuple[int | None, list[Line]]] = []
+    for n, page_lines in ordered.items():
+        run = []
+        for l in [*page_lines, None]:
+            if l is not None and unheld(l) and next(iter(_line_keys([l]))) not in claimed:
+                run.append(l)
+                continue
+            if run and qualifies(run):
+                fresh.append((None, run))
+            run = []
+    last_of = {}
+    for i, lines_ in enumerate(entity_lines):
+        if lines_:
+            last_of.setdefault(next(iter(_line_keys(lines_[-1:]))), i)
+
+    def preceding(run: list[Line]) -> tuple[Line | None, int]:
+        """The line printed just before the run in reading order (the previous page's last line for a page's first run)."""
+        n = run[0].page
+        at = next((k for k, x in enumerate(ordered[n]) if x is run[0] or _line_keys([x]) == _line_keys(run[:1])), 0)
+        if at > 0:
+            return ordered[n][at - 1], at
+        before = ordered.get(n - 1)
+        return (before[-1] if before else None), at
+
+    def real_heading(t: str, from_here: list[Line]) -> bool:
+        """A heading, not a table's column header or OCR debris."""
+        return (heading_words(t) and not prose(t) and len(_squash(t)) >= 3 and not garbage_heading(t)
+                and not DICE_HEADER.match(t) and not table_title(from_here, t))
+
+    def nearest_heading(run: list[Line], at: int) -> str:
+        pages_ = [ordered[run[0].page][:at][::-1], (ordered.get(run[0].page - 1) or [])[::-1]]
+        for k, lines_ in enumerate(pages_):
+            own = ordered[run[0].page] if k == 0 else (ordered.get(run[0].page - 1) or [])
+            for x in lines_:
+                t = x.text.strip()
+                if real_heading(t, own[own.index(x):]):
+                    return t.rstrip(".,;:")
+        return " ".join(run[0].text.split()[:8]).rstrip(".,;:")
+
     done: set[str] = set()
     book_text = _squash("\n".join(e["canonicalText"] + " " + " ".join(n["text"] for n in e.get("notes", []))
                                  for e in entities))
-    for owner, run in jobs:
+    title = None
+    for owner, run, is_fresh in [(o, r, False) for o, r in jobs] + [(o, r, True) for o, r in fresh]:
+        title = None
+        if is_fresh:  # lines an earlier job of this pass already kept
+            run = [l for l in run if next(iter(_line_keys([l]))) not in claimed]
+            if not run:
+                continue
+            if len(run) > 1 and real_heading(run[0].text.strip(), run):
+                title, run = run[0].text.strip().rstrip(".,;:"), run[1:]  # its own heading: the Lore's name
+            if not qualifies(run):
+                continue
         text = _join_run(run)
         if _squash(text) in done:
             continue
         if _squash(text) in book_text or _squash(fix_digits(text)) in book_text:
             continue  # another entity holds the whole run (a pruned duplicate of a repaired line): nothing to keep
         done.add(_squash(text))
-        host = entities[owner] if owner is not None else None
+        heading = None
+        if is_fresh:
+            prev, at = preceding(run)
+            owner = last_of.get(next(iter(_line_keys([prev]))), None) if prev is not None else None
+            host = entities[owner] if owner is not None else None
+            ended = bool(re.search(r"[.!?:\"\u201d\u2019']$", host["canonicalText"].rstrip())) if host else True
+            if host is not None and host["type"] in _ENTRIES_TYPES and isinstance(host["fields"].get("entries"), list) \
+                    and host["fields"]["entries"] and title is None \
+                    and (text[:1].islower() or not ended):
+                # the host's last line directly precedes the run: it is that text, going on
+                if isinstance(host["fields"]["entries"][-1], str):
+                    host["fields"]["entries"][-1] += " " + text
+                else:  # the last entry is a table: the text goes on after it
+                    host["fields"]["entries"].append(text)
+                host["canonicalText"] = host["canonicalText"].rstrip("\n") + " " + text
+                done.add(_squash(text))
+                claimed |= _line_keys(run)
+                continue
+            heading = title or nearest_heading(run, at)
+        host = entities[owner] if owner is not None and not is_fresh else None
         if host is not None and host["type"] in _ENTRIES_TYPES and isinstance(host["fields"].get("entries"), list) \
                 and _APPEND_TO_OWNER:
             host["fields"]["entries"].append(text)
@@ -726,10 +797,13 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
             continue
         if not make_lore:
             continue
-        name = run_title(run, ordered.get(run[0].page, run))
+        name = heading or run_title(run, ordered.get(run[0].page, run))
+        flag = (Check("text-complete", False, f"unclaimed prose printed on p{run[0].page} that no entity claimed: kept "
+                      "for review") if is_fresh else
+                Check("sidebar-detached", False, f"text printed on p{run[0].page} that no entity held "
+                      "(an opening or a run the owner's own pruning took out): kept for review"))
         p = Parsed(type="Lore", name=name, fields={"entries": [text]}, text=f"{name}\n{text}", lines=run,
-                   checks=[Check("sidebar-detached", False, f"text printed on p{run[0].page} that no entity held "
-                                 "(an opening or a run the owner's own pruning took out): kept for review")])
+                   checks=[flag])
         eid, checks = _id_and_checks(p, book_slug, seen, vocab)
         claimed |= _line_keys(p.lines)
         covered.update(l.page for l in p.lines)

@@ -160,7 +160,7 @@
   "match": false
  },
  "bgg.monster.runic-colossus": {
-  "f1": 0.7746,
+  "f1": 0.9093,
   "found": true,
   "match": false
  },
@@ -195,7 +195,7 @@
   "match": false
  },
  "bgg.monster.storm-crab": {
-  "f1": 0.7859,
+  "f1": 0.9378,
   "found": true,
   "match": false
  },
@@ -380,8 +380,8 @@
   "match": false
  },
  "dmg14.lore.mapping-a-dungeon-doors": {
-  "f1": 0.1508,
-  "found": true,
+  "f1": 0.0,
+  "found": false,
   "match": false
  },
  "dmg14.lore.monsters-by-environment": {
@@ -850,7 +850,7 @@
   "match": false
  },
  "erlw.lore.criminal-organizations-in-sharn": {
-  "f1": 0.392,
+  "f1": 0.3774,
   "found": true,
   "match": false
  },
@@ -865,7 +865,7 @@
   "match": true
  },
  "erlw.lore.daggerwatch": {
-  "f1": 0.1978,
+  "f1": 0.1905,
   "found": true,
   "match": false
  },
@@ -1065,9 +1065,9 @@
   "match": true
  },
  "erlw.lore.mark-of-warding-spells": {
-  "f1": 0.0,
-  "found": false,
-  "match": false
+  "f1": 1.0,
+  "found": true,
+  "match": true
  },
  "erlw.lore.masks-and-personas": {
   "f1": 0.9919,
@@ -1165,7 +1165,7 @@
   "match": false
  },
  "erlw.lore.sovereign-host": {
-  "f1": 0.6329,
+  "f1": 0.7905,
   "found": true,
   "match": false
  },
@@ -1325,7 +1325,7 @@
   "match": false
  },
  "ftd.lore.black-dragon-ideals": {
-  "f1": 0.8304,
+  "f1": 0.8122,
   "found": true,
   "match": false
  },
@@ -1920,7 +1920,7 @@
   "match": false
  },
  "tce.monster.elemental-spirit": {
-  "f1": 0.6728,
+  "f1": 1.0,
   "found": true,
   "match": false
  },
@@ -1995,7 +1995,7 @@
   "match": false
  },
  "tce.rule.unraveling-magic-effects": {
-  "f1": 0.701,
+  "f1": 0.7092,
   "found": true,
   "match": false
  },
