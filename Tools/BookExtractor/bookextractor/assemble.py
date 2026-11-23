@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 
 from .checks import Check
 from .parsers.charcommon import PAGE_NO, RUNNING_HEAD
+from .coverage import measure
 from .layout import fix_digits, reading_order
 from .model import Line, Page
 from .names import (_PLAIN, Vocabulary, build_vocabulary, glued_words, own_heading_counts, repair_name,
@@ -118,6 +119,7 @@ class ExtractionResult:
     entities: list[dict]
     report: dict
     left_out: list[tuple[int, str]] = field(default_factory=list)  # (page, text) of lines left out on purpose
+    coverage: dict = field(default_factory=dict)  # Coverage.to_dict(): content lines and the unheld ones
 
 
 def slugify(name: str) -> str:
@@ -962,4 +964,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
             covered.add(p.number)
     rules_numbers = {p.number for p in rules}
     report = build_report(book_slug, len(pages), len(rules_numbers), len(covered & rules_numbers), entities)
-    return ExtractionResult(entities=entities, report=report, left_out=left_out)
+    held = [e["canonicalText"] for e in entities] + [n["text"] for e in entities for n in e.get("notes", [])]
+    page_lines = [(p.number, l.text, min((f.score for f in l.frags), default=1.0)) for p in pages for l in p.lines]
+    coverage = measure(page_lines, held, left_out).to_dict()
+    return ExtractionResult(entities=entities, report=report, left_out=left_out, coverage=coverage)

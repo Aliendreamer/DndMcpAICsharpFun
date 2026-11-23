@@ -65,7 +65,7 @@ def worker(root: str, cache: str, file_hash: str, slug: str, out: str) -> None:
             if sig.match(l.text.strip()) and len(l.text.strip()) < MIN_LINE]
     shorts = [[p.number, l.text.strip(), False] for p in pages for l in p.lines
               if SHORT_LINE <= len(l.text.strip()) < MIN_LINE and not sig.match(l.text.strip())]
-    Path(out).write_text(json.dumps({"entities": slim, "ocr": ocr, "sigs": sigs, "shorts": shorts}))
+    Path(out).write_text(json.dumps({"coverage": getattr(result, "coverage", None), "entities": slim, "ocr": ocr, "sigs": sigs, "shorts": shorts}))
 
 
 def _repo_root() -> Path:
@@ -324,6 +324,10 @@ def main() -> None:
                 for page, line in ks["glued"][:args.detail]:
                     res["lines"].append(f"    GLUED p{page}: {line[:90]}")
                 res["summary"] += f", vs prev: lost {len(ks['lost'])}, glued {len(ks['glued'])}"
+            oc, nc = old.get("coverage"), new.get("coverage")
+            if nc:
+                res["lines"].append("  coverage: old " + (f"{oc['unheld']}/{oc['contentLines']}" if oc else "n/a")
+                                    + f" unheld, new {nc['unheld']}/{nc['contentLines']} unheld")
             print(f"== {slug} ({args.ref} -> working tree)")
             print("\n".join(res["lines"]), flush=True)
             summaries.append(res["summary"])
