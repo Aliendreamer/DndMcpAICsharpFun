@@ -26,7 +26,7 @@ public static class OverrideMigration
 
         var orphanIds = o.Overrides.Select(x => x.EntityId).Concat(o.Approvals.Select(x => x.EntityId))
             .Concat(o.Declines.Select(x => x.EntityId))
-            .Where(id => !extractedIds.Contains(id))
+            .Where(id => !extractedIds.Contains(id) && !TrimRescue.IsRescueId(id))
             .Distinct(StringComparer.Ordinal)
             .ToList();
 

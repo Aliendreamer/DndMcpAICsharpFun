@@ -90,6 +90,26 @@ public class OverrideMergerTests
         r.OrphanedEntityIds.Should().NotContain(RescueIdValue);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("42")]
+    public void Reapply_without_a_string_baseline_creates_no_rescue(string? extracted)
+    {
+        var ov = new FieldOverride("mm14.monster.grell", "canonicalText", J(JsonSerializer.Serialize(StatLines)),
+            extracted is null ? null : J(extracted), "trim", At);
+        var host = Grell() with { CanonicalText = StatLines };
+        var r = OverrideMerger.Reapply([host], new EntityOverrides([ov], []));
+        r.Entities.Should().NotContain(e => TrimRescue.IsRescueId(e.Id));
+    }
+
+    [Fact]
+    public void Declined_host_gets_no_rescue()
+    {
+        var o = new EntityOverrides([TextOv()], [], [new Decline("mm14.monster.grell", "junk", At)]);
+        var r = OverrideMerger.Apply([TextGrell()], o);
+        r.Entities.Should().NotContain(e => TrimRescue.IsRescueId(e.Id));
+    }
+
     [Fact]
     public void Reapply_sets_a_new_override_and_waives_failed_checks_with_an_approval()
     {

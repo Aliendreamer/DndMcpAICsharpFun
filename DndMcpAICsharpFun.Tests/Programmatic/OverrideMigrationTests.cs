@@ -39,6 +39,22 @@ public class OverrideMigrationTests
     }
 
     [Fact]
+    public void Rescue_ids_are_never_moved_or_orphaned()
+    {
+        const string rescue = "mm14.lore.grell-trimmed";
+        var o = new EntityOverrides(
+            [new FieldOverride(rescue, "canonicalText", JsonDocument.Parse("\"v\"").RootElement.Clone(), null, "edit", At)],
+            [], [new Decline(rescue, "junk", At)]);
+        var r = OverrideMigration.Migrate(o,
+            [Ent(rescue, EntityType.Lore)], [Ent("mm14.lore.grell-trimmer", EntityType.Lore)]);
+
+        r.Moved.Should().BeEmpty();
+        r.Orphaned.Should().BeEmpty();
+        r.Overrides.Overrides[0].EntityId.Should().Be(rescue);
+        r.Overrides.Declines[0].EntityId.Should().Be(rescue);
+    }
+
+    [Fact]
     public void Two_equally_close_candidates_stay_orphaned()
     {
         var r = OverrideMigration.Migrate(Overrides("phb14.rule.caasting-time"),
