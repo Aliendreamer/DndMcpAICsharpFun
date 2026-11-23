@@ -1,6 +1,7 @@
 """Assembler: pages -> parsed entities -> ids, common checks, provenance, report."""
 from __future__ import annotations
 
+import dataclasses
 import json
 import re
 from collections import Counter
@@ -908,6 +909,36 @@ def _attach_note(note: Note, entities: list[dict], entity_lines: list[list[Line]
                      "provenance": _provenance(p.lines, by_number)})
 
 
+def _restore_drop_caps(lines: list[Line], vocab: Vocabulary) -> list[Line]:
+    """A chapter opening's large first letter is read as a 1-letter line of its own (the opening itself starts at
+    "hen you ..."): the letter is put back in front of the opening's first word when that makes a known word (or the
+    opening starts lower-case), and the letter line is taken out. A side tab's letter has no opening line beside it."""
+    heights = sorted(l.height for l in lines if l.height)
+    if not heights:
+        return lines
+    median = heights[len(heights) // 2]
+    out = list(lines)
+    for cap in lines:
+        t = cap.text.strip()
+        if len(t) != 1 or not t.isalpha() or not t.isupper() or cap.height < 2 * median:
+            continue
+        x0, y0, x1, y1 = cap.box
+        beside = [l for l in out if l is not cap and l.page == cap.page and 0 <= l.box[0] - x1 <= 80
+                  and y0 - 20 <= l.box[1] <= y1 - 0.5 * median]
+        if not beside:
+            continue
+        target = min(beside, key=lambda l: l.box[1])
+        first = next(iter(re.findall(r"[A-Za-z']+", target.text)), "")
+        if not first or not target.text.lstrip().startswith(first):
+            continue
+        if not (first[0].islower() or (t + first).lower() in vocab.words):
+            continue
+        at = out.index(target)
+        out[at] = dataclasses.replace(target, text=t + target.text.lstrip())
+        out.remove(cap)
+    return out
+
+
 def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> ExtractionResult:
     by_number = {p.number: p for p in pages}
     ctx = ParseContext(slug=book_slug, source=SOURCE_BY_SLUG.get(book_slug, book_slug.upper()), pages=by_number)
@@ -917,6 +948,7 @@ def extract_book(pages: list[Page], book_slug: str, types: set[str]) -> Extracti
 
     listed = [l.text for p in pages if kinds[p.number] in ("index", "toc") for l in p.lines]
     vocab = build_vocabulary((l.text for p in rules for l in ordered[p.number]), listed)
+    ordered = {n: _restore_drop_caps(ls, vocab) for n, ls in ordered.items()}
 
     body: list[Line] = [l for p in pages if p.number in ordered for l in ordered[p.number]]
     entities: list[dict] = []
