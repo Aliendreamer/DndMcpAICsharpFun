@@ -82,3 +82,39 @@ def test_restore_unit_low_score_letter_without_vocabulary_support_is_skipped():
     assert "he Dungeon Master" in out and "S" in out
     cap.frags = [Fragment("S", 0.99, cap.box)]
     assert "She Dungeon Master" in [l.text for l in _restore_drop_caps(lines, _vocab())]
+
+
+def _unsure(letter, score):
+    from bookextractor.model import Fragment
+    cap = _line(letter, (100, 300, 250, 440))
+    cap.frags = [Fragment(letter, score, cap.box)]
+    return cap
+
+
+def _words_vocab():
+    from bookextractor.names import build_vocabulary
+    return build_vocabulary(["she said the the the the then when when when when having"])
+
+
+def test_restore_unit_unsure_letter_that_is_not_the_likeliest_word_is_skipped():
+    from bookextractor.assemble import _restore_drop_caps
+    # "she" is a book word, but "the" is likelier: the S at 0.64 is a misread T
+    lines = [_unsure("S", 0.64), _line("he Dungeon Master", (260, 305, 800, 335)), *_body()]
+    out = [l.text for l in _restore_drop_caps(lines, _words_vocab())]
+    assert "he Dungeon Master" in out and "S" in out
+
+
+def test_restore_unit_unsure_letter_that_is_the_likeliest_word_is_kept():
+    from bookextractor.assemble import _restore_drop_caps
+    lines = [_unsure("W", 0.60), _line("hen you make", (260, 305, 800, 335)), *_body()]
+    assert "When you make" in [l.text for l in _restore_drop_caps(lines, _words_vocab())]
+    lines = [_unsure("H", 0.51), _line("aving been", (260, 305, 800, 335)), *_body()]
+    assert "Having been" in [l.text for l in _restore_drop_caps(lines, _words_vocab())]
+
+
+def test_restore_unit_unsure_letter_before_a_capitalised_opening_needs_only_the_book_word():
+    from bookextractor.assemble import _restore_drop_caps
+    from bookextractor.names import build_vocabulary
+    v = build_vocabulary(["saving throw " * 50, "having delved"])  # "saving" outranks "having", as in the PHB
+    lines = [_unsure("H", 0.51), _line("AVING DELVED INTO THE DEPTHS OF", (260, 305, 800, 335)), *_body()]
+    assert "HAVING DELVED INTO THE DEPTHS OF" in [l.text for l in _restore_drop_caps(lines, v)]

@@ -21,7 +21,7 @@ _LOOSE_INDEX_RATIO = 0.6
 _SEE_INDEX_RATIO = 0.5  # of the page's lines of 2+ words: "Archery. See under fighting styles" index pages
 # Credit-role lines ("Lead Designers: ...") mark a credits page that has no "Credits" heading.
 _CREDIT_ROLE = re.compile(r"^(Lead |Additional |Art |Managing |Senior )?(Designers?|Developers?|Producers?|Writers?|Editors?|"
-                          r"Directors?|Illustrators?|Cartographers?|Contributors?|Proofreaders?|Playtesters?|Managers?)\b.*:")
+                          r"Directors?|Illustrators?|Cartographers?|Contributors?|Proofreaders?|Playtesters?|Managers?)\s*:")
 _MAP = re.compile(r"\bMAPS?\b")
 _ART_MAX_WORDS = 30
 _ART_MAX_LINES = 15

@@ -10,6 +10,13 @@ from .assemble import ALL_TYPES, extract_book
 from .reader import BookReader
 
 
+def output_of(result) -> dict:
+    """What `extract` writes: the entities and report, then the coverage (counts and the unheld lines) and the lines
+    left out on purpose, so a reviewer can see what was not kept and why it was not."""
+    return {"entities": result.entities, "report": result.report, "coverage": result.coverage,
+            "leftOut": [{"page": p, "text": t} for p, t in result.left_out]}
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="bookextractor")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -51,8 +58,8 @@ def main(argv: list[str] | None = None) -> int:
     pages = reader.read(progress)
     result = extract_book(pages, args.slug, types)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps({"entities": result.entities, "report": result.report}, indent=1),
-                        encoding="utf-8")
+    out = output_of(result)
+    args.out.write_text(json.dumps(out, indent=1), encoding="utf-8")
     r = result.report
     print(f"{r['book']}: {r['counts']} passing {r['passingShare']:.1%} coverage {r['coverageShare']:.1%}")
     for w in r["warnings"]:

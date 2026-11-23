@@ -328,6 +328,8 @@ def main() -> None:
             if nc:
                 res["lines"].append("  coverage: old " + (f"{oc['unheld']}/{oc['contentLines']}" if oc else "n/a")
                                     + f" unheld, new {nc['unheld']}/{nc['contentLines']} unheld")
+            if oc and nc and nc["unheld"] > oc["unheld"]:
+                res["summary"] += f", coverage ROSE ({oc['unheld']} -> {nc['unheld']})"
             print(f"== {slug} ({args.ref} -> working tree)")
             print("\n".join(res["lines"]), flush=True)
             summaries.append(res["summary"])

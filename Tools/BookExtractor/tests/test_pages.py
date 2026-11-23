@@ -78,6 +78,14 @@ def test_credits_by_roles_is_credits():
     assert classify_page(Page(1, 600, 900, lines, "ocr")) == "credits"
 
 
+def test_designers_note_is_not_a_credit_role():
+    from bookextractor.model import Line
+    rows = ["Designer's Note: why we changed this rule", "Editor's Note: see the errata"] + [
+        f"Some more rules text on this ordinary page number {i}" for i in range(20)]
+    lines = [Line(t, (0, i * 30, 300, i * 30 + 25), 25, 1) for i, t in enumerate(rows)]
+    assert classify_page(Page(1, 600, 900, lines, "ocr")) == "rules"
+
+
 def test_prose_page_with_one_see_reference_is_rules():
     from bookextractor.model import Line
     p = next(p for p in _case_pages("front-phb-prose") if p.number == 159)

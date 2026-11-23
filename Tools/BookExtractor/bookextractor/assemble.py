@@ -4,12 +4,13 @@ from __future__ import annotations
 import dataclasses
 import json
 import re
+import string
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from .checks import Check
-from .parsers.charcommon import PAGE_NO, RUNNING_HEAD
+from .parsers.charcommon import DICE_HEADER, PAGE_NO, RUNNING_HEAD
 from .coverage import measure
 from .layout import fix_digits, reading_order
 from .model import Line, Page
@@ -28,7 +29,6 @@ from .parsers.item import parse_items
 from .parsers.monster import parse_monsters
 from .parsers.race import parse_races
 from .parsers.rule import parse_rules
-from .parsers.charcommon import DICE_HEADER
 from .parsers.sections import Section, drop_art, drop_pull_quotes, heading_words, prose, read_sections
 from .parsers.spell import parse_spells
 from .parsers.subclass import _short_name, parse_subclasses
@@ -635,6 +635,7 @@ def _strip_line(entities: list[dict], line: str, entity_lines: list[list[Line]] 
             e["fields"] = clean(e["fields"])
 
 
+_DIE_HEADER_OCR = re.compile(r"^[O0o]{1,2}LP\b")  # a table's die column read as a heading: "OLP", "OOLP"
 _APPEND_TO_OWNER = False  # a flagged Lore of its own instead: appending changes reviewed entities (answer keys)
 
 
@@ -739,7 +740,34 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
     def real_heading(t: str, from_here: list[Line]) -> bool:
         """A heading, not a table's column header or OCR debris."""
         return (heading_words(t) and not prose(t) and len(_squash(t)) >= 3 and not garbage_heading(t)
-                and not DICE_HEADER.match(t) and not table_title(from_here, t))
+                and not t.rstrip().endswith(")") and not _DIE_HEADER_OCR.match(t) and not DICE_HEADER.match(t)
+                and not table_title(from_here, t) and not column_header(from_here, t))
+
+    def column_header(from_here: list[Line], t: str) -> bool:
+        """A table's column-header row ("Location Description", "Weapon Yes"): the lines under it are short cells, not text."""
+        at = next((k for k, x in enumerate(from_here) if x.text.strip() == t), None)
+        if at is None:
+            return False
+        under = [x.text.strip() for x in from_here[at + 1:at + 4]]
+        return len(under) == 3 and len(t.split()) <= 4 and all(len(u.split()) <= 3 for u in under)
+
+    def extend(i: int, run: list[Line], text: str, joiner: str) -> None:
+        """The run goes on after entity `i`'s text: its lines, keys, text, provenance and last line are the entity's now."""
+        host = entities[i]
+        entries = host["fields"]["entries"]
+        if joiner == " " and isinstance(entries[-1], str):
+            entries[-1] += " " + text
+        else:
+            entries.append(text)
+        host["canonicalText"] = host["canonicalText"].rstrip("\n") + joiner + text
+        done.add(_squash(text))
+        claimed.update(_line_keys(run))
+        covered.update(l.page for l in run)
+        entity_lines[i] = [*entity_lines[i], *run]
+        keys[i] = keys[i] | _line_keys(run)
+        texts[i] = [*texts[i], *((next(iter(_line_keys([l]))), l.text) for l in run)]
+        host["provenance"] = _provenance(entity_lines[i], by_number)
+        last_of[next(iter(_line_keys(run[-1:])))] = i
 
     def nearest_heading(run: list[Line], at: int) -> str:
         pages_ = [ordered[run[0].page][:at][::-1], (ordered.get(run[0].page - 1) or [])[::-1]]
@@ -754,7 +782,7 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
     done: set[str] = set()
     book_text = _squash("\n".join(e["canonicalText"] + " " + " ".join(n["text"] for n in e.get("notes", []))
                                  for e in entities))
-    title, headed = None, False
+    last_fresh: tuple[int, int, str] | None = None  # (entity, page, heading) of the flagged Lore the last fresh run made
     for owner, run, is_fresh in [(o, r, False) for o, r in jobs] + [(o, r, True) for o, r in fresh]:
         title = None
         if is_fresh:  # lines an earlier job of this pass already kept
@@ -771,7 +799,6 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
             continue
         if _squash(text) in book_text or _squash(fix_digits(text)) in book_text:
             continue  # another entity holds the whole run (a pruned duplicate of a repaired line): nothing to keep
-        done.add(_squash(text))
         heading = None
         if is_fresh:
             prev, at = preceding(run)
@@ -781,21 +808,18 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
             if host is not None and host["type"] in _ENTRIES_TYPES and isinstance(host["fields"].get("entries"), list) \
                     and host["fields"]["entries"] and title is None and not headed \
                     and (text[:1].islower() or (not ended and isinstance(host["fields"]["entries"][-1], str))):
-                # the host's last line directly precedes the run: it is that text, going on
-                if isinstance(host["fields"]["entries"][-1], str):
-                    host["fields"]["entries"][-1] += " " + text
-                else:  # the last entry is a table: the text goes on after it
-                    host["fields"]["entries"].append(text)
-                host["canonicalText"] = host["canonicalText"].rstrip("\n") + " " + text
-                done.add(_squash(text))
-                claimed |= _line_keys(run)
+                # the host's last line directly precedes the run: it is that text, going on (after a table: a new entry)
+                extend(owner, run, text, " ")
                 continue
             heading = title or nearest_heading(run, at)
+            if last_fresh and last_fresh[1:] == (run[0].page, heading):
+                extend(last_fresh[0], run, text, "\n")  # the same heading on the same page: one Lore, not two
+                continue
+        done.add(_squash(text))
         host = entities[owner] if owner is not None and not is_fresh else None
         if host is not None and host["type"] in _ENTRIES_TYPES and isinstance(host["fields"].get("entries"), list) \
                 and _APPEND_TO_OWNER:
-            host["fields"]["entries"].append(text)
-            host["canonicalText"] = host["canonicalText"].rstrip("\n") + "\n" + text
+            extend(owner, run, text, "\n")
             continue
         if not make_lore:
             continue
@@ -817,6 +841,9 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
                          "fields": p.fields,
                          "checks": [{"name": c.name, "passed": c.passed, "reason": c.reason} for c in checks],
                          "provenance": _provenance(p.lines, by_number)})
+        if is_fresh:  # a paragraph running on over a page or column break continues into this Lore
+            last_of[next(iter(_line_keys(run[-1:])))] = len(entities) - 1
+        last_fresh = (len(entities) - 1, run[0].page, name) if is_fresh else None
 
 
 def _drop_duplicate_sidebars(entities: list[dict], entity_lines: list, keys: list, firsts: list, texts: list) -> None:
@@ -933,7 +960,16 @@ def _restore_drop_caps(lines: list[Line], vocab: Vocabulary) -> list[Line]:
             continue
         known = (t + first).lower() in vocab.words
         sure = min((f.score for f in cap.frags), default=1.0) >= 0.8  # a misread letter ("S" for "T") is no guess to act on
-        if not (known or (first[0].islower() and sure)):
+        if sure:
+            accept = known or first[0].islower()
+        else:  # an unsure letter stands only when it is the book's likeliest letter for this word ("When", not "Then"/"She")
+            counts = {c: vocab.words.get((c + first).lower(), 0) for c in string.ascii_uppercase}
+            best = max(counts.values())
+            likeliest = best > 0 and counts[t] == best and sum(v == best for v in counts.values()) == 1
+            # (an opening set in capitals - "AVING DELVED INTO ..." - has no lower-case twin to rank against: the
+            # book's own word is enough there; PHB p318 "H" at 0.51 would lose to "saving" otherwise)
+            accept = known and (likeliest or (first.isupper() and len(first) >= 3))
+        if not accept:
             continue
         at = out.index(target)
         out[at] = dataclasses.replace(target, text=t + target.text.lstrip())
