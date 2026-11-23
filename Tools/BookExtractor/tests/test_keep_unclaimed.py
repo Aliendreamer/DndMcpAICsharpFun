@@ -138,3 +138,52 @@ def test_fixture_cases_unheld_does_not_rise():
         if new > old:
             rose[case] = (old, new)
     assert not rose, rose
+
+
+def _synthetic(run_texts: list[str], host_last_entry):
+    """A host Lore whose last printed line directly precedes an unclaimed run on the same page."""
+    from collections import Counter
+
+    from bookextractor.assemble import _keep_unheld, _line_keys
+    from bookextractor.model import Fragment, Line, Page
+    from bookextractor.names import build_vocabulary
+
+    def line(text: str, y: float) -> Line:
+        box = (100.0, y, 700.0, y + 30.0)
+        return Line(text=text, box=box, height=30.0, page=1, frags=[Fragment(text, 0.99, box)])
+
+    host_lines = [line("The guild keeps a ledger of every contract it takes on and every", 100.0),
+                  line("debt it is owed by the families of the city", 140.0)]
+    run = [line(t, 180.0 + 40.0 * i) for i, t in enumerate(run_texts)]
+    host = {"id": "x.lore.guild", "type": "Lore", "name": "Guild", "page": 1,
+            "canonicalText": "Guild\nThe guild keeps a ledger of every contract it takes on and every debt it is owed "
+                             "by the families of the city",
+            "fields": {"entries": ["The guild keeps a ledger ...", host_last_entry]}, "checks": [], "notes": []}
+    entities, entity_lines = [host], [host_lines]
+    claimed = set(_line_keys(host_lines))
+    _keep_unheld(entities, entity_lines, {1: host_lines + run}, [], [], set(), True, [_line_keys(host_lines)],
+                 [None], [[]], "x", Counter(), build_vocabulary([], []), {1: Page(1, 1000, 1000, host_lines + run, "ocr")},
+                 claimed, set())
+    return entities
+
+
+def test_capitalised_paragraph_after_a_table_ending_host_is_a_flagged_lore():
+    ents = _synthetic(["The treasury is guarded by four old veterans of the city watch.",
+                       "They rotate shifts at every dusk and every dawn."], {"type": "table", "rows": []})
+    assert len(ents) == 2 and ents[0]["fields"]["entries"][-1] == {"type": "table", "rows": []}
+    assert "treasury" not in ents[0]["canonicalText"]
+    assert ents[1]["type"] == "Lore"
+    assert any(c["name"] == "text-complete" and not c["passed"] and "unclaimed prose" in c["reason"]
+               for c in ents[1]["checks"])
+
+
+def test_lower_case_continuation_after_a_table_ending_host_still_appends():
+    ents = _synthetic(["and the vault beneath it is sealed with three separate locks.",
+                       "Each lock needs its own key to open."], {"type": "table", "rows": []})
+    assert len(ents) == 1 and "sealed with three separate locks" in ents[0]["canonicalText"]
+
+
+def test_headed_run_is_never_appended():
+    ents = _synthetic(["The Vault", "and the vault beneath it is sealed with three separate locks.",
+                       "Each lock needs its own key to open."], "ends mid sentence and")
+    assert len(ents) == 2 and ents[1]["name"] == "The Vault"

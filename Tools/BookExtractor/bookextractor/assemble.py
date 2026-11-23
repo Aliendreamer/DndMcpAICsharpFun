@@ -753,13 +753,14 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
     done: set[str] = set()
     book_text = _squash("\n".join(e["canonicalText"] + " " + " ".join(n["text"] for n in e.get("notes", []))
                                  for e in entities))
-    title = None
+    title, headed = None, False
     for owner, run, is_fresh in [(o, r, False) for o, r in jobs] + [(o, r, True) for o, r in fresh]:
         title = None
         if is_fresh:  # lines an earlier job of this pass already kept
             run = [l for l in run if next(iter(_line_keys([l]))) not in claimed]
             if not run:
                 continue
+            headed = heading_words(run[0].text.strip()) and not prose(run[0].text)  # opens with a heading/title
             if len(run) > 1 and real_heading(run[0].text.strip(), run):
                 title, run = run[0].text.strip().rstrip(".,;:"), run[1:]  # its own heading: the Lore's name
             if not qualifies(run):
@@ -777,8 +778,8 @@ def _keep_unheld(entities: list[dict], entity_lines: list[list[Line]], ordered: 
             host = entities[owner] if owner is not None else None
             ended = bool(re.search(r"[.!?:\"\u201d\u2019']$", host["canonicalText"].rstrip())) if host else True
             if host is not None and host["type"] in _ENTRIES_TYPES and isinstance(host["fields"].get("entries"), list) \
-                    and host["fields"]["entries"] and title is None \
-                    and (text[:1].islower() or not ended):
+                    and host["fields"]["entries"] and title is None and not headed \
+                    and (text[:1].islower() or (not ended and isinstance(host["fields"]["entries"][-1], str))):
                 # the host's last line directly precedes the run: it is that text, going on
                 if isinstance(host["fields"]["entries"][-1], str):
                     host["fields"]["entries"][-1] += " " + text

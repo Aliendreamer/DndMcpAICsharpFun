@@ -33,5 +33,5 @@ def test_tce_haunted_table_continues_over_the_page_break():
 
 def test_xge_has_no_entity_named_for_a_die_header():
     entities = _run("xge", 92, 114)
-    # (starts with: the printed name "Blibdoolpoolp" holds the letters but is no die header)
-    assert not [e["name"] for e in entities if e["name"].lower().startswith("oolp")]
+    # (the real printed name "Blibdoolpoolp" holds the letters but is no die header)
+    assert not [e["name"] for e in entities if "oolp" in e["name"].lower() and e["name"].lower() != "blibdoolpoolp"]
