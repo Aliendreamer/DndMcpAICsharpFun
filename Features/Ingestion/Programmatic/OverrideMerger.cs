@@ -24,17 +24,14 @@ public static class OverrideMerger
 
     private static MergeResult Apply(IReadOnlyList<EntityEnvelope> extracted, EntityOverrides o, bool reapply)
     {
-        var ids = extracted.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
-        var orphans = o.Overrides.Select(x => x.EntityId)
-            .Concat(o.Approvals.Select(a => a.EntityId))
-            .Concat(o.Declines.Select(d => d.EntityId))
-            .Where(id => !ids.Contains(id))
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
+        // Rescue entities are derived, never input: drop any the canonical file already holds and recompute them.
+        var inputs = extracted.Where(e => !TrimRescue.IsRescueId(e.Id)).ToList();
 
-        var result = new List<EntityEnvelope>(extracted.Count);
+        var result = new List<EntityEnvelope>(inputs.Count);
         var retired = new List<FieldOverride>();
-        foreach (var input in extracted)
+        var trimmedHosts = new List<(EntityEnvelope Host, string BaseText)>();
+
+        EntityEnvelope Process(EntityEnvelope input)
         {
             var original = input;
             var mine = o.Overrides.Where(x => x.EntityId == original.Id).ToList();
@@ -52,8 +49,34 @@ public static class OverrideMerger
             // Programmatic entities always get a derived disposition (never trust whatever the input carried).
             if (e.DataSource == DataSources.Programmatic || mine.Count > 0 || approval is not null || e.Checks.Count > 0 || IsDeclined(o, original.Id))
                 e = SetDisposition(e, approval, IsDeclined(o, original.Id));
-            result.Add(e);
+            return e;
         }
+
+        foreach (var input in inputs)
+        {
+            var textOverrides = o.Overrides.Where(x => x.EntityId == input.Id && x.Field == "canonicalText").ToList();
+            if (textOverrides.Count > 0)
+            {
+                // Fresh extraction: the extracted text is the base. Reapply: the text recorded when the override was made.
+                var baseText = reapply
+                    ? textOverrides.Select(x => x.Extracted).LastOrDefault(x => x is { ValueKind: JsonValueKind.String })?.GetString()
+                    : input.CanonicalText;
+                if (baseText is not null)
+                    trimmedHosts.Add((input, baseText));
+            }
+            result.Add(Process(input));
+        }
+
+        foreach (var rescue in TrimRescue.Compute(trimmedHosts, result))
+            result.Add(Process(rescue));
+
+        var ids = result.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+        var orphans = o.Overrides.Select(x => x.EntityId)
+            .Concat(o.Approvals.Select(a => a.EntityId))
+            .Concat(o.Declines.Select(d => d.EntityId))
+            .Where(id => !ids.Contains(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
         return new MergeResult(result, orphans, retired);
     }
 

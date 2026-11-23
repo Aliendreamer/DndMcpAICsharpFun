@@ -31,6 +31,65 @@ public class OverrideMergerTests
         again.Disposition.Should().Be(EntityDisposition.Accepted);
     }
 
+    private const string StatLines = "Armor Class 12 natural armor hit points sixty";
+    private const string LoreLines = "Grells hunt in the dark caverns beneath the mountains of the north.\nThey paralyze prey with tentacles before devouring every last morsel.";
+    private const string RescueIdValue = "mm14.lore.grell-trimmed";
+
+    private static EntityEnvelope TextGrell() => Grell() with { CanonicalText = StatLines + "\n" + LoreLines };
+
+    private static FieldOverride TextOv(string id = "mm14.monster.grell") =>
+        new(id, "canonicalText", J(JsonSerializer.Serialize(StatLines)), J(JsonSerializer.Serialize(StatLines + "\n" + LoreLines)), "trim", At);
+
+    [Fact]
+    public void Apply_creates_rescue_for_text_an_override_removed()
+    {
+        var r = OverrideMerger.Apply([TextGrell()], new EntityOverrides([TextOv()], []));
+        var rescue = r.Entities.Should().ContainSingle(e => e.Id == RescueIdValue).Subject;
+        rescue.Type.Should().Be(EntityType.Lore);
+        rescue.Disposition.Should().Be(EntityDisposition.NeedsReview);
+        rescue.NeedsReview.Should().BeTrue();
+        rescue.CanonicalText.Should().Contain("paralyze prey");
+    }
+
+    [Fact]
+    public void Reapply_twice_keeps_exactly_one_rescue()
+    {
+        var o = new EntityOverrides([TextOv()], []);
+        var first = OverrideMerger.Apply([TextGrell()], o);
+        var second = OverrideMerger.Reapply(first.Entities, o);
+        var third = OverrideMerger.Reapply(second.Entities, o);
+        third.Entities.Count(e => TrimRescue.IsRescueId(e.Id)).Should().Be(1);
+        third.Entities.Single(e => TrimRescue.IsRescueId(e.Id)).Id.Should().Be(RescueIdValue);
+        third.Entities.Single(e => TrimRescue.IsRescueId(e.Id)).CanonicalText
+            .Should().Be(first.Entities.Single(e => TrimRescue.IsRescueId(e.Id)).CanonicalText);
+    }
+
+    [Fact]
+    public void Decline_of_rescue_persists()
+    {
+        var o = new EntityOverrides([TextOv()], [], [new Decline(RescueIdValue, "junk", At)]);
+        var r = OverrideMerger.Apply([TextGrell()], o);
+        r.Entities.Single(e => e.Id == RescueIdValue).Disposition.Should().Be(EntityDisposition.Declined);
+        r.OrphanedEntityIds.Should().NotContain(RescueIdValue);
+    }
+
+    [Fact]
+    public void Rescue_disappears_when_text_is_held_again()
+    {
+        var other = Grell() with { Id = "mm14.lore.other", Type = EntityType.Lore, Name = "Other", CanonicalText = "Other\n" + LoreLines };
+        var r = OverrideMerger.Apply([TextGrell(), other], new EntityOverrides([TextOv()], []));
+        r.Entities.Should().NotContain(e => TrimRescue.IsRescueId(e.Id));
+    }
+
+    [Fact]
+    public void Override_on_rescue_applies()
+    {
+        var edit = new FieldOverride(RescueIdValue, "canonicalText", J("\"Edited rescue text\""), null, "edit", At);
+        var r = OverrideMerger.Apply([TextGrell()], new EntityOverrides([TextOv(), edit], []));
+        r.Entities.Single(e => e.Id == RescueIdValue).CanonicalText.Should().Be("Edited rescue text");
+        r.OrphanedEntityIds.Should().NotContain(RescueIdValue);
+    }
+
     [Fact]
     public void Reapply_sets_a_new_override_and_waives_failed_checks_with_an_approval()
     {
