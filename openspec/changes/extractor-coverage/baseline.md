@@ -27,3 +27,35 @@ declines applied, Declined excluded). "Raw extractor" = `ExtractionResult.covera
 Committed is higher than raw for most books: the committed files come from older extractor runs (PHB was never
 re-extracted after the boundary fixes) and some review overrides replaced extracted text with OCR-corrected text,
 which no longer matches the raw OCR line (a measurement artefact, not lost content).
+
+## After re-extraction (2026-11-23, extractor at ba65af71, all 16 books re-extracted live)
+
+| Book | Committed unheld before → after | Raw extractor unheld before → after |
+| --- | ---: | ---: |
+| bgg | 540 → 276 | 368 → 47 |
+| dmg14 | 755 → 442 | 519 → 52 |
+| egw | 1478 → 947 | 715 → 90 |
+| elemental-evil-player-s-companion | 175 → 44 | 110 → 0 |
+| erlw | 1796 → 1376 | 941 → 149 |
+| ftd | 857 → 724 | 274 → 12 |
+| ggr | 670 → 527 | 427 → 154 |
+| mm14 | 705 → 656 | 128 → 2 |
+| mpmm | 415 → 387 | 98 → 0 |
+| mtf | 1152 → 399 | 919 → 3 |
+| phb14 | 2701 → 703 | 1202 → 64 |
+| scag | 1378 → 447 | 678 → 43 |
+| scc | 529 → 354 | 426 → 32 |
+| tce | 447 → 235 | 256 → 1 |
+| vrgr | 616 → 322 | 733 → 23 |
+| xge | 207 → 116 | 261 → 3 |
+| **Total** | **14421 → 7955** | **8055 → 675** |
+
+`fullbook_compare --prev 2045543a`: 0 newly orphaned lines in every book. 697 entities flagged for review (mostly the new
+"unclaimed prose" Lore); 20 orphaned overrides.
+
+Why the committed number stays higher than the raw one (lines unheld after overrides, by cause): left out on purpose
+~2012 (the committed scan cannot see `left_out`), declined 250, raw-unheld 635, and **~5,500 lines whose text the new
+extraction holds but a reviewed override replaces**: ~3,500 in prose entities (the override keeps the shorter reviewed
+text, so text the extractor now appends is masked) and ~1,500 in Monsters (reviewed overrides that stripped lore glued
+into a stat block; that lore then has no other holder). Follow-up: carry newly extracted text through text overrides,
+and stop stat blocks claiming the lore that follows them.
