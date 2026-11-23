@@ -34,6 +34,22 @@ def test_line_held_only_by_notes_is_held():
     assert measure([(1, LINE, 1.0)], ["body text", LINE], []).unheld == []
 
 
+def test_scan_held_texts_skip_declined_and_include_notes():
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+    from coverage_scan import held_texts
+
+    canon = {"entities": [
+        {"canonicalText": "kept body", "notes": [{"text": "a margin note"}]},
+        {"canonicalText": "declined body", "disposition": "Declined", "notes": [{"text": "declined note"}]},
+        {"canonicalText": None},
+    ]}
+    held = held_texts(canon)
+    assert "kept body" in held and "a margin note" in held
+    assert "declined body" not in held and "declined note" not in held
+
+
 def test_reduce_text():
     assert reduce_text("Hello, World-42!") == "helloworld42"
 

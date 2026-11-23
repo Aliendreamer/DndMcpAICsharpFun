@@ -15,11 +15,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from bookextractor.coverage import measure  # noqa: E402
+from bookextractor.model import load_ocr_page  # noqa: E402
 
 
-def held_texts(entities: list[dict]) -> list[str]:
+def held_texts(canonical: dict) -> list[str]:
     out = []
-    for e in entities:
+    for e in canonical["entities"]:
         if e.get("disposition") == "Declined":
             continue
         out.append(e.get("canonicalText") or "")
@@ -51,9 +52,9 @@ def main() -> None:
         lines = []
         for f in files:
             pg = int(os.path.basename(f)[:3])
-            for l in json.load(open(f))["lines"]:
-                lines.append((pg, l["t"], float(l.get("s", 1.0))))
-        cov = measure(lines, held_texts(d["entities"]), [])
+            for l in load_ocr_page(Path(f), pg).lines:  # the pipeline's own cleaned lines
+                lines.append((pg, l.text, min(fr.score for fr in l.frags)))
+        cov = measure(lines, held_texts(d), [])
         per = defaultdict(list)
         for pg, t in cov.unheld:
             per[pg].append(t)
