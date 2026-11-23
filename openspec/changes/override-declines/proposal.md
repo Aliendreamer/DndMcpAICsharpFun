@@ -27,5 +27,5 @@ already declined automatically; junk needs the same outcome by an explicit, reco
 
 - `Features/Ingestion/Programmatic/EntityOverrides.cs`, `OverridesStore.cs`, `OverrideMerger.cs`,
   `OverrideMigration.cs`, `Features/Admin/Review/EntityReviewService.cs`, tests.
-- No endpoint change (no review-page Decline button in this change; declines are written to the file).
+- `CompanionUI/Pages/Review/Review.razor`: a Decline button (Blazor calls the service directly, so no HTTP route change).
 - Data: the 83 junk verdicts from the AI review are written as declines and applied.

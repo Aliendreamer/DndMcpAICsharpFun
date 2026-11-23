@@ -155,6 +155,51 @@ public sealed class EntityReviewServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Decline_records_the_decline_sets_declined_and_reindexes()
+    {
+        await SeedDefault();
+        var keep = new Decline(Goblin, "junk", At);
+        await Store().SaveAsync(Slug, new EntityOverrides([], [], [keep]), CancellationToken.None);
+        await Svc().ApproveAsync(Goblin, "earlier approval", CancellationToken.None);
+
+        var e = await Svc().DeclineAsync(Orc, " art caption ", CancellationToken.None);
+
+        e.Disposition.Should().Be(EntityDisposition.Declined);
+        e.NeedsReview.Should().BeFalse();
+        (await FromFile(Orc)).Disposition.Should().Be(EntityDisposition.Declined);
+        var saved = await Store().LoadAsync(Slug, CancellationToken.None);
+        saved.Declines.Should().HaveCount(2);
+        saved.Declines.Should().Contain(keep);
+        saved.Declines.Should().ContainSingle(d => d.EntityId == Orc && d.Reason == "art caption");
+        saved.Approvals.Should().ContainSingle(a => a.EntityId == Goblin);
+        (await Svc().ListAsync(Slug, true, CancellationToken.None)).Should().NotContain(i => i.Id == Orc);
+        await DrainReindexAsync(); await _ingestion.Received(1).ReindexEntityAsync(1, Orc, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Decline_again_replaces_the_earlier_decline()
+    {
+        await SeedDefault();
+
+        await Svc().DeclineAsync(Orc, "first", CancellationToken.None);
+        await Svc().DeclineAsync(Orc, "second", CancellationToken.None);
+
+        (await Store().LoadAsync(Slug, CancellationToken.None)).Declines
+            .Should().ContainSingle().Which.Reason.Should().Be("second");
+    }
+
+    [Fact]
+    public async Task Decline_requires_a_reason()
+    {
+        await SeedDefault();
+
+        var act = () => Svc().DeclineAsync(Orc, "  ", CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+        (await Store().LoadAsync(Slug, CancellationToken.None)).Declines.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Approval_waives_only_the_checks_failing_at_approval_time()
     {
         await Seed("2", Ent(Orc, "Orc",

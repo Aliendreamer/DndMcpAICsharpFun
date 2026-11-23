@@ -27,3 +27,20 @@ is gone.
 
 - **WHEN** the admin approves another entity of the same book on the review page
 - **THEN** the saved overrides file still holds every decline
+
+### Requirement: Decline from the review page
+
+The `/review` page SHALL offer a Decline action for a flagged entity. It SHALL require a reason, record a decline for the
+entity in the overrides file (replacing any earlier decline of the same id), give the entity disposition `Declined`, and
+remove it from `dnd_entities`. Overrides, approvals and other declines of the book MUST be kept.
+
+#### Scenario: Admin declines junk
+
+- **WHEN** the admin declines a flagged entity with reason "art caption"
+- **THEN** the overrides file holds a decline for it with that reason, its disposition is `Declined`, its `dnd_entities`
+  point is deleted, and it is no longer listed as flagged
+
+#### Scenario: Reason required
+
+- **WHEN** the admin declines with an empty reason
+- **THEN** nothing is saved and the page shows the reason error

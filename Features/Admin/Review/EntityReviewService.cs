@@ -214,6 +214,19 @@ public sealed class EntityReviewService(
         }, ct);
     }
 
+    // Declines a flagged entity (junk: an art caption, a duplicate fragment...). The decline outranks checks and
+    // approvals; the reindex deletes its dnd_entities point because it is no longer Accepted.
+    public async Task<EntityEnvelope> DeclineAsync(string entityId, string reason, CancellationToken ct)
+    {
+        RequireReason(reason);
+        return await MutateAsync(entityId, (e, o) =>
+        {
+            var decline = new Decline(entityId, reason.Trim(), DateTimeOffset.UtcNow);
+            var next = o with { Declines = o.Declines.Where(d => d.EntityId != entityId).Append(decline).ToList() };
+            return (OverrideMerger.SetDisposition(e, OverrideMerger.ApprovalFor(next, entityId), declined: true), next);
+        }, ct);
+    }
+
     /// <summary>
     /// Drops one override and puts the extractor's value back. This is how an <c>override-unapplied</c> override,
     /// which approval cannot waive, is cleared.

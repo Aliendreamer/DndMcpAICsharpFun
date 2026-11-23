@@ -9,8 +9,14 @@ with two arguments.
 
 **Goals:** a recorded, re-run-proof way to decline a programmatic entity.
 
-**Non-Goals:** a review-page Decline button or endpoint; deleting entities; un-declining other than by removing the
-record from the file.
+**Non-Goals:** an HTTP endpoint for declines; deleting entities; un-declining other than by removing the record from the
+file.
+
+**Decline button (added after the data pass, owner request 2026-11-23):** `/review` gets a Decline button beside Approve,
+shown for flagged entities. It takes the same required Reason, calls `EntityReviewService.DeclineAsync`, which writes the
+decline record (replacing any earlier one for the id) through the same locked save + reindex path as Approve; the
+reindex deletes the entity's `dnd_entities` point because it is no longer Accepted. The page then moves on as after an
+approval. Blazor calls the service directly, so no route changes and `.http` stays as is.
 
 ## Decisions
 

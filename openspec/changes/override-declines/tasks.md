@@ -8,3 +8,8 @@
 ## 2. Data
 
 - [x] 2.1 Write the AI-review junk verdicts as declines, apply overrides, commit
+
+## 3. Review-page Decline button
+
+- [x] 3.1 `EntityReviewService.DeclineAsync(entityId, reason, ct)`: reason required; writes/replaces the decline, sets `Declined`, reindexes (point deleted); keeps overrides, approvals and other declines; tests
+- [x] 3.2 `/review`: Decline button beside Approve for flagged entities; after declining, the list drops the entity (a declined row is never `flagged`) and the page moves on like after an approval
