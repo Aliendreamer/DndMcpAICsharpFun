@@ -6,4 +6,4 @@
 ## 2. Data
 
 - [x] 2.1 Rebuild app, apply-overrides on all 16 books, count rescues and rescued lines, run the committed coverage scan, commit
-- [ ] 2.2 AI review loop over the new flagged rescue entities, apply, commit
+- [x] 2.2 AI review loop over the new flagged rescue entities, apply, commit
