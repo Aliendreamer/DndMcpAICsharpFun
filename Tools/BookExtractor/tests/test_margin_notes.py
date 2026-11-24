@@ -199,7 +199,9 @@ def test_bgg_asides_set_in_large_type_are_notes_not_left_out():
 
 
 def test_a_commentator_signs_the_note_whose_box_is_glued_but_for_its_last_words():
-    assert ("Diancastra", "Excellent. But these trolls are loathsome.") in _note_texts("r4-bgg187", 187)
+    # the aside above it ("I'll just keep reminding myself ...") lost its "-Bigby" to the OCR: it joins the signed note
+    got = _note_texts("r4-bgg187", 187)
+    assert any(by == "Diancastra" and t.endswith("Excellent. But these trolls are loathsome.") for by, t in got), got
 
 
 def test_a_signed_hand_set_letter_is_a_note_whatever_its_capitals():

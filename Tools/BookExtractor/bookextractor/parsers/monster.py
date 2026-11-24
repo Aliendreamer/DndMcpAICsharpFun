@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 import statistics
 from copy import deepcopy
+from dataclasses import replace
 
 from rapidfuzz import fuzz, process
 
@@ -534,7 +535,37 @@ def _page_furniture(text: str) -> bool:
     return bool(re.fullmatch(r"[A-Z0-9 ]*[A-Z][A-Z0-9 ]*\|[A-Z0-9 ]+|[A-Z0-9 ]+\|[A-Z0-9 ]*[A-Z][A-Z0-9 ]*", t))
 
 
-def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> bool:
+# a running foot naming a chapter or appendix in capitals, OCR noise around it ("328 APPENDIX'A: MISOELLANEOUS
+# CREATURES", "K CHAPTER 6 |BESTIARY 211", "218 CHAPTER 6 I FRIENDS AND FOES")
+_CHAPTER_FOOT = re.compile(r"(?:[A-Z] )?(?:\d{1,3} )?(?:CHAPTER|APPENDIX)\W{0,2}\w{1,2}\W{1,3}[A-Z][A-Z' |]+(?: \d{1,3}\W?)?")
+
+
+def _without_page_furniture(L: list[Line], rel: list[float]) -> list[Line]:
+    """The lines without the furniture a stat block that fills its column would swallow as its last words: a chapter
+    foot, a thumb-tab letter ("S") of its own or merged into a row's end, and a running foot or page number on the
+    page's lowest rows ("DEVILS", "14.7"). A line set large enough to end a block stays, so no block runs on."""
+    bottom: dict[int, float] = {}
+    for l in L:
+        bottom[l.page] = max(bottom.get(l.page, 0.0), l.box[1])
+    out = []
+    for l, r in zip(L, rel):
+        t = l.text.strip()
+        if _page_furniture(t) or _CHAPTER_FOOT.fullmatch(t):
+            continue
+        if re.fullmatch(r"[A-Z]", t):
+            continue
+        if l.box[1] >= bottom[l.page] - 1.2 * l.height and r <= 1.0 and not _section_key(t) and (
+                re.fullmatch(r"\d{1,3}(?:\W?\d)?\W?", t) or (_running_foot(t) and _is_heading_caps(re.sub(r" ?\d+\W?$", "", t)))):
+            continue
+        if len(l.frags) > 1:
+            a, b = l.frags[-2], l.frags[-1]
+            if re.fullmatch(r"[A-Z]", b.text.strip()) and b.box[0] - a.box[2] >= l.height:
+                l = replace(l, text=" ".join(f.text for f in l.frags[:-1]), frags=l.frags[:-1])
+        out.append(l)
+    return out
+
+
+def _starts_next_entity(L: list[Line], rel: list[float], j: int, has_entries: bool, end: int) -> bool:
     """At the top of the next page, text that cannot belong to the finished block ends it.
 
     Three shapes: an epigraph quote; a title-cased heading right after a finished sentence (within a page the
@@ -566,7 +597,8 @@ def _starts_next_entity(L: list[Line], j: int, has_entries: bool, end: int) -> b
         return False
     if any(_is_size_line(L[k].text) for k in range(j + 1, min(j + 4, len(L)))):
         return False  # the next stat block's own name: its start already bounds this block
-    return finished
+    # (a spell list ends without a full stop: a heading set large still ends the block, ftd Crystal Dragon Wyrmling)
+    return finished or rel[j] >= 1.2
 
 
 def _squash(t: str) -> str:
@@ -628,7 +660,7 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
             break
         elif name and any(body.values()) and rel[j] > 1.0 and _squash(t) == _squash(name):
             break  # the creature's own name again, set as a heading: the lore under it (bgg Runic Colossus) is no block text
-        elif _leaves_block(L, rel, j, end) or _starts_next_entity(L, j, any(body.values()), end):
+        elif _leaves_block(L, rel, j, end) or _starts_next_entity(L, rel, j, any(body.values()), end):
             break
         elif any(body.values()) and _lab(t, "Armor Class") and re.match(r"\D{0,15}\d", t):  # (a wrapped lore phrase "Armor Class, hit points" is no header)
             # a second header inside the body is the next block's: its garbled name and size lines stay out too
@@ -641,6 +673,12 @@ def _parse_block(L: list[Line], rel: list[float], i: int, nj: int | None, end: i
         else:
             body[sec].append(t)
         j += 1
+    # the next block's name is often set twice (over the art and over the stat block); the first copy is not ours
+    if j == end < len(L) and body[sec] and j - 1 > stat_end and L[j - 1].text == body[sec][-1] \
+            and len(L[j - 1].text.split()) <= 6 and not L[j - 1].text.rstrip().endswith(".") \
+            and fuzz.ratio(_squash(L[j - 1].text), _squash(L[end].text)) >= 85:
+        body[sec].pop()
+        j -= 1
     last = j
 
     fields: dict = {"size": [SIZE_CODE[size]] if size else [], "type": _type_field(head)}
@@ -750,8 +788,14 @@ def _expand_variants(p: Parsed) -> list[Parsed]:
 
 
 def parse_monsters(lines: list[Line]) -> list[Parsed]:
-    """Parse every stat block found in `lines` (reading order, pages concatenated)."""
-    L = lines
+    """Parse every stat block found in `lines` (reading order, pages concatenated).
+
+    A sideways art credit is taken out first: its box is far taller than a line, so it read as a heading and ended the
+    block in the middle of a sentence (scc Daemogoth, erlw Bone Knight)."""
+    from .charcommon import without_art_credits  # charcommon imports this module
+
+    L = without_art_credits(lines)
+    L = _without_page_furniture(L, _rel_heights(L))
     st = _monster_starts(L)
     rel = _rel_heights(L)
     out: list[Parsed] = []
