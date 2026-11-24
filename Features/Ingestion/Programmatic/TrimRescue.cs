@@ -43,6 +43,7 @@ public static partial class TrimRescue
         var ids = finalEntities.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
         var byId = finalEntities.GroupBy(e => e.Id).ToDictionary(g => g.Key, g => g.First());
         var rescues = new List<EntityEnvelope>();
+        var rescuedLines = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var (inputHost, baseText) in trimmedHosts)
         {
@@ -57,11 +58,15 @@ public static partial class TrimRescue
             {
                 var reduced = Reduce(baseLines[i]);
                 if (reduced.Length < MinReducedLength) continue;
+                if (rescuedLines.Contains(reduced)) continue;
                 if (held.Contains(reduced, StringComparison.Ordinal)) continue;
                 if (IsTypoFixed(baseLines[i], hostLines)) continue;
                 removed.Add(i);
             }
             if (removed.Count == 0) continue;
+            foreach (var i in removed) rescuedLines.Add(Reduce(baseLines[i]));
+            var hostReduced = host.CanonicalText.Split('\n').Select(l => Reduce(l)).ToHashSet(StringComparer.Ordinal);
+            removed = AddShortNeighbours(baseLines, removed, hostReduced);
 
             var entries = BuildEntries(baseLines, removed);
             var name = HeadingAbove(baseLines, removed[0], held) ?? $"{host.Name} (trimmed text)";
@@ -80,6 +85,33 @@ public static partial class TrimRescue
                 Provenance: host.Provenance));
         }
         return rescues;
+    }
+
+    /// <summary>
+    /// Adds every short, non-heading line (reduced length 1 to 29) directly next to a removed line, repeatedly, so a paragraph
+    /// tail is not lost; an isolated short line is never rescued.
+    /// </summary>
+    private static List<int> AddShortNeighbours(string[] lines, List<int> removed, HashSet<string> hostReduced)
+    {
+        var set = removed.ToHashSet();
+        bool Eligible(int i)
+        {
+            if (i < 0 || i >= lines.Length || set.Contains(i)) return false;
+            var reduced = Reduce(lines[i]);
+            // A short line the host itself still carries was kept, not removed.
+            return reduced.Length is > 0 and < MinReducedLength && !hostReduced.Contains(reduced) && !IsHeading(lines[i]);
+        }
+        bool grew;
+        do
+        {
+            grew = false;
+            foreach (var i in set.ToList())
+            {
+                if (Eligible(i - 1)) { set.Add(i - 1); grew = true; }
+                if (Eligible(i + 1)) { set.Add(i + 1); grew = true; }
+            }
+        } while (grew);
+        return set.Order().ToList();
     }
 
     private static List<string> BuildEntries(string[] lines, List<int> removed)
@@ -135,7 +167,7 @@ public static partial class TrimRescue
     [GeneratedRegex(@"^(Armor Class|Hit Points|Speed|STR|DEX|CON|INT|WIS|CHA|Saving Throws|Skills|Damage|Condition|Senses|Languages|Challenge|Proficiency)\b", RegexOptions.IgnoreCase)]
     private static partial Regex StatLabelRegex();
 
-    [GeneratedRegex(@"-trimmed(-\d+)?$")]
+    [GeneratedRegex(@"^[^.]+\.lore\..+-trimmed(-\d+)?$")]
     private static partial Regex RescueIdRegex();
 
     private static bool IsTypoFixed(string line, List<Dictionary<string, int>> hostLines)

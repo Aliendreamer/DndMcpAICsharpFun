@@ -39,6 +39,21 @@ public class OverrideMigrationTests
     }
 
     [Fact]
+    public void Records_of_the_hosts_rescue_move_with_the_host()
+    {
+        var o = Overrides("phb14.rule.caasting-time");
+        var rescueOv = new FieldOverride("phb14.lore.caasting-time-trimmed", "canonicalText",
+            JsonDocument.Parse("\"v\"").RootElement.Clone(), null, "edit", At);
+        o = new EntityOverrides([.. o.Overrides, rescueOv], o.Approvals,
+            [new Decline("phb14.lore.caasting-time-trimmed-2", "junk", At)]);
+        var r = OverrideMigration.Migrate(o, [Ent("phb14.rule.caasting-time")], [Ent("phb14.rule.casting-time")]);
+
+        r.Overrides.Overrides.Select(x => x.EntityId).Should().Contain("phb14.lore.casting-time-trimmed");
+        r.Overrides.Overrides.Select(x => x.EntityId).Should().NotContain("phb14.lore.caasting-time-trimmed");
+        r.Overrides.Declines.Should().ContainSingle().Which.EntityId.Should().Be("phb14.lore.casting-time-trimmed-2");
+    }
+
+    [Fact]
     public void Rescue_ids_are_never_moved_or_orphaned()
     {
         const string rescue = "mm14.lore.grell-trimmed";

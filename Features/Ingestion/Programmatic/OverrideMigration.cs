@@ -42,7 +42,20 @@ public static class OverrideMigration
             .Select(g => g.Key).ToHashSet(StringComparer.Ordinal);
         var moves = picks.Where(p => !contested.Contains(p.Value)).ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
 
-        string Map(string id) => moves.TryGetValue(id, out var to) ? to : id;
+        // A host's rescue entity (H-trimmed, H-trimmed-2, ...) follows the host.
+        var empty = new HashSet<string>();
+        var rescueMoves = moves.ToDictionary(m => TrimRescue.RescueId(m.Key, empty), m => TrimRescue.RescueId(m.Value, empty), StringComparer.Ordinal);
+        string Map(string id)
+        {
+            if (moves.TryGetValue(id, out var to)) return to;
+            foreach (var (from, target) in rescueMoves)
+            {
+                if (id == from) return target;
+                if (id.StartsWith(from + "-", StringComparison.Ordinal) && int.TryParse(id[(from.Length + 1)..], out _))
+                    return target + id[from.Length..];
+            }
+            return id;
+        }
         var migrated = new EntityOverrides(
             o.Overrides.Select(x => x with { EntityId = Map(x.EntityId) }).ToList(),
             o.Approvals.Select(x => x with { EntityId = Map(x.EntityId) }).ToList(),

@@ -134,4 +134,36 @@ public class TrimRescueTests
         var other = Ent("mm14.lore.y-trimmed", EntityType.Lore, "Y", $"{Lore1}");
         Run($"X\n{Lore1}", Host("X"), other).Should().ContainSingle();
     }
+
+    [Fact]
+    public void Short_paragraph_tail_stays_in_the_one_rescue_entry()
+    {
+        var r = Run($"X\nStat line\n{Lore1}\nbecomes undead.", Host("X\nStat line")).Should().ContainSingle().Subject;
+        var entries = r.Fields.GetProperty("entries");
+        entries.GetArrayLength().Should().Be(1);
+        entries[0].GetString().Should().Be($"{Lore1} becomes undead.");
+    }
+
+    [Fact]
+    public void Isolated_short_line_is_still_not_rescued()
+    {
+        Run("X\nStat line\nbecomes undead.\nKept short", Host("X\nStat line\nKept short")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Same_lore_removed_from_two_hosts_is_rescued_once()
+    {
+        var h1 = Ent("mm14.monster.a", EntityType.Monster, "A", "A");
+        var h2 = Ent("mm14.monster.b", EntityType.Monster, "B", "B");
+        var r = TrimRescue.Compute([(h1, $"A\n{Lore1}"), (h2, $"B\n{Lore1}")], [h1, h2]);
+        r.Should().ContainSingle().Which.Id.Should().Be("mm14.lore.a-trimmed");
+    }
+
+    [Fact]
+    public void Rescue_id_regex_matches_only_lore_rescues()
+    {
+        TrimRescue.IsRescueId("x.monster.foo-trimmed").Should().BeFalse();
+        TrimRescue.IsRescueId("mm14.lore.foo-trimmed").Should().BeTrue();
+        TrimRescue.IsRescueId("mm14.lore.foo-trimmed-2").Should().BeTrue();
+    }
 }

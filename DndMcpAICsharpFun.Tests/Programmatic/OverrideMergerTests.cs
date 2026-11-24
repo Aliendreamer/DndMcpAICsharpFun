@@ -90,6 +90,73 @@ public class OverrideMergerTests
         r.OrphanedEntityIds.Should().NotContain(RescueIdValue);
     }
 
+    [Fact]
+    public void Apply_keeps_an_extracted_entity_whose_id_ends_in_trimmed()
+    {
+        var m = Grell() with { Id = "x.monster.foo-trimmed" };
+        OverrideMerger.Apply([m], new EntityOverrides([], [])).Entities.Should().ContainSingle(e => e.Id == "x.monster.foo-trimmed");
+    }
+
+    [Fact]
+    public void Rescue_check_reason_names_the_host()
+    {
+        var r = OverrideMerger.Apply([TextGrell()], new EntityOverrides([TextOv()], []));
+        r.Entities.Single(e => e.Id == RescueIdValue).Checks.Should().Contain(c => c.Reason.Contains("mm14.monster.grell"));
+    }
+
+    [Fact]
+    public void Reapply_after_drift_yields_the_same_rescue_text()
+    {
+        var drifted = TextGrell() with { CanonicalText = StatLines + "\n" + LoreLines + "\nAnd some further extractor line that is long enough." };
+        var o = new EntityOverrides([TextOv()], []);
+        var first = OverrideMerger.Apply([drifted], o);
+        first.Entities.Single(e => e.Id == "mm14.monster.grell").Checks.Should().Contain(c => c.Name == OverrideMerger.DriftCheck);
+        var again = OverrideMerger.Reapply(first.Entities, o);
+        again.Entities.Single(e => e.Id == RescueIdValue).CanonicalText
+            .Should().Be(first.Entities.Single(e => e.Id == RescueIdValue).CanonicalText);
+    }
+
+    [Fact]
+    public void Retired_override_still_rescues_text_only_the_old_extraction_had()
+    {
+        var retiredHost = Grell() with { CanonicalText = StatLines };
+        var r = OverrideMerger.Apply([retiredHost], new EntityOverrides([TextOv()], []));
+        r.Retired.Should().ContainSingle();
+        r.Entities.Single(e => e.Id == RescueIdValue).CanonicalText.Should().Contain("paralyze prey");
+    }
+
+    [Fact]
+    public void Reapply_drops_a_stale_rescue_once_its_text_is_held()
+    {
+        var o = new EntityOverrides([TextOv()], []);
+        var first = OverrideMerger.Apply([TextGrell()], o);
+        var other = Grell() with { Id = "mm14.lore.other", Type = EntityType.Lore, Name = "Other", CanonicalText = "Other\n" + LoreLines };
+        var again = OverrideMerger.Reapply([.. first.Entities, other], o);
+        again.Entities.Should().NotContain(e => TrimRescue.IsRescueId(e.Id));
+    }
+
+    [Fact]
+    public void Approval_of_a_rescue_survives_reapply()
+    {
+        var o = new EntityOverrides([TextOv()], [new Approval(RescueIdValue, "ok", At, ["text-complete"])]);
+        var first = OverrideMerger.Apply([TextGrell()], o);
+        first.Entities.Single(e => e.Id == RescueIdValue).Disposition.Should().Be(EntityDisposition.Accepted);
+        var again = OverrideMerger.Reapply(first.Entities, o);
+        again.Entities.Single(e => e.Id == RescueIdValue).Disposition.Should().Be(EntityDisposition.Accepted);
+    }
+
+    [Fact]
+    public void Override_on_a_rescue_survives_reapply_without_drift()
+    {
+        var edit = new FieldOverride(RescueIdValue, "canonicalText", J("\"Edited rescue text\""), null, "edit", At);
+        var o = new EntityOverrides([TextOv(), edit], []);
+        var first = OverrideMerger.Apply([TextGrell()], o);
+        var again = OverrideMerger.Reapply(first.Entities, o);
+        var rescue = again.Entities.Single(e => e.Id == RescueIdValue);
+        rescue.CanonicalText.Should().Be("Edited rescue text");
+        rescue.Checks.Should().NotContain(c => c.Name == OverrideMerger.DriftCheck);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("42")]

@@ -25,7 +25,8 @@ public static class OverrideMerger
     private static MergeResult Apply(IReadOnlyList<EntityEnvelope> extracted, EntityOverrides o, bool reapply)
     {
         // Rescue entities are derived, never input: drop any the canonical file already holds and recompute them.
-        var inputs = extracted.Where(e => !TrimRescue.IsRescueId(e.Id)).ToList();
+        // A fresh extraction never carries rescues, so a real entity whose id merely ends in "-trimmed" is kept there.
+        var inputs = reapply ? extracted.Where(e => !TrimRescue.IsRescueId(e.Id)).ToList() : extracted.ToList();
 
         var result = new List<EntityEnvelope>(inputs.Count);
         var retired = new List<FieldOverride>();
@@ -58,9 +59,14 @@ public static class OverrideMerger
             if (textOverrides.Count > 0)
             {
                 // Fresh extraction: the extracted text is the base. Reapply: the text recorded when the override was made.
+                // After drift the recorded text is stale: the drift check holds what the extractor produced then.
                 var baseText = reapply
-                    ? textOverrides.Select(x => x.Extracted).LastOrDefault(x => x is { ValueKind: JsonValueKind.String })?.GetString()
-                    : input.CanonicalText;
+                    ? textOverrides
+                        .Select(x => DriftNow(input, x) ?? x.Extracted)
+                        .LastOrDefault(x => x is { ValueKind: JsonValueKind.String })?.GetString()
+                    : WithRecordedLines(input.CanonicalText,
+                        textOverrides.Select(x => x.Extracted)
+                            .LastOrDefault(x => x is { ValueKind: JsonValueKind.String })?.GetString());
                 if (baseText is not null)
                     trimmedHosts.Add((input, baseText));
             }
@@ -81,6 +87,18 @@ public static class OverrideMerger
     }
 
     /// <summary>The entity's approval, if any (the last one wins).</summary>
+    /// <summary>
+    /// The new extracted text plus the lines of the text recorded with the override that it lacks, so a retired override
+    /// (the extractor now yields the override's value) does not erase the text it once trimmed.
+    /// </summary>
+    private static string WithRecordedLines(string extractedText, string? recorded)
+    {
+        if (recorded is null) return extractedText;
+        var have = extractedText.Split('\n').Select(l => l.Trim()).ToHashSet(StringComparer.Ordinal);
+        var extra = recorded.Split('\n').Where(l => !have.Contains(l.Trim())).ToList();
+        return extra.Count == 0 ? extractedText : extractedText + "\n" + string.Join("\n", extra);
+    }
+
     public static Approval? ApprovalFor(EntityOverrides o, string entityId) =>
         o.Approvals.LastOrDefault(a => a.EntityId == entityId);
 

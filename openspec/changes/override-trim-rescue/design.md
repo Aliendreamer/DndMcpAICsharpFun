@@ -37,3 +37,13 @@ rescuing text removed by `fields.*` overrides (`canonicalText` carries the print
 
 - ~900 new flagged entities → reviewed with the AI loop; junk (credits, labels) gets declined, which persists.
 - A rescue may hold text the reviewer meant to drop as junk → the decline of the rescue entity records that choice.
+
+## Known behaviours
+
+- **Short continuation lines.** A short line (reduced length 1 to 29) directly next to a removed line, repeatedly, is rescued with it, so a paragraph tail ("becomes undead.") is kept and the paragraph stays one entry. Headings and short lines the host still carries are not pulled in; an isolated short line is never rescued.
+- **Retired overrides.** On a fresh extraction the base text for a host is its new extracted text plus the lines of the override's recorded `extracted` text that it lacks, so an override the extractor now reproduces does not erase the text it once trimmed. After drift, `Reapply` uses the extractor text held in the drift check.
+- **Duplicates.** A line already rescued for an earlier host (host order) is not rescued again for a later one.
+- **Migration.** When a host id moves, its rescue id's overrides, approvals and declines move with it.
+- **M3.** The `/review` page does not recompute rescues; they change only on the next apply or re-extraction.
+- **M4.** An approval waives `text-complete` by name, like any other waivable check.
+- **M5.** A rescue that is a one-sentence lead-in is auto-Declined by the `LeadInLore` rule; a Declined host gets no rescue.
