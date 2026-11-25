@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change chat-tool-binding-fixes. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Optional chat-tool parameters MUST be schema-optional
 
 Every in-process chat `AIFunction` registered by `DndChatService` MUST declare each of its
@@ -15,8 +17,8 @@ as non-required in the tool's JSON schema and the model MAY omit it without trig
 #### Scenario: Optional parameter is absent from the schema's required set
 
 - **WHEN** any chat tool exposes a parameter documented as optional (for example
-  `build_encounter`'s `theme`, `maxCr`, `minCr`, and `campaignId`; `ask_rules`'s `ruleTopics`
-  and `edition`; `generate_npc`'s `maxCr`; `prep_session`'s `difficulty`)
+  `build_encounter`'s `theme`, `maxCr`, `minCr`, and `campaignId`; `ask_rules`'s `ruleTopics`;
+  `ask_setting_lore`'s `setting` and `campaignId`; `generate_npc`'s `maxCr`; `prep_session`'s `difficulty`)
 - **THEN** that parameter name MUST NOT appear in the tool's JSON-schema `required` array
 
 #### Scenario: The model omits an optional parameter and the tool still binds
@@ -39,4 +41,3 @@ as non-required in the tool's JSON schema and the model MAY omit it without trig
 - **THEN** a data-driven test MUST assert, for every affected chat tool, that its known-optional
   parameters are excluded from the tool's JSON-schema `required` array, so a future regression
   that drops a default is caught at build/test time rather than at runtime against the model
-

@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change rules-adjudication. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Rule retrieval is scoped to the core rulebooks
 
 The system SHALL provide a fixed set of rule source books (the core rulebooks) whose values equal the
@@ -23,14 +25,14 @@ surface each of the relevant rules.
 
 ### Requirement: Grounded, cited rules-adjudication tool
 
-The system SHALL expose a per-session chat tool `ask_rules(question, ruleTopics?, edition?)` that
+The system SHALL expose a per-session chat tool `ask_rules(question, ruleTopics?)` that
 retrieves rule passages scoped to the core rulebooks and returns them each with its citation (source
 book and section or title). The tool SHALL NOT be ownership-gated and SHALL NOT accept a user or
 campaign id as an argument (rules are universal). Its contract SHALL require the answer to be composed
 only from the returned cited passages: naming the rules combined and citing each, flagging where the
 rules do not explicitly resolve an interaction (rules-as-written versus a DM ruling), and stating that
 the rules do not directly cover the question when no relevant passages are returned — never inventing a
-rule. When no `edition` is supplied, retrieval SHALL NOT be restricted by edition.
+rule. Retrieval SHALL NOT be restricted by edition.
 
 The tool SHALL support multi-hop retrieval via an optional `ruleTopics` list: when the caller supplies
 the distinct rules a question involves, the system SHALL run one scoped retrieval per topic (each
@@ -82,4 +84,3 @@ unchanged behaviour) and the per-topic grouping SHALL be empty.
 
 - **WHEN** `ask_rules` is called with no `ruleTopics`
 - **THEN** the system SHALL perform the single-shot retrieval on the question and the per-topic grouping SHALL be empty
-

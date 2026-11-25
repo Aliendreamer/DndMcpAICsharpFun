@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change setting-aware-lore. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: A campaign declares a setting resolved to source books
 
 The system SHALL provide a setting catalog mapping each named setting to a set of source-book keys,
@@ -38,10 +40,11 @@ form, and persist the selection with the campaign.
 
 ### Requirement: Per-campaign grounded, cited lore tool scoped to the setting
 
-The system SHALL expose a per-user chat tool `ask_setting_lore(campaignId, question)` that closes
+The system SHALL expose a per-user chat tool `ask_setting_lore(question, setting?, campaignId?)` that closes
 over the authenticated session user id and never accepts a user id as a tool argument. It SHALL
-verify the campaign belongs to the caller (rejecting a campaign that is not the caller's without
-revealing it), resolve the campaign's setting to a source-book scope, run prose retrieval RESTRICTED
+verify that a given campaign belongs to the caller (a campaign that is not the caller's SHALL NOT be
+read or revealed; the question is then answered from the books of the named setting alone, as when no
+campaign is given), resolve the campaign's setting to a source-book scope, run prose retrieval RESTRICTED
 to that scope, and return the retrieved passages each carrying its citation (source book and section
 or title). When the setting's sources contain nothing relevant, it SHALL return an explicit empty
 result rather than unscoped or fabricated lore. The tool's contract SHALL require the answer to be
@@ -55,7 +58,7 @@ composed only from the returned cited passages.
 #### Scenario: Foreign campaign is rejected
 
 - **WHEN** `ask_setting_lore` is called with a `campaignId` belonging to a different user
-- **THEN** the call SHALL be rejected and SHALL NOT reveal that campaign's setting or lore
+- **THEN** that campaign SHALL NOT be read, and the answer SHALL come from the named setting's books (or from every book when none is named)
 
 #### Scenario: Empty when the setting's sources do not cover it
 
@@ -67,3 +70,7 @@ composed only from the returned cited passages.
 - **WHEN** the `ask_setting_lore` tool schema is inspected
 - **THEN** it SHALL NOT expose a `userId` argument (the caller identity comes from the session)
 
+#### Scenario: No campaign given
+
+- **WHEN** `ask_setting_lore` is called with a setting name and no campaign
+- **THEN** the passages SHALL come from that setting's books and the core rulebooks

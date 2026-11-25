@@ -73,6 +73,21 @@ public class ManualCasesTests
     }
 
     [Fact]
+    public void Reference_and_crosscheck_sets_are_alike_and_share_no_question()
+    {
+        var reference = ManualCases.Load(TestPaths.RepoFile("Tools/ModelEval/cases/reference.json"));
+        var crosscheck = ManualCases.Load(TestPaths.RepoFile("Tools/ModelEval/cases/crosscheck.json"));
+        static Dictionary<string, int> Counts(IReadOnlyList<EvalCase> cases) =>
+            cases.GroupBy(c => c.Category).ToDictionary(g => g.Key, g => g.Count());
+
+        reference.Should().HaveCount(50);
+        crosscheck.Should().HaveCount(50);
+        Counts(reference).Should().BeEquivalentTo(Counts(crosscheck), "a score on one set must be comparable with the other");
+        reference.Concat(crosscheck).Select(c => c.Id).Should().OnlyHaveUniqueItems();
+        reference.Concat(crosscheck).Select(c => c.Prompt).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
     public void ShippedManual_NpcCases_DoNotUseBareHp()
     {
         var cases = ManualCases.Load(TestPaths.RepoFile("Tools/ModelEval/cases/manual.json"));

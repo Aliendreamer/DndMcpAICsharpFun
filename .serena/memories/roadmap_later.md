@@ -1,4 +1,14 @@
-Owner-requested LATER items (added 2026-11-08). Not started; pick up after the current extraction review work.
+## FIRST PLACE — chat follow-ups after chat-tool-reach (owner, 2026-11-25)
+
+State: 29/34 (85%) on the questions the fixes were made from (was 10/34). Judge the next steps on the 50 reference + 50 cross-check questions (never tune on the cross-check half).
+
+F1. FORCE A SEARCH (owner: "seems interesting"): when the model answers a game question with no tool call, the app makes it search and answer again. 13 of the 19 failed runs on 2026-11-25 (class facts, Dodge, half cover) had no tool call. Ollama has no tool_choice; needs a design (re-prompt vs the app searching itself and adding the result).
+F2. FULL BOOK NAMES in tool results: results carry codes (EGW, MTF, MPMM) and the model invents titles for them ("Eternal Ghoulwind"). Map with BookCatalog; search_dnd results carry no book or page at all.
+F3. SMALLER FIXES: steer one named monster away from list_entities (it returned Roper for Giant Octopus and Shrieker); always show AC and HP for NPC parties.
+F5. DATA: PHB Great Weapon Master text reads "take a 5 penalty" (the minus sign is lost); check other feats/rules for lost minus signs (Sharpshooter reads -5 correctly).
+F4. SCORING: accept "doesn't appear in" / "does not appear in" in the not-found cases.
+
+## Owner-requested LATER items (added 2026-11-08). Not started; pick up after the current extraction review work.
 
 1b. Standalone desktop app — a separate desktop client (owner, 2026-11-08); brainstorm together with the mobile app (shared client? MAUI covers both).
 1. Standalone mobile app — a separate mobile client for the companion (not just the responsive Blazor UI). Needs brainstorming: platform (.NET MAUI vs PWA vs native), offline needs, which features (chat, heroes, campaigns, review?), auth against this host.
@@ -7,7 +17,7 @@ Owner-requested LATER items (added 2026-11-08). Not started; pick up after the c
 3. "Finalize a book" step (owner, 2026-11-08): once a book is extracted AND its review (overrides + approvals) is finished, merge the overrides into the canonical file and treat that one file as final — no more re-extraction of that book, no second overrides file. Exact shape (separate step/file, how to lock a book against re-extract) to be discussed with the owner AFTER the review is done. Until then overrides live in books/canonical/<book>.overrides.json and must be committed.
    Owner rule: extraction is a ONE-TIME job per book — `extract-programmatic` runs only when the book has no canonical file yet; an existing (reviewed) book is never re-extracted. (Decide with owner whether any explicit escape hatch is allowed.)
 
-4. CHAT QUALITY GOAL: at least 80% of the full-chain eval cases pass (owner, 2026-11-25; start 10/34 = 29%). Run with `Tools/ModelEval/run-full.sh` (one command, GPU ~15-20 min; ask the owner before a run). Keep the eval harness runnable by the owner, and grow the question set past 34 (named spells/monsters/classes, Eberron lore, rules, crafting).
+4. CHAT QUALITY GOAL: at least 80% of the full-chain eval cases pass (owner, 2026-11-25; start 10/34 = 29%). Run with `Tools/ModelEval/run-full.sh` (one command, GPU ~15-20 min; ask the owner before a run). DONE 2026-11-25: 50 reference + 50 cross-check questions (topics from Sage Advice, EN World, Sly Flourish, DM Dave, Tribality; facts from our books), `run-full.sh --set reference|crosscheck|all`.
    Next levers after chat-tool-reach: search_dnd must surface an exactly NAMED entity (misses seen: "Mastiff armor class", "Cat armor class", "Contingency school of magic"); search_dnd results carry no source book/page for citations; force a search when the model answers without one; spell text renders "Range: point" for Touch/Self (SpellCanonicalTextRenderer; needs a re-ingest).
 5. EDITION FILTERS FOR 2024 (owner, 2026-11-25): every indexed book is 2014 (51,743 blocks, 11,754 entities), so the edition/version/category parameters were removed from the chat and MCP search tools (they only ever returned nothing). When the first 2024 book is added, bring edition filtering back: accept "2014"/"2024", reject anything else explicitly (Enum.TryParse accepts the bare number 2014 as a bogus enum value), and include encounters (rate/build_encounter are fixed to 2014 rules).
 

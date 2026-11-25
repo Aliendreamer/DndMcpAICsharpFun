@@ -3,10 +3,32 @@
 #   Tools/ModelEval/run-full.sh                          # all questions, 3 runs each
 #   Tools/ModelEval/run-full.sh --runs 1                 # quick look (~6 minutes)
 #   Tools/ModelEval/run-full.sh --categories spell,lore  # some categories
+#   Tools/ModelEval/run-full.sh --set reference          # 50 harder questions to improve the chat against
+#   Tools/ModelEval/run-full.sh --set crosscheck         # 50 others: never tune on these, only compare
+#   Tools/ModelEval/run-full.sh --set all                # both (100 questions; ~45-60 minutes, ~20 with --runs 1)
 # Any ModelEval option can be added. The admin key is read inside the app container and never leaves it.
 # The report lands in Tools/ModelEval/reports/. Exit: 0 OK, 2 a category regressed, 1 setup trouble.
 set -euo pipefail
-cd "$(dirname "$0")/../.."
+self=$(realpath "$0")
+cd "$(dirname "$self")/../.."
+set_name=core
+rest=()
+while [ $# -gt 0 ]; do
+  if [ "$1" = --set ]; then set_name=${2:?--set needs core, reference, crosscheck or all}; shift 2; else rest+=("$1"); shift; fi
+done
+case "$set_name" in
+  core) cases=Tools/ModelEval/cases/manual.json; reports=Tools/ModelEval/reports ;;
+  # Hand-written questions only: no generated ones.
+  reference|crosscheck) cases=Tools/ModelEval/cases/$set_name.json; reports=Tools/ModelEval/reports/$set_name; rest+=(--count 0) ;;
+  all)
+    worst=0
+    for s in reference crosscheck; do
+      "$self" --set "$s" ${rest[@]+"${rest[@]}"} || { c=$?; [ "$c" -eq 1 ] && exit 1; worst=$c; }
+    done
+    exit "$worst" ;;
+  *) echo "Unknown --set $set_name (core, reference, crosscheck, all)"; exit 1 ;;
+esac
+mkdir -p "$reports"
 app=${APP_CONTAINER:-dndmcpaicsharpfun-app-1}
 out=$(mktemp -d)
 remote=/tmp/model-eval-$$
@@ -20,10 +42,10 @@ echo "Building the eval tool..."
 dotnet publish Tools/ModelEval -c Release -o "$out/bin" -v q --nologo >"$out/build.log" 2>&1 || { tail -20 "$out/build.log"; exit 1; }
 # A publish carries the decrypted settings along; the tool does not need them.
 rm -rf "$out/bin/Config"
-baseline=$(ls -1 Tools/ModelEval/reports/*-full.json 2>/dev/null | tail -1 || true)
+baseline=$(ls -1 "$reports"/*-full.json 2>/dev/null | tail -1 || true)
 docker exec "$app" mkdir -p "$remote/reports"
 docker cp -q "$out/bin" "$app:$remote/bin"
-docker cp -q Tools/ModelEval/cases/manual.json "$app:$remote/manual.json"
+docker cp -q "$cases" "$app:$remote/manual.json"
 args=(--mode full --canonical-dir /books/canonical --manual "$remote/manual.json" --reports-dir "$remote/reports")
 if [ -n "$baseline" ]; then
   docker cp -q "$baseline" "$app:$remote/baseline.json"
@@ -37,10 +59,10 @@ docker exec -w /app "$app" sh -c '
   [ -n "$ADMIN_API_KEY" ] || ADMIN_API_KEY=$(key /app/Config/appsettings.json)
   export ADMIN_API_KEY
   dll=$1; shift
-  exec dotnet "$dll" "$@"' sh "$remote/bin/ModelEval.dll" "${args[@]}" "$@" || code=$?
+  exec dotnet "$dll" "$@"' sh "$remote/bin/ModelEval.dll" "${args[@]}" ${rest[@]+"${rest[@]}"} || code=$?
 report=$(docker exec "$app" sh -c "ls -1 $remote/reports 2>/dev/null | tail -1")
 if [ -n "$report" ]; then
-  docker cp -q "$app:$remote/reports/$report" "Tools/ModelEval/reports/$report"
-  echo "Saved Tools/ModelEval/reports/$report"
+  docker cp -q "$app:$remote/reports/$report" "$reports/$report"
+  echo "Saved $reports/$report"
 fi
 exit "$code"
