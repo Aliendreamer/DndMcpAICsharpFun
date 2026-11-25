@@ -21,6 +21,7 @@
 
 ## 5. Proof and rollout (GPU, owner confirms)
 
-- [ ] 5.1 Search test set and chat eval on the old state
+- [x] 5.1 Search test set on the old state (the chat eval was not run on it; baseline is the 2026-11-04 report)
 - [x] 5.2 Recreate `dnd_entities`, re-ingest 16 books, counts match
-- [ ] 5.3 Search test set and chat eval on the new state; chat speed at 8,192
+- [x] 5.3 Search test set on the new state (MRR 0.468 -> 0.648)
+- [ ] 5.4 Chat eval on the new state; chat speed at 8,192
