@@ -30,7 +30,9 @@ public sealed record MonsterFields(
     IReadOnlyList<MonsterBlock>? Reaction,
     IReadOnlyList<MonsterBlock>? Legendary,
     IReadOnlyList<string>? LegendaryHeader,
-    IReadOnlyList<MonsterBlock>? Lair,
+    // Named blocks (5etools) or plain text lines (the programmatic extractor).
+    IReadOnlyList<JsonElement>? Lair,
     IReadOnlyList<string>? LairHeader,
     IReadOnlyList<JsonElement>? Spellcasting,
-    IReadOnlyList<string>? Environment);
+    IReadOnlyList<string>? Environment,
+    IReadOnlyList<JsonElement>? Variant = null);

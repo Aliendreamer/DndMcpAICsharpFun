@@ -33,6 +33,44 @@ internal static partial class RendererHelpers
         return string.Empty;
     }
 
+    /// <summary>
+    /// All the text of a 5etools-shaped entry list: every string, and every nested block's name, entries, list items and
+    /// table rows, in order, joined by spaces. Unknown shapes add nothing; never throws.
+    /// </summary>
+    public static string EntriesText(IEnumerable<JsonElement>? entries)
+    {
+        if (entries is null) return string.Empty;
+        var parts = new List<string>();
+        foreach (var e in entries) CollectEntryText(e, parts);
+        return string.Join(' ', parts);
+    }
+
+    private static void CollectEntryText(JsonElement e, List<string> parts)
+    {
+        switch (e.ValueKind)
+        {
+            case JsonValueKind.String:
+                if (StripTags(e.GetString()!).Trim() is { Length: > 0 } text) parts.Add(text);
+                break;
+            case JsonValueKind.Number:
+                parts.Add(e.GetRawText());
+                break;
+            case JsonValueKind.Array:
+                foreach (var x in e.EnumerateArray()) CollectEntryText(x, parts);
+                break;
+            case JsonValueKind.Object:
+                var name = StringProp(e, "name");
+                if (name.Length == 0) name = StringProp(e, "caption");
+                if (name.Length > 0) parts.Add(name.EndsWith('.') || name.EndsWith(':') ? name : name + ".");
+                foreach (var key in NestedTextKeys)
+                    if (e.TryGetProperty(key, out var nested)) CollectEntryText(nested, parts);
+                break;
+        }
+    }
+
+    private static readonly string[] NestedTextKeys =
+        ["headerEntries", "entry", "entries", "colLabels", "rows", "items", "footerEntries"];
+
     public static string StringProp(JsonElement e, string key)
     {
         return e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String

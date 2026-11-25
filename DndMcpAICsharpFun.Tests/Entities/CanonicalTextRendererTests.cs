@@ -210,6 +210,105 @@ public class CanonicalTextRendererTests
         text.Should().Contain("Typo Statue");
     }
 
+    private static string RenderMonster(string json) =>
+        new EntityCanonicalTextDispatcher().Render(BuildEnvelope(EntityType.Monster, "Loup Garou", Parse(json)));
+
+    [Fact]
+    public void Monster_text_carries_bonus_actions_reactions_and_legendary_descriptions()
+    {
+        var text = RenderMonster("""
+            { "size": ["M"], "cr": "13",
+              "action": [ { "name": "Longsword", "entries": ["Melee Weapon Attack: +9 to hit."] } ],
+              "bonus": [ { "name": "Change Shape", "entries": ["The loup garou polymorphs."] } ],
+              "reaction": [ { "name": "Parry", "entries": ["It adds 3 to its AC."] } ],
+              "legendaryHeader": ["It can take 3 legendary actions."],
+              "legendary": [ { "name": "Swipe", "entries": ["It makes one Claws attack."] } ] }
+            """);
+        text.Should().Contain("Bonus Actions:").And.Contain("Change Shape: The loup garou polymorphs.")
+            .And.Contain("Reactions:").And.Contain("Parry: It adds 3 to its AC.")
+            .And.Contain("It can take 3 legendary actions.").And.Contain("Swipe: It makes one Claws attack.");
+    }
+
+    [Fact]
+    public void Monster_text_carries_every_paragraph_and_nested_list_of_an_entry()
+    {
+        var text = RenderMonster("""
+            { "size": ["M"], "cr": "1",
+              "action": [ { "name": "Eye Rays", "entries": [ "The beholder shoots rays:",
+                { "type": "list", "items": [ { "type": "item", "name": "1. Charm Ray", "entries": ["The target is {@condition charmed}."] }, "2. Plain item" ] },
+                "A last paragraph." ] } ] }
+            """);
+        text.Should().Contain("Eye Rays: The beholder shoots rays: 1. Charm Ray. The target is charmed. 2. Plain item A last paragraph.");
+    }
+
+    [Fact]
+    public void Monster_text_carries_spellcasting_defences_senses_and_languages()
+    {
+        var text = RenderMonster("""
+            { "size": ["M"], "cr": "5", "passive": 14,
+              "save": { "dex": "+5", "wis": "+4" }, "skill": { "perception": "+4" },
+              "vulnerable": ["fire"], "immune": ["poison"], "conditionImmune": ["charmed"],
+              "resist": [ "cold", { "immune": ["bludgeoning", "piercing"], "note": "from nonmagical attacks", "cond": true } ],
+              "senses": ["darkvision 60 ft."], "languages": ["Common", "Giant"],
+              "spellcasting": [ { "name": "Spellcasting", "type": "spellcasting", "headerEntries": ["It casts a spell:"],
+                "will": ["{@spell light}"], "daily": { "1e": ["{@spell bless}", "{@spell aid}"], "2": ["{@spell fly}"] },
+                "spells": { "0": { "spells": ["{@spell mending}"] }, "1": { "slots": 4, "spells": ["{@spell shield}"] } } } ] }
+            """);
+        text.Should().Contain("Saving Throws: dex +5, wis +4").And.Contain("Skills: perception +4")
+            .And.Contain("Damage Vulnerabilities: fire").And.Contain("Damage Immunities: poison")
+            .And.Contain("Damage Resistances: cold; bludgeoning, piercing from nonmagical attacks")
+            .And.Contain("Condition Immunities: charmed")
+            .And.Contain("Senses: darkvision 60 ft., passive Perception 14").And.Contain("Languages: Common, Giant")
+            .And.Contain("Spellcasting: It casts a spell: At will: light. 1/day each: bless, aid. 2/day: fly. "
+                + "Cantrips: mending. 1st level (4 slots): shield.");
+    }
+
+    [Fact]
+    public void Monster_text_does_not_repeat_spellcasting_already_printed_as_an_action()
+    {
+        var text = RenderMonster("""
+            { "size": ["M"], "cr": "5",
+              "action": [ { "name": "Spellcasting", "entries": ["It casts light."] } ],
+              "spellcasting": [ { "name": "Spellcasting", "headerEntries": ["It casts a spell:"], "will": ["{@spell light}"] } ] }
+            """);
+        text.Should().Contain("Spellcasting: It casts light.").And.NotContain("It casts a spell:");
+    }
+
+    [Fact]
+    public void Monster_text_keeps_the_old_opening_so_the_embedded_head_is_stable()
+    {
+        var text = RenderMonster("""
+            { "size": ["M"], "cr": "5", "senses": ["darkvision 60 ft."], "save": { "dex": "+5" },
+              "trait": [ { "name": "Amphibious", "entries": ["It breathes water."] } ],
+              "action": [ { "name": "Bite", "entries": ["It bites."] } ],
+              "bonus": [ { "name": "Dash", "entries": ["It dashes."] } ] }
+            """);
+        var order = new[] { "CR 5", "Traits:", "Actions:", "Bonus Actions:", "Saving Throws:", "Senses:" }.Select(s => text.IndexOf(s, StringComparison.Ordinal));
+        order.Should().BeInAscendingOrder().And.NotContain(-1);
+    }
+
+    [Fact]
+    public void Monster_with_lair_text_lines_is_not_degraded_to_its_name()
+    {
+        // ggr.monster.golgari-shaman: the extractor writes "lair" as plain strings.
+        var text = RenderMonster("""
+            { "size": ["M"], "cr": "5", "lair": ["On initiative count 20 the lair acts."],
+              "action": [ { "name": "Bite", "entries": ["It bites."] } ] }
+            """);
+        text.Should().Contain("CR 5").And.Contain("Bite: It bites.").And.Contain("On initiative count 20 the lair acts.");
+    }
+
+    [Fact]
+    public void Monster_text_carries_variants_and_survives_wrong_kinds()
+    {
+        var text = RenderMonster("""
+            { "size": ["M"], "cr": "5", "save": "none", "skill": [], "resist": [42, {}], "conditionImmune": [null],
+              "spellcasting": [ 7, { "name": 3, "daily": [], "spells": { "1": 5 } } ],
+              "variant": [ { "type": "variant", "name": "Coven", "entries": ["Three hags share a pool.", { "type": "entries", "name": "Pool", "entries": ["It has 10 points."] } ] } ] }
+            """);
+        text.Should().Contain("CR 5").And.Contain("Coven: Three hags share a pool. Pool. It has 10 points.");
+    }
+
     [Fact]
     public void Object_renderer_never_throws_when_fields_are_completely_sparse()
     {
