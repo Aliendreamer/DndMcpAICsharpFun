@@ -54,7 +54,7 @@ public sealed class QueryRouterTests
 
     private static readonly AITool[] AllTools =
     [
-        Tool("search_lore"), Tool("search_entities"), Tool("get_entity"),
+        Tool("search_dnd"), Tool("search_entities"), Tool("get_entity"), Tool("list_entities"),
         Tool("resolve_character_feature"), Tool("calculate_crafting"), Tool("generate_npc"),
         Tool("custom_tool"), // unmapped
     ];
@@ -74,11 +74,13 @@ public sealed class QueryRouterTests
         var offered = await router.RouteAsync("what is my breath weapon", AllTools, CancellationToken.None);
 
         Names(offered).Should().Contain("resolve_character_feature")
-            .And.Contain("search_lore")   // always-safe core
+            .And.Contain("search_dnd")    // always-safe core
+            .And.Contain("search_entities")
+            .And.Contain("get_entity")
+            .And.Contain("calculate_crafting")
             .And.Contain("custom_tool")   // unmapped → always offered
-            .And.NotContain("search_entities")
-            .And.NotContain("generate_npc")
-            .And.NotContain("calculate_crafting");
+            .And.NotContain("list_entities")
+            .And.NotContain("generate_npc");
     }
 
     [Fact]
@@ -89,8 +91,17 @@ public sealed class QueryRouterTests
         var offered = await router.RouteAsync("tell me about the realms of faerun", AllTools, CancellationToken.None);
 
         Names(offered).Should().Contain("search_entities").And.Contain("get_entity")
-            .And.Contain("search_lore") // safe core
+            .And.Contain("search_dnd") // safe core
             .And.NotContain("resolve_character_feature");
+    }
+
+    [Theory]
+    [InlineData("How much gold and how many workweeks does it take to craft a rare magic item?", "calculate_crafting")]
+    [InlineData("Give me the stat block for the Gloomfang Vespertine monster, and generate an NPC", "search_entities")]
+    public async Task A_tool_the_persona_names_is_offered_whatever_the_group(string query, string tool)
+    {
+        var router = Build(new FakeIndex(null, 0));
+        Names(await router.RouteAsync(query, AllTools, CancellationToken.None)).Should().Contain(tool);
     }
 
     [Fact]
@@ -120,7 +131,7 @@ public sealed class QueryRouterTests
         var offered = await router.RouteAsync("generate an NPC villain", AllTools, CancellationToken.None);
 
         Names(offered).Should().Contain("generate_npc")
-            .And.Contain("search_lore")   // safe core even though it's a different group
+            .And.Contain("search_dnd")    // safe core even though it's a different group
             .And.Contain("custom_tool");
     }
 

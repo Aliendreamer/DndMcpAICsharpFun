@@ -74,15 +74,13 @@ public class DndMcpToolsTests
         result.Should().Be("No lore results found.");
     }
 
-    [Fact]
-    public async Task search_lore_with_unknown_version_returns_gracefully()
-    {
-        var tools = MakeTools();
-
-        var result = await tools.search_lore("fireball", version: "Edition9999");
-
-        result.Should().Be("No lore results found.");
-    }
+    [Theory]
+    [InlineData("search_lore")]
+    [InlineData("search_entities")]
+    public void Search_tools_take_no_edition_or_category(string tool) =>
+        // Only 2014 books are indexed: a model-supplied edition or category only ever hid the answer.
+        typeof(DndMcpTools).GetMethod(tool)!.GetParameters().Select(p => p.Name)
+            .Should().NotContain(["edition", "version", "category"]);
 
     [Fact]
     public async Task search_entities_returns_json_with_results()

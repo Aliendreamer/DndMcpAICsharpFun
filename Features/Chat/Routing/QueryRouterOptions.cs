@@ -15,9 +15,11 @@ public sealed class QueryRouterOptions
     /// governs only the embedding backstop.</summary>
     public double Threshold { get; init; } = 0.45;
 
-    /// <summary>Tools always offered, in every narrowed set, so the model is never stranded — the
-    /// fused prose search can partially answer almost anything.</summary>
-    public string[] AlwaysSafeToolNames { get; init; } = ["search_lore"];
+    /// <summary>Tools always offered, in every narrowed set, so the model is never stranded: the fused
+    /// search, the entity lookups and the calculator the persona names for any question. A hidden tool
+    /// the persona names is called anyway, and Ollama drops that call, leaving an empty reply.</summary>
+    public string[] AlwaysSafeToolNames { get; init; } =
+        ["search_dnd", "search_entities", "get_entity", "calculate_crafting", "ask_rules"];
 
     /// <summary>Per-group seed phrases; embedded once into centroids for the backstop classifier.
     /// Editable to tune routing without a code change.</summary>

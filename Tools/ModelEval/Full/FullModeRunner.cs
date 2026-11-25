@@ -104,6 +104,9 @@ internal static class FullModeRunner
         return map;
     }
 
+    /// <summary>Owner's goal for passed cases (2026-11-25). Shown only; the exit code still reports regressions.</summary>
+    private const int GoalPercent = 80;
+
     private static void Print(EvalReport r, EvalReport? baseline, Comparison c, string path)
     {
         Console.WriteLine($"Model {r.Model} | seed {r.Seed} | cases {r.Cases.Count} | hash {r.CaseSetHash[..12]}");
@@ -120,6 +123,12 @@ internal static class FullModeRunner
             var flag = c.RegressedCategories.Contains(cat) ? "REGRESSION" : "";
             Console.WriteLine($"{cat,-12} {r.PassedByCategory.GetValueOrDefault(cat)}/{r.TotalByCategory[cat],-7} {delta,-7} {flag}");
         }
+
+        var passed = r.Cases.Count(x => x.Passed);
+        var blank = r.Cases.SelectMany(x => x.RunDetails ?? []).Count(d => d.Text.Length == 0);
+        Console.WriteLine();
+        Console.WriteLine($"Total: {passed}/{r.Cases.Count} cases passed ({100.0 * passed / Math.Max(r.Cases.Count, 1):0}%, " +
+            $"goal {GoalPercent}%), {r.Cases.Sum(x => x.Passes)}/{r.Cases.Sum(x => x.Runs)} runs, {blank} blank replies");
 
         Console.WriteLine();
         if (c.NewlyFailing.Count > 0) Console.WriteLine($"Newly failing: {string.Join(", ", c.NewlyFailing)}");

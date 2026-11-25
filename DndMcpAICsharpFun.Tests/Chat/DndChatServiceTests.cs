@@ -334,8 +334,8 @@ public sealed class DndChatServiceTests : IDisposable
     {
         var client = new FakeChatClient();
         var searchWeb = AIFunctionFactory.Create(() => "result", "search_web");
-        var searchLore = AIFunctionFactory.Create(() => "result", "search_lore");
-        var svc = CreateService(client, [searchWeb, searchLore]);
+        var searchDnd = AIFunctionFactory.Create(() => "result", "search_dnd");
+        var svc = CreateService(client, [searchWeb, searchDnd]);
 
         await svc.SendAsync("Hello", allowWebSearch: false, CancellationToken.None);
 
@@ -343,7 +343,7 @@ public sealed class DndChatServiceTests : IDisposable
         var activeTools = client.LastOptions!.Tools!;
         activeTools.Should().ContainSingle();
         activeTools.OfType<AIFunction>()
-            .Should().ContainSingle(t => t.Name == "search_lore");
+            .Should().ContainSingle(t => t.Name == "search_dnd");
         activeTools.OfType<AIFunction>()
             .Should().NotContain(t => t.Name == "search_web");
     }
@@ -356,8 +356,8 @@ public sealed class DndChatServiceTests : IDisposable
         var client = new FakeChatClient();
         var tools = new[]
         {
-            AIFunctionFactory.Create(() => "", "search_lore"),               // always-safe core
-            AIFunctionFactory.Create(() => "", "search_entities"),           // structured-lookup group
+            AIFunctionFactory.Create(() => "", "search_dnd"),                // always-safe core
+            AIFunctionFactory.Create(() => "", "list_entities"),             // structured-lookup group
             AIFunctionFactory.Create(() => "", "resolve_character_feature"), // character-resolution group
         };
         var svc = CreateService(client, tools, queryRouter: BuildQueryRouter(enabled: true));
@@ -366,8 +366,8 @@ public sealed class DndChatServiceTests : IDisposable
 
         var offered = client.LastOptions!.Tools!.OfType<AIFunction>().Select(t => t.Name).ToList();
         offered.Should().Contain("resolve_character_feature")
-            .And.Contain("search_lore")               // safe core always present
-            .And.NotContain("search_entities");       // a different group → narrowed out
+            .And.Contain("search_dnd")                // safe core always present
+            .And.NotContain("list_entities");         // a different group → narrowed out
     }
 
     [Fact]
@@ -375,8 +375,8 @@ public sealed class DndChatServiceTests : IDisposable
     {
         var client = new FakeChatClient();
         var searchWeb = AIFunctionFactory.Create(() => "result", "search_web");
-        var searchLore = AIFunctionFactory.Create(() => "result", "search_lore");
-        var svc = CreateService(client, [searchWeb, searchLore]);
+        var searchDnd = AIFunctionFactory.Create(() => "result", "search_dnd");
+        var svc = CreateService(client, [searchWeb, searchDnd]);
 
         await svc.SendAsync("Hello", allowWebSearch: true, CancellationToken.None);
 
@@ -580,7 +580,7 @@ public sealed class DndChatServiceTests : IDisposable
 
         var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "rate_encounter");
         var result = await tool.InvokeAsync(
-            ToArgs(new { campaignId = (long?)null, partyLevels = new[] { 5 }, monsters = Array.Empty<object>(), edition = "2014" }),
+            ToArgs(new { campaignId = (long?)null, partyLevels = new[] { 5 }, monsters = Array.Empty<object>() }),
             CancellationToken.None);
 
         // AIFunction.InvokeAsync marshals the delegate's return value through the tool's
@@ -613,8 +613,7 @@ public sealed class DndChatServiceTests : IDisposable
             {
                 campaignId = (long?)null,
                 partyLevels = new[] { 5 },
-                monsters = new[] { new { name = "mm.monster.goblin", quantity = 8 } },
-                edition = "2014"
+                monsters = new[] { new { name = "mm.monster.goblin", quantity = 8 } }
             }),
             CancellationToken.None);
 
@@ -623,7 +622,7 @@ public sealed class DndChatServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task BuildEncounterTool_forwards_difficulty_edition_and_theme_to_EncounterDesignService()
+    public async Task BuildEncounterTool_forwards_difficulty_and_theme_to_EncounterDesignService()
     {
         var client = new FakeChatClient();
         var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(42));
@@ -635,9 +634,9 @@ public sealed class DndChatServiceTests : IDisposable
         // build_encounter never supplies partyLevels (always null per BuildForUserAsync's contract),
         // so with no campaignId either, EncounterDesignService.ResolvePartyAsync's
         // "supply campaignId or partyLevels" guard fires — proving the tool actually reached
-        // BuildForUserAsync with the caller's difficulty/edition/theme rather than short-circuiting.
+        // BuildForUserAsync with the caller's difficulty/theme rather than short-circuiting.
         var act = () => tool.InvokeAsync(
-            ToArgs(new { campaignId = (long?)null, difficulty = "Hard", edition = "2024", theme = (string?)null }),
+            ToArgs(new { campaignId = (long?)null, difficulty = "Hard", theme = (string?)null }),
             CancellationToken.None).AsTask();
 
         await act.Should().ThrowAsync<ArgumentException>();
@@ -660,10 +659,64 @@ public sealed class DndChatServiceTests : IDisposable
         // because there is no real database. That failure proves campaignId/userId were actually
         // forwarded into the service's ownership check rather than the tool short-circuiting.
         var act = () => tool.InvokeAsync(
-            ToArgs(new { campaignId = (long)999, question = "who holds power", edition = "2014" }),
+            ToArgs(new { campaignId = (long)999, question = "who holds power" }),
             CancellationToken.None).AsTask();
 
         await act.Should().ThrowAsync<NotSupportedException>();
+    }
+
+    [Fact]
+    public async Task AskSettingLoreTool_answers_from_the_named_settings_books_without_a_campaign()
+    {
+        var rag = Substitute.For<IRagRetrievalService>();
+        rag.SearchAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>()).Returns([]);
+        var client = new FakeChatClient();
+        var svc = CreateService(client, httpContextAccessor: AuthenticatedAs(42),
+            settingLoreService: new SettingLoreService(
+                new DndMcpAICsharpFun.Features.Campaigns.CampaignRepository(new NoOpDbFactory()), rag));
+        await svc.SendAsync("hi", false, CancellationToken.None);
+        var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "ask_setting_lore");
+
+        await tool.InvokeAsync(ToArgs(new { question = "City of Towers", setting = "Eberron" }), CancellationToken.None);
+
+        await rag.Received().SearchAsync(
+            Arg.Is<RetrievalQuery>(q => q.SourceKeys!.Contains("ERLW") && q.Version == null), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Chat_offers_search_dnd_and_never_the_prose_only_search_lore()
+    {
+        var client = new FakeChatClient();
+        var svc = CreateService(client,
+            [AIFunctionFactory.Create(() => "", "search_lore"), AIFunctionFactory.Create(() => "", "search_dnd")]);
+
+        await svc.SendAsync("hi", true, CancellationToken.None);
+
+        client.LastOptions!.Tools!.Select(t => t.Name).Should().Contain("search_dnd").And.NotContain("search_lore");
+    }
+
+    [Fact]
+    public async Task An_empty_reply_is_asked_again_with_every_tool()
+    {
+        var client = new FakeChatClient { Replies = new Queue<string>(["", "Half the price."]) };
+        var tools = new[] { AIFunctionFactory.Create(() => "", "search_dnd"), AIFunctionFactory.Create(() => "", "generate_npc") };
+        var svc = CreateService(client, tools, queryRouter: BuildQueryRouter(enabled: true));
+
+        var turn = await svc.RunTurnAsync(
+            [new ChatMessage(ChatRole.User, "what is my breath weapon")], null, false, CancellationToken.None);
+
+        turn.Text.Should().Be("Half the price.");
+        turn.OfferedTools.Should().Contain("generate_npc");
+    }
+
+    [Fact]
+    public async Task Two_empty_replies_give_a_message_not_an_empty_bubble()
+    {
+        var client = new FakeChatClient { Replies = new Queue<string>(["", "  "]) };
+        var turn = await CreateService(client).RunTurnAsync(
+            [new ChatMessage(ChatRole.User, "hi")], null, false, CancellationToken.None);
+
+        turn.Text.Should().Be(DndChatService.EmptyReplyText);
     }
 
     [Fact]
@@ -688,7 +741,6 @@ public sealed class DndChatServiceTests : IDisposable
             {
                 question = "grapple while prone",
                 ruleTopics = new[] { "grappling", "prone condition" },
-                edition = (string?)null,
             }),
             CancellationToken.None);
         var ruling = ((JsonElement)result!).Deserialize<RulesRulingResult>(tool.JsonSerializerOptions);
@@ -712,7 +764,7 @@ public sealed class DndChatServiceTests : IDisposable
         props.TryGetProperty("userId", out _).Should().BeFalse();
         props.TryGetProperty("campaignId", out _).Should().BeFalse();
 
-        var result = await tool.InvokeAsync(ToArgs(new { activity = "craft plate armor", edition = (string?)null }), CancellationToken.None);
+        var result = await tool.InvokeAsync(ToArgs(new { activity = "craft plate armor" }), CancellationToken.None);
         var plan = ((JsonElement)result!).Deserialize<DowntimePlanResult>(tool.JsonSerializerOptions);
         plan!.Passages.Should().BeEmpty(); // reached the service (empty rag → empty passages)
     }
@@ -934,10 +986,9 @@ public sealed class DndChatServiceTests : IDisposable
     [
         ["plan_level_up", "targetClass"],
         ["plan_level_up", "considerDip"],
-        ["ask_setting_lore", "edition"],
+        ["ask_setting_lore", "setting"],
+        ["ask_setting_lore", "campaignId"],
         ["ask_rules", "ruleTopics"],
-        ["ask_rules", "edition"],
-        ["plan_downtime", "edition"],
         ["generate_npc", "maxCr"],
         ["recommend_build", "targetLevel"],
     ];
@@ -995,7 +1046,7 @@ public sealed class DndChatServiceTests : IDisposable
     public async Task BuildEncounterTool_binds_when_the_model_omits_all_optional_params()
     {
         // Regression for the required-param binding bug: the model calls build_encounter with only the
-        // required difficulty/edition and OMITS campaignId/theme/maxCr/minCr. Binding must succeed and
+        // required difficulty and OMITS campaignId/theme/maxCr/minCr. Binding must succeed and
         // reach EncounterDesignService's party-resolution guard (proving the tool ran), rather than
         // throwing a MEAI "missing required parameter" binding error.
         var client = new FakeChatClient();
@@ -1005,7 +1056,7 @@ public sealed class DndChatServiceTests : IDisposable
         var tool = client.LastOptions!.Tools!.OfType<AIFunction>().Single(t => t.Name == "build_encounter");
 
         var act = () => tool.InvokeAsync(
-            ToArgs(new { difficulty = "Hard", edition = "2024" }), CancellationToken.None).AsTask();
+            ToArgs(new { difficulty = "Hard" }), CancellationToken.None).AsTask();
 
         await act.Should().ThrowAsync<ArgumentException>()
             .WithMessage("*supply campaignId or partyLevels*");
@@ -1054,20 +1105,20 @@ public sealed class DndChatServiceTests : IDisposable
             Response = new ChatResponse(
             [
                 new ChatMessage(ChatRole.Assistant,
-                    [new FunctionCallContent("c1", "search_lore", new Dictionary<string, object?> { ["q"] = "x" })]),
+                    [new FunctionCallContent("c1", "search_dnd", new Dictionary<string, object?> { ["q"] = "x" })]),
                 new ChatMessage(ChatRole.Tool, [new FunctionResultContent("c1", "found it")]),
                 new ChatMessage(ChatRole.Assistant, "final answer"),
             ]),
         };
-        var tools = new[] { AIFunctionFactory.Create(() => "", "search_lore") };
+        var tools = new[] { AIFunctionFactory.Create(() => "", "search_dnd") };
         var svc = CreateService(client, tools);
 
         var result = await svc.RunTurnAsync(
             [new ChatMessage(ChatRole.User, "hi")], null, false, CancellationToken.None);
 
-        result.ToolCalls.Should().ContainSingle(t => t.Name == "search_lore" && t.Result == "found it");
+        result.ToolCalls.Should().ContainSingle(t => t.Name == "search_dnd" && t.Result == "found it");
         // The default router is disabled (pass-through), so the offered tools equal the input tools.
-        result.OfferedTools.Should().Equal("search_lore");
+        result.OfferedTools.Should().Equal("search_dnd");
         result.Text.Should().Contain("final answer");
         result.LatencyMs.Should().BeGreaterThanOrEqualTo(0);
     }

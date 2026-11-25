@@ -18,7 +18,18 @@ public sealed class SettingLoreService(CampaignRepository campaigns, IRagRetriev
         var campaign = await campaigns.GetByIdAsync(campaignId, userId)
             ?? throw new UnauthorizedAccessException("Campaign not found or not owned by the caller.");
 
-        var books = SettingCatalog.Resolve(campaign.Setting);
+        return await SearchAsync(campaign.Setting, question, version, ct);
+    }
+
+    /// <summary>Answers from a named setting's books, or from every book when the setting is blank or
+    /// unknown. Reads no campaign.</summary>
+    public Task<SettingLoreResult> AskAsync(string? setting, string question, CancellationToken ct) =>
+        SearchAsync(setting, question, version: null, ct);
+
+    private async Task<SettingLoreResult> SearchAsync(
+        string? setting, string question, DndVersion? version, CancellationToken ct)
+    {
+        var books = SettingCatalog.Resolve(setting);
         var query = new RetrievalQuery(
             question, Version: version,
             SourceKeys: books.Count > 0 ? books.ToArray() : null);
@@ -31,6 +42,6 @@ public sealed class SettingLoreService(CampaignRepository campaigns, IRagRetriev
             r.Metadata.SectionTitle ?? r.Metadata.Chapter,
             r.Score)).ToList();
 
-        return new SettingLoreResult(campaign.Setting, DndMcpAICsharpFun.Features.Retrieval.BookCatalog.ToDisplayNames(books), passages);
+        return new SettingLoreResult(setting, DndMcpAICsharpFun.Features.Retrieval.BookCatalog.ToDisplayNames(books), passages);
     }
 }

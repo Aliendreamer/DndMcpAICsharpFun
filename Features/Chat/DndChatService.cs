@@ -29,7 +29,8 @@ public sealed class DndChatService(
     DowntimeService downtimeService,
     DndMcpAICsharpFun.Features.Npc.NpcGenerationService npcGenerationService,
     DndMcpAICsharpFun.Features.SessionPrep.SessionPrepService sessionPrepService,
-    Routing.QueryRouter queryRouter)
+    Routing.QueryRouter queryRouter,
+    ILogger<DndChatService>? logger = null)
 {
     // think-on reasoning cost grows with prompt size, so only the most recent window of
     // History is sent to the model; the full conversation is still loaded/displayed/persisted.
@@ -121,34 +122,45 @@ public sealed class DndChatService(
 
         // LatencyMs covers the model call only; it excludes the query router and the tool build above.
         var sw = Stopwatch.StartNew();
-        var response = await chatClient.GetResponseAsync(
-            messages,
-            new ChatOptions
-            {
-                Tools = [.. offeredTools],
-                // qwen3 think ON (default): reasoning is required for multi-rule questions to
-                // come out correct. Bench (model-eval-harness): tool selection/binding is a
-                // 36/36 tie between think-on and think-off, so there is no accuracy cost to
-                // leaving it on. qwen3 reasons by default when no RawRepresentationFactory
-                // overrides the outgoing request's `think` field; OllamaSharp surfaces the
-                // model's reasoning in a separate field, so response.Text stays answer-only.
-            },
-            ct);
+        var response = await AskModelAsync(messages, offeredTools, ct);
+        if (string.IsNullOrWhiteSpace(response.Text))
+        {
+            // The model called a tool the router had hidden (Ollama drops such a call) or stopped after
+            // thinking: ask once more with every tool.
+            logger?.LogWarning(
+                "Empty chat reply with {Offered}/{Total} tools offered; asking again with all of them.",
+                offeredTools.Count, toolList.Count);
+            offeredTools = toolList;
+            response = await AskModelAsync(messages, offeredTools, ct);
+        }
         sw.Stop();
 
         return new ChatTurnResult(
-            response.Text ?? string.Empty,
+            string.IsNullOrWhiteSpace(response.Text) ? EmptyReplyText : response.Text,
             offeredTools.Select(t => t.Name).ToList(),
             ChatTurnTraceBuilder.Build(response),
             sw.ElapsedMilliseconds);
     }
 
+    /// <summary>Shown instead of an empty bubble when the model answers nothing twice.</summary>
+    internal const string EmptyReplyText = "I couldn't put an answer together for that. Please try asking it another way.";
+
+    // qwen3 think ON (default): reasoning is required for multi-rule questions to come out correct.
+    // Bench (model-eval-harness): tool selection/binding is a 36/36 tie between think-on and think-off,
+    // so there is no accuracy cost to leaving it on. qwen3 reasons by default when no
+    // RawRepresentationFactory overrides the outgoing request's `think` field; OllamaSharp surfaces the
+    // model's reasoning in a separate field, so response.Text stays answer-only.
+    private Task<ChatResponse> AskModelAsync(
+        IReadOnlyList<ChatMessage> messages, IReadOnlyList<AITool> offered, CancellationToken ct) =>
+        chatClient.GetResponseAsync(messages, new ChatOptions { Tools = [.. offered] }, ct);
+
     private async Task<List<AITool>> BuildToolsAsync(long? userId, bool allowWebSearch, CancellationToken ct)
     {
         var tools = await toolsProvider.GetToolsAsync(ct);
-        var activeTools = allowWebSearch
-            ? tools
-            : tools.Where(t => t is not AIFunction fn || fn.Name != "search_web").ToList();
+        // search_lore reads prose only; search_dnd covers prose and entities together, and the model
+        // picks search_lore over it whenever both are offered.
+        var activeTools = tools.Where(t => t is not AIFunction fn
+            || (fn.Name != "search_lore" && (allowWebSearch || fn.Name != "search_web"))).ToList();
 
         // Character-scoped resolution and per-user encounter design are NOT exposed on the
         // shared-key MCP surface (SEC-08). They are added here as per-user in-process tools that
@@ -181,10 +193,10 @@ public sealed class DndChatService(
                     "grants. Works for any combination, caster or not."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (MonsterQuantity[] monsters, string edition, long? campaignId = null, int[]? partyLevels = null,
+                (MonsterQuantity[] monsters, long? campaignId = null, int[]? partyLevels = null,
                     CancellationToken toolCt = default) =>
                     encounterService.RateForUserAsync(
-                        uid, campaignId, partyLevels, monsters, ParseEdition(edition), toolCt),
+                        uid, campaignId, partyLevels, monsters, DndVersion.Edition2014, toolCt),
                 name: "rate_encounter",
                 description: "Rate a combat encounter's difficulty (Trivial/Easy/Medium/Hard/Deadly) " +
                     "for the signed-in user's party. The party comes from the caller's own campaign " +
@@ -192,15 +204,15 @@ public sealed class DndChatService(
                     "campaignId wins ownership-checked access, partyLevels overrides it when supplied. " +
                     "monsters is a list of {name, quantity} pairs — name is an entity id or free-text " +
                     "name to look up, quantity is how many of it (e.g. eight goblins is one pair " +
-                    "{name:\"goblin\", quantity:8}). edition is \"2014\" or \"2024\"."));
+                    "{name:\"goblin\", quantity:8})."));
 
             toolList.Add(AIFunctionFactory.Create(
-                async (string difficulty, string edition, long? campaignId = null, string? theme = null,
+                async (string difficulty, long? campaignId = null, string? theme = null,
                     double? maxCr = null, double? minCr = null, CancellationToken toolCt = default) =>
                 {
                     var built = await encounterService.BuildForUserAsync(
                         uid, campaignId, partyLevels: null, ParseDifficulty(difficulty),
-                        ParseEdition(edition), theme, crLte: maxCr, crGte: minCr, toolCt);
+                        DndVersion.Edition2014, theme, crLte: maxCr, crGte: minCr, toolCt);
                     var a = built.Assessment;
                     return new BuiltEncounterView(
                         a.Difficulty, a.TotalMonsterXp, a.AdjustedXp, built.FullyMatched, built.Note,
@@ -213,7 +225,7 @@ public sealed class DndChatService(
                     "multiples of cheaper monsters — returned grouped as {monster, count} (e.g. one " +
                     "hobgoblin leading eight goblins). Rated by the same math as rate_encounter, so a " +
                     "built encounter and a subsequent rate_encounter call agree on its difficulty. " +
-                    "edition is \"2014\" or \"2024\". Optional maxCr/minCr constrain the candidate " +
+                    "Optional maxCr/minCr constrain the candidate " +
                     "monsters' CR range; when omitted, a sensible CR ceiling/floor is derived from the " +
                     "target difficulty band."));
 
@@ -256,26 +268,33 @@ public sealed class DndChatService(
                     "an ability misalignment → suggest recommend_build."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (long campaignId, string question, string? edition = null, CancellationToken toolCt = default) =>
-                    settingLoreService.AskForUserAsync(
-                        uid, campaignId, question,
-                        string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
-                        toolCt),
+                async (string question, string? setting = null, long? campaignId = null,
+                    CancellationToken toolCt = default) =>
+                {
+                    if (campaignId is not { } id)
+                        return await settingLoreService.AskAsync(setting, question, toolCt);
+                    try
+                    {
+                        return await settingLoreService.AskForUserAsync(uid, id, question, version: null, toolCt);
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        // Not the caller's campaign (the model often makes an id up): answer from the books
+                        // alone. Nothing of any campaign is read.
+                        return await settingLoreService.AskAsync(setting, question, toolCt);
+                    }
+                },
                 name: "ask_setting_lore",
-                description: "Answer a lore/worldbuilding question for one of the signed-in user's own " +
-                    "campaigns, scoped to that campaign's SETTING sources. Pass the campaignId and the " +
-                    "question. Returns cited passages retrieved ONLY from the campaign's setting books " +
-                    "(plus core rules). Compose your answer STRICTLY from the returned passages and CITE " +
-                    "each (source book + section); if no passages are returned, say the campaign's setting " +
-                    "sources don't cover it — never invent world lore. edition is \"2014\" or \"2024\"."));
+                description: "Answer a lore/worldbuilding question about a SETTING (e.g. Eberron, Ravenloft) " +
+                    "from its source books. Pass the question, and the setting name if the question names " +
+                    "one. Pass campaignId ONLY when the user gave you one of their campaigns' ids — never " +
+                    "make one up. Returns cited passages. Compose your answer STRICTLY from the returned " +
+                    "passages and CITE each (source book + section); if no passages are returned, say the " +
+                    "sources don't cover it — never invent world lore."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (string question, string[]? ruleTopics = null, string? edition = null, CancellationToken toolCt = default) =>
-                    rulesAdjudicationService.AskAsync(
-                        question,
-                        ruleTopics,
-                        string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
-                        toolCt),
+                (string question, string[]? ruleTopics = null, CancellationToken toolCt = default) =>
+                    rulesAdjudicationService.AskAsync(question, ruleTopics, null, toolCt),
                 name: "ask_rules",
                 description: "Answer a D&D RULES question (including multi-rule interactions like " +
                     "'can I grapple a creature that's already prone?'). Identify the DISTINCT rules the " +
@@ -286,13 +305,11 @@ public sealed class DndChatService(
                     "combine and CITE it (source book + section); where the rules don't explicitly resolve an " +
                     "interaction, say so and distinguish rules-as-written from a DM ruling; if no passages are " +
                     "returned, say the rules don't directly cover it — never invent a rule. Not tied to any " +
-                    "campaign or character. edition is optional (\"2014\"/\"2024\"); omit to search all editions."));
+                    "campaign or character."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (string activity, string? edition = null, CancellationToken toolCt = default) =>
-                    downtimeService.PlanAsync(
-                        activity, string.IsNullOrWhiteSpace(edition) ? (DndVersion?)null : ParseEdition(edition),
-                        toolCt),
+                (string activity, CancellationToken toolCt = default) =>
+                    downtimeService.PlanAsync(activity, null, toolCt),
                 name: "plan_downtime",
                 description: "Plan a D&D DOWNTIME activity (crafting an item, training, carousing, running a " +
                     "business, scribing a spell scroll, research, etc.). Pass the activity as free text (e.g. " +
@@ -300,7 +317,7 @@ public sealed class DndChatService(
                     "from the downtime rulebooks (Xanathar's + DMG). Compose a downtime plan STRICTLY from the " +
                     "returned passages — the activity's TIME cost, GOLD cost, and outcome — and CITE each (source " +
                     "book + section); if no passages are returned, say the rules don't detail this activity — never " +
-                    "invent times or costs. Not tied to any campaign or character. edition is optional (\"2014\"/\"2024\")."));
+                    "invent times or costs. Not tied to any campaign or character."));
 
             toolList.Add(AIFunctionFactory.Create(
                 (int? marketValue = null, string? rarity = null, int? crafters = null) =>
@@ -435,17 +452,6 @@ public sealed class DndChatService(
             // Persistence of chat history must never break the chat response.
         }
     }
-
-    /// <summary>
-    /// Parses a caller-supplied edition string ("2014"/"2024", tolerant of the enum name form
-    /// e.g. "Edition2014") case-insensitively. Defaults to <see cref="DndVersion.Edition2014"/>
-    /// for anything unrecognized, since most of the corpus and existing campaigns are 2014-edition.
-    /// </summary>
-    private static DndVersion ParseEdition(string? edition) => edition?.Trim().ToLowerInvariant() switch
-    {
-        "2024" or "edition2024" => DndVersion.Edition2024,
-        _ => DndVersion.Edition2014,
-    };
 
     /// <summary>
     /// Parses a caller-supplied difficulty string (case-insensitive) into a <see cref="Difficulty"/>.

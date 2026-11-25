@@ -24,21 +24,13 @@ public sealed class DndMcpTools(
         "Use for rules lookups, how-does-X-work questions, and prose descriptions.")]
     public async Task<string> search_lore(
         [Description("Natural language question or keyword")] string query,
-        [Description("Edition filter: Edition2014 or Edition2024")] string? version = null,
-        [Description("Content category: Spell, Monster, Class, Race, Background, Item, Rule, " +
-                     "Combat, Adventuring, Condition, God, Plane, Treasure, Encounter, Trap, Trait, Lore")]
-        string? category = null,
         [Description("Maximum number of results (default 5)")] int topK = 5,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(query))
             return "Error: query must not be empty.";
 
-        var dndVersion = Enum.TryParse<DndVersion>(version, out var v) ? v : (DndVersion?)null;
-        var contentCategory = Enum.TryParse<ContentCategory>(category, out var c) ? c : (ContentCategory?)null;
-
-        var results = await ragService.SearchAsync(
-            new RetrievalQuery(query, dndVersion, contentCategory, TopK: topK), ct);
+        var results = await ragService.SearchAsync(new RetrievalQuery(query, TopK: topK), ct);
 
         return results.Count == 0
             ? "No lore results found."
@@ -61,7 +53,6 @@ public sealed class DndMcpTools(
                      "Weapon, Armor, Item, MagicItem, Trap, God, Plane, Faction, Location, Condition, Lore, Rule, " +
                      "DiseasePoison, VehicleMount")]
         string? type = null,
-        [Description("Edition: Edition2014 or Edition2024")] string? edition = null,
         [Description("Trait tag keyword e.g. Amphibious, Pack Tactics, Undead Fortitude")] string? keyword = null,
         [Description("Maximum challenge rating inclusive (for monsters)")] double? crMax = null,
         [Description("Spell level 0–9 (for spells)")] int? spellLevel = null,
@@ -80,7 +71,7 @@ public sealed class DndMcpTools(
                 QueryText: query,
                 Type: entityType,
                 SourceBook: null,
-                Edition: edition,
+                Edition: null,
                 BookType: null,
                 SettingTag: null,
                 Keyword: keyword,
