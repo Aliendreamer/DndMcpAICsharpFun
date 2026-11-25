@@ -5,7 +5,7 @@
 #   Tools/ModelEval/run-full.sh --categories spell,lore  # some categories
 #   Tools/ModelEval/run-full.sh --set reference          # 50 harder questions to improve the chat against
 #   Tools/ModelEval/run-full.sh --set crosscheck         # 50 others: never tune on these, only compare
-#   Tools/ModelEval/run-full.sh --set all                # both (100 questions; ~45-60 minutes, ~20 with --runs 1)
+#   Tools/ModelEval/run-full.sh --set all                # both (100 questions; ~2 hours, ~40 minutes with --runs 1)
 # Any ModelEval option can be added. The admin key is read inside the app container and never leaves it.
 # The report lands in Tools/ModelEval/reports/. Exit: 0 OK, 2 a category regressed, 1 setup trouble.
 set -euo pipefail
@@ -23,7 +23,9 @@ case "$set_name" in
   all)
     worst=0
     for s in reference crosscheck; do
-      "$self" --set "$s" ${rest[@]+"${rest[@]}"} || { c=$?; [ "$c" -eq 1 ] && exit 1; worst=$c; }
+      # Keep going after infra errors (exit 1, e.g. a few timeouts): they must not cost the other set's report.
+      c=0; "$self" --set "$s" ${rest[@]+"${rest[@]}"} || c=$?
+      case "$c" in 0) ;; 1) worst=1 ;; *) [ "$worst" -eq 1 ] || worst=$c ;; esac
     done
     exit "$worst" ;;
   *) echo "Unknown --set $set_name (core, reference, crosscheck, all)"; exit 1 ;;
