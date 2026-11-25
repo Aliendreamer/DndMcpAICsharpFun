@@ -11,4 +11,4 @@
 ## 3. Check
 
 - [x] 3.1 Build, tests, deploy, live check of search_entities text
-- [ ] 3.2 Reference set run (ask the owner first: about 1-1.5 h GPU), sort what is left
+- [x] 3.2 Reference set run (ask the owner first: about 1-1.5 h GPU), sort what is left

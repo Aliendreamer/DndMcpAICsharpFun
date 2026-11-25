@@ -1,0 +1,1918 @@
+{
+  "mode": "full",
+  "model": "qwen3:8b",
+  "utcTimestamp": "2026-11-25T17:56:36.921942Z",
+  "seed": 42,
+  "books": [
+    "phb14",
+    "mm14"
+  ],
+  "caseSetHash": "3d23d7d688da2f04aec6b54bfa27f6c81bbfaa37de435b6fa4b2db0f17e1fc5e",
+  "cases": [
+    {
+      "id": "ref.rules.concentration-dc",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The saving throw DC for your wizard to maintain concentration after taking 34 damage is **17**.  \n\nPer the rules in the *Player\u0027s Handbook* (p. 212), when you take damage while concentrating on a spell, you must make a **Constitution saving throw** with a DC equal to **10 or half the damage taken**, whichever is higher. Here, half of 34 damage is **17**, which exceeds 10, so the DC is **17**.  \n\nThis calculation applies regardless of the wizard\u2019s maximum HP or other damage thresholds (like the *Dungeon Master\u2019s Guide* system shock rule, which isn\u2019t triggered here without knowing the wizard\u2019s H",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The saving throw DC for your wizard to maintain concentration after taking 34 damage is **DC 17**. \n\nHere\u0027s why:  \nWhen a wizard takes damage while concentrating on a spell, they must make a **Constitution saving throw**. The DC is calculated as **10 or half the damage taken**, whichever is higher. Since 34 damage is taken, half of that is **17**, which surpasses 10. Thus, the DC is **17** (per the *Player\u0027s Handbook* p. 212, under \u0022Concentration\u0022).  \n\nThis rule applies regardless of the damage source, so even a single hit of 34 damage triggers this DC. If the wizard succeeds on the save, conc",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The saving throw DC for your wizard to maintain concentration after taking 34 damage is **17**. \n\nHere\u0027s why:  \nWhen a wizard takes damage while concentrating on a spell, they must make a **Constitution saving throw** with a DC of **10 or half the damage taken**, whichever is higher. For 34 damage, half is **17**, so the DC is **17**. This rule is explicitly stated in the *Player\u0027s Handbook* (p. 212, \u0022Duration\u0022 section).  \n\nNote that this calculation ignores any additional effects (like advantage/disadvantage from feats or circumstances), which aren\u0027t mentioned in your scenario. The wizard sim",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.stand-from-prone",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Standing up from the prone position costs **half your speed**, which with a 40-foot speed means **20 feet of movement**. After spending 20 feet to stand, you\u2019ll have **20 feet of movement remaining** this turn. \n\nOnce you\u2019re standing, you can use your remaining movement normally (e.g., walking, running, or taking actions). However, if you had to crawl while prone (which isn\u2019t necessary here since you\u2019re standing up), crawling would cost extra movement\u20141 foot of crawling equals 1 extra foot spent. But since you\u2019re standing, you\u2019re free to move as usual with your remaining 20 feet. \n\nSo, **you c",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Standing up from the prone condition costs **half your speed**, which with a 40-foot speed means **20 feet of movement**. After standing, you\u2019ll have **20 feet of movement remaining** for the turn.  \n\nIf you choose to move while prone (without standing up), you\u2019d have to crawl, which costs **1 extra foot per foot of movement**. For example, moving 10 feet while crawling would cost **20 feet of movement** (10 feet of movement \u002B 10 feet extra). However, since you\u2019re asking about standing up and walking, the key numbers are:  \n- **Standing up**: 20 feet of movement (half your speed).  \n- **Remain",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Standing up from prone costs **half your speed**, which with a 40-foot speed means **20 feet of movement**. After standing, you\u2019ll have **20 feet of movement remaining** to walk normally. \n\nHere\u2019s the breakdown:  \n- Your speed is 40 feet.  \n- Standing up costs **20 feet** (half of 40).  \n- You now have **20 feet left** to move.  \n\nIf you choose to crawl instead of stand, every foot of movement costs **1 extra foot**, so crawling 1 foot would use 2 feet of movement. But since you\u2019re standing up, you\u2019re using your full speed for normal movement after.  \n\n**Final answer:** Standing costs 20 feet,",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.death-save-1-and-20",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you make a death saving throw and roll a **1**, it counts as **two failures**\u2014this is worse than a regular failure, pushing you closer to death. On the flip side, rolling a **20** is exceptional: it counts as a **success** and also grants you **1 hit point**, helping you stay alive. These outcomes are part of the standard death saving throw rules (Player\u2019s Handbook, p. 197), where successes and failures are tracked until you reach three of either (stabilizing or dying). A roll of 1 or 20 directly alters the count without needing to resolve the usual success/failure check.",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "When you\u0027re making a death saving throw and roll a **1**, it counts as **two failures**\u2014this significantly worsens your situation. Each death saving throw is tracked separately, and if you accumulate **three failures**, you die. Rolling a 1 adds two failures to your tally, which could push you toward that critical threshold. \n\nOn the flip side, rolling a **20** is a **critical success**! Instead of adding a failure, it grants you **1 hit point**, which counts as a success. This can help you avoid death or even stabilize if you\u0027re at 0 HP. Importantly, regaining any hit points (including from a",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you make a death saving throw and roll a **1**, it counts as **two failures**, which significantly worsens your condition\u2014this could push you closer to dying, especially if you\u0027re already on your third failure. Conversely, rolling a **20** is a **success** and grants you **1 hit point**, helping you stay alive. These outcomes are explicitly stated in the rules for death saving throws, which are triggered when you start your turn with 0 hit points. The 20 also resets your death saving throw count (since it\u2019s a success), while the 1 adds extra severity. These mechanics ensure that critical ",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.instant-death",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 2,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "infra-error",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you take 24 damage while having 5 hit points left and a maximum of 18, you **do not** get death saving throws. Here\u0027s why:\n\n1. **Instant Death Rule**: The damage reduces you to 0 hit points, leaving **19 damage remaining** (24 total damage - 5 current HP). Since this excess damage (19) **exceeds your hit point maximum (18)**, you suffer *instant death* per the rule in the Player\u0027s Handbook (PHB, p. 14). This bypasses death saving throws entirely.\n\n2. **Death Saving Throws Trigger**: These only activate if you **start your turn with 0 hit points**. In this case, the damage kills you *befor",
+          "appSearched": true
+        },
+        {
+          "calledTools": [],
+          "text": "The request was canceled due to the configured HttpClient.Timeout of 300 seconds elapsing.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you take 24 damage while at 5 hit points (with a maximum of 18), you **do not get death saving throws**. Here\u0027s why:\n\n1. **Instant Death Rule**: The rules state that if damage reduces you to 0 hit points and the remaining damage equals or exceeds your hit point maximum, you suffer **instant death**.  \n   - Your current HP: 5  \n   - Damage taken: 24  \n   - After reaching 0 HP, the remaining damage is **24 - 5 = 19**.  \n   - Since 19 \u003E your maximum of 18, you die instantly.  \n\n2. **No Death Saving Throws**: Death saving throws only trigger if you start your turn at 0 HP **without** instant ",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.two-weapon",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you engage in two-weapon fighting without a fighting style or feat, your ability modifier **does not apply** to the damage of the bonus attack **unless the modifier is negative**. This is explicitly stated in the *Player\u0027s Handbook* (PHB p. 194\u2013195). \n\nHere\u2019s why:  \n- The general rule for two-weapon fighting (from the Attack action description) states you **don\u2019t add your ability modifier** to the bonus attack\u2019s damage, even if you\u2019re using light weapons. This applies to all characters unless they have a fighting style (like *Dueling* or *Defense*) or a feat (like *Dual Wielding*) that mo",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When using **two-weapon fighting** without a fighting style or feat, the rules depend on your class features. Here\u0027s the breakdown:\n\n1. **General Two-Weapon Fighting Rule (PHB p. 194):**  \n   When you take the Attack action and attack with a light melee weapon in one hand, your **bonus attack** (with the other hand) **doesn\u2019t include your ability modifier** for damage, unless the modifier is negative. This is the default rule for all characters unless overridden by a class feature.\n\n2. **Fighter\u2019s Two-Weapon Fighting Feature (PHB p. 48):**  \n   If you\u2019re a **Fighter** (or another class with a ",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When using **Two-Weapon Fighting** (a class feature of the Fighter), **your ability modifier applies to the damage of the bonus attack** **regardless of whether you have a fighting style or feat**. Here\u0027s why:\n\n1. **Core Rule for Two-Weapon Fighting** (PHB p. 194):  \n   Normally, when you take the Attack action and make a bonus attack with a second light weapon, you **don\u2019t add your ability modifier** to the bonus attack\u2019s damage **unless the modifier is negative**. This is the default rule for characters without the Fighter\u2019s class feature.\n\n2. **Fighter\u2019s Class Feature** (PHB p. 95):  \n   Fi",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.advantage-stacking",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you have multiple sources of advantage and disadvantage on an attack roll, the rules state that **you don\u2019t roll extra dice** in such cases. Here\u2019s how it works:  \n\n- **Advantage** (from three sources) and **disadvantage** (from one source) both apply to the same roll.  \n- According to the rules (Player\u2019s Handbook, p. 72), *\u201CIf circumstances cause a roll to have both advantage and disadvantage, you are considered to have neither of them, and you roll one d20.\u201D*  \n- This means you **ignore all modifiers** from advantage/disadvantage and simply roll a single d20.  \n\nFor example, if you had ",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you have both advantage and disadvantage on an attack roll, the effects cancel each other out. According to the rules (Player\u0027s Handbook p. 72), you\u2019re considered to have neither advantage nor disadvantage in such a situation. This means you simply roll a single d20 without the usual adjustments for advantage (rolling two dice and taking the higher result) or disadvantage (rolling two dice and taking the lower result). The multiple sources of advantage and disadvantage don\u2019t stack\u2014they negate each other, leaving you with a normal roll. \uD83C\uDFB2",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you have multiple sources of advantage and disadvantage on the same roll, the rules are clear: **you don\u2019t roll extra dice**. Here\u2019s why:\n\n1. **Advantage and Disadvantage Basics**: Normally, advantage means rolling two d20s and taking the higher result; disadvantage means rolling two d20s and taking the lower. But this only applies when **one** source of advantage or disadvantage is active.  \n   \n2. **Multiple Sources**: If multiple circumstances grant advantage (like three different spells or feats) or impose disadvantage (like a spell and a condition), you **still only roll one d20**. T",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.grapple",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "To grapple someone, you make a **Strength (Athletics) check** contested by the target\u2019s **Strength (Athletics)** or **Dexterity (Acrobatics)** (the target chooses which ability to use). This check determines if you successfully seize the target and apply the *grappled* condition. The rules don\u2019t explicitly name this check, but it\u2019s derived from the **grappling rules** in the *Player\u2019s Handbook* (PHB) and clarified in the *Dungeon Master\u2019s Guide* (DMG).\n\nAs for size limits, you can attempt to grapple a creature **no more than one size larger** than you (e.g., a Medium creature can grapple a Lar",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "To grapple someone, you make a **Strength (Athletics) check** contested by the target\u0027s **Strength (Athletics)** or **Dexterity (Acrobatics)** (the target chooses which ability to use). This check determines if you successfully seize them, applying the **grappled condition** (PHB, p. 197). \n\nThe **size limit** is strict: the target must be **no more than one size larger** than you (e.g., a Medium attacker can grapple a Large target). If the target is **two sizes larger** (e.g., you\u2019re Medium vs. a Huge creature), you **cannot** attempt a grapple unless a special ability, magic item, or spell (",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "To grapple someone, you make a **Strength (Athletics) check** contested by the target\u0027s **Strength (Athletics)** or **Dexterity (Acrobatics)** (their choice). If you succeed, the target is grappled (PHB p. 197). To escape a grapple, the target can use their action to make a **Strength (Athletics)** or **Dexterity (Acrobatics)** check contested by your **Strength (Athletics)**. \n\nThe **size limit** is strict: the target must be **no more than one size larger** than you (e.g., a Medium creature can grapple a Large one, but not a Huge). If the target is two sizes larger (e.g., a Huge vs. Medium a",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.suffocation",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Your character with a **Constitution modifier of \u002B3** can hold their breath for **4 minutes** (1 \u002B Constitution modifier). After that, they can survive for **3 rounds** (equal to the Constitution modifier). \n\nHere\u2019s the breakdown:  \n- **Breath-holding duration**: 1 minute (base) \u002B 3 (modifier) = **4 minutes**.  \n- **Survival after suffocation**: 3 rounds (minimum 1 round). At the start of the next turn, they drop to 0 hit points and are dying.  \n\nThis is from the *Player\u2019s Handbook* (p. 187\u2013188) under \u0022The Environment\u0022 and \u0022Suffocating\u0022 rules. The example in the search results (Constitution 14",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Your character with a **\u002B3 Constitution modifier** can hold their breath for **4 minutes** (1 \u002B Constitution modifier). After that, they can survive for **3 rounds** (equal to the Constitution modifier). These rules are from the *Player\u0027s Handbook* (p. 183, \u0022The Environment\u0022 section). \n\nHere\u2019s the breakdown:\n- **Breath-holding**: 1 minute \u002B modifier (\u002B3) = **4 minutes** (minimum 30 seconds, which is already met).\n- **Survival after suffocating**: Modifier (\u002B3) = **3 rounds** (minimum 1 round, also met).\n\nThis applies if they\u2019re underwater, in a sealed space, or otherwise unable to breathe. Let",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Your character with a **\u002B3 Constitution modifier** can hold their breath for **4 minutes** (1 \u002B 3 = 4). After that, they can survive for **3 rounds** (equal to the modifier) before suffocating and dropping to 0 hit points. \n\nThis is based on the rule:  \n\u003E *\u0022A creature can hold its breath for a number of minutes equal to 1 \u002B its Constitution modifier (minimum of 30 seconds). When a creature runs out of breath, it can survive for a number of rounds equal to its Constitution modifier (minimum 1 round).\u0022*  \n(Found in *Player\u0027s Handbook* p. 184, \u0022The Environment\u0022). \n\nStay mindful of terrain and com",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.hit-dice-recovery",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A 10th-level character has **5 Hit Dice** regained after a long rest. Here\u0027s why:\n\n1. **Standard Rule (PHB):** Per the *Player\u0027s Handbook* (p. 182), a long rest allows you to regain **up to half** your total Hit Dice. Since a 10th-level character has 10 Hit Dice (equal to their level), they regain **5** (half of 10). This applies even if all Hit Dice were spent, as the rule specifies \u0022up to half\u0022 rather than a fixed number.\n\n2. **Optional Healing Surge Rule (DMG):** The *Dungeon Master\u0027s Guide* (p. 225) mentions an optional rule where a long rest regains **all** spent Hit Dice. However, this i",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A 10th-level character has **10 Hit Dice** (equal to their level). After a long rest, they regain **up to half** of their total Hit Dice, which is **5 dice** (per the Player\u0027s Handbook rule in *Between Adventures*). However, if the DM uses the optional healing surge rule from the *Dungeon Master\u0027s Guide*, the character would regain **all** spent Hit Dice. Since the question doesn\u2019t specify an optional rule, the standard answer is **5 Hit Dice**. Always confirm with your DM for campaign-specific rulings!",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A 10th-level character with 10 Hit Dice spends all of them during a short rest. After a long rest, they regain **half** of their total Hit Dice (rounded down), which is **5 Hit Dice**. This is per the Player\u0027s Handbook (p. 216) and the *Dungeon Master\u0027s Guide* (p. 224), which clarify that long rests restore spent Hit Dice up to half your total. \n\nHowever, there\u2019s an optional rule in the *DMG* (p. 224) that allows characters to regain **all** spent Hit Dice after a long rest. If your DM uses this optional rule, the answer would be **10 Hit Dice**. But unless specified, the default is half your ",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.exhaustion-4",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 1,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "pass",
+        "wrong-answer",
+        "wrong-answer"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "A creature with four levels of exhaustion suffers the cumulative effects of all six exhaustion levels, but since they can\u2019t exceed level 6, their condition is as follows:  \n\n- **Level 1**: Disadvantage on all ability checks.  \n- **Level 2**: Speed is halved.  \n- **Level 3**: Disadvantage on all attack rolls and saving throws.  \n- **Level 4**: Hit point maximum is halved (and they take damage equal to half their maximum HP if reduced to 0).  \n- **Level 5**: Speed is reduced to 0 (they\u2019re effectively paralyzed).  \n- **Level 6**: Death (if they take damage while at level 5, they die unless stabil",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A creature with four levels of exhaustion suffers the following cumulative penalties, as outlined in the rules:\n\n1. **Level 1**: Disadvantage on all ability checks.  \n2. **Level 2**: Speed is halved.  \n3. **Level 3**: Disadvantage on all attack rolls and saving throws.  \n4. **Level 4**: Maximum HP is halved (this stacks with the halved speed from Level 2).  \n\n**Combined Effects**:  \n- The creature has **disadvantage on all ability checks, attack rolls, and saving throws** (Levels 1\u20133).  \n- Their **speed is halved** (Level 2) and **maximum HP is halved** (Level 4).  \n- They cannot **rest effect",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A creature with **four levels of exhaustion** suffers the cumulative effects of **all six levels** of exhaustion (since exhaustion applies all lower levels automatically). Here\u2019s what\u2019s wrong:  \n\n1. **Level 1**: Disadvantage on all ability checks. This makes even simple tasks harder, like opening doors or climbing.  \n2. **Level 2**: Speed is halved. Movement is severely restricted, limiting combat effectiveness and escape options.  \n3. **Level 3**: Disadvantage on attack rolls and saving throws. The creature struggles to hit enemies or avoid harm.  \n4. **Level 4**: Maximum HP is halved. Their ",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.long-jump",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 2,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "wrong-answer",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "With a Strength score of 14, your long jump distances are calculated as follows:  \n\n- **With a running start**: You can jump up to **14 feet** (your Strength score). Additionally, your Strength modifier (\u002B2) adds **2 feet**, bringing the total to **16 feet**.  \n- **Standing still**: You can only leap half the running-start distance, so **8 feet**.  \n\nEach foot cleared costs 1 foot of movement, so ensure you have enough movement to complete the jump. This calculation assumes no feats or special abilities (like the *Athlete* feat, which reduces the required running start distance). Let me know i",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Your **long jump** distance depends on your **Strength score** and whether you have a running start:  \n\n- **With a running start** (moving at least 10 feet before the jump):  \n  You can jump up to **14 feet** (your Strength score). However, the rules also state that the distance increases by your **Strength modifier** (\u002B2 for a 14), bringing the total to **16 feet**.  \n\n- **Standing still** (no running start):  \n  You can only jump half your Strength score, so **7 feet**.  \n\nEach foot you clear during the jump costs 1 foot of movement, so you\u2019ll need to manage your movement carefully. For exam",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "With a **Strength score of 14** (modifier \u002B2), here\u0027s how your long jumps work:\n\n- **Running Start (10\u002B feet movement before the jump):**  \n  You can jump **up to 14 feet** (your Strength score). Additionally, the rule specifies that **running jumps** (which require 10 feet of movement) gain an extra **\u002B2 feet** (your Strength modifier). So your total maximum distance is **14 \u002B 2 = 16 feet**.  \n\n- **Standing Still (no movement before the jump):**  \n  You can only jump **half your Strength score**, which is **7 feet**.  \n\nThese calculations follow the rules from the *Player\u0027s Handbook* (p. 175\u2013",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.resistance-order",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The creature takes **12 damage**. Here\u0027s why:\n\n1. **Aura Reduction First**: The aura lowers all damage by 6, so 30 \u2192 24.\n2. **Resistance Applies Next**: Resistance halves the damage, so 24 \u2192 12.\n\nThis follows the rule that \u0022resistance and vulnerability are applied after all other modifiers\u0022 (PHB p. 72). The example in the rules confirms this order: reduction first, then halving.",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The creature takes **12 damage**. Here\u0027s why:\n\n1. **Aura Reduction First**: The aura lowers all damage by 6, so 30 \u2192 **24**.\n2. **Resistance Applies Next**: Resistance halves the damage, so 24 \u2192 **12**.\n\nThis follows the rule that \u0022resistance and vulnerability are applied after all other modifiers\u0022 (PHB 2014, *Damage and Healing*). The example in the rules (25 damage reduced by 5 \u2192 20, then halved to 10) uses the same logic.",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The creature takes **12 damage**. Here\u0027s why:\n\n1. **Aura Reduction First**: The aura lowers all damage by 6, so 30 \u2192 24.  \n2. **Resistance Halves the Remaining Damage**: Resistance to bludgeoning halves 24 \u2192 **12**.  \n\nThis follows the rule that modifiers (like auras) are applied *before* resistance or vulnerability, as stated in the example from the Player\u0027s Handbook (PHB p. 197). No other factors apply here.",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.three-quarters-cover",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Standing behind an arrow slit that grants **three-quarters cover** gives you two key benefits:  \n1. **AC and saving throw bonuses**: Your AC and Dexterity saving throws are improved by **\u002B5** (per the *Player\u0027s Handbook* p. 197). This makes you harder to hit and more resistant to spells or effects that rely on saving throws.  \n2. **Attack vulnerability reduction**: While you\u2019re not fully hidden (so area effects still work on you), attackers face significant penalties. For example, **ranged attacks against you ignore three-quarters cover** (as noted in *Dungeon Master\u2019s Guide* p. 251), meaning ",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Standing behind an arrow slit that grants **three-quarters cover** provides two key benefits:  \n1. **AC and Saving Throw Bonus**: The target gains a **\u002B5 bonus to AC and Dexterity saving throws** (per the *Player\u2019s Handbook*). This makes them harder to hit and more resistant to spells or abilities that rely on saving throws.  \n2. **Cover Determination**: The arrow slit blocks **three-quarters of the target\u2019s body** (or more, depending on positioning), which qualifies as three-quarters cover. This means attacks from the opposite side of the slit face penalties (like the \u002B5 bonus) but aren\u2019t ent",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Standing behind an arrow slit that grants **three-quarters cover** gives you a **\u002B5 bonus to AC and Dexterity saving throws** (per the *Player\u2019s Handbook*). This is more protective than **half cover** (\u002B2 bonus) but less than **total cover** (which completely blocks attacks). \n\nThree-quarters cover applies when **about three-quarters of your body is obscured** by an obstacle\u2014like an arrow slit, portcullis, or thick tree trunk\u2014*and the attacker can still physically reach you* (e.g., through the slit). This means spells or attacks can target you, but the cover significantly hinders their effecti",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.underwater-melee",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Per the **Player\u0027s Handbook (p. 147)** under *Underwater Combat*, creatures without a swimming speed (natural or magical) face disadvantage on melee attacks **unless** they use a **dagger**, **javelin**, **shortsword**, **spear**, or **trident**. These weapons are explicitly listed as exceptions to the disadvantage rule in underwater environments. \n\nNo other melee weapons are specified as non-disadvantageous in this scenario. If you\u2019re fighting underwater without a swimming speed, stick to those five options for reliable attacks! \uD83D\uDC20\u2694\uFE0F",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Per the **Player\u0027s Handbook** (p. 148, *Underwater Combat*), if you lack a swimming speed (natural or magical), you face disadvantage on melee attacks underwater **unless** you use a **dagger, javelin, shortsword, spear, or trident**. These weapons are specifically designed for underwater combat and don\u2019t impose the disadvantage. \n\nFor example, a trident or spear\u2019s thrusting motion works efficiently in water, while a dagger\u2019s small size and weight make it manageable without a swimming speed. If you gain a swimming speed via magic (like *Mariner\u2019s Armor* from the *Dungeon Master\u2019s Guide*), you ",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Without a swimming speed, you can use **dagger**, **javelin**, **shortsword**, **spear**, or **trident** for melee attacks underwater without disadvantage. This rule is explicitly stated in the *Player\u2019s Handbook* (p. 146) under \u0022Underwater Combat.\u0022 These weapons are light, easy to handle, and effective in water. \n\nIf you need a swimming speed, magic items like the *Mariner\u2019s Armor* (DMG) or a *ring of swimming* (DMG) can grant it, but those are exceptions. For now, stick to the listed weapons! \uD83D\uDC20\u2694\uFE0F",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.ready-spell",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you ready a spell, you cast it as part of the Ready action but **hold its energy until the trigger occurs**, as explained in the *Player\u0027s Handbook* (p. 195). This requires you to **maintain concentration** on the spell, just like any other spell that demands it. Here\u2019s what you need to keep in mind:\n\n1. **Concentration is key**: The spell\u2019s magic is \u0022held\u0022 until the trigger, but this state still requires your concentration. If you lose concentration (e.g., by taking damage, being incapacitated, or casting another concentration spell), the spell **dissipates without effect**. For example,",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you ready a spell, you **cast it as normal but hold its energy**, requiring you to **maintain concentration** until the trigger occurs (as explained in the *Player\u0027s Handbook*). This means you must **keep your concentration intact** during the waiting period\u2014any action that breaks concentration (like taking damage, casting another spell, or using a reaction for something else) will cause the readied spell to **dissipate without effect**. \n\nFor example, if you ready *Magic Missile* while concentrating on *Web*, taking damage before releasing the spell could break your concentration, ending",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you use the **Ready** action to prepare a spell, you cast it as normal but hold its energy until the trigger occurs. Here\u2019s what you need to keep up:  \n\n1. **Concentration**: Holding the spell\u2019s energy requires you to maintain concentration (as explained in the *Player\u2019s Handbook*). If your concentration is broken\u2014via damage, distractions, or using your action for another task\u2014the spell dissipates and has no effect. For example, if you\u2019re concentrating on *Web* and ready *Magic Missile*, the *Web* spell ends if you take damage before releasing *Magic Missile* with your reaction.  \n\n2. **F",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.bonus-action-spell",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 2,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "infra-error",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": "The request was canceled due to the configured HttpClient.Timeout of 300 seconds elapsing.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "After casting a spell with your bonus action, you generally **can\u0027t cast another spell** with your action during the same turn\u2014**unless** the second spell is a **cantrip with a casting time of 1 action**. This is clarified in the Player\u0027s Handbook (p. 190) and reinforced by lore like the *Boon of Quick Casting* (DMG, p. 112). \n\nHere\u2019s the breakdown:  \n- **Bonus action spells** (like *Booming Blade* or *Prestidigitation*) use your bonus action, leaving your action free. However, you can\u2019t cast another **non-cantrip spell** with your action that turn.  \n- **Cantrips** (spells of 0-level) with a ",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "After casting a spell with your bonus action, you generally **can\u0027t cast another spell with your action** on the same turn, except for **cantrips with a casting time of 1 action**. Here\u0027s why:\n\n- The **PHB rules** (Player\u0027s Handbook, p. 192) state that using a bonus action for a spell \u0022prevents you from casting another spell during the same turn,\u0022 unless it\u0027s a cantrip with a 1-action casting time.  \n- **Cantrips** (spells of 0th level) are an exception. For example, if you cast *Light* (a cantrip) as a bonus action, you can still cast another cantrip (like *Mage Hand*) with your action.  \n- *",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.rules.fast-travel",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A party traveling at a fast pace for a full day covers **24 miles**, as stated in the *Player\u0027s Handbook* (PHB) under the \u0022Travel Pace\u0022 rule. This assumes standard terrain and no additional penalties. \n\nAs for the cost, the rules do **not specify any monetary expense** for traveling at a fast pace. The *Dungeon Master\u0027s Guide* (DMG) mentions that pushing beyond 8 hours of travel (the standard for a day) risks exhaustion, but this is a mechanical consequence, not a financial one. Unless the campaign introduces custom costs (e.g., for mounts, supplies, or terrain hazards), there\u2019s no inherent co",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A party traveling at a **fast pace** for a full day covers **24 miles** based on the *Player\u0027s Handbook* (PHB) Travel Pace table, which states that normal pace allows 24 miles per day. For a fast pace, the DMG\u2019s *Exploration* rules specify increasing the travel rate by one-third, but this applies to specific scenarios like magical movement (e.g., flying or spell effects). For standard land travel, the PHB\u2019s default assumes 24 miles per day at normal pace, and fast pace is not explicitly quantified in the PHB. However, the DMG\u2019s example with a wind walk spell (30 miles per hour) suggests a high",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A party traveling at a **fast pace** for a full day covers **32 miles**. Here\u0027s how it breaks down:  \n\n- **Normal pace** allows about **24 miles per day** (per the *Player\u0027s Handbook*).  \n- A **fast pace** increases this by one-third, so **24 \u002B 8 = 32 miles**.  \n\n**Cost?** The rules don\u2019t explicitly mention a monetary cost for traveling at a fast pace. However, if the party pushes beyond the standard 8-hour travel limit (e.g., due to exhaustion or magical effects), they might incur **exhaustion** (per the *Dungeon Master\u2019s Guide*). For example, traveling more than 8 hours at a fast pace requir",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.spell.disintegrate",
+      "category": "spell",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Disintegrate, when cast at 7th level, deals **13d6 \u002B 40 force damage** (10d6 base \u002B 3d6 from the 7th-level slot boost). If this damage reduces a creature to 0 hit points, it is **disintegrated**, turning it into a pile of fine gray dust. The creature\u2019s clothing and nonmagical items also turn to dust, but magic items remain intact. Only *true resurrection* or *wish* can restore the creature to life. \n\nThis effect is explicitly described in the spell\u2019s text (PHB p. 231) and confirmed by the rules on damage application (PHB p. 197). The disintegration is instantaneous and bypasses standard resurr",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "Disintegrate (a 6th-level spell) deals **10d6 \u002B 40 force damage** on a failed Dexterity saving throw. When cast with a **7th-level spell slot**, the damage increases by **3d6** (since each slot level above 6th adds 3d6). This makes the total damage **13d6 \u002B 40**.  \n\nIf the damage reduces a creature to **0 hit points**, it is **disintegrated**. The creature and everything it is wearing or carrying (except magic items) are reduced to **fine gray dust**. The disintegrated creature can only be restored by **true resurrection** or a **wish** spell. Notably, magic items on the creature are unaffecte",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "Disintegrate is a 6th-level spell, so using a 7th-level slot adds **3d6 force damage** (since each level above 6th adds 3d6). The total damage becomes **10d6 \u002B 3d6 \u002B 40 = 13d6 \u002B 40 force damage** (per the PHB, p. 274). \n\nIf the damage reduces a creature to 0 HP, it is **disintegrated** (PHB, p. 274). This means the creature and everything it\u2019s wearing or carrying (except magic items) are reduced to **fine gray dust**. The creature can only be restored by *true resurrection* or *wish* spells. Nonmagical objects or magical force creations (like walls of force) are automatically disintegrated by ",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.spell.counterspell",
+      "category": "spell",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you cast *Counterspell* with a 3rd-level spell slot against a 6th-level spell, you make an **ability check using your spellcasting ability** (per the spell\u2019s description in the *Player\u2019s Handbook* p. 212). The **DC is 10 \u002B the spell\u2019s level**, so for a 6th-level spell, the DC is **16**. \n\nThis follows the rule: *\u201CIf it is casting a spell of 4th level or higher, make an ability check\u2026 The DC equals 10 \u002B the spell\u0027s level.\u201D* Since the target\u2019s spell (6th level) exceeds your slot level (3rd), the check is required. Success means the spell fails; failure means it proceeds normally. \n\nNote tha",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you cast **Counterspell** with a **3rd-level spell slot** against a **6th-level spell**, you make an **ability check** using your spellcasting ability (Intelligence for wizards, Charisma for sorcerers or warlocks). The **DC for the check is 10 \u002B the spell\u0027s level**, so **DC 16** (10 \u002B 6). \n\nHere\u2019s why:  \n- **Counterspell\u2019s description** (Player\u2019s Handbook, p. 212) states that if the target casts a spell of **4th level or higher**, you make an ability check. The DC is calculated as **10 \u002B the spell\u2019s level** (here, 10 \u002B 6 = 16).  \n- The **\u0022At Higher Levels\u0022** clause for Counterspell (PHB, ",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you cast **Counterspell** with a **3rd-level spell slot** against a **6th-level spell**, you make an **ability check** using your spellcasting ability (typically Intelligence for wizards, Wisdom for clerics, etc.). The **DC for the check is 10 \u002B the spell\u0027s level**, so for a 6th-level spell, the DC is **16**. \n\nThis follows the rule from the *Player\u0027s Handbook* (p. 217): if the target is casting a spell of 4th level or higher, you make the check, and the DC is always 10 \u002B the spell\u0027s level. Since your 3rd-level slot is lower than the 6th-level spell, the \u0022At Higher Levels\u0022 bonus (which ap",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.spell.revivify-or-raise-dead",
+      "category": "spell",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "search_entities"
+          ],
+          "text": "**Revivify** and **Raise Dead** differ significantly in their time limits and material costs.  \n\n- **Revivify** (3rd-level spell) requires the target to have died **within the last minute**. The spell consumes **diamonds worth 300 gp**. It revives the creature with 1 hit point but cannot restore missing body parts or cure magical diseases.  \n\n- **Raise Dead** (5th-level spell) needs the target to have been dead **no longer than 10 days**. It costs **diamonds worth at least 500 gp**. This spell neutralizes poisons and nonmagical diseases but also cannot restore missing limbs or organs unless sp",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "search_entities"
+          ],
+          "text": "**Revivify** (3rd-level spell) requires the target to have died **within the last minute**. The spell consumes diamonds worth **300 gp**.  \n\n**Raise Dead** (5th-level spell) can revive a creature that has been dead **no longer than 10 days**. It demands diamonds worth **at least 500 gp**.  \n\nBoth spells fail if the creature died of old age, but Raise Dead also cannot restore missing body parts (unlike True Resurrection, which can). Revivify is faster but riskier (the target must be recently dead), while Raise Dead offers a longer window but higher material costs. Let me know if you need help c",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "search_entities"
+          ],
+          "text": "**Revivify** (3rd-level spell) requires the target to have died **within the last minute**. The spell consumes **diamonds worth 300 gp**.  \n\n**Raise Dead** (5th-level spell) can resurrect a creature that has been dead **no longer than 10 days**. It demands **diamonds worth at least 500 gp**.  \n\nBoth spells consume the diamonds as part of their casting, and neither restores missing body parts (Revivify explicitly forbids it, while Raise Dead only regenerates lost limbs if the creature\u2019s body is intact). The key difference is the time window: Revivify is for near-instantaneous deaths, while Rais",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.spell.wish-stress",
+      "category": "spell",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Using *Wish* for effects beyond duplicating spells carries significant risks. Per the spell\u0027s description in the *Player\u0027s Handbook* (p. 229), **there\u2019s a 33% chance you\u2019ll never be able to cast *Wish* again** after enduring this stress. Additionally, **each spell you cast before resting** (until you finish a long rest) **inflicts 1d10 necrotic damage per level of that spell**, and your Strength drops to 3 (if not already lower) for 2d4 days. These consequences are irreversible and tied to the spell\u2019s mechanics\u2014no magic item, feat, or rest can bypass them. Be very careful with this spell! \uD83C\uDF11",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Using *Wish* for effects beyond duplicating spells carries significant risks. Here\u0027s what happens:\n\n1. **Permanent Loss of *Wish***: There\u0027s a **33% chance** you\u0027ll **never be able to cast *Wish* again** after casting it under stress. This is a one-time risk, but the consequences are severe if it occurs.\n\n2. **Necrotic Damage**: For **each spell you cast before resting** (even non-*Wish* spells), you take **1d10 necrotic damage per level of the spell**. This damage is **unavoidable** and cannot be reduced by resistance, magic, or healing. For example, casting *Fireball* (level 3) would deal **",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "After casting *wish* for an effect other than duplicating a spell, there\u2019s a **33% chance you\u2019ll never be able to cast *wish* again**\u2014this is a direct consequence of the spell\u2019s mechanics, as stated in the *Player\u2019s Handbook* (PHB 2014, Spell Descriptions). \n\nAdditionally, **you take 1d10 necrotic damage per level of any spell** you cast **before finishing a long rest**. This damage is unavoidable and stacks with each spellcast. For example, casting a 5th-level spell would deal **5d10 necrotic damage** immediately. \n\nBeyond the damage, your **Strength drops to 3** (if it isn\u2019t already 3 or low",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.spell.polymorph-cr",
+      "category": "spell",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you cast *Polymorph* on a willing 7th-level fighter, the creature can transform into **any beast** whose **challenge rating (CR) is equal to or less than the target\u0027s level** (since the fighter doesn\u0027t have a listed CR). This means the highest allowed CR is **7**. \n\nFor example, the fighter could become a **grizzly bear** (CR 2), **troll** (CR 4), **warg** (CR 3), or even a **dragon turtle** (CR 7). The spell replaces the fighter\u2019s statistics with the chosen beast\u2019s, retaining their alignment and personality but adopting the beast\u2019s abilities, hit points, and limitations (like inability t",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you polymorph a willing 7th-level fighter using the *Polymorph* spell, the target can transform into **any beast** whose **challenge rating (CR) is equal to or less than the fighter\u2019s level** (7 or lower). The spell\u2019s description explicitly states: *\u0022The new form can be any beast whose challenge rating is equal to or less than the target\u0027s (or the target\u0027s level, if it doesn\u0027t have a challenge rating)\u0022* (PHB p. 230). \n\n### Key Details:\n- **Maximum CR Allowed**: 7 (since the fighter is 7th level).  \n- **Beast Requirements**: The creature must be a beast (not a humanoid, construct, or undea",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When you cast *Polymorph* on a willing 7th-level fighter, the creature can transform into **any beast** whose **challenge rating (CR) is equal to or less than the fighter\u2019s level** (7). If the target doesn\u2019t have a CR (e.g., a humanoid), the CR is treated as their level. Thus, the highest allowed CR is **7**. \n\nFor example, the fighter could become a **giant owl** (CR 4), **grick** (CR 3), or **shadow mastiff** (CR 2), but not a **troll** (CR 4) if the fighter\u2019s level is 7\u2014wait, no, actually, the CR is compared to the target\u2019s level, not their own. Wait, let me clarify:  \n\nThe spell specifies ",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.spell.animate-dead",
+      "category": "spell",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "When you cast *Animate Dead*, the undead creature (skeleton or zombie) you create remains under your control for **24 hours**. To maintain control beyond that duration, you must cast *Animate Dead* again **before** the 24-hour period ends. \n\nAs for how many creatures you can control:  \n- **Each time you cast *Animate Dead***, you can reassert control over **up to four undead creatures** you\u2019ve already animated with this spell (instead of creating new ones).  \n- However, **each individual casting** of *Animate Dead* (regardless of slot level) can animate **one additional creature** beyond the i",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "When you cast *animate dead*, the skeleton (or zombie) you create remains under your control for **24 hours**. To keep control of the creature beyond that, you must cast *animate dead* again **before** the 24-hour period ends. \n\nAs for how many creatures you can control by casting it again:  \n- **At higher levels**, using a spell slot above 3rd level lets you animate or reassert control over **two additional undead creatures for each slot level above 3rd** (e.g., a 4th-level slot adds 2 creatures, a 5th-level slot adds 2, etc.).  \n- **By default**, casting *animate dead* again reasserts contro",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The spell **Animate Dead** grants you control over a skeleton (or zombie) for **24 hours**. After this duration, the creature stops obeying your commands unless you cast the spell again. When you recast *Animate Dead* to reassert control, you can command **up to four creatures** you\u0027ve animated with this spell. \n\nIf you cast the spell using a **higher-level spell slot**, you gain additional control: for each level above 3rd, you can animate **two more creatures** (or reassert control over two additional ones). For example:\n- A **4th-level slot** lets you control **6 creatures** (4 base \u002B 2 ext",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.spell.power-word-kill",
+      "category": "spell",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The spell **Power Word Kill** is a **9th-level Enchantment** (as noted in the *Player\u0027s Handbook*). Its hit point limit is **100 hit points or fewer**\u2014if the target meets this threshold, it dies instantly upon being targeted by the spell. If the creature has more than 100 HP, the spell has no effect. This information is directly from the spell\u0027s description in the *Player\u0027s Handbook* (PHB).",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The spell **Power Word Kill** is a **9th-level Enchantment** spell. It instantly kills a creature you can see within 60 feet that has **100 hit points or fewer**. If the target has more than 100 HP, the spell has no effect. This spell is described in the *Player\u0027s Handbook* (PHB).",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The spell **Power Word Kill** is a **9th-level Enchantment**. Its hit point limit is **100 hit points**\u2014if the targeted creature has 100 HP or fewer, it dies instantly. Otherwise, the spell has no effect. This information is directly from the Player\u0027s Handbook (PHB), as cited in the spell\u0027s description.",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.spell.shadow-blade",
+      "category": "spell",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "Shadow Blade deals **2d8 psychic damage** at its base level (as a 2nd-level spell). When cast using a **3rd-level spell slot**, the damage increases to **3d8 psychic damage**. The spell\u2019s damage type is always **psychic**, and it applies the finesse, light, and thrown properties (range 20/60 feet) to the weapon. These details are outlined in *Xanathar\u2019s Guide to Everything* (p. 134).",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Shadow Blade** spell (2nd-level Illusion) deals **2d8 psychic damage** on a hit at its base level. When cast using a **3rd-level spell slot**, the damage increases to **3d8 psychic damage**. The spell\u2019s damage type is **psychic**, and it deals this damage through its finesse, light, and thrown properties (range 20/60). The enhancement for higher-level slots scales further (4d8 at 5th-level or higher), but the 3rd-level boost is specifically 3d8.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "Shadow Blade deals **2d8 psychic damage** at its base level (as a 2nd-level spell). When cast using a **3rd-level spell slot**, the damage increases to **3d8 psychic damage**. The spell specifies that the damage is psychic in type, and the sword made from shadow has the *finesse*, *light*, and *thrown* properties (though it\u0027s wielded as a melee weapon). The damage scaling applies specifically to the attack roll\u0027s damage output, not the advantage granted for attacking in darkness.",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.class.barbarian-17",
+      "category": "class",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-answer",
+        "wrong-answer",
+        "wrong-answer"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A 17th-level barbarian can rage **9 times per long rest** and gains a **\u002B6 bonus to damage** when raging.  \n\nHere\u2019s how it breaks down:  \n- **Rages per long rest**: Starting at 11th level, the number of rages equals your barbarian level divided by 2 (rounded down) plus 1. For 17th level: $ \\frac{17}{2} = 8.5 $ \u2192 rounded down to 8, then \u002B1 = **9 rages**.  \n- **Rage damage bonus**: The Rage Damage column in the Barbarian table shows a \u002B6 bonus at 17th level, which applies to melee attacks while raging.  \n\nThis aligns with the PHB\u2019s rules on barbarian progression (Player\u2019s Handbook 2014, Class Fe",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A 17th-level barbarian can rage **7 times per long rest**, as per the Barbarian class feature table in the *Player\u0027s Handbook* (PHB). This is determined by the \u0022Rages\u0022 column, which increases by 1 every two levels starting at 1st level (e.g., 1\u20132 levels: 1 rage, 3\u20134: 2, 5\u20136: 3, ..., 15\u201316: 7). \n\nTheir **rage damage bonus** is **\u002B6** to melee weapon attacks, as shown in the \u0022Rage Damage\u0022 column of the same table. This bonus increases by 1 every two levels, reaching \u002B6 at 17th level. \n\nFor example, at 1st level, the bonus is \u002B1, and it increments by 1 each level (e.g., \u002B2 at 2nd, \u002B3 at 4th, etc.",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A 17th-level barbarian can rage **17 times per long rest**, as the number of rages per long rest equals their class level (per the Barbarian table in the Player\u0027s Handbook). Their **rage damage bonus** is **\u002B6**, which increases by \u002B1 every three levels starting at 1st level (e.g., \u002B2 at 1st\u20133rd, \u002B3 at 4th\u20136th, etc.). This bonus applies to melee attacks made while raging and scales with their barbarian level. \n\nFor example, at 17th level, the \u002B6 bonus reflects their heightened strength and resilience during rage, allowing them to deal significant damage in combat. This progression ensures barb",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.class.smite-undead",
+      "category": "class",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When a paladin uses a **2nd-level spell slot** with **Divine Smite** against a **zombie** (an undead), the radiant damage added follows these rules:\n\n1. **Base damage for a 2nd-level slot**:  \n   Divine Smite deals **2d8** for a 1st-level slot, plus **1d8 per level higher than 1st**. A 2nd-level slot is **1 level higher**, so this adds **3d8** (2d8 \u002B 1d8).\n\n2. **Additional damage for undead**:  \n   The rules specify that the damage **increases by 1d8** if the target is an **undead** or **fiend**. Since zombies are undead, this adds **\u002B1d8**.\n\n**Total extra damage**: **3d8 (base) \u002B 1d8 (undead)",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When a paladin uses a 2nd-level spell slot with **Divine Smite** against a **zombie** (an undead creature), the damage calculation proceeds as follows:\n\n1. **Base Damage from Spell Slot Level**:  \n   Divine Smite\u2019s extra damage starts at **2d8** for a 1st-level slot. Since the paladin is using a **2nd-level slot**, they add **1d8** for each level above 1st. This totals **2d8 \u002B 1d8 = 3d8**.\n\n2. **Undead Bonus**:  \n   The target is an **undead**, so the damage increases by an additional **1d8**. This bonus applies *on top* of the slot-level calculation.\n\n**Total Damage**: **3d8 (slot level) \u002B 1d",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When a paladin uses a **2nd-level spell slot** with **Divine Smite** against a **zombie** (an undead), the damage calculation proceeds as follows:\n\n1. **Base Damage for 2nd-Level Slot**:  \n   Divine Smite starts with **2d8** for a 1st-level slot. Since the paladin is using a 2nd-level slot, they add **1d8** (as per the rule: *\u0022plus 1d8 for each spell level higher than 1st\u0022*). This totals **3d8**.\n\n2. **Undead Bonus**:  \n   The rule explicitly states, *\u0022The damage increases by 1d8 if the target is an undead or a fiend.\u0022* Since zombies are undead, this adds an additional **1d8**.\n\n**Total Extra ",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.class.metamagic-cost",
+      "category": "class",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A sorcerer can quicken a spell by spending **2 sorcery points** (as per the *Quickened Spell* Metamagic option in the Player\u0027s Handbook). To twin a 3rd-level spell, they spend **2 sorcery points** as well (via the *Twin Spell* Metamagic option). These costs are in-game resources, not gold. \n\nIf you\u0027re asking about hiring a caster to perform these actions (e.g., a spellcaster in a town), the **costs vary**. For example, a 3rd-level spell might cost **100 gp** (per the *Spellcasting Services* lore in *Epic Boons*), but this depends on the caster and location. Always clarify whether you\u0027re referr",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "A sorcerer pays **1 sorcery point** to quicken a spell using the *Quickened Spell* metamagic option. This allows them to cast a spell as a bonus action, consuming one sorcery point (PHB 104). \n\nTwinning a 3rd-level spell is **not possible** with standard metamagic. The *Twinned Spell* metamagic (PHB 104) only applies to spells of 1st or 2nd level. A 3rd-level spell cannot be twinned, as the rules explicitly limit this option to lower-level spells. If you\u0027re looking to cast two spells of the same level, you\u2019d need to use two separate spell slots and cast them as separate actions (or use a featu",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A sorcerer doesn\u2019t pay anything to quicken a spell\u2014it\u2019s a Metamagic feature available at 1st level (per the *Player\u2019s Handbook* p. 100). This lets you cast a spell of 1st level or lower as a bonus action instead of an action, without extra cost. \n\nTwinning a 3rd-level spell also doesn\u2019t involve a direct cost. The *Boon of Quick Casting* (a variant rule) allows you to cast a 1st- or 2nd-level spell as a bonus action, but this isn\u2019t directly tied to twinning. If you\u2019re referring to using a metamagic option like *Heightened Spell* (which boosts a spell\u2019s level), that requires expending a spell sl",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.class.arcane-ward",
+      "category": "class",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The Arcane Ward of a 6th-level abjurer with Intelligence 18 has **16 hit points**.  \n\nHere\u0027s how it works:  \n- At 2nd level, an abjurer (School of Abjuration) creates the ward, which gains hit points equal to **twice their wizard level \u002B Intelligence modifier**.  \n- At 6th level, the ward\u2019s HP calculation remains unchanged. For a 6th-level wizard with an Intelligence of 18 (modifier \u002B4), this totals **2 \u00D7 6 (level) \u002B 4 (Int modifier) = 16 HP**.  \n\nThe ward absorbs damage in place of the caster until it reaches 0 HP, after which the caster takes remaining damage. This calculation is explicitly ",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The Arcane Ward of a 6th-level abjurer with Intelligence 18 has **16 hit points**.  \n\nHere\u0027s how it breaks down:  \n- **Twice your wizard level**: 2 \u00D7 6 = **12**.  \n- **Your Intelligence modifier**: (18 \u2212 10) \u00F7 2 = **\u002B4**.  \n- **Total**: 12 \u002B 4 = **16 HP**.  \n\nThis calculation comes directly from the *Arcane Ward* feature of the School of Abjuration (PHB p. 143). The ward\u2019s HP is determined when you cast an abjuration spell of 1st level or higher, and it regains HP when you cast such spells again. Intelligence modifier applies regardless of your class, as it\u2019s tied to your ability score.",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The Arcane Ward of a 6th-level abjurer with Intelligence 18 has **16 hit points**.  \n\nHere\u0027s how it works:  \n- Starting at 2nd level, the ward\u0027s HP equals **twice your wizard level** (6 \u00D7 2 = **12**) **plus your Intelligence modifier** (18 \u2192 \u002B4).  \n- Total: **12 \u002B 4 = 16 HP**.  \n\nThis calculation is from the *Player Handbook* (p. 104, \u0022Arcane Traditions\u0022). The ward absorbs damage in place of the caster until it reaches 0 HP, after which the caster takes remaining damage. At 6th level, the ward can also absorb damage dealt to allies within 30 feet (as described in the *Player Handbook* p. 104, ",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.class.great-weapon-master",
+      "category": "class",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The **Great Weapon Master** feat (PHB, p. 141) grants the following:  \n- **Attack Penalty**: When using a heavy weapon, you can take a **\u20135 penalty to the attack roll** to gain a significant damage boost.  \n- **Damage Bonus**: If the attack hits, you add **\u002B10 to the damage roll**.  \n\nThis trade-off lets you maximize damage at the cost of accuracy, making it ideal for characters willing to prioritize power over precision.  \n\nThe \u0060ask_rules\u0060 tool results you saw earlier relate to **magic weapon properties** (like \u002B1/\u002B3 bonuses), not the feat itself. The feat\u2019s mechanics are distinct and tied to",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The **Great Weapon Master** feat (PHB, p. 143) provides the following:  \n- **Attack Penalty**: When using a heavy weapon, you can take a **-5 penalty to the attack roll** to gain a significant damage boost.  \n- **Damage Bonus**: If the attack hits, you add **\u002B10 to the damage roll**.  \n\nThis trade-off lets you maximize damage at the cost of attack accuracy, making it ideal for characters prioritizing power over precision. The feat\u2019s text is explicit about these numbers, so no need to infer or guess\u2014just apply the -5 penalty and \u002B10 damage boost as written! \uD83D\uDDE1\uFE0F",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The **Great Weapon Master** feat (PHB, p. 144) offers the following:  \n- **Attack Penalty**: When using a heavy weapon, you can take a **\u22125 penalty to the attack roll** to gain a significant damage boost.  \n- **Damage Bonus**: If the attack hits, you add **\u002B10 to the damage roll**.  \n\nThis trade-off lets you maximize damage at the cost of accuracy, making it ideal for characters prioritizing burst damage. Note that this is distinct from magic weapon bonuses (which are covered in the *Dungeon Master\u2019s Guide*), as the feat\u2019s effects are purely mechanical and not tied to magical properties.",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.class.hexblades-curse",
+      "category": "class",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Against a target under **Hexblade\u0027s Curse**, you score a critical hit on a **d20 roll of 19 or 20** when making an attack against them. This is explicitly stated in the *Xanathar\u2019s Guide to Everything* (XGE) for the Hexblade subclass (p. 14). \n\nHere\u2019s why this works:  \n- The curse grants you a **bonus to damage rolls** against the target and treats **any attack roll** against them as a **critical hit on a 19 or 20**. This overrides the standard critical hit rule (which requires a natural 20) for attacks made while the curse is active.  \n- This effect lasts for 1 minute unless the curse ends (e",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When a target is under *Hexblade\u0027s Curse*, you score a critical hit on a **d20 roll of 19 or 20** against them. This is explicitly stated in the Hexblade subclass feature (XGE, p. 62), which says:  \n\u003E \u0022Any attack roll you make against the cursed target is a critical hit on a roll of 19 or 20 on the d20.\u0022  \n\nThis overrides the usual critical hit rule (natural 20) for attacks made against the cursed target. The curse grants this special condition as part of its mechanics.",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When targeting a creature under your **Hexblade\u0027s Curse**, you score a **critical hit on a d20 roll of 19 or 20**\u2014this is a key effect of the *Hexblade\u0027s Curse* feature (from the *Xanathar\u2019s Guide to Everything*, p. 62). \n\nThis means that **any attack roll** you make against the cursed target automatically counts as a critical hit if you roll a 19 or 20 on the d20. This is distinct from the standard critical hit rule (which requires a natural 20). The curse effectively lowers the critical hit threshold to 19, making it easier to land critical hits against the cursed target. \n\nThis effect lasts",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.class.healer-feat",
+      "category": "class",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The **Healer feat** enhances the use of a **healer\u0027s kit** by allowing you to restore **1d6 \u002B 4 hit points** to a creature, plus **additional hit points equal to the creature\u0027s maximum number of Hit Dice**. This effect is distinct from the base stabilizing action provided by the healer\u0027s kit (which restores 0 hit points but stabilizes a creature). \n\nHere\u2019s the breakdown:  \n- **1d6 \u002B 4**: A die roll (1\u20136) plus a fixed 4.  \n- **Plus max Hit Dice**: The creature\u2019s total Hit Dice (e.g., a 1st-level PC has 1, a 3rd-level PC has 3, etc.).  \n\nThis bonus applies only once per short or long rest, as no",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The **Healer** feat grants the ability to use a healer\u0027s kit to restore hit points beyond just stabilizing a creature. Specifically, when you spend a use of a healer\u0027s kit to \u0022tend to a creature,\u0022 you restore **1d6 \u002B 4 hit points** plus **additional hit points equal to the creature\u0027s maximum number of Hit Dice**. This effect is detailed in the feat\u0027s description (Player\u0027s Handbook, Feats section). \n\nFor example, if the creature has a maximum of 2 Hit Dice, it would regain **1d6 \u002B 4 \u002B 2** hit points from this action. Note that this restoration occurs *once per short or long rest* for the creatu",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "When using the **Healer feat** with a **healer\u0027s kit**, spending one use of the kit restores **1d6 \u002B 4 hit points** to the target, **plus additional hit points equal to the creature\u0027s maximum number of Hit Dice**. This effect is detailed in the *Player\u0027s Handbook* (p. 72, Feats section). \n\nFor example, if a creature has a maximum of 10 Hit Dice, the total restoration would be **1d6 \u002B 4 \u002B 10** (rolling the d6). Note that this restoration cannot be used again until the creature finishes a short or long rest. \n\nThe healer\u0027s kit itself (without the feat) only stabilizes a creature with 0 HP, but t",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.monster.tarrasque",
+      "category": "monster",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **tarrasque** has an **armor class of 25** and an **average of 676 hit points** (from its stat line: 33d20 \u002B 330). These values are listed in the *Monster Manual* (MM), where the tarrasque is described as a gargantuan monstrosity with formidable defensive and offensive capabilities. Its high AC and massive HP reflect its status as one of the game\u2019s most iconic and deadly creatures. \uD83D\uDC09\uD83D\uDCA5",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **tarrasque** has an **armor class of 25** and **average hit points of 676** (as listed in *Monster Manual*). These stats reflect its gargantuan size and formidable resilience, making it one of the most dangerous creatures in the Monster Manual. Its high HP and AC underscore why it\u2019s rated as a CR 30 challenge\u2014ideal for epic encounters! \uD83D\uDC09",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **tarrasque** has an **armor class of 25** and **average hit points of 676** (as listed in *Monster Manual*). These stats reflect its gargantuan size and legendary resilience, making it one of the most formidable creatures in D\u0026D lore. \uD83D\uDC09",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.monster.rakshasa",
+      "category": "monster",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **rakshasa** (from the *Monster Manual*) has specific resistances and vulnerabilities. Here\u0027s the breakdown:\n\n### **Spells That Can\u0027t Affect a Rakshasa**  \n- **Spells of 6th level or lower**: The rakshasa is *immune* to these unless it *wishes to be affected*. This means most common spells (up to 5th level) are ineffective against it.  \n- **Other spells**: It has *advantage on saving throws* against all other spells and magical effects. However, **7th-level or higher spells** might bypass this immunity, though the rules don\u2019t explicitly confirm this. Higher-level spells (e.g., *Wish*, *Div",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **rakshasa** (from *Monster Manual* p. 14) has specific resistances and vulnerabilities:  \n\n### **Spells It Can\u0027t Be Affected By**  \n- **Spells of 6th level or lower**: The rakshasa is immune to these unless it *wishes* to be affected. It also has **advantage on saving throws** against all other spells and magical effects. This makes it highly resistant to most spellcasting, especially lower-level magic.  \n\n### **Damage Vulnerabilities**  \n- **Piercing damage from magic weapons wielded by good creatures**: The rakshasa is vulnerable to this type of damage. This is a critical weakness\u2014using",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Rakshasa have specific resistances and vulnerabilities. From the Monster Manual (MM), they are **immune to all spells of 6th level or lower** unless they willingly accept the effect. They also gain **advantage on saving throws** against all other spells and magical effects. \n\nFor damage, rakshasa are **vulnerable to piercing damage from magic weapons wielded by good creatures**. This is a key weakness, as their resistance to lower-level spells makes them harder to affect magically, but physical attacks from lawful spellcasters can bypass some of their defenses.\n\nNo other specific vulnerabiliti",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.monster.basilisk-or-medusa",
+      "category": "monster",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "search_entities"
+          ],
+          "text": "The **medusa** has the higher petrifying gaze DC. Here\u0027s the breakdown:\n\n- **Basilisk**: Its *Petrifying Gaze* requires a **DC 12 Constitution saving throw** (per the Monster Manual entry). A failed save causes the target to begin turning to stone, with full petrification on a second failed save.\n  \n- **Medusa**: Its *Petrifying Gaze* uses a **DC 14 Constitution saving throw** (also from the Monster Manual). This is more potent, as a failed save by 5 or more instantly petrifies the target, while a lesser failure leads to gradual petrification.\n\nThe medusa\u0027s DC is higher (14 vs. 12), making its",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The **Medusa** has the higher saving throw DC for its petrifying gaze. Here are the exact DCs:\n\n- **Basilisk**: DC 12 Constitution saving throw (per *Monster Manual* p. 14).  \n- **Medusa**: DC 14 Constitution saving throw (per *Monster Manual* p. 14).  \n\nThe Medusa\u2019s higher DC reflects its greater challenge rating (CR 6 vs. CR 3 for the Basilisk) and stronger stats. Both abilities function similarly, requiring a successful save to avoid petrification, but the Medusa\u2019s gaze is more dangerous due to the higher DC.",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "search_entities"
+          ],
+          "text": "The **Medusa** has a higher saving throw DC for its petrifying gaze compared to the **Basilisk**.  \n\n- **Basilisk**: Its *Petrifying Gaze* requires a **DC 12 Constitution saving throw** (per the Monster Manual entry).  \n- **Medusa**: Its *Petrifying Gaze* demands a **DC 14 Constitution saving throw** (also from the Monster Manual and confirmed in the GGR supplement).  \n\nThe Medusa\u2019s higher DC reflects its greater threat level, as it\u2019s a CR 6 monster versus the Basilisk\u2019s CR 3. Both abilities function similarly, but the Medusa\u2019s gaze is more potent, requiring a tougher save to resist. \uD83D\uDC0D\uD83D\uDC41\uFE0F",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.monster.intellect-devourer",
+      "category": "monster",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When a creature fails a save against the **Devour Intellect** ability of an *Intellect Devourer* (a Tiny aberration), the mechanics follow standard D\u0026D saving throw rules. Here\u0027s the breakdown:\n\n1. **Dice Rolled**: A **d20** is rolled, as all saving throws and ability checks use this die.  \n2. **Ability Score Compared**: The roll is compared to a **DC** (Difficulty Class) determined by the *Intellect Devourer*\u2019s stat block. While the exact DC isn\u2019t specified in the provided monster entry, typical DCs for such abilities often target **Wisdom** (for mental resistance) or **Intelligence** (for in",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When a creature fails a saving throw against the **Intellect Devourer\u0027s** ability (assuming it refers to a specific saving throw mechanic, such as a spell or trait), the standard D\u0026D rules apply: a **d20** is rolled, and the result is compared to the target\u0027s **ability modifier** tied to the saving throw. \n\nHowever, the provided search results do not explicitly detail the \u0022Devour Intellect\u0022 ability\u0027s mechanics. The Intellect Devourer\u0027s traits only mention **Detect Sentience** (a passive ability to sense creatures), not a specific saving throw or attack. If this refers to a custom or homebrew a",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "When a creature fails a saving throw against the **Intellect Devourer\u0027s** *Devour Intellect* ability (a trait of the monster), the following occurs:\n\n- **Dice rolled**: A **d20** is rolled, as all saving throws in D\u0026D 5e use a 20-sided die.  \n- **Ability score compared**: The **Wisdom** saving throw is used, as the ability involves detecting sentience (a Wisdom-based check in the game).  \n\nThe save DC is determined by the Intellect Devourer\u0027s **Wisdom modifier** plus a bonus (typically \u002B3 for a CR 2 monster, as per its stat block). If the roll equals or exceeds the DC, the creature resists the",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.monster.demogorgon",
+      "category": "monster",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "In *Mordenkainen\u0027s Tome of Foes*, **Demogorgon** has an **AC of 22** and **average hit points of 406** (listed as 28d12 \u002B 224). These stats are explicitly detailed in the monster\u0027s entry under the source book. \n\nFor context, there\u2019s also a variant of Demogorgon in *Monster Manual 2* (MPMM) with slightly different stats (AC 22, HP 464), but the version from *Mordenkainen\u0027s Tome of Foes* is the one referenced here. Let me know if you\u0027d like further details! \uD83E\uDDD9\u200D\u2642\uFE0F\uD83D\uDDE1\uFE0F",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "In *Mordenkainen\u0027s Tome of Foes*, the **Demogorgon** (from the MTF entry) has:  \n- **Armor Class (AC): 22**  \n- **Average Hit Points (HP): 406** (calculated as 28d12 \u002B 224).  \n\nThis version of the monster matches the source book specified, and its stats are detailed in the provided text. Let me know if you need further clarification! \uD83E\uDDD9\u200D\u2642\uFE0F\uD83D\uDDE1\uFE0F",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "In *Mordenkainen\u0027s Tome of Foes*, **Demogorgon** has an **armor class of 22** and an **average of 406 hit points** (28d12 \u002B 224). These stats are detailed in the entry for the *MTF* source book, which is the correct edition for this monster. The entry also notes Demogorgon\u0027s formidable traits, like legendary resistance, magic resistance, and its ability to use its gaze to impose debilitating effects on targets.",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.monster.balor-death",
+      "category": "monster",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "When a **Balor** (from the *Monster Manual*) dies, it explodes, affecting creatures within **30 feet** of its corpse. Each creature in that radius must make a **DC 20 Dexterity saving throw**. On a failed save, they take **70 fire damage (20d6)**, or half as much on a successful save. The explosion also ignites flammable objects in the area and destroys the balor\u0027s weapons. \n\nThis effect is explicitly detailed in the *Monster Manual* (p. 14), under the Balor\u0027s \u0022Death Throes\u0022 trait.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "When a **balor** dies, it explodes, affecting creatures within **30 feet** of its corpse. Each creature in that radius must make a **DC 20 Dexterity saving throw**. On a failed save, they take **70 (20d6) fire damage**, while a successful save reduces the damage to **half** (35). The explosion also ignites flammable objects in the area (not being worn or carried) and destroys the balor\u0027s weapons. \n\nThis effect is explicitly detailed in the *Monster Manual* (MM p. 14) under the balor\u0027s \u0022Death Throes\u0022 trait. No other balor variant (like *Balhannoth* or *Graz\u0027zt*) has this specific death effect.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "When a **balor** dies, it explodes, affecting creatures within **30 feet** of its corpse. Each creature in that area must make a **DC 20 Dexterity saving throw**. On a failed save, they take **70 (20d6) fire damage**; on a successful save, they take half damage. The explosion also ignites flammable objects in the area (that aren\u2019t being worn or carried) and destroys the balor\u2019s weapons. \n\nThis effect is detailed in the *Monster Manual* (MM, p. 14) under the balor\u2019s \u0022Death Throes\u0022 trait. The save DC is tied to the balor\u2019s Dexterity modifier (which is 15 in its stat block), so the DC is calculat",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.monster.niv-mizzet",
+      "category": "monster",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "Niv-Mizzet, the gargantuan dragon from Ravnica, has a **challenge rating of CR 26** and **370 hit points** (19d20 \u002B 171). These stats are detailed in the *Guildhall Guide* (GGR), which is part of the Ravnica setting\u0027s source material. Its immense power reflects its status as a legendary threat, capable of devastating encounters with spells like *prismatic wall* and *fire breath* (dealing 91 fire damage in a cone). While the search results also include other high-CR monsters like Zariel (CR 26), Niv-Mizzet stands out as a unique, dragon-themed apex predator in the plane\u0027s lore.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "Niv-Mizzet, the legendary dragon from Ravnica (source: *Guild Guide to Ravnica*), has a **challenge rating of 26** and **average hit points of 370** (19d20 \u002B 171). His high CR reflects his immense power as a 20th-level Izzet spellcaster with abilities like legendary resistance, magic resistance, and devastating spells like *fireball* and *prismatic wall*. This makes him a boss-level threat, typically encountered in high-level adventures or as a major plot point in Ravnica\u0027s lore.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "Niv-Mizzet, the gargantuan dragon from Ravnica, has a **challenge rating (CR) of 26** and **average hit points (HP) of 370**. These values are derived from its stat block, which specifies **HP 370 (19d20 \u002B 171)**. Its CR of 26 reflects its immense power as a legendary creature, matching its 20th-level Izzet spellcasting ability and devastating abilities like *Fire Breath* (dealing 91 fire damage in a cone). While the *GGR* (Guildhall Guide) sourcebook lists it, it\u2019s part of Ravnica\u2019s lore, making it a fitting encounter for high-level campaigns. \uD83D\uDC09\uD83D\uDD25",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.item.bag-of-holding",
+      "category": "item",
+      "tag": "manual",
+      "passes": 2,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "wrong-tool-data",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A **Bag of Holding** can hold up to **500 pounds of weight** and **64 cubic feet of volume**, according to the *Dungeon Master\u2019s Guide* (p. 142). The bag itself weighs **15 pounds**, regardless of its contents. If overloaded, pierced, or torn, it ruptures and is destroyed, scattering its contents to the Astral Plane. Be careful not to exceed these limits\u2014overloading risks losing your gear forever! \uD83C\uDF92\u2728",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The search results don\u2019t include a \u0022bag of holding\u0022 entry, which suggests it might not be a standard item in the PHB or the search scope. However, based on common D\u0026D lore, a **bag of holding** is a magical item that can contain *up to 100 cubic feet* of space (enough to hold a small animal or a large object) and has a **weight capacity of 500 pounds**\u2014but its contents feel lighter due to the magic. It\u2019s often described as a \u0022bag\u0022 with a handle, and its weight is typically 1 pound when empty. \n\nIf you\u2019re looking for precise rules text, you might need to check *Xanathar\u2019s Guide to Everything* o",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "A **Bag of Holding** can hold up to **500 pounds of weight** and **64 cubic feet of volume**, according to the *Dungeon Master\u2019s Guide* (DMG p. 140). The bag itself weighs **15 pounds**, regardless of its contents. \n\nHere\u2019s a quick breakdown:\n- **Weight Capacity**: 500 pounds (this includes both physical objects and, in rare cases, creatures, though creatures risk suffocating if trapped for too long).\n- **Volume Capacity**: 64 cubic feet (so you could fit a small room\u2019s worth of items, but not a living creature for extended periods).\n- **Overload Risk**: If the bag is overloaded, pierced, or t",
+          "appSearched": true
+        }
+      ]
+    },
+    {
+      "id": "ref.item.portable-hole-in-bag",
+      "category": "item",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "Putting a portable hole inside a bag of holding triggers a catastrophic interaction described in the *Dungeon Master\u0027s Guide* (2014). Both items are **instantly destroyed** when one is placed inside the extradimensional space of the other. This action also **opens a one-way gate to the Astral Plane** at the location where the items were placed. Any creature within 10 feet of the gate is **sucked through to a random location on the Astral Plane**, and the gate closes permanently\u2014meaning it can\u2019t be reopened. \n\nThis outcome applies regardless of which item is placed inside the other (bag of hold",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "Putting a portable hole inside a bag of holding triggers a catastrophic interaction described in the *Dungeon Master\u0027s Guide* (2014, Magic Items section). Both items are instantly destroyed, and a one-way gate to the Astral Plane opens at the location where the portable hole was placed inside the bag of holding. Any creature within 10 feet of the gate is forcibly pulled through to a random location on the Astral Plane, where they emerge unconscious. The gate closes immediately and cannot be reopened. \n\nThis outcome is specific to the interaction between these two items\u2014placing one inside the o",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "Putting a portable hole inside a bag of holding (or vice versa) triggers a catastrophic interaction. According to the rules in *Dungeon Master\u0027s Guide 2014* (Magic Items section), **both items are instantly destroyed** when one is placed inside the extradimensional space of the other. This action also **opens a one-way gate to the Astral Plane** at the location where the items were combined. \n\nHere\u2019s what happens next:\n- **Creatures within 10 feet of the gate** are violently sucked through it and deposited in a random location on the Astral Plane. \n- The gate closes immediately and **cannot be",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.item.staff-of-power",
+      "category": "item",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Staff of Power** has **20 charges** and regains **2d8 \u002B 4 charges** each dawn. These details are explicitly stated in its description from the *Dungeon Master\u0027s Guide* (DMG), which outlines how the staff functions and its daily recharge mechanic. Be sure to note that expending all charges carries a risk of losing some properties or gaining additional charges on a critical roll! \uD83E\uDE93",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Staff of Power** has **20 charges** initially. Each dawn, it regains **2d8 \u002B 4 charges**. This regeneration happens automatically, and if you expend the last charge, there\u2019s a chance to either lose some properties or gain extra charges depending on the roll. Let me know if you\u2019d like help calculating the average daily regain! \uD83E\uDE84",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Staff of Power** (from the *Dungeon Master\u0027s Guide*) has **20 charges** initially. Each dawn, it regains **2d8 \u002B 4** charges. This means the number of charges restored each day varies based on the dice roll, ranging from 6 (if all d8s roll 1) to 16 (if all d8s roll 8). If you expend the last charge, there\u0027s a chance to lose some properties or gain extra charges (as detailed in the item\u0027s description). Always consult the *Dungeon Master\u0027s Guide* for full rules! \uD83E\uDE84",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.item.spell-storing",
+      "category": "item",
+      "tag": "manual",
+      "passes": 2,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities",
+            "ask_rules"
+          ],
+          "text": "The **Ring of Spell Storing** can hold up to **5 levels worth of spells** at a time, as explicitly stated in the *Dungeon Master\u0027s Guide* (2014 edition). When you attune to the ring, it stores spells cast into it (via touch during casting), and the total capacity is calculated by summing the levels of spells stored. For example, you could store one 5th-level spell, or a combination like a 4th- and 1st-level spell (totaling 5 levels). The ring frees up space when you cast a stored spell, and its capacity is separate from your own spell slots. This makes it a versatile tool for managing spell st",
+          "appSearched": true
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Ring of Spell Storing** can hold up to **5 levels worth of spells** at a time, as stated in its description from the *Dungeon Master\u0027s Guide* (DMG). When stored, the spells occupy space based on the level of the slot used to cast them, and the ring frees up space when you cast a stored spell. This limit applies to the total levels stored, not the number of individual spells.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The *ring of spell storing* isn\u2019t listed in the *Player\u2019s Handbook* or *Dungeon Master\u2019s Guide* in the search results provided. This might mean it\u2019s from a supplement, homebrew, or a different edition. If you\u2019re referring to a standard magic item, the **ring of spell storing** (from *Xanathar\u2019s Guide to Everything* or similar sources) typically allows you to store **one spell of each level** (1st through 5th) in its gem slots. However, without a direct lookup, I can\u2019t confirm the exact rules for this specific item. Check the source material or provide more context!",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.lore.lightning-rail",
+      "category": "lore",
+      "tag": "manual",
+      "passes": 1,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-answer",
+        "pass",
+        "wrong-answer"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "In Eberron, the **House Orien** operates the **lightning rail**. This house carries the **Mark of Handling**, a dragonmark associated with logistics, transportation, and efficient systems\u2014perfect for managing a vast magical rail network. While House Cannith is heavily involved in building the rail\u0027s infrastructure (like crafting the cars and laying tracks), the operational control of the rail falls to House Orien. The Mark of Handling reflects their expertise in coordinating complex logistical networks, making them the natural stewards of the lightning rail\u0027s daily operations.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "In Eberron, the **House Orien** operates the **lightning rail**, and the associated dragonmark is the **Mark of Passage**. \n\nThe lightning rail is a critical part of Khorvaire\u0027s infrastructure, and while House Orien oversees its operation, the rail\u0027s construction and maintenance are handled by **House Cannith**, which provides the technology and materials (like the everbright lanterns mentioned in the lore). The Mark of Passage is tied to House Orien, granting its heirs the ability to control and optimize transportation networks, including the lightning rail. This connection is highlighted in ",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "In Eberron, the **lightning rail is operated by House Orien**, which carries the **Mark of Handling**. This dragonmark grants its bearers the ability to manipulate objects, aligning with Orien\u2019s role in logistics and transportation. While House Cannith is heavily involved in building the rail\u2019s infrastructure (like constructing the trains and laying tracks), the operational control of the rail network lies with Orien. This division reflects the houses\u2019 intertwined yet distinct roles in Khorvaire\u2019s magical infrastructure. The Mark of Handling also ties into Orien\u2019s broader influence over mail d",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.lore.lamordia",
+      "category": "lore",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "The Darklord of Lamordia in *Ravenloft* is **Dr. Viktra Mordenheim**, as detailed in *Van Richten\u0027s Guide to Ravenloft* (section **NEUFURCHTENBURG**). She is depicted as a malevolent ruler whose ambitions and exploitation of Lamordia\u0027s resources have led to widespread suffering. \n\nA later passage mentions **Baron von Aubrecker** as the ruler of Lamordia, but this seems to describe a different context or possibly a confusion with another domain. The primary and most direct answer points to Dr. Mordenheim as the Darklord, aligning with the explicit mention in the source. For deeper lore, *Van Ri",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "The Darklord of Lamordia in *Ravenloft* is **Dr. Viktra Mordenheim**, as detailed in *Van Richten\u0027s Guide to Ravenloft* (section NEUFURCHTENBURG). She is a central antagonist in the domain\u0027s lore, known for her ruthless exploitation of Lamordia\u0027s resources and her occult experiments. \n\nInterestingly, the same source also mentions **Baron von Aubrecker** as the domain\u0027s ruler, though he remains isolated in his estate, issuing proclamations from afar. This distinction highlights the complex power dynamics within Lamordia, where the Darklord (Mordenheim) and the nominal ruler (Aubrecker) may not ",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "In *Van Richten\u0027s Guide to Ravenloft*, the Darklord of Lamordia is **Dr. Viktra Mordenheim**, a scientist whose insatiable curiosity and unethical experiments bound her soul to the domain. Her ambition to unlock the secrets of existence led to the creation of Lamordia, a place where flesh is both a resource and a prison. Mordenheim\u0027s domain twists her obsession into eternal torment, reflecting her hubris. This detail appears in the *LOST TATYANA* section (p. 5 of the guide).",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.lore.first-world",
+      "category": "lore",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "In *Fizban\u0027s Treasury of Dragons*, the creation of the First World is attributed to **Bahamut** and **Tiamat**, the primordial dragons described as the closest things to gods among dragonkind. The text states they are \u0022the purported creators of the First World\u0022 and shares their ontological distinction from Outer Plane gods while acknowledging their divine-like influence over mortal worship and reality. This answer is directly drawn from the book\u0027s own mythos, which positions them as the foundational deities of the Material Plane\u0027s earliest era.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "In *Fizban\u0027s Treasury of Dragons*, the creation of the First World is attributed to **Bahamut** and **Tiamat**, the primordial dragons depicted as \u0022the closest things to gods among dragonkind.\u0022 The text describes them as the purported creators of the First World, with their severed halves becoming the two primordial dragons after Io\u0027s demise. While another legend mentions Io as a creator figure, the direct answer to your question hinges on the passage from *Fizban\u0027s Treasury of Dragons* itself, which explicitly names Bahamut and Tiamat as the creators of the First World.",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "According to *Fizban\u0027s Treasury of Dragons*, the First World was created by **Bahamut** and **Tiamat**, the primordial dragons depicted as the closest things to gods among dragonkind. The text describes them as the \u0022purported creators of the First World\u0022 and notes their divine-like status, including their ability to grant cleric spells and their ageless immortality. While other myths (like the *Sword Coast Adventurer\u0027s Guide* legend involving Io) offer alternate origin stories, the direct answer to your question is Bahamut and Tiamat.",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.lore.shadar-kai",
+      "category": "lore",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "The **shadar-kai** serve **the Raven Queen**, the god of death and memory, as detailed in *Mordenkainen\u0027s Tome of Foes* and *Mordenkainen Presents: Monsters of the Multiverse*. They dwell in the **Shadowfell**, a plane of eternal twilight and melancholy, where they exist in a liminal state between life and death. Their connection to the Raven Queen is so profound that they view death not as an end but as a temporary condition, with their souls being reclaimed by her after death and resurrected to serve her again. While some shadar-kai have ventured into the Material Plane, their true home rema",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "The **shadar-kai** serve the **Raven Queen**, the god of death and memory in the *Forgotten Realms*. They dwell in the **Shadowfell**, a plane of darkness and melancholy where they were originally drawn by the Raven Queen\u2019s influence. Over time, many became bound to her service, existing in a liminal state between life and death. Their communities in the Shadowfell reflect their undead-like existence, perpetually tied to the Raven Queen\u2019s will. This lore is detailed in *Mordenkainen Presents: Monsters of the Multiverse* and *Mordenkainen\u0027s Tome of Foes*. \uD83D\uDD6F\uFE0F",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "The **Shadar-kai** serve **the Raven Queen**, the god of death and memory, and they dwell in the **Shadowfell**\u2014a plane of eternal twilight and sorrow. According to *Mordenkainen Presents: Monsters of the Multiverse*, they were originally drawn to the Shadowfell by the Raven Queen, and while some remain bound to her service, others have ventured into the Material Plane. Their existence is tied to the Shadowfell\u2019s bleak environment, both physically and mentally, as noted in *Mordenkainen\u0027s Tome of Foes*. They are also linked to the **Fortress of Memories**, a location within the Shadowfell wher",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.lore.rakdos-founder",
+      "category": "lore",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "The Cult of Rakdos on Ravnica was founded by **Rakdos**, a **demon lord** described in *Guildmasters\u0027 Guide to Ravnica* (Cult of Rakdos section). As a demonic entity, Rakdos embodies depraved impulses like cruelty and lust for power, and he is explicitly labeled a \u0022demon lord\u0022 in the Bestiary section of the same source. His cult blends performance with destruction, reflecting his penchant for chaos and entertainment. While Rakdos is a supernatural being, the cult itself operates as a guild under the Guildpact, highlighting the complex relationship between Ravnica\u2019s demonic founder and its soci",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "The Cult of Rakdos on Ravnica was founded by **Rakdos**, a **demon lord** who is one of Ravnica\u2019s original guild founders. As detailed in *Guildmasters\u0027 Guide to Ravnica*, Rakdos is a being of immense power, embodying depraved impulses like cruelty, greed, and lust for domination. He is described as a capricious and megalomaniacal figure who finds destruction and chaos entertaining, traits that his cultists emulate in their performances. \n\nRakdos\u2019s influence extends beyond the cult: he is said to have created many of Ravnica\u2019s demons, much like the Boros Legion\u2019s founder created angels. His pr",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore"
+          ],
+          "text": "The Cult of Rakdos on Ravnica was founded by **Rakdos**, a **demon lord** who is one of Ravnica\u0027s original guild founders. As described in *Guildmasters\u0027 Guide to Ravnica*, Rakdos is a being of immense power, embodying depraved impulses like cruelty, greed, and a lust for domination. He is portrayed as a capricious and megalomaniacal figure who finds destruction and chaos entertaining, traits that his cultists emulate in their performances. \n\nRakdos\u2019s role in Ravnica is unique: though a demonic entity, he is treated as a sanctioned part of the world\u2019s social fabric due to the Guildpact, which ",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.not-found.spell",
+      "category": "not-found",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "It seems there might be a mix-up with the spell name! After checking standard D\u0026D 5e sources, there is no spell called **\u0022Morvane\u0027s Echoing Gale\u0022** in the Player\u0027s Handbook, Xanathar\u0027s Guide to Everything, or other official spell lists. However, there are a few similar spells that might be of interest:\n\n1. **Gust of Wind** (PHB, 2nd-level Evocation)  \n   - **Range**: 60 feet (a 60-foot line)  \n   - **Effect**: Creates a gust that pushes creatures and disrupts flames.\n\n2. **Warding Wind** (XGE/Elemental Evil Player\u2019s Companion, 2nd-level Evocation)  \n   - **Range**: Point (a 10-foot radius arou",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The spell \u0022Morvane\u0027s Echoing Gale\u0022 does not appear in standard D\u0026D 5e sources like the *Player\u0027s Handbook* (PHB), *Xanathar\u0027s Guide to Everything* (XGE), or other core books. A similar spell is **Gust of Wind** (PHB, 2nd-level Evocation), which has a **60-foot range** and is cast as an action. \n\nIf \u0022Morvane\u0027s Echoing Gale\u0022 is from a homebrew source, supplement, or custom material, you\u2019ll need to check that specific book or campaign materials for details. Let me know if you\u2019d like help verifying a similar spell or its mechanics!",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The spell \u0022Morvane\u0027s Echoing Gale\u0022 does not appear in standard D\u0026D 5e materials like the Player\u0027s Handbook, Xanathar\u0027s Guide to Everything, or other core sources. Based on the search results, there\u2019s no match for this exact name. The closest spells are **Gust of Wind** (a 2nd-level Evocation spell with a 60-foot range) and **Warding Wind** (also 2nd-level, with a point range). If this is a homebrew spell or from a specific source (like a supplement or adventure module), you\u2019ll need to provide more context for accurate details. Let me know if you\u2019d like help refining your search!",
+          "appSearched": false
+        }
+      ]
+    },
+    {
+      "id": "ref.not-found.item",
+      "category": "not-found",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The *Crown of the Forgotten Tide* isn\u2019t listed in the available magic-item data, but here are two similar crowns that require attunement:\n\n1. **Crown of the Wrath Bringer** (Rare, Wondrous Item)  \n   - **Requires attunement**.  \n   - Grants a psychic damage boost on hits and lets you cast *fear* (1 minute duration) once per dawn.  \n\n2. **Belashyrra\u2019s Beholder Crown** (Legendary, Wondrous Item)  \n   - **Requires attunement**.  \n   - Lets you cast spells (e.g., *fear*, *disintegrate*) with charges, see in darkness, and has a symbiotic bond with the wearer.  \n\nIf you\u2019re referring to a specific ho",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Crown of the Forgotten Tide** isn\u2019t listed in the search results, so I don\u2019t have its exact description or attunement requirements from official sources. However, based on similar magic crowns in the results (like *Crown of the Wrath Bringer* and *Belashyrra\u2019s Beholder Crown*), it\u2019s **highly likely** this item requires attunement, as is common for rare or legendary wondrous items. \n\nIf this item is from a specific supplement or homebrew content, you might need to consult that source for details. Generally, crowns with powerful effects (like fear spells, damage bonuses, or curse effects) ",
+          "appSearched": false
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The *Crown of the Forgotten Tide* doesn\u2019t appear in standard D\u0026D 5e materials like the *Player\u2019s Handbook*, *Dungeon Master\u2019s Guide*, or *Monster Manual*. It might be a homebrew item, a specific adventure module\u2019s reward, or from a third-party source. Without additional context or the item\u2019s full description, I can\u2019t confirm whether it requires attunement or its abilities. If you have the source material (e.g., a campaign book, adventure, or homebrew document) that describes this crown, sharing its text would help clarify its rules!",
+          "appSearched": false
+        }
+      ]
+    }
+  ],
+  "passedByCategory": {
+    "rules": 15,
+    "spell": 8,
+    "class": 5,
+    "monster": 6,
+    "item": 4,
+    "lore": 4,
+    "not-found": 2
+  },
+  "totalByCategory": {
+    "rules": 17,
+    "spell": 8,
+    "class": 7,
+    "monster": 7,
+    "item": 4,
+    "lore": 5,
+    "not-found": 2
+  },
+  "infraErrors": 2
+}
