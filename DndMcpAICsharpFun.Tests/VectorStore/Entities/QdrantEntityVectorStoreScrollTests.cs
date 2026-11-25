@@ -39,7 +39,7 @@ public sealed class QdrantEntityVectorStoreScrollTests : IAsyncLifetime
         {
             await _client.CreateCollectionAsync(
                 CollectionName,
-                new VectorParams { Size = 4, Distance = Distance.Cosine });
+                QdrantEntityVectorStore.VectorParams(4));
         }
 
         var options = Options.Create(new QdrantOptions { EntitiesCollectionName = CollectionName });

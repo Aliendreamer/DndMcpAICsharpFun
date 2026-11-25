@@ -1,4 +1,5 @@
 using DndMcpAICsharpFun.Features.Embedding;
+using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 using DndMcpAICsharpFun.Infrastructure.Qdrant;
@@ -69,18 +70,24 @@ public sealed class FusedRetrievalService(
         // per-channel (audit P3, retrieval-qdrant.md finding 3).
         var shouldRerank = _reranker.Enabled && (_reranker.RerankBlocks || _reranker.RerankEntities);
         if (!shouldRerank)
-            return all.Take(topK).ToList();
+            return [.. all.Take(topK).Select(c => Shown(c, EntityTextPieces.Split(c.Text)[0]))];
 
         // Rerank the union
-        var reranked = await rerankingService.RerankAsync(
+        var reranked = await rerankingService.RerankByPieceAsync(
             query,
             (IReadOnlyList<FusedCandidate>)all,
             static c => c.Text,
             topK,
             ct);
 
-        return reranked;
+        return [.. reranked.Select(r => Shown(r.Candidate, r.Best))];
     }
+
+    /// <summary>Longest text returned per result; get_entity returns an entity whole.</summary>
+    private const int MaxResultChars = 3000;
+
+    private static FusedCandidate Shown(FusedCandidate c, TextPiece best) =>
+        c with { Text = EntityTextPieces.Window(c.Text, best, MaxResultChars) };
 
     private async Task<List<FusedCandidate>> FetchProseAsync(
         float[] vector, ulong limit, CancellationToken ct, string queryText = "")

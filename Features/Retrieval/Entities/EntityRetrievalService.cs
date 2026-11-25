@@ -161,9 +161,9 @@ public sealed class EntityRetrievalService(
         {
             var poolSize = Math.Min(_rerankerOpts.CandidatePoolSize, _retrieval.MaxTopK);
             var pool = (IReadOnlyList<EntitySearchHit>)await store.SearchAsync(vector, filters, poolSize, ct);
-            var reranked = await rerankingService.RerankAsync<EntitySearchHit>(
+            var reranked = await rerankingService.RerankByPieceAsync(
                 q.QueryText, pool, h => h.Envelope.CanonicalText, topK, ct);
-            return reranked.ToList();
+            return reranked.Select(r => r.Candidate).ToList();
         }
 
         var vectorResults = await store.SearchAsync(vector, filters, topK, ct);

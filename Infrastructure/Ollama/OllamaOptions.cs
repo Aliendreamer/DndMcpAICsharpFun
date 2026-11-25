@@ -12,6 +12,13 @@ public sealed class OllamaOptions
     public string ChatModel { get; set; } = "qwen3:8b";
 
     /// <summary>
+    /// The chat model's context (num_ctx): persona, tools, history, tool results and the answer. Ollama's own default on
+    /// an 8 GB GPU is 4096, which five long search results fill alone.
+    /// </summary>
+    [Range(2048, 131072)]
+    public int ChatContextTokens { get; set; } = 8192;
+
+    /// <summary>
     /// Per-call timeout (seconds) for a single extraction/grounding chat generation. The extraction
     /// OllamaApiClient uses an infinite HttpClient timeout (model cold-start can take minutes), so a
     /// hung generation would otherwise block the whole run forever with no checkpoint progress — a

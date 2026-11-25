@@ -45,9 +45,11 @@ public sealed class EntityCanonicalTextDispatcher(ILogger<EntityCanonicalTextDis
     {
         try
         {
-            return envelope.Type switch
+            // Monster renders its whole stat block itself.
+            if (envelope.Type == EntityType.Monster)
+                return _monsterR.Render(envelope.Name, _loader.DeserialiseFields<MonsterFields>(envelope));
+            var rendered = envelope.Type switch
             {
-                EntityType.Monster => _monsterR.Render(envelope.Name, _loader.DeserialiseFields<MonsterFields>(envelope)),
                 EntityType.Spell => _spellR.Render(envelope.Name, _loader.DeserialiseFields<SpellFields>(envelope)),
                 EntityType.Class => _classR.Render(envelope.Name, _loader.DeserialiseFields<ClassFields>(envelope)),
                 EntityType.Subclass => _subclassR.Render(envelope.Name, _loader.DeserialiseFields<SubclassFields>(envelope)),
@@ -55,6 +57,10 @@ public sealed class EntityCanonicalTextDispatcher(ILogger<EntityCanonicalTextDis
                 _ when _simpleRenderers.TryGetValue(envelope.Type, out var r) => r.Render(envelope.Name, envelope.Fields),
                 _ => envelope.CanonicalText,
             };
+            var full = EntityFullText.Complete(rendered, envelope.Fields);
+            return envelope.DataSource == DataSources.Programmatic && !string.IsNullOrWhiteSpace(envelope.CanonicalText)
+                ? EntityFullText.AppendPrinted(full, envelope.CanonicalText)
+                : full;
         }
         catch (Exception ex)
         {

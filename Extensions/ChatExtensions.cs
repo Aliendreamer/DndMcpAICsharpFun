@@ -9,6 +9,7 @@ using DndMcpAICsharpFun.Features.SessionPrep;
 using Microsoft.Extensions.AI;
 
 using OllamaSharp;
+using OllamaSharp.Models;
 
 namespace DndMcpAICsharpFun.Extensions;
 
@@ -49,8 +50,7 @@ internal static class ChatExtensions
             // long tool-calling turns (the level-up coach) off mid-answer.
             var chatHttp = Infrastructure.Http.LongRunningHttpClient.Create(
                 new Uri(baseUrl), config.GetValue("Ollama:ChatTimeoutSeconds", 600));
-            IChatClient inner = new OllamaApiClient(chatHttp, chatModel);
-            return inner.AsBuilder().UseFunctionInvocation().Build();
+            return BuildChatClient(chatHttp, chatModel, config.GetValue("Ollama:ChatContextTokens", 8192));
         });
         // chat-query-router: pre-LLM tool-set narrowing. Options bind from "ChatQueryRouter"
         // (env overrides live; appsettings git-crypt-masked). ExemplarIndex is a singleton so the
@@ -63,5 +63,18 @@ internal static class ChatExtensions
         services.AddScoped<Features.Admin.IEvalTurnRunner, Features.Admin.DndChatEvalTurnRunner>();
         services.AddScoped<Features.Admin.IEvalUserResolver, Features.Admin.RepositoryEvalUserResolver>();
         return services;
+    }
+
+    /// <summary>
+    /// The chat's model client: tool calls run in-process, and every request (tool rounds too) asks for
+    /// <paramref name="contextTokens"/> of context instead of Ollama's GPU-based default.
+    /// </summary>
+    internal static IChatClient BuildChatClient(HttpClient http, string model, int contextTokens)
+    {
+        IChatClient inner = new OllamaApiClient(http, model);
+        return inner.AsBuilder()
+            .UseFunctionInvocation()
+            .ConfigureOptions(o => o.AddOllamaOption(OllamaOption.NumCtx, contextTokens))
+            .Build();
     }
 }

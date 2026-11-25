@@ -53,7 +53,7 @@ public sealed class RaceAbilityFilterIntegrationTests : IAsyncLifetime
 
         await _client.CreateCollectionAsync(
             _collectionName,
-            new VectorParams { Size = VectorSize, Distance = Distance.Cosine });
+            QdrantEntityVectorStore.VectorParams(VectorSize));
 
         // Mirrors QdrantCollectionInitializer.CreateEntityPayloadIndexesAsync for the field this
         // test's forced Race filter actually touches (Type), so the real filter behaves exactly

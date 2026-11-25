@@ -53,7 +53,7 @@ public sealed class EntityOptionProviderIntegrationTests : IAsyncLifetime
 
         await _client.CreateCollectionAsync(
             _collectionName,
-            new VectorParams { Size = VectorSize, Distance = Distance.Cosine });
+            QdrantEntityVectorStore.VectorParams(VectorSize));
 
         // Mirrors QdrantCollectionInitializer.CreateEntityPayloadIndexesAsync for the fields this
         // test's filters actually touch (type/edition), so the real filter behaves exactly as it

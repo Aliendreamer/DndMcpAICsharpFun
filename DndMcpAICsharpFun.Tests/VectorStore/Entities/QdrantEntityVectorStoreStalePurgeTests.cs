@@ -27,7 +27,7 @@ public sealed class QdrantEntityVectorStoreStalePurgeTests(QdrantFixture fixture
         var grpc = new Uri(fixture.Container.GetGrpcConnectionString());
         _client = new QdrantClient(grpc.Host, grpc.Port);
         if (!await _client.CollectionExistsAsync(CollectionName))
-            await _client.CreateCollectionAsync(CollectionName, new VectorParams { Size = 4, Distance = Distance.Cosine });
+            await _client.CreateCollectionAsync(CollectionName, QdrantEntityVectorStore.VectorParams(4));
         _store = new QdrantEntityVectorStore(_client, Options.Create(new QdrantOptions { EntitiesCollectionName = CollectionName }));
     }
 

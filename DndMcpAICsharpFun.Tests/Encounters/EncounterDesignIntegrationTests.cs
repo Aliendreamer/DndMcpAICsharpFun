@@ -58,7 +58,7 @@ public sealed class EncounterDesignIntegrationTests : IAsyncLifetime
 
         await _client.CreateCollectionAsync(
             _collectionName,
-            new VectorParams { Size = VectorSize, Distance = Distance.Cosine });
+            QdrantEntityVectorStore.VectorParams(VectorSize));
 
         // Mirrors QdrantCollectionInitializer.CreateEntityPayloadIndexesAsync for the fields
         // EntitySearchMonsterSource's filter actually touches (type/edition/CR range), so the

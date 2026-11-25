@@ -106,14 +106,10 @@ public sealed class FivetoolsIngestionService(
             }
         }).ToList();
 
-        var texts = renderedEnvelopes.Select(e => e.CanonicalText).ToList();
-        IList<float[]> vectors = texts.Count == 0
-            ? Array.Empty<float[]>()
-            : await embeddings.EmbedAsync(texts, ct);
-
-        if (vectors.Count != renderedEnvelopes.Count)
-            throw new InvalidOperationException(
-                $"EmbedAsync returned {vectors.Count} vectors for {renderedEnvelopes.Count} texts.");
+        var pieces = renderedEnvelopes
+            .Select(e => EntityTextPieces.ForEmbedding(e.Name, e.Type.ToString(), e.CanonicalText, e.Notes, []))
+            .ToList();
+        var vectors = await EntityPieceEmbedding.EmbedAsync(embeddings, pieces, ct);
 
         var points = renderedEnvelopes
             .Select((e, i) => new EntityPoint(e, vectors[i], FivetoolsImportedPoints.FileHash(e.SourceBook)))

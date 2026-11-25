@@ -18,13 +18,24 @@ public sealed class QdrantEntityVectorStore(
     QdrantClient client,
     IOptions<QdrantOptions> options) : IEntityVectorStore
 {
+    private const int UpsertBatchSize = 200;
+
     private readonly string _collection = options.Value.EntitiesCollectionName;
+
+    /// <summary>The entities collection's vectors: several per point, the one closest to the query decides (MaxSim).</summary>
+    public static VectorParams VectorParams(int size, QuantizationConfig? quantization = null) => new()
+    {
+        Size = (ulong)size,
+        Distance = Distance.Cosine,
+        QuantizationConfig = quantization,
+        MultivectorConfig = new MultiVectorConfig { Comparator = MultiVectorComparator.MaxSim },
+    };
 
     public async Task UpsertAsync(IList<EntityPoint> points, CancellationToken ct = default)
     {
         if (points.Count == 0) return;
-        var qdrantPoints = points.Select(ToPoint).ToList();
-        await client.UpsertAsync(_collection, qdrantPoints, cancellationToken: ct);
+        foreach (var batch in points.Chunk(UpsertBatchSize))
+            await client.UpsertAsync(_collection, batch.Select(ToPoint).ToList(), cancellationToken: ct);
     }
 
     public async Task DeleteByFileHashAsync(string fileHash, CancellationToken ct = default)
@@ -70,9 +81,10 @@ public sealed class QdrantEntityVectorStore(
     public async Task<IList<EntitySearchHit>> SearchAsync(float[] queryVector, EntityFilters filters, int topK, CancellationToken ct = default)
     {
         var filter = BuildFilter(filters);
-        var results = await client.SearchAsync(
+        float[][] query = [queryVector];
+        var results = await client.QueryAsync(
             _collection,
-            queryVector,
+            query,
             filter: filter,
             limit: (ulong)topK,
             payloadSelector: true,
@@ -240,7 +252,7 @@ public sealed class QdrantEntityVectorStore(
         var point = new PointStruct
         {
             Id = new PointId { Uuid = UuidV5.Create(s_entityNs, System.Text.Encoding.UTF8.GetBytes(p.Envelope.Id)).ToString() },
-            Vectors = p.Vector,
+            Vectors = p.Vectors.ToArray(),
         };
         foreach (var (k, v) in payload) point.Payload[k] = v;
         return point;

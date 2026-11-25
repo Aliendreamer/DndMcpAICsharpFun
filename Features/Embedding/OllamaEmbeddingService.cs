@@ -14,7 +14,9 @@ public sealed partial class OllamaEmbeddingService(
     IOptions<OllamaOptions> options,
     ILogger<OllamaEmbeddingService> logger) : IEmbeddingService
 {
-    private const int MaxEmbedChars = 800;
+    // About 480 of the model's 512 tokens for our prose; Truncate covers denser text.
+    private const int MaxEmbedChars = 2000;
+    private const int BatchSize = 64;
 
     private readonly string _model = options.Value.EmbeddingModel;
 
@@ -43,17 +45,22 @@ public sealed partial class OllamaEmbeddingService(
 
         try
         {
-            var request = new EmbedRequest
+            var vectors = new List<float[]>(prepared.Length);
+            foreach (var batch in prepared.Chunk(BatchSize))
             {
-                Model = _model,
-                Input = [.. prepared],
-                Truncate = true
-            };
-            var response = await client.EmbedAsync(request, ct);
+                var request = new EmbedRequest
+                {
+                    Model = _model,
+                    Input = [.. batch],
+                    Truncate = true
+                };
+                var response = await client.EmbedAsync(request, ct);
+                vectors.AddRange(response.Embeddings
+                    ?? throw new InvalidOperationException(
+                        $"Ollama returned null embeddings for model '{_model}'. Check that the model is loaded and supports embedding."));
+            }
             LogEmbedBatchDone(logger, texts.Count, _model, sw.ElapsedMilliseconds);
-            return response.Embeddings
-                ?? throw new InvalidOperationException(
-                    $"Ollama returned null embeddings for model '{_model}'. Check that the model is loaded and supports embedding.");
+            return vectors;
         }
         catch (HttpRequestException ex)
         {

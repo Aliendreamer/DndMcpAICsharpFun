@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 
+using DndMcpAICsharpFun.Features.VectorStore.Entities;
+
 using Microsoft.Extensions.Options;
 
 using Qdrant.Client;
@@ -68,7 +70,9 @@ public sealed partial class QdrantCollectionInitializer(
             {
                 await client.CreateCollectionAsync(
                     name,
-                    new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine, QuantizationConfig = quantization },
+                    isBlocks
+                        ? new VectorParams { Size = (ulong)_options.VectorSize, Distance = Distance.Cosine, QuantizationConfig = quantization }
+                        : QdrantEntityVectorStore.VectorParams(_options.VectorSize, quantization),
                     cancellationToken: ct);
             }
             LogCollectionCreated(logger, name, _options.VectorSize);

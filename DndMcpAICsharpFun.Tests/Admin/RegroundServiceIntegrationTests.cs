@@ -70,7 +70,7 @@ public sealed class RegroundServiceIntegrationTests : IAsyncLifetime
         {
             await _client.CreateCollectionAsync(
                 _entitiesCollection,
-                new VectorParams { Size = VectorSize, Distance = Distance.Cosine });
+                QdrantEntityVectorStore.VectorParams(VectorSize));
         }
 
         var qdrantOptions = Options.Create(new QdrantOptions

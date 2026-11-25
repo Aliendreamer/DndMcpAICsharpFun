@@ -77,7 +77,8 @@ public sealed class EntityIngestionOrchestrator(
 
         // ── Merge + render ────────────────────────────────────────────────────
         var renderedEnvelopes = new List<EntityEnvelope>(file.Entities.Count);
-        var texts = new List<string>(file.Entities.Count);
+        var pieces = new List<IReadOnlyList<string>>(file.Entities.Count);
+        var loreByName = EntityPieceEmbedding.LoreByName(file.Entities);
         int matchedFivetools = 0;
         int unmatched = 0;
 
@@ -114,13 +115,11 @@ public sealed class EntityIngestionOrchestrator(
             }
 
             renderedEnvelopes.Add(WithRenderedText(merged, text, record));
-            texts.Add(EntityEmbeddingText.For(text, merged.Notes));
+            pieces.Add(PiecesOf(merged, text, loreByName));
         }
 
         // ── Embed + upsert ────────────────────────────────────────────────────
-        IList<float[]> vectors = texts.Count == 0
-            ? Array.Empty<float[]>()
-            : await embeddings.EmbedAsync(texts, ct);
+        var vectors = await EntityPieceEmbedding.EmbedAsync(embeddings, pieces, ct);
 
         var points = new List<EntityPoint>(renderedEnvelopes.Count);
         for (int i = 0; i < renderedEnvelopes.Count; i++)
@@ -218,7 +217,8 @@ public sealed class EntityIngestionOrchestrator(
 
         var finalEnvelope = WithRenderedText(merged, text, record);
 
-        var vectors = await embeddings.EmbedAsync([EntityEmbeddingText.For(text, merged.Notes)], ct);
+        var vectors = await EntityPieceEmbedding.EmbedAsync(
+            embeddings, [PiecesOf(merged, text, EntityPieceEmbedding.LoreByName(file.Entities))], ct);
         var point = new EntityPoint(finalEnvelope, vectors[0], record.FileHash);
 
         // Upsert only this one point — DO NOT call DeleteByFileHashExceptAsync.
@@ -278,6 +278,10 @@ public sealed class EntityIngestionOrchestrator(
         // No enrichment source at all — ingest canonical as-is.
         return envelope;
     }
+
+    private IReadOnlyList<string> PiecesOf(EntityEnvelope e, string text, ILookup<string, EntityEnvelope> loreByName) =>
+        EntityTextPieces.ForEmbedding(e.Name, e.Type.ToString(), text, e.Notes,
+            EntityPieceEmbedding.LoreOf(e, loreByName).Select(textDispatcher.Render));
 
     private static EntityEnvelope WithRenderedText(EntityEnvelope merged, string text, IngestionRecord record)
     {
