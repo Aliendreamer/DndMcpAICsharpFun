@@ -12,3 +12,9 @@
 
 - [x] 3.1 Build, tests, deploy, live check of search_entities text
 - [x] 3.2 Reference set run (ask the owner first: about 1-1.5 h GPU), sort what is left
+
+## 4. Page numbers
+
+- [x] 4.1 BookCatalog page offsets; printed page in every retrieval result (tests first)
+- [x] 4.2 Persona: a page only from a result's `page` field; the "p. 72" example is gone
+- [ ] 4.3 Deploy and check with the evening eval run (ask the owner first: GPU)

@@ -15,7 +15,7 @@ Parameters:
 #### Scenario: Basic entity search returns results
 
 - **WHEN** a client calls `search_entities` with a non-empty `query`
-- **THEN** the tool returns up to `topK` entity records with id, name, type, sourceBook, edition, text and score
+- **THEN** the tool returns up to `topK` entity records with id, name, type, sourceBook, page (when known), edition, text and score
 
 #### Scenario: search_entities with type filter narrows results
 
@@ -41,3 +41,18 @@ Parameters:
 
 - **WHEN** a named entity's text is longer than 3,000 characters and the best-ranked piece lies deep in it
 - **THEN** the returned text holds that piece and is at most 3,000 characters plus ellipses
+
+## ADDED Requirements
+
+### Requirement: Retrieval results carry the printed page
+Every chat-facing retrieval result (`search_entities`, `list_entities`, `get_entity`, `search_dnd`, `search_lore`, and the passages of `ask_rules`, `ask_setting_lore` and `plan_downtime`) SHALL carry the page printed in the book, derived from the stored PDF page and the book's offset in `BookCatalog`. When the offset is not known, or the stored page lies before printed page 1, no page SHALL be given. `search_dnd` results SHALL also name their source book.
+
+#### Scenario: A stored PDF page becomes the printed page
+
+- **WHEN** a result comes from the Player's Handbook and its stored page is 204
+- **THEN** its page is 203
+
+#### Scenario: A book without a known offset gives no page
+
+- **WHEN** a result comes from the System Reference Document
+- **THEN** it carries no page

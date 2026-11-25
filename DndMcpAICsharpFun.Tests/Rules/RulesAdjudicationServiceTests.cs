@@ -59,6 +59,21 @@ public sealed class RulesAdjudicationServiceTests
         result.Passages[0].SourceBook.Should().Be("PlayerHandbook 2014");
     }
 
+
+    [Fact]
+    public async Task Passages_carry_the_printed_page()
+    {
+        var found = Results(("Grappling rule text", "PlayerHandbook 2014"))[0];
+        var rag = Substitute.For<IRagRetrievalService>();
+        rag.SearchAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>())
+            .Returns(new List<RetrievalResult> { found with { Metadata = found.Metadata with { PageNumber = 196 } } });
+
+        var result = await new RulesAdjudicationService(rag)
+            .AskAsync("grappling", ruleTopics: null, edition: null, CancellationToken.None);
+
+        result.Passages[0].Page.Should().Be(195);
+    }
+
     [Fact]
     public async Task Empty_retrieval_returns_explicit_empty()
     {

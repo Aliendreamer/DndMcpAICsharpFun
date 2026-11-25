@@ -51,7 +51,6 @@ public sealed class RulesAdjudicationService(IRagRetrievalService rag)
     {
         var q = new RetrievalQuery(query, Version: edition, TopK: topK, SourceKeys: RuleSources.Keys);
         var results = await rag.SearchAsync(q, ct);
-        return results.Select(r => new CitedPassage(
-            r.Text, r.Metadata.SourceBook, r.Metadata.SectionTitle ?? r.Metadata.Chapter, r.Score)).ToList();
+        return results.Select(CitedPassage.From).ToList();
     }
 }

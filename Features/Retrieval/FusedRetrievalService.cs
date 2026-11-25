@@ -119,7 +119,9 @@ public sealed class FusedRetrievalService(
                 Id: p.Id.Uuid,
                 Title: title,
                 Text: QdrantPayloadMapper.GetText(p.Payload),
-                Score: p.Score);
+                Score: p.Score,
+                SourceBook: meta.SourceBook,
+                Page: meta.PageNumber);
         }).ToList();
     }
 
@@ -134,6 +136,8 @@ public sealed class FusedRetrievalService(
             Id: h.Envelope.Id,
             Title: h.Envelope.Name,
             Text: h.Envelope.CanonicalText,
-            Score: h.Score)).ToList();
+            Score: h.Score,
+            SourceBook: h.Envelope.SourceBook,
+            Page: h.Envelope.Page)).ToList();
     }
 }

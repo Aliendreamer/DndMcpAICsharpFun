@@ -95,6 +95,39 @@ public class DndMcpToolsTests
         (await tools.search_entities("healer")).Should().Contain("\"text\":\"restore 1d6 + 4 of the creature’s hit points\"");
     }
 
+
+    [Fact]
+    public async Task search_entities_gives_the_printed_page_and_omits_an_unknown_one()
+    {
+        var tools = MakeTools(entity: new FakeEntityService
+        {
+            SearchResults =
+            [
+                new EntitySearchResult("phb14.rule.concentration", EntityType.Rule, "Concentration",
+                    "PHB", "Edition2014", 204, [], "text", 0.9f),
+                new EntitySearchResult("srd.race.age", EntityType.Race, "Age",
+                    "System Reference Document", "Edition2014", 3, [], "text", 0.8f),
+            ]
+        });
+
+        var json = await tools.search_entities("concentration");
+
+        json.Should().Contain("\"page\":203");
+        System.Text.RegularExpressions.Regex.Count(json, "\"page\"").Should().Be(1);
+    }
+
+    [Fact]
+    public async Task search_dnd_gives_book_and_printed_page()
+    {
+        var tools = MakeTools(fused: (IFusedRetrievalService)new FakeFusedService
+        {
+            FusedResults = [new FusedCandidate("prose", "uuid", "Cover", "text", 0.9, "PlayerHandbook 2014", 197)]
+        });
+
+        (await tools.search_dnd("cover")).Should()
+            .Contain("\"sourceBook\":\"PlayerHandbook 2014\"").And.Contain("\"page\":196");
+    }
+
     [Fact]
     public async Task search_entities_returns_json_with_results()
     {

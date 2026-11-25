@@ -36,11 +36,7 @@ public sealed class SettingLoreService(CampaignRepository campaigns, IRagRetriev
 
         var results = await rag.SearchAsync(query, ct);
 
-        var passages = results.Select(r => new CitedPassage(
-            r.Text,
-            r.Metadata.SourceBook,
-            r.Metadata.SectionTitle ?? r.Metadata.Chapter,
-            r.Score)).ToList();
+        var passages = results.Select(CitedPassage.From).ToList();
 
         return new SettingLoreResult(setting, DndMcpAICsharpFun.Features.Retrieval.BookCatalog.ToDisplayNames(books), passages);
     }

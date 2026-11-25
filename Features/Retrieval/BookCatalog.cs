@@ -7,32 +7,35 @@ namespace DndMcpAICsharpFun.Features.Retrieval;
 /// <param name="IsCore">Whether this is one of its edition's three core rulebooks. Drives the
 /// core-only default allowlist a new campaign receives, so that default is derived from this catalog
 /// rather than a second hardcoded list that could drift from it.</param>
+/// <param name="PageOffset">How far the stored page (a PDF page) lies past the printed one, measured against
+/// 5etools' page numbers; null when it is not known.</param>
 public sealed record BookInfo(
     string Key,
     string DisplayName,
     DndVersion Version,
     string FivetoolsSourceKey,
-    bool IsCore = false);
+    bool IsCore = false,
+    int? PageOffset = null);
 
 public static class BookCatalog
 {
     public static IReadOnlyList<BookInfo> All { get; } =
     [
-        new("PHB",  "PlayerHandbook 2014",                DndVersion.Edition2014, "PHB", IsCore: true),
-        new("MM",   "Monster Manual 2014",                DndVersion.Edition2014, "MM", IsCore: true),
-        new("DMG",  "Dungeon Master's Guide 2014",        DndVersion.Edition2014, "DMG", IsCore: true),
-        new("XGE",  "Xanathar's Guide to Everything",     DndVersion.Edition2014, "XGE"),
-        new("TCE",  "Tasha's Cauldron of Everything",     DndVersion.Edition2014, "TCE"),
-        new("ERLW", "Eberron: Rising from the Last War",  DndVersion.Edition2014, "ERLW"),
-        new("VRGR", "Van Richten's Guide to Ravenloft",   DndVersion.Edition2014, "VRGR"),
-        new("FTD",  "Fizban's Treasury of Dragons",        DndVersion.Edition2014, "FTD"),
-        new("BGG",  "Bigby Presents: Glory of the Giants", DndVersion.Edition2014, "BGG"),
-        new("EGW",  "Explorer's Guide to Wildemount",      DndVersion.Edition2014, "EGW"),
-        new("SCC",  "Strixhaven: A Curriculum of Chaos",   DndVersion.Edition2014, "SCC"),
-        new("GGR",  "Guildmasters' Guide to Ravnica",       DndVersion.Edition2014, "GGR"),
-        new("SCAG", "Sword Coast Adventurer's Guide",     DndVersion.Edition2014, "SCAG"),
-        new("MTF",  "Mordenkainen's Tome of Foes",        DndVersion.Edition2014, "MTF"),
-        new("MPMM", "Mordenkainen Presents: Monsters of the Multiverse", DndVersion.Edition2014, "MPMM"),
+        new("PHB",  "PlayerHandbook 2014",                DndVersion.Edition2014, "PHB", IsCore: true, PageOffset: 1),
+        new("MM",   "Monster Manual 2014",                DndVersion.Edition2014, "MM", IsCore: true, PageOffset: 1),
+        new("DMG",  "Dungeon Master's Guide 2014",        DndVersion.Edition2014, "DMG", IsCore: true, PageOffset: 0),
+        new("XGE",  "Xanathar's Guide to Everything",     DndVersion.Edition2014, "XGE", PageOffset: 1),
+        new("TCE",  "Tasha's Cauldron of Everything",     DndVersion.Edition2014, "TCE", PageOffset: 1),
+        new("ERLW", "Eberron: Rising from the Last War",  DndVersion.Edition2014, "ERLW", PageOffset: 1),
+        new("VRGR", "Van Richten's Guide to Ravenloft",   DndVersion.Edition2014, "VRGR", PageOffset: 1),
+        new("FTD",  "Fizban's Treasury of Dragons",        DndVersion.Edition2014, "FTD", PageOffset: 2),
+        new("BGG",  "Bigby Presents: Glory of the Giants", DndVersion.Edition2014, "BGG", PageOffset: 0),
+        new("EGW",  "Explorer's Guide to Wildemount",      DndVersion.Edition2014, "EGW", PageOffset: 1),
+        new("SCC",  "Strixhaven: A Curriculum of Chaos",   DndVersion.Edition2014, "SCC", PageOffset: 1),
+        new("GGR",  "Guildmasters' Guide to Ravnica",       DndVersion.Edition2014, "GGR", PageOffset: 1),
+        new("SCAG", "Sword Coast Adventurer's Guide",     DndVersion.Edition2014, "SCAG", PageOffset: 1),
+        new("MTF",  "Mordenkainen's Tome of Foes",        DndVersion.Edition2014, "MTF", PageOffset: 1),
+        new("MPMM", "Mordenkainen Presents: Monsters of the Multiverse", DndVersion.Edition2014, "MPMM", PageOffset: 0),
         // ── Revised core (2024/25). Registered here BEFORE the PDFs are ingested so the startup
         // catalog-drift guard recognises their source_key the moment blocks land — the gap that hid
         // TCE's 2445 blocks from every key-scoped feature. Display names deliberately match the
@@ -46,7 +49,7 @@ public static class BookCatalog
         // (used by races.json/feats.json/spells-xge.json) purely so block scoping and the drift guard
         // can see it; IngestionRecord.FivetoolsSourceKey is deliberately NOT set, because that would
         // re-slug its entity ids from elemental-evil-player-s-companion.* to eepc.*.
-        new("EEPC", "Elemental Evil Player's Companion", DndVersion.Edition2014, "EEPC"),
+        new("EEPC", "Elemental Evil Player's Companion", DndVersion.Edition2014, "EEPC", PageOffset: 0),
     ];
 
     public static IReadOnlySet<string> Keys { get; } = All.Select(b => b.Key).ToHashSet(StringComparer.Ordinal);
@@ -60,4 +63,13 @@ public static class BookCatalog
     /// key passes through unchanged (defensive — a scoped key should always be a catalog member).</summary>
     public static IReadOnlyList<string> ToDisplayNames(IEnumerable<string> keys) =>
         keys.Select(k => KeyToDisplayName.TryGetValue(k, out var name) ? name : k).ToList();
+
+    private static readonly Dictionary<string, int?> PageOffsets =
+        All.SelectMany(b => new[] { (Name: b.Key, b.PageOffset), (Name: b.DisplayName, b.PageOffset) })
+            .ToDictionary(x => x.Name, x => x.PageOffset, StringComparer.Ordinal);
+
+    /// <summary>The page printed in the book for a stored page; null when the book's offset is not known.</summary>
+    /// <param name="book">A book's key (entities) or display name (prose blocks).</param>
+    public static int? PrintedPage(string book, int? storedPage) =>
+        PageOffsets.GetValueOrDefault(book) is { } offset && storedPage - offset is > 0 and var page ? page : null;
 }

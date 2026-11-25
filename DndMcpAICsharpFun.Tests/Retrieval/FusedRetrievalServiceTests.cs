@@ -109,6 +109,7 @@ public sealed class FusedRetrievalServiceTests
         results.Should().HaveCount(2);
         results[0].Source.Should().Be("entity");  // highest rerank score
         results[1].Source.Should().Be("prose");
+        results.Select(r => (r.SourceBook, r.Page)).Should().Equal(("PHB", null), ("PHB", 1));
     }
 
     // ── Task 5.1 / Spec: "Each fused result is source-tagged" ────────────────

@@ -10,4 +10,6 @@ public sealed record FusedCandidate(
     string Id,
     string Title,
     string Text,
-    double Score);
+    double Score,
+    string? SourceBook = null,
+    int? Page = null);   // as stored (PDF page); BookCatalog.PrintedPage turns it into the printed one

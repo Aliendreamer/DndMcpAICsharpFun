@@ -135,4 +135,23 @@ public class BookCatalogTests
         BookCatalog.KeyToDisplayName["VRGR"].Should().Be("Van Richten's Guide to Ravenloft");
         BookCatalog.DisplayNameToKey["Van Richten's Guide to Ravenloft"].Should().Be("VRGR");
     }
+
+
+    [Theory]
+    [InlineData("PHB", 204, 203)]                  // Concentration: PDF page 204, printed page 203
+    [InlineData("PlayerHandbook 2014", 204, 203)]  // prose blocks carry the display name
+    [InlineData("DMG", 153, 153)]
+    [InlineData("MPMM", 100, 100)]
+    [InlineData("FTD", 216, 214)]
+    public void Printed_page_is_the_stored_page_less_the_books_offset(string book, int stored, int printed) =>
+        BookCatalog.PrintedPage(book, stored).Should().Be(printed);
+
+    [Theory]
+    [InlineData("System Reference Document", 10)]  // not in the catalog
+    [InlineData("XPHB", 10)]                       // not ingested: offset unknown
+    [InlineData("PHB", 1)]                         // the cover
+    [InlineData("PHB", 0)]                         // payload without a page
+    [InlineData("PHB", null)]
+    public void Printed_page_is_null_when_it_is_not_known(string book, int? stored) =>
+        BookCatalog.PrintedPage(book, stored).Should().BeNull();
 }

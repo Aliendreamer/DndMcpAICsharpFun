@@ -20,6 +20,7 @@ public sealed class DndMcpTools(
     private static readonly JsonSerializerOptions _json = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
@@ -43,6 +44,7 @@ public sealed class DndMcpTools(
                 title = r.Metadata.SectionTitle ?? r.Metadata.Chapter,
                 text = r.Text,
                 sourceBook = r.Metadata.SourceBook,
+                page = BookCatalog.PrintedPage(r.Metadata.SourceBook, r.Metadata.PageNumber),
                 category = r.Metadata.Category.ToString(),
                 score = r.Score
             }), _json);
@@ -93,6 +95,7 @@ public sealed class DndMcpTools(
             name = r.Name,
             type = r.Type.ToString(),
             sourceBook = r.SourceBook,
+            page = BookCatalog.PrintedPage(r.SourceBook, r.Page),
             edition = r.Edition,
             text = r.Snippet,
             score = r.Score
@@ -150,7 +153,7 @@ public sealed class DndMcpTools(
                 name = r.Name,
                 type = r.Type.ToString(),
                 sourceBook = r.SourceBook,
-                page = r.Page,
+                page = BookCatalog.PrintedPage(r.SourceBook, r.Page),
                 cr = r.Cr,
                 spellLevel = r.SpellLevel,
                 damageType = r.DamageType,
@@ -179,6 +182,7 @@ public sealed class DndMcpTools(
             name = e.Name,
             type = e.Type.ToString(),
             sourceBook = e.SourceBook,
+            page = BookCatalog.PrintedPage(e.SourceBook, e.Page),
             edition = e.Edition,
             canonicalText = e.CanonicalText,
             keywords = e.Keywords,
@@ -212,6 +216,8 @@ public sealed class DndMcpTools(
                 source = r.Source,
                 id = r.Id,
                 title = r.Title,
+                sourceBook = r.SourceBook,
+                page = r.SourceBook is null ? null : BookCatalog.PrintedPage(r.SourceBook, r.Page),
                 text = r.Text,
                 score = r.Score
             }), _json);
