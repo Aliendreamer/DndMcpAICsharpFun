@@ -36,6 +36,13 @@ public class FullChainRunnerTests
         d[0].Text.Length.Should().Be(600);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_search_made_by_the_app_is_in_the_run_detail(bool byApp) =>
+        RunDetail.From(new TurnDto("qwen", "ok", new(), new() { new ToolCallDto("ask_rules", "{}", "r", null, byApp) }, 10))
+            .AppSearched.Should().Be(byApp);
+
     [Fact]
     public async Task InfraErrorRun_RecordsEmptyToolsAndErrorText()
     {

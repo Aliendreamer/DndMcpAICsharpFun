@@ -94,6 +94,95 @@ public sealed class EntityRetrievalServiceRerankerTests
         results[1].Id.Should().Be("e-mid");   // second
     }
 
+    // ── chat-grounded-answers: named results first, wide text ────────────────
+
+    private static EntitySearchHit Named(string name, string text, EntityType type = EntityType.Monster) =>
+        new(MakeEnvelope(name, text) with { Type = type }, 0.5f, name + "-point");
+
+    private static async Task<IList<EntitySearchResult>> SearchInOrder(
+        string query, int topK, bool rerank, params EntitySearchHit[] hits)
+    {
+        var store = Substitute.For<IEntityVectorStore>();
+        store.SearchAsync(Arg.Any<float[]>(), Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+             .Returns(Task.FromResult<IList<EntitySearchHit>>(hits));
+        var reranker = Substitute.For<IReranker>();
+        reranker.Enabled.Returns(true);
+        // Keeps the store's order, except that a piece holding "NEEDLE" beats its own entity's other pieces.
+        reranker.RerankAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Task.FromResult(ci.Arg<IReadOnlyList<string>>()
+                .Select((p, i) => -i + (p.Contains("NEEDLE", StringComparison.Ordinal) ? 100f : 0f)).ToArray()));
+        var sut = BuildSut(store, reranker, rerankEntities: rerank);
+        return await sut.SearchAsync(
+            new EntitySearchQuery(query, null, null, null, null, null, null, null, null, null, null, TopK: topK),
+            CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData("What are the armor class and hit points of the tarrasque?")]
+    [InlineData("TARRASQUE")]
+    [InlineData("how do two tarrasques fight")]
+    public async Task A_result_named_in_the_query_comes_first(string query)
+    {
+        var results = await SearchInOrder(query, 2, true,
+            Named("Statistics for Objects", "a"), Named("Ram", "b"), Named("Tarrasque", "c"));
+
+        results.Select(r => r.Name).Should().Equal("Tarrasque", "Statistics for Objects");
+    }
+
+    [Fact]
+    public async Task The_longest_name_comes_first_and_part_of_a_word_is_no_name()
+    {
+        var results = await SearchInOrder("giant octopus armor class", 4, true,
+            Named("Ant", "a"), Named("Octopus", "b"), Named("Giant Octopus", "c"));
+
+        results.Select(r => r.Name).Should().Equal("Giant Octopus", "Octopus", "Ant");
+    }
+
+    [Fact]
+    public async Task A_rule_named_in_passing_is_not_put_first()
+    {
+        var hits = new[] { Named("Grappling", "a", EntityType.Rule), Named("Attack", "b", EntityType.Rule) };
+
+        (await SearchInOrder("does a grapple replace an attack", 2, true, hits))[0].Name.Should().Be("Grappling");
+        (await SearchInOrder("attack", 2, true, hits))[0].Name.Should().Be("Attack");
+    }
+
+    [Fact]
+    public async Task The_first_three_results_carry_wide_text_and_the_rest_a_snippet()
+    {
+        var text = string.Concat(Enumerable.Repeat("Some words of the book. ", 300));
+        var results = await SearchInOrder("what does Wish do", 5, true,
+            Named("B", text), Named("Wish", text), Named("C", text), Named("D", text));
+
+        results.Select(r => r.Name).Should().Equal("Wish", "B", "C", "D");
+        results[0].Snippet.Length.Should().BeInRange(3000, 3002);
+        results[1].Snippet.Length.Should().BeInRange(1400, 1502);
+        results[2].Snippet.Length.Should().BeInRange(1400, 1502);
+        results[3].Snippet.Length.Should().Be(241);
+    }
+
+    [Fact]
+    public async Task Long_text_is_cut_around_the_best_piece()
+    {
+        var filler = string.Concat(Enumerable.Repeat("Some words of the book. ", 250));
+
+        var results = await SearchInOrder("what does Wish do", 1, true, Named("Wish", filler + "The wish NEEDLE. " + filler));
+
+        results[0].Snippet.Should().Contain("NEEDLE");
+        results[0].Snippet.Length.Should().BeLessThanOrEqualTo(3002);
+    }
+
+    [Fact]
+    public async Task Without_a_reranker_named_results_still_come_first_with_wide_text()
+    {
+        var text = string.Concat(Enumerable.Repeat("Some words of the book. ", 20));
+
+        var results = await SearchInOrder("wish", 2, false, Named("B", text), Named("Wish", text));
+
+        results[0].Name.Should().Be("Wish");
+        results[0].Snippet.Should().Be(text);
+    }
+
     // ── Task 3.1 / Spec: "Entity reranking can be disabled" ──────────────────
 
     [Fact]

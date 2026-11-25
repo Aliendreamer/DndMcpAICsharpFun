@@ -133,12 +133,23 @@ public sealed class DndChatService(
             offeredTools = toolList;
             response = await AskModelAsync(messages, offeredTools, ct);
         }
+
+        IReadOnlyList<ChatMessage> lookups = [];
+        if (!CalledATool(response) && IsQuestion(lastUser))
+        {
+            lookups = await LookUpAsync(LookupQuery(conversation), toolList, ct);
+            if (lookups.Count > 0)
+            {
+                logger?.LogInformation("Question answered without a tool call; asking again with {Count} lookups.", lookups.Count / 2);
+                response = await AskModelAsync([.. messages, .. lookups], offeredTools, ct);
+            }
+        }
         sw.Stop();
 
         return new ChatTurnResult(
             string.IsNullOrWhiteSpace(response.Text) ? EmptyReplyText : response.Text,
             offeredTools.Select(t => t.Name).ToList(),
-            ChatTurnTraceBuilder.Build(response),
+            ChatTurnTraceBuilder.Build(response, lookups),
             sw.ElapsedMilliseconds);
     }
 
@@ -153,6 +164,62 @@ public sealed class DndChatService(
     private Task<ChatResponse> AskModelAsync(
         IReadOnlyList<ChatMessage> messages, IReadOnlyList<AITool> offered, CancellationToken ct) =>
         chatClient.GetResponseAsync(messages, new ChatOptions { Tools = [.. offered] }, ct);
+
+    private static bool CalledATool(ChatResponse response) =>
+        response.Messages.SelectMany(m => m.Contents).Any(c => c is FunctionCallContent);
+
+    private static readonly string[] AskingWords =
+    [
+        "what", "which", "who", "whose", "when", "where", "why", "how", "can", "could", "do", "does", "did", "is", "are",
+        "will", "would", "should", "may", "must", "tell", "explain", "describe", "compare", "list", "give", "name", "show",
+    ];
+
+    private static bool IsQuestion(string message)
+    {
+        if (message.Contains('?', StringComparison.Ordinal)) return true;
+        var words = message.Split((char[]?)null, 3, StringSplitOptions.RemoveEmptyEntries);
+        return words.Length > 1 && AskingWords.Contains(words[0], StringComparer.OrdinalIgnoreCase);
+    }
+
+    private const int FollowUpWords = 6;
+
+    /// <summary>The user's message; a short follow-up ("and at 5th level?") is searched with the message before it.</summary>
+    private static string LookupQuery(IReadOnlyList<ChatMessage> conversation)
+    {
+        var asked = conversation.Where(m => m.Role == ChatRole.User).Select(m => m.Text).TakeLast(2).ToList();
+        var last = asked[^1];
+        return asked.Count > 1 && last.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length < FollowUpWords
+            ? $"{asked[0]} {last}"
+            : last;
+    }
+
+    /// <summary>
+    /// Searches the books for the model: qwen3 often answers a rules question from memory, whatever the persona says,
+    /// and Ollama cannot force a tool call. Returns each lookup as the call and its result, as if the model had made it;
+    /// a failed lookup is left out.
+    /// </summary>
+    private async Task<IReadOnlyList<ChatMessage>> LookUpAsync(
+        string question, IReadOnlyList<AITool> tools, CancellationToken ct)
+    {
+        var messages = new List<ChatMessage>();
+        foreach (var (name, argument) in new[] { ("search_entities", "query"), ("ask_rules", "question") })
+        {
+            if (tools.OfType<AIFunction>().FirstOrDefault(t => t.Name == name) is not { } tool) continue;
+            var arguments = new Dictionary<string, object?> { [argument] = question };
+            try
+            {
+                var result = await tool.InvokeAsync(new AIFunctionArguments(arguments), ct);
+                var callId = $"app-{name}";
+                messages.Add(new ChatMessage(ChatRole.Assistant, [new FunctionCallContent(callId, name, arguments)]));
+                messages.Add(new ChatMessage(ChatRole.Tool, [new FunctionResultContent(callId, result)]));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger?.LogWarning(ex, "Lookup {Tool} failed.", name);
+            }
+        }
+        return messages;
+    }
 
     private async Task<List<AITool>> BuildToolsAsync(long? userId, bool allowWebSearch, CancellationToken ct)
     {

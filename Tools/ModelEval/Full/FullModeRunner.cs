@@ -126,9 +126,10 @@ internal static class FullModeRunner
 
         var passed = r.Cases.Count(x => x.Passed);
         var blank = r.Cases.SelectMany(x => x.RunDetails ?? []).Count(d => d.Text.Length == 0);
+        var appSearched = r.Cases.SelectMany(x => x.RunDetails ?? []).Count(d => d.AppSearched);
         Console.WriteLine();
         Console.WriteLine($"Total: {passed}/{r.Cases.Count} cases passed ({100.0 * passed / Math.Max(r.Cases.Count, 1):0}%, " +
-            $"goal {GoalPercent}%), {r.Cases.Sum(x => x.Passes)}/{r.Cases.Sum(x => x.Runs)} runs, {blank} blank replies");
+            $"goal {GoalPercent}%), {r.Cases.Sum(x => x.Passes)}/{r.Cases.Sum(x => x.Runs)} runs, {blank} blank replies, {appSearched} searched by the app");
 
         Console.WriteLine();
         if (c.NewlyFailing.Count > 0) Console.WriteLine($"Newly failing: {string.Join(", ", c.NewlyFailing)}");

@@ -719,6 +719,90 @@ public sealed class DndChatServiceTests : IDisposable
         turn.Text.Should().Be(DndChatService.EmptyReplyText);
     }
 
+    private static Task<ChatTurnResult> Ask(DndChatService svc, params string[] messages) =>
+        svc.RunTurnAsync(
+            [.. messages.Select((m, i) => new ChatMessage(i % 2 == 0 ? ChatRole.User : ChatRole.Assistant, m))],
+            null, false, CancellationToken.None);
+
+    private static AIFunction Lookup(string name, List<string> queries, string result = "The books say so.") =>
+        name == "ask_rules"
+            ? AIFunctionFactory.Create((string question) => { queries.Add(question); return result; }, name)
+            : AIFunctionFactory.Create((string query) => { queries.Add(query); return result; }, name);
+
+    [Theory]
+    [InlineData("What DC is the concentration save?")]
+    [InlineData("explain grappling to me")]
+    public async Task A_question_answered_without_a_tool_is_looked_up_and_asked_again(string question)
+    {
+        var queries = new List<string>();
+        var client = new FakeChatClient { Replies = new Queue<string>(["I guess 8.", "DC 10 or half the damage."]) };
+        var svc = CreateService(client, [Lookup("search_entities", queries), Lookup("ask_rules", queries)]);
+
+        var turn = await Ask(svc, question);
+
+        turn.Text.Should().Be("DC 10 or half the damage.");
+        queries.Should().Equal(question, question);
+        turn.ToolCalls.Select(c => c.Name).Should().Equal("search_entities", "ask_rules");
+        turn.ToolCalls.Should().OnlyContain(c => c.ByApp && c.Result == "The books say so.");
+        client.LastMessages!.Select(m => m.Text).Should().NotContain("I guess 8.");
+        client.LastMessages!.SelectMany(m => m.Contents).OfType<FunctionResultContent>().Should().HaveCount(2);
+    }
+
+    [Theory]
+    [InlineData("hi")]
+    [InlineData("thanks, great session")]
+    public async Task What_is_no_question_is_not_looked_up(string message)
+    {
+        var queries = new List<string>();
+        var client = new FakeChatClient();
+
+        var turn = await Ask(CreateService(client, [Lookup("search_entities", queries)]), message);
+
+        turn.Text.Should().Be(client.Reply);
+        queries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_reply_after_a_tool_call_is_not_looked_up()
+    {
+        var queries = new List<string>();
+        var client = new FakeChatClient
+        {
+            Response = new ChatResponse([
+                new ChatMessage(ChatRole.Assistant, [new FunctionCallContent("c1", "search_dnd")]),
+                new ChatMessage(ChatRole.Tool, [new FunctionResultContent("c1", "found")]),
+                new ChatMessage(ChatRole.Assistant, "Grounded."),
+            ])
+        };
+
+        var turn = await Ask(CreateService(client, [Lookup("search_entities", queries)]), "How does grappling work?");
+
+        turn.Text.Should().Be("Grounded.");
+        queries.Should().BeEmpty();
+        turn.ToolCalls.Should().ContainSingle().Which.ByApp.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_failed_lookup_keeps_the_first_reply()
+    {
+        var failing = AIFunctionFactory.Create(
+            new Func<string, string>(query => throw new InvalidOperationException("down")), "search_entities");
+        var client = new FakeChatClient { Replies = new Queue<string>(["From memory.", "never asked"]) };
+
+        (await Ask(CreateService(client, [failing]), "How does grappling work?")).Text.Should().Be("From memory.");
+    }
+
+    [Fact]
+    public async Task A_short_follow_up_is_looked_up_with_the_question_before_it()
+    {
+        var queries = new List<string>();
+        var svc = CreateService(new FakeChatClient(), [Lookup("search_entities", queries)]);
+
+        await Ask(svc, "How much damage does fireball deal?", "8d6.", "And at 5th level?");
+
+        queries.Should().Equal("How much damage does fireball deal? And at 5th level?");
+    }
+
     [Fact]
     public async Task AskRulesTool_exposes_no_user_or_campaign_id_and_reaches_the_service()
     {

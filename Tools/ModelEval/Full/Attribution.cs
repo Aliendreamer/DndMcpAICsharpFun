@@ -6,13 +6,15 @@ internal enum RunOutcome { Pass, WrongTool, BindError, WrongToolData, WrongAnswe
 internal sealed record RunScore(RunOutcome Outcome, string? Reason, long LatencyMs, RunDetail? Detail = null);
 
 /// <summary>What the model actually did in one run: tools it called and (truncated) reply text.</summary>
-internal sealed record RunDetail(IReadOnlyList<string> CalledTools, string Text)
+/// <param name="AppSearched">The model called no tool; the chat searched for it and asked again.</param>
+internal sealed record RunDetail(IReadOnlyList<string> CalledTools, string Text, bool AppSearched = false)
 {
     public const int MaxTextLength = 600;
 
     public static RunDetail From(TurnDto t) => new(
         t.ToolCalls.Select(tc => tc.Name).ToList(),
-        t.Text.Length > MaxTextLength ? t.Text[..MaxTextLength] : t.Text);
+        t.Text.Length > MaxTextLength ? t.Text[..MaxTextLength] : t.Text,
+        t.ToolCalls.Any(tc => tc.ByApp));
 
     public static RunDetail Infra(string error) => new(
         [], error.Length > MaxTextLength ? error[..MaxTextLength] : error);

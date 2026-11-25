@@ -4,7 +4,8 @@ using Microsoft.Extensions.AI;
 
 namespace DndMcpAICsharpFun.Features.Chat;
 
-public sealed record ToolCallTrace(string Name, string ArgumentsJson, string? Result, string? Error);
+/// <param name="ByApp">The chat made this call itself, because the model answered a question without any.</param>
+public sealed record ToolCallTrace(string Name, string ArgumentsJson, string? Result, string? Error, bool ByApp = false);
 
 public sealed record ChatTurnResult(
     string Text,
@@ -16,9 +17,12 @@ public static class ChatTurnTraceBuilder
 {
     private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
 
-    public static IReadOnlyList<ToolCallTrace> Build(ChatResponse response)
+    public static IReadOnlyList<ToolCallTrace> Build(ChatResponse response, IReadOnlyList<ChatMessage>? byApp = null) =>
+        [.. Build(byApp ?? []).Select(t => t with { ByApp = true }), .. Build(response.Messages)];
+
+    private static List<ToolCallTrace> Build(IEnumerable<ChatMessage> messages)
     {
-        var contents = response.Messages.SelectMany(m => m.Contents).ToList();
+        var contents = messages.SelectMany(m => m.Contents).ToList();
         var results = new Dictionary<string, FunctionResultContent>();
         foreach (var r in contents.OfType<FunctionResultContent>())
             results[r.CallId] = r;

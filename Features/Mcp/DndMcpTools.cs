@@ -16,8 +16,12 @@ public sealed class DndMcpTools(
     IEntityRetrievalService entityService,
     IFusedRetrievalService fusedService)
 {
-    private static readonly JsonSerializerOptions _json =
-        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    // A model reads this, not a browser: "1d6 + 4" must not arrive as "1d6 + 4".
+    private static readonly JsonSerializerOptions _json = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
 
     [McpServerTool, Description(
         "Search D&D rules, lore, and narrative text using semantic similarity. " +
@@ -46,7 +50,8 @@ public sealed class DndMcpTools(
 
     [McpServerTool, Description(
         "Search structured D&D entities: spells, monsters, classes, subclasses, items, feats, races, and more. " +
-        "Use for stat lookups, finding entities by type, or filtering by CR, spell level, or keywords.")]
+        "Use for stat lookups, finding entities by type, or filtering by CR, spell level, or keywords. " +
+        "The first results carry their text; a text ending in … is cut — get_entity returns it whole.")]
     public async Task<string> search_entities(
         [Description("Search text — entity name or description")] string query,
         [Description("Entity type: Spell, Monster, Class, Subclass, Race, Subrace, Background, Feat, " +
@@ -56,9 +61,7 @@ public sealed class DndMcpTools(
         [Description("Trait tag keyword e.g. Amphibious, Pack Tactics, Undead Fortitude")] string? keyword = null,
         [Description("Maximum challenge rating inclusive (for monsters)")] double? crMax = null,
         [Description("Spell level 0–9 (for spells)")] int? spellLevel = null,
-        [Description("Restrict to SRD 5.1 entities only")] bool? srd = null,
-        [Description("Restrict to SRD 5.2.1 entities only")] bool? srd52 = null,
-        [Description("Number of results (default 10)")] int topK = 10,
+        [Description("Number of results (default 6)")] int topK = 6,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(query))
@@ -79,9 +82,7 @@ public sealed class DndMcpTools(
                 CrNumericGte: null,
                 SpellLevel: spellLevel,
                 DamageType: null,
-                TopK: topK,
-                Srd: srd,
-                Srd52: srd52), ct);
+                TopK: topK), ct);
 
         if (results.Count == 0)
             return "No entities found.";
@@ -93,7 +94,7 @@ public sealed class DndMcpTools(
             type = r.Type.ToString(),
             sourceBook = r.SourceBook,
             edition = r.Edition,
-            snippet = r.Snippet,
+            text = r.Snippet,
             score = r.Score
         }), _json);
     }
@@ -113,7 +114,6 @@ public sealed class DndMcpTools(
         [Description("Damage type e.g. fire, cold, acid")] string? damageType = null,
         [Description("Trait tag keyword e.g. Amphibious, Flying, Pack Tactics")] string? keyword = null,
         [Description("Source book key e.g. PHB, MM, XGE")] string? sourceBook = null,
-        [Description("Restrict to SRD 5.1 entities only")] bool? srd = null,
         [Description("Only spells this class can learn, e.g. Wizard (forces type=Spell; combine with spellLevel)")]
         string? castableByClass = null,
         [Description("Max rows to return (default 50)")] int limit = 50,
@@ -134,7 +134,6 @@ public sealed class DndMcpTools(
                 SpellLevel: spellLevel,
                 DamageType: damageType,
                 TopK: limit,
-                Srd: srd,
                 CastableByClass: castableByClass), limit, ct);
 
         return JsonSerializer.Serialize(new

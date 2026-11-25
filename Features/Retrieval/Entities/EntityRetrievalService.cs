@@ -1,7 +1,9 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
+using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 
@@ -29,13 +31,25 @@ public sealed class EntityRetrievalService(
     public async Task<IList<EntitySearchResult>> SearchAsync(EntitySearchQuery q, CancellationToken ct)
     {
         var hits = await ExecuteAsync(q, ct);
-        return hits.Select(h => new EntitySearchResult(
-            h.Envelope.Id, h.Envelope.Type, h.Envelope.Name,
-            h.Envelope.SourceBook, h.Envelope.Edition, h.Envelope.Page,
-            h.Envelope.SettingTags, Truncate(h.Envelope.CanonicalText, 240), h.Score,
-            Authority: h.Envelope.Authority
-        )).ToList();
+        return hits.Select((h, i) =>
+        {
+            var e = h.Hit.Envelope;
+            return new EntitySearchResult(
+                e.Id, e.Type, e.Name, e.SourceBook, e.Edition, e.Page, e.SettingTags,
+                i >= WideResults
+                    ? Truncate(e.CanonicalText, SnippetChars)
+                    : EntityTextPieces.Window(e.CanonicalText, h.Best, h.Named ? NamedChars : WideChars),
+                h.Hit.Score,
+                Authority: e.Authority);
+        }).ToList();
     }
+
+    // The first results carry enough text to answer from: the chat model almost never asks for the rest of a cut
+    // text, and fills the gap from memory. Bounded, because two searches share the chat's 8k context.
+    private const int WideResults = 3;
+    private const int NamedChars = 3000;
+    private const int WideChars = EntityTextPieces.MaxChars;
+    private const int SnippetChars = 240;
 
     private const int DefaultSetCap = 50;
     private const int MaxSetCap = 200;
@@ -141,7 +155,7 @@ public sealed class EntityRetrievalService(
     public async Task<IList<EntityDiagnosticResult>> SearchDiagnosticAsync(EntitySearchQuery q, CancellationToken ct)
     {
         var hits = await ExecuteAsync(q, ct);
-        return hits.Select(h => new EntityDiagnosticResult(
+        return hits.Select(x => x.Hit).Select(h => new EntityDiagnosticResult(
             h.Envelope.Id, h.Envelope.Type, h.Envelope.Name,
             h.Envelope.SourceBook, h.Envelope.Edition, h.Envelope.Page,
             h.Envelope.SettingTags, h.PointId, h.Envelope.Fields, h.Score,
@@ -149,25 +163,51 @@ public sealed class EntityRetrievalService(
         )).ToList();
     }
 
-    private async Task<IList<EntitySearchHit>> ExecuteAsync(EntitySearchQuery q, CancellationToken ct)
+    private async Task<IReadOnlyList<RankedHit>> ExecuteAsync(EntitySearchQuery q, CancellationToken ct)
     {
         var topK = Math.Min(q.TopK <= 0 ? 10 : q.TopK, _retrieval.MaxTopK);
         var vectors = await embeddings.EmbedAsync(new[] { q.QueryText }, ct);
         var vector = vectors[0];
         var filters = BuildFilters(q);
 
+        IReadOnlyList<(EntitySearchHit Hit, TextPiece Best)> ranked;
         bool shouldRerank = _rerankerOpts.Enabled && _rerankerOpts.RerankEntities;
         if (shouldRerank)
         {
             var poolSize = Math.Min(_rerankerOpts.CandidatePoolSize, _retrieval.MaxTopK);
             var pool = (IReadOnlyList<EntitySearchHit>)await store.SearchAsync(vector, filters, poolSize, ct);
-            var reranked = await rerankingService.RerankByPieceAsync(
-                q.QueryText, pool, h => h.Envelope.CanonicalText, topK, ct);
-            return reranked.Select(r => r.Candidate).ToList();
+            // The whole pool is ranked: a named entity may stand below topK.
+            ranked = await rerankingService.RerankByPieceAsync(
+                q.QueryText, pool, h => h.Envelope.CanonicalText, pool.Count, ct);
+        }
+        else
+        {
+            var vectorResults = await store.SearchAsync(vector, filters, topK, ct);
+            ranked = vectorResults.Select(h => (h, EntityTextPieces.Split(h.Envelope.CanonicalText)[0])).ToList();
         }
 
-        var vectorResults = await store.SearchAsync(vector, filters, topK, ct);
-        return vectorResults.Take(topK).ToList();
+        return ranked
+            .Select(r => new RankedHit(r.Hit, r.Best, IsNamedIn(q.QueryText, r.Hit.Envelope)))
+            .OrderByDescending(r => r.Named ? r.Hit.Envelope.Name.Length : 0)
+            .Take(topK)
+            .ToList();
+    }
+
+    private sealed record RankedHit(EntitySearchHit Hit, TextPiece Best, bool Named);
+
+    /// <summary>
+    /// Whether the query names the entity, as whole words. Questions hold words that are also names of rules and lore
+    /// sections ("attack", "hit points"): those count only when the query is nothing else.
+    /// </summary>
+    private static bool IsNamedIn(string query, EntityEnvelope entity)
+    {
+        var name = entity.Name.Trim().Replace('’', '\'');
+        if (name.Length == 0) return false;
+        var text = query.Trim().Replace('’', '\'');
+        if (text.Equals(name, StringComparison.OrdinalIgnoreCase)) return true;
+        return entity.Type is not (EntityType.Rule or EntityType.Lore)
+            && Regex.IsMatch(text, $@"(?<!\w){Regex.Escape(name)}(?:'?s|es)?(?!\w)",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
     private static string Truncate(string s, int max) =>

@@ -77,10 +77,23 @@ public class DndMcpToolsTests
     [Theory]
     [InlineData("search_lore")]
     [InlineData("search_entities")]
-    public void Search_tools_take_no_edition_or_category(string tool) =>
-        // Only 2014 books are indexed: a model-supplied edition or category only ever hid the answer.
+    [InlineData("list_entities")]
+    public void Search_tools_take_no_filter_that_hides_everything(string tool) =>
+        // Only 2014 books are indexed and no entity carries an SRD flag: such an argument only ever hid the answer.
         typeof(DndMcpTools).GetMethod(tool)!.GetParameters().Select(p => p.Name)
-            .Should().NotContain(["edition", "version", "category"]);
+            .Should().NotContain(["edition", "version", "category", "srd", "srd52"]);
+
+    [Fact]
+    public async Task search_entities_gives_the_text_unescaped()
+    {
+        var tools = MakeTools(entity: new FakeEntityService
+        {
+            SearchResults = [new EntitySearchResult("phb14.feat.healer", EntityType.Feat, "Healer",
+                "PHB", "Edition2014", null, [], "restore 1d6 + 4 of the creature’s hit points", 0.9f)]
+        });
+
+        (await tools.search_entities("healer")).Should().Contain("\"text\":\"restore 1d6 + 4 of the creature’s hit points\"");
+    }
 
     [Fact]
     public async Task search_entities_returns_json_with_results()

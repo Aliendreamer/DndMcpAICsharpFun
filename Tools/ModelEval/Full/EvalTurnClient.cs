@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace DndMcpAICsharpFun.Tools.ModelEval.Full;
 
-internal sealed record ToolCallDto(string Name, string ArgumentsJson, string? Result, string? Error);
+internal sealed record ToolCallDto(string Name, string ArgumentsJson, string? Result, string? Error, bool ByApp = false);
 
 internal sealed record TurnDto(string Model, string Text, List<string> OfferedTools, List<ToolCallDto> ToolCalls, long LatencyMs);
 
@@ -23,7 +23,8 @@ internal sealed class EvalTurnClient : IEvalTurnClient
     {
         _http = http;
         _adminKey = adminKey;
-        _http.Timeout = TimeSpan.FromSeconds(180);
+        // A turn can take two model calls, and a long think near 180 seconds.
+        _http.Timeout = TimeSpan.FromSeconds(300);
     }
 
     public async Task<TurnDto> RunAsync(string prompt, CancellationToken ct)
