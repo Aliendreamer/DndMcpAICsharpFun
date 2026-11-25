@@ -3,7 +3,9 @@
 ## Purpose
 
 Defines the requirements for the Qdrant entity collection (`dnd_entities`): its creation, payload schema, indexes, entity ingestion, retrieval-by-ID, and entity vector search. The entity collection is independent of the blocks collection (`dnd_blocks`) and stores one point per structured entity record.
+
 ## Requirements
+
 ### Requirement: A separate Qdrant collection SHALL store entity embeddings
 
 The system SHALL create and use a Qdrant collection named by configuration `Qdrant:EntitiesCollectionName` (default `dnd_entities`). This collection SHALL be distinct from `dnd_blocks` and SHALL NOT be used for block-level retrieval.
@@ -20,7 +22,7 @@ The system SHALL create and use a Qdrant collection named by configuration `Qdra
 
 ### Requirement: Entity ingestion SHALL embed `canonicalText` and store the full envelope as payload
 
-For each entity in a canonical JSON file, the ingestion worker SHALL embed the entity's `canonicalText` and upsert one Qdrant point into `dnd_entities`. The point's payload SHALL include all envelope fields (id, type, name, sourceBook, edition, page, firstAppearedIn, revisedIn, settingTags, canonicalText, keywords) and a flattened/indexed subset of type-specific fields suitable for filtering (e.g. `crNumeric`, `spellLevel`, `damageType`, `keywords[]`). The `keywords` payload field SHALL be written as a repeated keyword value (one entry per keyword string) so the Qdrant keyword index can match individual values.
+For each entity in a canonical JSON file, the ingestion worker SHALL embed the pieces of the entity's `canonicalText` and upsert one Qdrant point into `dnd_entities` that holds one vector per piece (multivector, MaxSim). The point's payload SHALL include all envelope fields (id, type, name, sourceBook, edition, page, firstAppearedIn, revisedIn, settingTags, canonicalText, keywords) and a flattened/indexed subset of type-specific fields suitable for filtering (e.g. `crNumeric`, `spellLevel`, `damageType`, `keywords[]`). The `keywords` payload field SHALL be written as a repeated keyword value (one entry per keyword string) so the Qdrant keyword index can match individual values.
 
 #### Scenario: Entity is embedded once and upserted with full payload including keywords
 
@@ -36,6 +38,11 @@ For each entity in a canonical JSON file, the ingestion worker SHALL embed the e
 
 - **WHEN** entity ingestion runs twice on the same canonical JSON
 - **THEN** points from the prior run for that book are deleted before the new ones are upserted; total point count for that book equals N (no duplicates)
+
+#### Scenario: The best piece decides the score
+
+- **WHEN** a query vector equals one of an entity's piece vectors
+- **THEN** that entity SHALL score as if that piece were its only vector
 
 ### Requirement: Entity ingestion SHALL be triggered explicitly per book
 
@@ -160,4 +167,3 @@ The vector store SHALL apply a keyword filter condition when `EntityFilters.Keyw
 
 - **WHEN** `GetByIdsAsync` is called with 500 entity IDs
 - **THEN** all matching entities SHALL be returned without truncation
-

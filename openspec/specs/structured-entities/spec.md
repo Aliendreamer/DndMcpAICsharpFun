@@ -3,7 +3,9 @@
 ## Purpose
 
 Defines the data model for structured D&D entity records: the common envelope, the deterministic slug-based ID scheme, the 20 supported entity types and their field schemas, and the canonical JSON file format used as the source of truth for entity ingestion.
+
 ## Requirements
+
 ### Requirement: Every structured entity record SHALL conform to a common envelope
 
 The system SHALL define a common entity envelope used by every entity record across all 20 entity types. The envelope SHALL contain the following fields: `id` (string), `type` (string, one of the 20 entity types), `name` (string), `sourceBook` (string), `edition` (string, one of `Edition2014`, `Edition2024`, or other recognized editions), `page` (integer or null), `firstAppearedIn` (object with `book`, `edition`, optional `page`), `revisedIn` (array of objects each with `book`, `edition`, `summary`), `settingTags` (array of strings), `keywords` (array of strings, defaults to empty), `canonicalText` (string), and `fields` (object containing type-specific fields).
@@ -138,7 +140,7 @@ Every entity SHALL include `settingTags[]`, a free-form array of lowercase setti
 
 ### Requirement: `canonicalText` SHALL be the embedded representation
 
-Every entity SHALL include a `canonicalText` string. This SHALL be the text passed to the embedding model when the entity is ingested into the entity vector store. The format is per-type and SHALL be deterministic given the structured `fields` (so re-rendering an unchanged record yields identical `canonicalText`).
+Every entity SHALL include a `canonicalText` string. Its pieces SHALL be the text passed to the embedding model when the entity is ingested into the entity vector store. The format is per-type and SHALL be deterministic given the structured `fields` (so re-rendering an unchanged record yields identical `canonicalText`).
 
 #### Scenario: Spell canonicalText includes header and body
 
@@ -245,4 +247,3 @@ Entities with `needsReview: true` SHALL NOT cause validation to return a non-200
 
 - **WHEN** `POST /admin/books/{id}/ingest-entities` is called and some entities have `needsReview: true`
 - **THEN** those entities SHALL be ingested normally — `needsReview` does not block ingestion
-

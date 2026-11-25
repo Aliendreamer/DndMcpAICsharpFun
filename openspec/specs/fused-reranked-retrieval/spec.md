@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change fused-reranked-retrieval. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Shared reranking service
 
 The system SHALL provide a single reusable reranking service that, given a query, a list of candidates, a text selector, and a final top-N, returns the candidates reranked by the cross-encoder and truncated to top-N. All retrieval paths (prose, entity, fused) SHALL use this service rather than duplicating rerank logic. When reranking is unavailable (disabled or model missing), the service SHALL return the first N candidates unchanged.
@@ -19,12 +21,12 @@ The system SHALL provide a single reusable reranking service that, given a query
 
 ### Requirement: Entity search is reranked
 
-`EntityRetrievalService` entity search SHALL, when entity reranking is enabled, over-fetch a candidate pool from `dnd_entities`, rerank candidates by each entity's `canonicalText` via the shared reranking service, and return the requested top-K. When entity reranking is disabled, it SHALL fetch and return top-K by vector score with no reranking.
+`EntityRetrievalService` entity search SHALL, when entity reranking is enabled, over-fetch a candidate pool from `dnd_entities`, rerank candidates by the best-scoring piece of each entity's `canonicalText` via the shared reranking service, and return the requested top-K. When entity reranking is disabled, it SHALL fetch and return top-K by vector score with no reranking.
 
 #### Scenario: Entity search returns reranked results
 
 - **WHEN** entity reranking is enabled and a search requests top-K of 10
-- **THEN** the service SHALL fetch the configured candidate pool, rerank by `canonicalText`, and return the top 10 by rerank score
+- **THEN** the service SHALL fetch the configured candidate pool, rerank by each candidate's best piece, and return the top 10 by rerank score
 
 #### Scenario: Entity reranking can be disabled
 
@@ -85,4 +87,3 @@ snippet.
 - **WHEN** the entity candidate pool contains the same-named, same-typed entity in both
   `Edition2014` and `Edition2024`
 - **THEN** both SHALL survive collapse as separate candidates
-

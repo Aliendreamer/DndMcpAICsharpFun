@@ -1,0 +1,1109 @@
+{
+  "mode": "full",
+  "model": "qwen3:8b",
+  "utcTimestamp": "2026-11-25T09:58:40.9531575Z",
+  "seed": 42,
+  "books": [
+    "phb14",
+    "mm14"
+  ],
+  "caseSetHash": "7d2926a5d17a031cf883620785b6ca6d09ba56842d830fee992d30097e3fa75c",
+  "cases": [
+    {
+      "id": "gen.class.phb14.class.paladin.hitdie",
+      "category": "class",
+      "tag": "generated",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "In the 2014 *Player\u2019s Handbook*, Paladins use **d10 Hit Dice**. This is explicitly stated in the multiclassing rules section (p. 125 of the 2014 edition), which notes that Paladins and Fighters both grant d10 Hit Dice. So whether you\u2019re a single-class Paladin or multiclassing, your Hit Dice are d10. This applies to all Paladin levels, from 1st to the max for your class. Let me know if you need help calculating HP or pool size!"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The Paladin class in the **2014 Player\u2019s Handbook** uses a **d10 Hit Die**. This is confirmed in the \u0022Multiclassing\u0022 section of the PHB (p. 19), which explicitly states that paladins (like fighters) gain d10 Hit Dice. When multiclassing, you pool Hit Dice of the same type (e.g., d10s from Paladin and Fighter), but paladins alone use d10s. This matches their martial focus and aligns with their role as warriors. Let me know if you need help tracking Hit Dice for a multiclassed Paladin!"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "In the 2014 *Player\u0027s Handbook*, Paladins use a **d10** as their hit die. This is confirmed in the multiclassing rules, which note that both the Fighter and Paladin classes grant d10 Hit Dice. When you gain levels in the Paladin class, you roll a d10 (or add to it via ability modifiers) for each level, just like a Fighter. This applies to the base Paladin class without any expansions or supplements."
+        }
+      ]
+    },
+    {
+      "id": "gen.class.phb14.class.druid.saves",
+      "category": "class",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-answer",
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The **Druid** class in the 2014 *Player\u2019s Handbook* uses **Wisdom** as their saving throw proficiency for spellcasting. This is explicitly stated in the class description: *\u0022Wisdom is your spellcasting ability for your druid spells\u2026 You use your Wisdom modifier when setting the saving throw DC for a druid spell you cast and when making an attack roll with one.\u0022* \n\nThis means:\n- **Spell save DCs** for druid spells are based on your Wisdom modifier.\n- **Spell attack rolls** (e.g., for spells like *Shatter* or *Cone of Cold*) also use Wisdom.\n- **Wisdom saving throws** are the target for spells c"
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [],
+          "text": "The Druid\u0027s saving throw proficiencies are determined by their spellcasting ability, which is **Wisdom**. When casting spells, the Druid adds their **proficiency bonus** to the **spell save DC** (which is 8 \u002B proficiency bonus \u002B Wisdom modifier). However, the specific saving throw that a spell requires (e.g., Wisdom, Dexterity, or Constitution) is dictated by the spell\u0027s description. For example, a spell like *Entangle* targets **Dexterity** saves, while *Shillelagh* targets **Strength** saves. \n\nThe Druid does not gain any additional saving throw proficiencies beyond their spellcasting abilit"
+        }
+      ]
+    },
+    {
+      "id": "gen.class.phb14.class.monk.hitdie",
+      "category": "class",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": "The Monk class in the 2014 *Player\u0027s Handbook* uses **d4 hit dice**. This is outlined in the class entry on page 97 of the PHB, which specifies that Monks gain hit points based on a d4 die. Their hit point progression is unique in that they rely on their Constitution modifier and Dexterity for unarmored defense, but their hit dice remain standard d4s throughout their career. This is distinct from later editions (like 2024), where Monks were reworked to use d6 hit dice. So, in the 2014 version, it\u0027s definitely **d4**."
+        },
+        {
+          "calledTools": [],
+          "text": "Monks in the 2014 *Player\u0027s Handbook* use **d8 hit dice**. This is specified in their class entry (PHB p. 96), which states they gain hit dice of d8 as they level up. This remains consistent across editions, though the 2024 edition introduced subclass-specific adjustments to hit die progression. For your 2014 PHB rules, stick with d8."
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "Monks in the 2014 *Player\u0027s Handbook* use a **d4** as their hit die. This is consistent with the class\u0027s design, as their martial arts focus and unarmed strike mechanics revolve around the d4 damage die (which increases with level, per the \u0022Martial Arts\u0022 column in their class features). While the search results don\u2019t explicitly state this, the d4 is the standard hit die for Monks in that edition. Let me know if you\u2019d like clarification on how this interacts with other mechanics!"
+        }
+      ]
+    },
+    {
+      "id": "gen.class.phb14.class.barbarian.hitdie",
+      "category": "class",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": "The Barbarian class, as detailed in the 2014 *Player\u0027s Handbook*, uses a **d12** hit die. This is consistent across editions, as the core mechanic for Barbarians\u2014using a d12 for hit points and temporary hit points\u2014remains unchanged. When you level up, you roll the die, add your Constitution modifier, and add it to your total hit points. Temporary hit points also come from the d12 pool. \n\nIf you\u0027re building a Barbarian character, this means your hit points will grow steadily, and you\u2019ll have a robust pool for absorbing damage. Let me know if you\u2019d like help calculating hit points or planning a "
+        },
+        {
+          "calledTools": [],
+          "text": "The Barbarian class in the 2014 *Player\u0027s Handbook* (PHB) uses a **d12** as their hit die. This is consistent across editions, as the core class features remain unchanged. When you gain a level in Barbarian, you roll the d12 (or add your Constitution modifier if you choose) and add the result to your hit points. This grants Barbarians robust survivability, a hallmark of the class. \n\nIf you\u0027re building a character or designing an encounter, this die type affects how quickly they recover from damage\u2014though their Rage ability and high Constitution scores further bolster their durability. Let me k"
+        },
+        {
+          "calledTools": [],
+          "text": "The Barbarian class in the 2014 *Player\u0027s Handbook* (PHB) uses a **d12** as their hit die. This is consistent with the core 5e rules, where Barbarians gain a \u002B1 bonus to AC while raging and their hit points increase by 1d12 per level (or 1d12 \u002B Constitution modifier, if using the \u0022Hit Point Maximum\u0022 rule). This makes them one of the more resilient classes, especially in combat."
+        }
+      ]
+    },
+    {
+      "id": "gen.class.phb14.class.cleric.hitdie",
+      "category": "class",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool:not-chosen",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The **Cleric** class in the **2014 Player\u0027s Handbook** uses a **d8** (eight-sided die) for their hit points and class features. While the search results didn\u2019t explicitly mention this, it\u2019s a standard detail for clerics across editions\u2014your hit die is determined by your class, and clerics always roll a d8. If you\u2019re building a cleric character, you\u2019ll add your Constitution modifier to each die roll and take the average (4) for your starting hit points. Let me know if you\u2019d like help calculating hit points or other class mechanics!"
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The 2014 *Player\u0027s Handbook* does not explicitly detail the Cleric\u0027s hit die in the search results provided, as the returned entries focus on spells, class features, and subclass options rather than core mechanics like hit dice. However, in the original 5th edition (2014), **Clerics use a d8 hit die** (as per the PHB p. 47). This is a core mechanical trait for the class, and while the search tools didn\u2019t retrieve this specific detail, it\u2019s a well-established rule. If you\u2019re working with a homebrew or variant system, double-check with your DM for adjustments!"
+        }
+      ]
+    },
+    {
+      "id": "gen.spell.phb14.spell.contingency.school",
+      "category": "spell",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The search results don\u2019t directly mention the *Contingency* spell\u2019s school of magic, so I can\u2019t confirm it from this data. In the 2014 *Player\u2019s Handbook*, *Contingency* is listed as a 3rd-level spell, but its school isn\u2019t explicitly detailed in the provided excerpts. To resolve this, you\u2019d need to check the actual spell entry in the *Player\u2019s Handbook* (p. 215 in the 2014 edition). Generally, *Contingency* is classified under **Evocation** (as it involves magical reactions and energy manipulation), but I recommend verifying this directly from the source material for accuracy. Let me know if y"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell *Contingency* is part of the **Evocation** school of magic in the 2014 Player\u2019s Handbook. While the tool response didn\u2019t explicitly mention the school, this aligns with its function: Evocation spells often involve setting up conditional effects or triggering magical responses, which *Contingency* does by allowing you to cast another spell automatically when a specified condition is met. This fits the Evocation school\u2019s focus on manipulating magical energy and creating reactive effects."
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell *Contingency* from the 2014 *Player\u0027s Handbook* is categorized under the **Evocation** school of magic. This is noted in the spell descriptions section of the book, which lists *Contingency* alongside other Evocation spells like *Arcane Gate* and *Chain Lightning*. Evocation spells typically involve manipulating magical energy to create effects like force, light, or sound, and *Contingency* fits this by allowing a spellcaster to trigger a prepared spell as a reaction to a specific event."
+        }
+      ]
+    },
+    {
+      "id": "gen.spell.phb14.spell.inflict-wounds.level",
+      "category": "spell",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell *Inflict Wounds* is a **1st-level spell** in the 2014 *Player\u0027s Handbook*, listed under the Cleric spell list. It\u2019s one of the foundational cleric spells, designed to afflict creatures with a disease (typically necrotic damage) and is often used for its utility in combat or healing scenarios. The description mentions a melee spell attack with a disease effect, which aligns with its 1st-level slot. Let me know if you\u0027d like details on its mechanics or usage!"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell *Inflict Wounds* is listed in the **2014 Player\u0027s Handbook** as a **1st-level spell** under the Cleric spell list. It\u2019s a damaging spell that inflicts disease on a target, with effects tied to the caster\u2019s level (the disease\u2019s severity scales with the cleric\u2019s level). This matches the spell\u2019s description in the PHB, which specifies it\u2019s a 1st-level spell for clerics."
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell *Inflict Wounds* appears in the **Player\u0027s Handbook (2014 edition)** as a **1st-level spell**. It\u2019s listed alongside other cleric spells like *Cure Wounds* and *Bless*, which are all 1st-level spells in that edition. The spell description matches the power level of 1st-level magic, dealing necrotic damage and requiring a spell attack roll, which is typical for lower-tier clerical spells. If you\u0027re preparing spells or managing spell slots, this will help you track its usage!"
+        }
+      ]
+    },
+    {
+      "id": "gen.spell.phb14.spell.prismatic-wall.level",
+      "category": "spell",
+      "tag": "generated",
+      "passes": 2,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell **Prismatic Wall** is listed as a **9th-level spell** in the 2014 *Player\u0027s Handbook* (specifically in the section listing 9th-level spells like *Power Word Kill*, *Time Stop*, and others). Its description details a shimmering, multicolored wall that can be shaped into a vertical plane or sphere, with effects that allow it to be destroyed layer by layer. This aligns with its placement in the 9th-level spell list for that edition."
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell **Prismatic Wall** is listed as a **9th-level spell** in the *Player\u2019s Handbook* (2014 edition). It appears in the spell list under the 9th-level section, alongside other high-level spells like *Power Word Kill* and *Time Stop*. This aligns with its powerful effects, such as creating a durable, multicolored wall that can be destroyed layer by layer. Let me know if you\u2019d like details on how it works!"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The entry for *Prismatic Wall* in the 2014 *Player\u0027s Handbook* describes its effects\u2014like how it can be destroyed layer by layer\u2014but doesn\u2019t explicitly state its spell level. To find the exact level, you\u2019d need to check the spell list in the PHB (p. 212\u2013215) or a spellcasting class\u2019s spell selection (e.g., for a wizard, check their spellbook). Would you like help locating it in the PHB?"
+        }
+      ]
+    },
+    {
+      "id": "gen.spell.phb14.spell.magic-circle.level",
+      "category": "spell",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell **Magic Circle** is listed as a **3rd-level wizard spell** in the *Player\u2019s Handbook* (2014 edition). It appears in the \u0022Wizard Spells\u0022 section alongside other 3rd-level arcane spells like *Fear*, *Fly*, and *Hypnotic Pattern*. Clerics also learn it at 3rd level, as noted in the \u0022Cleric Spells\u0022 entry. This matches the spell\u2019s description in the 2014 PHB, where it\u2019s detailed as a defensive enchantment that creates a barrier against magical effects."
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "It looks like there might be some confusion here! The spell *Soul Cage* (from *Xanathar\u2019s Guide to Everything*) is different from *Magic Circle*. In the **2014 Player\u2019s Handbook**, *Magic Circle* is a **3rd-level spell** (see PHB p. 214). If you were referring to a different spell or edition, let me know\u2014I\u2019d be happy to clarify!"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell *Magic Circle* appears in the **2014 Player\u0027s Handbook** as a **3rd-level wizard spell** (listed under \u0022Wizard Spells\u0022). It\u2019s also available to clerics as a **3rd-level spell** (under \u0022Cleric Spells\u0022), though the exact details and casting requirements might vary slightly between classes. The spell description in the PHB (p. 225) specifies it\u2019s a 3rd-level arcane spell, so you\u2019ll want to confirm the exact wording from the book for full clarity. Let me know if you need help with the spell\u2019s mechanics!"
+        }
+      ]
+    },
+    {
+      "id": "gen.spell.phb14.spell.wall-of-fire.range",
+      "category": "spell",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell *Wall of Fire* (from the 2014 Player\u0027s Handbook) has a range of **60 feet**. When you cast it, you create a wall of fire on a solid surface within that range. The wall can extend up to 60 feet in length, 20 feet in height, and 1 foot in thickness, or form a ringed wall with a diameter of up to 20 feet. The spell\u2019s range determines how far from you the wall can be placed, but the size of the wall itself is governed by its description. This aligns with typical spell ranges in the PHB, where 60 feet is a common medium-range limit."
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell **Wall of Fire** (Player\u0027s Handbook 2014) specifies that you create the wall on a solid surface **within range**. However, the spell description does not explicitly state a fixed range distance (like 60 feet or 30 feet). In D\u0026D 5e, spells with no specified range typically use the **normal range** for their school of magic. Since *Wall of Fire* is a **fire** spell, it follows the **60-foot range** rule for spells of that type (as per the *Player\u0027s Handbook*). \n\nSo, you can cast *Wall of Fire* on a solid surface **within 60 feet** of you. The wall\u2019s size and shape are flexible (up to 6"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The spell *Wall of Fire* (PHB 2014) has a range of **60 feet**. As described in the *Spell Descriptions* section, you create the wall on a solid surface within range, and the wall\u2019s dimensions (length, height, thickness) are specified but not tied to the range itself. This matches the standard 60-foot range for spells in the 2014 edition unless otherwise noted. The spell\u2019s effects, like damaging creatures or slowing fire, are separate from its range limitation."
+        }
+      ]
+    },
+    {
+      "id": "gen.monster.mm14.monster.mastiff.ac",
+      "category": "monster",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The search results for the Mastiff in the 2014 *Monster Manual* don\u2019t include its **armor class** (AC). The entries retrieved focus on traits like *Keen Hearing and Smell* (advantage on Wisdom [Perception] checks) and general lore about Mastiffs as loyal, versatile companions. \n\nIf you\u2019re looking for AC, you\u2019d need to consult the full Monster Manual entry for the Mastiff, which isn\u2019t included in the search results here. Let me know if you\u2019d like help with other stats (like hit points, speed, or abilities) or need guidance on how to find the full monster stat block!"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The search results for the Mastiff in the 2014 *Monster Manual* don\u2019t include its armor class (AC). The entries retrieved focus on lore, such as its role as a guard dog, keen senses, and riding mechanics, but none specify AC. To find the exact AC, you\u2019d need to consult the full *Monster Manual* (2014 edition) or a reliable monster stat block for the Mastiff. Would you like help locating that information elsewhere?"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The search results for the Mastiff in the *Monster Manual* (2014 edition) don\u2019t include its armor class. The entries retrieved focus on traits like *Keen Hearing and Smell* (advantage on Wisdom (Perception) checks) and general descriptions of mastiffs as loyal, scent-driven companions. For precise stats like armor class, you\u2019d need to consult the full Monster Manual entry for the Mastiff, which isn\u2019t included in the search results. If you have the physical book, flipping to the Mastiff\u2019s stat block (likely in the \u0022Beasts\u0022 section) would yield the exact AC and other details. Let me know if you\u2019"
+        }
+      ]
+    },
+    {
+      "id": "gen.monster.mm14.monster.needle-blight.cr",
+      "category": "monster",
+      "tag": "generated",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Needle Blight** in the 2014 *Monster Manual* has a **challenge rating of 1/4**. This is explicitly listed in its stat block under the \u0022CR\u0022 field. It\u2019s a Medium plant creature with AC 12, 11 HP (2d8 \u002B 2), and abilities like Claws and False Appearance. Let me know if you\u2019d like its full stat block or details about its abilities! \uD83C\uDF3F"
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Needle Blight** in the 2014 *Monster Manual* has a **challenge rating of 1/4** (CR 1/4). This is explicitly listed in the monster\u0027s stat block under the \u0022CR\u0022 line in the search results. It\u2019s a Medium plant creature with AC 12 and HP 11 (2d8 \u002B 2), matching the description provided. No other entries in the results match the name \u0022Needle Blight,\u0022 so this is the correct CR."
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Needle Blight** from the *Monster Manual* (2014 edition) has a **challenge rating of 1/4**. This is explicitly noted in its stat block, which describes it as a Medium plant with CR 1/4. Let me know if you\u0027d like details about its abilities or how it fits into encounters! \uD83C\uDF3F\uD83D\uDDE1\uFE0F"
+        }
+      ]
+    },
+    {
+      "id": "gen.monster.mm14.monster.cat.ac",
+      "category": "monster",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The search results don\u0027t specifically mention a \u0022Cat\u0022 from the 2014 *Monster Manual* in the context of armor class. However, in D\u0026D 5e, a standard domestic cat typically has an **armor class of 13** (due to natural armor). \n\nIt\u0027s possible you might be referring to a specific variant or a different creature named \u0022Cat\u0022 in the source material. If you meant the *Grinning Cat* from *Bigby Presents: Glory of the Giants* (which is a Fey creature), its AC isn\u0027t explicitly listed in the provided search results. For precise stats, checking the *Monster Manual* directly or clarifying the exact creature "
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The 2014 Monster Manual doesn\u2019t list a specific \u0022Cat\u0022 monster with a defined armor class. The search result you received points to a flavor text about a cat\u2019s keen smell from the *Player\u2019s Handbook* (not the Monster Manual), which suggests the query might be conflating lore with monster stats. \n\nIf you\u2019re referring to a generic domestic cat as a monster, it\u2019s not included in the 2014 Monster Manual\u2019s official entries. For homebrew or custom creatures, armor class typically depends on their size and natural armor. A small creature like a cat might have AC 13 (natural armor \u002B1, plus Dexterity mo"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The search results for \u0022Cat\u0022 in the 2014 *Monster Manual* don\u2019t include armor class (AC) information. The entries retrieved mention traits like *Keen Smell* (advantage on Wisdom [Perception] checks using smell) but no AC value. The other results reference *Grinning Cats* from *Bigby Presents: Glory of the Giants*, which are a different creature (likely a fey variant) and not part of the core *Monster Manual* entries. \n\nIf you\u2019re looking for a standard domestic cat\u2019s AC, it\u2019s not a monster in the *Monster Manual*\u2014it\u2019s a mundane animal. In D\u0026D terms, mundane animals typically have AC 13 (natural"
+        }
+      ]
+    },
+    {
+      "id": "gen.monster.mm14.monster.giant-octopus.cr",
+      "category": "monster",
+      "tag": "generated",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Giant Octopus** in the 2014 *Monster Manual* has a **challenge rating of 1** (CR 1). It\u2019s a Large beast with AC 11, 52 hit points (8d10 \u002B 8), and traits like *Hold Breath* (can hold its breath for 1 hour out of water) and *Underwater Camouflage*. This makes it a suitable encounter for a party of 1st-level characters. \uD83D\uDC19"
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Giant Octopus** in the 2014 *Monster Manual* has a **challenge rating of CR 1**. This is explicitly listed in its stat block under the \u0022Traits\u0022 section, where it notes \u0022CR 1\u0022 alongside its abilities like *Hold Breath* and *Underwater Camouflage*. This matches the edition you specified, confirming it\u2019s the correct entry."
+        },
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Giant Octopus** in the 2014 *Monster Manual* has a **challenge rating of 1** (CR 1). It\u2019s a Large beast with AC 11, 52 hit points (8d10 \u002B 8), and traits like *Hold Breath* and *Underwater Camouflage*. While it\u2019s not as formidable as some of its larger aquatic counterparts (like the CR 5 Giant Shark), it\u2019s still a decent challenge for low-level adventurers! \uD83D\uDC19"
+        }
+      ]
+    },
+    {
+      "id": "gen.monster.mm14.monster.shrieker.hp",
+      "category": "monster",
+      "tag": "generated",
+      "passes": 1,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "pass",
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_entities"
+          ],
+          "text": "The **Shrieker** in the 2014 *Monster Manual* has **13 hit points** (listed as **3d8**). While the stat block shows the minimum HP (13), the average roll for 3d8 is **13.5**. In D\u0026D 5e, monsters typically use their listed HP value (the minimum) unless specified otherwise. So, the Shrieker\u2019s average HP is **13.5**, but it\u2019s commonly referenced as **13** in game terms. \uD83D\uDD79\uFE0F"
+        },
+        {
+          "calledTools": [
+            "list_entities"
+          ],
+          "text": "The 2014 *Monster Manual* does not list a creature called \u0022Shrieker.\u0022 Your search returned a **Roper** (CR 5), which has **54 hit points**. If you\u0027re thinking of a different monster, double-check the name or edition\u2014some creatures might appear in later supplements or revised editions. Let me know if you\u0027d like help finding the right entry!"
+        },
+        {
+          "calledTools": [
+            "list_entities"
+          ],
+          "text": "The 2014 edition of *Monster Manual* does not include a creature named **Shrieker**. Your search returned a **Roper** (CR 5), which is a different monster entirely. If you meant to ask about the Roper, it has **110 hit points** (per the Monster Manual 2014, p. 262). If you\u2019re referring to a different creature or edition, double-check the name or source material!"
+        }
+      ]
+    },
+    {
+      "id": "gen.crafting.magic.VeryRare",
+      "category": "crafting",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "search_entities"
+          ],
+          "text": "The crafting cost and time for a **very rare magic item** (like the *Potion of Longevity*) depend on its **market value** and the **crafting rules**. Here\u0027s the breakdown:\n\n- **Gold Cost**: Very rare items typically cost **half their market value** to craft. The *Potion of Longevity* has a market value of **5,000 gp**, so crafting it costs **2,500 gp**.\n- **Workweeks**: Crafting takes **100 hours \u002B 10 hours per 100 gp of cost**. For this potion:  \n  $ 100 \\text{ hours} \u002B (2,500 \\text{ gp} / 100) \\times 10 \\text{ hours} = 350 \\text{ hours} $.  \n  At **40 hours per workweek**, this equals **8.75"
+        }
+      ]
+    },
+    {
+      "id": "gen.crafting.nonmagical.150",
+      "category": "crafting",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        }
+      ]
+    },
+    {
+      "id": "gen.crafting.magic.Rare",
+      "category": "crafting",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [
+            "search_entities",
+            "search_entities"
+          ],
+          "text": "Crafting a rare magic item typically costs half its market value in materials, and takes 1d20 weeks of work, plus 1 week for every 1,000 gp of its market value. For example, a rare item worth 5,000 gp would cost 2,500 gp in materials and take 1d20 \u002B 5 weeks to craft. The exact numbers depend on the item\u2019s specific market value, which can vary widely for rare items (typically between 1,000 gp and 10,000 gp). If you have a specific item in mind, I can calculate the exact cost and time for it!"
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        }
+      ]
+    },
+    {
+      "id": "gen.crafting.nonmagical.50",
+      "category": "crafting",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        }
+      ]
+    },
+    {
+      "id": "gen.crafting.nonmagical.500",
+      "category": "crafting",
+      "tag": "generated",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered",
+        "wrong-tool:not-offered"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        }
+      ]
+    },
+    {
+      "id": "manual.multiclass-wizard-hitdie",
+      "category": "class",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": "A level 1 Wizard in the 2014 edition of the Player\u0027s Handbook rolls a **d4** for hit points. This is consistent with the standard for spellcasters in the base game\u2014wizards, bards, clerics, druids, and sorcerers all use d4 hit dice, while fighters, paladins, rangers, and others use d8, d10, or d12. Your Wizard\u2019s hit points are determined by rolling 1d4 (or 1d4 \u002B Constitution modifier, if you\u2019re using the optional \u0022hit point maximum at first level\u0022 rule). \n\nIf you\u2019re curious about how hit dice scale with level, Wizards gain a d4 hit die at 1st level, and additional d4s at 2nd, 3rd, and so on, up"
+        },
+        {
+          "calledTools": [],
+          "text": "The Wizard class, like all spellcasters in the 2014 *Player\u0027s Handbook*, uses a **d4** as their hit die. This is outlined in the class description (p. 46 of the 2014 edition). While martial classes like fighters use d10 hit dice, wizards and other spellcasters roll a d4 for hit points and ability score adjustments. This reflects their focus on magic over physical combat."
+        },
+        {
+          "calledTools": [],
+          "text": "The 2014 *Player\u0027s Handbook* specifies that Wizards use **d4** hit dice. On page 129, it states: \u0022You gain hit points equal to your level \u002B your Constitution modifier. [...] When you gain a level, you gain hit points equal to your level \u002B your Constitution modifier.\u0022 This applies to all Wizard levels, including level 1. Your character rolls a d4 when leveling up or gaining hit points."
+        }
+      ]
+    },
+    {
+      "id": "manual.rules.prone",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 1,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "pass",
+        "wrong-answer",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "When a creature is prone and you attack it from within 5 feet, **your attack roll has disadvantage** due to the prone condition. Here\u0027s why:\n\n1. **Prone Condition Effects**: Per the *Player\u0027s Handbook* (2014, Appendix A), a prone creature has two key effects:  \n   - **Attack rolls against it have disadvantage** (this applies regardless of the attacker\u2019s position).  \n   - **The creature\u2019s own attack rolls have advantage** (if it attacks you).  \n\n2. **Position Within 5 Feet**: Being within 5 feet allows you to make a melee attack (as the target is within your reach). However, the prone condition"
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "When a creature is prone and you attack it from within 5 feet, the attack roll is made **without disadvantage**. Here\u0027s why:  \n\nThe **prone condition** (as described in the *Player\u0027s Handbook* 2014, Appendix A) only restricts movement (forcing the creature to crawl or risk being prone) and doesn\u2019t inherently impose penalties on attack rolls. However, a key rule from the PHB (page 194) states:  \n\u003E *\u0022If a creature is prone, attack rolls against it have disadvantage unless the attacker is within 5 feet of the creature.\u0022*  \n\nThis means **distance** is the critical factor. If you\u2019re within 5 feet, "
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "Per the 2014 *Player\u0027s Handbook*, attacking a prone creature from within 5 feet doesn\u2019t grant any automatic bonuses or penalties to your attack roll. However, here\u2019s what you need to know:\n\n1. **Prone Condition Mechanics**: A prone creature can only move by crawling (or use their reaction to stand up, ending the prone condition). This doesn\u2019t inherently make them easier or harder to hit, but their limited movement might affect their ability to dodge or reposition during combat.\n\n2. **5-Foot Reach**: Most creatures have a 5-foot reach, so attacking from within 5 feet is standard. There\u2019s no mec"
+        }
+      ]
+    },
+    {
+      "id": "manual.rules.grappled",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "Per the **2014 Player\u0027s Handbook** (Appendix A - Conditions), the **grappled condition** reduces a creature\u0027s speed to **0**. This means the grappled creature cannot move or take actions that require movement (like casting range spells or using abilities tied to speed). Additionally, they **cannot benefit from any bonuses** to their speed (e.g., from magic items, feats, or environmental effects). \n\nThis effect is distinct from the grappler\u2019s own movement constraints (e.g., halved speed when dragging a grappled creature). The grappled creature is effectively immobilized until the condition ends"
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "Per the **2014 Player\u0027s Handbook** (Appendix A - Conditions), the **grappled condition** reduces a creature\u0027s speed to **0**. Additionally, the creature **can\u0027t benefit from any bonus to its speed** while grappled. This means movement is effectively halted unless the grappled creature escapes the condition (e.g., via an action, escape attempt, or ending the grapple). \n\nThis effect is explicitly stated in the condition\u0027s description and applies regardless of the creature\u0027s size or other factors. The grappled creature is also unable to move freely, making it vulnerable to being dragged or carrie"
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "Per the **Player\u0027s Handbook 2014** (Appendix A - Conditions), the **grappled condition** reduces a creature\u0027s speed to **0**. This means the grappled creature cannot move at all unless they have a feature that allows movement while grappled (like the *Freedom of Movement* spell or certain class abilities). Additionally, they **cannot benefit from any bonuses to their speed**\u2014including magical effects or racial traits that normally boost movement. \n\nThis effect lasts until the grapple is broken (via escape, releasing the target, or the grappler being incapacitated). The condition also ends if t"
+        }
+      ]
+    },
+    {
+      "id": "manual.rules.opportunity-attack",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "Per the **Player\u0027s Handbook 2014** (p. 192, \u0022Making an Attack\u0022), a creature can make an **opportunity attack** against you when **a hostile creature that you can see moves out of your reach**. This means the creature must be within your melee reach (typically 5 feet) at the start of their movement and then leave that range. \n\nFor example, if an enemy is adjacent to you and then moves away, you can use your reaction to attack them as they exit your reach. However, **you don\u2019t provoke an opportunity attack** if the creature takes the **Disengage** action, teleports, or is moved by an external fo"
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "Per the **Player\u0027s Handbook 2014** (p. 194, *Making an Attack*), a creature can make an **opportunity attack** against you **when a hostile creature that you can see moves out of your reach**. To do this, the attacker uses their reaction to make a **melee attack** against the provoking creature. \n\nKey details:  \n- The attacker must be **hostile** and **within your line of sight**.  \n- Movement **out of your reach** (typically 5\u201360 feet, depending on your size) triggers the attack.  \n- The attacker **cannot** make the opportunity attack if their reaction is otherwise occupied (e.g., by the *sho"
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "In the 2014 *Player\u0027s Handbook*, a creature can make an **opportunity attack** against you when **you** (the target) move **out of its reach** while it can see you. Here\u2019s the breakdown:\n\n1. **Trigger**: The attacker makes an opportunity attack if you leave its reach during your movement. For example, if you\u2019re adjacent and step back, leaving them out of your reach, they can react.  \n2. **Reaction Use**: The attacker uses their reaction to make a single melee attack against you. This doesn\u2019t cost an action.  \n3. **Visibility**: The attacker must be able to see you to trigger the attack.  \n4. *"
+        }
+      ]
+    },
+    {
+      "id": "manual.rules.dodge",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "When you take the **Dodge action** (Player\u2019s Handbook 2014, *Actions in Combat*), you gain a significant defensive boost against attackers targeting you. Here\u2019s how it affects attackers:  \n\n- **Disadvantage on Attack Rolls**: Until the start of your next turn, any attack roll made against you has **disadvantage** if the attacker can see you. This makes it harder for enemies to hit you reliably.  \n- **Advantage on Dexterity Saving Throws**: You also gain **advantage** on Dexterity saving throws, which helps you dodge spells or effects that require such saves (like certain spells or trap trigger"
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "When you take the **Dodge action** (Player\u0027s Handbook 2014, *Actions in Combat*), attackers who target you face two key penalties:  \n1. **Disadvantage on attack rolls**: Any attack roll made against you has disadvantage *if the attacker can see you*. This makes it significantly harder for enemies to hit you.  \n2. **Advantage on Dexterity saving throws**: You gain advantage on Dexterity saving throws, which can help you dodge spells or other effects that require saving throws.  \n\nThis benefit lasts *until the start of your next turn*. If you\u2019re incapacitated or your speed drops to 0, you lose t"
+        },
+        {
+          "calledTools": [
+            "ask_rules"
+          ],
+          "text": "Taking the **Dodge action** (PHB 2014, *Actions in Combat* p. 191) grants attackers a key disadvantage: **any attack roll made against you has disadvantage if they can see you**. This makes it significantly harder for them to hit you during your turn. Additionally, you gain **advantage on Dexterity saving throws** during this time, further boosting your defenses. \n\nThis benefit lasts **until the start of your next turn** and disappears if you\u2019re incapacitated or your speed drops to 0. It\u2019s a proactive way to mitigate damage while you\u2019re actively avoiding attacks. Note that this is distinct fro"
+        }
+      ]
+    },
+    {
+      "id": "manual.rules.half-cover",
+      "category": "rules",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-chosen",
+        "wrong-tool-data",
+        "wrong-tool:not-chosen"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": "In the 2014 *Player\u0027s Handbook*, half cover grants a **\u002B2 bonus to AC** and **Dexterity saving throws** for the target. This is specified in the \u0022Cover\u0022 subsection of the Combat chapter (p. 198). The rule applies when a target is partially obscured, such as by a wall, pillar, or creature, but not fully hidden. This bonus stacks with other modifiers to AC and saving throws, like magical effects or armor class adjustments. Let me know if you need help visualizing how cover interacts with other combat mechanics!"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The 2014 *Player\u2019s Handbook* describes **half cover** as granting a **\u002B2 bonus to AC** for creatures behind it, but it doesn\u2019t explicitly mention Dexterity saving throws. The search results you shared don\u2019t directly address this either\u2014instead, they reference specific mechanics like the *Eldritch Cannon*\u2019s half cover or spell attack ignores. \n\nIf you\u2019re referring to a scenario where half cover affects Dexterity saves (e.g., a creature\u2019s ability to avoid effects like *Web* or *Polearm Penetration*), the rules don\u2019t tie half cover to saving throws in the 2014 edition. Dexterity saving throws are"
+        },
+        {
+          "calledTools": [],
+          "text": "The 2014 *Player\u0027s Handbook* (p. 196) specifies that **half cover** grants a **\u002B2 bonus to AC** when taking damage from attacks. However, **Dexterity saving throws are not directly affected** by cover. Saving throws are resolved based on the target\u0027s attributes, ability modifiers, and the difficulty class (DC) of the effect, not cover. If the saving throw is against an attack (e.g., a spell or ability that requires a Dexterity save), the cover bonus to AC might indirectly influence the outcome by reducing damage, but the saving throw itself isn\u0027t modified by cover. So, half cover improves AC b"
+        }
+      ]
+    },
+    {
+      "id": "manual.lore.last-war",
+      "category": "lore",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_setting_lore",
+            "search_lore"
+          ],
+          "text": "The Treaty of Thronehold in Eberron is a pivotal event that ended the **Dwarven Wars**, a prolonged conflict between the Dwarves of the Sword Coast and the Dwarves of the Underdark. This treaty, signed in the Year of the Twin Moons 452, established the **Dwarven Reckoning** and redefined the political landscape of the Underdark, granting the Dwarves of the Underdark autonomy and ending centuries of strife. \n\nIf you\u0027re diving deeper into Eberron lore, the *Eberron: Rising from the Ashes* sourcebook and the *D\u0026D Adventurers League Sourcebook: Eberron* are excellent references for this and relate"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The search through lore sources didn\u0027t turn up specific details about the *Treaty of Thronehold* or the war it ended. The results mention historical events in regions like Icewind Dale, Anauroch, and Waterdeep, but none reference the Treaty of Thronehold directly. This might be because the treaty is a more niche or less-documented aspect of Eberron\u0027s history, or it could relate to a source outside the standard lore compendiums. For precise details, consulting specialized Eberron resources (like *The Eberron Campaign Setting* or official lore expansions) would be best. Would you like help refin"
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore",
+            "search_lore"
+          ],
+          "text": "The Treaty of Thronehold in Eberron is most famously associated with ending the **War of the Mark** (also called the *Dragon War*), a prolonged conflict between the Five Nations and the Shadow Dragon **Ohr Kaluun**. This war spanned decades and involved covert operations, espionage, and a massive final battle in the Mark of Storms. The treaty imposed harsh penalties on the dragon\u0027s cults and established the **Sovereign Council** as a governing body, effectively ending the dragon\u0027s direct threat to Karrnath and the region. \n\nIf your campaign\u2019s lore diverges from this canonical history, you migh"
+        }
+      ]
+    },
+    {
+      "id": "manual.lore.mourning",
+      "category": "lore",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The Mourning in Eberron refers to the catastrophic collapse of the Dragonshard mines in Karrnath during the reign of King Drezlor. This event destroyed the nation\u0027s capital, Droaam, and led to the death of the Dragonshard King, plunging the region into chaos. While the search for lore didn\u0027t directly address this, it\u0027s well-documented in Eberron sources that Karrnath was the nation devastated by the Mourning. The aftermath reshaped the region\u0027s politics and left lingering supernatural effects, including the rise of the Shadowlands and the Drowned Court."
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore",
+            "search_lore"
+          ],
+          "text": "In the Eberron setting, the Mourning refers to the catastrophic event that killed half the dragonborn population of Khorvaire, plunging the continent into a period of grief and upheaval. While no single nation was \u0022destroyed\u0022 in the sense of being annihilated, the Mourning had devastating consequences for the dragonmarked houses and the region of Aerenal, which was the ancestral home of the dragonborn. The event is often seen as the collapse of the ancient dragonborn civilization, leading to the rise of the dragonmarked houses and the modern political landscape of Khorvaire. The exact details "
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore",
+            "search_lore"
+          ],
+          "text": "The Mourning in Eberron refers to the cataclysmic event where the dragons of Khorvaire died en masse, which occurred centuries before the rise of modern nations. While it didn\u2019t \u0022destroy\u0022 a specific nation in the traditional sense, it devastated the region, killing half the population and collapsing the dragonmarked houses that had dominated the continent. The aftermath reshaped Khorvaire, leading to the rise of new powers like Aundair, Breland, and the expansion of the Sovereign Court. The Mourning is more accurately described as a supernatural disaster than the destruction of a single nation"
+        }
+      ]
+    },
+    {
+      "id": "manual.lore.sharn",
+      "category": "lore",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "The result you received references *Greyhawk*, a city from the *Sword Coast Adventurer\u2019s Guide* (Forgotten Realms setting), not Eberron. In Eberron, the City of Towers is **Sharn**, a towering metropolis built on a colossal spire. Sharn is a key location in the Eberron campaign setting, known for its vertical architecture, political intrigue, and role as a hub for the mercenary group the **Shadow Lanterns**. \n\nIf you\u2019re working with custom Eberron lore or need details about Sharn\u2019s districts, history, or factions, let me know!"
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore",
+            "search_lore"
+          ],
+          "text": "The City of Towers in Eberron is known as **Sharn**. It\u2019s a bustling urban center renowned for its towering spires, magical infrastructure, and role as a hub for trade, politics, and arcane innovation. While the term \u0022City of Towers\u0022 is a descriptive nickname, the official name \u0022Sharn\u0022 is used in most lore and setting materials. If your campaign uses a different designation, it might be a localized or alternate name, but Sharn is the standard reference in official Eberron sources."
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore",
+            "search_lore"
+          ],
+          "text": "The City of Towers in Eberron is known as **Sharn**. It is a prominent city in the region of Khorvaire, famous for its towering spires and role as a major hub of commerce, politics, and magical innovation. While the tools provided didn\u2019t retrieve this detail, it\u2019s a well-documented part of Eberron\u2019s lore in official sources like *Sharn: City of Towers* (a supplement to the *Dungeons \u0026 Dragons* Eberron setting). Let me know if you\u2019d like details about its culture, politics, or iconic landmarks!"
+        }
+      ]
+    },
+    {
+      "id": "manual.lore.warforged",
+      "category": "lore",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool-data",
+        "wrong-tool-data",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "ask_setting_lore",
+            "search_lore"
+          ],
+          "text": "I\u0027ll help you find that information. Let me check Eberron\u0027s lore directly:\n\n\nThe tools didn\u0027t find specific lore about this, but based on general Eberron knowledge, the living constructs created during the Last War are most commonly referred to as **\u0022the Constructs of the Last War\u0022** or **\u0022the Daelkyr\u0027s Constructs\u0022**. These were massive, warforged-like creations built by the Daelkyr (extradimensional entities) to dominate the plane of Khyber during the war. They included massive war machines, golems, and other warlike constructs, though their exact nature and purpose remain shrouded in mystery"
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore",
+            "search_lore"
+          ],
+          "text": "The Eberron lore database doesn\u0027t contain specific entries about \u0022living constructs built for the Last War\u0022 in the way your question phrases it. However, Eberron canon does mention **constructs** created during the Last War, particularly those built by the **House Orien** and **House Deneith** for military purposes. These were non-sentient constructs, not \u0022living\u0022 in the magical sense, and were used as siege engines or combat units. \n\nIf you\u0027re referring to a specific type of construct (like a golem or animated object) with a unique name from a sourcebook or adventure, that term might not be i"
+        },
+        {
+          "calledTools": [
+            "ask_setting_lore",
+            "search_lore"
+          ],
+          "text": "In the Eberron setting, the living constructs built for the Last War are known as **constructs of war** or **warforged**. However, warforged are typically magical constructs created by the Dwarves of Khyber, not specifically for the Last War. The living constructs you\u0027re referring to might be **constructs of war** created by the **Daelkyr**, but that\u0027s more tied to the **Veil** and **Khyber**. \n\nWait, perhaps you\u0027re thinking of the **living constructs** mentioned in the **\u0022Living Constructs\u0022** lore from *Sharn: City of Towers*. These are not directly tied to the Last War but are part of Eberro"
+        }
+      ]
+    },
+    {
+      "id": "manual.npc.single",
+      "category": "npc",
+      "tag": "manual",
+      "passes": 2,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "wrong-tool-data"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "generate_npc"
+          ],
+          "text": "Here\u0027s your shifty dockworker-turned-Spy, pulled straight from the *Monster Manual* (MM):\n\n**Spy**  \n*Medium humanoid, Any alignment*  \n**CR 1** | **HP 27 (6d8)**  \n**Speed** 30 ft.  \n\n**STR 10** | **DEX 15** | **CON 10**  \n**INT 12** | **WIS 14** | **CHA 16**  \n\n**Skills**: Deception \u002B5, Insight \u002B4, Investigation \u002B5, Perception \u002B6, Persuasion \u002B5, Sleight of Hand \u002B4, Stealth \u002B4  \n**Senses**: Passive Perception 16  \n**Languages**: Any two  \n\n**Traits**:  \n- **Cunning Action** (bonus action): Dash, Disengage, or Hide.  \n- **Sneak Attack** (1/turn): Extra 7 (2d6) damage with advantage on an attac"
+        },
+        {
+          "calledTools": [
+            "generate_npc"
+          ],
+          "text": "Here\u0027s your shifty dockworker turned spy, pulled straight from the Monster Manual (MM):\n\n**Spy**  \n*Medium humanoid, Any alignment*  \n**AC**: 12 | **HP**: 27 (6d8)  \n**Speed**: 30 ft.  \n\n**STR 10** | **DEX 15** | **CON 10** | **INT 12** | **WIS 14** | **CHA 16**  \n**Skills**: Deception \u002B5, Insight \u002B4, Investigation \u002B5, Perception \u002B6, Persuasion \u002B5, Sleight of Hand \u002B4, Stealth \u002B4  \n**Senses**: Passive Perception 16  \n**Languages**: Any two  \n\n**Traits**:  \n- *Cunning Action*: Dash, Disengage, or Hide as a bonus action.  \n- *Sneak Attack* (1/turn): Extra 7 (2d6) damage with advantage on attacks "
+        },
+        {
+          "calledTools": [
+            "generate_npc"
+          ],
+          "text": "The *Spy* archetype is available but requires a different approach. Let\u0027s craft a dockworker NPC with a hidden spy background. Here\u0027s a stat block using the **Commoner** archetype as a base (since \u0022Spy\u0022 isn\u0027t in the corpus), reflavored for a shifty dockworker:\n\n---\n\n**Name**: Jorin \u0022Slip\u0022 Varn  \n**Race**: Human (Variant: Dockworker)  \n**Class**: Commoner (Skilled, Resilient, Athletics)  \n**Alignment**: Neutral Chaotic  \n**XP**: 0  \n**AC**: 12 (Armor \u002B Dexterity)  \n**HP**: 22 (2d8 \u002B 4 Constitution)  \n**Speed**: 30 ft.  \n\n**Ability Scores**:  \n- **STR 12** (\u002B1)  \n- **DEX 16** (\u002B3)  \n- **CON 14**"
+        }
+      ]
+    },
+    {
+      "id": "manual.npc.party",
+      "category": "npc",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "generate_npc_party"
+          ],
+          "text": "Here\u0027s your bandit crew cast, fleshed out for a trade-road raiding scenario:\n\n**1. Captain \u0022Ironfist\u0022 Krevan**  \n*A grizzled Veteran* (CR 3)  \n- **Stats**: AC 17, 58 HP, STR 16, DEX 13, CON 14  \n- **Signature Move**: Wields a \u002B5 longsword and a heavy crossbow, commanding two attacks per turn. His leadership inspires the crew\u2019s brutal efficiency.  \n- **Hook**: A former soldier turned bandit lord, Krevan seeks to avenge his brother\u2019s death by crippling the merchant guilds.  \n\n**2. Guard \u0022Spike\u0022 Vorn**  \n*A hulking Guard* (CR 1/8)  \n- **Stats**: AC 16, 11 HP, STR 13, DEX 12, CON 12  \n- **Signatur"
+        },
+        {
+          "calledTools": [
+            "generate_npc_party"
+          ],
+          "text": "Here\u0027s your bandit crew cast, ready to harass trade roads and stir up trouble:\n\n**Captain**  \nA grizzled Veteran (AC 17, 58 HP) wielding a longsword and heavy crossbow, this leader commands with a mix of brute force and tactical skill. Their STR 16 and athletics \u002B5 make them a formidable fighter, while their experience as a retired soldier gives them a ruthless edge. Perfect as the raid\u0027s orchestrator, maybe motivated by a personal vendetta or a promise of gold.\n\n**Guardians of the Loot**  \nTwo Guards (CR 1/8, 11 HP each) with spears and keen perception skills. They\u2019re the muscle of the crew, "
+        },
+        {
+          "calledTools": [
+            "generate_npc_party"
+          ],
+          "text": "Here\u0027s a bandit crew cast for your scenario, pulled from the Monster Manual:\n\n**Captain**: A grizzled Veteran (CR 3) with a longsword and heavy crossbow, their weathered face etched with years of road-rage. They lead with a mix of intimidation and tactical precision, their AC 17 shielding them from most crossbow fire. \n\n**Guards**: Two Guards (CR 1/8 each) armed with spears, their 10-foot reach making them dangerous in tight formations. They move like shadows, using their \u002B3 attack rolls to pick off stragglers from the trade roads.\n\n**Captured Townsfolk**: A Commoner (CR 0) forced into the cre"
+        }
+      ]
+    },
+    {
+      "id": "manual.not-found.spell",
+      "category": "not-found",
+      "tag": "manual",
+      "passes": 3,
+      "runs": 3,
+      "passed": true,
+      "outcomes": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "It seems there\u2019s no official D\u0026D 5e spell named *Zorblax\u2019s Shimmering Hexflame* in the core rulebooks, supplements, or widely recognized source material. Zorblax is a demon from the *Monster Manual* (as a variant of the *Baleful Familiar*), but no spell bears that name. It\u2019s possible this is a homebrew spell, a typo, or a reference to a lesser-known supplement. If you\u2019re using a specific adventure, module, or custom content, sharing more context might help! For now, I can\u2019t provide details on an unverified spell. \uD83E\uDDD9\u200D\u2642\uFE0F\uD83D\uDD0D"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "It seems \u0022Zorblax\u0027s Shimmering Hexflame\u0022 isn\u0027t a recognized spell in standard D\u0026D 5e materials, including the Player\u0027s Handbook, Spellbook, or other official sources. It might be a homebrew spell, a variant name for an existing spell (like *Fireball* or *Scorching Ray*), or a typo. Could you clarify if this is from a specific adventure module, homebrew content, or a different source? I\u2019d be happy to help refine the search or explain similar spells!"
+        },
+        {
+          "calledTools": [
+            "search_lore"
+          ],
+          "text": "It seems there\u0027s no official D\u0026D 5e spell named \u0022Zorblax\u0027s Shimmering Hexflame\u0022 in the core rulebooks, supplements, or widely recognized sources. It might be a homebrew spell, a typo, or from a specific non-official source (like a DM\u0027s custom material or a third-party adventure). If you\u2019re using it in your game, could you share more context about its source or mechanics? That way, I can help clarify how it works or whether it aligns with standard D\u0026D rules!"
+        }
+      ]
+    },
+    {
+      "id": "manual.not-found.monster",
+      "category": "not-found",
+      "tag": "manual",
+      "passes": 0,
+      "runs": 3,
+      "passed": false,
+      "outcomes": [
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen",
+        "wrong-tool:not-chosen"
+      ],
+      "runDetails": [
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        },
+        {
+          "calledTools": [],
+          "text": ""
+        }
+      ]
+    }
+  ],
+  "passedByCategory": {
+    "class": 1,
+    "spell": 1,
+    "monster": 2,
+    "crafting": 0,
+    "rules": 3,
+    "lore": 0,
+    "npc": 2,
+    "not-found": 1
+  },
+  "totalByCategory": {
+    "class": 6,
+    "spell": 5,
+    "monster": 5,
+    "crafting": 5,
+    "rules": 5,
+    "lore": 4,
+    "npc": 2,
+    "not-found": 2
+  },
+  "infraErrors": 0
+}
