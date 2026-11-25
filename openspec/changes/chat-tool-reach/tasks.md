@@ -10,4 +10,4 @@
 
 - [x] 2.1 `run-full.sh` and the goal line
 - [x] 2.2 Full suite green, deployed
-- [ ] 2.3 Eval rerun and compared with 10/34
+- [x] 2.3 Eval rerun: 29/34 (85%), 83/102 runs, 0 blank replies; before 10/34. Same questions the fixes were made from
