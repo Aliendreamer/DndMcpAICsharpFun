@@ -17,4 +17,4 @@
 
 - [x] 4.1 BookCatalog page offsets; printed page in every retrieval result (tests first)
 - [x] 4.2 Persona: a page only from a result's `page` field; the "p. 72" example is gone
-- [ ] 4.3 Deploy and check with the evening eval run (ask the owner first: GPU)
+- [x] 4.3 Deploy and check with a rules smoke (ask the owner first: GPU)
