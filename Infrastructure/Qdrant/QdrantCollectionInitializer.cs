@@ -152,6 +152,7 @@ public sealed partial class QdrantCollectionInitializer(
     {
         string[] keywordFields =
         [
+            EntityPayloadFields.Id, // looked up by the thousand before every ingest
             EntityPayloadFields.Type,
             EntityPayloadFields.SourceBook,
             EntityPayloadFields.Edition,

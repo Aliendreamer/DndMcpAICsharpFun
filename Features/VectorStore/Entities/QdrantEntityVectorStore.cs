@@ -101,9 +101,7 @@ public sealed class QdrantEntityVectorStore(
     {
         if (entityIds.Count == 0) return new Dictionary<string, EntityEnvelope>();
 
-        var filter = new Filter();
-        foreach (var id in entityIds)
-            filter.Should.Add(KW(EntityPayloadFields.Id, id));
+        var filter = IdIn(entityIds);
 
         const uint PageSize = 1000;
         var result = new Dictionary<string, EntityEnvelope>(entityIds.Count);
@@ -179,20 +177,24 @@ public sealed class QdrantEntityVectorStore(
     {
         if (entityIds.Count == 0) return;
 
-        var filter = new Filter();
+        await client.DeleteAsync(_collection, IdIn(entityIds), cancellationToken: ct);
+    }
+
+    /// <summary>One match-any condition: a condition per id makes Qdrant time out on a book's thousand ids.</summary>
+    private static Filter IdIn(IEnumerable<string> entityIds)
+    {
         var match = new Match { Keywords = new RepeatedStrings() };
         match.Keywords.Strings.AddRange(entityIds);
+        var filter = new Filter();
         filter.Must.Add(new Condition { Field = new FieldCondition { Key = EntityPayloadFields.Id, Match = match } });
-        await client.DeleteAsync(_collection, filter, cancellationToken: ct);
+        return filter;
     }
 
     public async Task<IReadOnlyDictionary<string, string>> GetDataSourcesAsync(
         IReadOnlyList<string> entityIds, CancellationToken ct = default)
     {
         if (entityIds.Count == 0) return new Dictionary<string, string>();
-        var filter = new Filter();
-        foreach (var id in entityIds)
-            filter.Should.Add(KW(EntityPayloadFields.Id, id));
+        var filter = IdIn(entityIds);
 
         const uint PageSize = 1000;
         var sources = new Dictionary<string, string>();
