@@ -12,7 +12,7 @@ internal static class EntityFullText
     /// <summary>Codes, references and values the renderers already show in their own words.</summary>
     private static readonly HashSet<string> SkippedKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        "name", "source", "page", "size", "edition", "type", "category", "rarity", "school", "time", "range", "components",
+        "name", "source", "page", "size", "edition", "type", "rarity", "school", "time", "range", "components",
         "duration", "className", "classSource", "raceName", "raceSource", "shortName", "subclassShortName", "classFeatures",
         "subclassFeatures", "srd", "basicRules", "otherSources", "reprintedAs", "additionalSources", "alignment", "pantheon",
         "symbol", "domains", "headquarters", "goals", "setting", "ruleType", "trapHazType", "vehicleType", "weaponCategory",

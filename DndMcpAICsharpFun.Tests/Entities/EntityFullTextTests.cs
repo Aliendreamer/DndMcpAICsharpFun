@@ -55,6 +55,13 @@ public sealed class EntityFullTextTests
     }
 
     [Fact]
+    public void A_gods_group_is_kept_and_a_lore_category_is_not_repeated()
+    {
+        Render(EntityType.God, """{ "pantheon": "Elven", "category": "The Seldarine" }""").Should().Contain("Category: The Seldarine");
+        Render(EntityType.Lore, """{ "category": "Planes", "entries": ["Text."] }""").Split("Planes").Should().HaveCount(2);
+    }
+
+    [Fact]
     public void Text_outside_entries_is_labelled_and_kept()
     {
         var text = Render(EntityType.Trap, """
