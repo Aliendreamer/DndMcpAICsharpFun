@@ -170,4 +170,17 @@ public class BookCatalogTests
     [InlineData("PHB", null)]
     public void Printed_page_is_null_when_it_is_not_known(string book, int? stored) =>
         BookCatalog.PrintedPage(book, stored).Should().BeNull();
+
+
+    [Theory]
+    [InlineData("MTF", "Mordenkainen's Tome of Foes")]
+    [InlineData("MPMM", "Mordenkainen Presents: Monsters of the Multiverse")]
+    [InlineData("MM", "Monster Manual")]
+    [InlineData("PHB", "Player's Handbook")]
+    [InlineData("Monster Manual 2014", "Monster Manual")]   // a block's stored display name
+    [InlineData("XPHB", "Player's Handbook 2024")]
+    [InlineData("Some Homebrew", "Some Homebrew")]
+    [InlineData(null, null)]
+    public void Title_is_the_printed_book_title_for_a_citation(string? book, string? expected) =>
+        BookCatalog.Title(book).Should().Be(expected);
 }

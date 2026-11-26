@@ -73,6 +73,18 @@ public static class BookCatalog
         return All.FirstOrDefault(b => NameForm(b.DisplayName) == name)?.Key;
     }
 
+
+    /// <summary>The book's printed title for a citation, from a key or a stored display name;
+    /// the input itself when the book is unknown. Without it the model guesses titles from keys
+    /// (it cited MTF and MPMM as "Monster Manual").</summary>
+    public static string? Title(string? book)
+    {
+        var key = ResolveKey(book);
+        if (key is null) return book;
+        var name = KeyToDisplayName[key].Replace("PlayerHandbook", "Player's Handbook");
+        return name.EndsWith(" 2014", StringComparison.Ordinal) ? name[..^5] : name;
+    }
+
     private static string NameForm(string name) =>
         string.Concat(System.Text.RegularExpressions.Regex.Matches(name.ToLowerInvariant(), "[a-z]+")
             .Select(m => m.Value.TrimEnd('s')));
