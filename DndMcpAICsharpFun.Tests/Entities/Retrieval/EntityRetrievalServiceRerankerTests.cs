@@ -229,6 +229,32 @@ public sealed class EntityRetrievalServiceRerankerTests
         results.Select(r => r.Name).Should().Equal("Psychic Scream");
     }
 
+
+    // The stored text of a stat block lists traits and actions as indented "Name: text" lines.
+    private const string StoredDevourer =
+        "Intellect Devourer — Tiny aberration\nAC 12\nSaving Throws: int +2\nActions:\n" +
+        "  Multiattack: The intellect devourer makes one attack with its claws and uses Devour Intellect.\n" +
+        "  Devour Intellect: The target must succeed on a DC 12 Intelligence saving throw; roll 3d6.\n";
+
+    [Fact]
+    public async Task A_named_feature_in_the_stored_stat_block_format_puts_its_monster_first()
+    {
+        var results = await SearchInOrder("After a failed save against Devour Intellect, which dice are rolled?", 3, true,
+            Named("Intellect Devourer Lore", "A walking brain.", EntityType.Lore), Named("Lucky", "Reroll a d20.", EntityType.Feat),
+            Named("Intellect Devourer", StoredDevourer));
+
+        results[0].Name.Should().Be("Intellect Devourer");
+    }
+
+    [Fact]
+    public async Task A_stat_line_is_not_a_feature()
+    {
+        var results = await SearchInOrder("which saving throws does it have", 2, true,
+            Named("Owlbear", "Beak. Hit."), Named("Intellect Devourer", StoredDevourer));
+
+        results.Select(r => r.Name).Should().Equal("Owlbear", "Intellect Devourer");
+    }
+
     [Theory]
     [InlineData("how do claws work")]
     [InlineData("tell me about the devour")]

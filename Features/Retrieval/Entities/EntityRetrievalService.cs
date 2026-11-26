@@ -211,8 +211,13 @@ public sealed partial class EntityRetrievalService(
 
     private sealed record RankedHit(EntitySearchHit Hit, TextPiece Best, bool Named, int NameRank, float[] Question);
 
-    // A feature line of a stat block or class: "Devour Intellect. The intellect devourer targets…"
-    [GeneratedRegex(@"^([A-Z][\p{L}'’-]*(?: [\p{L}'’-]+){1,4})(?: \([^)\n]*\))?\. ", RegexOptions.Multiline)]
+    // A feature line of a stat block or class, as printed ("Devour Intellect. The intellect devourer targets…") or
+    // as stored for search, indented with a colon ("  Devour Intellect: The…"). Stat lines ("Saving Throws: …")
+    // are not indented, so they are not features.
+    [GeneratedRegex(
+        @"^(?:(?<f>[A-Z][\p{L}'’-]*(?: [\p{L}'’-]+){1,4})(?: \([^)\n]*\))?\. " +
+        @"|[ ]{2,}(?<f>[A-Z][\p{L}'’-]*(?: [\p{L}'’-]+){1,4})(?: \([^)\n]*\))?: )",
+        RegexOptions.Multiline)]
     private static partial Regex FeatureLine();
 
     /// <summary>The length of the longest feature of at least two words that the query names, else 0.</summary>
@@ -221,7 +226,7 @@ public sealed partial class EntityRetrievalService(
         if (entity.Type is EntityType.Rule or EntityType.Lore) return 0;
         var text = query.Replace('’', '\'');
         return FeatureLine().Matches(entity.CanonicalText)
-            .Select(m => m.Groups[1].Value.Replace('’', '\''))
+            .Select(m => m.Groups["f"].Value.Replace('’', '\''))
             .Where(f => Regex.IsMatch(text, $@"(?<!\w){Regex.Escape(f)}(?!\w)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
             .Select(f => f.Length)
             .DefaultIfEmpty(0)
