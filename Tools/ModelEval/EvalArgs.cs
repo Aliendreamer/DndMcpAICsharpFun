@@ -67,7 +67,7 @@ internal sealed record EvalArgs(
         }
 
         adminKey ??= Environment.GetEnvironmentVariable("ADMIN_API_KEY");
-        var effectiveRuns = runs ?? (mode == "full" ? 3 : 5);
+        var effectiveRuns = runs ?? (mode == "full" ? 1 : 5);
 
         return new EvalArgs(model, thinkOn, effectiveRuns, baseUrl, personaPath, mode, host, adminKey,
             seed, count, books, categories, baseline, canonicalDir, reportsDir, manualPath, error);

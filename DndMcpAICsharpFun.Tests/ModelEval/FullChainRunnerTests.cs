@@ -112,7 +112,7 @@ public class FullChainRunnerTests
     [Fact]
     public void EvalArgs_RunsDefaultDependsOnMode()
     {
-        EvalArgs.Parse(new[] { "--mode", "full", "--x", "y" }).Runs.Should().Be(3);
+        EvalArgs.Parse(new[] { "--mode", "full", "--x", "y" }).Runs.Should().Be(1);
         EvalArgs.Parse(new[] { "--model", "m", "--x", "y" }).Runs.Should().Be(5);
         EvalArgs.Parse(new[] { "--mode", "full", "--runs", "7", "--x", "y" }).Runs.Should().Be(7);
     }

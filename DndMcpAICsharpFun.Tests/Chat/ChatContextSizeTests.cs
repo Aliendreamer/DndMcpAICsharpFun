@@ -46,16 +46,22 @@ public sealed class ChatContextSizeTests
 
 
     [Fact]
-    public async Task Every_chat_request_carries_the_configured_temperature()
+    public async Task Every_chat_request_carries_qwen3_thinking_sampling_a_seed_and_a_length_cap()
     {
         var handler = new CapturingHandler();
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://ollama.test") };
-        var client = ChatExtensions.BuildChatClient(http, "m", 8192, temperature: 0);
+        var client = ChatExtensions.BuildChatClient(http, "m", 8192);
 
         await client.GetResponseAsync([new ChatMessage(ChatRole.User, "hello")], new ChatOptions());
 
         using var doc = JsonDocument.Parse(handler.Body);
-        doc.RootElement.GetProperty("options").GetProperty("temperature").GetSingle().Should().Be(0);
+        var options = doc.RootElement.GetProperty("options");
+        options.GetProperty("temperature").GetSingle().Should().Be(0.6f);
+        options.GetProperty("top_p").GetSingle().Should().Be(0.95f);
+        options.GetProperty("top_k").GetInt32().Should().Be(20);
+        options.GetProperty("min_p").GetSingle().Should().Be(0);
+        options.GetProperty("seed").GetInt32().Should().Be(42);
+        options.GetProperty("num_predict").GetInt32().Should().Be(4096);
     }
 
 

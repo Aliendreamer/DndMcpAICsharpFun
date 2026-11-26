@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # One-command chat-quality eval against the running app. Uses the GPU for ~15-20 minutes.
-#   Tools/ModelEval/run-full.sh                          # all questions, 3 runs each
-#   Tools/ModelEval/run-full.sh --runs 1                 # quick look (~6 minutes)
+#   Tools/ModelEval/run-full.sh                          # all questions, 1 run each (fixed seed)
 #   Tools/ModelEval/run-full.sh --categories spell,lore  # some categories
 #   Tools/ModelEval/run-full.sh --set reference          # 50 harder questions to improve the chat against
 #   Tools/ModelEval/run-full.sh --set crosscheck         # 50 others: never tune on these, only compare
-#   Tools/ModelEval/run-full.sh --set all                # both (100 questions; ~2 hours, ~40 minutes with --runs 1)
+#   Tools/ModelEval/run-full.sh --set all                # both (100 questions; about 1 hour)
 # Any ModelEval option can be added. The admin key is read inside the app container and never leaves it.
 # The report lands in Tools/ModelEval/reports/. Exit: 0 OK, 2 a category regressed, 1 setup trouble.
 set -euo pipefail

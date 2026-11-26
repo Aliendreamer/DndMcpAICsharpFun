@@ -50,9 +50,14 @@ internal static class ChatExtensions
             // long tool-calling turns (the level-up coach) off mid-answer.
             var chatHttp = Infrastructure.Http.LongRunningHttpClient.Create(
                 new Uri(baseUrl), config.GetValue("Ollama:ChatTimeoutSeconds", 600));
-            // Temperature 0 by default: the same question gets the same answer, so eval runs measure changes, not luck.
-            return BuildChatClient(chatHttp, chatModel, config.GetValue("Ollama:ChatContextTokens", 8192),
-                config.GetValue<float?>("Ollama:ChatTemperature", 0f),
+            var defaults = new ChatSampling();
+            var sampling = new ChatSampling(
+                config.GetValue("Ollama:ChatTemperature", defaults.Temperature),
+                config.GetValue("Ollama:ChatTopP", defaults.TopP),
+                config.GetValue("Ollama:ChatTopK", defaults.TopK),
+                config.GetValue("Ollama:ChatSeed", defaults.Seed),
+                config.GetValue("Ollama:ChatMaxOutputTokens", defaults.MaxOutputTokens));
+            return BuildChatClient(chatHttp, chatModel, config.GetValue("Ollama:ChatContextTokens", 8192), sampling,
                 sp.GetService<Microsoft.Extensions.Logging.ILoggerFactory>());
         });
         // chat-query-router: pre-LLM tool-set narrowing. Options bind from "ChatQueryRouter"
@@ -69,26 +74,39 @@ internal static class ChatExtensions
     }
 
     /// <summary>
-    /// The chat's model client: tool calls run in-process, and every request (tool rounds too) asks for
-    /// <paramref name="contextTokens"/> of context instead of Ollama's GPU-based default.
-    /// </summary>
-    /// <summary>
-    /// Tool rounds per model call. At temperature 0 a model whose tool call fails can repeat the same call
-    /// until the request times out (40 rounds by default); real turns need at most 2-3 rounds.
+    /// Tool rounds per model call; real turns need at most 2-3. Without a cap the library allows 40.
     /// </summary>
     internal const int MaxToolRounds = 4;
 
+    /// <summary>
+    /// Sampling for qwen3 thinking mode, as its model card asks: temperature 0.6, top-p 0.95, top-k 20,
+    /// min-p 0. Greedy decoding (temperature 0) made about 2% of calls repeat until the 5-minute timeout.
+    /// A fixed seed keeps eval runs repeatable; MaxOutputTokens stops a runaway call.
+    /// </summary>
+    internal sealed record ChatSampling(
+        float Temperature = 0.6f, float TopP = 0.95f, int TopK = 20, long? Seed = 42, int MaxOutputTokens = 4096);
+
+    /// <summary>
+    /// The chat's model client: tool calls run in-process, and every request (tool rounds too) asks for
+    /// <paramref name="contextTokens"/> of context instead of Ollama's GPU-based default.
+    /// </summary>
     internal static IChatClient BuildChatClient(
-        HttpClient http, string model, int contextTokens, float? temperature = null,
+        HttpClient http, string model, int contextTokens, ChatSampling? sampling = null,
         Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory = null)
     {
+        var s = sampling ?? new ChatSampling();
         IChatClient inner = new OllamaApiClient(http, model);
         return inner.AsBuilder()
             .UseFunctionInvocation(loggerFactory, f => f.MaximumIterationsPerRequest = MaxToolRounds)
             .ConfigureOptions(o =>
             {
                 o.AddOllamaOption(OllamaOption.NumCtx, contextTokens);
-                o.Temperature ??= temperature;
+                o.AddOllamaOption(OllamaOption.MinP, 0f);
+                o.Temperature ??= s.Temperature;
+                o.TopP ??= s.TopP;
+                o.TopK ??= s.TopK;
+                o.Seed ??= s.Seed;
+                o.MaxOutputTokens ??= s.MaxOutputTokens;
             })
             .Build();
     }
