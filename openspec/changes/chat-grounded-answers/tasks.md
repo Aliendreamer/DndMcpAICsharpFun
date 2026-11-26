@@ -18,3 +18,8 @@
 - [x] 4.1 BookCatalog page offsets; printed page in every retrieval result (tests first)
 - [x] 4.2 Persona: a page only from a result's `page` field; the "p. 72" example is gone
 - [x] 4.3 Deploy and check with a rules smoke (ask the owner first: GPU)
+
+## 5. Short persona
+
+- [x] 5.1 Probe: long persona 3/8 tool calls, no persona 7/8, short persona 8/8 (8 reference questions, 3 tools)
+- [ ] 5.2 Short persona deployed; reference and cross-check runs
