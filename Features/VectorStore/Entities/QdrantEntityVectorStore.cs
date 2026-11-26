@@ -362,10 +362,19 @@ public sealed class QdrantEntityVectorStore(
         return filter;
     }
 
+    private static readonly string[] ItemTypes =
+        [nameof(EntityType.Item), nameof(EntityType.MagicItem), nameof(EntityType.Weapon), nameof(EntityType.Armor)];
+
     private static Filter? BuildFilter(EntityFilters f)
     {
         var must = new List<Condition>();
-        if (f.Type is { } t)
+        if (f.Type is EntityType.Item)
+            // A player's "item" is any carried thing: the model asks for Item when it means a magic item.
+            must.Add(new Condition { Field = new FieldCondition { Key = EntityPayloadFields.Type, Match = new Match
+            {
+                Keywords = new RepeatedStrings { Strings = { ItemTypes } },
+            } } });
+        else if (f.Type is { } t)
             must.Add(KW(EntityPayloadFields.Type, t.ToString()));
         if (!string.IsNullOrEmpty(f.SourceBook)) must.Add(KW(EntityPayloadFields.SourceBook, f.SourceBook));
         if (!string.IsNullOrEmpty(f.Edition)) must.Add(KW(EntityPayloadFields.Edition, f.Edition));

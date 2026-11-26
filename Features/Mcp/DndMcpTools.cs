@@ -57,8 +57,8 @@ public sealed class DndMcpTools(
     public async Task<string> search_entities(
         [Description("Search text — entity name or description")] string query,
         [Description("Entity type: Spell, Monster, Class, Subclass, Race, Subrace, Background, Feat, " +
-                     "Weapon, Armor, Item, MagicItem, Trap, God, Plane, Faction, Location, Condition, Lore, Rule, " +
-                     "DiseasePoison, VehicleMount")]
+                     "Weapon, Armor, Item (any item, magic items too), MagicItem, Trap, God, Plane, Faction, Location, " +
+                     "Condition, Lore, Rule, DiseasePoison, VehicleMount")]
         string? type = null,
         [Description("Trait tag keyword e.g. Amphibious, Pack Tactics, Undead Fortitude")] string? keyword = null,
         [Description("Maximum challenge rating inclusive (for monsters)")] double? crMax = null,

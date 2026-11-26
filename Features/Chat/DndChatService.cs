@@ -123,6 +123,17 @@ public sealed class DndChatService(
         // LatencyMs covers the model call only; it excludes the query router and the tool build above.
         var sw = Stopwatch.StartNew();
         var response = await AskModelAsync(messages, offeredTools, ct);
+        IReadOnlyList<ChatMessage> lookups = [];
+        if (!CalledATool(response) && ThoughtToolCalls.Find(response) is { Count: > 0 } thoughtCalls)
+        {
+            // qwen3 wrote its tool call inside its thinking, where Ollama drops it: run it and ask again.
+            lookups = await RunCallsAsync(thoughtCalls, toolList, ct);
+            if (lookups.Count > 0)
+            {
+                logger?.LogInformation("Ran {Count} tool calls written in the model's thinking; asking again.", lookups.Count / 2);
+                response = await AskModelAsync([.. messages, .. lookups], offeredTools, ct);
+            }
+        }
         if (string.IsNullOrWhiteSpace(response.Text))
         {
             // The model called a tool the router had hidden (Ollama drops such a call) or stopped after
@@ -131,11 +142,10 @@ public sealed class DndChatService(
                 "Empty chat reply with {Offered}/{Total} tools offered; asking again with all of them.",
                 offeredTools.Count, toolList.Count);
             offeredTools = toolList;
-            response = await AskModelAsync(messages, offeredTools, ct);
+            response = await AskModelAsync([.. messages, .. lookups], offeredTools, ct);
         }
 
-        IReadOnlyList<ChatMessage> lookups = [];
-        if (!CalledATool(response) && IsQuestion(lastUser))
+        if (lookups.Count == 0 && !CalledATool(response) && IsQuestion(lastUser))
         {
             lookups = await LookUpAsync(LookupQuery(conversation), toolList, ct);
             if (lookups.Count > 0)
@@ -198,18 +208,26 @@ public sealed class DndChatService(
     /// and Ollama cannot force a tool call. Returns each lookup as the call and its result, as if the model had made it;
     /// a failed lookup is left out.
     /// </summary>
-    private async Task<IReadOnlyList<ChatMessage>> LookUpAsync(
-        string question, IReadOnlyList<AITool> tools, CancellationToken ct)
+    private Task<IReadOnlyList<ChatMessage>> LookUpAsync(
+        string question, IReadOnlyList<AITool> tools, CancellationToken ct) =>
+        RunCallsAsync(
+            [("search_entities", new Dictionary<string, object?> { ["query"] = question }),
+             ("ask_rules", new Dictionary<string, object?> { ["question"] = question })],
+            tools, ct);
+
+    /// <summary>Runs each call whose tool is offered and returns the call/result message pairs; a failing call is skipped.</summary>
+    private async Task<IReadOnlyList<ChatMessage>> RunCallsAsync(
+        IEnumerable<(string Name, Dictionary<string, object?> Arguments)> calls, IReadOnlyList<AITool> tools, CancellationToken ct)
     {
         var messages = new List<ChatMessage>();
-        foreach (var (name, argument) in new[] { ("search_entities", "query"), ("ask_rules", "question") })
+        var index = 0;
+        foreach (var (name, arguments) in calls)
         {
             if (tools.OfType<AIFunction>().FirstOrDefault(t => t.Name == name) is not { } tool) continue;
-            var arguments = new Dictionary<string, object?> { [argument] = question };
             try
             {
                 var result = await tool.InvokeAsync(new AIFunctionArguments(arguments), ct);
-                var callId = $"app-{name}";
+                var callId = $"app-{name}-{index++}";
                 messages.Add(new ChatMessage(ChatRole.Assistant, [new FunctionCallContent(callId, name, arguments)]));
                 messages.Add(new ChatMessage(ChatRole.Tool, [new FunctionResultContent(callId, result)]));
             }

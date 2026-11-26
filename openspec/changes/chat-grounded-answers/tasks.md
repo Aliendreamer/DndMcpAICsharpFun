@@ -23,3 +23,9 @@
 
 - [x] 5.1 Probe: long persona 3/8 tool calls, no persona 7/8, short persona 8/8 (8 reference questions, 3 tools)
 - [x] 5.2 Short persona deployed; reference 42/50 (84%), cross-check 42/50 (84%)
+
+## 6. Calls in the thinking; items
+
+- [x] 6.1 A `<tool_call>` the model writes in its thinking (Ollama drops it) is run by the chat, which asks again (tests first)
+- [x] 6.2 search_entities type Item also finds MagicItem, Weapon and Armor (staff of power, ring of spell storing were hidden; Qdrant test)
+- [ ] 6.3 Eval after both

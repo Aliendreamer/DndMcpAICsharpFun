@@ -782,6 +782,55 @@ public sealed class DndChatServiceTests : IDisposable
         turn.ToolCalls.Should().ContainSingle().Which.ByApp.Should().BeFalse();
     }
 
+    private static ChatResponse Thought(string thinking, string text = "") =>
+        new(new ChatMessage(ChatRole.Assistant, [new TextReasoningContent(thinking), new TextContent(text)]));
+
+    [Fact]
+    public async Task A_tool_call_written_in_the_thinking_is_run_and_the_model_asked_again()
+    {
+        var queries = new List<string>();
+        var client = new FakeChatClient
+        {
+            Responses = new Queue<ChatResponse>([
+                Thought("""Let me check. <tool_call> {"name": "ask_rules", "arguments": {"question": "Counterspell DC"}} </tool_call>""", "From memory: DC 15."),
+            ]),
+            Reply = "DC 10 + the spell's level.",
+        };
+        var svc = CreateService(client, [Lookup("search_entities", queries), Lookup("ask_rules", queries)]);
+
+        var turn = await Ask(svc, "What DC is the Counterspell check?");
+
+        turn.Text.Should().Be("DC 10 + the spell's level.");
+        queries.Should().Equal("Counterspell DC");
+        turn.ToolCalls.Should().ContainSingle().Which.Name.Should().Be("ask_rules");
+        client.LastMessages!.SelectMany(m => m.Contents).OfType<FunctionResultContent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task A_thought_call_to_a_tool_not_offered_falls_back_to_the_lookup()
+    {
+        var queries = new List<string>();
+        var client = new FakeChatClient
+        {
+            Responses = new Queue<ChatResponse>([
+                Thought("""<tool_call>{"name": "no_such_tool", "arguments": {}}</tool_call>""", "Guess."),
+            ]),
+        };
+        var svc = CreateService(client, [Lookup("search_entities", queries)]);
+
+        await Ask(svc, "How does grappling work?");
+
+        queries.Should().Equal("How does grappling work?");
+    }
+
+    [Theory]
+    [InlineData("""<tool_call>{"name": "ask_rules", "arguments": {"question": "a"}}</tool_call> again <tool_call>{"name": "ask_rules", "arguments": {"question": "a"}}</tool_call>""", 1)]
+    [InlineData("""<tool_call>{not json}</tool_call>""", 0)]
+    [InlineData("""I should call ask_rules.""", 0)]
+    [InlineData("""<tool_call>{"name": "search_entities", "arguments": {"query": "x", "limit": 3}}</tool_call><tool_call>{"name": "ask_rules", "arguments": {"question": "y"}}</tool_call>""", 2)]
+    public void Thought_tool_calls_are_parsed_once_each(string thinking, int expected) =>
+        ThoughtToolCalls.Find(Thought(thinking)).Should().HaveCount(expected);
+
     [Fact]
     public async Task A_failed_lookup_keeps_the_first_reply()
     {
