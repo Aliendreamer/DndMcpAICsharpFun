@@ -41,7 +41,7 @@ internal static class ChatExtensions
         services.AddHttpContextAccessor();
         services.AddSingleton<McpToolsProvider>();
         services.AddSingleton<IMcpToolsProvider>(sp => sp.GetRequiredService<McpToolsProvider>());
-        services.AddTransient<IChatClient>(_ =>
+        services.AddTransient<IChatClient>(sp =>
         {
             // OllamaSharp's OllamaApiClient (NOT MEAI.Ollama's OllamaChatClient) — only it can send
             // the top-level `think` field that DndChatService uses to run qwen3 think-off. It
@@ -52,7 +52,8 @@ internal static class ChatExtensions
                 new Uri(baseUrl), config.GetValue("Ollama:ChatTimeoutSeconds", 600));
             // Temperature 0 by default: the same question gets the same answer, so eval runs measure changes, not luck.
             return BuildChatClient(chatHttp, chatModel, config.GetValue("Ollama:ChatContextTokens", 8192),
-                config.GetValue<float?>("Ollama:ChatTemperature", 0f));
+                config.GetValue<float?>("Ollama:ChatTemperature", 0f),
+                sp.GetService<Microsoft.Extensions.Logging.ILoggerFactory>());
         });
         // chat-query-router: pre-LLM tool-set narrowing. Options bind from "ChatQueryRouter"
         // (env overrides live; appsettings git-crypt-masked). ExemplarIndex is a singleton so the
@@ -71,11 +72,19 @@ internal static class ChatExtensions
     /// The chat's model client: tool calls run in-process, and every request (tool rounds too) asks for
     /// <paramref name="contextTokens"/> of context instead of Ollama's GPU-based default.
     /// </summary>
-    internal static IChatClient BuildChatClient(HttpClient http, string model, int contextTokens, float? temperature = null)
+    /// <summary>
+    /// Tool rounds per model call. At temperature 0 a model whose tool call fails can repeat the same call
+    /// until the request times out (40 rounds by default); real turns need at most 2-3 rounds.
+    /// </summary>
+    internal const int MaxToolRounds = 4;
+
+    internal static IChatClient BuildChatClient(
+        HttpClient http, string model, int contextTokens, float? temperature = null,
+        Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory = null)
     {
         IChatClient inner = new OllamaApiClient(http, model);
         return inner.AsBuilder()
-            .UseFunctionInvocation()
+            .UseFunctionInvocation(loggerFactory, f => f.MaximumIterationsPerRequest = MaxToolRounds)
             .ConfigureOptions(o =>
             {
                 o.AddOllamaOption(OllamaOption.NumCtx, contextTokens);

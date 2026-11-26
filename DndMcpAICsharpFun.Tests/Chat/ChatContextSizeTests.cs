@@ -57,4 +57,35 @@ public sealed class ChatContextSizeTests
         using var doc = JsonDocument.Parse(handler.Body);
         doc.RootElement.GetProperty("options").GetProperty("temperature").GetSingle().Should().Be(0);
     }
+
+
+    private sealed class AlwaysCallsAToolHandler : HttpMessageHandler
+    {
+        public int Requests { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """{"model":"m","created_at":"2026-01-01T00:00:00Z","message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"missing_tool","arguments":{}}}]},"done":true}""" + "\n",
+                    Encoding.UTF8, "application/x-ndjson"),
+            });
+        }
+    }
+
+    [Fact]
+    public async Task A_model_that_keeps_calling_tools_is_stopped_after_a_few_rounds()
+    {
+        var handler = new AlwaysCallsAToolHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://ollama.test") };
+        var client = ChatExtensions.BuildChatClient(http, "m", 8192);
+
+        await client.GetResponseAsync(
+            [new ChatMessage(ChatRole.User, "hello")],
+            new ChatOptions { Tools = [AIFunctionFactory.Create(() => "ok", "real_tool")] });
+
+        handler.Requests.Should().BeLessThanOrEqualTo(ChatExtensions.MaxToolRounds + 1);
+    }
 }
