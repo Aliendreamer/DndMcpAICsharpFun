@@ -28,4 +28,4 @@
 
 - [x] 6.1 A `<tool_call>` the model writes in its thinking (Ollama drops it) is run by the chat, which asks again (tests first)
 - [x] 6.2 search_entities type Item also finds MagicItem, Weapon and Armor (staff of power, ring of spell storing were hidden; Qdrant test)
-- [ ] 6.3 Eval after both
+- [x] 6.3 Item questions after both: reference 4/4 (was 2/4), cross-check 4/4 (was 1/4), 12/12 runs each; full sets not re-run
