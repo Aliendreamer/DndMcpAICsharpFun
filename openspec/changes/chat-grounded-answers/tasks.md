@@ -22,4 +22,4 @@
 ## 5. Short persona
 
 - [x] 5.1 Probe: long persona 3/8 tool calls, no persona 7/8, short persona 8/8 (8 reference questions, 3 tools)
-- [ ] 5.2 Short persona deployed; reference and cross-check runs
+- [x] 5.2 Short persona deployed; reference 42/50 (84%), cross-check 42/50 (84%)
