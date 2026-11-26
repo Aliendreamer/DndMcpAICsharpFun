@@ -16,6 +16,6 @@ public sealed class RetrievalOptions
 {
     public float ScoreThreshold { get; set; } = 0.5f;
     public int MaxTopK { get; set; } = 20;
-    public EntityTextMode EntityText { get; set; } = EntityTextMode.Pieces;
-    public int EntityWholeMaxChars { get; set; } = 6000;
+    public EntityTextMode EntityText { get; set; } = EntityTextMode.Whole;
+    public int EntityWholeMaxChars { get; set; } = 14000;
 }

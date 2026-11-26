@@ -36,8 +36,10 @@ services:
       - Reranker__ModelPath=models/ms-marco-MiniLM-L-6-v2
       # How much of a long entity a search shows: Pieces (app picks), Whole (whole text up to
       # Retrieval__EntityWholeMaxChars; raise with a bigger model context), ModelPicks (parts list + get_entity part).
-      - Retrieval__EntityText=${ENTITY_TEXT:-Pieces}
-      - Retrieval__EntityWholeMaxChars=${ENTITY_WHOLE_MAX_CHARS:-6000}
+      - Retrieval__EntityText=${ENTITY_TEXT:-Whole}
+      - Retrieval__EntityWholeMaxChars=${ENTITY_WHOLE_MAX_CHARS:-14000}
+      # The chat model's context; whole entries need ~12k (about 6.2 GB VRAM for qwen3:8b). Raise with the hardware.
+      - Ollama__ChatContextTokens=${CHAT_CONTEXT_TOKENS:-12288}
     volumes:
       - ./books:/books
       - dp_keys:/dp-keys

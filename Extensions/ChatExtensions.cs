@@ -57,7 +57,7 @@ internal static class ChatExtensions
                 config.GetValue("Ollama:ChatTopK", defaults.TopK),
                 config.GetValue("Ollama:ChatSeed", defaults.Seed),
                 config.GetValue("Ollama:ChatMaxOutputTokens", defaults.MaxOutputTokens));
-            return BuildChatClient(chatHttp, chatModel, config.GetValue("Ollama:ChatContextTokens", 8192), sampling,
+            return BuildChatClient(chatHttp, chatModel, config.GetValue("Ollama:ChatContextTokens", 12288), sampling,
                 sp.GetService<Microsoft.Extensions.Logging.ILoggerFactory>());
         });
         // chat-query-router: pre-LLM tool-set narrowing. Options bind from "ChatQueryRouter"

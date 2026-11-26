@@ -172,7 +172,7 @@ public sealed class EntityRetrievalServiceRerankerTests
     public async Task Whole_mode_gives_the_named_result_its_whole_text_when_it_fits()
     {
         var fits = string.Concat(Enumerable.Repeat("Some words of the book. ", 200));   // 4800 chars
-        var tooLong = string.Concat(Enumerable.Repeat("Some words of the book. ", 400)); // 9600 chars
+        var tooLong = string.Concat(Enumerable.Repeat("Some words of the book. ", 700)); // 16800 chars, past the 14000 cap
         var results = await SearchInOrder(EntityTextMode.Whole, "what does Wish do", 3, true,
             Named("Wish", fits), Named("B", fits));
         results[0].Snippet.Should().Be(fits);
