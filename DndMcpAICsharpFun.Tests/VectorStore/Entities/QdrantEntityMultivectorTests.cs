@@ -37,6 +37,9 @@ public sealed class QdrantEntityMultivectorTests(QdrantFixture fixture)
         var hits = await store.SearchAsync([0, 0, 1], new EntityFilters(), 5);
         hits[0].Envelope.Id.Should().Be("mtf.monster.demogorgon");
         hits[0].Score.Should().BeApproximately(1f, 0.01f);
+        // each hit brings its piece vectors back, in stored order, so the matching pieces can be shown
+        hits[0].PieceVectors.Should().HaveCount(2);
+        hits[0].PieceVectors![1][2].Should().BeApproximately(1f, 0.01f);
         (await client.CountAsync(name)).Should().Be(2);
 
         // ids are looked up by the thousand before an ingest; unknown ones are simply absent

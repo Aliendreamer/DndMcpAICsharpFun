@@ -56,34 +56,50 @@ public sealed class EntityTextPiecesTests
     private static readonly string Filler = string.Concat(Enumerable.Repeat("Barbarians rage in battle and rest. ", 60));
 
     [Fact]
-    public void The_piece_holding_more_of_the_question_words_is_asked_for()
+    public void The_best_matching_piece_and_the_opening_are_shown_in_book_order()
     {
-        // A class table: the reranker liked the rage prose, the question asks for the 17th row.
-        var text = Filler + "Level Rages Rage Damage 17th +6 Brutal Critical 6 +4. " + Filler;
+        var text = Filler + "Level Rages Rage Damage 17th +6 Brutal Critical 6 +4. " + Filler + Filler;
         var pieces = EntityTextPieces.Split(text);
+        var best = pieces.Select((p, i) => (p, i)).First(x => x.p.Text.Contains("17th")).i;
+        var vectors = pieces.Select((_, i) => i == best ? new[] { 1f, 0f } : new[] { 0f, 1f }).ToList();
 
-        var asked = EntityTextPieces.MostAsked(text, pieces[0], "How many rages does a 17th-level barbarian have?");
+        var shown = EntityTextPieces.Matching(text, null, vectors, [1f, 0f], 3000, pieces[^1]);
 
-        asked.Text.Should().Contain("17th +6");
+        shown.Should().StartWith(pieces[0].Text[..100]).And.Contain("17th +6 Brutal Critical 6 +4");
+        shown.Length.Should().BeLessThanOrEqualTo(3010);
     }
 
     [Fact]
-    public void A_tie_keeps_the_rerankers_piece()
+    public void A_narrow_window_shows_only_the_best_piece()
+    {
+        var text = Filler + "Quickened Spell. Spend 2 sorcery points. " + Filler;
+        var pieces = EntityTextPieces.Split(text);
+        var vectors = pieces.Select(p => p.Text.Contains("Quickened") ? new[] { 1f, 0f } : new[] { 0f, 1f }).ToList();
+
+        var shown = EntityTextPieces.Matching(text, null, vectors, [1f, 0f], 1500, pieces[0]);
+
+        shown.Should().Contain("Quickened Spell").And.NotStartWith(pieces[0].Text[..100]);
+    }
+
+    [Fact]
+    public void Without_piece_vectors_the_window_falls_back_to_the_given_piece()
     {
         var text = Filler + Filler;
         var pieces = EntityTextPieces.Split(text);
 
-        EntityTextPieces.MostAsked(text, pieces[1], "barbarians rage").Should().Be(pieces[1]);
+        EntityTextPieces.Matching(text, null, null, [1f, 0f], 1500, pieces[1])
+            .Should().Be(EntityTextPieces.Window(text, pieces[1], 1500));
     }
 
-    [Theory]
-    [InlineData("Quickened Spell. When you cast", "What does it cost to quicken a spell?")]
-    [InlineData("TwInned SPEll. When you cast", "how do I twin a spell")]
-    public void Word_starts_match_case_and_endings(string section, string question)
+    [Fact]
+    public void Note_pieces_past_the_text_are_never_shown()
     {
-        var text = Filler + section + " a spell, spend points. " + Filler;
+        var text = Filler + Filler;
+        var notes = new[] { new DndMcpAICsharpFun.Domain.Entities.EntityNote(null, string.Concat(Enumerable.Repeat("margin ", 400)), 1) };
+        var embedded = EntityTextPieces.Split(EntityEmbeddingText.For(text, notes));
+        var vectors = embedded.Select((_, i) => i == embedded.Count - 1 ? new[] { 1f, 0f } : new[] { 0f, 1f }).ToList();
 
-        EntityTextPieces.MostAsked(text, EntityTextPieces.Split(text)[0], question).Text.Should().Contain(section);
+        EntityTextPieces.Matching(text, notes, vectors, [1f, 0f], 3000, embedded[0]).Should().NotContain("margin");
     }
 
     [Fact]

@@ -88,12 +88,30 @@ public sealed class QdrantEntityVectorStore(
             filter: filter,
             limit: (ulong)topK,
             payloadSelector: true,
+            vectorsSelector: true,
             cancellationToken: ct);
         return results
-            .Select(p => ToEnvelope(p.Payload) is { } env ? new EntitySearchHit(env, p.Score, p.Id.Uuid) : null)
+            .Select(p => ToEnvelope(p.Payload) is { } env ? new EntitySearchHit(env, p.Score, p.Id.Uuid, PieceVectors(p.Vectors)) : null)
             .Where(h => h is not null)
             .Select(h => h!)
             .ToList();
+    }
+
+
+    /// <summary>A point's piece vectors in stored order, or null when the point carries none.</summary>
+    private static IReadOnlyList<float[]>? PieceVectors(VectorsOutput? vectors)
+    {
+        var v = vectors?.Vector;
+        if (v is null) return null;
+        if (v.MultiDense is { Vectors.Count: > 0 } multi)
+            return [.. multi.Vectors.Select(d => d.Data.ToArray())];
+#pragma warning disable CS0612 // the server still sends a multivector flattened, with its count
+        if (v.Data.Count == 0) return null;
+        var count = v.HasVectorsCount && v.VectorsCount > 0 ? (int)v.VectorsCount : 1;
+        var data = v.Data.ToArray();
+#pragma warning restore CS0612
+        var size = data.Length / count;
+        return [.. Enumerable.Range(0, count).Select(i => data[(i * size)..((i + 1) * size)])];
     }
 
     public async Task<IReadOnlyDictionary<string, EntityEnvelope>> GetByIdsAsync(

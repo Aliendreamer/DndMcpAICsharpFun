@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 using DndMcpAICsharpFun.Domain.Entities;
 
 namespace DndMcpAICsharpFun.Features.Entities.CanonicalText;
@@ -64,28 +62,63 @@ public static class EntityTextPieces
 
 
     /// <summary>
-    /// The piece of <paramref name="text"/> holding the most of the question's words, when it holds more than
-    /// <paramref name="best"/>: a reranker prefers prose to a table ("17th +6 … 6 +4") or a late section
-    /// ("Quickened Spell"), which the question's own words find.
+    /// What to show of an entity's text: the pieces whose stored vectors match the question best (the search's own
+    /// comparison, piece by piece), best first, then the opening, then the next best, while they fit in
+    /// <paramref name="maxChars"/>; shown in book order, a gap marked "…". Without piece vectors, a window around
+    /// <paramref name="fallback"/>.
     /// </summary>
-    public static TextPiece MostAsked(string text, TextPiece best, string question)
+    public static string Matching(
+        string text, IReadOnlyList<EntityNote>? notes, IReadOnlyList<float[]>? pieceVectors, float[] question,
+        int maxChars, TextPiece fallback)
     {
-        var words = AskedWords(question);
-        if (words.Count == 0) return best;
-        int Hits(TextPiece p) => words.Count(w => p.Text.Contains(w, StringComparison.OrdinalIgnoreCase));
-        var top = Split(text).MaxBy(Hits)!;
-        return Hits(top) > Hits(best) ? top : best;
+        if (text.Length <= maxChars) return text;
+        // The stored vectors are the pieces of the text with its notes; pieces past the text are notes or lore.
+        var pieces = Split(EntityEmbeddingText.For(text, notes))
+            .TakeWhile(p => p.Start < text.Length)
+            .Select(p => (Start: p.Start, End: Math.Min(p.Start + p.Text.Length, text.Length)))
+            .ToList();
+        if (pieceVectors is null || pieceVectors.Count < pieces.Count || pieces.Count < 2)
+            return Window(text, fallback, maxChars);
+
+        var byScore = Enumerable.Range(0, pieces.Count).OrderByDescending(i => Cosine(question, pieceVectors[i])).ToList();
+        byScore.Remove(0);
+        byScore.Insert(Math.Min(1, byScore.Count), 0); // the opening (name, stats, class table) comes second
+        var chosen = new List<(int Start, int End)>();
+        foreach (var i in byScore)
+        {
+            var merged = Merge([.. chosen, pieces[i]]);
+            if (merged.Sum(r => r.End - r.Start) > maxChars) continue;
+            chosen = merged;
+        }
+        if (chosen.Count == 0) return Window(text, fallback, maxChars);
+        return (chosen[0].Start > 0 ? "…" : "")
+            + string.Join("\n…\n", chosen.Select(r => text[r.Start..r.End]))
+            + (chosen[^1].End < text.Length ? "…" : "");
     }
 
-    private static readonly HashSet<string> CommonWords = new(StringComparer.OrdinalIgnoreCase)
+    private static List<(int Start, int End)> Merge(IEnumerable<(int Start, int End)> ranges)
     {
-        "what", "which", "when", "where", "does", "have", "with", "many", "much", "that", "this", "they",
-        "their", "them", "there", "from", "into", "about", "after", "before", "would", "could", "should",
-        "will", "your", "mine", "doing", "make", "each", "every", "than", "then",
-    };
+        var merged = new List<(int Start, int End)>();
+        foreach (var r in ranges.OrderBy(r => r.Start))
+        {
+            if (merged.Count > 0 && r.Start <= merged[^1].End)
+                merged[^1] = (merged[^1].Start, Math.Max(merged[^1].End, r.End));
+            else
+                merged.Add(r);
+        }
+        return merged;
+    }
 
-    private static HashSet<string> AskedWords(string question) =>
-        Regex.Split(question, @"[^\p{L}\p{N}]+")
-            .Where(w => (w.Length > 3 || w.Any(char.IsDigit)) && !CommonWords.Contains(w))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private static double Cosine(float[] a, float[] b)
+    {
+        double dot = 0, na = 0, nb = 0;
+        for (var i = 0; i < Math.Min(a.Length, b.Length); i++)
+        {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+        }
+        return na == 0 || nb == 0 ? 0 : dot / Math.Sqrt(na * nb);
+    }
+
 }

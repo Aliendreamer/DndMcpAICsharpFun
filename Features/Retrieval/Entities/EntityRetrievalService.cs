@@ -38,8 +38,8 @@ public sealed partial class EntityRetrievalService(
                 e.Id, e.Type, e.Name, e.SourceBook, e.Edition, e.Page, e.SettingTags,
                 i >= WideResults
                     ? Truncate(e.CanonicalText, SnippetChars)
-                    : EntityTextPieces.Window(e.CanonicalText, EntityTextPieces.MostAsked(e.CanonicalText, h.Best, q.QueryText),
-                        h.Named || i == 0 ? NamedChars : WideChars),
+                    : EntityTextPieces.Matching(e.CanonicalText, e.Notes, h.Hit.PieceVectors, h.Question,
+                        h.Named || i == 0 ? NamedChars : WideChars, h.Best),
                 h.Hit.Score,
                 Authority: e.Authority);
         }).ToList();
@@ -193,14 +193,14 @@ public sealed partial class EntityRetrievalService(
                 // The entity's own name outranks one of its features ("Devour Intellect" names the Intellect Devourer).
                 var rank = IsNamedIn(q.QueryText, r.Hit.Envelope) ? 1000 + r.Hit.Envelope.Name.Length
                     : NamedFeatureLength(q.QueryText, r.Hit.Envelope);
-                return new RankedHit(r.Hit, r.Best, rank > 0, rank);
+                return new RankedHit(r.Hit, r.Best, rank > 0, rank, vector);
             })
             .OrderByDescending(r => r.NameRank)
             .Take(topK)
             .ToList();
     }
 
-    private sealed record RankedHit(EntitySearchHit Hit, TextPiece Best, bool Named, int NameRank);
+    private sealed record RankedHit(EntitySearchHit Hit, TextPiece Best, bool Named, int NameRank, float[] Question);
 
     // A feature line of a stat block or class: "Devour Intellect. The intellect devourer targets…"
     [GeneratedRegex(@"^([A-Z][\p{L}'’-]*(?: [\p{L}'’-]+){1,4})(?: \([^)\n]*\))?\. ", RegexOptions.Multiline)]

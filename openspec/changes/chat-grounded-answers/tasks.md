@@ -36,6 +36,6 @@
 - [x] 7.2 Prose search leaves out book index pages (Index, Index of Stat Blocks...: 457 blocks of "X. See Y" lines)
 - [x] 7.3 The top entity result carries up to 3,000 characters (Travel Pace table was cut at 1,500)
 - [x] 7.4 ask_rules puts the best core-rulebook entity first (tables and headings the prose blocks lost); the chat's ask_rules no longer sends topic passages twice
-- [x] 7.6 Entity text window chosen by the question's words when they find a better piece (class table, Metamagic)
+- [x] 7.6 Entity text shown by piece: the pieces whose stored vectors match the question best (best, then the opening, then more), in book order (replaced a word-count window)
 - [x] 7.7 A question naming a feature of two or more words ("Devour Intellect") puts its entity first
 - [ ] 7.5 Full run, both sets

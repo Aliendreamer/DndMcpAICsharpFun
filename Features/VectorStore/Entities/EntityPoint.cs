@@ -11,4 +11,6 @@ public sealed record EntityPoint(EntityEnvelope Envelope, IReadOnlyList<float[]>
     }
 }
 
-public sealed record EntitySearchHit(EntityEnvelope Envelope, float Score, string PointId);
+/// <param name="PieceVectors">The stored vectors of the entity's text pieces, in order, when the search returned them.</param>
+public sealed record EntitySearchHit(
+    EntityEnvelope Envelope, float Score, string PointId, IReadOnlyList<float[]>? PieceVectors = null);
