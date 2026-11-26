@@ -1,6 +1,7 @@
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Features.Lore;      // CitedPassage
 using DndMcpAICsharpFun.Features.Retrieval;
+using DndMcpAICsharpFun.Features.Retrieval.Entities;
 
 namespace DndMcpAICsharpFun.Features.Rules;
 
@@ -9,9 +10,34 @@ namespace DndMcpAICsharpFun.Features.Rules;
 /// rulebooks so monster/lore prose is excluded, and returns cited passages for the chat persona to
 /// frame into a ruling. Not ownership-gated. Does NOT call an LLM.
 /// </summary>
-public sealed class RulesAdjudicationService(IRagRetrievalService rag)
+public sealed class RulesAdjudicationService(IRagRetrievalService rag, IEntityRetrievalService? entities = null)
 {
     public async Task<RulesRulingResult> AskAsync(
+        string question, IReadOnlyList<string>? ruleTopics, DndVersion? edition, CancellationToken ct)
+    {
+        var ruling = await AskProseAsync(question, ruleTopics, edition, ct);
+        return await BestEntityAsync(question, ct) is { } entity
+            ? ruling with { Passages = [entity, .. ruling.Passages] }
+            : ruling;
+    }
+
+    /// <summary>
+    /// The best-matching core-rulebook entity, as a passage: prose blocks lose tables and headings (the Travel Pace
+    /// table, a class table, "Quickened Spell"), the entity's text holds them.
+    /// </summary>
+    private async Task<CitedPassage?> BestEntityAsync(string question, CancellationToken ct)
+    {
+        if (entities is null) return null;
+        var hits = await entities.SearchAsync(new EntitySearchQuery(
+            question, null, null, null, null, null, null, null, null, null, null, TopK: 3), ct);
+        // Only the top hit carries its wide text, so a lower core-rulebook hit is no better than the prose.
+        return hits.FirstOrDefault() is { } top && RuleSources.Keys.Contains(top.SourceBook)
+            ? new CitedPassage(top.Snippet, BookCatalog.ToDisplayNames([top.SourceBook]).Single(), top.Name, top.Score,
+                BookCatalog.PrintedPage(top.SourceBook, top.Page))
+            : null;
+    }
+
+    private async Task<RulesRulingResult> AskProseAsync(
         string question, IReadOnlyList<string>? ruleTopics, DndVersion? edition, CancellationToken ct)
     {
         // Single-shot (v1) when the caller didn't decompose the question.

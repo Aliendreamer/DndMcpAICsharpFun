@@ -161,6 +161,20 @@ public sealed class EntityRetrievalServiceRerankerTests
         results[3].Snippet.Length.Should().Be(241);
     }
 
+
+    [Fact]
+    public async Task The_top_result_carries_the_widest_text_even_when_unnamed()
+    {
+        // Travel Pace: 2,178 characters with its table (30 miles a day) at the end; a 1,500 window lost the table.
+        var text = string.Concat(Enumerable.Repeat("Some words of the book. ", 90)) + "Fast 30 miles";
+
+        var results = await SearchInOrder("how far does a party travel at a fast pace", 2, true,
+            Named("Travel Pace", text), Named("B", text));
+
+        results[0].Snippet.Should().Be(text);
+        results[1].Snippet.Length.Should().BeInRange(1400, 1502);
+    }
+
     [Fact]
     public async Task Long_text_is_cut_around_the_best_piece()
     {

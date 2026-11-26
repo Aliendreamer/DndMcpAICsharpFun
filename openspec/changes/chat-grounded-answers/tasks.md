@@ -29,3 +29,11 @@
 - [x] 6.1 A `<tool_call>` the model writes in its thinking (Ollama drops it) is run by the chat, which asks again (tests first)
 - [x] 6.2 search_entities type Item also finds MagicItem, Weapon and Armor (staff of power, ring of spell storing were hidden; Qdrant test)
 - [x] 6.3 Item questions after both: reference 4/4 (was 2/4), cross-check 4/4 (was 1/4), 12/12 runs each; full re-run: reference 41/50 (82%, 1 timeout), cross-check 42/50 (84%)
+
+## 7. Repeatable answers; always-failing reference questions
+
+- [x] 7.1 Chat model temperature 0 by default (`Ollama:ChatTemperature`), so eval runs measure changes, not luck
+- [x] 7.2 Prose search leaves out book index pages (Index, Index of Stat Blocks...: 457 blocks of "X. See Y" lines)
+- [x] 7.3 The top entity result carries up to 3,000 characters (Travel Pace table was cut at 1,500)
+- [x] 7.4 ask_rules puts the best core-rulebook entity first (tables and headings the prose blocks lost); the chat's ask_rules no longer sends topic passages twice
+- [ ] 7.5 Full run, both sets

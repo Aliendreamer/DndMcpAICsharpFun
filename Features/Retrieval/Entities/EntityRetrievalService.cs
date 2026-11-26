@@ -38,7 +38,7 @@ public sealed class EntityRetrievalService(
                 e.Id, e.Type, e.Name, e.SourceBook, e.Edition, e.Page, e.SettingTags,
                 i >= WideResults
                     ? Truncate(e.CanonicalText, SnippetChars)
-                    : EntityTextPieces.Window(e.CanonicalText, h.Best, h.Named ? NamedChars : WideChars),
+                    : EntityTextPieces.Window(e.CanonicalText, h.Best, h.Named || i == 0 ? NamedChars : WideChars),
                 h.Hit.Score,
                 Authority: e.Authority);
         }).ToList();

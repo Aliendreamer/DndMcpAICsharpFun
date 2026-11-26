@@ -128,14 +128,23 @@ public sealed class RagRetrievalService(
         if (query.BookType.HasValue)
             conditions.Add(KeywordCondition(QdrantPayloadFields.BookType, query.BookType.Value.ToString()));
 
-        if (conditions.Count == 0)
-            return null;
-
         var filter = new Filter();
         foreach (var c in conditions)
             filter.Must.Add(c);
+        // A book's index lines ("Quickened Spell (sorcerer). See Metamagic") match a question's words and hold no rule.
+        filter.MustNot.Add(new Condition
+        {
+            Field = new FieldCondition
+            {
+                Key = QdrantPayloadFields.SectionTitle,
+                Match = new Match { Keywords = new RepeatedStrings { Strings = { IndexSections } } },
+            },
+        });
         return filter;
     }
+
+    private static readonly string[] IndexSections =
+        ["Index", "Index\r", "Index of Stat Blocks", "Index of Monster Stat Blocks"];
 
     private static Condition KeywordCondition(string key, string value) =>
         new()

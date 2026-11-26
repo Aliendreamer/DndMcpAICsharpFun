@@ -128,7 +128,7 @@ public sealed class RagRetrievalServiceTests
     }
 
     [Fact]
-    public async Task SearchAsync_NoFilter_WhenQueryHasNoConstraints()
+    public async Task SearchAsync_without_constraints_only_leaves_out_book_index_pages()
     {
         SetupEmbed();
         _qdrant.SearchAsync(
@@ -140,9 +140,14 @@ public sealed class RagRetrievalServiceTests
 
         await sut.SearchAsync(new RetrievalQuery("fireball"));
 
+        // An index line ("Quickened Spell (sorcerer). See Metamagic") matches a question's words and holds no rule.
         await _qdrant.Received(1).SearchAsync(
             Arg.Any<string>(), Arg.Any<ReadOnlyMemory<float>>(),
-            null, Arg.Any<ulong>(),
+            Arg.Is<Filter?>(f => f != null && f.Must.Count == 0
+                && f.MustNot.Count == 1 && f.MustNot[0].Field.Key == QdrantPayloadFields.SectionTitle
+                && f.MustNot[0].Field.Match.Keywords.Strings.Contains("Index")
+                && f.MustNot[0].Field.Match.Keywords.Strings.Contains("Index of Stat Blocks")),
+            Arg.Any<ulong>(),
             Arg.Any<float?>(), Arg.Any<CancellationToken>());
     }
 

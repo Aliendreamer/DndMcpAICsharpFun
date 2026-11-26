@@ -869,6 +869,7 @@ public sealed class DndChatServiceTests : IDisposable
         props.TryGetProperty("userId", out _).Should().BeFalse();
         props.TryGetProperty("campaignId", out _).Should().BeFalse();
 
+        rag.ClearReceivedCalls(); // SendAsync's own lookup already asked the rules once
         var result = await tool.InvokeAsync(
             ToArgs(new
             {
@@ -878,7 +879,8 @@ public sealed class DndChatServiceTests : IDisposable
             CancellationToken.None);
         var ruling = ((JsonElement)result!).Deserialize<RulesRulingResult>(tool.JsonSerializerOptions);
         ruling!.Passages.Should().BeEmpty(); // reached the service (empty rag → empty passages)
-        ruling.Topics.Should().HaveCount(2); // two topics were retrieved (each empty) — proves ruleTopics routed
+        ruling.Topics.Should().BeEmpty(); // topic passages are all in Passages; not sent twice
+        await rag.Received(3).SearchAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>()); // 2 topics + whole
     }
 
 

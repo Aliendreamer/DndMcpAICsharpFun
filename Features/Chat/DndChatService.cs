@@ -378,15 +378,16 @@ public sealed class DndChatService(
                     "sources don't cover it — never invent world lore."));
 
             toolList.Add(AIFunctionFactory.Create(
-                (string question, string[]? ruleTopics = null, CancellationToken toolCt = default) =>
-                    rulesAdjudicationService.AskAsync(question, ruleTopics, null, toolCt),
+                async (string question, string[]? ruleTopics = null, CancellationToken toolCt = default) =>
+                    // Every topic's passages are in Passages too; sending both doubled the text in the 8k context.
+                    (await rulesAdjudicationService.AskAsync(question, ruleTopics, null, toolCt)) with { Topics = [] },
                 name: "ask_rules",
                 description: "Answer a D&D RULES question (including multi-rule interactions like " +
                     "'can I grapple a creature that's already prone?'). Identify the DISTINCT rules the " +
                     "question involves and pass them as ruleTopics (e.g. [\"grappling\", \"prone condition\"]) " +
                     "so each rule is grounded on its own retrieval; omit ruleTopics for a simple single-rule " +
-                    "question. Returns cited rule passages retrieved ONLY from the core rulebooks, grouped by " +
-                    "topic. Compose your ruling STRICTLY from the returned passages: NAME each rule you " +
+                    "question. Returns cited rule passages retrieved ONLY from the core rulebooks, the best-matching " +
+                    "rule or class text first. Compose your ruling STRICTLY from the returned passages: NAME each rule you " +
                     "combine and CITE it (source book + section); where the rules don't explicitly resolve an " +
                     "interaction, say so and distinguish rules-as-written from a DM ruling; if no passages are " +
                     "returned, say the rules don't directly cover it — never invent a rule. Not tied to any " +

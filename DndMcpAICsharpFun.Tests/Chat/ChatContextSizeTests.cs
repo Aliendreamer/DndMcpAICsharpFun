@@ -43,4 +43,18 @@ public sealed class ChatContextSizeTests
         doc.RootElement.GetProperty("options").GetProperty("num_ctx").GetInt32().Should().Be(8192);
         if (doc.RootElement.TryGetProperty("think", out var think)) think.ValueKind.Should().Be(JsonValueKind.Null);
     }
+
+
+    [Fact]
+    public async Task Every_chat_request_carries_the_configured_temperature()
+    {
+        var handler = new CapturingHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://ollama.test") };
+        var client = ChatExtensions.BuildChatClient(http, "m", 8192, temperature: 0);
+
+        await client.GetResponseAsync([new ChatMessage(ChatRole.User, "hello")], new ChatOptions());
+
+        using var doc = JsonDocument.Parse(handler.Body);
+        doc.RootElement.GetProperty("options").GetProperty("temperature").GetSingle().Should().Be(0);
+    }
 }

@@ -50,7 +50,9 @@ internal static class ChatExtensions
             // long tool-calling turns (the level-up coach) off mid-answer.
             var chatHttp = Infrastructure.Http.LongRunningHttpClient.Create(
                 new Uri(baseUrl), config.GetValue("Ollama:ChatTimeoutSeconds", 600));
-            return BuildChatClient(chatHttp, chatModel, config.GetValue("Ollama:ChatContextTokens", 8192));
+            // Temperature 0 by default: the same question gets the same answer, so eval runs measure changes, not luck.
+            return BuildChatClient(chatHttp, chatModel, config.GetValue("Ollama:ChatContextTokens", 8192),
+                config.GetValue<float?>("Ollama:ChatTemperature", 0f));
         });
         // chat-query-router: pre-LLM tool-set narrowing. Options bind from "ChatQueryRouter"
         // (env overrides live; appsettings git-crypt-masked). ExemplarIndex is a singleton so the
@@ -69,12 +71,16 @@ internal static class ChatExtensions
     /// The chat's model client: tool calls run in-process, and every request (tool rounds too) asks for
     /// <paramref name="contextTokens"/> of context instead of Ollama's GPU-based default.
     /// </summary>
-    internal static IChatClient BuildChatClient(HttpClient http, string model, int contextTokens)
+    internal static IChatClient BuildChatClient(HttpClient http, string model, int contextTokens, float? temperature = null)
     {
         IChatClient inner = new OllamaApiClient(http, model);
         return inner.AsBuilder()
             .UseFunctionInvocation()
-            .ConfigureOptions(o => o.AddOllamaOption(OllamaOption.NumCtx, contextTokens))
+            .ConfigureOptions(o =>
+            {
+                o.AddOllamaOption(OllamaOption.NumCtx, contextTokens);
+                o.Temperature ??= temperature;
+            })
             .Build();
     }
 }

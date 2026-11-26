@@ -1,5 +1,7 @@
 using DndMcpAICsharpFun.Domain;
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Retrieval;
+using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Features.Rules;
 
 using FluentAssertions;
@@ -72,6 +74,47 @@ public sealed class RulesAdjudicationServiceTests
             .AskAsync("grappling", ruleTopics: null, edition: null, CancellationToken.None);
 
         result.Passages[0].Page.Should().Be(195);
+    }
+
+
+    private static IEntityRetrievalService Entities(params (string Name, string Book, string Text)[] rows)
+    {
+        var entities = Substitute.For<IEntityRetrievalService>();
+        entities.SearchAsync(Arg.Any<EntitySearchQuery>(), Arg.Any<CancellationToken>())
+            .Returns(rows.Select(r => new EntitySearchResult(
+                $"x.{r.Name}", EntityType.Rule, r.Name, r.Book, "Edition2014", 182, [], r.Text, 0.9f)).ToList());
+        return entities;
+    }
+
+    [Fact]
+    public async Task The_best_core_rulebook_entity_comes_first_with_its_whole_text()
+    {
+        // Prose blocks lose tables and headings (the Travel Pace table, a class table, "Quickened Spell");
+        // the entity holds them.
+        var rag = Substitute.For<IRagRetrievalService>();
+        rag.SearchAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>())
+            .Returns(Results(("Travel pace prose", "PlayerHandbook 2014")));
+        var svc = new RulesAdjudicationService(rag, Entities(
+            ("Travel Pace", "PHB", "Fast 30 miles"), ("Owlbear", "MM", "Monster text"), ("Other", "DMG", "x")));
+
+        var result = await svc.AskAsync("how far at a fast pace", ruleTopics: null, edition: null, CancellationToken.None);
+
+        result.Passages.Select(p => p.Text).Should().Equal("Fast 30 miles", "Travel pace prose");
+        result.Passages[0].Section.Should().Be("Travel Pace");
+        result.Passages[0].SourceBook.Should().Be(BookCatalog.ToDisplayNames(["PHB"]).Single());
+        result.Passages[0].Page.Should().Be(181);
+    }
+
+    [Fact]
+    public async Task No_core_rulebook_entity_leaves_the_passages_alone()
+    {
+        var rag = Substitute.For<IRagRetrievalService>();
+        rag.SearchAsync(Arg.Any<RetrievalQuery>(), Arg.Any<CancellationToken>())
+            .Returns(Results(("Grappling rule text", "PlayerHandbook 2014")));
+        var svc = new RulesAdjudicationService(rag, Entities(("Owlbear", "MM", "Monster text"), ("Grappling", "PHB", "x")));
+
+        (await svc.AskAsync("grappling", ruleTopics: null, edition: null, CancellationToken.None))
+            .Passages.Select(p => p.Text).Should().Equal("Grappling rule text");
     }
 
     [Fact]
