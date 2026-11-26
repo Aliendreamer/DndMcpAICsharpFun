@@ -30,6 +30,23 @@ file sealed class FakeEntityService : IEntityRetrievalService
     public Task<IList<EntityDiagnosticResult>> SearchDiagnosticAsync(EntitySearchQuery query, CancellationToken ct) => Task.FromResult<IList<EntityDiagnosticResult>>([]);
 }
 
+file sealed class RecordingEntityService : IEntityRetrievalService
+{
+    public List<EntitySearchQuery> Queries { get; } = [];
+    public string? EmptyForBook { get; init; }
+    public Task<EntityFullResult?> GetByIdAsync(string id, CancellationToken ct) => Task.FromResult<EntityFullResult?>(null);
+    public Task<IList<EntitySearchResult>> SearchAsync(EntitySearchQuery query, CancellationToken ct)
+    {
+        Queries.Add(query);
+        IList<EntitySearchResult> hits = query.SourceBook is not null && query.SourceBook == EmptyForBook
+            ? []
+            : [new EntitySearchResult("phb.spell.fireball", EntityType.Spell, "Fireball", "PHB", "Edition2014", null, [], "8d6", 0.9f)];
+        return Task.FromResult(hits);
+    }
+    public Task<EntitySetResult> ListAsync(EntitySearchQuery query, int cap, CancellationToken ct) => Task.FromResult(new EntitySetResult(0, 0, []));
+    public Task<IList<EntityDiagnosticResult>> SearchDiagnosticAsync(EntitySearchQuery query, CancellationToken ct) => Task.FromResult<IList<EntityDiagnosticResult>>([]);
+}
+
 file sealed class FakeFusedService : IFusedRetrievalService
 {
     public IReadOnlyList<FusedCandidate> FusedResults { get; set; } = [];
@@ -166,6 +183,41 @@ public class DndMcpToolsTests
         var result = await tools.search_entities("fireball", type: "NotARealType");
 
         result.Should().Be("No entities found.");
+    }
+
+
+    [Fact]
+    public async Task search_entities_filters_on_the_book_the_model_names()
+    {
+        var entities = new RecordingEntityService();
+        var tools = MakeTools(entity: entities);
+
+        await tools.search_entities("Demogorgon", type: "Monster", sourceBook: "Mordenkainen's Tome of Foes");
+
+        entities.Queries.Should().ContainSingle().Which.SourceBook.Should().Be("MTF");
+    }
+
+    [Fact]
+    public async Task search_entities_searches_every_book_when_the_named_book_has_no_match()
+    {
+        var entities = new RecordingEntityService { EmptyForBook = "MTF" };
+        var tools = MakeTools(entity: entities);
+
+        var json = await tools.search_entities("Fireball", sourceBook: "MTF");
+
+        entities.Queries.Select(q => q.SourceBook).Should().Equal("MTF", null);
+        json.Should().Contain("fireball");
+    }
+
+    [Fact]
+    public async Task search_entities_ignores_a_book_it_does_not_know()
+    {
+        var entities = new RecordingEntityService();
+        var tools = MakeTools(entity: entities);
+
+        await tools.search_entities("Demogorgon", sourceBook: "Some Homebrew");
+
+        entities.Queries.Should().ContainSingle().Which.SourceBook.Should().BeNull();
     }
 
     [Fact]

@@ -18,6 +18,22 @@ public class BookCatalogTests
         BookCatalog.DisplayNameToKey["PlayerHandbook 2014"].Should().Be("PHB");
     }
 
+
+    [Theory]
+    [InlineData("MTF", "MTF")]
+    [InlineData("mtf", "MTF")]
+    [InlineData("Mordenkainen's Tome of Foes", "MTF")]
+    [InlineData("Mordenkainen’s Tome of Foes", "MTF")]
+    [InlineData("Player's Handbook", "PHB")]
+    [InlineData("Dungeon Master's Guide", "DMG")]
+    [InlineData("Monsters of the Multiverse", null)]
+    [InlineData("Mordenkainen Presents: Monsters of the Multiverse", "MPMM")]
+    [InlineData("Some Homebrew", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void ResolveKey_accepts_a_key_or_a_book_name(string? book, string? expected) =>
+        BookCatalog.ResolveKey(book).Should().Be(expected);
+
     [Fact]
     public void ToDisplayNames_maps_scope_keys_back_to_citation_names()
     {

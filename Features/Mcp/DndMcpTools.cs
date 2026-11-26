@@ -64,18 +64,31 @@ public sealed class DndMcpTools(
         [Description("Maximum challenge rating inclusive (for monsters)")] double? crMax = null,
         [Description("Spell level 0–9 (for spells)")] int? spellLevel = null,
         [Description("Number of results (default 6)")] int topK = 6,
+        [Description("Only this book, when the question names one: a key (MM, MTF) or the book's name")]
+        string? sourceBook = null,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(query))
             return "Error: query must not be empty.";
 
         var entityType = Enum.TryParse<EntityType>(type, out var t) ? t : (EntityType?)null;
+        var bookKey = BookCatalog.ResolveKey(sourceBook);
 
-        var results = await entityService.SearchAsync(
+        var results = await SearchEntitiesAsync(bookKey);
+        // A book the entity is not in (a wrong guess by the model) must not hide the answer.
+        if (results.Count == 0 && bookKey is not null)
+            results = await SearchEntitiesAsync(null);
+
+        if (results.Count == 0)
+            return "No entities found.";
+
+        return SerializeEntityHits(results);
+
+        Task<IList<EntitySearchResult>> SearchEntitiesAsync(string? book) => entityService.SearchAsync(
             new EntitySearchQuery(
                 QueryText: query,
                 Type: entityType,
-                SourceBook: null,
+                SourceBook: book,
                 Edition: null,
                 BookType: null,
                 SettingTag: null,
@@ -85,11 +98,10 @@ public sealed class DndMcpTools(
                 SpellLevel: spellLevel,
                 DamageType: null,
                 TopK: topK), ct);
+    }
 
-        if (results.Count == 0)
-            return "No entities found.";
-
-        return JsonSerializer.Serialize(results.Select(r => new
+    private static string SerializeEntityHits(IList<EntitySearchResult> results) =>
+        JsonSerializer.Serialize(results.Select(r => new
         {
             id = r.Id,
             name = r.Name,
@@ -100,7 +112,6 @@ public sealed class DndMcpTools(
             text = r.Snippet,
             score = r.Score
         }), _json);
-    }
 
     [McpServerTool, Description(
         "List the COMPLETE set of structured D&D entities matching filters — deterministic, not " +

@@ -190,6 +190,45 @@ public sealed class EntityRetrievalServiceRerankerTests
         results[0].Snippet.Should().Contain("roll 3d6");
     }
 
+
+    private static async Task<IList<EntitySearchResult>> SearchTyped(
+        string query, EntityType type, EntitySearchHit[] ofType, EntitySearchHit[] anyType)
+    {
+        var store = Substitute.For<IEntityVectorStore>();
+        store.SearchAsync(Arg.Any<float[]>(), Arg.Is<EntityFilters>(f => f.Type == type), Arg.Any<int>(), Arg.Any<CancellationToken>())
+             .Returns(Task.FromResult<IList<EntitySearchHit>>(ofType));
+        store.SearchAsync(Arg.Any<float[]>(), Arg.Is<EntityFilters>(f => f.Type == null), Arg.Any<int>(), Arg.Any<CancellationToken>())
+             .Returns(Task.FromResult<IList<EntitySearchHit>>(anyType));
+        var reranker = Substitute.For<IReranker>();
+        reranker.Enabled.Returns(true);
+        reranker.RerankAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Task.FromResult(ci.Arg<IReadOnlyList<string>>().Select((_, i) => -(float)i).ToArray()));
+        var sut = BuildSut(store, reranker, rerankEntities: true);
+        return await sut.SearchAsync(
+            new EntitySearchQuery(query, type, null, null, null, null, null, null, null, null, null, TopK: 3),
+            CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task A_wrong_type_guess_does_not_hide_the_entity_the_query_names()
+    {
+        var results = await SearchTyped("Devour Intellect", EntityType.Spell,
+            ofType: [Named("Feeblemind", "Enchantment.", EntityType.Spell), Named("Psychic Scream", "Enchantment.", EntityType.Spell)],
+            anyType: [Named("Intellect Devourer", "Devour Intellect. Roll 3d6."), Named("Owlbear", "Beak. Hit.")]);
+
+        results.Select(r => r.Name).Should().Equal("Intellect Devourer", "Feeblemind", "Psychic Scream");
+    }
+
+    [Fact]
+    public async Task An_unnamed_result_of_another_type_stays_out()
+    {
+        var results = await SearchTyped("a spell that blasts minds", EntityType.Spell,
+            ofType: [Named("Psychic Scream", "Enchantment.", EntityType.Spell)],
+            anyType: [Named("Owlbear", "Beak. Hit.")]);
+
+        results.Select(r => r.Name).Should().Equal("Psychic Scream");
+    }
+
     [Theory]
     [InlineData("how do claws work")]
     [InlineData("tell me about the devour")]

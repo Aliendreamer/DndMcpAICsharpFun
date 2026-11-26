@@ -173,18 +173,26 @@ public sealed partial class EntityRetrievalService(
 
         IReadOnlyList<(EntitySearchHit Hit, TextPiece Best)> ranked;
         bool shouldRerank = _rerankerOpts.Enabled && _rerankerOpts.RerankEntities;
+        var poolSize = shouldRerank ? Math.Min(_rerankerOpts.CandidatePoolSize, _retrieval.MaxTopK) : topK;
+        var pool = (IReadOnlyList<EntitySearchHit>)await store.SearchAsync(vector, filters, poolSize, ct);
+        // The model's type is a guess ("Devour Intellect" as a Spell): other types join the pool, and stay
+        // only when the query names them or one of their features.
+        HashSet<string>? ofType = null;
+        if (filters.Type is not null)
+        {
+            ofType = pool.Select(h => h.Envelope.Id).ToHashSet(StringComparer.Ordinal);
+            var anyType = await store.SearchAsync(vector, filters with { Type = null }, poolSize, ct);
+            pool = [.. pool, .. anyType.Where(h => !ofType.Contains(h.Envelope.Id))];
+        }
         if (shouldRerank)
         {
-            var poolSize = Math.Min(_rerankerOpts.CandidatePoolSize, _retrieval.MaxTopK);
-            var pool = (IReadOnlyList<EntitySearchHit>)await store.SearchAsync(vector, filters, poolSize, ct);
             // The whole pool is ranked: a named entity may stand below topK.
             ranked = await rerankingService.RerankByPieceAsync(
                 q.QueryText, pool, h => h.Envelope.CanonicalText, pool.Count, ct);
         }
         else
         {
-            var vectorResults = await store.SearchAsync(vector, filters, topK, ct);
-            ranked = vectorResults.Select(h => (h, EntityTextPieces.Split(h.Envelope.CanonicalText)[0])).ToList();
+            ranked = pool.Select(h => (h, EntityTextPieces.Split(h.Envelope.CanonicalText)[0])).ToList();
         }
 
         return ranked
@@ -195,6 +203,7 @@ public sealed partial class EntityRetrievalService(
                     : NamedFeatureLength(q.QueryText, r.Hit.Envelope);
                 return new RankedHit(r.Hit, r.Best, rank > 0, rank, vector);
             })
+            .Where(r => ofType is null || r.Named || ofType.Contains(r.Hit.Envelope.Id))
             .OrderByDescending(r => r.NameRank)
             .Take(topK)
             .ToList();

@@ -81,11 +81,12 @@ public sealed class ItemTypeFilterIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task MagicItem_search_stays_magic_items_only()
+    public async Task MagicItem_search_adds_another_type_only_when_the_query_names_it()
     {
+        // "staff" names the plain Staff, so the type guess does not hide it; Quarterstaff is not named.
         var hits = await _sut.SearchAsync(Query(EntityType.MagicItem), CancellationToken.None);
 
-        hits.Select(h => h.Id).Should().Equal("test.magicitem.staff-of-power");
+        hits.Select(h => h.Id).Should().Equal("test.item.staff", "test.magicitem.staff-of-power");
     }
 
     private static EntityPoint Make(string id, EntityType type, string name)

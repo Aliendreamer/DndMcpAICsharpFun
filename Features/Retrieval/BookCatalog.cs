@@ -59,6 +59,24 @@ public static class BookCatalog
     public static IReadOnlyDictionary<string, string> KeyToDisplayName { get; } =
         All.ToDictionary(b => b.Key, b => b.DisplayName, StringComparer.Ordinal);
 
+    /// <summary>
+    /// The catalog key for a book the model or user names: a key in any case ("mtf") or a book name, compared
+    /// on its letters with plural/possessive "s" dropped, so "Player's Handbook" finds "PlayerHandbook 2014".
+    /// Null for an empty or unknown book.
+    /// </summary>
+    public static string? ResolveKey(string? book)
+    {
+        if (string.IsNullOrWhiteSpace(book)) return null;
+        var key = Keys.FirstOrDefault(k => string.Equals(k, book.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (key is not null) return key;
+        var name = NameForm(book);
+        return All.FirstOrDefault(b => NameForm(b.DisplayName) == name)?.Key;
+    }
+
+    private static string NameForm(string name) =>
+        string.Concat(System.Text.RegularExpressions.Regex.Matches(name.ToLowerInvariant(), "[a-z]+")
+            .Select(m => m.Value.TrimEnd('s')));
+
     /// <summary>Maps stable source keys to their display names for citation/presentation. An unknown
     /// key passes through unchanged (defensive — a scoped key should always be a catalog member).</summary>
     public static IReadOnlyList<string> ToDisplayNames(IEnumerable<string> keys) =>
