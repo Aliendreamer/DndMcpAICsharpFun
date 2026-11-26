@@ -3,6 +3,7 @@ using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain;
 using DndMcpAICsharpFun.Domain.Entities;
+using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
 
@@ -54,7 +55,8 @@ public sealed class DndMcpTools(
     [McpServerTool, Description(
         "Search structured D&D entities: spells, monsters, classes, subclasses, items, feats, races, and more. " +
         "Use for stat lookups, finding entities by type, or filtering by CR, spell level, or keywords. " +
-        "The first results carry their text; a text ending in … is cut — get_entity returns it whole.")]
+        "The first results carry their text; a text ending in … is cut — get_entity returns it whole. " +
+        "A long text may list its numbered parts; get_entity with that part number returns the part.")]
     public async Task<string> search_entities(
         [Description("Search text — entity name or description")] string query,
         [Description("Entity type: Spell, Monster, Class, Subclass, Race, Subrace, Background, Feat, " +
@@ -112,6 +114,7 @@ public sealed class DndMcpTools(
             page = BookCatalog.PrintedPage(r.SourceBook, r.Page),
             edition = r.Edition,
             text = r.Snippet,
+            parts = r.Parts,
             score = r.Score
         }), _json);
 
@@ -180,6 +183,7 @@ public sealed class DndMcpTools(
         "'tce.subclass.circle-of-spores'). Use after search_entities to get full details.")]
     public async Task<string> get_entity(
         [Description("Canonical entity ID from a previous search_entities result")] string id,
+        [Description("Only this numbered part of a long text, from the result's parts list")] int? part = null,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(id))
@@ -190,6 +194,21 @@ public sealed class DndMcpTools(
             return $"Entity not found: {id}";
 
         var e = result.Envelope;
+        if (part is { } n)
+        {
+            var text = EntityTextPieces.Part(e.CanonicalText, n);
+            if (text is not null)
+                return JsonSerializer.Serialize(new
+                {
+                    id = e.Id,
+                    name = e.Name,
+                    sourceBook = e.SourceBook,
+                    book = BookCatalog.Title(e.SourceBook),
+                    page = BookCatalog.PrintedPage(e.SourceBook, e.Page),
+                    part = n,
+                    canonicalText = text,
+                }, _json);
+        }
         return JsonSerializer.Serialize(new
         {
             id = e.Id,

@@ -8,7 +8,7 @@ public sealed record TextPiece(int Start, string Text);
 /// <summary>
 /// Cuts an entity's text into pieces the embedding model (512 tokens) and the reranker can read whole.
 /// </summary>
-public static class EntityTextPieces
+public static partial class EntityTextPieces
 {
     public const int MaxChars = 1500;
     private const int OverlapChars = 150;
@@ -58,6 +58,43 @@ public static class EntityTextPieces
         if (text.Length <= maxChars) return text;
         var start = Math.Clamp(piece.Start - (maxChars - piece.Text.Length) / 2, 0, text.Length - maxChars);
         return (start > 0 ? "…" : "") + text.Substring(start, maxChars) + (start + maxChars < text.Length ? "…" : "");
+    }
+
+
+    /// <summary>One line per piece of <paramref name="text"/>, numbered from 1: the headings that start in it,
+    /// else its opening words. Lets the model choose the part it needs.</summary>
+    public static IReadOnlyList<string> Outline(string text) =>
+        [.. Split(text).Select((p, i) =>
+        {
+            var heads = HeadingMatches(p.Text).Select(m => Tidy(m.Value)).Distinct().Take(MaxHeadings).ToList();
+            var label = heads.Count > 0 ? string.Join(", ", heads) : Opening(p.Text);
+            return $"{i + 1}: {label}";
+        })];
+
+    /// <summary>Piece <paramref name="number"/> (from 1) of <paramref name="text"/>, or null when there is none.</summary>
+    public static string? Part(string text, int number)
+    {
+        var pieces = Split(text);
+        return number >= 1 && number <= pieces.Count ? pieces[number - 1].Text : null;
+    }
+
+    private const int MaxHeadings = 8;
+
+    // A short line that names a section: capitalised, at most five words, no closing full stop.
+    [System.Text.RegularExpressions.GeneratedRegex(@"(?m)^[A-Z][A-Za-z'’ -]{2,40}$")]
+    private static partial System.Text.RegularExpressions.Regex HeadingLine();
+
+    private static IEnumerable<System.Text.RegularExpressions.Match> HeadingMatches(string s) =>
+        HeadingLine().Matches(s).Where(m => m.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 5);
+
+    // OCR mixes case inside words ("TwInned SPEll"): title-case the heading.
+    private static string Tidy(string heading) =>
+        System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(heading.Trim().ToLowerInvariant());
+
+    private static string Opening(string text)
+    {
+        var words = text.Split((char[]?)null, 7, StringSplitOptions.RemoveEmptyEntries).Take(6);
+        return string.Join(' ', words) + " …";
     }
 
 

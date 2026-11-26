@@ -14,7 +14,9 @@ public sealed record EntitySearchResult(
     float Score,
     // Authority label (extraction-authority-ladder T3): canon / canon-unindexed /
     // verified-thirdparty / homebrew. Surfaced so consumers can down-weight or filter on provenance.
-    string Authority = "");
+    string Authority = "",
+    // ModelPicks: the parts of a long text, numbered from 1, each named by its headings.
+    IReadOnlyList<string>? Parts = null);
 
 public sealed record EntityDiagnosticResult(
     string Id,

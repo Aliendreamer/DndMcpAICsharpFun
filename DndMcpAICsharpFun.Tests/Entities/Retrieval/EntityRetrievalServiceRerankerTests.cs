@@ -2,6 +2,7 @@ using System.Text.Json;
 
 using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.Embedding;
+using DndMcpAICsharpFun.Features.Entities.CanonicalText;
 using DndMcpAICsharpFun.Features.Retrieval;
 using DndMcpAICsharpFun.Features.Retrieval.Entities;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
@@ -37,7 +38,8 @@ public sealed class EntityRetrievalServiceRerankerTests
         bool rerankEntities = true,
         int candidatePoolSize = 20,
         int maxTopK = 50,
-        SpellClassIndex? spellClassIndex = null)
+        SpellClassIndex? spellClassIndex = null,
+        EntityTextMode entityText = EntityTextMode.Pieces)
     {
         var rerankOpts = new RerankerOptions
         {
@@ -49,7 +51,7 @@ public sealed class EntityRetrievalServiceRerankerTests
         return new EntityRetrievalService(
             MakeEmbedding(),
             store,
-            Options.Create(new RetrievalOptions { MaxTopK = maxTopK }),
+            Options.Create(new RetrievalOptions { MaxTopK = maxTopK, EntityText = entityText }),
             rerankSvc,
             Options.Create(rerankOpts),
             spellClassIndex ?? new SpellClassIndex("__no_5etools_dir__"));
@@ -99,8 +101,12 @@ public sealed class EntityRetrievalServiceRerankerTests
     private static EntitySearchHit Named(string name, string text, EntityType type = EntityType.Monster) =>
         new(MakeEnvelope(name, text) with { Type = type }, 0.5f, name + "-point");
 
+    private static Task<IList<EntitySearchResult>> SearchInOrder(
+        string query, int topK, bool rerank, params EntitySearchHit[] hits) =>
+        SearchInOrder(EntityTextMode.Pieces, query, topK, rerank, hits);
+
     private static async Task<IList<EntitySearchResult>> SearchInOrder(
-        string query, int topK, bool rerank, params EntitySearchHit[] hits)
+        EntityTextMode entityText, string query, int topK, bool rerank, params EntitySearchHit[] hits)
     {
         var store = Substitute.For<IEntityVectorStore>();
         store.SearchAsync(Arg.Any<float[]>(), Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
@@ -111,7 +117,7 @@ public sealed class EntityRetrievalServiceRerankerTests
         reranker.RerankAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(ci => Task.FromResult(ci.Arg<IReadOnlyList<string>>()
                 .Select((p, i) => -i + (p.Contains("NEEDLE", StringComparison.Ordinal) ? 100f : 0f)).ToArray()));
-        var sut = BuildSut(store, reranker, rerankEntities: rerank);
+        var sut = BuildSut(store, reranker, rerankEntities: rerank, entityText: entityText);
         return await sut.SearchAsync(
             new EntitySearchQuery(query, null, null, null, null, null, null, null, null, null, null, TopK: topK),
             CancellationToken.None);
@@ -161,6 +167,36 @@ public sealed class EntityRetrievalServiceRerankerTests
         results[3].Snippet.Length.Should().Be(241);
     }
 
+
+    [Fact]
+    public async Task Whole_mode_gives_the_named_result_its_whole_text_when_it_fits()
+    {
+        var fits = string.Concat(Enumerable.Repeat("Some words of the book. ", 200));   // 4800 chars
+        var tooLong = string.Concat(Enumerable.Repeat("Some words of the book. ", 400)); // 9600 chars
+        var results = await SearchInOrder(EntityTextMode.Whole, "what does Wish do", 3, true,
+            Named("Wish", fits), Named("B", fits));
+        results[0].Snippet.Should().Be(fits);
+        results[1].Snippet.Length.Should().BeLessThan(1600);   // not named: pieces, as before
+
+        var cut = await SearchInOrder(EntityTextMode.Whole, "what does Wish do", 3, true, Named("Wish", tooLong));
+        cut[0].Snippet.Length.Should().BeInRange(3000, 3002);
+    }
+
+    [Fact]
+    public async Task ModelPicks_lists_the_parts_of_a_long_text_and_only_there()
+    {
+        var text = "Wish\n" + string.Concat(Enumerable.Repeat("Some words of the book. ", 150))
+            + "\nTwInned SPEll\n" + string.Concat(Enumerable.Repeat("Some words of the book. ", 150));
+        var results = await SearchInOrder(EntityTextMode.ModelPicks, "what does Wish do", 3, true,
+            Named("Wish", text), Named("B", "short"));
+        results[0].Parts.Should().NotBeNull();
+        results[0].Parts!.Should().HaveCount(EntityTextPieces.Split(text).Count);
+        results[0].Parts!.Should().Contain(p => p.Contains("Twinned Spell"));
+        results[1].Parts.Should().BeNull();
+
+        var pieces = await SearchInOrder("what does Wish do", 3, true, Named("Wish", text));
+        pieces[0].Parts.Should().BeNull();
+    }
 
     [Fact]
     public async Task The_top_result_carries_the_widest_text_even_when_unnamed()

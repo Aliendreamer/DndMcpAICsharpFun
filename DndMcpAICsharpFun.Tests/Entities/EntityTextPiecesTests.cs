@@ -112,4 +112,27 @@ public sealed class EntityTextPiecesTests
         window.Length.Should().BeLessThanOrEqualTo(3002);
         window.Should().StartWith("…").And.EndWith("…");
     }
+
+    [Fact]
+    public void Outline_names_each_part_by_its_headings_and_Part_returns_it()
+    {
+        var body = string.Concat(Enumerable.Repeat("Some words of the book. ", 80));
+        var text = "SORCERER\n" + body + "\nMETAMAGIC\n" + body + "\nQuickened SPell\n" + body + "\nTwInned SPEll\n" + body;
+        var outline = EntityTextPieces.Outline(text);
+        var pieces = EntityTextPieces.Split(text);
+
+        outline.Should().HaveCount(pieces.Count);
+        outline[0].Should().StartWith("1: Sorcerer");
+        var twin = outline.Single(l => l.Contains("Twinned Spell"));
+        var n = int.Parse(twin.Split(':')[0]);
+        EntityTextPieces.Part(text, n).Should().Contain("TwInned SPEll");
+        EntityTextPieces.Part(text, 0).Should().BeNull();
+        EntityTextPieces.Part(text, pieces.Count + 1).Should().BeNull();
+    }
+
+    [Fact]
+    public void Outline_uses_the_opening_words_when_a_part_has_no_heading()
+    {
+        EntityTextPieces.Outline("no heading here at all, just words.").Should().Equal("1: no heading here at all, just …");
+    }
 }

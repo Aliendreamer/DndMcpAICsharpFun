@@ -34,6 +34,10 @@ services:
       # ms-marco-MiniLM-L-6-v2/ layout below) so it never collides with the aidoctor
       # stack's multilingual-e5-large/ model in the same volume.
       - Reranker__ModelPath=models/ms-marco-MiniLM-L-6-v2
+      # How much of a long entity a search shows: Pieces (app picks), Whole (whole text up to
+      # Retrieval__EntityWholeMaxChars; raise with a bigger model context), ModelPicks (parts list + get_entity part).
+      - Retrieval__EntityText=${ENTITY_TEXT:-Pieces}
+      - Retrieval__EntityWholeMaxChars=${ENTITY_WHOLE_MAX_CHARS:-6000}
     volumes:
       - ./books:/books
       - dp_keys:/dp-keys

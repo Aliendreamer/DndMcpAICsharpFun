@@ -34,14 +34,19 @@ public sealed partial class EntityRetrievalService(
         return hits.Select((h, i) =>
         {
             var e = h.Hit.Envelope;
+            var budget = h.Named || i == 0 ? NamedChars : WideChars;
+            var whole = _retrieval.EntityText == EntityTextMode.Whole && budget == NamedChars
+                && e.CanonicalText.Length <= _retrieval.EntityWholeMaxChars;
+            var text = i >= WideResults ? Truncate(e.CanonicalText, SnippetChars)
+                : whole ? e.CanonicalText
+                : EntityTextPieces.Matching(e.CanonicalText, e.Notes, h.Hit.PieceVectors, h.Question, budget, h.Best);
+            var parts = _retrieval.EntityText == EntityTextMode.ModelPicks && i < WideResults
+                && e.CanonicalText.Length > budget
+                ? EntityTextPieces.Outline(e.CanonicalText)
+                : null;
             return new EntitySearchResult(
                 e.Id, e.Type, e.Name, e.SourceBook, e.Edition, e.Page, e.SettingTags,
-                i >= WideResults
-                    ? Truncate(e.CanonicalText, SnippetChars)
-                    : EntityTextPieces.Matching(e.CanonicalText, e.Notes, h.Hit.PieceVectors, h.Question,
-                        h.Named || i == 0 ? NamedChars : WideChars, h.Best),
-                h.Hit.Score,
-                Authority: e.Authority);
+                text, h.Hit.Score, Authority: e.Authority, Parts: parts);
         }).ToList();
     }
 
