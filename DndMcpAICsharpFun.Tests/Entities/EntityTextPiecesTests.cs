@@ -131,6 +131,16 @@ public sealed class EntityTextPiecesTests
     }
 
     [Fact]
+    public void Outline_finds_features_and_options_in_the_stored_paragraph_form()
+    {
+        var body = string.Concat(Enumerable.Repeat("Some words of the book. ", 15));
+        var text = "Metamagic. At 3rd level, you gain options. " + body
+            + "Distant Spell When you cast a spell, you can double its range. " + body
+            + "TwInned SPEll When you cast a spell that targets one creature, you can target a second.";
+        EntityTextPieces.Outline(text).Should().Equal("1: Metamagic, Distant Spell, Twinned Spell");
+    }
+
+    [Fact]
     public void Outline_uses_the_opening_words_when_a_part_has_no_heading()
     {
         EntityTextPieces.Outline("no heading here at all, just words.").Should().Equal("1: no heading here at all, just …");

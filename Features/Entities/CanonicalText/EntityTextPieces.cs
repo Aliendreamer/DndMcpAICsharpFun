@@ -63,13 +63,18 @@ public static partial class EntityTextPieces
 
     /// <summary>One line per piece of <paramref name="text"/>, numbered from 1: the headings that start in it,
     /// else its opening words. Lets the model choose the part it needs.</summary>
-    public static IReadOnlyList<string> Outline(string text) =>
-        [.. Split(text).Select((p, i) =>
+    public static IReadOnlyList<string> Outline(string text)
+    {
+        // Matched over the whole text, so a piece that starts mid-sentence does not look like a line start.
+        var names = HeadingMatches(text).Select(m => (m.Groups["h"].Index, Name: Tidy(m.Groups["h"].Value))).ToList();
+        return [.. Split(text).Select((p, i) =>
         {
-            var heads = HeadingMatches(p.Text).Select(m => Tidy(m.Value)).Distinct().Take(MaxHeadings).ToList();
+            var heads = names.Where(n => n.Index >= p.Start && n.Index < p.Start + p.Text.Length)
+                .Select(n => n.Name).Distinct().Take(MaxHeadings).ToList();
             var label = heads.Count > 0 ? string.Join(", ", heads) : Opening(p.Text);
             return $"{i + 1}: {label}";
         })];
+    }
 
     /// <summary>Piece <paramref name="number"/> (from 1) of <paramref name="text"/>, or null when there is none.</summary>
     public static string? Part(string text, int number)
@@ -80,12 +85,16 @@ public static partial class EntityTextPieces
 
     private const int MaxHeadings = 8;
 
-    // A short line that names a section: capitalised, at most five words, no closing full stop.
-    [System.Text.RegularExpressions.GeneratedRegex(@"(?m)^[A-Z][A-Za-z'’ -]{2,40}$")]
-    private static partial System.Text.RegularExpressions.Regex HeadingLine();
+    // What names a section in a stored text: a short capitalised line ("METAMAGIC"), a feature that opens a line
+    // ("Font of Magic. You tap…"), or a title-cased option inside a paragraph ("…noted. Distant Spell When you…").
+    [System.Text.RegularExpressions.GeneratedRegex(
+        @"(?m)^(?<h>[A-Z][A-Za-z'’ -]{2,40})$" +
+        @"|^(?<h>[A-Z][A-Za-z'’-]*(?: [A-Za-z'’-]+){0,4})\. " +
+        @"|(?<=[.:] )(?<h>[A-Z][A-Za-z'’-]+(?: [A-Z][A-Za-z'’-]+){0,3}) (?=(?:When|You|If|As|While|Whenever) )")]
+    private static partial System.Text.RegularExpressions.Regex SectionName();
 
     private static IEnumerable<System.Text.RegularExpressions.Match> HeadingMatches(string s) =>
-        HeadingLine().Matches(s).Where(m => m.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 5);
+        SectionName().Matches(s).Where(m => m.Groups["h"].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 5);
 
     // OCR mixes case inside words ("TwInned SPEll"): title-case the heading.
     private static string Tidy(string heading) =>
