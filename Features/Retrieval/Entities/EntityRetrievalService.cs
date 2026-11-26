@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace DndMcpAICsharpFun.Features.Retrieval.Entities;
 
-public sealed class EntityRetrievalService(
+public sealed partial class EntityRetrievalService(
     IEmbeddingService embeddings,
     IEntityVectorStore store,
     IOptions<RetrievalOptions> retrievalOptions,
@@ -38,7 +38,8 @@ public sealed class EntityRetrievalService(
                 e.Id, e.Type, e.Name, e.SourceBook, e.Edition, e.Page, e.SettingTags,
                 i >= WideResults
                     ? Truncate(e.CanonicalText, SnippetChars)
-                    : EntityTextPieces.Window(e.CanonicalText, h.Best, h.Named || i == 0 ? NamedChars : WideChars),
+                    : EntityTextPieces.Window(e.CanonicalText, EntityTextPieces.MostAsked(e.CanonicalText, h.Best, q.QueryText),
+                        h.Named || i == 0 ? NamedChars : WideChars),
                 h.Hit.Score,
                 Authority: e.Authority);
         }).ToList();
@@ -187,13 +188,36 @@ public sealed class EntityRetrievalService(
         }
 
         return ranked
-            .Select(r => new RankedHit(r.Hit, r.Best, IsNamedIn(q.QueryText, r.Hit.Envelope)))
-            .OrderByDescending(r => r.Named ? r.Hit.Envelope.Name.Length : 0)
+            .Select(r =>
+            {
+                // The entity's own name outranks one of its features ("Devour Intellect" names the Intellect Devourer).
+                var rank = IsNamedIn(q.QueryText, r.Hit.Envelope) ? 1000 + r.Hit.Envelope.Name.Length
+                    : NamedFeatureLength(q.QueryText, r.Hit.Envelope);
+                return new RankedHit(r.Hit, r.Best, rank > 0, rank);
+            })
+            .OrderByDescending(r => r.NameRank)
             .Take(topK)
             .ToList();
     }
 
-    private sealed record RankedHit(EntitySearchHit Hit, TextPiece Best, bool Named);
+    private sealed record RankedHit(EntitySearchHit Hit, TextPiece Best, bool Named, int NameRank);
+
+    // A feature line of a stat block or class: "Devour Intellect. The intellect devourer targets…"
+    [GeneratedRegex(@"^([A-Z][\p{L}'’-]*(?: [\p{L}'’-]+){1,4})(?: \([^)\n]*\))?\. ", RegexOptions.Multiline)]
+    private static partial Regex FeatureLine();
+
+    /// <summary>The length of the longest feature of at least two words that the query names, else 0.</summary>
+    private static int NamedFeatureLength(string query, EntityEnvelope entity)
+    {
+        if (entity.Type is EntityType.Rule or EntityType.Lore) return 0;
+        var text = query.Replace('’', '\'');
+        return FeatureLine().Matches(entity.CanonicalText)
+            .Select(m => m.Groups[1].Value.Replace('’', '\''))
+            .Where(f => Regex.IsMatch(text, $@"(?<!\w){Regex.Escape(f)}(?!\w)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            .Select(f => f.Length)
+            .DefaultIfEmpty(0)
+            .Max();
+    }
 
     /// <summary>
     /// Whether the query names the entity, as whole words. Questions hold words that are also names of rules and lore

@@ -175,6 +175,32 @@ public sealed class EntityRetrievalServiceRerankerTests
         results[1].Snippet.Length.Should().BeInRange(1400, 1502);
     }
 
+
+    [Fact]
+    public async Task A_named_feature_puts_its_monster_first_with_the_feature_in_view()
+    {
+        var filler = string.Concat(Enumerable.Repeat("The devourer lurks in skulls. ", 70));
+        var devourer = filler + "\nDevour Intellect. The target must succeed on a DC 12 Intelligence saving throw; roll 3d6.\n" + filler;
+
+        var results = await SearchInOrder("After a failed save against Devour Intellect, which dice are rolled?", 3, true,
+            Named("Death Saving Throws", "Roll a d20.", EntityType.Rule), Named("Lucky", "Reroll a d20.", EntityType.Feat),
+            Named("Intellect Devourer", devourer));
+
+        results[0].Name.Should().Be("Intellect Devourer");
+        results[0].Snippet.Should().Contain("roll 3d6");
+    }
+
+    [Theory]
+    [InlineData("how do claws work")]
+    [InlineData("tell me about the devour")]
+    public async Task A_one_word_feature_or_part_of_one_names_nothing(string query)
+    {
+        var results = await SearchInOrder(query, 2, true,
+            Named("A", "Some text."), Named("Intellect Devourer", "Claws. Melee.\nDevour Intellect. Roll 3d6."));
+
+        results[0].Name.Should().Be("A");
+    }
+
     [Fact]
     public async Task Long_text_is_cut_around_the_best_piece()
     {

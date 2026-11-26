@@ -52,6 +52,40 @@ public sealed class EntityTextPiecesTests
         EntityTextPieces.Window("short", new TextPiece(0, "short"), 3000).Should().Be("short");
     }
 
+
+    private static readonly string Filler = string.Concat(Enumerable.Repeat("Barbarians rage in battle and rest. ", 60));
+
+    [Fact]
+    public void The_piece_holding_more_of_the_question_words_is_asked_for()
+    {
+        // A class table: the reranker liked the rage prose, the question asks for the 17th row.
+        var text = Filler + "Level Rages Rage Damage 17th +6 Brutal Critical 6 +4. " + Filler;
+        var pieces = EntityTextPieces.Split(text);
+
+        var asked = EntityTextPieces.MostAsked(text, pieces[0], "How many rages does a 17th-level barbarian have?");
+
+        asked.Text.Should().Contain("17th +6");
+    }
+
+    [Fact]
+    public void A_tie_keeps_the_rerankers_piece()
+    {
+        var text = Filler + Filler;
+        var pieces = EntityTextPieces.Split(text);
+
+        EntityTextPieces.MostAsked(text, pieces[1], "barbarians rage").Should().Be(pieces[1]);
+    }
+
+    [Theory]
+    [InlineData("Quickened Spell. When you cast", "What does it cost to quicken a spell?")]
+    [InlineData("TwInned SPEll. When you cast", "how do I twin a spell")]
+    public void Word_starts_match_case_and_endings(string section, string question)
+    {
+        var text = Filler + section + " a spell, spend points. " + Filler;
+
+        EntityTextPieces.MostAsked(text, EntityTextPieces.Split(text)[0], question).Text.Should().Contain(section);
+    }
+
     [Fact]
     public void Window_contains_the_best_piece_and_respects_the_limit()
     {
