@@ -184,6 +184,7 @@ internal static class ServiceCollectionExtensions
             new DndMcpAICsharpFun.Features.Retrieval.Entities.SpellClassIndex(
                 sp.GetRequiredService<IConfiguration>()["EntityExtraction:FivetoolsDataDirectory"] ?? "5etools"));
         services.AddSingleton<DndMcpAICsharpFun.Features.Retrieval.Entities.NamedEntityLookup>();
+        services.AddSingleton<DndMcpAICsharpFun.Features.Retrieval.Entities.ClassTables>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.IEntityRetrievalService, DndMcpAICsharpFun.Features.Retrieval.Entities.EntityRetrievalService>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup.IBookTypeLookup, DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup.BookTypeLookup>();
         services.AddScoped<DndMcpAICsharpFun.Features.Retrieval.Entities.Dedup.EntityDuplicateService>();

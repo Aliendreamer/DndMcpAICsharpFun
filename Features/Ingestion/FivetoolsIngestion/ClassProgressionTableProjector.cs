@@ -32,7 +32,56 @@ public static class ClassProgressionTableProjector
         return new CanonicalTable(EntityIdSlug.Table(bookKey, name), name, columns, rows);
     }
 
-    private readonly record struct GroupCol(string Label, Func<int, string> Value);
+    private readonly record struct GroupCol(string Label, Func<int, string> Value, bool SpellSlot);
+
+    /// <summary>
+    /// One line per level with every value named ("Level 17: proficiency bonus +6; features: Brutal Critical;
+    /// Rages 6; Rage Damage +4"). A row of bare numbers under headers far above it is unreadable for a small model.
+    /// </summary>
+    public static IReadOnlyList<string> LevelLines(JsonElement classEntry)
+    {
+        var featuresByLevel = FeaturesByLevel(classEntry);
+        var groupCols = GroupColumns(classEntry);
+        var lines = new List<string>(20);
+        for (var level = 1; level <= 20; level++)
+        {
+            var parts = new List<string> { $"proficiency bonus +{2 + (level - 1) / 4}" };
+            if (featuresByLevel.TryGetValue(level, out var f)) parts.Add("features: " + string.Join(", ", f));
+            foreach (var g in groupCols.Where(g => !g.SpellSlot))
+                if (g.Value(level) is { Length: > 0 } v) parts.Add($"{g.Label} {v}");
+            var slots = groupCols.Where(g => g.SpellSlot)
+                .Select(g => (g.Label, Value: g.Value(level))).Where(s => s.Value.Length > 0)
+                .Select(s => $"{s.Label}-level {s.Value}").ToList();
+            if (slots.Count > 0) parts.Add("spell slots: " + string.Join(", ", slots));
+            lines.Add($"Level {level}: {string.Join("; ", parts)}");
+        }
+        return lines;
+    }
+
+    // 5etools cells: numbers (0 = none), strings with markup, or typed objects for bonuses, speeds and dice.
+    private static string Cell(JsonElement v)
+    {
+        switch (v.ValueKind)
+        {
+            case JsonValueKind.Number:
+                var n = v.GetInt32();
+                return n == 0 ? "" : n.ToString();
+            case JsonValueKind.String:
+                return FivetoolsJson.StripMarkup(v.GetString()!);
+            case JsonValueKind.Object when v.TryGetProperty("type", out var type):
+                var value = v.TryGetProperty("value", out var val) && val.ValueKind == JsonValueKind.Number ? val.GetInt32() : 0;
+                switch (type.GetString())
+                {
+                    case "bonus": return $"+{value}";
+                    case "bonusSpeed": return value == 0 ? "" : $"+{value} ft.";
+                    case "dice" when v.TryGetProperty("toRoll", out var roll) && roll.ValueKind == JsonValueKind.Array:
+                        return string.Join(" + ", roll.EnumerateArray().Select(d =>
+                            $"{d.GetProperty("number").GetInt32()}d{d.GetProperty("faces").GetInt32()}"));
+                }
+                break;
+        }
+        return v.ToString();
+    }
 
     private static List<GroupCol> GroupColumns(JsonElement classEntry)
     {
@@ -57,10 +106,9 @@ public static class ClassProgressionTableProjector
                     if (idx < 0 || idx >= d.GetArrayLength()) return "";
                     var row = d[idx];
                     if (row.ValueKind != JsonValueKind.Array || c >= row.GetArrayLength()) return "";
-                    var v = row[c];
-                    if (v.ValueKind == JsonValueKind.Number) { var n = v.GetInt32(); return n == 0 ? "" : n.ToString(); }
-                    return v.ValueKind == JsonValueKind.String ? FivetoolsJson.StripMarkup(v.GetString()!) : v.ToString();
-                }));
+                    return Cell(row[c]);
+                }, g.TryGetProperty("title", out var t) && t.GetString() is { } title
+                    && title.Contains("Spell Slots", StringComparison.OrdinalIgnoreCase)));
             }
         }
         return cols;

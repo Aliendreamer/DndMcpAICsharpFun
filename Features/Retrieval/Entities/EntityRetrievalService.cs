@@ -18,7 +18,8 @@ public sealed partial class EntityRetrievalService(
     RerankingService rerankingService,
     IOptions<RerankerOptions> rerankerOptions,
     SpellClassIndex spellClassIndex,
-    NamedEntityLookup? nameIndex = null) : IEntityRetrievalService
+    NamedEntityLookup? nameIndex = null,
+    ClassTables? classTables = null) : IEntityRetrievalService
 {
     private readonly RetrievalOptions _retrieval = retrievalOptions.Value;
     private readonly RerankerOptions _rerankerOpts = rerankerOptions.Value;
@@ -26,7 +27,8 @@ public sealed partial class EntityRetrievalService(
     public async Task<EntityFullResult?> GetByIdAsync(string id, CancellationToken ct)
     {
         var envelope = await store.GetByIdAsync(id, ct);
-        return envelope is null ? null : new EntityFullResult(envelope);
+        return envelope is null ? null
+            : new EntityFullResult(envelope with { CanonicalText = Relabel(envelope, envelope.CanonicalText) });
     }
 
     public async Task<IList<EntitySearchResult>> SearchAsync(EntitySearchQuery q, CancellationToken ct)
@@ -47,9 +49,11 @@ public sealed partial class EntityRetrievalService(
                 : null;
             return new EntitySearchResult(
                 e.Id, e.Type, e.Name, e.SourceBook, e.Edition, e.Page, e.SettingTags,
-                text, h.Hit.Score, Authority: e.Authority, Parts: parts);
+                Relabel(e, text), h.Hit.Score, Authority: e.Authority, Parts: parts);
         }).ToList();
     }
+
+    private string Relabel(EntityEnvelope e, string text) => classTables?.Relabel(e, text) ?? text;
 
     // The first results carry enough text to answer from: the chat model almost never asks for the rest of a cut
     // text, and fills the gap from memory. Bounded, because two searches share the chat's 8k context.

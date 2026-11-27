@@ -27,7 +27,8 @@ public sealed class FusedRetrievalService(
     IOptions<RetrievalOptions> retrievalOptions,
     IOptions<RerankerOptions> rerankerOptions,
     QdrantSparseState sparseState,
-    IBookTypeLookup bookTypeLookup) : IFusedRetrievalService
+    IBookTypeLookup bookTypeLookup,
+    DndMcpAICsharpFun.Features.Retrieval.Entities.ClassTables? classTables = null) : IFusedRetrievalService
 {
     private readonly QdrantOptions _qdrant = qdrantOptions.Value;
     private readonly RetrievalOptions _retrieval = retrievalOptions.Value;
@@ -135,7 +136,7 @@ public sealed class FusedRetrievalService(
             Source: "entity",
             Id: h.Envelope.Id,
             Title: h.Envelope.Name,
-            Text: h.Envelope.CanonicalText,
+            Text: classTables?.Relabel(h.Envelope, h.Envelope.CanonicalText) ?? h.Envelope.CanonicalText,
             Score: h.Score,
             SourceBook: h.Envelope.SourceBook,
             Page: h.Envelope.Page)).ToList();
