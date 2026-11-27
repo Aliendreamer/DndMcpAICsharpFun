@@ -7,6 +7,7 @@
 #   Tools/ModelEval/run-full.sh --set all                # both (100 questions; about 1 hour)
 # Any ModelEval option can be added. The admin key is read inside the app container and never leaves it.
 # The report lands in Tools/ModelEval/reports/. Exit: 0 OK, 2 a category regressed, 1 setup trouble.
+# The threshold is pinned per set in reports/<set>/baseline.txt (one report file name); move it to raise the bar.
 set -euo pipefail
 self=$(realpath "$0")
 cd "$(dirname "$self")/../.."
@@ -43,7 +44,13 @@ echo "Building the eval tool..."
 dotnet publish Tools/ModelEval -c Release -o "$out/bin" -v q --nologo >"$out/build.log" 2>&1 || { tail -20 "$out/build.log"; exit 1; }
 # A publish carries the decrypted settings along; the tool does not need them.
 rm -rf "$out/bin/Config"
-baseline=$(ls -1 "$reports"/*-full.json 2>/dev/null | tail -1 || true)
+# The threshold: the report named in <reports>/baseline.txt when there is one, else the newest report.
+if [ -f "$reports/baseline.txt" ]; then
+  baseline="$reports/$(tr -d '[:space:]' < "$reports/baseline.txt")"
+  [ -f "$baseline" ] || { echo "baseline.txt names a missing report: $baseline"; exit 1; }
+else
+  baseline=$(ls -1 "$reports"/*-full.json 2>/dev/null | tail -1 || true)
+fi
 docker exec "$app" mkdir -p "$remote/reports"
 docker cp -q "$out/bin" "$app:$remote/bin"
 docker cp -q "$cases" "$app:$remote/manual.json"
