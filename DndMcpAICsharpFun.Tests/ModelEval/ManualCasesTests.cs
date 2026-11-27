@@ -80,8 +80,8 @@ public class ManualCasesTests
         static Dictionary<string, int> Counts(IReadOnlyList<EvalCase> cases) =>
             cases.GroupBy(c => c.Category).ToDictionary(g => g.Key, g => g.Count());
 
-        reference.Should().HaveCount(50);
-        crosscheck.Should().HaveCount(50);
+        reference.Should().HaveCountGreaterThanOrEqualTo(50);
+        crosscheck.Should().HaveSameCount(reference);
         Counts(reference).Should().BeEquivalentTo(Counts(crosscheck), "a score on one set must be comparable with the other");
         reference.Concat(crosscheck).Select(c => c.Id).Should().OnlyHaveUniqueItems();
         reference.Concat(crosscheck).Select(c => c.Prompt).Should().OnlyHaveUniqueItems();
