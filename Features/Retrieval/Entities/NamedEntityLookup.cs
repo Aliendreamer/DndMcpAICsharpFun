@@ -39,7 +39,7 @@ public sealed partial class NamedEntityLookup
     private readonly SemaphoreSlim _gate = new(1, 1);
     private Snapshot? _snapshot;
 
-    private sealed record Entry(string Id, string Name, string Text, string SourceBook);
+    private sealed record Entry(string Id, string Name, string Text, string Raw, string SourceBook);
     private sealed record Snapshot(IReadOnlyList<Entry> Entries, ILookup<string, Entry> ByName, DateTimeOffset BuiltAt);
 
     /// <summary>The ids the query names, with the length of the naming phrase; a whole-name match first.</summary>
@@ -61,27 +61,20 @@ public sealed partial class NamedEntityLookup
             var inText = snap.Entries.Where(e => InBook(e) && e.Text.Contains(needle, StringComparison.Ordinal))
                 .Take(MaxTextMatches + 1).ToList();
             if (inText.Count > MaxTextMatches) continue;
-            // An entry that introduces the feature outranks one that only refers back to it ("your Flurry of Blows").
-            foreach (var e in inText) Keep(e.Id, phrase.Length + (Introduces(e.Text, needle) ? 1 : 0));
+            // The entry that heads the feature outranks those that only mention it ("your Flurry of Blows").
+            var heading = Heading(phrase);
+            foreach (var e in inText) Keep(e.Id, phrase.Length + (heading.IsMatch(e.Raw) ? 1 : 0));
         }
         void Keep(string id, int rank) => found[id] = Math.Max(found.GetValueOrDefault(id), rank);
         return [.. found.OrderByDescending(kv => kv.Value).Select(kv => (kv.Key, kv.Value))];
     }
 
-    private static readonly HashSet<string> ReferenceWords =
-        new(["your", "use", "uses", "using", "the", "with", "of", "its", "their", "his", "her"], StringComparer.Ordinal);
-
-    // Some mention of the phrase not preceded by a word that points back to it.
-    private static bool Introduces(string text, string needle)
+    // The phrase as a heading: opening a line before "." or ":", or run into the next sentence's capital
+    // ("…modifier Flurry of Blows Immediately after…", where the line break was lost).
+    private static Regex Heading(string phrase)
     {
-        for (var at = text.IndexOf(needle, StringComparison.Ordinal); at >= 0;
-             at = text.IndexOf(needle, at + 1, StringComparison.Ordinal))
-        {
-            if (at == 0) return true;
-            var start = text.LastIndexOf(' ', at - 1) + 1;
-            if (!ReferenceWords.Contains(text[start..at])) return true;
-        }
-        return false;
+        var words = string.Join(@"\s+", phrase.Split(' ').Select(Regex.Escape));
+        return new Regex($@"(?im:^{words}[.:]\s)|(?i:\b{words})(?-i: [A-Z][a-z])", RegexOptions.None, TimeSpan.FromSeconds(1));
     }
 
     /// <summary>Capitalised runs of two to five words ("Flurry of Blows", "Gloom Stalker's" → "Gloom Stalker").</summary>
@@ -113,7 +106,8 @@ public sealed partial class NamedEntityLookup
             if (_snapshot is { } s && DateTimeOffset.UtcNow - s.BuiltAt < MaxAge) return s;
             var all = await _scrollAll(ct);
             var entries = all.Select(h => new Entry(
-                h.Envelope.Id, Normal(h.Envelope.Name), " " + Normal(h.Envelope.CanonicalText) + " ", h.Envelope.SourceBook))
+                h.Envelope.Id, Normal(h.Envelope.Name), " " + Normal(h.Envelope.CanonicalText) + " ",
+                h.Envelope.CanonicalText, h.Envelope.SourceBook))
                 .ToList();
             _snapshot = new Snapshot(entries, entries.ToLookup(e => e.Name, StringComparer.Ordinal), DateTimeOffset.UtcNow);
             _logger.LogInformation("Named-entity lookup built: {Count} entities", entries.Count);
