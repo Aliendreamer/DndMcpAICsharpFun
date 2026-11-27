@@ -33,7 +33,20 @@ public class FullChainRunnerTests
 
         var d = report.Cases[0].RunDetails!;
         d[0].CalledTools.Should().Equal("get_entity");
+        d[0].Tools.Should().ContainSingle().Which.Name.Should().Be("get_entity");
         d[0].Text.Length.Should().Be(600);
+    }
+
+    [Fact]
+    public void A_tool_call_keeps_its_arguments_and_the_start_of_a_long_result()
+    {
+        var call = new ToolCallDto("search_entities", """{"query":"mystic arcanum"}""", new string('r', 9000), null, true);
+        var t = RunDetail.From(new TurnDto("qwen", "ok", new(), new() { call }, 10)).Tools!.Single();
+
+        t.Arguments.Should().Be("""{"query":"mystic arcanum"}""");
+        t.Result!.Length.Should().Be(ToolTrace.MaxResultLength);
+        t.ResultLength.Should().Be(9000);
+        t.ByApp.Should().BeTrue();
     }
 
     [Theory]

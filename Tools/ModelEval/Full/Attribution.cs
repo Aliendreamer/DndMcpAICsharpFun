@@ -7,17 +7,31 @@ internal sealed record RunScore(RunOutcome Outcome, string? Reason, long Latency
 
 /// <summary>What the model actually did in one run: tools it called and (truncated) reply text.</summary>
 /// <param name="AppSearched">The model called no tool; the chat searched for it and asked again.</param>
-internal sealed record RunDetail(IReadOnlyList<string> CalledTools, string Text, bool AppSearched = false)
+/// <param name="Tools">Each call's arguments and what it returned, so a miss can be traced to its search.</param>
+internal sealed record RunDetail(
+    IReadOnlyList<string> CalledTools, string Text, bool AppSearched = false, IReadOnlyList<ToolTrace>? Tools = null)
 {
     public const int MaxTextLength = 600;
 
     public static RunDetail From(TurnDto t) => new(
         t.ToolCalls.Select(tc => tc.Name).ToList(),
         t.Text.Length > MaxTextLength ? t.Text[..MaxTextLength] : t.Text,
-        t.ToolCalls.Any(tc => tc.ByApp));
+        t.ToolCalls.Any(tc => tc.ByApp),
+        t.ToolCalls.Select(ToolTrace.From).ToList());
 
     public static RunDetail Infra(string error) => new(
         [], error.Length > MaxTextLength ? error[..MaxTextLength] : error);
+}
+
+/// <param name="ResultLength">The whole result's length; Result keeps its first <see cref="MaxResultLength"/> characters.</param>
+internal sealed record ToolTrace(string Name, string Arguments, string? Result, int ResultLength, string? Error, bool ByApp)
+{
+    public const int MaxResultLength = 8000;
+
+    public static ToolTrace From(ToolCallDto tc) => new(
+        tc.Name, tc.ArgumentsJson,
+        tc.Result is { Length: > MaxResultLength } r ? r[..MaxResultLength] : tc.Result,
+        tc.Result?.Length ?? 0, tc.Error, tc.ByApp);
 }
 
 internal static class Attribution
