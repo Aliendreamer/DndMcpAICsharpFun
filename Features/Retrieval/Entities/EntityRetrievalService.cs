@@ -17,7 +17,8 @@ public sealed partial class EntityRetrievalService(
     IOptions<RetrievalOptions> retrievalOptions,
     RerankingService rerankingService,
     IOptions<RerankerOptions> rerankerOptions,
-    SpellClassIndex spellClassIndex) : IEntityRetrievalService
+    SpellClassIndex spellClassIndex,
+    NamedEntityLookup? nameIndex = null) : IEntityRetrievalService
 {
     private readonly RetrievalOptions _retrieval = retrievalOptions.Value;
     private readonly RerankerOptions _rerankerOpts = rerankerOptions.Value;
@@ -189,6 +190,16 @@ public sealed partial class EntityRetrievalService(
             var anyType = await store.SearchAsync(vector, filters with { Type = null }, poolSize, ct);
             pool = [.. pool, .. anyType.Where(h => !ofType.Contains(h.Envelope.Id))];
         }
+        // What the query names joins the pool even when the vectors missed it ("Flurry of Blows" -> the monk).
+        var named = nameIndex is null ? []
+            : await nameIndex.FindAsync(q.QueryText, filters.SourceBook, ct);
+        var namedRank = named.ToDictionary(n => n.Id, n => n.NameLength, StringComparer.Ordinal);
+        var missing = named.Select(n => n.Id).Where(id => pool.All(h => h.Envelope.Id != id)).ToList();
+        if (missing.Count > 0)
+        {
+            var found = await store.GetByIdsAsync(missing, ct);
+            pool = [.. pool, .. missing.Where(found.ContainsKey).Select(id => new EntitySearchHit(found[id], 0f, id))];
+        }
         if (shouldRerank)
         {
             // The whole pool is ranked: a named entity may stand below topK.
@@ -206,6 +217,7 @@ public sealed partial class EntityRetrievalService(
                 // The entity's own name outranks one of its features ("Devour Intellect" names the Intellect Devourer).
                 var rank = IsNamedIn(q.QueryText, r.Hit.Envelope) ? 1000 + r.Hit.Envelope.Name.Length
                     : NamedFeatureLength(q.QueryText, r.Hit.Envelope);
+                rank = Math.Max(rank, namedRank.GetValueOrDefault(r.Hit.Envelope.Id));
                 return new RankedHit(r.Hit, r.Best, rank > 0, rank, vector);
             })
             .Where(r => ofType is null || r.Named || ofType.Contains(r.Hit.Envelope.Id))
