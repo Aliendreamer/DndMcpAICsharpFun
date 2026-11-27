@@ -44,14 +44,34 @@ public sealed class NamedEntityLookupTests
     private static NamedEntityLookup Index(params EntitySearchHit[] hits) =>
         new(Store(hits), NullLogger<NamedEntityLookup>.Instance);
 
+    [Fact]
+    public void Printed_names_are_capitalised_runs_and_their_capitalised_parts()
+    {
+        NamedEntityLookup.PrintedNames("your Wisdom modifier Flurry of Blows Immediately after you attack")
+            .Should().Contain(["flurry of blows", "flurry of blows immediately", "blows immediately"])
+            .And.NotContain(["of blows", "flurry of"]);
+        NamedEntityLookup.PrintedNames("TwInned SPEll When you cast").Should().Contain("twinned spell");
+    }
+
     [Theory]
-    [InlineData("What does Flurry of Blows cost a monk?", "Flurry of Blows")]
-    [InlineData("What does Dread Ambusher add to a Gloom Stalker's initiative?", "Dread Ambusher|Gloom Stalker")]
-    [InlineData("Lore of the Raven Queen", "Lore of the Raven Queen")]
-    [InlineData("what does a monk get", "")]
-    [InlineData("Fireball damage", "")]                   // one capitalised word names nothing here
-    public void Phrases_are_capitalised_runs_of_two_or_more_words(string query, string expected) =>
-        NamedEntityLookup.Phrases(query).Should().BeEquivalentTo(expected.Split('|', StringSplitOptions.RemoveEmptyEntries));
+    [InlineData("What does Flurry of Blows cost a monk?")]
+    [InlineData("what does flurry of blows cost a monk?")]
+    [InlineData("WHAT DOES FLURRY OF BLOWS COST A MONK?")]
+    [InlineData("what does flurry-of-blows cost")]
+    public async Task The_question_finds_the_same_whatever_its_case_or_punctuation(string query)
+    {
+        var found = await Index(Corpus).FindAsync(query, null, CancellationToken.None);
+        found.Select(f => f.Id).Should().Equal("phb14.class.monk");
+    }
+
+    [Fact]
+    public async Task A_lowercase_question_finds_a_subclass_by_its_name()
+    {
+        var found = await Index(Corpus).FindAsync("what does dread ambusher add to a gloom stalker's initiative",
+            null, CancellationToken.None);
+        found[0].Id.Should().Be("xge.subclass.gloom-stalker");
+        found[0].NameLength.Should().BeGreaterThan(1000);
+    }
 
     [Fact]
     public async Task A_feature_named_in_the_query_finds_the_entity_whose_text_holds_it()

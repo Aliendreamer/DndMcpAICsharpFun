@@ -7,7 +7,9 @@ namespace DndMcpAICsharpFun.Features.Retrieval.Entities;
 /// <summary>
 /// Finds the entities a question names: by the entity's own name ("Gloom Stalker") or by a feature inside its text
 /// ("Flurry of Blows" in the monk). Vector search misses these when the rest of the question reads like something
-/// else; the found entities join the search's candidates. Built from the store on first use, rebuilt when stale.
+/// else; the found entities join the search's candidates. The books decide what is a name (a name, or a phrase
+/// printed capitalised); the question and the names compare in one normal form (lower case, single spaces), so
+/// "flurry of blows" and "Flurry of Blows" find the same. Built from the store on first use, rebuilt when stale.
 /// </summary>
 public sealed partial class NamedEntityLookup
 {
@@ -35,12 +37,14 @@ public sealed partial class NamedEntityLookup
     private static readonly TimeSpan MaxAge = TimeSpan.FromMinutes(30);
     // A phrase in more entities than this names nothing in particular.
     private const int MaxTextMatches = 6;
+    private const int MaxPhraseWords = 5;
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private Snapshot? _snapshot;
 
-    private sealed record Entry(string Id, string Name, string Text, string Raw, string SourceBook);
-    private sealed record Snapshot(IReadOnlyList<Entry> Entries, ILookup<string, Entry> ByName, DateTimeOffset BuiltAt);
+    private sealed record Entry(string Id, string Raw, string SourceBook);
+    private sealed record Snapshot(
+        ILookup<string, Entry> ByName, IReadOnlyDictionary<string, List<Entry>> ByPhrase, DateTimeOffset BuiltAt);
 
     /// <summary>The ids the query names, with the length of the naming phrase; a whole-name match first.</summary>
     public async Task<IReadOnlyList<(string Id, int NameLength)>> FindAsync(
@@ -52,20 +56,15 @@ public sealed partial class NamedEntityLookup
         bool InBook(Entry e) => sourceBook is null || string.Equals(e.SourceBook, sourceBook, StringComparison.OrdinalIgnoreCase);
 
         var found = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var phrase in phrases.OrderByDescending(p => p.Length))
+        void Keep(string id, int rank) => found[id] = Math.Max(found.GetValueOrDefault(id), rank);
+        foreach (var phrase in phrases)
         {
-            var byName = snap.ByName[Normal(phrase)].Where(InBook).ToList();
-            foreach (var e in byName) Keep(e.Id, 1000 + phrase.Length);
-            if (byName.Count > 0) continue;
-            var needle = " " + Normal(phrase) + " ";
-            var inText = snap.Entries.Where(e => InBook(e) && e.Text.Contains(needle, StringComparison.Ordinal))
-                .Take(MaxTextMatches + 1).ToList();
-            if (inText.Count > MaxTextMatches) continue;
+            foreach (var e in snap.ByName[phrase].Where(InBook)) Keep(e.Id, 1000 + phrase.Length);
+            if (!snap.ByPhrase.TryGetValue(phrase, out var holders) || holders.Count > MaxTextMatches) continue;
             // The entry that heads the feature outranks those that only mention it ("your Flurry of Blows").
             var heading = Heading(phrase);
-            foreach (var e in inText) Keep(e.Id, phrase.Length + (heading.IsMatch(e.Raw) ? 1 : 0));
+            foreach (var e in holders.Where(InBook)) Keep(e.Id, phrase.Length + (heading.IsMatch(e.Raw) ? 1 : 0));
         }
-        void Keep(string id, int rank) => found[id] = Math.Max(found.GetValueOrDefault(id), rank);
         return [.. found.OrderByDescending(kv => kv.Value).Select(kv => (kv.Key, kv.Value))];
     }
 
@@ -73,28 +72,46 @@ public sealed partial class NamedEntityLookup
     // ("…modifier Flurry of Blows Immediately after…", where the line break was lost).
     private static Regex Heading(string phrase)
     {
-        var words = string.Join(@"\s+", phrase.Split(' ').Select(Regex.Escape));
+        var words = string.Join(@"\W+", phrase.Split(' ').Select(Regex.Escape));
         return new Regex($@"(?im:^{words}[.:]\s)|(?i:\b{words})(?-i: [A-Z][a-z])", RegexOptions.None, TimeSpan.FromSeconds(1));
     }
 
-    /// <summary>Capitalised runs of two to five words ("Flurry of Blows", "Gloom Stalker's" → "Gloom Stalker").</summary>
-    internal static IReadOnlyList<string> Phrases(string query) =>
-        [.. CapitalisedRun().Matches(query)
-            .Select(m => TrailingSmallWords().Replace(m.Value.Replace("'s", "").Replace("’s", ""), ""))
-            .Where(p => p.Contains(' '))
-            .Distinct(StringComparer.OrdinalIgnoreCase)];
+    /// <summary>Every run of two to five words of the question, in normal form, longest first.</summary>
+    internal static IReadOnlyList<string> Phrases(string query)
+    {
+        var words = Normal(query).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var phrases = new List<string>();
+        for (var n = Math.Min(MaxPhraseWords, words.Length); n >= 2; n--)
+            for (var i = 0; i + n <= words.Length; i++)
+                phrases.Add(string.Join(' ', words, i, n));
+        return [.. phrases.Distinct(StringComparer.Ordinal)];
+    }
 
-    [GeneratedRegex(@"\b[A-Z][\p{L}'’-]*(?: (?:of|the|and|[A-Z][\p{L}'’-]*)){1,4}")]
+    /// <summary>The names a text prints: runs of capitalised words (with of/the/and between them), and every
+    /// part of a run that starts and ends on a capitalised word — "Flurry of Blows Immediately" holds "Flurry of Blows".</summary>
+    internal static IEnumerable<string> PrintedNames(string text)
+    {
+        foreach (Match run in CapitalisedRun().Matches(text))
+        {
+            var words = run.Value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            for (var i = 0; i < words.Length; i++)
+            {
+                if (!char.IsUpper(words[i][0])) continue;
+                for (var j = i + 1; j < Math.Min(words.Length, i + MaxPhraseWords); j++)
+                    if (char.IsUpper(words[j][0]))
+                        yield return Normal(string.Join(' ', words[i..(j + 1)]));
+            }
+        }
+    }
+
+    [GeneratedRegex(@"\b[A-Z][\p{L}'’-]*(?:[ \n]+(?:of|the|and|[A-Z][\p{L}'’-]*))+")]
     private static partial Regex CapitalisedRun();
-
-    [GeneratedRegex(@"(?: (?:of|the|and))+$")]
-    private static partial Regex TrailingSmallWords();
 
     [GeneratedRegex(@"[^\p{L}\p{N}]+")]
     private static partial Regex NonWord();
 
     // Lower case, every run of punctuation and space one space: "Ki-Empowered Strikes" and OCR line breaks compare.
-    private static string Normal(string s) => NonWord().Replace(s.ToLowerInvariant(), " ").Trim();
+    internal static string Normal(string s) => NonWord().Replace(s.ToLowerInvariant(), " ").Trim();
 
     private async Task<Snapshot> GetAsync(CancellationToken ct)
     {
@@ -105,12 +122,23 @@ public sealed partial class NamedEntityLookup
         {
             if (_snapshot is { } s && DateTimeOffset.UtcNow - s.BuiltAt < MaxAge) return s;
             var all = await _scrollAll(ct);
-            var entries = all.Select(h => new Entry(
-                h.Envelope.Id, Normal(h.Envelope.Name), " " + Normal(h.Envelope.CanonicalText) + " ",
-                h.Envelope.CanonicalText, h.Envelope.SourceBook))
-                .ToList();
-            _snapshot = new Snapshot(entries, entries.ToLookup(e => e.Name, StringComparer.Ordinal), DateTimeOffset.UtcNow);
-            _logger.LogInformation("Named-entity lookup built: {Count} entities", entries.Count);
+            var byName = new List<(string Name, Entry Entry)>();
+            var byPhrase = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
+            foreach (var h in all)
+            {
+                var e = new Entry(h.Envelope.Id, h.Envelope.CanonicalText, h.Envelope.SourceBook);
+                var name = Normal(h.Envelope.Name);
+                if (name.Contains(' ')) byName.Add((name, e));   // one word names too much ("fire", "level")
+                foreach (var phrase in PrintedNames(h.Envelope.CanonicalText).Distinct(StringComparer.Ordinal))
+                {
+                    if (!byPhrase.TryGetValue(phrase, out var list)) byPhrase[phrase] = list = [];
+                    if (list.Count <= MaxTextMatches) list.Add(e);   // past the cap the phrase is skipped anyway
+                }
+            }
+            _snapshot = new Snapshot(byName.ToLookup(x => x.Name, x => x.Entry, StringComparer.Ordinal), byPhrase,
+                DateTimeOffset.UtcNow);
+            _logger.LogInformation("Named-entity lookup built: {Count} entities, {Phrases} printed names",
+                all.Count, byPhrase.Count);
             return _snapshot;
         }
         finally { _gate.Release(); }
