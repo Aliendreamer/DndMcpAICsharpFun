@@ -27,28 +27,41 @@ public sealed partial class ClassTables
 
     internal static string Relabel(string text, string className, IReadOnlyList<string> lines)
     {
-        var rows = text.Split('\n');
-        var first = Array.FindIndex(rows, r => FirstRow().IsMatch(r));
-        if (first < 0) return text;
-        var last = Array.FindIndex(rows, first, r => LastRow().IsMatch(r));
-        if (last < 0) return text;
+        // A caster's slot columns, printed beside the table, are read as a separate run of bare numbers.
+        text = SlotColumns().Replace(text, "");
 
-        // The title and header lines just above the first row ("The Barbarian", "Proficiency Rage", "Level Bonus ...").
-        var start = first;
-        var title = Letters(className);
-        for (var k = first - 1; k >= 0 && k >= first - 4; k--)
+        // Stored texts hold the table on lines or run together on one line: rows are found by their level ordinals.
+        var first = FirstRow().Match(text);
+        if (!first.Success) return text;
+        var last = LastRow().Match(text, first.Index);
+        if (!last.Success) return text;
+
+        // The title just above the first row ("The BArBArian Proficiency Rage Level Bonus ...").
+        var start = first.Index;
+        var lookBack = Math.Max(0, start - 160);
+        var title = new Regex($@"\bThe\s+{Regex.Escape(className)}\b", RegexOptions.IgnoreCase | RegexOptions.RightToLeft)
+            .Match(text, lookBack, start - lookBack);
+        if (title.Success) start = title.Index;
+
+        // The last row runs on until the first word that is not one of its cells: the prose resumes there.
+        var cells = Words(lines[^1]).Append("—").Append("-").ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var end = last.Index + last.Length;
+        foreach (Match w in Word().Matches(text[end..]))
         {
-            if (Letters(rows[k]) == "the" + title) { start = k; break; }
-            if (!rows[k].Contains("Level", StringComparison.OrdinalIgnoreCase)
-                && !rows[k].Contains("Proficiency", StringComparison.OrdinalIgnoreCase)) break;
-            start = k;
+            if (!cells.Contains(Bare(w.Value))) break;
+            end = last.Index + last.Length + w.Index + w.Length;
         }
 
         var table = $"The {className} table, by level:\n" + string.Join("\n", lines);
-        return string.Join("\n", rows[..start].Append(table).Concat(rows[(last + 1)..]));
+        var before = text[..start].TrimEnd();
+        var after = text[end..].TrimStart();
+        return (before.Length > 0 ? before + "\n" : "") + table + (after.Length > 0 ? "\n" + after : "");
     }
 
-    private static string Letters(string s) => new([.. s.ToLowerInvariant().Where(char.IsLetter)]);
+    private static IEnumerable<string> Words(string line) =>
+        Word().Matches(line).Select(m => Bare(m.Value)).Where(w => w.Length > 0);
+
+    private static string Bare(string word) => word.Trim(',', ';', ':', '(', ')');
 
     private static string Key(string? book, string name) => $"{book?.ToUpperInvariant()}|{name.ToLowerInvariant()}";
 
@@ -73,9 +86,15 @@ public sealed partial class ClassTables
         return map;
     }
 
-    [GeneratedRegex(@"^1st \+2\b")]
+    [GeneratedRegex(@"(?<![\w+])1st\s+\+2\b")]
     private static partial Regex FirstRow();
 
-    [GeneratedRegex(@"^20th \+6\b")]
+    [GeneratedRegex(@"(?<![\w+])20th\s+\+6\b")]
     private static partial Regex LastRow();
+
+    [GeneratedRegex(@"(?:\b(?:Cantrips|Spells|Infused)\s+){0,3}-Spell Slots per Spell Level-(?:\s+(?:Known|Items|\d+(?:st|nd|rd|th)|\d+)(?=\s|$))+\s*")]
+    private static partial Regex SlotColumns();
+
+    [GeneratedRegex(@"\S+")]
+    private static partial Regex Word();
 }

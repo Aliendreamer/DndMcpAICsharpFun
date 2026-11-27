@@ -22,7 +22,7 @@ public class ClassTablesTests
        ["5",{"type":"bonus","value":3}],["5",{"type":"bonus","value":3}],["5",{"type":"bonus","value":3}],
        ["5",{"type":"bonus","value":4}],["6",{"type":"bonus","value":4}],["6",{"type":"bonus","value":4}],
        ["6",{"type":"bonus","value":4}],["Unlimited",{"type":"bonus","value":4}]]}],
-     "classFeatures":["Rage|Barbarian||1","Brutal Critical (3 dice)|Barbarian||17","Primal Knowledge|Barbarian||3|TCE"]}
+     "classFeatures":["Rage|Barbarian||1","Brutal Critical (3 dice)|Barbarian||17","Primal Champion|Barbarian||20","Primal Knowledge|Barbarian||3|TCE"]}
     """;
 
     private const string Warlock = """
@@ -90,8 +90,26 @@ public class ClassTablesTests
 
         text.Should().StartWith("with peril: rival tribes, deadly weather, and terrifying\nThe Barbarian table, by level:\nLevel 1:");
         text.Should().Contain("Level 17: proficiency bonus +6; features: Brutal Critical (3 dice); Rages 6; Rage Damage +4");
-        text.Should().EndWith("Level 20: proficiency bonus +6; Rages Unlimited; Rage Damage +4\nmonsters. Barbarians charge headlong into that danger");
+        text.Should().EndWith("Level 20: proficiency bonus +6; features: Primal Champion; Rages Unlimited; Rage Damage +4\nmonsters. Barbarians charge headlong into that danger");
         text.Should().NotContain("17th +6").And.NotContain("Proficiency Rage");
+    }
+
+    [Fact]
+    public void A_table_run_together_on_one_line_is_swapped_too()
+    {
+        var text = ClassTables.Relabel(Printed.Replace('\n', ' '), "Barbarian", Lines(Barbarian));
+
+        text.Should().StartWith("with peril: rival tribes, deadly weather, and terrifying\nThe Barbarian table, by level:\n");
+        text.Should().EndWith("Rages Unlimited; Rage Damage +4\nmonsters. Barbarians charge headlong into that danger");
+        text.Should().NotContain("17th +6");
+    }
+
+    [Fact]
+    public void The_slot_columns_read_apart_as_bare_numbers_are_dropped()
+    {
+        var text = "acolyte background. Cantrips -Spell Slots per Spell Level- Known 1st 2nd 3rd 3 2 3 3 4 4 3 2 Class Features As a cleric";
+
+        ClassTables.Relabel(text, "Cleric", Lines(Barbarian)).Should().Be("acolyte background. Class Features As a cleric");
     }
 
     [Fact]
