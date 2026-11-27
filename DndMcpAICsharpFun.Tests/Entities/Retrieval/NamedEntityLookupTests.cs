@@ -61,6 +61,16 @@ public sealed class NamedEntityLookupTests
     }
 
     [Fact]
+    public async Task The_entry_that_introduces_a_feature_comes_before_those_that_refer_back_to_it()
+    {
+        var found = await Index(
+            Hit("xge.subclass.drunken-master", "Way of the Drunken Master", EntityType.Subclass,
+                "When you use your Flurry of Blows, you gain more. Whenever you use Flurry of Blows, you move."),
+            Corpus[0]).FindAsync("Flurry of Blows", null, CancellationToken.None);
+        found.Select(f => f.Id).Should().Equal("phb14.class.monk", "xge.subclass.drunken-master");
+    }
+
+    [Fact]
     public async Task An_entity_name_match_comes_before_a_feature_match()
     {
         var found = await Index(Corpus).FindAsync(

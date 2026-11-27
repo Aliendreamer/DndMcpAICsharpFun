@@ -61,10 +61,27 @@ public sealed partial class NamedEntityLookup
             var inText = snap.Entries.Where(e => InBook(e) && e.Text.Contains(needle, StringComparison.Ordinal))
                 .Take(MaxTextMatches + 1).ToList();
             if (inText.Count > MaxTextMatches) continue;
-            foreach (var e in inText) Keep(e.Id, phrase.Length);
+            // An entry that introduces the feature outranks one that only refers back to it ("your Flurry of Blows").
+            foreach (var e in inText) Keep(e.Id, phrase.Length + (Introduces(e.Text, needle) ? 1 : 0));
         }
         void Keep(string id, int rank) => found[id] = Math.Max(found.GetValueOrDefault(id), rank);
         return [.. found.OrderByDescending(kv => kv.Value).Select(kv => (kv.Key, kv.Value))];
+    }
+
+    private static readonly HashSet<string> ReferenceWords =
+        new(["your", "use", "uses", "using", "the", "with", "of", "its", "their", "his", "her"], StringComparer.Ordinal);
+
+    // Some mention of the phrase not preceded by a word that points back to it.
+    private static bool Introduces(string text, string needle)
+    {
+        for (var at = text.IndexOf(needle, StringComparison.Ordinal); at >= 0;
+             at = text.IndexOf(needle, at + 1, StringComparison.Ordinal))
+        {
+            if (at == 0) return true;
+            var start = text.LastIndexOf(' ', at - 1) + 1;
+            if (!ReferenceWords.Contains(text[start..at])) return true;
+        }
+        return false;
     }
 
     /// <summary>Capitalised runs of two to five words ("Flurry of Blows", "Gloom Stalker's" → "Gloom Stalker").</summary>
