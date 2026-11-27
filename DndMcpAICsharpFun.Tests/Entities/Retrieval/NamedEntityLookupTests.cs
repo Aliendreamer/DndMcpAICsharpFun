@@ -101,11 +101,51 @@ public sealed class NamedEntityLookupTests
     }
 
     [Fact]
-    public async Task A_phrase_in_many_entities_names_none_and_the_book_filter_holds()
+    public async Task A_phrase_in_many_entities_names_none()
     {
         var many = Enumerable.Range(0, 7).Select(i => Hit($"x{i}", $"X{i}", EntityType.Rule, "you take the Attack Action here")).ToArray();
         (await Index(many).FindAsync("the Attack Action", null, CancellationToken.None)).Should().BeEmpty();
-        (await Index(Corpus).FindAsync("Gloom Stalker", "PHB", CancellationToken.None)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task The_book_filter_holds_for_a_name_the_book_has_and_yields_for_one_it_lacks()
+    {
+        var corpus = Corpus.Append(Hit("mpmm.monster.juiblex", "Juiblex", EntityType.Monster, "Ooze lord.", "MPMM"))
+            .Append(Hit("mtf.monster.juiblex", "Juiblex", EntityType.Monster, "Ooze lord.", "MTF")).ToArray();
+        (await Index(corpus).FindAsync("Juiblex lair", "MTF", CancellationToken.None))
+            .Select(f => f.Id).Should().Equal("mtf.monster.juiblex");
+        // The model guessed the PHB; the subclass is in Xanathar's.
+        (await Index(corpus).FindAsync("Gloom Stalker subclass", "PHB", CancellationToken.None))
+            .Select(f => f.Id).Should().Equal("xge.subclass.gloom-stalker");
+    }
+
+    [Fact]
+    public async Task A_capitalised_one_word_name_or_heading_names_its_entity()
+    {
+        var corpus = Corpus
+            .Append(Hit("xge.subclass.samurai", "Samurai", EntityType.Subclass, "Samurai (Fighter subclass).", "XGE"))
+            .Append(Hit("phb14.class.fighter", "Fighter", EntityType.Class,
+                "Fighter — d10 hit die. Second Wind. You heal. Indomitable. Beginning at 9th level, you can reroll a saving throw."))
+            .Append(Hit("phb14.rule.fire", "Fire", EntityType.Rule, "Fire burns."))
+            .ToArray();
+        var index = Index(corpus);
+
+        (await index.FindAsync("Samurai subclass", "PHB", CancellationToken.None))
+            .Select(f => f.Id).Should().Equal("xge.subclass.samurai");
+        (await index.FindAsync("Indomitable", null, CancellationToken.None))
+            .Select(f => f.Id).Should().Equal("phb14.class.fighter");
+        // Lower case, or a one-word Rule title, names nothing.
+        (await index.FindAsync("indomitable samurai", null, CancellationToken.None)).Should().BeEmpty();
+        (await index.FindAsync("Fire damage", null, CancellationToken.None)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Heading_words_are_one_word_paragraph_openers()
+    {
+        NamedEntityLookup.HeadingWords("Second Wind. You heal. Indomitable. Beginning at 9th level. Evasion (Rogue). When")
+            .Should().Equal("indomitable", "evasion");
+        NamedEntityLookup.CapitalisedWords("How often can I use Indomitable at 13th level?")
+            .Should().Equal("indomitable");
     }
 
     [Fact]

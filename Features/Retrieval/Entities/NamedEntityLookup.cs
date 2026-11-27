@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 
+using DndMcpAICsharpFun.Domain.Entities;
 using DndMcpAICsharpFun.Features.VectorStore.Entities;
 
 namespace DndMcpAICsharpFun.Features.Retrieval.Entities;
@@ -44,29 +45,58 @@ public sealed partial class NamedEntityLookup
 
     private sealed record Entry(string Id, string Raw, string SourceBook);
     private sealed record Snapshot(
-        ILookup<string, Entry> ByName, IReadOnlyDictionary<string, List<Entry>> ByPhrase, DateTimeOffset BuiltAt);
+        ILookup<string, Entry> ByName, ILookup<string, Entry> ByWordName,
+        IReadOnlyDictionary<string, List<Entry>> ByPhrase, IReadOnlyDictionary<string, List<Entry>> ByHeadingWord,
+        DateTimeOffset BuiltAt);
 
     /// <summary>The ids the query names, with the length of the naming phrase; a whole-name match first.</summary>
     public async Task<IReadOnlyList<(string Id, int NameLength)>> FindAsync(
         string query, string? sourceBook, CancellationToken ct)
     {
         var phrases = Phrases(query);
-        if (phrases.Count == 0) return [];
+        var words = CapitalisedWords(query);
+        if (phrases.Count == 0 && words.Count == 0) return [];
         var snap = await GetAsync(ct);
         bool InBook(Entry e) => sourceBook is null || string.Equals(e.SourceBook, sourceBook, StringComparison.OrdinalIgnoreCase);
+        // The book is the model's guess: a name it does not hold ("Samurai" with PHB) is found in the book that does.
+        IEnumerable<Entry> Named(IEnumerable<Entry> all) { var inBook = all.Where(InBook).ToList(); return inBook.Count > 0 ? inBook : all; }
 
         var found = new Dictionary<string, int>(StringComparer.Ordinal);
         void Keep(string id, int rank) => found[id] = Math.Max(found.GetValueOrDefault(id), rank);
         foreach (var phrase in phrases)
         {
-            foreach (var e in snap.ByName[phrase].Where(InBook)) Keep(e.Id, 1000 + phrase.Length);
+            foreach (var e in Named(snap.ByName[phrase])) Keep(e.Id, 1000 + phrase.Length);
             if (!snap.ByPhrase.TryGetValue(phrase, out var holders) || holders.Count > MaxTextMatches) continue;
             // The entry that heads the feature outranks those that only mention it ("your Flurry of Blows").
             var heading = Heading(phrase);
             foreach (var e in holders.Where(InBook)) Keep(e.Id, phrase.Length + (heading.IsMatch(e.Raw) ? 1 : 0));
         }
+        // One word names too much in lower case ("fire", "level"); written capitalised it names a thing:
+        // "Samurai" the subclass, "Indomitable" the feature that heads a paragraph of the fighter.
+        foreach (var word in words)
+        {
+            var byName = snap.ByWordName[word].ToList();
+            if (byName.Count <= MaxTextMatches) foreach (var e in Named(byName)) Keep(e.Id, 1000 + word.Length);
+            if (snap.ByHeadingWord.TryGetValue(word, out var heads) && heads.Count <= MaxTextMatches)
+                foreach (var e in heads.Where(InBook)) Keep(e.Id, word.Length + 1);
+        }
         return [.. found.OrderByDescending(kv => kv.Value).Select(kv => (kv.Key, kv.Value))];
     }
+
+    /// <summary>The query's words written with a capital, of four letters or more, in normal form.</summary>
+    internal static IReadOnlyList<string> CapitalisedWords(string query) =>
+        [.. CapitalisedWord().Matches(query).Select(m => Normal(m.Value)).Distinct(StringComparer.Ordinal)];
+
+    [GeneratedRegex(@"(?<![\p{L}'’-])\p{Lu}[\p{L}'’-]{3,}")]
+    private static partial Regex CapitalisedWord();
+
+    /// <summary>The one-word headings a text prints: a paragraph opened by a single word and a full stop
+    /// ("Indomitable. Beginning at 9th level…"), at a line start or after a sentence (lost line breaks).</summary>
+    internal static IEnumerable<string> HeadingWords(string text) =>
+        HeadingWord().Matches(text).Select(m => Normal(m.Groups[1].Value)).Distinct(StringComparer.Ordinal);
+
+    [GeneratedRegex(@"(?:^|[.!?]\s+)(\p{Lu}[\p{L}'’-]{3,})(?: \([^)\n]*\))?\.\s+\p{Lu}", RegexOptions.Multiline)]
+    private static partial Regex HeadingWord();
 
     // The phrase as a heading: opening a line before "." or ":", or run into the next sentence's capital
     // ("…modifier Flurry of Blows Immediately after…", where the line break was lost).
@@ -123,19 +153,28 @@ public sealed partial class NamedEntityLookup
             if (_snapshot is { } s && DateTimeOffset.UtcNow - s.BuiltAt < MaxAge) return s;
             var all = await _scrollAll(ct);
             var byName = new List<(string Name, Entry Entry)>();
+            var byWordName = new List<(string Name, Entry Entry)>();
             var byPhrase = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
+            var byHeadingWord = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
+            static void Add(Dictionary<string, List<Entry>> index, string key, Entry e)
+            {
+                if (!index.TryGetValue(key, out var list)) index[key] = list = [];
+                if (list.Count <= MaxTextMatches) list.Add(e);   // past the cap the key is skipped anyway
+            }
             foreach (var h in all)
             {
                 var e = new Entry(h.Envelope.Id, h.Envelope.CanonicalText, h.Envelope.SourceBook);
                 var name = Normal(h.Envelope.Name);
-                if (name.Contains(' ')) byName.Add((name, e));   // one word names too much ("fire", "level")
+                if (name.Contains(' ')) byName.Add((name, e));
+                // A one-word Rule or Lore title is a topic ("Fire", "Cover"), not a thing the question names.
+                else if (h.Envelope.Type is not (EntityType.Rule or EntityType.Lore)) byWordName.Add((name, e));
                 foreach (var phrase in PrintedNames(h.Envelope.CanonicalText).Distinct(StringComparer.Ordinal))
-                {
-                    if (!byPhrase.TryGetValue(phrase, out var list)) byPhrase[phrase] = list = [];
-                    if (list.Count <= MaxTextMatches) list.Add(e);   // past the cap the phrase is skipped anyway
-                }
+                    Add(byPhrase, phrase, e);
+                if (h.Envelope.Type is not (EntityType.Rule or EntityType.Lore))
+                    foreach (var word in HeadingWords(h.Envelope.CanonicalText)) Add(byHeadingWord, word, e);
             }
-            _snapshot = new Snapshot(byName.ToLookup(x => x.Name, x => x.Entry, StringComparer.Ordinal), byPhrase,
+            _snapshot = new Snapshot(byName.ToLookup(x => x.Name, x => x.Entry, StringComparer.Ordinal),
+                byWordName.ToLookup(x => x.Name, x => x.Entry, StringComparer.Ordinal), byPhrase, byHeadingWord,
                 DateTimeOffset.UtcNow);
             _logger.LogInformation("Named-entity lookup built: {Count} entities, {Phrases} printed names",
                 all.Count, byPhrase.Count);
