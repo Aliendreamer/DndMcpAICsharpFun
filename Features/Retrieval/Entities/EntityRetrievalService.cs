@@ -226,6 +226,8 @@ public sealed partial class EntityRetrievalService(
             })
             .Where(r => ofType is null || r.Named || ofType.Contains(r.Hit.Envelope.Id))
             .OrderByDescending(r => r.NameRank)
+            // On a tie the asked type wins: "banshee" as a Monster is the stat block, not the Banshee lore.
+            .ThenByDescending(r => ofType is not null && ofType.Contains(r.Hit.Envelope.Id))
             .Take(topK)
             .ToList();
     }

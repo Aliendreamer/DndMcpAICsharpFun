@@ -170,4 +170,31 @@ public sealed class NamedEntityLookupTests
         results.Select(r => r.Id).Should().Equal("phb14.class.monk", "mm14.monster.elder-tempest");
         results[0].Snippet.Should().Contain("two unarmed strikes");
     }
+
+    [Fact]
+    public async Task On_a_name_tie_the_asked_type_comes_first()
+    {
+        EntitySearchHit[] corpus =
+        [
+            Hit("mm14.lore.banshee", "Banshee", EntityType.Lore, "Banshee. The banshee is a spiteful undead."),
+            Hit("mm14.monster.banshee", "Banshee", EntityType.Monster, "Wail. Each creature must make a DC 13 save."),
+        ];
+        var store = Store(corpus);
+        store.SearchAsync(Arg.Any<float[]>(), Arg.Any<EntityFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Task.FromResult<IList<EntitySearchHit>>(ci.Arg<EntityFilters>().Type is null
+                ? [corpus[0], corpus[1]] : [corpus[1]]));
+        var emb = Substitute.For<IEmbeddingService>();
+        emb.EmbedAsync(Arg.Any<IList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IList<float[]>>([new[] { 0.1f, 0.2f }]));
+        var rerankOpts = new RerankerOptions { Enabled = false };
+        var sut = new EntityRetrievalService(emb, store, Options.Create(new RetrievalOptions()),
+            new RerankingService(Substitute.For<IReranker>(), Options.Create(rerankOpts)), Options.Create(rerankOpts),
+            new SpellClassIndex("__no_5etools_dir__"), new NamedEntityLookup(store, NullLogger<NamedEntityLookup>.Instance));
+
+        var results = await sut.SearchAsync(
+            new EntitySearchQuery("banshee", EntityType.Monster, null, null, null, null, null, null, null, null, null, TopK: 1),
+            CancellationToken.None);
+
+        results.Select(r => r.Id).Should().Equal("mm14.monster.banshee");
+    }
 }
